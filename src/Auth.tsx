@@ -677,7 +677,7 @@ export default function Auth({
               <form onSubmit={handleAuth} className="af-form" noValidate>
                 {/* Display name — signup only */}
                 {isSignUp && (
-                  <div className="af-field af-field-anim" style={{ animationDelay: '0.05s' }}>
+                  <div className="af-field af-field-anim" style={{ animationDelay: "0.05s" }}>
                     <label className="af-lbl" htmlFor="af-name">
                       Full Name{" "}
                       <span style={{ fontSize: 11, fontWeight: 400, color: "#9CA3AF" }}>
@@ -705,7 +705,10 @@ export default function Auth({
                 )}
 
                 {/* Email */}
-                <div className="af-field af-field-anim" style={{ animationDelay: isSignUp ? '0.1s' : '0.05s' }}>
+                <div
+                  className="af-field af-field-anim"
+                  style={{ animationDelay: isSignUp ? "0.1s" : "0.05s" }}
+                >
                   <label className="af-lbl" htmlFor="af-email">
                     Email address
                   </label>
@@ -742,7 +745,10 @@ export default function Auth({
 
                 {/* Password */}
                 {!isForgot && (
-                  <div className="af-field af-field-anim" style={{ animationDelay: isSignUp ? '0.15s' : '0.1s' }}>
+                  <div
+                    className="af-field af-field-anim"
+                    style={{ animationDelay: isSignUp ? "0.15s" : "0.1s" }}
+                  >
                     <label className="af-lbl" htmlFor="af-pass">
                       Password
                     </label>
@@ -824,7 +830,7 @@ export default function Auth({
 
                 {/* Confirm password — signup only */}
                 {isSignUp && (
-                  <div className="af-field af-field-anim" style={{ animationDelay: '0.2s' }}>
+                  <div className="af-field af-field-anim" style={{ animationDelay: "0.2s" }}>
                     <label className="af-lbl" htmlFor="af-confirmpass">
                       Confirm Password
                     </label>
@@ -884,7 +890,7 @@ export default function Auth({
 
                 {/* Remember me + Forgot password — login only */}
                 {!isForgot && !isSignUp && (
-                  <div className="af-meta-row af-field-anim" style={{ animationDelay: '0.15s' }}>
+                  <div className="af-meta-row af-field-anim" style={{ animationDelay: "0.15s" }}>
                     <label className="af-remember">
                       <input
                         type="checkbox"
@@ -901,7 +907,12 @@ export default function Auth({
                 )}
 
                 {/* Primary CTA */}
-                <button type="submit" disabled={loading} className="af-cta-btn af-field-anim" style={{ animationDelay: '0.2s' }}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="af-cta-btn af-field-anim"
+                  style={{ animationDelay: "0.2s" }}
+                >
                   {loading ? (
                     <Loader2 size={18} className="af-spin" aria-hidden="true" />
                   ) : (

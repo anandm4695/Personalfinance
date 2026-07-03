@@ -10,9 +10,7 @@ function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY;
   if (!url || !key) {
-    throw new Error(
-      "Supabase env vars not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)"
-    );
+    throw new Error("Supabase env vars not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)");
   }
   return createClient(url, key);
 }
@@ -46,7 +44,7 @@ module.exports = async function handler(req, res) {
   // Basic security check: Vercel CRON key or authorization header
   const authHeader = req.headers.authorization;
   const isCron = req.headers["x-vercel-cron"] === "true";
-  
+
   if (!isCron && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     // If not Vercel Cron and no secret, check a simple query param as fallback for easy manual debugging
     const { secret } = req.query;
@@ -63,10 +61,12 @@ module.exports = async function handler(req, res) {
       .from("stocks")
       .select("symbol")
       .not("symbol", "is", null);
-      
+
     if (stockErr) throw stockErr;
 
-    const uniqueSymbols = [...new Set(stocks.map((s) => s.symbol.trim().toUpperCase()))].filter(Boolean);
+    const uniqueSymbols = [...new Set(stocks.map((s) => s.symbol.trim().toUpperCase()))].filter(
+      Boolean
+    );
 
     // 2. Fetch all active mutual fund codes
     const { data: mfs, error: mfErr } = await supabase
@@ -76,7 +76,9 @@ module.exports = async function handler(req, res) {
 
     if (mfErr) throw mfErr;
 
-    const uniqueMfCodes = [...new Set(mfs.map((m) => m.mf_code.trim()))].filter((code) => /^\d+$/.test(code));
+    const uniqueMfCodes = [...new Set(mfs.map((m) => m.mf_code.trim()))].filter((code) =>
+      /^\d+$/.test(code)
+    );
 
     const stockResults = { updated: 0, failed: [] };
     const mfResults = { updated: 0, failed: [] };
@@ -86,8 +88,9 @@ module.exports = async function handler(req, res) {
       uniqueSymbols.map(async (sym) => {
         try {
           const quote = await yf.quote(sym, {}, { validateResult: false });
-          const price = quote?.regularMarketPrice ?? quote?.postMarketPrice ?? quote?.preMarketPrice;
-          
+          const price =
+            quote?.regularMarketPrice ?? quote?.postMarketPrice ?? quote?.preMarketPrice;
+
           if (price != null && !isNaN(price)) {
             const { error } = await supabase
               .from("stocks")

@@ -27,7 +27,9 @@ export function useTheme(settings: {
   // Apply theme CSS vars whenever darkMode, accentKey, or other UI settings change
   useEffect(() => {
     const vars = darkMode ? DARK_VARS : LIGHT_VARS;
-    const palette = (ACCENT_PALETTES as Record<string, typeof ACCENT_PALETTES.blue>)[accentKey] || ACCENT_PALETTES.blue;
+    const palette =
+      (ACCENT_PALETTES as Record<string, typeof ACCENT_PALETTES.blue>)[accentKey] ||
+      ACCENT_PALETTES.blue;
     const d = (DENSITY as Record<string, typeof DENSITY.normal>)[density] || DENSITY.normal;
 
     const radiuses: Record<string, string> = { sharp: "4px", modern: "12px", round: "24px" };

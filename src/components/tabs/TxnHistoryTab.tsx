@@ -130,7 +130,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const mfBoughtInFY = useMemo(
     () =>
       (state.mutualFunds || [])
-        .filter((m: any) => inFY(m.buyDate) && matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`))
+        .filter(
+          (m: any) =>
+            inFY(m.buyDate) &&
+            matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`)
+        )
         .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
     [state.mutualFunds, inFY, matchesSearch]
   );
@@ -138,7 +142,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const mfSoldInFY = useMemo(
     () =>
       (state.mfSells || [])
-        .filter((m: any) => inFY(m.sellDate) && matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`))
+        .filter(
+          (m: any) =>
+            inFY(m.sellDate) &&
+            matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`)
+        )
         .sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
     [state.mfSells, inFY, matchesSearch]
   );

@@ -154,7 +154,9 @@ function computeSummary(state) {
 
     const hasPassbook = txs.some(
       (t) =>
-        t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in"
+        t.type === "monthly_contribution" ||
+        t.type === "interest_credit" ||
+        t.type === "transfer_in"
     );
 
     if (!hasPassbook) {
@@ -247,8 +249,12 @@ function computeSummary(state) {
   const npsTotal = (state.nps || []).reduce((s, x) => {
     const bal = Number(x.balance) || 0;
     if (bal > 0) return s + bal;
-    return s + (x.transactions || []).reduce(
-      (ss, t) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+    return (
+      s +
+      (x.transactions || []).reduce(
+        (ss, t) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+        0
+      )
     );
   }, 0);
   const epfTotal = (state.epf || []).reduce((s, x) => s + calculateEpfBalance(x), 0);
@@ -283,7 +289,7 @@ function computeSummary(state) {
   const goldPricePerGram = state.settings?.goldPricePerGram || state.goldPricePerGram || 7200;
   const goldTotal = (state.goldHoldings || []).reduce((s, h) => {
     const grams = Number(h.grams || 0);
-    const purityMul = h.type === "physical" ? (PURITY_FACTOR[h.purity] || 1) : 1;
+    const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
     return s + grams * goldPricePerGram * purityMul;
   }, 0);
 
@@ -356,11 +362,16 @@ function computeSummary(state) {
   const ccGroupPools = {};
   activeCards.forEach((c) => {
     if (c.sharedGroup) {
-      ccGroupPools[c.sharedGroup] = Math.max(ccGroupPools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+      ccGroupPools[c.sharedGroup] = Math.max(
+        ccGroupPools[c.sharedGroup] || 0,
+        Number(c.sharedGroupLimit) || 0
+      );
     }
   });
   const creditLimit =
-    activeCards.filter((c) => !c.sharedGroup).reduce((s, c) => s + (Number(c.limit || c.cardLimit) || 0), 0) +
+    activeCards
+      .filter((c) => !c.sharedGroup)
+      .reduce((s, c) => s + (Number(c.limit || c.cardLimit) || 0), 0) +
     Object.values(ccGroupPools).reduce((s, v) => s + v, 0);
   const creditUtil = creditLimit > 0 ? Math.round((creditOutstanding / creditLimit) * 100) : 0;
 
@@ -403,7 +414,11 @@ function computeSummary(state) {
   })();
 
   const totalLiabilities =
-    creditOutstanding + loanOutstanding + rentalDepositLiability + informalBorrowedTotal + realEstateOutstanding;
+    creditOutstanding +
+    loanOutstanding +
+    rentalDepositLiability +
+    informalBorrowedTotal +
+    realEstateOutstanding;
   const netWorth = totalAssets - totalLiabilities;
 
   // ── Cash flow (current month) ──────────────────────────────────────────────
@@ -428,7 +443,9 @@ function computeSummary(state) {
 
   // Only add rental-ledger rent when no "Rent"-category debit txn exists this month —
   // prevents double-counting when the user already logged rent in the transactions tab.
-  const hasRentTxn = monthTxns.some((t) => t.type === "debit" && (t.category || "").toLowerCase() === "rent");
+  const hasRentTxn = monthTxns.some(
+    (t) => t.type === "debit" && (t.category || "").toLowerCase() === "rent"
+  );
   const monthExpense =
     monthTxns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0) +
     (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
@@ -819,7 +836,11 @@ function generateHTML(summary, frequency, recipientName) {
 
   // ── Upcoming dues rows ────────────────────────────────────────────────────
   const _todayVal = nowIST();
-  const todayMs = Date.UTC(_todayVal.getUTCFullYear(), _todayVal.getUTCMonth(), _todayVal.getUTCDate());
+  const todayMs = Date.UTC(
+    _todayVal.getUTCFullYear(),
+    _todayVal.getUTCMonth(),
+    _todayVal.getUTCDate()
+  );
   const dueRows = dues
     .slice(0, 6)
     .map((d, i) => {
@@ -937,17 +958,59 @@ function generateHTML(summary, frequency, recipientName) {
   // ── Investment portfolio rows (all types) ─────────────────────────────────
   rowIdx = 0;
   const investRows = [
-    mfTotal > 0 && listRow("Mutual Funds", `${fmtINR(mfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(mfTotal, investTotal)}%)</span>`),
-    stockTotal > 0 && listRow("Stocks", `${fmtINR(stockTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(stockTotal, investTotal)}%)</span>`),
-    fdTotal > 0 && listRow("Fixed Deposits", `${fmtINR(fdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(fdTotal, investTotal)}%)</span>`),
-    rdTotal > 0 && listRow("Recurring Deposits", `${fmtINR(rdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(rdTotal, investTotal)}%)</span>`),
-    ppfTotal > 0 && listRow("PPF", `${fmtINR(ppfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(ppfTotal, investTotal)}%)</span>`),
-    npsTotal > 0 && listRow("NPS", `${fmtINR(npsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(npsTotal, investTotal)}%)</span>`),
-    epfTotal > 0 && listRow("EPF", `${fmtINR(epfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(epfTotal, investTotal)}%)</span>`),
-    bondsTotal > 0 && listRow("Bonds & Debentures", `${fmtINR(bondsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(bondsTotal, investTotal)}%)</span>`),
-    licTotal > 0 && listRow("LIC / Insurance", `${fmtINR(licTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(licTotal, investTotal)}%)</span>`),
-    investmentTotalPlans > 0 && listRow("Investment Plans", `${fmtINR(investmentTotalPlans)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(investmentTotalPlans, investTotal)}%)</span>`),
-  ].filter(Boolean).join("");
+    mfTotal > 0 &&
+      listRow(
+        "Mutual Funds",
+        `${fmtINR(mfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(mfTotal, investTotal)}%)</span>`
+      ),
+    stockTotal > 0 &&
+      listRow(
+        "Stocks",
+        `${fmtINR(stockTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(stockTotal, investTotal)}%)</span>`
+      ),
+    fdTotal > 0 &&
+      listRow(
+        "Fixed Deposits",
+        `${fmtINR(fdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(fdTotal, investTotal)}%)</span>`
+      ),
+    rdTotal > 0 &&
+      listRow(
+        "Recurring Deposits",
+        `${fmtINR(rdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(rdTotal, investTotal)}%)</span>`
+      ),
+    ppfTotal > 0 &&
+      listRow(
+        "PPF",
+        `${fmtINR(ppfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(ppfTotal, investTotal)}%)</span>`
+      ),
+    npsTotal > 0 &&
+      listRow(
+        "NPS",
+        `${fmtINR(npsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(npsTotal, investTotal)}%)</span>`
+      ),
+    epfTotal > 0 &&
+      listRow(
+        "EPF",
+        `${fmtINR(epfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(epfTotal, investTotal)}%)</span>`
+      ),
+    bondsTotal > 0 &&
+      listRow(
+        "Bonds & Debentures",
+        `${fmtINR(bondsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(bondsTotal, investTotal)}%)</span>`
+      ),
+    licTotal > 0 &&
+      listRow(
+        "LIC / Insurance",
+        `${fmtINR(licTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(licTotal, investTotal)}%)</span>`
+      ),
+    investmentTotalPlans > 0 &&
+      listRow(
+        "Investment Plans",
+        `${fmtINR(investmentTotalPlans)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(investmentTotalPlans, investTotal)}%)</span>`
+      ),
+  ]
+    .filter(Boolean)
+    .join("");
 
   // ── Other assets rows ─────────────────────────────────────────────────────
   rowIdx = 0;
@@ -960,23 +1023,31 @@ function generateHTML(summary, frequency, recipientName) {
     informalLentTotal > 0 && listRow("Informal Lending", fmtINR(informalLentTotal), "💰"),
     prepaidTotal > 0 && listRow("Prepaid Cards", fmtINR(prepaidTotal), "💳"),
     rentedDepositAsset > 0 && listRow("Security Deposits", fmtINR(rentedDepositAsset), "🔑"),
-  ].filter(Boolean).join("");
+  ]
+    .filter(Boolean)
+    .join("");
 
   // ── Liabilities rows ──────────────────────────────────────────────────────
   rowIdx = 0;
   const liabilityItems = [
     loanOutstanding > 0 && listRow("Loans Outstanding", fmtINR(loanOutstanding), "🏦"),
     creditOutstanding > 0 && listRow("Credit Card Dues", fmtINR(creditOutstanding), "💳"),
-    informalBorrowedTotal > 0 && listRow("Informal Borrowings", fmtINR(informalBorrowedTotal), "🤝"),
-    rentalDepositLiability > 0 && listRow("Tenant Deposits Owed", fmtINR(rentalDepositLiability), "🔑"),
+    informalBorrowedTotal > 0 &&
+      listRow("Informal Borrowings", fmtINR(informalBorrowedTotal), "🤝"),
+    rentalDepositLiability > 0 &&
+      listRow("Tenant Deposits Owed", fmtINR(rentalDepositLiability), "🔑"),
     realEstateOutstanding > 0 && listRow("Real Estate Dues", fmtINR(realEstateOutstanding), "🏗️"),
-  ].filter(Boolean).join("");
+  ]
+    .filter(Boolean)
+    .join("");
 
   // ── Budget health rows ────────────────────────────────────────────────────
-  const budgetRows = budgetStatus.slice(0, 6).map((b, i) => {
-    const barColor = b.over ? negColor : b.pct >= 80 ? warnColor : posColor;
-    const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
-    return `
+  const budgetRows = budgetStatus
+    .slice(0, 6)
+    .map((b, i) => {
+      const barColor = b.over ? negColor : b.pct >= 80 ? warnColor : posColor;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
+      return `
     <tr><td style="padding:14px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
@@ -986,7 +1057,8 @@ function generateHTML(summary, frequency, recipientName) {
       </table>
       ${progressBar(Math.min(b.pct, 100), barColor, 8)}
     </td></tr>`;
-  }).join("");
+    })
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -1075,7 +1147,7 @@ function generateHTML(summary, frequency, recipientName) {
   <tr><td style="padding:4px 28px 12px;background:${cardBg};">
     <div style="background:#eef2ff;border-left:4px solid ${accentColor};border-radius:0 8px 8px 0;padding:14px 16px;">
       <div style="font-size:28px;font-weight:900;color:${accentColor};letter-spacing:-0.02em;">${fmtINRFull(investTotal)}</div>
-      <div style="font-size:12px;color:${textMuted};margin-top:4px;font-weight:500;">Total invested across ${[mfTotal, stockTotal, fdTotal, rdTotal, ppfTotal, npsTotal, epfTotal, bondsTotal, licTotal, investmentTotalPlans].filter(v => v > 0).length} categories</div>
+      <div style="font-size:12px;color:${textMuted};margin-top:4px;font-weight:500;">Total invested across ${[mfTotal, stockTotal, fdTotal, rdTotal, ppfTotal, npsTotal, epfTotal, bondsTotal, licTotal, investmentTotalPlans].filter((v) => v > 0).length} categories</div>
     </div>
   </td></tr>
   <tr><td style="background:${cardBg};">

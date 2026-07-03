@@ -22,7 +22,14 @@ import {
   X,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, monthsBetween, rdMaturity, calculateEpfBalance } from "../../utils/finance";
+import {
+  fmtINR,
+  fmtINRFull,
+  today,
+  monthsBetween,
+  rdMaturity,
+  calculateEpfBalance,
+} from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -38,29 +45,140 @@ import { Field, Input, Select } from "../ui/Form";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const assetTypes = [
-  { key: "bankAccounts", label: "Bank Account", nameField: "bankName", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
-  { key: "fixedDeposits", label: "Fixed Deposit", nameField: "bank", valueField: "principal", idLabel: (a: any) => `${fmtINRFull(a.principal)} @ ${a.rate}%` },
-  { key: "recurringDeposits", label: "Recurring Deposit", nameField: "bank", valueField: null, calcValue: (a: any) => {
-    const elapsed = a.startDate ? Math.min(Number(a.tenureMonths || 0), Math.max(0, monthsBetween(a.startDate, today()))) : Number(a.tenureMonths || 0);
-    return rdMaturity(Number(a.monthly || 0), Number(a.rate || 0), elapsed);
-  }, idLabel: (a: any) => `${fmtINRFull(a.monthly)}/mo` },
-  { key: "mutualFunds", label: "Mutual Fund", nameField: "name", valueField: null, calcValue: (a: any) => (a.units || 0) * (a.currentNav || a.buyNav || 0), idLabel: (a: any) => a.folio || "" },
-  { key: "stocks", label: "Stock Holding", nameField: "symbol", valueField: null, calcValue: (a: any) => (a.qty || 0) * (a.currentPrice || a.avgPrice || 0), idLabel: (a: any) => a.exchange || "" },
-  { key: "bonds", label: "Bond", nameField: "name", valueField: null, calcValue: (a: any) => Number(a.totalInvestmentAmount || a.totalPrincipalAmount || a.faceValue || 0), idLabel: (a: any) => a.isin || "" },
-  { key: "goldHoldings", label: "Gold / SGB", nameField: "type", valueField: null, calcValue: (a: any) => Number(a.currentValue || a.investedAmount || 0), idLabel: (a: any) => a.subType || a.form || "" },
-  { key: "demat", label: "Demat Account", nameField: "broker", valueField: null, calcValue: () => 0, idLabel: (a: any) => a.accountId || a.dpId || "" },
-  { key: "ppf", label: "PPF", nameField: "institution", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
-  { key: "nps", label: "NPS", nameField: "fundManager", valueField: null, calcValue: (a: any) => {
-    const bal = Number(a.balance) || 0;
-    if (bal > 0) return bal;
-    return (a.transactions || []).reduce((s: number, t: any) => s + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0);
-  }, idLabel: (a: any) => a.pran || "" },
-  { key: "epf", label: "EPF", nameField: "employer", valueField: null, calcValue: (a: any) => calculateEpfBalance(a), idLabel: (a: any) => a.uan || "" },
-  { key: "lic", label: "LIC Policy", nameField: "planName", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },
-  { key: "termPlans", label: "Term Plan", nameField: "insurer", valueField: "coverAmount", idLabel: (a: any) => a.policyNumber || "" },
-  { key: "investmentPlans", label: "Investment Plan", nameField: "insurer", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },
-  { key: "realEstateProperties", label: "Real Estate", nameField: "name", valueField: "marketValue", idLabel: (a: any) => a.location || "" },
-  { key: "vehicles", label: "Vehicle", nameField: "name", valueField: "currentValue", idLabel: (a: any) => a.registration || "" },
+  {
+    key: "bankAccounts",
+    label: "Bank Account",
+    nameField: "bankName",
+    valueField: "balance",
+    idLabel: (a: any) => a.accountNumber || "",
+  },
+  {
+    key: "fixedDeposits",
+    label: "Fixed Deposit",
+    nameField: "bank",
+    valueField: "principal",
+    idLabel: (a: any) => `${fmtINRFull(a.principal)} @ ${a.rate}%`,
+  },
+  {
+    key: "recurringDeposits",
+    label: "Recurring Deposit",
+    nameField: "bank",
+    valueField: null,
+    calcValue: (a: any) => {
+      const elapsed = a.startDate
+        ? Math.min(Number(a.tenureMonths || 0), Math.max(0, monthsBetween(a.startDate, today())))
+        : Number(a.tenureMonths || 0);
+      return rdMaturity(Number(a.monthly || 0), Number(a.rate || 0), elapsed);
+    },
+    idLabel: (a: any) => `${fmtINRFull(a.monthly)}/mo`,
+  },
+  {
+    key: "mutualFunds",
+    label: "Mutual Fund",
+    nameField: "name",
+    valueField: null,
+    calcValue: (a: any) => (a.units || 0) * (a.currentNav || a.buyNav || 0),
+    idLabel: (a: any) => a.folio || "",
+  },
+  {
+    key: "stocks",
+    label: "Stock Holding",
+    nameField: "symbol",
+    valueField: null,
+    calcValue: (a: any) => (a.qty || 0) * (a.currentPrice || a.avgPrice || 0),
+    idLabel: (a: any) => a.exchange || "",
+  },
+  {
+    key: "bonds",
+    label: "Bond",
+    nameField: "name",
+    valueField: null,
+    calcValue: (a: any) =>
+      Number(a.totalInvestmentAmount || a.totalPrincipalAmount || a.faceValue || 0),
+    idLabel: (a: any) => a.isin || "",
+  },
+  {
+    key: "goldHoldings",
+    label: "Gold / SGB",
+    nameField: "type",
+    valueField: null,
+    calcValue: (a: any) => Number(a.currentValue || a.investedAmount || 0),
+    idLabel: (a: any) => a.subType || a.form || "",
+  },
+  {
+    key: "demat",
+    label: "Demat Account",
+    nameField: "broker",
+    valueField: null,
+    calcValue: () => 0,
+    idLabel: (a: any) => a.accountId || a.dpId || "",
+  },
+  {
+    key: "ppf",
+    label: "PPF",
+    nameField: "institution",
+    valueField: "balance",
+    idLabel: (a: any) => a.accountNumber || "",
+  },
+  {
+    key: "nps",
+    label: "NPS",
+    nameField: "fundManager",
+    valueField: null,
+    calcValue: (a: any) => {
+      const bal = Number(a.balance) || 0;
+      if (bal > 0) return bal;
+      return (a.transactions || []).reduce(
+        (s: number, t: any) =>
+          s + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+        0
+      );
+    },
+    idLabel: (a: any) => a.pran || "",
+  },
+  {
+    key: "epf",
+    label: "EPF",
+    nameField: "employer",
+    valueField: null,
+    calcValue: (a: any) => calculateEpfBalance(a),
+    idLabel: (a: any) => a.uan || "",
+  },
+  {
+    key: "lic",
+    label: "LIC Policy",
+    nameField: "planName",
+    valueField: "sumAssured",
+    idLabel: (a: any) => a.policyNumber || "",
+  },
+  {
+    key: "termPlans",
+    label: "Term Plan",
+    nameField: "insurer",
+    valueField: "coverAmount",
+    idLabel: (a: any) => a.policyNumber || "",
+  },
+  {
+    key: "investmentPlans",
+    label: "Investment Plan",
+    nameField: "insurer",
+    valueField: "sumAssured",
+    idLabel: (a: any) => a.policyNumber || "",
+  },
+  {
+    key: "realEstateProperties",
+    label: "Real Estate",
+    nameField: "name",
+    valueField: "marketValue",
+    idLabel: (a: any) => a.location || "",
+  },
+  {
+    key: "vehicles",
+    label: "Vehicle",
+    nameField: "name",
+    valueField: "currentValue",
+    idLabel: (a: any) => a.registration || "",
+  },
 ];
 
 const RELATION_OPTIONS = ["Spouse", "Child", "Parent", "Sibling", "Other"];
@@ -151,7 +269,8 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
   const totalAssets = allAssets.length;
   const coveredAssets = allAssets.filter((a) => a.covered);
   const missingAssets = allAssets.filter((a) => !a.covered);
-  const coveragePercent = totalAssets > 0 ? Math.round((coveredAssets.length / totalAssets) * 100) : 0;
+  const coveragePercent =
+    totalAssets > 0 ? Math.round((coveredAssets.length / totalAssets) * 100) : 0;
   const valueAtRisk = missingAssets.reduce((s, a) => s + a.value, 0);
 
   const filteredAssets = useMemo(() => {
@@ -165,7 +284,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           a.name.toLowerCase().includes(q) ||
           a.label.toLowerCase().includes(q) ||
           a.identifier.toLowerCase().includes(q) ||
-          a.nominee.toLowerCase().includes(q),
+          a.nominee.toLowerCase().includes(q)
       );
     }
     return list;
@@ -194,7 +313,14 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
   };
 
   const resetWillForm = () => {
-    setWillForm({ date: "", location: "", witnesses: "", lawyerName: "", lawyerContact: "", notes: "" });
+    setWillForm({
+      date: "",
+      location: "",
+      witnesses: "",
+      lawyerName: "",
+      lawyerContact: "",
+      notes: "",
+    });
     setEditWill(null);
     setShowWillForm(false);
   };
@@ -290,11 +416,12 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               width: 44,
               height: 44,
               borderRadius: 14,
-              background: coveragePercent === 100
-                ? `linear-gradient(135deg, ${THEME.sage} 0%, #34d399 100%)`
-                : coveragePercent >= 50
-                  ? `linear-gradient(135deg, ${THEME.gold} 0%, #fbbf24 100%)`
-                  : `linear-gradient(135deg, ${THEME.rust} 0%, #f87171 100%)`,
+              background:
+                coveragePercent === 100
+                  ? `linear-gradient(135deg, ${THEME.sage} 0%, #34d399 100%)`
+                  : coveragePercent >= 50
+                    ? `linear-gradient(135deg, ${THEME.gold} 0%, #fbbf24 100%)`
+                    : `linear-gradient(135deg, ${THEME.rust} 0%, #f87171 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -309,7 +436,9 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
             )}
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.03em" }}>
+            <div
+              style={{ fontSize: 20, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.03em" }}
+            >
               Nominee Coverage
             </div>
             <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
@@ -324,7 +453,12 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               fontSize: 36,
               fontWeight: 900,
               letterSpacing: "-0.04em",
-              color: coveragePercent === 100 ? THEME.sage : coveragePercent >= 50 ? THEME.gold : THEME.rust,
+              color:
+                coveragePercent === 100
+                  ? THEME.sage
+                  : coveragePercent >= 50
+                    ? THEME.gold
+                    : THEME.rust,
               fontVariantNumeric: "tabular-nums",
             }}
           >
@@ -347,18 +481,25 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               width: `${coveragePercent}%`,
               height: "100%",
               borderRadius: 5,
-              background: coveragePercent === 100
-                ? `linear-gradient(90deg, ${THEME.sage}, #34d399)`
-                : coveragePercent >= 50
-                  ? `linear-gradient(90deg, ${THEME.gold}, #fbbf24)`
-                  : `linear-gradient(90deg, ${THEME.rust}, #f87171)`,
+              background:
+                coveragePercent === 100
+                  ? `linear-gradient(90deg, ${THEME.sage}, #34d399)`
+                  : coveragePercent >= 50
+                    ? `linear-gradient(90deg, ${THEME.gold}, #fbbf24)`
+                    : `linear-gradient(90deg, ${THEME.rust}, #f87171)`,
               transition: "width 0.6s ease",
             }}
           />
         </div>
 
         {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 14,
+          }}
+        >
           <StatCard
             label="Assets Covered"
             value={String(coveredAssets.length)}
@@ -395,7 +536,11 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         }}
       >
         {(["all", "missing", "covered"] as FilterMode[]).map((f) => {
-          const counts = { all: totalAssets, missing: missingAssets.length, covered: coveredAssets.length };
+          const counts = {
+            all: totalAssets,
+            missing: missingAssets.length,
+            covered: coveredAssets.length,
+          };
           const labels = { all: "All Assets", missing: "Missing Nominees", covered: "Covered" };
           const isActive = filter === f;
           return (
@@ -406,7 +551,9 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                 padding: "7px 16px",
                 borderRadius: 20,
                 border: `1.5px solid ${isActive ? THEME.accent : THEME.line}`,
-                background: isActive ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)` : "transparent",
+                background: isActive
+                  ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
+                  : "transparent",
                 color: isActive ? THEME.accent : THEME.muted,
                 fontWeight: 700,
                 fontSize: 12,
@@ -512,10 +659,25 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
 
               {/* Value */}
               <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 100 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   Value
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: THEME.ink,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
                   <Prv>{fmtINRFull(asset.value)}</Prv>
                 </div>
               </div>
@@ -527,14 +689,10 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                     <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                       {asset.nominee}
                     </div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>
-                      {asset.nomineeRelation}
-                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{asset.nomineeRelation}</div>
                   </>
                 ) : (
-                  <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
-                    No nominee
-                  </div>
+                  <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600 }}>No nominee</div>
                 )}
               </div>
 
@@ -600,14 +758,19 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
             No will documents recorded
           </div>
-          <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20, maxWidth: 380, margin: "0 auto 20px" }}>
-            Record your will details including date, physical location, witnesses and lawyer information for easy reference.
-          </div>
-          <Button
-            variant="accent"
-            icon={<Plus size={14} />}
-            onClick={() => setShowWillForm(true)}
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              marginBottom: 20,
+              maxWidth: 380,
+              margin: "0 auto 20px",
+            }}
           >
+            Record your will details including date, physical location, witnesses and lawyer
+            information for easy reference.
+          </div>
+          <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowWillForm(true)}>
             Add Will Document
           </Button>
         </Card>
@@ -615,7 +778,15 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
           {willDocs.map((doc: any) => (
             <Card key={doc.id} style={{ padding: "20px 24px" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 16,
+                  flexWrap: "wrap",
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
@@ -641,10 +812,20 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openEditWill(doc)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Edit2 size={12} />}
+                    onClick={() => openEditWill(doc)}
+                  >
                     Edit
                   </Button>
-                  <Button variant="danger" size="sm" icon={<Trash2 size={12} />} onClick={() => removeItem("documents", doc.id)}>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    icon={<Trash2 size={12} />}
+                    onClick={() => removeItem("documents", doc.id)}
+                  >
                     Delete
                   </Button>
                 </div>
@@ -669,17 +850,36 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                   (f) =>
                     f.value && (
                       <div key={f.label}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: THEME.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
                           {f.label}
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{f.value}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                          {f.value}
+                        </div>
                       </div>
-                    ),
+                    )
                 )}
               </div>
 
               {doc.notes && (
-                <div style={{ marginTop: 12, fontSize: 13, color: THEME.muted, lineHeight: 1.6, fontStyle: "italic" }}>
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 13,
+                    color: THEME.muted,
+                    lineHeight: 1.6,
+                    fontStyle: "italic",
+                  }}
+                >
                   {doc.notes}
                 </div>
               )}
@@ -727,8 +927,17 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
             No key contacts added
           </div>
-          <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20, maxWidth: 380, margin: "0 auto 20px" }}>
-            Add important contacts like your lawyer, chartered accountant, financial advisor or insurance agent for quick reference.
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              marginBottom: 20,
+              maxWidth: 380,
+              margin: "0 auto 20px",
+            }}
+          >
+            Add important contacts like your lawyer, chartered accountant, financial advisor or
+            insurance agent for quick reference.
           </div>
           <Button
             variant="accent"
@@ -749,7 +958,14 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         >
           {keyContacts.map((c: any) => (
             <Card key={c.id} style={{ padding: "20px 22px" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  marginBottom: 12,
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div
                     style={{
@@ -767,19 +983,33 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                   </div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{c.name}</div>
-                    <Badge variant="accent" style={{ fontSize: 10, marginTop: 4 }}>{c.role}</Badge>
+                    <Badge variant="accent" style={{ fontSize: 10, marginTop: 4 }}>
+                      {c.role}
+                    </Badge>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 4 }}>
                   <button
                     onClick={() => openEditContact(c)}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.muted }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 4,
+                      color: THEME.muted,
+                    }}
                   >
                     <Edit2 size={14} />
                   </button>
                   <button
                     onClick={() => removeItem("documents", c.id)}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.rust }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 4,
+                      color: THEME.rust,
+                    }}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -789,13 +1019,29 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               {(c.phone || c.email) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {c.phone && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: THEME.muted }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 13,
+                        color: THEME.muted,
+                      }}
+                    >
                       <Phone size={13} />
                       <Prv>{c.phone}</Prv>
                     </div>
                   )}
                   {c.email && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: THEME.muted }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 13,
+                        color: THEME.muted,
+                      }}
+                    >
                       <Mail size={13} />
                       <Prv>{c.email}</Prv>
                     </div>
@@ -804,7 +1050,15 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               )}
 
               {c.notes && (
-                <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted, lineHeight: 1.5, fontStyle: "italic" }}>
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 12,
+                    color: THEME.muted,
+                    lineHeight: 1.5,
+                    fontStyle: "italic",
+                  }}
+                >
                   {c.notes}
                 </div>
               )}
@@ -821,8 +1075,12 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         >
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <Badge variant="muted" style={{ fontSize: 10 }}>{assignModal.label}</Badge>
-              <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{assignModal.name}</span>
+              <Badge variant="muted" style={{ fontSize: 10 }}>
+                {assignModal.label}
+              </Badge>
+              <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                {assignModal.name}
+              </span>
             </div>
             {assignModal.identifier && (
               <div style={{ fontSize: 12, color: THEME.muted }}>{assignModal.identifier}</div>
@@ -843,7 +1101,9 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           <Field label="Relation">
             <Select value={assignRelation} onChange={(e) => setAssignRelation(e.target.value)}>
               {RELATION_OPTIONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>
+                  {r}
+                </option>
               ))}
             </Select>
           </Field>
@@ -956,7 +1216,9 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                 onChange={(e) => setContactForm({ ...contactForm, role: e.target.value })}
               >
                 {CONTACT_ROLES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
                 ))}
               </Select>
             </Field>

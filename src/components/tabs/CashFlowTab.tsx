@@ -40,10 +40,25 @@ import { Prv } from "../../context/PrivacyContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 /** Returns an array of { year, month, label } for the next N months starting from today. */
-function getFutureMonths(count: number): { year: number; month: number; label: string; key: string }[] {
+function getFutureMonths(
+  count: number
+): { year: number; month: number; label: string; key: string }[] {
   const d = new Date();
   const months: { year: number; month: number; label: string; key: string }[] = [];
   for (let i = 1; i <= count; i++) {
@@ -127,19 +142,56 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         minWidth: "220px",
       }}
     >
-      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t-muted)", borderBottom: `1px solid var(--t-line)`, paddingBottom: "6px" }}>
+      <div
+        style={{
+          fontSize: "12px",
+          fontWeight: 700,
+          color: "var(--t-muted)",
+          borderBottom: `1px solid var(--t-line)`,
+          paddingBottom: "6px",
+        }}
+      >
         {label} Projection
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {payload.map((entry: any, index: number) => {
-          const color = entry.dataKey === "Inflow" ? "var(--t-sage)" : entry.dataKey === "Outflow" ? "var(--t-rust)" : "var(--t-accent)";
+          const color =
+            entry.dataKey === "Inflow"
+              ? "var(--t-sage)"
+              : entry.dataKey === "Outflow"
+                ? "var(--t-rust)"
+                : "var(--t-accent)";
           return (
-            <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--t-ink)" }}>{entry.name}</span>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: color,
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--t-ink)" }}>
+                  {entry.name}
+                </span>
               </div>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: entry.dataKey === "Cumulative" ? "var(--t-accent)" : "var(--t-ink)" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: entry.dataKey === "Cumulative" ? "var(--t-accent)" : "var(--t-ink)",
+                }}
+              >
                 <Prv>{fmtINRFull(entry.value)}</Prv>
               </span>
             </div>
@@ -172,16 +224,17 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     const sources: { name: string; monthly: number; icon: any; category: string }[] = [];
 
     // 1. Salary
-    const salaryEntries = (state.income || []).filter(
-      (i: any) => (i.category || "").toLowerCase().includes("salary")
+    const salaryEntries = (state.income || []).filter((i: any) =>
+      (i.category || "").toLowerCase().includes("salary")
     );
     if (salaryEntries.length > 0) {
       // Use latest salary entry
-      const sorted = [...salaryEntries].sort(
-        (a: any, b: any) => (b.date || "").localeCompare(a.date || "")
+      const sorted = [...salaryEntries].sort((a: any, b: any) =>
+        (b.date || "").localeCompare(a.date || "")
       );
       const latest = Number(sorted[0]?.amount || 0);
-      if (latest > 0) sources.push({ name: "Salary", monthly: latest, icon: Wallet, category: "Salary" });
+      if (latest > 0)
+        sources.push({ name: "Salary", monthly: latest, icon: Wallet, category: "Salary" });
     }
 
     // 2. Rental Income
@@ -216,7 +269,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         monthlyDiv = totalDiv / 12;
       }
       if (monthlyDiv > 0)
-        sources.push({ name: "Dividends", monthly: monthlyDiv, icon: TrendingUp, category: "Dividends" });
+        sources.push({
+          name: "Dividends",
+          monthly: monthlyDiv,
+          icon: TrendingUp,
+          category: "Dividends",
+        });
     }
 
     // 4. Interest Income — FDs
@@ -226,7 +284,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       return sum + (principal * rate) / 100 / 12;
     }, 0);
     if (fdInterest > 0)
-      sources.push({ name: "FD Interest", monthly: fdInterest, icon: Landmark, category: "Interest" });
+      sources.push({
+        name: "FD Interest",
+        monthly: fdInterest,
+        icon: Landmark,
+        category: "Interest",
+      });
 
     // Interest Income — RDs
     const rdInterest = (state.recurringDeposits || []).reduce((sum: number, rd: any) => {
@@ -238,7 +301,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       return sum + (avgBalance * rate) / 100 / 12;
     }, 0);
     if (rdInterest > 0)
-      sources.push({ name: "RD Interest", monthly: rdInterest, icon: Landmark, category: "Interest" });
+      sources.push({
+        name: "RD Interest",
+        monthly: rdInterest,
+        icon: Landmark,
+        category: "Interest",
+      });
 
     // Interest Income — PPF
     const ppfInterest = (state.ppf || []).reduce((sum: number, p: any) => {
@@ -247,25 +315,39 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       return sum + (balance * rate) / 100 / 12;
     }, 0);
     if (ppfInterest > 0)
-      sources.push({ name: "PPF Interest", monthly: ppfInterest, icon: PiggyBank, category: "Interest" });
+      sources.push({
+        name: "PPF Interest",
+        monthly: ppfInterest,
+        icon: PiggyBank,
+        category: "Interest",
+      });
 
     // 5. Other Income
     const otherIncome = (state.income || []).filter(
       (i: any) => !(i.category || "").toLowerCase().includes("salary")
     );
     if (otherIncome.length > 0) {
-      const sorted = [...otherIncome].sort(
-        (a: any, b: any) => (b.date || "").localeCompare(a.date || "")
+      const sorted = [...otherIncome].sort((a: any, b: any) =>
+        (b.date || "").localeCompare(a.date || "")
       );
       // Take the latest 3 months of "other" income to average
       const recent = sorted.slice(0, 3);
-      const avg = recent.reduce((s: number, i: any) => s + Number(i.amount || 0), 0) / Math.max(recent.length, 1);
+      const avg =
+        recent.reduce((s: number, i: any) => s + Number(i.amount || 0), 0) /
+        Math.max(recent.length, 1);
       if (avg > 0)
         sources.push({ name: "Other Income", monthly: avg, icon: DollarSign, category: "Other" });
     }
 
     return sources;
-  }, [state.income, state.rentalProperties, state.dividends, state.fixedDeposits, state.recurringDeposits, state.ppf]);
+  }, [
+    state.income,
+    state.rentalProperties,
+    state.dividends,
+    state.fixedDeposits,
+    state.recurringDeposits,
+    state.ppf,
+  ]);
 
   // ── EXPENSE SOURCES ────────────────────────────────────────────────────────
 
@@ -286,17 +368,31 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       return sum + Number(s.amount || 0);
     }, 0);
     if (sipTotal > 0)
-      sources.push({ name: "SIP Investments", monthly: sipTotal, icon: TrendingUp, category: "SIP" });
+      sources.push({
+        name: "SIP Investments",
+        monthly: sipTotal,
+        icon: TrendingUp,
+        category: "SIP",
+      });
 
     // 3. Subscriptions
     const subTotal = (state.subscriptions || []).reduce((sum: number, s: any) => {
-      if (s.paused || (s.status || "").toLowerCase() === "cancelled" || (s.status || "").toLowerCase() === "inactive")
+      if (
+        s.paused ||
+        (s.status || "").toLowerCase() === "cancelled" ||
+        (s.status || "").toLowerCase() === "inactive"
+      )
         return sum;
       const amt = Number(s.amount || s.price || 0);
       return sum + freqToMonthly(s.frequency || s.billing || "monthly", amt);
     }, 0);
     if (subTotal > 0)
-      sources.push({ name: "Subscriptions", monthly: subTotal, icon: Receipt, category: "Subscriptions" });
+      sources.push({
+        name: "Subscriptions",
+        monthly: subTotal,
+        icon: Receipt,
+        category: "Subscriptions",
+      });
 
     // 4. Recurring Expenses
     const recurringTotal = (state.recurringExpenses || []).reduce(
@@ -304,14 +400,24 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       0
     );
     if (recurringTotal > 0)
-      sources.push({ name: "Recurring Expenses", monthly: recurringTotal, icon: Activity, category: "Recurring" });
+      sources.push({
+        name: "Recurring Expenses",
+        monthly: recurringTotal,
+        icon: Activity,
+        category: "Recurring",
+      });
 
     // 5. Credit Card Minimum Dues (only include minimum_due which is the actual monthly obligation)
     const ccMinDue = (state.creditCards || [])
       .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
       .reduce((sum: number, c: any) => sum + Number(c.minimumDue || c.lastBill || 0), 0);
     if (ccMinDue > 0)
-      sources.push({ name: "Credit Card Dues", monthly: ccMinDue, icon: CreditCard, category: "Credit Cards" });
+      sources.push({
+        name: "Credit Card Dues",
+        monthly: ccMinDue,
+        icon: CreditCard,
+        category: "Credit Cards",
+      });
 
     // 6. Rent Paid
     const rentPaid = (state.rentedProperties || []).reduce(
@@ -336,7 +442,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     }, 0);
     const totalInsurance = licPremium + termPremium + ulipPremium;
     if (totalInsurance > 0)
-      sources.push({ name: "Insurance Premiums", monthly: totalInsurance, icon: Shield, category: "Insurance" });
+      sources.push({
+        name: "Insurance Premiums",
+        monthly: totalInsurance,
+        icon: Shield,
+        category: "Insurance",
+      });
 
     // 8. Budget Spend
     const budgetTotal = (state.budgets || []).reduce(
@@ -344,19 +455,37 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       0
     );
     if (budgetTotal > 0)
-      sources.push({ name: "Budget Spend", monthly: budgetTotal, icon: Target, category: "Budget" });
+      sources.push({
+        name: "Budget Spend",
+        monthly: budgetTotal,
+        icon: Target,
+        category: "Budget",
+      });
 
     return sources;
   }, [
-    state.loansTaken, state.sips, state.subscriptions, state.recurringExpenses,
-    state.creditCards, state.rentedProperties, state.lic, state.termPlans,
-    state.investmentPlans, state.budgets,
+    state.loansTaken,
+    state.sips,
+    state.subscriptions,
+    state.recurringExpenses,
+    state.creditCards,
+    state.rentedProperties,
+    state.lic,
+    state.termPlans,
+    state.investmentPlans,
+    state.budgets,
   ]);
 
   // ── ONE-TIME EVENTS ────────────────────────────────────────────────────────
 
   const events = useMemo(() => {
-    const items: { date: string; name: string; amount: number; category: string; type: "inflow" | "outflow" }[] = [];
+    const items: {
+      date: string;
+      name: string;
+      amount: number;
+      category: string;
+      type: "inflow" | "outflow";
+    }[] = [];
 
     // FD Maturities
     (state.fixedDeposits || []).forEach((fd: any) => {
@@ -440,7 +569,16 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     });
 
     return items.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  }, [state.fixedDeposits, state.recurringDeposits, state.lic, state.termPlans, state.investmentPlans, state.loansTaken, state.subscriptions, months]);
+  }, [
+    state.fixedDeposits,
+    state.recurringDeposits,
+    state.lic,
+    state.termPlans,
+    state.investmentPlans,
+    state.loansTaken,
+    state.subscriptions,
+    months,
+  ]);
 
   // ── CHART DATA ─────────────────────────────────────────────────────────────
 
@@ -525,8 +663,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               lineHeight: 1.6,
             }}
           >
-            Add income entries, loans, SIPs, subscriptions, or budgets to see your projected cash flow
-            over the next {forecastMonths} months.
+            Add income entries, loans, SIPs, subscriptions, or budgets to see your projected cash
+            flow over the next {forecastMonths} months.
           </div>
         </Card>
       </div>
@@ -630,7 +768,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 <ArrowUpRight size={20} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Total Projected Inflow
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -638,22 +784,64 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 </div>
               </div>
             </div>
-            <Badge variant="sage">{Math.round(grandInflow > 0 ? (totalInflow / grandInflow) * 100 : 100)}% Regular</Badge>
+            <Badge variant="sage">
+              {Math.round(grandInflow > 0 ? (totalInflow / grandInflow) * 100 : 100)}% Regular
+            </Badge>
           </div>
-          
-          <div style={{ fontSize: 28, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: THEME.ink,
+              letterSpacing: "-0.04em",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             <Prv>{fmtINRFull(grandInflow)}</Prv>
           </div>
 
           {/* Composition bar */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-            <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.sage} 15%, var(--t-line))`, overflow: "hidden", display: "flex" }}>
-              <div style={{ width: `${(totalInflow / Math.max(1, grandInflow)) * 100}%`, background: THEME.sage, height: "100%" }} />
-              <div style={{ width: `${(eventInflow / Math.max(1, grandInflow)) * 100}%`, background: "var(--t-accent)", height: "100%" }} />
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: `color-mix(in srgb, ${THEME.sage} 15%, var(--t-line))`,
+                overflow: "hidden",
+                display: "flex",
+              }}
+            >
+              <div
+                style={{
+                  width: `${(totalInflow / Math.max(1, grandInflow)) * 100}%`,
+                  background: THEME.sage,
+                  height: "100%",
+                }}
+              />
+              <div
+                style={{
+                  width: `${(eventInflow / Math.max(1, grandInflow)) * 100}%`,
+                  background: "var(--t-accent)",
+                  height: "100%",
+                }}
+              />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-              <span>Regular: <Prv>{fmtINRFull(totalInflow)}</Prv></span>
-              <span>Events: <Prv>{fmtINRFull(eventInflow)}</Prv></span>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 10,
+                color: THEME.muted,
+                fontWeight: 600,
+              }}
+            >
+              <span>
+                Regular: <Prv>{fmtINRFull(totalInflow)}</Prv>
+              </span>
+              <span>
+                Events: <Prv>{fmtINRFull(eventInflow)}</Prv>
+              </span>
             </div>
           </div>
         </Card>
@@ -687,7 +875,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 <ArrowDownRight size={20} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Total Projected Outflow
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -695,22 +891,64 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 </div>
               </div>
             </div>
-            <Badge variant="rust">{Math.round(grandOutflow > 0 ? (totalOutflow / grandOutflow) * 100 : 100)}% Regular</Badge>
+            <Badge variant="rust">
+              {Math.round(grandOutflow > 0 ? (totalOutflow / grandOutflow) * 100 : 100)}% Regular
+            </Badge>
           </div>
 
-          <div style={{ fontSize: 28, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: THEME.ink,
+              letterSpacing: "-0.04em",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             <Prv>{fmtINRFull(grandOutflow)}</Prv>
           </div>
 
           {/* Composition bar */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-            <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.rust} 15%, var(--t-line))`, overflow: "hidden", display: "flex" }}>
-              <div style={{ width: `${(totalOutflow / Math.max(1, grandOutflow)) * 100}%`, background: THEME.rust, height: "100%" }} />
-              <div style={{ width: `${(eventOutflow / Math.max(1, grandOutflow)) * 100}%`, background: "var(--t-gold)", height: "100%" }} />
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: `color-mix(in srgb, ${THEME.rust} 15%, var(--t-line))`,
+                overflow: "hidden",
+                display: "flex",
+              }}
+            >
+              <div
+                style={{
+                  width: `${(totalOutflow / Math.max(1, grandOutflow)) * 100}%`,
+                  background: THEME.rust,
+                  height: "100%",
+                }}
+              />
+              <div
+                style={{
+                  width: `${(eventOutflow / Math.max(1, grandOutflow)) * 100}%`,
+                  background: "var(--t-gold)",
+                  height: "100%",
+                }}
+              />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-              <span>Regular: <Prv>{fmtINRFull(totalOutflow)}</Prv></span>
-              <span>Events: <Prv>{fmtINRFull(eventOutflow)}</Prv></span>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 10,
+                color: THEME.muted,
+                fontWeight: 600,
+              }}
+            >
+              <span>
+                Regular: <Prv>{fmtINRFull(totalOutflow)}</Prv>
+              </span>
+              <span>
+                Events: <Prv>{fmtINRFull(eventOutflow)}</Prv>
+              </span>
             </div>
           </div>
         </Card>
@@ -733,7 +971,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                   width: 38,
                   height: 38,
                   borderRadius: 12,
-                  background: netCashFlow >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  background:
+                    netCashFlow >= 0
+                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                      : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                   border: `1px solid ${netCashFlow >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
                   display: "flex",
                   alignItems: "center",
@@ -744,7 +985,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 {netCashFlow >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Net Cash Flow
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -752,16 +1001,33 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 </div>
               </div>
             </div>
-            <Badge variant={netCashFlow >= 0 ? "sage" : "rust"}>{netCashFlow >= 0 ? "Surplus" : "Deficit"}</Badge>
+            <Badge variant={netCashFlow >= 0 ? "sage" : "rust"}>
+              {netCashFlow >= 0 ? "Surplus" : "Deficit"}
+            </Badge>
           </div>
 
-          <div style={{ fontSize: 28, fontWeight: 900, color: netCashFlow >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: netCashFlow >= 0 ? THEME.sage : THEME.rust,
+              letterSpacing: "-0.04em",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             <Prv>{(netCashFlow < 0 ? "-" : "") + fmtINRFull(Math.abs(netCashFlow))}</Prv>
           </div>
 
           {/* Cash Flow Ratio indicator */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-            <div style={{ height: 6, borderRadius: 3, background: "var(--t-line)", overflow: "hidden" }}>
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: "var(--t-line)",
+                overflow: "hidden",
+              }}
+            >
               <div
                 style={{
                   width: `${Math.min(100, Math.max(0, (grandInflow / Math.max(1, grandInflow + grandOutflow)) * 100))}%`,
@@ -770,7 +1036,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 }}
               />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 10,
+                color: THEME.muted,
+                fontWeight: 600,
+              }}
+            >
               <span>Coverage Ratio: {(grandInflow / Math.max(1, grandOutflow)).toFixed(2)}x</span>
               <span>{netCashFlow >= 0 ? "Positive Savings" : "Capital Deficit"}</span>
             </div>
@@ -795,7 +1069,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                   width: 38,
                   height: 38,
                   borderRadius: 12,
-                  background: netMonthly >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  background:
+                    netMonthly >= 0
+                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                      : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                   border: `1px solid ${netMonthly >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
                   display: "flex",
                   alignItems: "center",
@@ -806,7 +1083,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 {netMonthly >= 0 ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Monthly Surplus
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -814,16 +1099,33 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 </div>
               </div>
             </div>
-            <Badge variant={netMonthly >= 0 ? "sage" : "rust"}>{netMonthly >= 0 ? "Stable" : "Tight"}</Badge>
+            <Badge variant={netMonthly >= 0 ? "sage" : "rust"}>
+              {netMonthly >= 0 ? "Stable" : "Tight"}
+            </Badge>
           </div>
 
-          <div style={{ fontSize: 28, fontWeight: 900, color: netMonthly >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: netMonthly >= 0 ? THEME.sage : THEME.rust,
+              letterSpacing: "-0.04em",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             <Prv>{(netMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(netMonthly))}</Prv>
           </div>
 
           {/* Monthly progress indicator */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-            <div style={{ height: 6, borderRadius: 3, background: "var(--t-line)", overflow: "hidden" }}>
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: "var(--t-line)",
+                overflow: "hidden",
+              }}
+            >
               <div
                 style={{
                   width: `${Math.min(100, Math.max(0, (totalMonthlyInflow / Math.max(1, totalMonthlyInflow + totalMonthlyOutflow)) * 100))}%`,
@@ -832,9 +1134,21 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 }}
               />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-              <span>In: <Prv>{fmtINRFull(totalMonthlyInflow)}</Prv></span>
-              <span>Out: <Prv>{fmtINRFull(totalMonthlyOutflow)}</Prv></span>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 10,
+                color: THEME.muted,
+                fontWeight: 600,
+              }}
+            >
+              <span>
+                In: <Prv>{fmtINRFull(totalMonthlyInflow)}</Prv>
+              </span>
+              <span>
+                Out: <Prv>{fmtINRFull(totalMonthlyOutflow)}</Prv>
+              </span>
             </div>
           </div>
         </Card>
@@ -856,15 +1170,20 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           </span>
         </div>
         <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} barGap={4} barCategoryGap="20%">
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+            barGap={4}
+            barCategoryGap="20%"
+          >
             <defs>
               <linearGradient id="inflowGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.85}/>
-                <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.15}/>
+                <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.85} />
+                <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.15} />
               </linearGradient>
               <linearGradient id="outflowGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.85}/>
-                <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.15}/>
+                <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.85} />
+                <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.15} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.3} />
@@ -888,8 +1207,24 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               iconSize={8}
               wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingBottom: 10 }}
             />
-            <Bar dataKey="Inflow" name="Projected Inflow" fill="url(#inflowGrad)" stroke={THEME.sage} strokeWidth={1} radius={[4, 4, 0, 0]} maxBarSize={40} />
-            <Bar dataKey="Outflow" name="Projected Outflow" fill="url(#outflowGrad)" stroke={THEME.rust} strokeWidth={1} radius={[4, 4, 0, 0]} maxBarSize={40} />
+            <Bar
+              dataKey="Inflow"
+              name="Projected Inflow"
+              fill="url(#inflowGrad)"
+              stroke={THEME.sage}
+              strokeWidth={1}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+            />
+            <Bar
+              dataKey="Outflow"
+              name="Projected Outflow"
+              fill="url(#outflowGrad)"
+              stroke={THEME.rust}
+              strokeWidth={1}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+            />
             <Line
               type="monotone"
               dataKey="Cumulative"
@@ -927,7 +1262,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <ArrowUpRight size={16} style={{ color: THEME.sage }} />
-              <span style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>Regular Inflows</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                Regular Inflows
+              </span>
               <Badge variant="sage">{inflows.length}</Badge>
             </div>
             {expandedSections.inflows ? (
@@ -965,7 +1302,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                   </div>
                   {inflows.map((item, idx) => {
                     const Icon = item.icon;
-                    const pctOfTotal = totalMonthlyInflow > 0 ? (item.monthly / totalMonthlyInflow) * 100 : 0;
+                    const pctOfTotal =
+                      totalMonthlyInflow > 0 ? (item.monthly / totalMonthlyInflow) * 100 : 0;
                     return (
                       <div
                         key={idx}
@@ -976,7 +1314,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           gridTemplateColumns: "1.5fr 1fr 1fr",
                           alignItems: "center",
                           padding: "12px 20px",
-                          borderBottom: idx < inflows.length - 1 ? `1px solid ${THEME.line}` : "none",
+                          borderBottom:
+                            idx < inflows.length - 1 ? `1px solid ${THEME.line}` : "none",
                           background: hoveredInflow === idx ? "var(--surface-1)" : "transparent",
                           transform: hoveredInflow === idx ? "translateX(4px)" : "none",
                           transition: "all 0.2s var(--ease-premium)",
@@ -1010,14 +1349,30 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                         </div>
 
                         <div style={{ textAlign: "right", paddingRight: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: THEME.sage,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
                             <Prv>{fmtINRExact(item.monthly)}</Prv>
                           </span>
-                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>/mo</span>
+                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
+                            /mo
+                          </span>
                         </div>
 
                         <div style={{ textAlign: "right" }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: THEME.ink,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
                             <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
                           </span>
                           <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
@@ -1039,19 +1394,51 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Total Inflow</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                        Total Inflow
+                      </span>
                     </div>
                     <div style={{ textAlign: "right", paddingRight: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.sage,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
                         <Prv>{fmtINRExact(totalMonthlyInflow)}</Prv>
                       </span>
-                      <span style={{ display: "block", fontSize: 10, color: THEME.sage, fontWeight: 600 }}>/mo</span>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: 10,
+                          color: THEME.sage,
+                          fontWeight: 600,
+                        }}
+                      >
+                        /mo
+                      </span>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.sage,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
                         <Prv>{fmtINRExact(totalInflow)}</Prv>
                       </span>
-                      <span style={{ display: "block", fontSize: 10, color: THEME.sage, fontWeight: 600 }}>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: 10,
+                          color: THEME.sage,
+                          fontWeight: 600,
+                        }}
+                      >
                         {forecastMonths}-mo Total
                       </span>
                     </div>
@@ -1077,7 +1464,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <ArrowDownRight size={16} style={{ color: THEME.rust }} />
-              <span style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>Regular Outflows</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                Regular Outflows
+              </span>
               <Badge variant="rust">{outflows.length}</Badge>
             </div>
             {expandedSections.outflows ? (
@@ -1115,7 +1504,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                   </div>
                   {outflows.map((item, idx) => {
                     const Icon = item.icon;
-                    const pctOfTotal = totalMonthlyOutflow > 0 ? (item.monthly / totalMonthlyOutflow) * 100 : 0;
+                    const pctOfTotal =
+                      totalMonthlyOutflow > 0 ? (item.monthly / totalMonthlyOutflow) * 100 : 0;
                     return (
                       <div
                         key={idx}
@@ -1126,7 +1516,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           gridTemplateColumns: "1.5fr 1fr 1fr",
                           alignItems: "center",
                           padding: "12px 20px",
-                          borderBottom: idx < outflows.length - 1 ? `1px solid ${THEME.line}` : "none",
+                          borderBottom:
+                            idx < outflows.length - 1 ? `1px solid ${THEME.line}` : "none",
                           background: hoveredOutflow === idx ? "var(--surface-1)" : "transparent",
                           transform: hoveredOutflow === idx ? "translateX(4px)" : "none",
                           transition: "all 0.2s var(--ease-premium)",
@@ -1160,14 +1551,30 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                         </div>
 
                         <div style={{ textAlign: "right", paddingRight: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: THEME.rust,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
                             <Prv>{fmtINRExact(item.monthly)}</Prv>
                           </span>
-                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>/mo</span>
+                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
+                            /mo
+                          </span>
                         </div>
 
                         <div style={{ textAlign: "right" }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: THEME.ink,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
                             <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
                           </span>
                           <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
@@ -1189,19 +1596,51 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Total Outflow</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                        Total Outflow
+                      </span>
                     </div>
                     <div style={{ textAlign: "right", paddingRight: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.rust,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
                         <Prv>{fmtINRExact(totalMonthlyOutflow)}</Prv>
                       </span>
-                      <span style={{ display: "block", fontSize: 10, color: THEME.rust, fontWeight: 600 }}>/mo</span>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: 10,
+                          color: THEME.rust,
+                          fontWeight: 600,
+                        }}
+                      >
+                        /mo
+                      </span>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.rust,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
                         <Prv>{fmtINRExact(totalOutflow)}</Prv>
                       </span>
-                      <span style={{ display: "block", fontSize: 10, color: THEME.rust, fontWeight: 600 }}>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: 10,
+                          color: THEME.rust,
+                          fontWeight: 600,
+                        }}
+                      >
                         {forecastMonths}-mo Total
                       </span>
                     </div>
@@ -1271,7 +1710,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                         const eventTime = new Date(event.date + "T00:00:00").getTime();
                         const diffTime = eventTime - todayTime;
                         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-                        
+
                         if (diffDays === 0) {
                           relativeLabel = "Today";
                         } else if (diffDays === 1) {
@@ -1351,7 +1790,14 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           }}
                         >
                           {/* Date & Countdown */}
-                          <div style={{ minWidth: 110, display: "flex", flexDirection: "column", gap: 2 }}>
+                          <div
+                            style={{
+                              minWidth: 110,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 2,
+                            }}
+                          >
                             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                               {fmtDate(event.date)}
                             </span>
@@ -1360,9 +1806,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                                 style={{
                                   fontSize: 10,
                                   fontWeight: 700,
-                                  color: relativeLabel === "Today" || relativeLabel === "Tomorrow" 
-                                    ? (isInflow ? THEME.sage : THEME.rust) 
-                                    : THEME.muted,
+                                  color:
+                                    relativeLabel === "Today" || relativeLabel === "Tomorrow"
+                                      ? isInflow
+                                        ? THEME.sage
+                                        : THEME.rust
+                                      : THEME.muted,
                                   textTransform: "uppercase",
                                   letterSpacing: "0.05em",
                                 }}
@@ -1373,11 +1822,22 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           </div>
 
                           {/* Name & Badge */}
-                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <div
+                            style={{
+                              flex: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              flexWrap: "wrap",
+                            }}
+                          >
                             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                               {event.name}
                             </span>
-                            <Badge variant={isInflow ? "sage" : "rust"} style={{ fontSize: "10px", padding: "2px 6px" }}>
+                            <Badge
+                              variant={isInflow ? "sage" : "rust"}
+                              style={{ fontSize: "10px", padding: "2px 6px" }}
+                            >
                               {event.category}
                             </Badge>
                           </div>

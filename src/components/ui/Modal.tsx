@@ -21,7 +21,11 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const content = (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: `min(${maxWidth}px, 95vw)` }}>
+      <div
+        className="modal-panel"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: `min(${maxWidth}px, 95vw)` }}
+      >
         <div className="modal-header">
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{title}</h2>
           <button className="modal-close-btn" onClick={onClose} aria-label="Close">

@@ -509,8 +509,18 @@ describe("calculateEpfBalance", () => {
   it("sums employee + employer contributions from monthly_contribution rows", () => {
     const epf = {
       transactions: [
-        { type: "monthly_contribution", employeeShare: 5000, employerShare: 3000, pensionShare: 2000 },
-        { type: "monthly_contribution", employeeShare: 5000, employerShare: 3000, pensionShare: 2000 },
+        {
+          type: "monthly_contribution",
+          employeeShare: 5000,
+          employerShare: 3000,
+          pensionShare: 2000,
+        },
+        {
+          type: "monthly_contribution",
+          employeeShare: 5000,
+          employerShare: 3000,
+          pensionShare: 2000,
+        },
       ],
       establishments: [],
     };
@@ -525,7 +535,12 @@ describe("calculateEpfBalance", () => {
   it("includes interest credits in the balance", () => {
     const epf = {
       transactions: [
-        { type: "monthly_contribution", employeeShare: 10000, employerShare: 5000, pensionShare: 2000 },
+        {
+          type: "monthly_contribution",
+          employeeShare: 10000,
+          employerShare: 5000,
+          pensionShare: 2000,
+        },
         { type: "interest_credit", employeeShare: 800, employerShare: 400, pensionShare: 100 },
       ],
       establishments: [],
@@ -540,7 +555,12 @@ describe("calculateEpfBalance", () => {
   it("handles transfer_in amounts", () => {
     const epf = {
       transactions: [
-        { type: "monthly_contribution", employeeShare: 5000, employerShare: 3000, pensionShare: 1000 },
+        {
+          type: "monthly_contribution",
+          employeeShare: 5000,
+          employerShare: 3000,
+          pensionShare: 1000,
+        },
         { type: "transfer_in", amount: 100000, employerShare: 40000, pensionShare: 10000 },
       ],
       establishments: [],
@@ -555,7 +575,12 @@ describe("calculateEpfBalance", () => {
   it("subtracts withdrawals from the total", () => {
     const epf = {
       transactions: [
-        { type: "monthly_contribution", employeeShare: 50000, employerShare: 30000, pensionShare: 10000 },
+        {
+          type: "monthly_contribution",
+          employeeShare: 50000,
+          employerShare: 30000,
+          pensionShare: 10000,
+        },
         { type: "withdrawal", amount: 20000 },
       ],
       establishments: [],
@@ -572,9 +597,27 @@ describe("calculateEpfBalance", () => {
         { id: "est2", employerName: "Current Company" },
       ],
       transactions: [
-        { type: "monthly_contribution", employeeShare: 10000, employerShare: 5000, pensionShare: 2000, estId: "est1" },
-        { type: "monthly_contribution", employeeShare: 20000, employerShare: 10000, pensionShare: 4000, estId: "est2" },
-        { type: "transfer_in", amount: 50000, fromEmployer: "Old Company", employerShare: 20000, pensionShare: 5000 },
+        {
+          type: "monthly_contribution",
+          employeeShare: 10000,
+          employerShare: 5000,
+          pensionShare: 2000,
+          estId: "est1",
+        },
+        {
+          type: "monthly_contribution",
+          employeeShare: 20000,
+          employerShare: 10000,
+          pensionShare: 4000,
+          estId: "est2",
+        },
+        {
+          type: "transfer_in",
+          amount: 50000,
+          fromEmployer: "Old Company",
+          employerShare: 20000,
+          pensionShare: 5000,
+        },
       ],
     };
     // est1 is transferred out (transfer_in from "Old Company" matches est1)
@@ -589,7 +632,12 @@ describe("calculateEpfBalance", () => {
   it("handles backward-compatible interest (single amount, no shares)", () => {
     const epf = {
       transactions: [
-        { type: "monthly_contribution", employeeShare: 10000, employerShare: 5000, pensionShare: 2000 },
+        {
+          type: "monthly_contribution",
+          employeeShare: 10000,
+          employerShare: 5000,
+          pensionShare: 2000,
+        },
         { type: "interest_credit", amount: 1200 },
       ],
       establishments: [],
@@ -872,7 +920,9 @@ describe("getCurrentTierIndex", () => {
   it("returns -1 when no tiers or no agreementStart", () => {
     expect(getCurrentTierIndex({})).toBe(-1);
     expect(getCurrentTierIndex({ escalationTiers: [] })).toBe(-1);
-    expect(getCurrentTierIndex({ escalationTiers: [{ amount: 10000, durationMonths: 12 }] })).toBe(-1);
+    expect(getCurrentTierIndex({ escalationTiers: [{ amount: 10000, durationMonths: 12 }] })).toBe(
+      -1
+    );
   });
 
   it("returns 0 at the start of agreement", () => {

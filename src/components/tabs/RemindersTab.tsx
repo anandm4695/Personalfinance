@@ -25,7 +25,13 @@ import {
   Clock,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, today, getCCDueDate, getLocalDateString } from "../../utils/finance";
+import {
+  fmtINRFull,
+  fmtINRExact,
+  today,
+  getCCDueDate,
+  getLocalDateString,
+} from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -539,7 +545,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
 
     // ── 10. MANUAL REMINDERS ──
     (state.reminders || []).forEach((r: any) => {
-      const noteParts = [r.note, r.amount ? `Amount: ${fmtINRExact(r.amount)}` : ""].filter(Boolean);
+      const noteParts = [r.note, r.amount ? `Amount: ${fmtINRExact(r.amount)}` : ""].filter(
+        Boolean
+      );
       list.push({
         id: r.id,
         title: r.title,
@@ -1127,16 +1135,20 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   >
                     {Array.from({ length: 24 }, (_, i) => (
                       <option key={i} value={i}>
-                        {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
+                        {i === 0
+                          ? "12 AM"
+                          : i < 12
+                            ? `${i} AM`
+                            : i === 12
+                              ? "12 PM"
+                              : `${i - 12} PM`}
                       </option>
                     ))}
                   </select>
                   <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>to</span>
                   <select
                     value={notifSettings.notifEndHour ?? 10}
-                    onChange={(e) =>
-                      updateNotifSettings({ notifEndHour: Number(e.target.value) })
-                    }
+                    onChange={(e) => updateNotifSettings({ notifEndHour: Number(e.target.value) })}
                     style={{
                       padding: "6px 10px",
                       borderRadius: 8,
@@ -1151,7 +1163,13 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   >
                     {Array.from({ length: 24 }, (_, i) => (
                       <option key={i} value={i}>
-                        {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
+                        {i === 0
+                          ? "12 AM"
+                          : i < 12
+                            ? `${i} AM`
+                            : i === 12
+                              ? "12 PM"
+                              : `${i - 12} PM`}
                       </option>
                     ))}
                   </select>

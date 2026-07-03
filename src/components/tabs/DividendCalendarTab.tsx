@@ -18,8 +18,18 @@ import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 const MONTH_NAMES = [
-  "Jan","Feb","Mar","Apr","May","Jun",
-  "Jul","Aug","Sep","Oct","Nov","Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 const formatDate = (dateStr: string | null): string => {
@@ -34,9 +44,7 @@ const getDaysUntil = (dateStr: string | null): number | null => {
   const target = new Date(dateStr + "T00:00:00");
   if (isNaN(target.getTime())) return null;
   const now = new Date(today() + "T00:00:00");
-  return Math.ceil(
-    (target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 };
 
 const urgencyColor = (days: number | null): string => {
@@ -87,9 +95,7 @@ export function DividendCalendarTab({ state }: any) {
     await Promise.allSettled(
       symbols.map(async (sym) => {
         try {
-          const res = await fetch(
-            `/api/stock-exdate?symbol=${encodeURIComponent(sym)}`
-          );
+          const res = await fetch(`/api/stock-exdate?symbol=${encodeURIComponent(sym)}`);
           if (res.ok) {
             const data = await res.json();
             results[sym] = data;
@@ -130,13 +136,9 @@ export function DividendCalendarTab({ state }: any) {
 
         // Past dividends received for this symbol
         const pastDivs = (state.dividends || [])
-          .filter(
-            (d: any) => d.symbol === s.symbol || d.fundName === s.symbol
-          )
+          .filter((d: any) => d.symbol === s.symbol || d.fundName === s.symbol)
           .sort((a: any, b: any) =>
-            (b.recordDate || b.paymentDate || "").localeCompare(
-              a.recordDate || a.paymentDate || ""
-            )
+            (b.recordDate || b.paymentDate || "").localeCompare(a.recordDate || a.paymentDate || "")
           );
         const lastDiv = pastDivs[0] || null;
 
@@ -163,31 +165,19 @@ export function DividendCalendarTab({ state }: any) {
   const upcomingExDates = useMemo(
     () =>
       stockRows
-        .filter(
-          (r) =>
-            r.daysToEx !== null && r.daysToEx >= -7 && r.daysToEx <= 90
-        )
-        .sort(
-          (a, b) => (a.daysToEx ?? 999) - (b.daysToEx ?? 999)
-        ),
+        .filter((r) => r.daysToEx !== null && r.daysToEx >= -7 && r.daysToEx <= 90)
+        .sort((a, b) => (a.daysToEx ?? 999) - (b.daysToEx ?? 999)),
     [stockRows]
   );
 
   const dividendPayers = useMemo(
-    () =>
-      stockRows
-        .filter((r) => r.isDivPayer)
-        .sort((a, b) => b.divYield - a.divYield),
+    () => stockRows.filter((r) => r.isDivPayer).sort((a, b) => b.divYield - a.divYield),
     [stockRows]
   );
 
-  const totalEstIncome = dividendPayers.reduce(
-    (s, r) => s + r.estDivIncome,
-    0
-  );
+  const totalEstIncome = dividendPayers.reduce((s, r) => s + r.estDivIncome, 0);
   const totalPortValue = stockRows.reduce((s, r) => s + r.currentValue, 0);
-  const portfolioYield =
-    totalPortValue > 0 ? (totalEstIncome / totalPortValue) * 100 : 0;
+  const portfolioYield = totalPortValue > 0 ? (totalEstIncome / totalPortValue) * 100 : 0;
 
   if (symbols.length === 0) {
     return (
@@ -274,11 +264,7 @@ export function DividendCalendarTab({ state }: any) {
         />
         <StatCard
           label="Portfolio Div. Yield"
-          value={
-            portfolioYield > 0
-              ? `${portfolioYield.toFixed(2)}%`
-              : "—"
-          }
+          value={portfolioYield > 0 ? `${portfolioYield.toFixed(2)}%` : "—"}
           icon={<TrendingUp />}
           color={THEME.accent}
         />
@@ -342,14 +328,10 @@ export function DividendCalendarTab({ state }: any) {
                       background: isPast
                         ? "transparent"
                         : r.daysToEx <= 3
-                        ? "rgba(249,115,22,0.05)"
-                        : "rgba(99,102,241,0.04)",
+                          ? "rgba(249,115,22,0.05)"
+                          : "rgba(99,102,241,0.04)",
                       border: `1px solid ${
-                        isPast
-                          ? THEME.line
-                          : r.daysToEx <= 3
-                          ? "rgba(249,115,22,0.2)"
-                          : THEME.line
+                        isPast ? THEME.line : r.daysToEx <= 3 ? "rgba(249,115,22,0.2)" : THEME.line
                       }`,
                       opacity: isPast ? 0.65 : 1,
                     }}
@@ -372,10 +354,7 @@ export function DividendCalendarTab({ state }: any) {
                         lineHeight: 1.2,
                       }}
                     >
-                      {r.symbol
-                        .replace(".NS", "")
-                        .replace(".BO", "")
-                        .slice(0, 6)}
+                      {r.symbol.replace(".NS", "").replace(".BO", "").slice(0, 6)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
@@ -387,20 +366,12 @@ export function DividendCalendarTab({ state }: any) {
                       >
                         {r.symbol}
                       </div>
-                      <div
-                        style={{ fontSize: 12, color: THEME.muted }}
-                      >
-                        Ex-date:{" "}
-                        <b style={{ color: THEME.ink }}>
-                          {formatDate(r.exDate)}
-                        </b>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>
+                        Ex-date: <b style={{ color: THEME.ink }}>{formatDate(r.exDate)}</b>
                         {r.divPayDate && (
                           <>
                             {" "}
-                            • Pay:{" "}
-                            <b style={{ color: THEME.ink }}>
-                              {formatDate(r.divPayDate)}
-                            </b>
+                            • Pay: <b style={{ color: THEME.ink }}>{formatDate(r.divPayDate)}</b>
                           </>
                         )}
                       </div>
@@ -413,20 +384,11 @@ export function DividendCalendarTab({ state }: any) {
                           color: THEME.ink,
                         }}
                       >
-                        <Prv>
-                          {r.divRate > 0
-                            ? `₹${r.divRate.toFixed(2)}/share`
-                            : "—"}
-                        </Prv>
+                        <Prv>{r.divRate > 0 ? `₹${r.divRate.toFixed(2)}/share` : "—"}</Prv>
                       </div>
-                      <div
-                        style={{ fontSize: 12, color: THEME.muted }}
-                      >
+                      <div style={{ fontSize: 12, color: THEME.muted }}>
                         {r.estDivIncome > 0 ? (
-                          <Prv>
-                            Est.{" "}
-                            {fmtINRExact(r.estDivIncome)}
-                          </Prv>
+                          <Prv>Est. {fmtINRExact(r.estDivIncome)}</Prv>
                         ) : (
                           `${r.qty.toLocaleString("en-IN")} shares`
                         )}
@@ -548,19 +510,12 @@ export function DividendCalendarTab({ state }: any) {
                         borderBottom: `1px solid ${THEME.line}`,
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "rgba(99,102,241,0.04)")
+                        (e.currentTarget.style.background = "rgba(99,102,241,0.04)")
                       }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={{ padding: "10px 12px" }}>
-                        <div
-                          style={{ fontWeight: 700, color: THEME.ink }}
-                        >
-                          {r.symbol}
-                        </div>
+                        <div style={{ fontWeight: 700, color: THEME.ink }}>{r.symbol}</div>
                         {r.exchange && (
                           <div
                             style={{
@@ -595,31 +550,21 @@ export function DividendCalendarTab({ state }: any) {
                         style={{
                           padding: "10px 12px",
                           textAlign: "right",
-                          color:
-                            r.divRate > 0 ? THEME.sage : THEME.muted,
+                          color: r.divRate > 0 ? THEME.sage : THEME.muted,
                           fontWeight: r.divRate > 0 ? 600 : 400,
                         }}
                       >
-                        {r.divRate > 0
-                          ? `₹${r.divRate.toFixed(2)}`
-                          : loading
-                          ? "…"
-                          : "—"}
+                        {r.divRate > 0 ? `₹${r.divRate.toFixed(2)}` : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
                           padding: "10px 12px",
                           textAlign: "right",
-                          color:
-                            r.divYield > 0 ? THEME.sage : THEME.muted,
+                          color: r.divYield > 0 ? THEME.sage : THEME.muted,
                           fontWeight: r.divYield > 0 ? 600 : 400,
                         }}
                       >
-                        {r.divYield > 0
-                          ? `${r.divYield.toFixed(2)}%`
-                          : loading
-                          ? "…"
-                          : "—"}
+                        {r.divYield > 0 ? `${r.divYield.toFixed(2)}%` : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
@@ -630,11 +575,7 @@ export function DividendCalendarTab({ state }: any) {
                           fontSize: 12,
                         }}
                       >
-                        {r.exDate
-                          ? formatDate(r.exDate)
-                          : loading
-                          ? "…"
-                          : "—"}
+                        {r.exDate ? formatDate(r.exDate) : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
@@ -645,26 +586,17 @@ export function DividendCalendarTab({ state }: any) {
                           fontSize: 12,
                         }}
                       >
-                        {r.divPayDate
-                          ? formatDate(r.divPayDate)
-                          : loading
-                          ? "…"
-                          : "—"}
+                        {r.divPayDate ? formatDate(r.divPayDate) : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
                           padding: "10px 12px",
                           textAlign: "right",
                           fontWeight: r.estDivIncome > 0 ? 700 : 400,
-                          color:
-                            r.estDivIncome > 0 ? THEME.sage : THEME.muted,
+                          color: r.estDivIncome > 0 ? THEME.sage : THEME.muted,
                         }}
                       >
-                        {r.estDivIncome > 0 ? (
-                          <Prv>{fmtINRExact(r.estDivIncome)}</Prv>
-                        ) : (
-                          "—"
-                        )}
+                        {r.estDivIncome > 0 ? <Prv>{fmtINRExact(r.estDivIncome)}</Prv> : "—"}
                       </td>
                       <td
                         style={{
@@ -676,10 +608,7 @@ export function DividendCalendarTab({ state }: any) {
                         }}
                       >
                         {r.lastDiv
-                          ? formatDate(
-                              r.lastDiv.recordDate ||
-                                r.lastDiv.paymentDate
-                            )
+                          ? formatDate(r.lastDiv.recordDate || r.lastDiv.paymentDate)
                           : "—"}
                       </td>
                     </tr>
@@ -697,9 +626,8 @@ export function DividendCalendarTab({ state }: any) {
                 color: THEME.muted,
               }}
             >
-              No dividend-paying stocks found. Many Indian growth stocks
-              don't pay dividends — check individual stock profiles for
-              details.
+              No dividend-paying stocks found. Many Indian growth stocks don't pay dividends — check
+              individual stock profiles for details.
             </div>
           )}
         </div>

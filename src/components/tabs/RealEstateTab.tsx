@@ -179,7 +179,11 @@ const BuilderLogo = ({
           src={imgSrc}
           alt={name}
           onError={handleError}
-          style={{ width: Math.round(size * 0.8), height: Math.round(size * 0.8), objectFit: "contain" }}
+          style={{
+            width: Math.round(size * 0.8),
+            height: Math.round(size * 0.8),
+            objectFit: "contain",
+          }}
         />
       </div>
     );
@@ -199,7 +203,15 @@ const BuilderLogo = ({
         boxShadow: `0 4px 14px ${theme.color}40`,
       }}
     >
-      <span style={{ fontSize, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1 }}>
+      <span
+        style={{
+          fontSize,
+          fontWeight: 900,
+          color: "#fff",
+          letterSpacing: "-0.01em",
+          lineHeight: 1,
+        }}
+      >
         {initials}
       </span>
     </div>
@@ -259,7 +271,8 @@ const TYPE_LABELS: Record<string, string> = {
 // ─── Shared card shell ────────────────────────────────────────────────────────
 // Premium glassmorphic card with gradient background, double border, and soft shadow
 const cardShell: React.CSSProperties = {
-  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 10%, var(--surface-0)) 100%)",
+  background:
+    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 10%, var(--surface-0)) 100%)",
   border: "1.5px solid var(--t-line)",
   borderRadius: 18,
   boxShadow: "0 4px 24px -4px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
@@ -305,7 +318,12 @@ function PropertyModal({ existing, onClose, onSave }: any) {
     <Modal title={isEdit ? "Edit Property" : "Add Property"} onClose={onClose} maxWidth={640}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Property Name *" style={{ gridColumn: "1 / -1" }}>
-          <input style={input} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Flat 4B, Lodha Palava" />
+          <input
+            style={input}
+            value={f.name}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="e.g. Flat 4B, Lodha Palava"
+          />
         </Field>
         <Field label="Type">
           <select style={input} value={f.type} onChange={(e) => set("type", e.target.value)}>
@@ -325,84 +343,217 @@ function PropertyModal({ existing, onClose, onSave }: any) {
           </select>
         </Field>
         <Field label="Owner">
-          <select style={input} value={f.owner || "self"} onChange={(e) => set("owner", e.target.value)}>
-            {familyProfiles.map((p) => <option key={p.id} value={p.id}>{formatProfileOption(p)}</option>)}
+          <select
+            style={input}
+            value={f.owner || "self"}
+            onChange={(e) => set("owner", e.target.value)}
+          >
+            {familyProfiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {formatProfileOption(p)}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Location" style={{ gridColumn: "1 / -1" }}>
-          <input style={input} value={f.location} onChange={(e) => set("location", e.target.value)} placeholder="City / area" />
+          <input
+            style={input}
+            value={f.location}
+            onChange={(e) => set("location", e.target.value)}
+            placeholder="City / area"
+          />
         </Field>
         <Field label="Developer / Builder Name">
-          <input style={input} value={f.developerName} onChange={(e) => set("developerName", e.target.value)} />
+          <input
+            style={input}
+            value={f.developerName}
+            onChange={(e) => set("developerName", e.target.value)}
+          />
         </Field>
         <Field label="Seller Name">
-          <input style={input} value={f.sellerName} onChange={(e) => set("sellerName", e.target.value)} />
+          <input
+            style={input}
+            value={f.sellerName}
+            onChange={(e) => set("sellerName", e.target.value)}
+          />
         </Field>
         <Field label="RERA Number">
-          <input style={input} value={f.reraNumber} onChange={(e) => set("reraNumber", e.target.value)} />
+          <input
+            style={input}
+            value={f.reraNumber}
+            onChange={(e) => set("reraNumber", e.target.value)}
+          />
         </Field>
         <Field label="Area (sq ft)">
-          <input style={input} type="number" value={f.areaSqft} onChange={(e) => set("areaSqft", e.target.value)} />
+          <input
+            style={input}
+            type="number"
+            value={f.areaSqft}
+            onChange={(e) => set("areaSqft", e.target.value)}
+          />
         </Field>
       </div>
 
       <div style={{ height: 1, background: "var(--t-line)", margin: "16px 0" }} />
-      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Key Dates</div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: THEME.muted,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginBottom: 12,
+        }}
+      >
+        Key Dates
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         <Field label="Purchase Date">
-          <input style={input} type="date" value={f.purchaseDate} onChange={(e) => set("purchaseDate", e.target.value)} />
+          <input
+            style={input}
+            type="date"
+            value={f.purchaseDate}
+            onChange={(e) => set("purchaseDate", e.target.value)}
+          />
         </Field>
         <Field label="Registration Date">
-          <input style={input} type="date" value={f.registrationDate} onChange={(e) => set("registrationDate", e.target.value)} />
+          <input
+            style={input}
+            type="date"
+            value={f.registrationDate}
+            onChange={(e) => set("registrationDate", e.target.value)}
+          />
         </Field>
         <Field label="Possession Date">
-          <input style={input} type="date" value={f.possessionDate} onChange={(e) => set("possessionDate", e.target.value)} />
+          <input
+            style={input}
+            type="date"
+            value={f.possessionDate}
+            onChange={(e) => set("possessionDate", e.target.value)}
+          />
         </Field>
       </div>
 
       <div style={{ height: 1, background: "var(--t-line)", margin: "16px 0" }} />
-      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Financials (Purchase)</div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: THEME.muted,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginBottom: 12,
+        }}
+      >
+        Financials (Purchase)
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Agreement Value (₹)">
-          <input style={input} type="number" value={f.agreementValue} onChange={(e) => set("agreementValue", e.target.value)} placeholder="0" />
+          <input
+            style={input}
+            type="number"
+            value={f.agreementValue}
+            onChange={(e) => set("agreementValue", e.target.value)}
+            placeholder="0"
+          />
         </Field>
         <Field label="Stamp Duty (₹)">
-          <input style={input} type="number" value={f.stampDuty} onChange={(e) => set("stampDuty", e.target.value)} placeholder="0" />
+          <input
+            style={input}
+            type="number"
+            value={f.stampDuty}
+            onChange={(e) => set("stampDuty", e.target.value)}
+            placeholder="0"
+          />
         </Field>
         <Field label="TDS (₹)">
-          <input style={input} type="number" value={f.tdsValue} onChange={(e) => set("tdsValue", e.target.value)} placeholder="0" />
+          <input
+            style={input}
+            type="number"
+            value={f.tdsValue}
+            onChange={(e) => set("tdsValue", e.target.value)}
+            placeholder="0"
+          />
         </Field>
         <Field label="Current Market Value (₹)">
-          <input style={input} type="number" value={f.marketValue} onChange={(e) => set("marketValue", e.target.value)} placeholder="0" />
+          <input
+            style={input}
+            type="number"
+            value={f.marketValue}
+            onChange={(e) => set("marketValue", e.target.value)}
+            placeholder="0"
+          />
         </Field>
       </div>
 
       {f.status === "sold" && (
         <>
           <div style={{ height: 1, background: "var(--t-line)", margin: "16px 0" }} />
-          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Sale Details</div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 12,
+            }}
+          >
+            Sale Details
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Sale Date">
-              <input style={input} type="date" value={f.saleDate} onChange={(e) => set("saleDate", e.target.value)} />
+              <input
+                style={input}
+                type="date"
+                value={f.saleDate}
+                onChange={(e) => set("saleDate", e.target.value)}
+              />
             </Field>
             <Field label="Sale Price (₹)">
-              <input style={input} type="number" value={f.salePrice} onChange={(e) => set("salePrice", e.target.value)} placeholder="0" />
+              <input
+                style={input}
+                type="number"
+                value={f.salePrice}
+                onChange={(e) => set("salePrice", e.target.value)}
+                placeholder="0"
+              />
             </Field>
             <Field label="Sale Stamp Duty (₹)">
-              <input style={input} type="number" value={f.saleStampDuty} onChange={(e) => set("saleStampDuty", e.target.value)} placeholder="0" />
+              <input
+                style={input}
+                type="number"
+                value={f.saleStampDuty}
+                onChange={(e) => set("saleStampDuty", e.target.value)}
+                placeholder="0"
+              />
             </Field>
             <Field label="Sale TDS (₹)">
-              <input style={input} type="number" value={f.saleTds} onChange={(e) => set("saleTds", e.target.value)} placeholder="0" />
+              <input
+                style={input}
+                type="number"
+                value={f.saleTds}
+                onChange={(e) => set("saleTds", e.target.value)}
+                placeholder="0"
+              />
             </Field>
           </div>
         </>
       )}
 
       <Field label="Notes" style={{ marginTop: 12 }}>
-        <textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+        <textarea
+          style={{ ...input, minHeight: 60, resize: "vertical" }}
+          value={f.notes}
+          onChange={(e) => set("notes", e.target.value)}
+        />
       </Field>
 
-      <ModalActions onSave={() => f.name && onSave(f)} onClose={onClose} saveLabel={isEdit ? "Save Changes" : "Add Property"} />
+      <ModalActions
+        onSave={() => f.name && onSave(f)}
+        onClose={onClose}
+        saveLabel={isEdit ? "Save Changes" : "Add Property"}
+      />
     </Modal>
   );
 }
@@ -427,26 +578,62 @@ function DemandModal({ existing, propertyName, onClose, onSave }: any) {
   const computedTotal = (Number(f.amount) || 0) + (Number(f.gstAmount) || 0);
 
   return (
-    <Modal title={isEdit ? "Edit Demand Letter" : `Add Demand — ${propertyName}`} onClose={onClose} maxWidth={520}>
+    <Modal
+      title={isEdit ? "Edit Demand Letter" : `Add Demand — ${propertyName}`}
+      onClose={onClose}
+      maxWidth={520}
+    >
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Demand Date">
-          <input style={input} type="date" value={f.demandDate} onChange={(e) => set("demandDate", e.target.value)} />
+          <input
+            style={input}
+            type="date"
+            value={f.demandDate}
+            onChange={(e) => set("demandDate", e.target.value)}
+          />
         </Field>
         <Field label="Due Date">
-          <input style={input} type="date" value={f.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+          <input
+            style={input}
+            type="date"
+            value={f.dueDate}
+            onChange={(e) => set("dueDate", e.target.value)}
+          />
         </Field>
         <Field label="Milestone / Description" style={{ gridColumn: "1 / -1" }}>
-          <input style={input} value={f.milestone} onChange={(e) => set("milestone", e.target.value)} placeholder="e.g. Plinth Work Completion" />
+          <input
+            style={input}
+            value={f.milestone}
+            onChange={(e) => set("milestone", e.target.value)}
+            placeholder="e.g. Plinth Work Completion"
+          />
         </Field>
         <Field label="Demand Amount (₹)">
-          <input style={input} type="number" value={f.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0" />
+          <input
+            style={input}
+            type="number"
+            value={f.amount}
+            onChange={(e) => set("amount", e.target.value)}
+            placeholder="0"
+          />
         </Field>
         <Field label="GST Amount (₹)">
-          <input style={input} type="number" value={f.gstAmount} onChange={(e) => set("gstAmount", e.target.value)} placeholder="0" />
+          <input
+            style={input}
+            type="number"
+            value={f.gstAmount}
+            onChange={(e) => set("gstAmount", e.target.value)}
+            placeholder="0"
+          />
         </Field>
         <Field label="Total Amount (₹)">
           <input
-            style={{ ...input, background: "var(--surface-1)", color: THEME.accent, fontWeight: 700 }}
+            style={{
+              ...input,
+              background: "var(--surface-1)",
+              color: THEME.accent,
+              fontWeight: 700,
+            }}
             type="number"
             value={f.totalAmount || computedTotal || ""}
             onChange={(e) => set("totalAmount", e.target.value)}
@@ -462,7 +649,11 @@ function DemandModal({ existing, propertyName, onClose, onSave }: any) {
           </select>
         </Field>
         <Field label="Notes" style={{ gridColumn: "1 / -1" }}>
-          <textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+          <textarea
+            style={{ ...input, minHeight: 60, resize: "vertical" }}
+            value={f.notes}
+            onChange={(e) => set("notes", e.target.value)}
+          />
         </Field>
       </div>
       <ModalActions
@@ -491,16 +682,35 @@ function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any)
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
 
   return (
-    <Modal title={isEdit ? "Edit Payment" : `Record Payment — ${propertyName}`} onClose={onClose} maxWidth={520}>
+    <Modal
+      title={isEdit ? "Edit Payment" : `Record Payment — ${propertyName}`}
+      onClose={onClose}
+      maxWidth={520}
+    >
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Payment Date">
-          <input style={input} type="date" value={f.paymentDate} onChange={(e) => set("paymentDate", e.target.value)} />
+          <input
+            style={input}
+            type="date"
+            value={f.paymentDate}
+            onChange={(e) => set("paymentDate", e.target.value)}
+          />
         </Field>
         <Field label="Amount (₹)">
-          <input style={input} type="number" value={f.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0" />
+          <input
+            style={input}
+            type="number"
+            value={f.amount}
+            onChange={(e) => set("amount", e.target.value)}
+            placeholder="0"
+          />
         </Field>
         <Field label="Payment Mode">
-          <select style={input} value={f.paymentMode} onChange={(e) => set("paymentMode", e.target.value)}>
+          <select
+            style={input}
+            value={f.paymentMode}
+            onChange={(e) => set("paymentMode", e.target.value)}
+          >
             <option value="NEFT">NEFT</option>
             <option value="RTGS">RTGS</option>
             <option value="UPI">UPI</option>
@@ -511,22 +721,36 @@ function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any)
           </select>
         </Field>
         <Field label="Reference / UTR Number">
-          <input style={input} value={f.referenceNumber} onChange={(e) => set("referenceNumber", e.target.value)} placeholder="UTR / Cheque no." />
+          <input
+            style={input}
+            value={f.referenceNumber}
+            onChange={(e) => set("referenceNumber", e.target.value)}
+            placeholder="UTR / Cheque no."
+          />
         </Field>
         {demands.length > 0 && (
           <Field label="Link to Demand Letter (optional)" style={{ gridColumn: "1 / -1" }}>
-            <select style={input} value={f.demandId} onChange={(e) => set("demandId", e.target.value)}>
+            <select
+              style={input}
+              value={f.demandId}
+              onChange={(e) => set("demandId", e.target.value)}
+            >
               <option value="">— Not linked —</option>
               {demands.map((d: any) => (
                 <option key={d.id} value={d.id}>
-                  {d.milestone || "Demand"} — {fmtDate(d.demandDate)} — ₹{Number(d.totalAmount || d.amount || 0).toLocaleString("en-IN")}
+                  {d.milestone || "Demand"} — {fmtDate(d.demandDate)} — ₹
+                  {Number(d.totalAmount || d.amount || 0).toLocaleString("en-IN")}
                 </option>
               ))}
             </select>
           </Field>
         )}
         <Field label="Note" style={{ gridColumn: "1 / -1" }}>
-          <textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={f.note} onChange={(e) => set("note", e.target.value)} />
+          <textarea
+            style={{ ...input, minHeight: 60, resize: "vertical" }}
+            value={f.note}
+            onChange={(e) => set("note", e.target.value)}
+          />
         </Field>
       </div>
       <ModalActions
@@ -555,7 +779,10 @@ function PropertyCard({
 }: any) {
   const [expanded, setExpanded] = useState(false);
 
-  const totalDemanded = demands.reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
+  const totalDemanded = demands.reduce(
+    (s: number, d: any) => s + Number(d.totalAmount || d.amount || 0),
+    0
+  );
   const totalPaid = payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
   const outstanding = Math.max(0, totalDemanded - totalPaid);
   const paidPct = totalDemanded > 0 ? Math.min(100, (totalPaid / totalDemanded) * 100) : 0;
@@ -565,7 +792,11 @@ function PropertyCard({
     Number(property.tdsValue || 0);
   const statusHex = STATUS_HEX[property.status] || "#6366f1";
   const isSold = property.status === "sold";
-  const saleProceeds = isSold ? Number(property.salePrice || 0) - Number(property.saleStampDuty || 0) - Number(property.saleTds || 0) : 0;
+  const saleProceeds = isSold
+    ? Number(property.salePrice || 0) -
+      Number(property.saleStampDuty || 0) -
+      Number(property.saleTds || 0)
+    : 0;
   const gain = isSold ? saleProceeds - totalCost : Number(property.marketValue || 0) - totalCost;
 
   // All table cell borders use CSS variable directly (valid CSS, not "var(...)44" which is invalid)
@@ -593,15 +824,17 @@ function PropertyCard({
   return (
     <div style={cardShell}>
       {/* Header — premium glassmorphic */}
-      <div style={{
-        padding: "20px 24px",
-        borderBottom: divider,
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        gap: 14,
-        background: `linear-gradient(135deg, ${statusHex}06 0%, transparent 60%)`,
-      }}>
+      <div
+        style={{
+          padding: "20px 24px",
+          borderBottom: divider,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 14,
+          background: `linear-gradient(135deg, ${statusHex}06 0%, transparent 60%)`,
+        }}
+      >
         {/* Builder logo */}
         {property.developerName && (
           <div style={{ flexShrink: 0, marginTop: 2 }}>
@@ -609,100 +842,181 @@ function PropertyCard({
           </div>
         )}
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-            <span style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>{property.name}</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              marginBottom: 8,
+            }}
+          >
+            <span
+              style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}
+            >
+              {property.name}
+            </span>
             {/* Status badge */}
-            <span style={{
-              fontSize: 11, fontWeight: 700,
-              color: statusHex,
-              background: statusHex + "18",
-              border: `1.5px solid ${statusHex}30`,
-              padding: "3px 10px", borderRadius: 20, textTransform: "uppercase" as const,
-              letterSpacing: "0.06em",
-            }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: statusHex,
+                background: statusHex + "18",
+                border: `1.5px solid ${statusHex}30`,
+                padding: "3px 10px",
+                borderRadius: 20,
+                textTransform: "uppercase" as const,
+                letterSpacing: "0.06em",
+              }}
+            >
               {property.status === "under-construction" ? "Under Const." : property.status}
             </span>
-            <span style={{
-              fontSize: 11, fontWeight: 600,
-              color: THEME.muted,
-              background: "var(--surface-1)",
-              border: `1.5px solid ${THEME.line}`,
-              padding: "3px 10px", borderRadius: 20,
-            }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: THEME.muted,
+                background: "var(--surface-1)",
+                border: `1.5px solid ${THEME.line}`,
+                padding: "3px 10px",
+                borderRadius: 20,
+              }}
+            >
               {TYPE_LABELS[property.type] || property.type}
             </span>
           </div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             {property.location && (
-              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: THEME.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
                 <MapPin size={12} /> {property.location}
               </span>
             )}
             {property.developerName && (
-              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: THEME.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
                 <Building2 size={12} /> {property.developerName}
               </span>
             )}
             {property.purchaseDate && (
-              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: THEME.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
                 <Calendar size={12} /> {fmtDate(property.purchaseDate)}
               </span>
             )}
             {property.areaSqft && (
-              <span style={{ fontSize: 12, color: THEME.muted }}>{Number(property.areaSqft).toLocaleString("en-IN")} sq ft</span>
+              <span style={{ fontSize: 12, color: THEME.muted }}>
+                {Number(property.areaSqft).toLocaleString("en-IN")} sq ft
+              </span>
             )}
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          <button onClick={() => onEditProperty(property)} style={{
-            background: "color-mix(in srgb, var(--t-muted) 8%, transparent)",
-            border: `1.5px solid ${THEME.line}`,
-            cursor: "pointer",
-            color: THEME.muted,
-            padding: "6px 8px",
-            borderRadius: 8,
-            display: "flex",
-            alignItems: "center",
-          }}>
+          <button
+            onClick={() => onEditProperty(property)}
+            style={{
+              background: "color-mix(in srgb, var(--t-muted) 8%, transparent)",
+              border: `1.5px solid ${THEME.line}`,
+              cursor: "pointer",
+              color: THEME.muted,
+              padding: "6px 8px",
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
             <Pencil size={13} />
           </button>
-          <button onClick={() => onDeleteProperty(property.id)} style={{
-            background: "color-mix(in srgb, #ef4444 8%, transparent)",
-            border: "1.5px solid #ef444428",
-            cursor: "pointer",
-            color: THEME.rust,
-            padding: "6px 8px",
-            borderRadius: 8,
-            display: "flex",
-            alignItems: "center",
-          }}>
+          <button
+            onClick={() => onDeleteProperty(property.id)}
+            style={{
+              background: "color-mix(in srgb, #ef4444 8%, transparent)",
+              border: "1.5px solid #ef444428",
+              cursor: "pointer",
+              color: THEME.rust,
+              padding: "6px 8px",
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
             <Trash2 size={13} />
           </button>
         </div>
       </div>
 
       {/* Financials grid — premium tinted cells */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: divider }}>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: divider }}
+      >
         {[
           { label: "Agreement Value", value: property.agreementValue, color: THEME.accent },
           { label: "Stamp Duty", value: property.stampDuty, color: "#f59e0b" },
           { label: "TDS Paid", value: property.tdsValue, color: "#8b5cf6" },
           { label: "Market Value", value: property.marketValue, color: "#22c55e" },
         ].map(({ label, value, color }, i) => (
-          <div key={label} style={{
-            padding: "14px 18px",
-            borderRight: i < 3 ? divider : "none",
-            background: value ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, transparent) 0%, transparent 100%)` : "transparent",
-          }}>
+          <div
+            key={label}
+            style={{
+              padding: "14px 18px",
+              borderRight: i < 3 ? divider : "none",
+              background: value
+                ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, transparent) 0%, transparent 100%)`
+                : "transparent",
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
-              <div style={{
-                width: 6, height: 6, borderRadius: 3,
-                background: value ? color : THEME.muted,
-                flexShrink: 0,
-              }} />
-              <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{label}</div>
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  background: value ? color : THEME.muted,
+                  flexShrink: 0,
+                }}
+              />
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em",
+                }}
+              >
+                {label}
+              </div>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: value ? color : THEME.muted, letterSpacing: "-0.02em" }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 900,
+                color: value ? color : THEME.muted,
+                letterSpacing: "-0.02em",
+              }}
+            >
               <Prv>{value ? fmtINRFull(Number(value)) : "—"}</Prv>
             </div>
           </div>
@@ -710,71 +1024,137 @@ function PropertyCard({
       </div>
 
       {/* Gain/Loss — premium pill */}
-      {((isSold && Number(property.salePrice || 0) > 0) || (!isSold && property.marketValue)) && totalCost > 0 && (
-        <div style={{
-          padding: "10px 24px",
-          borderBottom: divider,
-          background: gain >= 0
-            ? "linear-gradient(90deg, rgba(34,197,94,0.07) 0%, transparent 100%)"
-            : "linear-gradient(90deg, rgba(239,68,68,0.07) 0%, transparent 100%)",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}>
-          <span style={{
-            fontSize: 12, fontWeight: 800,
-            color: gain >= 0 ? "#22c55e" : "#ef4444",
-            background: gain >= 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-            border: `1.5px solid ${gain >= 0 ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
-            padding: "3px 10px",
-            borderRadius: 20,
-            letterSpacing: "0.04em",
-          }}>
-            {gain >= 0 ? "▲" : "▼"} {isSold ? "Realised" : "Unrealised"} {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv>
-          </span>
-          <span style={{ fontSize: 11, color: THEME.muted }}>
-            Cost: <Prv>{fmtINRFull(totalCost)}</Prv>{isSold ? <> · Net sale: <Prv>{fmtINRFull(saleProceeds)}</Prv></> : ""}
-          </span>
-        </div>
-      )}
+      {((isSold && Number(property.salePrice || 0) > 0) || (!isSold && property.marketValue)) &&
+        totalCost > 0 && (
+          <div
+            style={{
+              padding: "10px 24px",
+              borderBottom: divider,
+              background:
+                gain >= 0
+                  ? "linear-gradient(90deg, rgba(34,197,94,0.07) 0%, transparent 100%)"
+                  : "linear-gradient(90deg, rgba(239,68,68,0.07) 0%, transparent 100%)",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                color: gain >= 0 ? "#22c55e" : "#ef4444",
+                background: gain >= 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+                border: `1.5px solid ${gain >= 0 ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                padding: "3px 10px",
+                borderRadius: 20,
+                letterSpacing: "0.04em",
+              }}
+            >
+              {gain >= 0 ? "▲" : "▼"} {isSold ? "Realised" : "Unrealised"}{" "}
+              {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv>
+            </span>
+            <span style={{ fontSize: 11, color: THEME.muted }}>
+              Cost: <Prv>{fmtINRFull(totalCost)}</Prv>
+              {isSold ? (
+                <>
+                  {" "}
+                  · Net sale: <Prv>{fmtINRFull(saleProceeds)}</Prv>
+                </>
+              ) : (
+                ""
+              )}
+            </span>
+          </div>
+        )}
 
       {/* Payment progress — premium gradient track */}
       {totalDemanded > 0 && (
         <div style={{ padding: "14px 24px", borderBottom: divider }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: THEME.muted,
+                textTransform: "uppercase" as const,
+                letterSpacing: "0.06em",
+              }}
+            >
               Payment Progress — {demands.length} demand{demands.length !== 1 ? "s" : ""}
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: "#22c55e" }}>
                 <Prv>{fmtINRFull(totalPaid)}</Prv>
               </span>
-              <span style={{ fontSize: 11, color: THEME.muted }}>of <Prv>{fmtINRFull(totalDemanded)}</Prv></span>
-              <span style={{
-                fontSize: 11, fontWeight: 800,
-                color: paidPct >= 100 ? "#22c55e" : THEME.accent,
-                background: paidPct >= 100 ? "rgba(34,197,94,0.12)" : `${THEME.accent}15`,
-                padding: "2px 8px", borderRadius: 12,
-              }}>{paidPct.toFixed(0)}%</span>
+              <span style={{ fontSize: 11, color: THEME.muted }}>
+                of <Prv>{fmtINRFull(totalDemanded)}</Prv>
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: paidPct >= 100 ? "#22c55e" : THEME.accent,
+                  background: paidPct >= 100 ? "rgba(34,197,94,0.12)" : `${THEME.accent}15`,
+                  padding: "2px 8px",
+                  borderRadius: 12,
+                }}
+              >
+                {paidPct.toFixed(0)}%
+              </span>
             </div>
           </div>
-          <div style={{ height: 7, background: "var(--surface-1)", borderRadius: 4, overflow: "hidden", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)" }}>
-            <div style={{
-              height: "100%",
-              width: `${paidPct}%`,
-              background: paidPct >= 100
-                ? "linear-gradient(90deg, #22c55e, #4ade80)"
-                : `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #60a5fa))`,
+          <div
+            style={{
+              height: 7,
+              background: "var(--surface-1)",
               borderRadius: 4,
-              transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
-            }} />
+              overflow: "hidden",
+              boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${paidPct}%`,
+                background:
+                  paidPct >= 100
+                    ? "linear-gradient(90deg, #22c55e, #4ade80)"
+                    : `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #60a5fa))`,
+                borderRadius: 4,
+                transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
+              }}
+            />
           </div>
           {outstanding > 0 && (
-            <div style={{ marginTop: 6, fontSize: 11, color: "#ef4444", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{
-                display: "inline-block", width: 6, height: 6, borderRadius: 3,
-                background: "#ef4444", flexShrink: 0,
-              }} />
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 11,
+                color: "#ef4444",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  background: "#ef4444",
+                  flexShrink: 0,
+                }}
+              />
               Outstanding: <Prv>{fmtINRFull(outstanding)}</Prv>
             </div>
           )}
@@ -801,17 +1181,30 @@ function PropertyCard({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{
-            width: 6, height: 6, borderRadius: 3,
-            background: demands.length > 0 ? THEME.accent : THEME.muted,
-          }} />
-          <span>{demands.length} demand letter{demands.length !== 1 ? "s" : ""} · {payments.length} payment{payments.length !== 1 ? "s" : ""}</span>
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              background: demands.length > 0 ? THEME.accent : THEME.muted,
+            }}
+          />
+          <span>
+            {demands.length} demand letter{demands.length !== 1 ? "s" : ""} · {payments.length}{" "}
+            payment{payments.length !== 1 ? "s" : ""}
+          </span>
         </div>
-        <div style={{
-          width: 22, height: 22, borderRadius: 6,
-          background: `${THEME.accent}12`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
+        <div
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            background: `${THEME.accent}12`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         </div>
       </button>
@@ -820,24 +1213,52 @@ function PropertyCard({
         <div>
           {/* Demand Letters */}
           <div style={{ padding: "14px 20px 12px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <FileText size={13} color={THEME.accent} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Demand Letters</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  Demand Letters
+                </span>
               </div>
-              <Button variant="accent" icon={<Plus size={12} />} onClick={() => onAddDemand(property)}>
+              <Button
+                variant="accent"
+                icon={<Plus size={12} />}
+                onClick={() => onAddDemand(property)}
+              >
                 Add Demand
               </Button>
             </div>
             {demands.length === 0 ? (
-              <div style={{ fontSize: 12, color: THEME.muted, padding: "8px 0", fontStyle: "italic" }}>No demand letters recorded yet.</div>
+              <div
+                style={{ fontSize: 12, color: THEME.muted, padding: "8px 0", fontStyle: "italic" }}
+              >
+                No demand letters recorded yet.
+              </div>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "var(--surface-1)" }}>
-                      {["Date", "Due Date", "Milestone", "Amount", "GST", "Total", "Status", ""].map((h) => (
-                        <th key={h} style={th}>{h}</th>
+                      {[
+                        "Date",
+                        "Due Date",
+                        "Milestone",
+                        "Amount",
+                        "GST",
+                        "Total",
+                        "Status",
+                        "",
+                      ].map((h) => (
+                        <th key={h} style={th}>
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -858,25 +1279,55 @@ function PropertyCard({
                             <td style={{ ...td, textAlign: "right" }}>
                               <Prv>{d.gstAmount ? fmtINRFull(Number(d.gstAmount)) : "—"}</Prv>
                             </td>
-                            <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.accent }}>
+                            <td
+                              style={{
+                                ...td,
+                                textAlign: "right",
+                                fontWeight: 700,
+                                color: THEME.accent,
+                              }}
+                            >
                               <Prv>{d.totalAmount ? fmtINRFull(Number(d.totalAmount)) : "—"}</Prv>
                             </td>
                             <td style={td}>
                               {/* Use literal hex so + "22" gives a valid 8-digit hex color */}
-                              <span style={{
-                                fontSize: 11, fontWeight: 700,
-                                color: dHex,
-                                background: dHex + "22",
-                                padding: "2px 8px", borderRadius: 20, textTransform: "capitalize",
-                              }}>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: dHex,
+                                  background: dHex + "22",
+                                  padding: "2px 8px",
+                                  borderRadius: 20,
+                                  textTransform: "capitalize",
+                                }}
+                              >
                                 {d.status}
                               </span>
                             </td>
                             <td style={{ ...td, whiteSpace: "nowrap" }}>
-                              <button onClick={() => onEditDemand(d)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2 }}>
+                              <button
+                                onClick={() => onEditDemand(d)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: THEME.muted,
+                                  padding: 2,
+                                }}
+                              >
                                 <Pencil size={12} />
                               </button>
-                              <button onClick={() => onDeleteDemand(d.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2 }}>
+                              <button
+                                onClick={() => onDeleteDemand(d.id)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: THEME.rust,
+                                  padding: 2,
+                                }}
+                              >
                                 <Trash2 size={12} />
                               </button>
                             </td>
@@ -891,25 +1342,44 @@ function PropertyCard({
 
           {/* Payments */}
           <div style={{ padding: "14px 20px 16px", borderTop: divider }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <Receipt size={13} color="#22c55e" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Payments</span>
               </div>
-              <Button variant="ghost" icon={<Plus size={12} />} onClick={() => onAddPayment(property)}>
+              <Button
+                variant="ghost"
+                icon={<Plus size={12} />}
+                onClick={() => onAddPayment(property)}
+              >
                 Record Payment
               </Button>
             </div>
             {payments.length === 0 ? (
-              <div style={{ fontSize: 12, color: THEME.muted, padding: "8px 0", fontStyle: "italic" }}>No payments recorded yet.</div>
+              <div
+                style={{ fontSize: 12, color: THEME.muted, padding: "8px 0", fontStyle: "italic" }}
+              >
+                No payments recorded yet.
+              </div>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "var(--surface-1)" }}>
-                      {["Date", "Amount", "Mode", "Reference", "Linked Demand", "Note", ""].map((h) => (
-                        <th key={h} style={th}>{h}</th>
-                      ))}
+                      {["Date", "Amount", "Mode", "Reference", "Linked Demand", "Note", ""].map(
+                        (h) => (
+                          <th key={h} style={th}>
+                            {h}
+                          </th>
+                        )
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -921,27 +1391,60 @@ function PropertyCard({
                         return (
                           <tr key={p.id} style={{ background: "var(--surface-0)" }}>
                             <td style={td}>{fmtDate(p.paymentDate)}</td>
-                            <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#22c55e" }}>
+                            <td
+                              style={{
+                                ...td,
+                                textAlign: "right",
+                                fontWeight: 800,
+                                color: "#22c55e",
+                              }}
+                            >
                               <Prv>+{fmtINRFull(Number(p.amount))}</Prv>
                             </td>
                             <td style={td}>
-                              <span style={{
-                                fontSize: 11, fontWeight: 700,
-                                color: THEME.accent,
-                                background: "rgba(99,102,241,0.1)",
-                                padding: "2px 8px", borderRadius: 20,
-                              }}>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: THEME.accent,
+                                  background: "rgba(99,102,241,0.1)",
+                                  padding: "2px 8px",
+                                  borderRadius: 20,
+                                }}
+                              >
                                 {p.paymentMode}
                               </span>
                             </td>
-                            <td style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>{p.referenceNumber || "—"}</td>
-                            <td style={{ ...td, fontSize: 11, color: THEME.muted }}>{linked ? (linked.milestone || fmtDate(linked.demandDate)) : "—"}</td>
+                            <td style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>
+                              {p.referenceNumber || "—"}
+                            </td>
+                            <td style={{ ...td, fontSize: 11, color: THEME.muted }}>
+                              {linked ? linked.milestone || fmtDate(linked.demandDate) : "—"}
+                            </td>
                             <td style={{ ...td, color: THEME.muted }}>{p.note || "—"}</td>
                             <td style={{ ...td, whiteSpace: "nowrap" }}>
-                              <button onClick={() => onEditPayment(p)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2 }}>
+                              <button
+                                onClick={() => onEditPayment(p)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: THEME.muted,
+                                  padding: 2,
+                                }}
+                              >
                                 <Pencil size={12} />
                               </button>
-                              <button onClick={() => onDeletePayment(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2 }}>
+                              <button
+                                onClick={() => onDeletePayment(p.id)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: THEME.rust,
+                                  padding: 2,
+                                }}
+                              >
                                 <Trash2 size={12} />
                               </button>
                             </td>
@@ -951,7 +1454,17 @@ function PropertyCard({
                   </tbody>
                   <tfoot>
                     <tr style={{ background: "rgba(34,197,94,0.06)" }}>
-                      <td style={{ ...td, fontWeight: 800, color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Total</td>
+                      <td
+                        style={{
+                          ...td,
+                          fontWeight: 800,
+                          color: THEME.muted,
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Total
+                      </td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 900, color: "#22c55e" }}>
                         <Prv>{fmtINRFull(totalPaid)}</Prv>
                       </td>
@@ -991,14 +1504,24 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
 
   const stats = useMemo(() => {
     const activeProperties = properties.filter((p) => p.status !== "sold");
-    const portfolioValue = activeProperties.reduce((s, p) => s + Number(p.marketValue || p.agreementValue || 0), 0);
-    const totalInvested = activeProperties.reduce(
-      (s, p) => s + Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsValue || 0),
+    const portfolioValue = activeProperties.reduce(
+      (s, p) => s + Number(p.marketValue || p.agreementValue || 0),
       0
     );
-    const ucIds = new Set(properties.filter((p) => p.status === "under-construction").map((p) => p.id));
-    const totalPaid = payments.filter((p) => ucIds.has(p.propertyId)).reduce((s, p) => s + Number(p.amount || 0), 0);
-    const totalDemanded = demands.filter((d) => ucIds.has(d.propertyId)).reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
+    const totalInvested = activeProperties.reduce(
+      (s, p) =>
+        s + Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsValue || 0),
+      0
+    );
+    const ucIds = new Set(
+      properties.filter((p) => p.status === "under-construction").map((p) => p.id)
+    );
+    const totalPaid = payments
+      .filter((p) => ucIds.has(p.propertyId))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const totalDemanded = demands
+      .filter((d) => ucIds.has(d.propertyId))
+      .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
     const outstanding = Math.max(0, totalDemanded - totalPaid);
     const allPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
     return { portfolioValue, totalInvested, totalPaid: allPaid, outstanding };
@@ -1037,36 +1560,94 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
   return (
     <div>
       {/* Header — premium */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 24,
+        }}
+      >
         <div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 11,
-              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 70%, #22c55e) 100%)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: `0 4px 12px color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
-              flexShrink: 0,
-            }}>
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 900,
+              color: THEME.ink,
+              letterSpacing: "-0.03em",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 70%, #22c55e) 100%)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: `0 4px 12px color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
+                flexShrink: 0,
+              }}
+            >
               <Home size={18} color="#fff" />
             </div>
             Real Estate
           </div>
           <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, marginLeft: 46 }}>
-            {properties.length} propert{properties.length !== 1 ? "ies" : "y"} · Track purchases, demand letters &amp; payments
+            {properties.length} propert{properties.length !== 1 ? "ies" : "y"} · Track purchases,
+            demand letters &amp; payments
           </div>
         </div>
-        <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowPropertyModal(true)}>
+        <Button
+          variant="accent"
+          icon={<Plus size={14} />}
+          onClick={() => setShowPropertyModal(true)}
+        >
           Add Property
         </Button>
       </div>
 
       {/* Stats — premium gradient cards */}
       {properties.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
-          <StatCard label="Portfolio Value" value={<Prv>{fmtINRFull(stats.portfolioValue)}</Prv>} icon={<TrendingUp />} color="#22c55e" />
-          <StatCard label="Total Invested" value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
-          <StatCard label="Total Paid" value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>} sub="All payments" icon={<CheckCircle />} color={THEME.accent} />
-          <StatCard label="Outstanding" value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>} sub="Demands pending" icon={<Clock />} color={stats.outstanding > 0 ? "#ef4444" : THEME.muted} />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 14,
+            marginBottom: 28,
+          }}
+        >
+          <StatCard
+            label="Portfolio Value"
+            value={<Prv>{fmtINRFull(stats.portfolioValue)}</Prv>}
+            icon={<TrendingUp />}
+            color="#22c55e"
+          />
+          <StatCard
+            label="Total Invested"
+            value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>}
+            sub="Agreement + Stamp + TDS"
+            icon={<IndianRupee />}
+            color={THEME.accent}
+          />
+          <StatCard
+            label="Total Paid"
+            value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>}
+            sub="All payments"
+            icon={<CheckCircle />}
+            color={THEME.accent}
+          />
+          <StatCard
+            label="Outstanding"
+            value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>}
+            sub="Demands pending"
+            icon={<Clock />}
+            color={stats.outstanding > 0 ? "#ef4444" : THEME.muted}
+          />
         </div>
       )}
 
@@ -1078,7 +1659,13 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
           dotColor={THEME.accent}
           title="No Properties Yet"
           description="Track all your real estate investments — purchases, demand letters, and payments in one place."
-          pills={["Agreement Value", "Stamp Duty & TDS", "Demand Letters", "Payment History", "Market Value"]}
+          pills={[
+            "Agreement Value",
+            "Stamp Duty & TDS",
+            "Demand Letters",
+            "Payment History",
+            "Market Value",
+          ]}
           buttonLabel="Add First Property"
           onAdd={() => setShowPropertyModal(true)}
         />
@@ -1105,7 +1692,10 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
       {(showPropertyModal || editProperty) && (
         <PropertyModal
           existing={editProperty}
-          onClose={() => { setShowPropertyModal(false); setEditProperty(null); }}
+          onClose={() => {
+            setShowPropertyModal(false);
+            setEditProperty(null);
+          }}
           onSave={handleSaveProperty}
         />
       )}
@@ -1117,7 +1707,10 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
               ? properties.find((p) => p.id === editDemand.propertyId)?.name || "Property"
               : demandForProperty?.name || "Property"
           }
-          onClose={() => { setDemandForProperty(null); setEditDemand(null); }}
+          onClose={() => {
+            setDemandForProperty(null);
+            setEditDemand(null);
+          }}
           onSave={handleSaveDemand}
         />
       )}
@@ -1134,7 +1727,10 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
               ? demands.filter((d) => d.propertyId === editPayment.propertyId)
               : demands.filter((d) => d.propertyId === paymentForProperty?.id)
           }
-          onClose={() => { setPaymentForProperty(null); setEditPayment(null); }}
+          onClose={() => {
+            setPaymentForProperty(null);
+            setEditPayment(null);
+          }}
           onSave={handleSavePayment}
         />
       )}

@@ -1949,9 +1949,7 @@ function FinanceDashboard() {
       txnsWithIds.forEach((item) => {
         if (item.accountId) {
           const delta =
-            item.type === "credit"
-              ? Number(item.amount || 0)
-              : -Number(item.amount || 0);
+            item.type === "credit" ? Number(item.amount || 0) : -Number(item.amount || 0);
           deltas[item.accountId] = (deltas[item.accountId] || 0) + delta;
         }
       });
@@ -2014,10 +2012,10 @@ function FinanceDashboard() {
         console.error("[Batch Transactions Upsert]", upsertErr.message);
         showToast(`Sync error: ${upsertErr.message}`, "error");
         // Revert transactions from state on error
-        const addedIds = txnsWithIds.map(x => x.id);
+        const addedIds = txnsWithIds.map((x) => x.id);
         setState((s) => ({
           ...s,
-          transactions: s.transactions.filter((x: any) => !addedIds.includes(x.id))
+          transactions: s.transactions.filter((x: any) => !addedIds.includes(x.id)),
         }));
         return;
       }
@@ -2027,9 +2025,7 @@ function FinanceDashboard() {
       txnsWithIds.forEach((item) => {
         if (item.accountId) {
           const delta =
-            item.type === "credit"
-              ? Number(item.amount || 0)
-              : -Number(item.amount || 0);
+            item.type === "credit" ? Number(item.amount || 0) : -Number(item.amount || 0);
           deltas[item.accountId] = (deltas[item.accountId] || 0) + delta;
         }
       });
@@ -2071,11 +2067,9 @@ function FinanceDashboard() {
       }
     }
 
-    logActivity(
-      "BATCH_ADD_TRANSACTIONS",
-      `Imported ${txns.length} transactions via CSV`,
-      { count: txns.length }
-    );
+    logActivity("BATCH_ADD_TRANSACTIONS", `Imported ${txns.length} transactions via CSV`, {
+      count: txns.length,
+    });
   };
 
   const removeItem = async (key, id) => {

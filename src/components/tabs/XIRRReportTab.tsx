@@ -218,10 +218,7 @@ export function XIRRReportTab({ state }: any) {
         }));
         cashFlows.push({ date: todayStr, amount: Number(p.balance || 0) });
         const xirr = calcXIRR(cashFlows);
-        const invested = txns.reduce(
-          (s: number, t: any) => s + Math.abs(Number(t.amount)),
-          0
-        );
+        const invested = txns.reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0);
 
         results.push({
           name: p.institution || p.name || "PPF",
@@ -253,10 +250,7 @@ export function XIRRReportTab({ state }: any) {
         }));
         cashFlows.push({ date: todayStr, amount: Number(p.balance || 0) });
         const xirr = calcXIRR(cashFlows);
-        const invested = txns.reduce(
-          (s: number, t: any) => s + Number(t.employee),
-          0
-        );
+        const invested = txns.reduce((s: number, t: any) => s + Number(t.employee), 0);
 
         results.push({
           name: p.employer || p.institution || "EPF",
@@ -277,9 +271,7 @@ export function XIRRReportTab({ state }: any) {
     (state.nps || [])
       .filter((p: any) => p.type === "NPS")
       .forEach((p: any) => {
-        const txns = (p.transactions || []).filter(
-          (t: any) => t.date && Number(t.amount) > 0
-        );
+        const txns = (p.transactions || []).filter((t: any) => t.date && Number(t.amount) > 0);
         if (txns.length === 0) return;
 
         const cashFlows: any[] = txns.map((t: any) => ({
@@ -288,10 +280,7 @@ export function XIRRReportTab({ state }: any) {
         }));
         cashFlows.push({ date: todayStr, amount: Number(p.balance || 0) });
         const xirr = calcXIRR(cashFlows);
-        const invested = txns.reduce(
-          (s: number, t: any) => s + Number(t.amount),
-          0
-        );
+        const invested = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
 
         results.push({
           name: `${p.institution || "NPS"}${p.tier ? ` (Tier ${p.tier})` : ""}`,
@@ -313,20 +302,14 @@ export function XIRRReportTab({ state }: any) {
       const purchaseDate = b.purchaseDate || b.settlementDate;
       if (!purchaseDate || !b.totalInvestmentAmount) return;
 
-      const faceVal = Number(
-        b.totalPrincipalAmount ||
-          b.totalInvestmentAmount
-      );
+      const faceVal = Number(b.totalPrincipalAmount || b.totalInvestmentAmount);
       const couponRate = Number(b.coupon || b.ytmRate || 0) / 100;
       const annualCoupon = faceVal * couponRate;
 
-      const cashFlows: any[] = [
-        { date: purchaseDate, amount: -Number(b.totalInvestmentAmount) },
-      ];
+      const cashFlows: any[] = [{ date: purchaseDate, amount: -Number(b.totalInvestmentAmount) }];
 
       if (b.maturityDate && annualCoupon > 0) {
-        const couponEnd =
-          b.maturityDate < todayStr ? b.maturityDate : todayStr;
+        const couponEnd = b.maturityDate < todayStr ? b.maturityDate : todayStr;
         const d = new Date(purchaseDate + "T00:00:00");
         d.setFullYear(d.getFullYear() + 1);
         while (d.toISOString().slice(0, 10) <= couponEnd) {
@@ -372,10 +355,7 @@ export function XIRRReportTab({ state }: any) {
       if (!r.startDate || !r.invested) return;
       flowMap.set(r.startDate, (flowMap.get(r.startDate) || 0) - r.invested);
     });
-    const totalCurrent = rows.reduce(
-      (s: number, r) => s + (r.currentValue || 0),
-      0
-    );
+    const totalCurrent = rows.reduce((s: number, r) => s + (r.currentValue || 0), 0);
     flowMap.set(todayStr, (flowMap.get(todayStr) || 0) + totalCurrent);
     const flows = Array.from(flowMap.entries()).map(([date, amount]) => ({
       date,
@@ -384,14 +364,8 @@ export function XIRRReportTab({ state }: any) {
     return calcXIRR(flows);
   }, [rows, todayStr]);
 
-  const totalInvested = rows.reduce(
-    (s: number, r) => s + (r.invested || 0),
-    0
-  );
-  const totalCurrent = rows.reduce(
-    (s: number, r) => s + (r.currentValue || 0),
-    0
-  );
+  const totalInvested = rows.reduce((s: number, r) => s + (r.invested || 0), 0);
+  const totalCurrent = rows.reduce((s: number, r) => s + (r.currentValue || 0), 0);
   const totalGain = totalCurrent - totalInvested;
 
   const typeGroups = useMemo(() => {
@@ -453,9 +427,7 @@ export function XIRRReportTab({ state }: any) {
         />
         <StatCard
           label="Total Gain / Loss"
-          value={
-            (totalGain >= 0 ? "+" : "") + fmtINRFull(Math.abs(totalGain))
-          }
+          value={(totalGain >= 0 ? "+" : "") + fmtINRFull(Math.abs(totalGain))}
           icon={totalGain >= 0 ? <TrendingUp /> : <TrendingDown />}
           color={totalGain >= 0 ? THEME.sage : THEME.rust}
         />
@@ -463,14 +435,8 @@ export function XIRRReportTab({ state }: any) {
 
       {/* Per-type tables */}
       {Object.entries(typeGroups).map(([type, items]) => {
-        const typeInvested = items.reduce(
-          (s: number, r) => s + (r.invested || 0),
-          0
-        );
-        const typeCurrent = items.reduce(
-          (s: number, r) => s + (r.currentValue || 0),
-          0
-        );
+        const typeInvested = items.reduce((s: number, r) => s + (r.invested || 0), 0);
+        const typeCurrent = items.reduce((s: number, r) => s + (r.currentValue || 0), 0);
         const typeGain = typeCurrent - typeInvested;
         const TypeIcon = items[0]?.icon || Activity;
 
@@ -487,9 +453,7 @@ export function XIRRReportTab({ state }: any) {
                   gap: 8,
                 }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: 8 }}
-                >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <TypeIcon size={16} style={{ color: items[0]?.color }} />
                   <span
                     style={{
@@ -553,41 +517,30 @@ export function XIRRReportTab({ state }: any) {
                   }}
                 >
                   <thead>
-                    <tr
-                      style={{ borderBottom: `1.5px solid ${THEME.line}` }}
-                    >
-                      {[
-                        "Name",
-                        "Invested",
-                        "Current Value",
-                        "Gain / Loss",
-                        "Period",
-                        "XIRR",
-                      ].map((h) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: "8px 12px",
-                            textAlign: h === "Name" ? "left" : "right",
-                            color: THEME.muted,
-                            fontWeight: 600,
-                            fontSize: 12,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {h}
-                        </th>
-                      ))}
+                    <tr style={{ borderBottom: `1.5px solid ${THEME.line}` }}>
+                      {["Name", "Invested", "Current Value", "Gain / Loss", "Period", "XIRR"].map(
+                        (h) => (
+                          <th
+                            key={h}
+                            style={{
+                              padding: "8px 12px",
+                              textAlign: h === "Name" ? "left" : "right",
+                              color: THEME.muted,
+                              fontWeight: 600,
+                              fontSize: 12,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h}
+                          </th>
+                        )
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((row, i) => {
-                      const gain =
-                        (row.currentValue || 0) - (row.invested || 0);
-                      const gainPct =
-                        row.invested > 0
-                          ? (gain / row.invested) * 100
-                          : 0;
+                      const gain = (row.currentValue || 0) - (row.invested || 0);
+                      const gainPct = row.invested > 0 ? (gain / row.invested) * 100 : 0;
                       return (
                         <tr
                           key={i}
@@ -595,12 +548,9 @@ export function XIRRReportTab({ state }: any) {
                             borderBottom: `1px solid ${THEME.line}`,
                           }}
                           onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "rgba(99,102,241,0.04)")
+                            (e.currentTarget.style.background = "rgba(99,102,241,0.04)")
                           }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "transparent")
-                          }
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ padding: "10px 12px" }}>
                             <div
@@ -622,10 +572,7 @@ export function XIRRReportTab({ state }: any) {
                                   flexShrink: 0,
                                 }}
                               >
-                                <row.icon
-                                  size={13}
-                                  style={{ color: row.color }}
-                                />
+                                <row.icon size={13} style={{ color: row.color }} />
                               </div>
                               <div>
                                 <div
@@ -686,8 +633,7 @@ export function XIRRReportTab({ state }: any) {
                             style={{
                               padding: "10px 12px",
                               textAlign: "right",
-                              color:
-                                gain >= 0 ? THEME.sage : THEME.rust,
+                              color: gain >= 0 ? THEME.sage : THEME.rust,
                               fontWeight: 600,
                             }}
                           >
@@ -768,9 +714,7 @@ export function XIRRReportTab({ state }: any) {
             }}
           >
             <Info size={13} />
-            <span style={{ fontWeight: 600 }}>
-              XIRR benchmarks (annualised):
-            </span>
+            <span style={{ fontWeight: 600 }}>XIRR benchmarks (annualised):</span>
           </div>
           {[
             { label: "≥ 15% — Excellent", color: THEME.sage },

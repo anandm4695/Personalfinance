@@ -38,12 +38,16 @@ export const SmartAlertsTab = ({ state, metrics }) => {
 
     // 1. Spending anomaly detection
     const monthlySpend = {};
-    (state.transactions || []).filter((t) => t.type === "debit" && t.date).forEach((t) => {
-      const ym = t.date.slice(0, 7);
-      monthlySpend[ym] = (monthlySpend[ym] || 0) + Number(t.amount || 0);
-    });
+    (state.transactions || [])
+      .filter((t) => t.type === "debit" && t.date)
+      .forEach((t) => {
+        const ym = t.date.slice(0, 7);
+        monthlySpend[ym] = (monthlySpend[ym] || 0) + Number(t.amount || 0);
+      });
 
-    const spendValues = Object.entries(monthlySpend).filter(([ym]) => ym < currentMonth).map(([, v]) => v);
+    const spendValues = Object.entries(monthlySpend)
+      .filter(([ym]) => ym < currentMonth)
+      .map(([, v]) => v);
     if (spendValues.length >= 3) {
       const avg = spendValues.reduce((s, v) => s + v, 0) / spendValues.length;
       const thisMonthSpend = monthlySpend[currentMonth] || 0;
@@ -74,14 +78,18 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // 2. Category-specific anomalies
     const catSpend = {};
     const catAvg = {};
-    (state.transactions || []).filter((t) => t.type === "debit" && t.date).forEach((t) => {
-      const ym = t.date.slice(0, 7);
-      const cat = t.category || "Uncategorized";
-      if (!catSpend[cat]) catSpend[cat] = {};
-      catSpend[cat][ym] = (catSpend[cat][ym] || 0) + Number(t.amount || 0);
-    });
+    (state.transactions || [])
+      .filter((t) => t.type === "debit" && t.date)
+      .forEach((t) => {
+        const ym = t.date.slice(0, 7);
+        const cat = t.category || "Uncategorized";
+        if (!catSpend[cat]) catSpend[cat] = {};
+        catSpend[cat][ym] = (catSpend[cat][ym] || 0) + Number(t.amount || 0);
+      });
     Object.entries(catSpend).forEach(([cat, months]) => {
-      const vals = Object.entries(months).filter(([ym]) => ym < currentMonth).map(([, v]) => v);
+      const vals = Object.entries(months)
+        .filter(([ym]) => ym < currentMonth)
+        .map(([, v]) => v);
       if (vals.length >= 3) {
         const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
         const thisMonth = months[currentMonth] || 0;
@@ -137,9 +145,24 @@ export const SmartAlertsTab = ({ state, metrics }) => {
 
     // 4. Insurance premium due (anniversary-based, matching RemindersTab logic)
     const insurancePolicies = [
-      ...(state.lic || []).map((p) => ({ ...p, _startField: p.commencementDate, _matField: p.maturityDate, _termField: p.policyTerm })),
-      ...(state.termPlans || []).map((p) => ({ ...p, _startField: p.startDate, _matField: p.expiryDate, _termField: p.premiumPayingTerm || p.term })),
-      ...(state.investmentPlans || []).map((p) => ({ ...p, _startField: p.commencementDate, _matField: p.maturityDate, _termField: p.premiumPayingTerm || p.policyTerm })),
+      ...(state.lic || []).map((p) => ({
+        ...p,
+        _startField: p.commencementDate,
+        _matField: p.maturityDate,
+        _termField: p.policyTerm,
+      })),
+      ...(state.termPlans || []).map((p) => ({
+        ...p,
+        _startField: p.startDate,
+        _matField: p.expiryDate,
+        _termField: p.premiumPayingTerm || p.term,
+      })),
+      ...(state.investmentPlans || []).map((p) => ({
+        ...p,
+        _startField: p.commencementDate,
+        _matField: p.maturityDate,
+        _termField: p.premiumPayingTerm || p.policyTerm,
+      })),
     ];
     insurancePolicies.forEach((p) => {
       if (!p._startField) return;
@@ -196,14 +219,17 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       return t.date > latest ? t.date : latest;
     }, "");
     if (latestTxn && todayStr) {
-      const daysSince = Math.ceil((new Date(todayStr).getTime() - new Date(latestTxn).getTime()) / 86400000);
+      const daysSince = Math.ceil(
+        (new Date(todayStr).getTime() - new Date(latestTxn).getTime()) / 86400000
+      );
       if (daysSince > 14) {
         alerts.push({
           id: "no_recent_txns",
           level: "info",
           category: "data",
           title: `No transactions logged in ${daysSince} days`,
-          detail: "Your records may be out of date. Import a bank statement or add transactions manually.",
+          detail:
+            "Your records may be out of date. Import a bank statement or add transactions manually.",
           icon: Info,
           action: "Add transactions",
         });
@@ -214,7 +240,9 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     (state.goals || []).forEach((g) => {
       if (!g.targetDate) return;
       const days = Math.ceil((new Date(g.targetDate).getTime() - now.getTime()) / 86400000);
-      const progress = Number(g.targetAmount) ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100 : 0;
+      const progress = Number(g.targetAmount)
+        ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
+        : 0;
       if (days >= 0 && days <= 90 && progress < 80) {
         alerts.push({
           id: `goal_deadline_${g.id}`,
@@ -258,12 +286,14 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     }
 
     // 10. Subscription review
-    const monthlySubs = (state.subscriptions || []).filter((s) => !s.paused).reduce((s, sub) => {
-      const amt = Number(sub.amount || 0);
-      if (sub.cycle === "yearly") return s + amt / 12;
-      if (sub.cycle === "quarterly") return s + amt / 3;
-      return s + amt;
-    }, 0);
+    const monthlySubs = (state.subscriptions || [])
+      .filter((s) => !s.paused)
+      .reduce((s, sub) => {
+        const amt = Number(sub.amount || 0);
+        if (sub.cycle === "yearly") return s + amt / 12;
+        if (sub.cycle === "quarterly") return s + amt / 3;
+        return s + amt;
+      }, 0);
     if (monthlySubs > monthlyExpense * 0.15 && monthlySubs > 5000) {
       alerts.push({
         id: "subs_high",
@@ -314,25 +344,59 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle sub="AI-powered financial health monitoring">Smart Alerts</SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        <StatCard label="Critical Alerts" value={errorCount} icon={<XCircle />} color={THEME.rust} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <StatCard
+          label="Critical Alerts"
+          value={errorCount}
+          icon={<XCircle />}
+          color={THEME.rust}
+        />
         <StatCard label="Warnings" value={warnCount} icon={<AlertTriangle />} color={THEME.gold} />
-        <StatCard label="Total Alerts" value={smartAlerts.length} icon={<Bell />} color="var(--accent)" />
+        <StatCard
+          label="Total Alerts"
+          value={smartAlerts.length}
+          icon={<Bell />}
+          color="var(--accent)"
+        />
       </div>
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => setFilter("all")}
-          style={{ padding: "6px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer",
+        <button
+          onClick={() => setFilter("all")}
+          style={{
+            padding: "6px 14px",
+            borderRadius: 20,
+            fontSize: 13,
+            cursor: "pointer",
             border: `1px solid ${filter === "all" ? "var(--accent)" : THEME.border}`,
-            background: filter === "all" ? "var(--accent)" : THEME.card, color: filter === "all" ? "#fff" : THEME.text }}>
+            background: filter === "all" ? "var(--accent)" : THEME.card,
+            color: filter === "all" ? "#fff" : THEME.text,
+          }}
+        >
           All ({smartAlerts.length})
         </button>
         {categories.map((cat) => (
-          <button key={cat} onClick={() => setFilter(cat)}
-            style={{ padding: "6px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer", textTransform: "capitalize",
+          <button
+            key={cat}
+            onClick={() => setFilter(cat)}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 20,
+              fontSize: 13,
+              cursor: "pointer",
+              textTransform: "capitalize",
               border: `1px solid ${filter === cat ? "var(--accent)" : THEME.border}`,
-              background: filter === cat ? "var(--accent)" : THEME.card, color: filter === cat ? "#fff" : THEME.text }}>
+              background: filter === cat ? "var(--accent)" : THEME.card,
+              color: filter === cat ? "#fff" : THEME.text,
+            }}
+          >
             {cat} ({smartAlerts.filter((a) => a.category === cat).length})
           </button>
         ))}
@@ -344,32 +408,99 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           {filteredAlerts.map((alert) => {
             const Icon = alert.icon;
             return (
-              <Card key={alert.id} style={{ padding: 16, background: levelBg[alert.level], border: `1px solid ${levelColors[alert.level]}30` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <Card
+                key={alert.id}
+                style={{
+                  padding: 16,
+                  background: levelBg[alert.level],
+                  border: `1px solid ${levelColors[alert.level]}30`,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: 1 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${levelColors[alert.level]}20`,
-                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `${levelColors[alert.level]}20`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
                       <Icon size={18} color={levelColors[alert.level]} />
                     </div>
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                          background: `${levelColors[alert.level]}20`, color: levelColors[alert.level] }}>
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}
+                      >
+                        <span
+                          style={{
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            background: `${levelColors[alert.level]}20`,
+                            color: levelColors[alert.level],
+                          }}
+                        >
                           {levelLabels[alert.level]}
                         </span>
-                        <span style={{ fontSize: 11, color: THEME.textSecondary, textTransform: "capitalize" }}>{alert.category}</span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: THEME.textSecondary,
+                            textTransform: "capitalize",
+                          }}
+                        >
+                          {alert.category}
+                        </span>
                       </div>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: THEME.text, marginBottom: 4 }}>{alert.title}</div>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 14,
+                          color: THEME.text,
+                          marginBottom: 4,
+                        }}
+                      >
+                        {alert.title}
+                      </div>
                       <div style={{ fontSize: 13, color: THEME.textSecondary }}>{alert.detail}</div>
                       {alert.action && (
-                        <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent)", fontWeight: 500 }}>
+                        <div
+                          style={{
+                            marginTop: 8,
+                            fontSize: 12,
+                            color: "var(--accent)",
+                            fontWeight: 500,
+                          }}
+                        >
                           Suggested action: {alert.action}
                         </div>
                       )}
                     </div>
                   </div>
-                  <button onClick={() => setDismissed((prev) => new Set([...prev, alert.id]))}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textSecondary, padding: 4, flexShrink: 0 }}>
+                  <button
+                    onClick={() => setDismissed((prev) => new Set([...prev, alert.id]))}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: THEME.textSecondary,
+                      padding: 4,
+                      flexShrink: 0,
+                    }}
+                  >
                     <XCircle size={16} />
                   </button>
                 </div>
@@ -378,8 +509,11 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           })}
         </div>
       ) : (
-        <EmptyState icon={CheckCircle} title="All Clear!"
-          description="No alerts at this time. Your finances look healthy. Keep tracking your expenses and investments." />
+        <EmptyState
+          icon={CheckCircle}
+          title="All Clear!"
+          description="No alerts at this time. Your finances look healthy. Keep tracking your expenses and investments."
+        />
       )}
     </div>
   );

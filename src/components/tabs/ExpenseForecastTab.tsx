@@ -31,7 +31,20 @@ import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 export const ExpenseForecastTab = ({ state, metrics }) => {
   const [forecastMonths, setForecastMonths] = useState(6);
@@ -39,13 +52,15 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
   // Historical monthly expenses by category
   const historicalData = useMemo(() => {
     const monthMap = {};
-    (state.transactions || []).filter((t) => t.type === "debit" && t.date).forEach((t) => {
-      const ym = t.date.slice(0, 7);
-      const cat = t.category || "Uncategorized";
-      if (!monthMap[ym]) monthMap[ym] = { total: 0, categories: {} };
-      monthMap[ym].total += Number(t.amount || 0);
-      monthMap[ym].categories[cat] = (monthMap[ym].categories[cat] || 0) + Number(t.amount || 0);
-    });
+    (state.transactions || [])
+      .filter((t) => t.type === "debit" && t.date)
+      .forEach((t) => {
+        const ym = t.date.slice(0, 7);
+        const cat = t.category || "Uncategorized";
+        if (!monthMap[ym]) monthMap[ym] = { total: 0, categories: {} };
+        monthMap[ym].total += Number(t.amount || 0);
+        monthMap[ym].categories[cat] = (monthMap[ym].categories[cat] || 0) + Number(t.amount || 0);
+      });
 
     return Object.entries(monthMap)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -68,15 +83,26 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
       });
     });
 
-    return Object.entries(catMonthly).map(([cat, vals]) => {
-      const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
-      const recent3 = vals.slice(-3);
-      const recentAvg = recent3.length > 0 ? recent3.reduce((s, v) => s + v, 0) / recent3.length : avg;
-      const trend = recentAvg > avg * 1.15 ? "up" : recentAvg < avg * 0.85 ? "down" : "stable";
-      const max = Math.max(...vals);
-      const min = Math.min(...vals);
-      return { category: cat, avg: Math.round(avg), recentAvg: Math.round(recentAvg), trend, max: Math.round(max), min: Math.round(min), months: vals.length };
-    }).sort((a, b) => b.avg - a.avg);
+    return Object.entries(catMonthly)
+      .map(([cat, vals]) => {
+        const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+        const recent3 = vals.slice(-3);
+        const recentAvg =
+          recent3.length > 0 ? recent3.reduce((s, v) => s + v, 0) / recent3.length : avg;
+        const trend = recentAvg > avg * 1.15 ? "up" : recentAvg < avg * 0.85 ? "down" : "stable";
+        const max = Math.max(...vals);
+        const min = Math.min(...vals);
+        return {
+          category: cat,
+          avg: Math.round(avg),
+          recentAvg: Math.round(recentAvg),
+          trend,
+          max: Math.round(max),
+          min: Math.round(min),
+          months: vals.length,
+        };
+      })
+      .sort((a, b) => b.avg - a.avg);
   }, [historicalData]);
 
   // Forecast
@@ -91,15 +117,20 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
       const targetMonth = d.getMonth(); // 0-indexed
 
       // Use same-month historical data if available (seasonal), else use recent average
-      const sameMonthData = historicalData.filter((h) => parseInt(h.month.split("-")[1]) - 1 === targetMonth);
+      const sameMonthData = historicalData.filter(
+        (h) => parseInt(h.month.split("-")[1]) - 1 === targetMonth
+      );
       const recentData = historicalData.slice(-6);
 
-      const seasonalAvg = sameMonthData.length >= 2
-        ? sameMonthData.reduce((s, h) => s + h.total, 0) / sameMonthData.length
-        : null;
+      const seasonalAvg =
+        sameMonthData.length >= 2
+          ? sameMonthData.reduce((s, h) => s + h.total, 0) / sameMonthData.length
+          : null;
       const recentAvg = recentData.reduce((s, h) => s + h.total, 0) / recentData.length;
 
-      const predicted = seasonalAvg ? Math.round(seasonalAvg * 0.6 + recentAvg * 0.4) : Math.round(recentAvg);
+      const predicted = seasonalAvg
+        ? Math.round(seasonalAvg * 0.6 + recentAvg * 0.4)
+        : Math.round(recentAvg);
       const lower = Math.round(predicted * 0.8);
       const upper = Math.round(predicted * 1.2);
 
@@ -156,60 +187,178 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
 
   if (historicalData.length < 3) {
     return (
-      <EmptyState icon={TrendingUp} title="Not Enough Data"
+      <EmptyState
+        icon={TrendingUp}
+        title="Not Enough Data"
         gradient={`linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`}
         dotColor="var(--accent)"
         description="Add at least 3 months of transactions to see expense forecasts and patterns."
         pills={["Track spending", "Predict trends", "Seasonal patterns"]}
         buttonLabel="Add Transaction"
-        onAdd={() => {}} />
+        onAdd={() => {}}
+      />
     );
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle sub="Predict future spending based on your historical patterns">Expense Forecast</SectionTitle>
+      <SectionTitle sub="Predict future spending based on your historical patterns">
+        Expense Forecast
+      </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        <StatCard label="Annual Projection" value={fmtINRFull(annualProjection)} icon={<Calendar />} color="var(--accent)" />
-        <StatCard label="Monthly Average" value={fmtINRFull(Math.round(annualProjection / 12))} icon={<BarChart3 />} color={THEME.accent} />
-        <StatCard label="Trending Up" value={`${trendingUp} categories`} icon={<ArrowUp />} color="#EF4444" />
-        <StatCard label="Trending Down" value={`${trendingDown} categories`} icon={<ArrowDown />} color="#10B981" />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <StatCard
+          label="Annual Projection"
+          value={fmtINRFull(annualProjection)}
+          icon={<Calendar />}
+          color="var(--accent)"
+        />
+        <StatCard
+          label="Monthly Average"
+          value={fmtINRFull(Math.round(annualProjection / 12))}
+          icon={<BarChart3 />}
+          color={THEME.accent}
+        />
+        <StatCard
+          label="Trending Up"
+          value={`${trendingUp} categories`}
+          icon={<ArrowUp />}
+          color="#EF4444"
+        />
+        <StatCard
+          label="Trending Down"
+          value={`${trendingDown} categories`}
+          icon={<ArrowDown />}
+          color="#10B981"
+        />
       </div>
 
       {/* Forecast Chart */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>Expense Forecast</h3>
-          <select value={forecastMonths} onChange={(e) => setForecastMonths(Number(e.target.value))}
-            style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 13 }}>
-            {[3, 6, 9, 12].map((m) => <option key={m} value={m}>Next {m} months</option>)}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
+            Expense Forecast
+          </h3>
+          <select
+            value={forecastMonths}
+            onChange={(e) => setForecastMonths(Number(e.target.value))}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: `1px solid ${THEME.border}`,
+              background: THEME.card,
+              color: THEME.text,
+              fontSize: 13,
+            }}
+          >
+            {[3, 6, 9, 12].map((m) => (
+              <option key={m} value={m}>
+                Next {m} months
+              </option>
+            ))}
           </select>
         </div>
         <ResponsiveContainer width="100%" height={350}>
           <AreaChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
-            <Area type="monotone" dataKey="upper" stroke="none" fill={THEME.rust} fillOpacity={0.1} name="Upper Bound" />
-            <Area type="monotone" dataKey="lower" stroke="none" fill={THEME.sage} fillOpacity={0.1} name="Lower Bound" />
-            <Area type="monotone" dataKey="predicted" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.1} strokeWidth={2} name="Predicted" />
-            <Area type="monotone" dataKey="total" stroke="var(--t-accent)" fill="none" strokeWidth={2} name="Actual" />
+            <YAxis
+              tickFormatter={(v) => fmtINRFull(v)}
+              tick={{ fontSize: 11, fill: THEME.textSecondary }}
+            />
+            <Tooltip
+              formatter={(v) => fmtINRFull(v)}
+              cursor={{ stroke: THEME.line }}
+              contentStyle={{
+                background: THEME.card,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: 12,
+                color: THEME.ink,
+              }}
+              labelStyle={{ color: THEME.ink }}
+              itemStyle={{ color: THEME.ink }}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+              formatter={(value: string) => (
+                <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+              )}
+            />
+            <Area
+              type="monotone"
+              dataKey="upper"
+              stroke="none"
+              fill={THEME.rust}
+              fillOpacity={0.1}
+              name="Upper Bound"
+            />
+            <Area
+              type="monotone"
+              dataKey="lower"
+              stroke="none"
+              fill={THEME.sage}
+              fillOpacity={0.1}
+              name="Lower Bound"
+            />
+            <Area
+              type="monotone"
+              dataKey="predicted"
+              stroke="var(--accent)"
+              fill="var(--accent)"
+              fillOpacity={0.1}
+              strokeWidth={2}
+              name="Predicted"
+            />
+            <Area
+              type="monotone"
+              dataKey="total"
+              stroke="var(--t-accent)"
+              fill="none"
+              strokeWidth={2}
+              name="Actual"
+            />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
 
       {/* Seasonal Patterns */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Seasonal Spending Patterns</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+          Seasonal Spending Patterns
+        </h3>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={seasonalPatterns}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+            <YAxis
+              tickFormatter={(v) => fmtINRFull(v)}
+              tick={{ fontSize: 11, fill: THEME.textSecondary }}
+            />
+            <Tooltip
+              formatter={(v) => fmtINRFull(v)}
+              cursor={{ fill: THEME.line, opacity: 0.4 }}
+              contentStyle={{
+                background: THEME.card,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: 12,
+                color: THEME.ink,
+              }}
+              labelStyle={{ color: THEME.ink }}
+              itemStyle={{ color: THEME.ink }}
+            />
             <Bar dataKey="avg" name="Average Spend" fill="var(--accent)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -217,15 +366,25 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
 
       {/* Category Trends */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Category Trends</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+          Category Trends
+        </h3>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${THEME.border}` }}>
-                <th style={{ padding: 10, textAlign: "left", color: THEME.textSecondary }}>Category</th>
-                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>Monthly Avg</th>
-                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>Recent (3m)</th>
-                <th style={{ padding: 10, textAlign: "center", color: THEME.textSecondary }}>Trend</th>
+                <th style={{ padding: 10, textAlign: "left", color: THEME.textSecondary }}>
+                  Category
+                </th>
+                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
+                  Monthly Avg
+                </th>
+                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
+                  Recent (3m)
+                </th>
+                <th style={{ padding: 10, textAlign: "center", color: THEME.textSecondary }}>
+                  Trend
+                </th>
                 <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>Min</th>
                 <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>Max</th>
               </tr>
@@ -234,18 +393,52 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
               {categoryStats.slice(0, 15).map((c) => (
                 <tr key={c.category} style={{ borderBottom: `1px solid ${THEME.border}` }}>
                   <td style={{ padding: 10, fontWeight: 500, color: THEME.text }}>{c.category}</td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.text }}><Prv>{fmtINRFull(c.avg)}</Prv></td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.text }}><Prv>{fmtINRFull(c.recentAvg)}</Prv></td>
+                  <td style={{ padding: 10, textAlign: "right", color: THEME.text }}>
+                    <Prv>{fmtINRFull(c.avg)}</Prv>
+                  </td>
+                  <td style={{ padding: 10, textAlign: "right", color: THEME.text }}>
+                    <Prv>{fmtINRFull(c.recentAvg)}</Prv>
+                  </td>
                   <td style={{ padding: 10, textAlign: "center" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                      background: c.trend === "up" ? "#EF444420" : c.trend === "down" ? "#10B98120" : `${THEME.border}`,
-                      color: c.trend === "up" ? "#EF4444" : c.trend === "down" ? "#10B981" : THEME.textSecondary }}>
-                      {c.trend === "up" ? <ArrowUp size={12} /> : c.trend === "down" ? <ArrowDown size={12} /> : <Minus size={12} />}
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: "2px 8px",
+                        borderRadius: 6,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        background:
+                          c.trend === "up"
+                            ? "#EF444420"
+                            : c.trend === "down"
+                              ? "#10B98120"
+                              : `${THEME.border}`,
+                        color:
+                          c.trend === "up"
+                            ? "#EF4444"
+                            : c.trend === "down"
+                              ? "#10B981"
+                              : THEME.textSecondary,
+                      }}
+                    >
+                      {c.trend === "up" ? (
+                        <ArrowUp size={12} />
+                      ) : c.trend === "down" ? (
+                        <ArrowDown size={12} />
+                      ) : (
+                        <Minus size={12} />
+                      )}
                       {c.trend === "up" ? "Rising" : c.trend === "down" ? "Falling" : "Stable"}
                     </span>
                   </td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>{fmtINRFull(c.min)}</td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>{fmtINRFull(c.max)}</td>
+                  <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
+                    {fmtINRFull(c.min)}
+                  </td>
+                  <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
+                    {fmtINRFull(c.max)}
+                  </td>
                 </tr>
               ))}
             </tbody>

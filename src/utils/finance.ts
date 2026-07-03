@@ -24,8 +24,8 @@ export const fmtINR = (n: number | string | null | undefined) => {
   // parseFloat strips trailing zeros: 50.0 → "50", 1.50 → "1.5", 2.00 → "2"
   const fmt = (val: number, dec: number) => parseFloat(val.toFixed(dec)).toString();
   if (abs >= 10000000) return `${sign}₹${fmt(abs / 10000000, 2)}Cr`;
-  if (abs >= 100000)   return `${sign}₹${fmt(abs / 100000, 2)}L`;
-  if (abs >= 1000)     return `${sign}₹${fmt(abs / 1000, 1)}K`;
+  if (abs >= 100000) return `${sign}₹${fmt(abs / 100000, 2)}L`;
+  if (abs >= 1000) return `${sign}₹${fmt(abs / 1000, 1)}K`;
   return `${sign}₹${abs.toFixed(0)}`;
 };
 
@@ -717,7 +717,9 @@ export const calculateEpfBalance = (e: any): number => {
   const activeTxs = txs.filter((t: any) => !t.estId || !transferredOutEstIds.has(t.estId));
 
   const byType = (type: string) =>
-    activeTxs.filter((x: any) => x.type === type).reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
+    activeTxs
+      .filter((x: any) => x.type === type)
+      .reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const monthlyRows = activeTxs.filter((x: any) => x.type === "monthly_contribution");
   const interestRows = activeTxs.filter((x: any) => x.type === "interest_credit");
   const transferRows = txs.filter((x: any) => x.type === "transfer_in"); // all txs — all transfer_ins count
@@ -728,7 +730,10 @@ export const calculateEpfBalance = (e: any): number => {
   const totalEmployer =
     byType("employer_contribution") +
     monthlyRows.reduce((s: number, x: any) => s + Number(x.employerShare || 0), 0);
-  const totalPension = monthlyRows.reduce((s: number, x: any) => s + Number(x.pensionShare || 0), 0);
+  const totalPension = monthlyRows.reduce(
+    (s: number, x: any) => s + Number(x.pensionShare || 0),
+    0
+  );
   const totalTransferIn = transferRows.reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const totalWithdrawal = byType("withdrawal");
 
@@ -737,11 +742,23 @@ export const calculateEpfBalance = (e: any): number => {
     if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
     return s + Number(x.amount || 0); // backward compat: old single-amount interest → employee
   }, 0);
-  const erInterest = interestRows.reduce((s: number, x: any) => s + Number(x.employerShare || 0), 0);
-  const penInterest = interestRows.reduce((s: number, x: any) => s + Number(x.pensionShare || 0), 0);
+  const erInterest = interestRows.reduce(
+    (s: number, x: any) => s + Number(x.employerShare || 0),
+    0
+  );
+  const penInterest = interestRows.reduce(
+    (s: number, x: any) => s + Number(x.pensionShare || 0),
+    0
+  );
   // employee gets remainder: total - er - pen (handles partial splits and no-splits correctly)
-  const transferInEr = transferRows.reduce((s: number, x: any) => s + Number(x.employerShare || 0), 0);
-  const transferInPen = transferRows.reduce((s: number, x: any) => s + Number(x.pensionShare || 0), 0);
+  const transferInEr = transferRows.reduce(
+    (s: number, x: any) => s + Number(x.employerShare || 0),
+    0
+  );
+  const transferInPen = transferRows.reduce(
+    (s: number, x: any) => s + Number(x.pensionShare || 0),
+    0
+  );
   const transferInEmp = totalTransferIn - transferInEr - transferInPen;
 
   const closingEmployee = totalEmployee + empInterest + transferInEmp;
@@ -791,7 +808,10 @@ export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
         amount: Number(f.amount),
       };
     })
-    .filter((f): f is { date: Date; amount: number } => f !== null && !isNaN(f.date.getTime()) && f.amount !== 0);
+    .filter(
+      (f): f is { date: Date; amount: number } =>
+        f !== null && !isNaN(f.date.getTime()) && f.amount !== 0
+    );
 
   if (flows.length < 2) return null;
 
@@ -826,7 +846,7 @@ export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
     let sum = 0;
     for (const f of flows) {
       const t = (f.date.getTime() - t0) / (365 * 24 * 3600 * 1000);
-      sum += -t * f.amount / Math.pow(1 + r, t + 1);
+      sum += (-t * f.amount) / Math.pow(1 + r, t + 1);
     }
     return sum;
   };
@@ -906,7 +926,11 @@ export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
 };
 
 // ── CSV Export Utility ─────────────────────────────────────────────────────────
-export const exportArrayToCSV = (data: any[], columns: { key: string; label: string }[], filename: string) => {
+export const exportArrayToCSV = (
+  data: any[],
+  columns: { key: string; label: string }[],
+  filename: string
+) => {
   if (!data || data.length === 0) return;
   const header = columns.map((c) => `"${c.label}"`).join(",");
   const rows = data.map((row) =>
@@ -928,5 +952,3 @@ export const exportArrayToCSV = (data: any[], columns: { key: string; label: str
   a.click();
   URL.revokeObjectURL(url);
 };
-
-

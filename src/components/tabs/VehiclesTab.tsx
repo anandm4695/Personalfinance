@@ -97,7 +97,10 @@ const VEHICLE_MAKE_THEMES: Record<string, { gradient: string; color: string }> =
   bajaj: { gradient: "linear-gradient(135deg,#1a2b6b 0%,#3355aa 100%)", color: "#1a2b6b" },
   tvs: { gradient: "linear-gradient(135deg,#e31e26 0%,#ff5555 100%)", color: "#e31e26" },
   royalenfield: { gradient: "linear-gradient(135deg,#5a3e28 0%,#8b6347 100%)", color: "#5a3e28" },
-  "royal enfield": { gradient: "linear-gradient(135deg,#5a3e28 0%,#8b6347 100%)", color: "#5a3e28" },
+  "royal enfield": {
+    gradient: "linear-gradient(135deg,#5a3e28 0%,#8b6347 100%)",
+    color: "#5a3e28",
+  },
   ktm: { gradient: "linear-gradient(135deg,#ff6600 0%,#ff9944 100%)", color: "#ff6600" },
   kawasaki: { gradient: "linear-gradient(135deg,#00a651 0%,#33cc77 100%)", color: "#00a651" },
   maruti: { gradient: "linear-gradient(135deg,#003087 0%,#1155bb 100%)", color: "#003087" },
@@ -132,7 +135,8 @@ function getMakeTheme(make: string) {
   for (const [k, v] of Object.entries(VEHICLE_MAKE_THEMES)) {
     if (key === getMakeKey(k) || key.startsWith(getMakeKey(k))) return v;
   }
-  const hue = Array.from(make || "?").reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
+  const hue =
+    Array.from(make || "?").reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
   return {
     gradient: `linear-gradient(135deg,hsl(${hue},55%,38%) 0%,hsl(${hue},70%,58%) 100%)`,
     color: `hsl(${hue},55%,38%)`,
@@ -222,7 +226,15 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
         boxShadow: `0 4px 14px ${theme.color}40`,
       }}
     >
-      <span style={{ fontSize, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1 }}>
+      <span
+        style={{
+          fontSize,
+          fontWeight: 900,
+          color: "#fff",
+          letterSpacing: "-0.01em",
+          lineHeight: 1,
+        }}
+      >
         {initials}
       </span>
     </div>
@@ -233,17 +245,33 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
 const _vpCache: Record<string, string | null> = {};
 
 // Small thumbnail for the collapsed card header
-function VehiclePhotoThumb({ make, model, photoUrl }: { make: string; model: string; photoUrl?: string }) {
+function VehiclePhotoThumb({
+  make,
+  model,
+  photoUrl,
+}: {
+  make: string;
+  model: string;
+  photoUrl?: string;
+}) {
   const [src, setSrc] = React.useState<string | null>(photoUrl || null);
   const [loaded, setLoaded] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
   const cacheKey = `${make}|${model}`;
 
   React.useEffect(() => {
-    if (photoUrl) { setSrc(photoUrl); return; }
-    if (cacheKey in _vpCache) { setSrc(_vpCache[cacheKey]); return; }
+    if (photoUrl) {
+      setSrc(photoUrl);
+      return;
+    }
+    if (cacheKey in _vpCache) {
+      setSrc(_vpCache[cacheKey]);
+      return;
+    }
     // wait for VehicleHeroBanner (shared cache) — poll briefly
-    const t = setTimeout(() => { if (_vpCache[cacheKey] !== undefined) setSrc(_vpCache[cacheKey]); }, 2000);
+    const t = setTimeout(() => {
+      if (_vpCache[cacheKey] !== undefined) setSrc(_vpCache[cacheKey]);
+    }, 2000);
     return () => clearTimeout(t);
   }, [make, model, photoUrl]);
 
@@ -275,14 +303,29 @@ function VehiclePhotoThumb({ make, model, photoUrl }: { make: string; model: str
 }
 
 // Full-width hero photo banner for the expanded card section
-function VehicleHeroBanner({ make, model, photoUrl }: { make: string; model: string; photoUrl?: string }) {
+function VehicleHeroBanner({
+  make,
+  model,
+  photoUrl,
+}: {
+  make: string;
+  model: string;
+  photoUrl?: string;
+}) {
   const [src, setSrc] = React.useState<string | null>(photoUrl || null);
   const [failed, setFailed] = React.useState(false);
   const cacheKey = `${make}|${model}`;
 
   React.useEffect(() => {
-    if (photoUrl) { setSrc(photoUrl); setFailed(false); return; }
-    if (cacheKey in _vpCache) { setSrc(_vpCache[cacheKey]); return; }
+    if (photoUrl) {
+      setSrc(photoUrl);
+      setFailed(false);
+      return;
+    }
+    if (cacheKey in _vpCache) {
+      setSrc(_vpCache[cacheKey]);
+      return;
+    }
 
     const tryFetch = (query: string) =>
       fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
@@ -291,24 +334,43 @@ function VehicleHeroBanner({ make, model, photoUrl }: { make: string; model: str
 
     tryFetch(`${make} ${model}`)
       .then((url) => {
-        if (url) { _vpCache[cacheKey] = url; setSrc(url); return; }
+        if (url) {
+          _vpCache[cacheKey] = url;
+          setSrc(url);
+          return;
+        }
         return tryFetch(`${make} ${model} motorcycle`).then((u) => {
           _vpCache[cacheKey] = u;
           setSrc(u);
         });
       })
-      .catch(() => { _vpCache[cacheKey] = null; });
+      .catch(() => {
+        _vpCache[cacheKey] = null;
+      });
   }, [make, model, photoUrl]);
 
   if (!src || failed) return null;
 
   return (
-    <div style={{ position: "relative", height: 200, overflow: "hidden", background: "var(--surface-1)" }}>
+    <div
+      style={{
+        position: "relative",
+        height: 200,
+        overflow: "hidden",
+        background: "var(--surface-1)",
+      }}
+    >
       <img
         src={src}
         alt={`${make} ${model}`}
         onError={() => setFailed(true)}
-        style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.88, display: "block" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          opacity: 0.88,
+          display: "block",
+        }}
       />
       {/* gradient fade at bottom so content below feels connected */}
       <div
@@ -522,14 +584,25 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
   const lookupRC = async () => {
     const reg = (f.registrationNumber || "").trim();
-    if (!reg) { setRcStatus("error"); setRcMsg("Enter a registration number first"); return; }
-    setRcStatus("loading"); setRcMsg(""); setRcSource("");
+    if (!reg) {
+      setRcStatus("error");
+      setRcMsg("Enter a registration number first");
+      return;
+    }
+    setRcStatus("loading");
+    setRcMsg("");
+    setRcSource("");
     try {
       const r = await fetch(`/api/rc-lookup?reg=${encodeURIComponent(reg)}`);
       const data = await r.json();
       if (!r.ok) {
-        if (data.noProvider) { setRcStatus("nokey"); setRcMsg(""); }
-        else { setRcStatus("error"); setRcMsg(data.error || "Vehicle not found in VAHAN database"); }
+        if (data.noProvider) {
+          setRcStatus("nokey");
+          setRcMsg("");
+        } else {
+          setRcStatus("error");
+          setRcMsg(data.error || "Vehicle not found in VAHAN database");
+        }
         return;
       }
       setF((p: any) => ({
@@ -550,11 +623,12 @@ function VehicleModal({ existing, onClose, onSave }: any) {
       setRcSource(data.source || "");
       setRcMsg(
         `✓ Details auto-filled via ${data.source || "VAHAN"}` +
-        (data.ownerName ? ` · Owner: ${data.ownerName}` : "") +
-        (data.rto ? ` · RTO: ${data.rto}` : "")
+          (data.ownerName ? ` · Owner: ${data.ownerName}` : "") +
+          (data.rto ? ` · RTO: ${data.rto}` : "")
       );
     } catch {
-      setRcStatus("error"); setRcMsg("Network error — check your connection and try again");
+      setRcStatus("error");
+      setRcMsg("Network error — check your connection and try again");
     }
   };
 
@@ -589,16 +663,24 @@ function VehicleModal({ existing, onClose, onSave }: any) {
       {/* Identity */}
       <div style={g2}>
         <Field label="Vehicle Type *">
-          <select style={inp} value={f.vehicleType} onChange={(e) => set("vehicleType", e.target.value)}>
+          <select
+            style={inp}
+            value={f.vehicleType}
+            onChange={(e) => set("vehicleType", e.target.value)}
+          >
             {Object.entries(VEHICLE_TYPES).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+              <option key={k} value={k}>
+                {v}
+              </option>
             ))}
           </select>
         </Field>
         <Field label="Fuel Type">
           <select style={inp} value={f.fuelType} onChange={(e) => set("fuelType", e.target.value)}>
             {Object.entries(FUEL_TYPES).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+              <option key={k} value={k}>
+                {v}
+              </option>
             ))}
           </select>
         </Field>
@@ -606,24 +688,52 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
       <div style={g2}>
         <Field label="Make *">
-          <input style={inp} value={f.make} onChange={(e) => set("make", e.target.value)} placeholder="e.g. Honda, Maruti" />
+          <input
+            style={inp}
+            value={f.make}
+            onChange={(e) => set("make", e.target.value)}
+            placeholder="e.g. Honda, Maruti"
+          />
         </Field>
         <Field label="Model *">
-          <input style={inp} value={f.model} onChange={(e) => set("model", e.target.value)} placeholder="e.g. Activa 6G, Swift" />
+          <input
+            style={inp}
+            value={f.model}
+            onChange={(e) => set("model", e.target.value)}
+            placeholder="e.g. Activa 6G, Swift"
+          />
         </Field>
       </div>
 
       <div style={g3}>
         <Field label="Year">
-          <input style={inp} type="number" value={f.year} onChange={(e) => set("year", e.target.value)} min={1980} max={2035} />
+          <input
+            style={inp}
+            type="number"
+            value={f.year}
+            onChange={(e) => set("year", e.target.value)}
+            min={1980}
+            max={2035}
+          />
         </Field>
         <Field label="Color">
-          <input style={inp} value={f.color} onChange={(e) => set("color", e.target.value)} placeholder="Pearl White" />
+          <input
+            style={inp}
+            value={f.color}
+            onChange={(e) => set("color", e.target.value)}
+            placeholder="Pearl White"
+          />
         </Field>
         <Field label="Owner">
-          <select style={inp} value={f.owner || "self"} onChange={(e) => set("owner", e.target.value)}>
+          <select
+            style={inp}
+            value={f.owner || "self"}
+            onChange={(e) => set("owner", e.target.value)}
+          >
             {familyProfiles.map((p) => (
-              <option key={p.id} value={p.id}>{formatProfileOption(p)}</option>
+              <option key={p.id} value={p.id}>
+                {formatProfileOption(p)}
+              </option>
             ))}
           </select>
         </Field>
@@ -637,7 +747,10 @@ function VehicleModal({ existing, onClose, onSave }: any) {
           <input
             style={{ ...inp, flex: 1 }}
             value={f.registrationNumber}
-            onChange={(e) => { set("registrationNumber", e.target.value.toUpperCase()); setRcStatus("idle"); }}
+            onChange={(e) => {
+              set("registrationNumber", e.target.value.toUpperCase());
+              setRcStatus("idle");
+            }}
             placeholder="e.g. MH04AB1234"
           />
           <button
@@ -660,7 +773,15 @@ function VehicleModal({ existing, onClose, onSave }: any) {
             }}
           >
             {rcStatus === "loading" ? (
-              <span style={{ display: "inline-block", animation: "spin 1s linear infinite", fontSize: 14 }}>↻</span>
+              <span
+                style={{
+                  display: "inline-block",
+                  animation: "spin 1s linear infinite",
+                  fontSize: 14,
+                }}
+              >
+                ↻
+              </span>
             ) : (
               <span>🔍</span>
             )}
@@ -670,23 +791,82 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
         {/* RC lookup status banner */}
         {rcStatus === "ok" && (
-          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: `${THEME.sage}15`, border: `1px solid ${THEME.sage}30`, color: THEME.sage }}>
+          <div
+            style={{
+              marginTop: 8,
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 500,
+              background: `${THEME.sage}15`,
+              border: `1px solid ${THEME.sage}30`,
+              color: THEME.sage,
+            }}
+          >
             <div>{rcMsg}</div>
             {rcSource?.includes("offline") && (
-              <div style={{ marginTop: 5, fontSize: 11, color: THEME.sage, fontWeight: 400, borderTop: `1px solid ${THEME.sage}25`, paddingTop: 4 }}>
-                💡 <strong>Free Offline Mode:</strong> This details preview was generated offline based on the RTO prefix{rcSource.includes("failed") && " (as live lookup was unsuccessful/unconfigured)"}. To setup live RTO verification from government databases, <span style={{ textDecoration: "underline", cursor: "pointer", fontWeight: 700 }} onClick={() => setRcStatus("nokey")}>view live API instructions</span>.
+              <div
+                style={{
+                  marginTop: 5,
+                  fontSize: 11,
+                  color: THEME.sage,
+                  fontWeight: 400,
+                  borderTop: `1px solid ${THEME.sage}25`,
+                  paddingTop: 4,
+                }}
+              >
+                💡 <strong>Free Offline Mode:</strong> This details preview was generated offline
+                based on the RTO prefix
+                {rcSource.includes("failed") && " (as live lookup was unsuccessful/unconfigured)"}.
+                To setup live RTO verification from government databases,{" "}
+                <span
+                  style={{ textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}
+                  onClick={() => setRcStatus("nokey")}
+                >
+                  view live API instructions
+                </span>
+                .
               </div>
             )}
           </div>
         )}
         {rcStatus === "error" && (
-          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: `${THEME.rust}14`, border: `1px solid ${THEME.rust}30`, color: THEME.rust }}>
+          <div
+            style={{
+              marginTop: 8,
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 500,
+              background: `${THEME.rust}14`,
+              border: `1px solid ${THEME.rust}30`,
+              color: THEME.rust,
+            }}
+          >
             ✕ {rcMsg}
           </div>
         )}
         {rcStatus === "nokey" && (
-          <div style={{ marginTop: 8, borderRadius: 10, overflow: "hidden", border: `1px solid ${THEME.gold}40`, fontSize: 12 }}>
-            <div style={{ background: `${THEME.gold}14`, padding: "8px 12px", fontWeight: 700, color: THEME.gold, display: "flex", alignItems: "center", gap: 6 }}>
+          <div
+            style={{
+              marginTop: 8,
+              borderRadius: 10,
+              overflow: "hidden",
+              border: `1px solid ${THEME.gold}40`,
+              fontSize: 12,
+            }}
+          >
+            <div
+              style={{
+                background: `${THEME.gold}14`,
+                padding: "8px 12px",
+                fontWeight: 700,
+                color: THEME.gold,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
               <span>⚙</span> RC lookup needs a one-time API setup — choose the easiest option below:
             </div>
             {[
@@ -727,14 +907,48 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 ],
               },
             ].map((p) => (
-              <div key={p.num} style={{ borderTop: `1px solid ${THEME.gold}20`, padding: "10px 12px" }}>
+              <div
+                key={p.num}
+                style={{ borderTop: `1px solid ${THEME.gold}20`, padding: "10px 12px" }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: p.color, color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{p.num}</span>
+                  <span
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      background: p.color,
+                      color: "#fff",
+                      fontSize: 11,
+                      fontWeight: 900,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {p.num}
+                  </span>
                   <span style={{ fontWeight: 700, color: p.color }}>{p.title}</span>
-                  <span style={{ fontSize: 11, background: p.color + "15", color: p.color, borderRadius: 20, padding: "1px 7px", fontWeight: 600 }}>{p.badge}</span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      background: p.color + "15",
+                      color: p.color,
+                      borderRadius: 20,
+                      padding: "1px 7px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {p.badge}
+                  </span>
                 </div>
                 <ol style={{ margin: 0, paddingLeft: 20, color: THEME.gold, lineHeight: 1.7 }}>
-                  {p.steps.map((s, i) => <li key={i} style={{ marginBottom: 2 }}>{s}</li>)}
+                  {p.steps.map((s, i) => (
+                    <li key={i} style={{ marginBottom: 2 }}>
+                      {s}
+                    </li>
+                  ))}
                 </ol>
               </div>
             ))}
@@ -744,10 +958,20 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
       <div style={g2}>
         <Field label="Chassis Number">
-          <input style={inp} value={f.chassisNumber} onChange={(e) => set("chassisNumber", e.target.value)} placeholder="VIN / Chassis No." />
+          <input
+            style={inp}
+            value={f.chassisNumber}
+            onChange={(e) => set("chassisNumber", e.target.value)}
+            placeholder="VIN / Chassis No."
+          />
         </Field>
         <Field label="Engine Number">
-          <input style={inp} value={f.engineNumber} onChange={(e) => set("engineNumber", e.target.value)} placeholder="Engine No." />
+          <input
+            style={inp}
+            value={f.engineNumber}
+            onChange={(e) => set("engineNumber", e.target.value)}
+            placeholder="Engine No."
+          />
         </Field>
       </div>
 
@@ -756,15 +980,32 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
       <div style={g2}>
         <Field label="Purchase Date">
-          <input style={inp} type="date" value={f.purchaseDate} onChange={(e) => set("purchaseDate", e.target.value)} />
+          <input
+            style={inp}
+            type="date"
+            value={f.purchaseDate}
+            onChange={(e) => set("purchaseDate", e.target.value)}
+          />
         </Field>
         <Field label="Purchase Price (₹)">
-          <input style={inp} type="number" value={f.purchasePrice} onChange={(e) => set("purchasePrice", e.target.value)} placeholder="On-road price" />
+          <input
+            style={inp}
+            type="number"
+            value={f.purchasePrice}
+            onChange={(e) => set("purchasePrice", e.target.value)}
+            placeholder="On-road price"
+          />
         </Field>
       </div>
 
       <Field label="Current Market Value (₹)">
-        <input style={inp} type="number" value={f.currentValue} onChange={(e) => set("currentValue", e.target.value)} placeholder="Current resale value estimate" />
+        <input
+          style={inp}
+          type="number"
+          value={f.currentValue}
+          onChange={(e) => set("currentValue", e.target.value)}
+          placeholder="Current resale value estimate"
+        />
       </Field>
 
       {/* Compliance */}
@@ -772,10 +1013,20 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
       <div style={g2}>
         <Field label="Insurance Expiry">
-          <input style={inp} type="date" value={f.insuranceExpiry} onChange={(e) => set("insuranceExpiry", e.target.value)} />
+          <input
+            style={inp}
+            type="date"
+            value={f.insuranceExpiry}
+            onChange={(e) => set("insuranceExpiry", e.target.value)}
+          />
         </Field>
         <Field label="PUC Expiry">
-          <input style={inp} type="date" value={f.pucExpiry} onChange={(e) => set("pucExpiry", e.target.value)} />
+          <input
+            style={inp}
+            type="date"
+            value={f.pucExpiry}
+            onChange={(e) => set("pucExpiry", e.target.value)}
+          />
         </Field>
       </div>
 
@@ -784,13 +1035,28 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
       <div style={g3}>
         <Field label="RC Document URL">
-          <input style={inp} value={f.rcDocumentUrl || ""} onChange={(e) => set("rcDocumentUrl", e.target.value)} placeholder="Link to RC copy" />
+          <input
+            style={inp}
+            value={f.rcDocumentUrl || ""}
+            onChange={(e) => set("rcDocumentUrl", e.target.value)}
+            placeholder="Link to RC copy"
+          />
         </Field>
         <Field label="Insurance Policy URL">
-          <input style={inp} value={f.insurancePolicyUrl || ""} onChange={(e) => set("insurancePolicyUrl", e.target.value)} placeholder="Link to Policy PDF" />
+          <input
+            style={inp}
+            value={f.insurancePolicyUrl || ""}
+            onChange={(e) => set("insurancePolicyUrl", e.target.value)}
+            placeholder="Link to Policy PDF"
+          />
         </Field>
         <Field label="PUC Certificate URL">
-          <input style={inp} value={f.pucCertificateUrl || ""} onChange={(e) => set("pucCertificateUrl", e.target.value)} placeholder="Link to PUC copy" />
+          <input
+            style={inp}
+            value={f.pucCertificateUrl || ""}
+            onChange={(e) => set("pucCertificateUrl", e.target.value)}
+            placeholder="Link to PUC copy"
+          />
         </Field>
       </div>
 
@@ -818,7 +1084,9 @@ function VehicleModal({ existing, onClose, onSave }: any) {
             <img
               src={f.photoUrl}
               alt="preview"
-              onError={(e: any) => { e.target.style.display = "none"; }}
+              onError={(e: any) => {
+                e.target.style.display = "none";
+              }}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           </div>
@@ -861,7 +1129,12 @@ function ServiceModal({ existing, vehicleName, onClose, onSave }: any) {
 
   const handleSave = () => {
     if (!f.date || !f.type) return;
-    onSave({ ...f, id: existing?.id || uid(), cost: Number(f.cost) || 0, odometer: Number(f.odometer) || 0 });
+    onSave({
+      ...f,
+      id: existing?.id || uid(),
+      cost: Number(f.cost) || 0,
+      odometer: Number(f.odometer) || 0,
+    });
   };
 
   const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
@@ -899,32 +1172,61 @@ function ServiceModal({ existing, vehicleName, onClose, onSave }: any) {
 
       <div style={g2}>
         <Field label="Date *">
-          <input style={inp} type="date" value={f.date} onChange={(e) => set("date", e.target.value)} />
+          <input
+            style={inp}
+            type="date"
+            value={f.date}
+            onChange={(e) => set("date", e.target.value)}
+          />
         </Field>
         <Field label="Service Type *">
           <select style={inp} value={f.type} onChange={(e) => set("type", e.target.value)}>
             {Object.entries(SERVICE_TYPES).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
+              <option key={k} value={k}>
+                {v.label}
+              </option>
             ))}
           </select>
         </Field>
       </div>
 
       <Field label="Description">
-        <input style={inp} value={f.description} onChange={(e) => set("description", e.target.value)} placeholder="Brief description of work done" />
+        <input
+          style={inp}
+          value={f.description}
+          onChange={(e) => set("description", e.target.value)}
+          placeholder="Brief description of work done"
+        />
       </Field>
 
       <div style={g2}>
         <Field label="Cost (₹)">
-          <input style={inp} type="number" value={f.cost} onChange={(e) => set("cost", e.target.value)} placeholder="0" />
+          <input
+            style={inp}
+            type="number"
+            value={f.cost}
+            onChange={(e) => set("cost", e.target.value)}
+            placeholder="0"
+          />
         </Field>
         <Field label="Odometer (km)">
-          <input style={inp} type="number" value={f.odometer} onChange={(e) => set("odometer", e.target.value)} placeholder="0" />
+          <input
+            style={inp}
+            type="number"
+            value={f.odometer}
+            onChange={(e) => set("odometer", e.target.value)}
+            placeholder="0"
+          />
         </Field>
       </div>
 
       <Field label="Service Center / Vendor">
-        <input style={inp} value={f.serviceCenter} onChange={(e) => set("serviceCenter", e.target.value)} placeholder="e.g. Honda Authorised Service" />
+        <input
+          style={inp}
+          value={f.serviceCenter}
+          onChange={(e) => set("serviceCenter", e.target.value)}
+          placeholder="e.g. Honda Authorised Service"
+        />
       </Field>
 
       <Field label="Notes">
@@ -986,11 +1288,25 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
           >
             {st.label}
           </span>
-          {rec.description && <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{rec.description}</span>}
+          {rec.description && (
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+              {rec.description}
+            </span>
+          )}
         </div>
 
-        <div style={{ display: "flex", gap: 14, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", display: "flex", alignItems: "center", gap: 4 }}>
+        <div
+          style={{ display: "flex", gap: 14, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}
+        >
+          <span
+            style={{
+              fontSize: 12,
+              color: "var(--t-muted, var(--text-muted))",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
             📅 {fmtDate(rec.date)}
           </span>
           {rec.cost > 0 && (
@@ -999,7 +1315,9 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
             </span>
           )}
           {rec.odometer > 0 && (
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--t-muted, var(--text-muted))" }}>
+            <span
+              style={{ fontSize: 12, fontWeight: 600, color: "var(--t-muted, var(--text-muted))" }}
+            >
               ⚡ {rec.odometer.toLocaleString("en-IN")} km
             </span>
           )}
@@ -1010,7 +1328,16 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
           )}
         </div>
         {rec.notes && (
-          <div style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", marginTop: 6, fontStyle: "italic", borderLeft: "2px solid var(--t-line)", paddingLeft: 8 }}>
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--t-muted, var(--text-muted))",
+              marginTop: 6,
+              fontStyle: "italic",
+              borderLeft: "2px solid var(--t-line)",
+              paddingLeft: 8,
+            }}
+          >
             {rec.notes}
           </div>
         )}
@@ -1033,8 +1360,14 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
             transition: "all 0.2s",
             boxShadow: "var(--shadow-xs)",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = "var(--t-accent)"; e.currentTarget.style.borderColor = "var(--t-accent)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--t-muted)"; e.currentTarget.style.borderColor = "var(--t-line)"; }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "var(--t-accent)";
+            e.currentTarget.style.borderColor = "var(--t-accent)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "var(--t-muted)";
+            e.currentTarget.style.borderColor = "var(--t-line)";
+          }}
         >
           <Edit2 size={12} />
         </button>
@@ -1054,8 +1387,15 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
             transition: "all 0.2s",
             boxShadow: "var(--shadow-xs)",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)"; e.currentTarget.style.borderColor = "var(--t-rust)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--surface-0) 90%, transparent)"; e.currentTarget.style.borderColor = "var(--t-line)"; }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
+            e.currentTarget.style.borderColor = "var(--t-rust)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background =
+              "color-mix(in srgb, var(--surface-0) 90%, transparent)";
+            e.currentTarget.style.borderColor = "var(--t-line)";
+          }}
         >
           <Trash2 size={12} />
         </button>
@@ -1068,7 +1408,16 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
 // VehicleCard
 // ─────────────────────────────────────────────────────────────────────────────
 
-function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddService, onEditService, onDeleteService }: any) {
+function VehicleCard({
+  vehicle,
+  expanded,
+  onToggle,
+  onEdit,
+  onDelete,
+  onAddService,
+  onEditService,
+  onDeleteService,
+}: any) {
   const sh: any[] = vehicle.serviceHistory || [];
   const totalServiceCost = sh.reduce((s: number, r: any) => s + Number(r.cost || 0), 0);
   const lastService = sh.length
@@ -1076,7 +1425,10 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
     : null;
 
   const latestOdo = sh.reduce((max: number, r: any) => Math.max(max, Number(r.odometer || 0)), 0);
-  const depreciation = Math.max(0, Number(vehicle.purchasePrice || 0) - Number(vehicle.currentValue || 0));
+  const depreciation = Math.max(
+    0,
+    Number(vehicle.purchasePrice || 0) - Number(vehicle.currentValue || 0)
+  );
   const tco = depreciation + totalServiceCost;
   const costPerKm = latestOdo > 0 && tco > 0 ? tco / latestOdo : null;
 
@@ -1103,7 +1455,10 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
       .filter((r) => Number(r.odometer || 0) > 0)
       .map((r) => ({
         date: r.date,
-        displayDate: new Date(r.date + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+        displayDate: new Date(r.date + "T00:00:00").toLocaleDateString("en-IN", {
+          month: "short",
+          year: "2-digit",
+        }),
         odometer: Number(r.odometer),
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -1121,13 +1476,57 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
 
   const SPEC_FIELDS = [
     { key: "Owner", label: "Owner", val: vehicle.owner || "self", icon: User, color: "#3b82f6" },
-    { key: "Purchase Date", label: "Purchase Date", val: fmtDate(vehicle.purchaseDate), icon: Calendar, color: "#10b981" },
-    { key: "Purchase Price", label: "Purchase Price", val: vehicle.purchasePrice ? fmtINRExact(vehicle.purchasePrice) : "—", icon: Coins, color: "#f59e0b" },
-    { key: "Current Value", label: "Current Value", val: vehicle.currentValue ? fmtINRExact(vehicle.currentValue) : "—", icon: Coins, color: "#10b981" },
-    { key: "Insurance Expiry", label: "Insurance Expiry", val: fmtDate(vehicle.insuranceExpiry), icon: Shield, color: "#6366f1", expiry: vehicle.insuranceExpiry },
-    { key: "PUC Expiry", label: "PUC Expiry", val: fmtDate(vehicle.pucExpiry), icon: Activity, color: "#06b6d4", expiry: vehicle.pucExpiry },
-    { key: "Chassis No.", label: "Chassis No.", val: vehicle.chassisNumber || "—", icon: Hash, color: "#8b5cf6" },
-    { key: "Engine No.", label: "Engine No.", val: vehicle.engineNumber || "—", icon: Gauge, color: "#ec4899" },
+    {
+      key: "Purchase Date",
+      label: "Purchase Date",
+      val: fmtDate(vehicle.purchaseDate),
+      icon: Calendar,
+      color: "#10b981",
+    },
+    {
+      key: "Purchase Price",
+      label: "Purchase Price",
+      val: vehicle.purchasePrice ? fmtINRExact(vehicle.purchasePrice) : "—",
+      icon: Coins,
+      color: "#f59e0b",
+    },
+    {
+      key: "Current Value",
+      label: "Current Value",
+      val: vehicle.currentValue ? fmtINRExact(vehicle.currentValue) : "—",
+      icon: Coins,
+      color: "#10b981",
+    },
+    {
+      key: "Insurance Expiry",
+      label: "Insurance Expiry",
+      val: fmtDate(vehicle.insuranceExpiry),
+      icon: Shield,
+      color: "#6366f1",
+      expiry: vehicle.insuranceExpiry,
+    },
+    {
+      key: "PUC Expiry",
+      label: "PUC Expiry",
+      val: fmtDate(vehicle.pucExpiry),
+      icon: Activity,
+      color: "#06b6d4",
+      expiry: vehicle.pucExpiry,
+    },
+    {
+      key: "Chassis No.",
+      label: "Chassis No.",
+      val: vehicle.chassisNumber || "—",
+      icon: Hash,
+      color: "#8b5cf6",
+    },
+    {
+      key: "Engine No.",
+      label: "Engine No.",
+      val: vehicle.engineNumber || "—",
+      icon: Gauge,
+      color: "#ec4899",
+    },
   ];
 
   return (
@@ -1151,8 +1550,13 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
           userSelect: "none",
           transition: "background-color 0.2s ease",
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "color-mix(in srgb, var(--t-accent) 3%, transparent)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor =
+            "color-mix(in srgb, var(--t-accent) 3%, transparent)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "transparent";
+        }}
       >
         {/* Brand logo */}
         <VehicleMakeLogo make={vehicle.make} size={52} />
@@ -1176,23 +1580,32 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
               {vehicle.year}
             </span>
             {vehicle.color && (
-              <span style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))" }}>• {vehicle.color}</span>
+              <span style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))" }}>
+                • {vehicle.color}
+              </span>
             )}
           </div>
 
           <div style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", marginTop: 3 }}>
             {vehicle.registrationNumber && (
-              <span style={{ fontFamily: "monospace", fontWeight: 700, marginRight: 10, fontSize: 13 }}>
+              <span
+                style={{ fontFamily: "monospace", fontWeight: 700, marginRight: 10, fontSize: 13 }}
+              >
                 {vehicle.registrationNumber}
               </span>
             )}
-            <span>{VEHICLE_TYPES[vehicle.vehicleType] || vehicle.vehicleType} • {FUEL_TYPES[vehicle.fuelType] || vehicle.fuelType}</span>
+            <span>
+              {VEHICLE_TYPES[vehicle.vehicleType] || vehicle.vehicleType} •{" "}
+              {FUEL_TYPES[vehicle.fuelType] || vehicle.fuelType}
+            </span>
           </div>
 
           {/* Compliance badges */}
           {(vehicle.insuranceExpiry || vehicle.pucExpiry) && (
             <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
-              {vehicle.insuranceExpiry && <ComplianceBadge expiry={vehicle.insuranceExpiry} tag="Insurance" />}
+              {vehicle.insuranceExpiry && (
+                <ComplianceBadge expiry={vehicle.insuranceExpiry} tag="Insurance" />
+              )}
               {vehicle.pucExpiry && <ComplianceBadge expiry={vehicle.pucExpiry} tag="PUC" />}
             </div>
           )}
@@ -1201,19 +1614,50 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
         {/* Value + thumbnail photo + expand */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {/* Small vehicle photo thumbnail — visible in collapsed header */}
-          <VehiclePhotoThumb make={vehicle.make} model={vehicle.model} photoUrl={vehicle.photoUrl} />
+          <VehiclePhotoThumb
+            make={vehicle.make}
+            model={vehicle.model}
+            photoUrl={vehicle.photoUrl}
+          />
 
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontWeight: 900, fontSize: 20, color: THEME.accent, letterSpacing: "-0.03em" }}>
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 20,
+                color: THEME.accent,
+                letterSpacing: "-0.03em",
+              }}
+            >
               <Prv>{fmtINRFull(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}</Prv>
             </div>
             {deprPct !== null && (
-              <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "#ef4444",
+                  marginTop: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 3,
+                }}
+              >
                 <TrendingDown size={10} /> {deprPct}% depreciated
               </div>
             )}
             {apprecPct !== null && (
-              <div style={{ fontSize: 11, color: "#10b981", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "#10b981",
+                  marginTop: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 3,
+                }}
+              >
                 <TrendingUp size={10} /> {apprecPct}% appreciated
               </div>
             )}
@@ -1228,543 +1672,742 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
       {expanded && (
         <div style={{ borderTop: "1px solid var(--t-line, var(--border))" }}>
           {/* Hero photo banner */}
-          <VehicleHeroBanner make={vehicle.make} model={vehicle.model} photoUrl={vehicle.photoUrl} />
+          <VehicleHeroBanner
+            make={vehicle.make}
+            model={vehicle.model}
+            photoUrl={vehicle.photoUrl}
+          />
 
           <div style={{ padding: "18px 18px" }}>
-          {/* Action row */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Edit2 size={12} />}
-              onClick={onEdit}
+            {/* Action row */}
+            <div
               style={{
-                boxShadow: "var(--shadow-xs)",
-                background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+                display: "flex",
+                gap: 10,
+                marginBottom: 20,
+                flexWrap: "wrap",
+                alignItems: "center",
               }}
             >
-              Edit Vehicle
-            </Button>
-            <Button
-              variant="accent"
-              size="sm"
-              icon={<Plus size={12} />}
-              onClick={onAddService}
-            >
-              Add Service Record
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              icon={<Trash2 size={12} />}
-              onClick={onDelete}
-              style={{
-                marginLeft: "auto",
-                background: "color-mix(in srgb, var(--t-rust) 5%, transparent)",
-                border: "1.5px solid color-mix(in srgb, var(--t-rust) 30%, transparent)",
-                color: "var(--t-rust)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--t-rust)"; e.currentTarget.style.color = "#fff"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 5%, transparent)"; e.currentTarget.style.color = "var(--t-rust)"; }}
-            >
-              Delete Vehicle
-            </Button>
-          </div>
-
-          {/* Details grid */}
-          <div
-            className="glass"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: 12,
-              borderRadius: 14,
-              padding: 16,
-              marginBottom: 20,
-            }}
-          >
-            {SPEC_FIELDS.map((item, idx) => {
-              const Icon = item.icon;
-              const status = item.expiry ? complianceStatus(item.expiry) : null;
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "flex-start",
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
-                    border: "1px solid var(--t-line, var(--border))",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      background: `color-mix(in srgb, ${item.color} 10%, transparent)`,
-                      color: item.color,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      marginTop: 2,
-                    }}
-                  >
-                    <Icon size={14} />
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: "var(--t-muted, var(--text-muted))",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {item.label}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{item.val}</div>
-                    {status && (
-                      <div style={{ marginTop: 4 }}>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            fontSize: 9,
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            background: `color-mix(in srgb, ${status.color} 10%, transparent)`,
-                            border: `1px solid color-mix(in srgb, ${status.color} 15%, transparent)`,
-                            color: status.color,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* TCO & Cost-per-KM stats block */}
-          <div
-            className="glass"
-            style={{
-              background: "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 70%, transparent) 0%, color-mix(in srgb, var(--surface-1) 50%, transparent) 100%)",
-              border: "1px solid var(--t-line, var(--border))",
-              borderRadius: 14,
-              padding: "18px 20px",
-              marginBottom: 20,
-              boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <span style={{ fontSize: 14 }}>📊</span>
-              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--t-muted, var(--text-muted))", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Ownership Economics
-              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Edit2 size={12} />}
+                onClick={onEdit}
+                style={{
+                  boxShadow: "var(--shadow-xs)",
+                  background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+                }}
+              >
+                Edit Vehicle
+              </Button>
+              <Button variant="accent" size="sm" icon={<Plus size={12} />} onClick={onAddService}>
+                Add Service Record
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                icon={<Trash2 size={12} />}
+                onClick={onDelete}
+                style={{
+                  marginLeft: "auto",
+                  background: "color-mix(in srgb, var(--t-rust) 5%, transparent)",
+                  border: "1.5px solid color-mix(in srgb, var(--t-rust) 30%, transparent)",
+                  color: "var(--t-rust)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--t-rust)";
+                  e.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "color-mix(in srgb, var(--t-rust) 5%, transparent)";
+                  e.currentTarget.style.color = "var(--t-rust)";
+                }}
+              >
+                Delete Vehicle
+              </Button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-              {[
-                {
-                  label: "Total Cost of Ownership",
-                  value: fmtINRExact(tco),
-                  sub: `Deprec. (${fmtINRExact(Math.max(0, depreciation))}) + Service (${fmtINRExact(totalServiceCost)})`,
-                  icon: Coins,
-                  color: THEME.accent,
-                },
-                {
-                  label: "Total Distance Tracked",
-                  value: latestOdo ? `${latestOdo.toLocaleString("en-IN")} km` : "—",
-                  sub: "Based on maximum odometer reading in logs",
-                  icon: Milestone,
-                  color: "#059669",
-                },
-                {
-                  label: "Cost Per Kilometer",
-                  value: costPerKm ? `₹${costPerKm.toFixed(2)} / km` : "—",
-                  sub: costPerKm ? "TCO / total distance driven" : "Requires service logs with mileage",
-                  icon: Gauge,
-                  color: costPerKm ? THEME.accent : "var(--t-muted)",
-                },
-              ].map((card, i) => {
-                const CardIcon = card.icon;
+
+            {/* Details grid */}
+            <div
+              className="glass"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                gap: 12,
+                borderRadius: 14,
+                padding: 16,
+                marginBottom: 20,
+              }}
+            >
+              {SPEC_FIELDS.map((item, idx) => {
+                const Icon = item.icon;
+                const status = item.expiry ? complianceStatus(item.expiry) : null;
                 return (
                   <div
-                    key={i}
+                    key={idx}
                     style={{
-                      background: "color-mix(in srgb, var(--surface-0) 40%, transparent)",
-                      border: "1px solid var(--t-line, var(--border))",
-                      borderRadius: 12,
-                      padding: 14,
                       display: "flex",
-                      gap: 12,
+                      gap: 10,
                       alignItems: "flex-start",
-                      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "none";
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
+                      border: "1px solid var(--t-line, var(--border))",
                     }}
                   >
                     <div
                       style={{
-                        width: 32,
-                        height: 32,
+                        width: 28,
+                        height: 28,
                         borderRadius: 8,
-                        background: `color-mix(in srgb, ${card.color} 12%, transparent)`,
-                        color: card.color,
+                        background: `color-mix(in srgb, ${item.color} 10%, transparent)`,
+                        color: item.color,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
+                        marginTop: 2,
                       }}
                     >
-                      <CardIcon size={16} />
+                      <Icon size={14} />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: 11, color: "var(--t-muted, var(--text-muted))", fontWeight: 500, marginBottom: 4 }}>
-                        {card.label}
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "var(--t-muted, var(--text-muted))",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          marginBottom: 3,
+                        }}
+                      >
+                        {item.label}
                       </div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: "var(--text)", letterSpacing: "-0.02em" }}>
-                        <Prv>{card.value}</Prv>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                        {item.val}
                       </div>
-                      <div style={{ fontSize: 10, color: "var(--t-muted, var(--text-muted))", marginTop: 4, lineHeight: 1.3 }}>
-                        {card.sub}
-                      </div>
+                      {status && (
+                        <div style={{ marginTop: 4 }}>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              fontSize: 9,
+                              fontWeight: 800,
+                              textTransform: "uppercase",
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              background: `color-mix(in srgb, ${status.color} 10%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${status.color} 15%, transparent)`,
+                              color: status.color,
+                            }}
+                          >
+                            {status.label}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          {/* Documents row */}
-          {(vehicle.rcDocumentUrl || vehicle.insurancePolicyUrl || vehicle.pucCertificateUrl) && (
-            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-              {vehicle.rcDocumentUrl && (
-                <a
-                  href={vehicle.rcDocumentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="card-interactive"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    background: "color-mix(in srgb, var(--t-accent) 5%, var(--surface-0))",
-                    border: `1.5px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line))`,
-                    color: "var(--t-accent)",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    boxShadow: "var(--shadow-xs)",
-                    transition: "all 0.2s var(--ease-premium)",
-                  }}
-                >
-                  <FileText size={13} />
-                  RC Document ↗
-                </a>
-              )}
-              {vehicle.insurancePolicyUrl && (
-                <a
-                  href={vehicle.insurancePolicyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="card-interactive"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    background: "color-mix(in srgb, var(--t-accent) 5%, var(--surface-0))",
-                    border: `1.5px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line))`,
-                    color: "var(--t-accent)",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    boxShadow: "var(--shadow-xs)",
-                    transition: "all 0.2s var(--ease-premium)",
-                  }}
-                >
-                  <FileText size={13} />
-                  Insurance Policy ↗
-                </a>
-              )}
-              {vehicle.pucCertificateUrl && (
-                <a
-                  href={vehicle.pucCertificateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="card-interactive"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    background: "color-mix(in srgb, var(--t-accent) 5%, var(--surface-0))",
-                    border: `1.5px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line))`,
-                    color: "var(--t-accent)",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    boxShadow: "var(--shadow-xs)",
-                    transition: "all 0.2s var(--ease-premium)",
-                  }}
-                >
-                  <FileText size={13} />
-                  PUC Certificate ↗
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* Service Cost & Odometer Trends */}
-          {sh.length > 0 && (
+            {/* TCO & Cost-per-KM stats block */}
             <div
               className="glass"
               style={{
+                background:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 70%, transparent) 0%, color-mix(in srgb, var(--surface-1) 50%, transparent) 100%)",
                 border: "1px solid var(--t-line, var(--border))",
                 borderRadius: 14,
                 padding: "18px 20px",
                 marginBottom: 20,
+                boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--t-muted, var(--text-muted))", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>
-                Analytics & Trends
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 14 }}>📊</span>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: "var(--t-muted, var(--text-muted))",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Ownership Economics
+                </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-                {/* Chart 1: Annual Spend */}
-                {spendByYear.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>
-                      Annual Service Spend
-                    </div>
-                    <div style={{ height: 160 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={spendByYear} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                          <defs>
-                            <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                              <stop offset="100%" stopColor="#d97706" stopOpacity={0.5} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis dataKey="year" stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} />
-                          <YAxis stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${v}`} />
-                          <Tooltip
-                            formatter={(v: any) => [`₹${v.toLocaleString("en-IN")}`, "Spend"]}
-                            contentStyle={{ background: "var(--surface-0, var(--surface))", borderColor: "var(--t-line, var(--border))", borderRadius: 8, color: "var(--text)" }}
-                          />
-                          <Bar dataKey="amount" fill="url(#spendGradient)" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-                {/* Chart 2: Odometer Trend */}
-                {odoTrend.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>
-                      Odometer History (Usage)
-                    </div>
-                    <div style={{ height: 160 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={odoTrend} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                          <defs>
-                            <linearGradient id="odoGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.25} />
-                              <stop offset="100%" stopColor={THEME.accent} stopOpacity={0.0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis dataKey="displayDate" stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} />
-                          <YAxis stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v} km`} />
-                          <Tooltip
-                            formatter={(v: any) => [`${v.toLocaleString("en-IN")} km`, "Odometer"]}
-                            contentStyle={{ background: "var(--surface-0, var(--surface))", borderColor: "var(--t-line, var(--border))", borderRadius: 8, color: "var(--text)" }}
-                          />
-                          <Area type="monotone" dataKey="odometer" stroke={THEME.accent} strokeWidth={2.5} fill="url(#odoGradient)" dot={{ r: 3, fill: THEME.accent }} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {vehicle.notes && (
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                fontSize: 13,
-                color: "var(--t-muted, var(--text-muted))",
-                background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
-                border: "1px solid var(--t-line, var(--border))",
-                padding: "12px 14px",
-                borderRadius: 10,
-                marginBottom: 20,
-              }}
-            >
-              <FileText size={14} style={{ flexShrink: 0, marginTop: 2, color: "var(--t-muted)" }} />
-              <div style={{ flex: 1, lineHeight: 1.4 }}>{vehicle.notes}</div>
-            </div>
-          )}
-
-          {/* Service history header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 7 }}>
-              <Wrench size={14} style={{ color: THEME.accent }} />
-              Service History
-              <span style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", fontWeight: 400 }}>
-                ({sh.length} record{sh.length !== 1 ? "s" : ""} · Total {fmtINRFull(totalServiceCost)})
-              </span>
-            </h4>
-            {lastService && (
-              <span style={{ fontSize: 11, color: "var(--t-muted, var(--text-muted))", fontWeight: 500 }}>
-                Last: {fmtDate(lastService.date)}
-              </span>
-            )}
-          </div>
-
-          {sh.length === 0 ? (
-            <div
-              className="glass"
-              style={{
-                textAlign: "center",
-                padding: "36px 20px",
-                border: "1.5px dashed var(--t-line, var(--border))",
-                borderRadius: 14,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                background: "color-mix(in srgb, var(--surface-0) 30%, transparent)",
-              }}
-            >
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
-                  color: "var(--t-accent)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 2px 10px rgba(0, 0, 0, 0.01)",
-                  marginBottom: 4,
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 16,
                 }}
               >
-                <Wrench size={18} />
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>No Service Records Yet</div>
-              <div style={{ fontSize: 11, color: "var(--t-muted, var(--text-muted))", maxWidth: 280, lineHeight: 1.4 }}>
-                Keep your vehicle in prime condition. Track maintenance logs, engine tuning, parts replacement, and oil changes.
-              </div>
-              <button
-                onClick={onAddService}
-                className="card-interactive"
-                style={{
-                  marginTop: 6,
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
-                  border: `1px solid color-mix(in srgb, var(--t-accent) 15%, transparent)`,
-                  color: "var(--t-accent)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                + Add First Record
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {sh
-                .slice()
-                .sort((a: any, b: any) => b.date.localeCompare(a.date))
-                .map((rec: any, idx: number) => (
-                  <ServiceRow
-                    key={rec.id || idx}
-                    rec={rec}
-                    onEdit={() => onEditService(rec)}
-                    onDelete={() => onDeleteService(rec.id)}
-                  />
-                ))}
-            </div>
-          )}
-
-          {/* Cost breakdown by type */}
-          {sh.length > 1 && (
-            <div
-              className="glass"
-              style={{
-                marginTop: 16,
-                padding: "14px 16px",
-                border: "1px solid var(--t-line, var(--border))",
-                borderRadius: 12,
-              }}
-            >
-              <div style={{ fontSize: 10, fontWeight: 800, color: "var(--t-muted, var(--text-muted))", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
-                Cost Breakdown by Type
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {Object.entries(SERVICE_TYPES).map(([type, st]) => {
-                  const cost = sh
-                    .filter((r: any) => r.type === type)
-                    .reduce((s: number, r: any) => s + Number(r.cost || 0), 0);
-                  if (!cost) return null;
+                {[
+                  {
+                    label: "Total Cost of Ownership",
+                    value: fmtINRExact(tco),
+                    sub: `Deprec. (${fmtINRExact(Math.max(0, depreciation))}) + Service (${fmtINRExact(totalServiceCost)})`,
+                    icon: Coins,
+                    color: THEME.accent,
+                  },
+                  {
+                    label: "Total Distance Tracked",
+                    value: latestOdo ? `${latestOdo.toLocaleString("en-IN")} km` : "—",
+                    sub: "Based on maximum odometer reading in logs",
+                    icon: Milestone,
+                    color: "#059669",
+                  },
+                  {
+                    label: "Cost Per Kilometer",
+                    value: costPerKm ? `₹${costPerKm.toFixed(2)} / km` : "—",
+                    sub: costPerKm
+                      ? "TCO / total distance driven"
+                      : "Requires service logs with mileage",
+                    icon: Gauge,
+                    color: costPerKm ? THEME.accent : "var(--t-muted)",
+                  },
+                ].map((card, i) => {
+                  const CardIcon = card.icon;
                   return (
-                    <span
-                      key={type}
+                    <div
+                      key={i}
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "5px 10px",
-                        borderRadius: 20,
-                        background: `${st.color}14`,
-                        border: `1.5px solid color-mix(in srgb, ${st.color} 20%, transparent)`,
-                        color: st.color,
-                        boxShadow: `0 2px 6px color-mix(in srgb, ${st.color} 5%, transparent)`,
+                        background: "color-mix(in srgb, var(--surface-0) 40%, transparent)",
+                        border: "1px solid var(--t-line, var(--border))",
+                        borderRadius: 12,
+                        padding: 14,
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: st.color, display: "inline-block" }} />
-                      <span>{st.label}:</span>
-                      <span style={{ fontWeight: 800 }}>₹{cost.toLocaleString("en-IN")}</span>
-                    </span>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: `color-mix(in srgb, ${card.color} 12%, transparent)`,
+                          color: card.color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <CardIcon size={16} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "var(--t-muted, var(--text-muted))",
+                            fontWeight: 500,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {card.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 900,
+                            color: "var(--text)",
+                            letterSpacing: "-0.02em",
+                          }}
+                        >
+                          <Prv>{card.value}</Prv>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "var(--t-muted, var(--text-muted))",
+                            marginTop: 4,
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {card.sub}
+                        </div>
+                      </div>
+                    </div>
                   );
-                }).filter(Boolean)}
+                })}
               </div>
             </div>
-          )}
-          </div>{/* end padding wrapper */}
+
+            {/* Documents row */}
+            {(vehicle.rcDocumentUrl || vehicle.insurancePolicyUrl || vehicle.pucCertificateUrl) && (
+              <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+                {vehicle.rcDocumentUrl && (
+                  <a
+                    href={vehicle.rcDocumentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="card-interactive"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      background: "color-mix(in srgb, var(--t-accent) 5%, var(--surface-0))",
+                      border: `1.5px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line))`,
+                      color: "var(--t-accent)",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      boxShadow: "var(--shadow-xs)",
+                      transition: "all 0.2s var(--ease-premium)",
+                    }}
+                  >
+                    <FileText size={13} />
+                    RC Document ↗
+                  </a>
+                )}
+                {vehicle.insurancePolicyUrl && (
+                  <a
+                    href={vehicle.insurancePolicyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="card-interactive"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      background: "color-mix(in srgb, var(--t-accent) 5%, var(--surface-0))",
+                      border: `1.5px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line))`,
+                      color: "var(--t-accent)",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      boxShadow: "var(--shadow-xs)",
+                      transition: "all 0.2s var(--ease-premium)",
+                    }}
+                  >
+                    <FileText size={13} />
+                    Insurance Policy ↗
+                  </a>
+                )}
+                {vehicle.pucCertificateUrl && (
+                  <a
+                    href={vehicle.pucCertificateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="card-interactive"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      background: "color-mix(in srgb, var(--t-accent) 5%, var(--surface-0))",
+                      border: `1.5px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line))`,
+                      color: "var(--t-accent)",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      boxShadow: "var(--shadow-xs)",
+                      transition: "all 0.2s var(--ease-premium)",
+                    }}
+                  >
+                    <FileText size={13} />
+                    PUC Certificate ↗
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Service Cost & Odometer Trends */}
+            {sh.length > 0 && (
+              <div
+                className="glass"
+                style={{
+                  border: "1px solid var(--t-line, var(--border))",
+                  borderRadius: 14,
+                  padding: "18px 20px",
+                  marginBottom: 20,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: "var(--t-muted, var(--text-muted))",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 18,
+                  }}
+                >
+                  Analytics & Trends
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                    gap: 20,
+                  }}
+                >
+                  {/* Chart 1: Annual Spend */}
+                  {spendByYear.length > 0 && (
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "var(--text)",
+                          marginBottom: 12,
+                        }}
+                      >
+                        Annual Service Spend
+                      </div>
+                      <div style={{ height: 160 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={spendByYear}
+                            margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+                          >
+                            <defs>
+                              <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+                                <stop offset="100%" stopColor="#d97706" stopOpacity={0.5} />
+                              </linearGradient>
+                            </defs>
+                            <XAxis
+                              dataKey="year"
+                              stroke="var(--t-muted, var(--text-muted))"
+                              fontSize={10}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              stroke="var(--t-muted, var(--text-muted))"
+                              fontSize={10}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v) => `₹${v}`}
+                            />
+                            <Tooltip
+                              formatter={(v: any) => [`₹${v.toLocaleString("en-IN")}`, "Spend"]}
+                              contentStyle={{
+                                background: "var(--surface-0, var(--surface))",
+                                borderColor: "var(--t-line, var(--border))",
+                                borderRadius: 8,
+                                color: "var(--text)",
+                              }}
+                            />
+                            <Bar
+                              dataKey="amount"
+                              fill="url(#spendGradient)"
+                              radius={[4, 4, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chart 2: Odometer Trend */}
+                  {odoTrend.length > 0 && (
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "var(--text)",
+                          marginBottom: 12,
+                        }}
+                      >
+                        Odometer History (Usage)
+                      </div>
+                      <div style={{ height: 160 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart
+                            data={odoTrend}
+                            margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+                          >
+                            <defs>
+                              <linearGradient id="odoGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.25} />
+                                <stop offset="100%" stopColor={THEME.accent} stopOpacity={0.0} />
+                              </linearGradient>
+                            </defs>
+                            <XAxis
+                              dataKey="displayDate"
+                              stroke="var(--t-muted, var(--text-muted))"
+                              fontSize={10}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              stroke="var(--t-muted, var(--text-muted))"
+                              fontSize={10}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v) => `${v} km`}
+                            />
+                            <Tooltip
+                              formatter={(v: any) => [
+                                `${v.toLocaleString("en-IN")} km`,
+                                "Odometer",
+                              ]}
+                              contentStyle={{
+                                background: "var(--surface-0, var(--surface))",
+                                borderColor: "var(--t-line, var(--border))",
+                                borderRadius: 8,
+                                color: "var(--text)",
+                              }}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="odometer"
+                              stroke={THEME.accent}
+                              strokeWidth={2.5}
+                              fill="url(#odoGradient)"
+                              dot={{ r: 3, fill: THEME.accent }}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {vehicle.notes && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  fontSize: 13,
+                  color: "var(--t-muted, var(--text-muted))",
+                  background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
+                  border: "1px solid var(--t-line, var(--border))",
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  marginBottom: 20,
+                }}
+              >
+                <FileText
+                  size={14}
+                  style={{ flexShrink: 0, marginTop: 2, color: "var(--t-muted)" }}
+                />
+                <div style={{ flex: 1, lineHeight: 1.4 }}>{vehicle.notes}</div>
+              </div>
+            )}
+
+            {/* Service history header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                }}
+              >
+                <Wrench size={14} style={{ color: THEME.accent }} />
+                Service History
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--t-muted, var(--text-muted))",
+                    fontWeight: 400,
+                  }}
+                >
+                  ({sh.length} record{sh.length !== 1 ? "s" : ""} · Total{" "}
+                  {fmtINRFull(totalServiceCost)})
+                </span>
+              </h4>
+              {lastService && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "var(--t-muted, var(--text-muted))",
+                    fontWeight: 500,
+                  }}
+                >
+                  Last: {fmtDate(lastService.date)}
+                </span>
+              )}
+            </div>
+
+            {sh.length === 0 ? (
+              <div
+                className="glass"
+                style={{
+                  textAlign: "center",
+                  padding: "36px 20px",
+                  border: "1.5px dashed var(--t-line, var(--border))",
+                  borderRadius: 14,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  background: "color-mix(in srgb, var(--surface-0) 30%, transparent)",
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
+                    color: "var(--t-accent)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.01)",
+                    marginBottom: 4,
+                  }}
+                >
+                  <Wrench size={18} />
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                  No Service Records Yet
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--t-muted, var(--text-muted))",
+                    maxWidth: 280,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Keep your vehicle in prime condition. Track maintenance logs, engine tuning, parts
+                  replacement, and oil changes.
+                </div>
+                <button
+                  onClick={onAddService}
+                  className="card-interactive"
+                  style={{
+                    marginTop: 6,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+                    border: `1px solid color-mix(in srgb, var(--t-accent) 15%, transparent)`,
+                    color: "var(--t-accent)",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add First Record
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {sh
+                  .slice()
+                  .sort((a: any, b: any) => b.date.localeCompare(a.date))
+                  .map((rec: any, idx: number) => (
+                    <ServiceRow
+                      key={rec.id || idx}
+                      rec={rec}
+                      onEdit={() => onEditService(rec)}
+                      onDelete={() => onDeleteService(rec.id)}
+                    />
+                  ))}
+              </div>
+            )}
+
+            {/* Cost breakdown by type */}
+            {sh.length > 1 && (
+              <div
+                className="glass"
+                style={{
+                  marginTop: 16,
+                  padding: "14px 16px",
+                  border: "1px solid var(--t-line, var(--border))",
+                  borderRadius: 12,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: "var(--t-muted, var(--text-muted))",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 12,
+                  }}
+                >
+                  Cost Breakdown by Type
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {Object.entries(SERVICE_TYPES)
+                    .map(([type, st]) => {
+                      const cost = sh
+                        .filter((r: any) => r.type === type)
+                        .reduce((s: number, r: any) => s + Number(r.cost || 0), 0);
+                      if (!cost) return null;
+                      return (
+                        <span
+                          key={type}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "5px 10px",
+                            borderRadius: 20,
+                            background: `${st.color}14`,
+                            border: `1.5px solid color-mix(in srgb, ${st.color} 20%, transparent)`,
+                            color: st.color,
+                            boxShadow: `0 2px 6px color-mix(in srgb, ${st.color} 5%, transparent)`,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              background: st.color,
+                              display: "inline-block",
+                            }}
+                          />
+                          <span>{st.label}:</span>
+                          <span style={{ fontWeight: 800 }}>₹{cost.toLocaleString("en-IN")}</span>
+                        </span>
+                      );
+                    })
+                    .filter(Boolean)}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* end padding wrapper */}
         </div>
       )}
     </div>
@@ -1779,8 +2422,14 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
   const vehicles: any[] = state.vehicles || [];
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [vehicleModal, setVehicleModal] = useState<{ open: boolean; existing?: any }>({ open: false });
-  const [serviceModal, setServiceModal] = useState<{ open: boolean; vehicleId?: string; existing?: any }>({ open: false });
+  const [vehicleModal, setVehicleModal] = useState<{ open: boolean; existing?: any }>({
+    open: false,
+  });
+  const [serviceModal, setServiceModal] = useState<{
+    open: boolean;
+    vehicleId?: string;
+    existing?: any;
+  }>({ open: false });
 
   // ── Derived metrics ──
   const totalCurrentValue = useMemo(
@@ -1792,7 +2441,12 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
     [vehicles]
   );
   const totalServiceSpend = useMemo(
-    () => vehicles.reduce((s, v) => s + (v.serviceHistory || []).reduce((ss: number, r: any) => ss + Number(r.cost || 0), 0), 0),
+    () =>
+      vehicles.reduce(
+        (s, v) =>
+          s + (v.serviceHistory || []).reduce((ss: number, r: any) => ss + Number(r.cost || 0), 0),
+        0
+      ),
     [vehicles]
   );
 
@@ -1848,14 +2502,30 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 20,
+        }}
+      >
         <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}>Vehicles</div>
+          <div
+            style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}
+          >
+            Vehicles
+          </div>
           <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
-            {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} · Track ownership, service history, insurance and current value
+            {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} · Track ownership, service
+            history, insurance and current value
           </div>
         </div>
-        <Button variant="accent" icon={<Plus size={14} />} onClick={() => setVehicleModal({ open: true })}>
+        <Button
+          variant="accent"
+          icon={<Plus size={14} />}
+          onClick={() => setVehicleModal({ open: true })}
+        >
           Add Vehicle
         </Button>
       </div>
@@ -1876,7 +2546,17 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           }}
         >
           {alerts.map((a, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#92400e", fontWeight: 500 }}>
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 13,
+                color: "#92400e",
+                fontWeight: 500,
+              }}
+            >
               <AlertTriangle size={14} style={{ color: "#f59e0b", flexShrink: 0 }} />
               {a}
             </div>
@@ -1904,8 +2584,14 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           <StatCard
             label="Current Value"
             value={<Prv>{fmtINRFull(totalCurrentValue)}</Prv>}
-            sub={totalPurchasePrice ? <Prv>Bought for {fmtINRFull(totalPurchasePrice)}</Prv> : undefined}
-            subColor={totalPurchasePrice && totalCurrentValue < totalPurchasePrice ? "#ef4444" : undefined}
+            sub={
+              totalPurchasePrice ? (
+                <Prv>Bought for {fmtINRFull(totalPurchasePrice)}</Prv>
+              ) : undefined
+            }
+            subColor={
+              totalPurchasePrice && totalCurrentValue < totalPurchasePrice ? "#ef4444" : undefined
+            }
             icon={<IndianRupee />}
             color="#10b981"
           />
@@ -1944,7 +2630,9 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
             onEdit={() => setVehicleModal({ open: true, existing: v })}
             onDelete={() => handleDeleteVehicle(v.id)}
             onAddService={() => setServiceModal({ open: true, vehicleId: v.id })}
-            onEditService={(rec: any) => setServiceModal({ open: true, vehicleId: v.id, existing: rec })}
+            onEditService={(rec: any) =>
+              setServiceModal({ open: true, vehicleId: v.id, existing: rec })
+            }
             onDeleteService={(sid: string) => handleDeleteService(v.id, sid)}
           />
         ))}

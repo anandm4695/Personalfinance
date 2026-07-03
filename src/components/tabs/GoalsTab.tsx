@@ -33,7 +33,8 @@ const GoalEmptyState = ({ onAdd }: any) => (
     style={{
       padding: "54px 36px",
       textAlign: "center" as const,
-      background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+      background:
+        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
       border: `1.5px solid ${THEME.line}`,
       borderRadius: 20,
       boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
@@ -60,7 +61,15 @@ const GoalEmptyState = ({ onAdd }: any) => (
       <Flag size={30} color="#fff" />
     </div>
     <div>
-      <h3 style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, marginBottom: 12, letterSpacing: "-0.02em" }}>
+      <h3
+        style={{
+          fontSize: 22,
+          fontWeight: 800,
+          color: THEME.ink,
+          marginBottom: 12,
+          letterSpacing: "-0.02em",
+        }}
+      >
         No Goals Added Yet
       </h3>
       <p
@@ -149,7 +158,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
     const rawML = monthsBetween(today(), g.targetDate);
     const ml = Math.max(0, rawML);
     const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
-    const effM = ml > 0 ? ml : (rawML === 0 ? 1 : 0);
+    const effM = ml > 0 ? ml : rawML === 0 ? 1 : 0;
     return s + (effM > 0 ? remaining / effM : 0);
   }, 0);
   const monthlySavings = metrics
@@ -255,13 +264,14 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               },
               {
                 label: "Monthly Required",
-                value: totalMonthlyRequired > 0
-                  ? fmtINRFull(totalMonthlyRequired)
-                  : completedCount === state.goals.length
-                    ? "All done!"
-                    : state.goals.some((g: any) => g.targetDate)
-                      ? "On track"
-                      : "No deadlines",
+                value:
+                  totalMonthlyRequired > 0
+                    ? fmtINRFull(totalMonthlyRequired)
+                    : completedCount === state.goals.length
+                      ? "All done!"
+                      : state.goals.some((g: any) => g.targetDate)
+                        ? "On track"
+                        : "No deadlines",
                 color:
                   totalMonthlyRequired > 0 &&
                   monthlySavings > 0 &&
@@ -277,7 +287,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 key={label}
                 className="card-lift"
                 style={{
-                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  background:
+                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
                   border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
                   borderRadius: 16,
@@ -285,7 +296,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
-                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                  boxShadow:
+                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
@@ -523,7 +535,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                   max="15"
                   value={inflationRate}
                   onChange={(e) => setInflationRate(e.target.value)}
-                  style={{ width: 48, padding: "4px 6px", borderRadius: 6, border: `1px solid ${THEME.line}`, fontSize: 12, background: "var(--surface-0)", color: THEME.ink, textAlign: "center" }}
+                  style={{
+                    width: 48,
+                    padding: "4px 6px",
+                    borderRadius: 6,
+                    border: `1px solid ${THEME.line}`,
+                    fontSize: 12,
+                    background: "var(--surface-0)",
+                    color: THEME.ink,
+                    textAlign: "center",
+                  }}
                 />
                 <span style={{ fontSize: 11, color: THEME.muted }}>% p.a.</span>
               </div>
@@ -543,19 +564,22 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
           {sortedGoals.map((g: any) => {
             const nominalTarget = Number(g.targetAmount) || 0;
             const inflRate = (Number(inflationRate) || 6) / 100;
-            const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
-            const inflatedTarget = showInflation && yearsToTarget > 0
-              ? nominalTarget * Math.pow(1 + inflRate, yearsToTarget)
-              : nominalTarget;
-            const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
-            const progress = effectiveTarget > 0
-              ? (Number(g.currentAmount) / effectiveTarget) * 100
+            const yearsToTarget = g.targetDate
+              ? Math.max(0, monthsBetween(today(), g.targetDate) / 12)
               : 0;
+            const inflatedTarget =
+              showInflation && yearsToTarget > 0
+                ? nominalTarget * Math.pow(1 + inflRate, yearsToTarget)
+                : nominalTarget;
+            const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
+            const progress =
+              effectiveTarget > 0 ? (Number(g.currentAmount) / effectiveTarget) * 100 : 0;
             const isComplete = progress >= 100;
             const rawMonthsLeft = g.targetDate ? monthsBetween(today(), g.targetDate) : 0;
             const monthsLeft = Math.max(0, rawMonthsLeft);
             const remaining = Math.max(0, effectiveTarget - Number(g.currentAmount));
-            const effectiveMonths = monthsLeft > 0 ? monthsLeft : (rawMonthsLeft === 0 && g.targetDate ? 1 : 0);
+            const effectiveMonths =
+              monthsLeft > 0 ? monthsLeft : rawMonthsLeft === 0 && g.targetDate ? 1 : 0;
             const monthlyNeeded = effectiveMonths > 0 ? remaining / effectiveMonths : 0;
             const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
             const totalDuration = elapsed + monthsLeft;
@@ -569,7 +593,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 className="card-lift"
                 style={{
                   padding: 24,
-                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+                  background:
+                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
                   border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.muted}`,
                   borderRadius: 16,
@@ -730,7 +755,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     </div>
                     {showInflation && inflatedTarget > nominalTarget && (
                       <div style={{ fontSize: 11, color: THEME.gold, marginTop: 2 }}>
-                        Nominal: <Prv>{fmtINRFull(nominalTarget)}</Prv> → Inflation-adjusted @ {inflationRate}%
+                        Nominal: <Prv>{fmtINRFull(nominalTarget)}</Prv> → Inflation-adjusted @{" "}
+                        {inflationRate}%
                       </div>
                     )}
                     <div style={{ fontSize: 13, fontWeight: 600, color: rc, marginTop: 4 }}>
@@ -799,14 +825,30 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     {/* Tinted stat tiles */}
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                       {[
-                        { label: "Saved", value: <Prv>{fmtINRFull(g.currentAmount)}</Prv>, color: THEME.sage },
-                        { label: "Remaining", value: <Prv>{fmtINRFull(remaining)}</Prv>, color: THEME.rust },
+                        {
+                          label: "Saved",
+                          value: <Prv>{fmtINRFull(g.currentAmount)}</Prv>,
+                          color: THEME.sage,
+                        },
+                        {
+                          label: "Remaining",
+                          value: <Prv>{fmtINRFull(remaining)}</Prv>,
+                          color: THEME.rust,
+                        },
                         ...(g.targetDate
                           ? [
                               {
                                 label: rawMonthsLeft < 0 ? "Overdue" : "Months Left",
-                                value: rawMonthsLeft < 0 ? `${Math.abs(rawMonthsLeft)}m` : String(monthsLeft),
-                                color: rawMonthsLeft < 0 ? THEME.rust : isBehind ? THEME.rust : THEME.accent,
+                                value:
+                                  rawMonthsLeft < 0
+                                    ? `${Math.abs(rawMonthsLeft)}m`
+                                    : String(monthsLeft),
+                                color:
+                                  rawMonthsLeft < 0
+                                    ? THEME.rust
+                                    : isBehind
+                                      ? THEME.rust
+                                      : THEME.accent,
                               },
                             ]
                           : []),

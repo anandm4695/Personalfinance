@@ -69,7 +69,15 @@ function extractDomain(website: string): string {
   }
 }
 
-const ServiceLogo = ({ name, size = 40, website }: { name: string; size?: number; website?: string }) => {
+const ServiceLogo = ({
+  name,
+  size = 40,
+  website,
+}: {
+  name: string;
+  size?: number;
+  website?: string;
+}) => {
   const n = (name || "").toLowerCase();
   let domain = "";
 

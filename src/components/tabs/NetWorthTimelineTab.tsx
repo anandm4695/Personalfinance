@@ -32,7 +32,20 @@ import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 const formatMonth = (ym: string) => {
   const [y, m] = ym.split("-");
@@ -48,16 +61,22 @@ const projectionPresets = [
 // ── Custom Tooltip for Recharts ────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
-  
-  const isBreakdown = payload.some((p: any) => p.dataKey !== "netWorth" && p.dataKey !== "delta" && p.dataKey !== "nominal" && p.dataKey !== "real");
+
+  const isBreakdown = payload.some(
+    (p: any) =>
+      p.dataKey !== "netWorth" &&
+      p.dataKey !== "delta" &&
+      p.dataKey !== "nominal" &&
+      p.dataKey !== "real"
+  );
   const isChange = payload[0]?.dataKey === "delta";
   const isProjection = payload[0]?.dataKey === "nominal" || payload[0]?.dataKey === "real";
-  
+
   let totalValue = 0;
   if (isBreakdown) {
     totalValue = payload.reduce((sum: number, entry: any) => sum + (Number(entry.value) || 0), 0);
   }
-  
+
   return (
     <div
       style={{
@@ -74,7 +93,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         minWidth: "240px",
       }}
     >
-      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t-muted)", borderBottom: `1px solid var(--t-line)`, paddingBottom: "6px" }}>
+      <div
+        style={{
+          fontSize: "12px",
+          fontWeight: 700,
+          color: "var(--t-muted)",
+          borderBottom: `1px solid var(--t-line)`,
+          paddingBottom: "6px",
+        }}
+      >
         {label} {isProjection ? "Projection" : isChange ? "Net Worth Change" : "Net Worth Summary"}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -86,31 +113,81 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           else if (entry.dataKey === "realEstate") color = "#8B5CF6";
           else if (entry.dataKey === "vehicles") color = "#EC4899";
           else if (entry.dataKey === "netWorth") color = "var(--t-accent)";
-          else if (entry.dataKey === "delta") color = entry.value >= 0 ? "var(--t-sage)" : "var(--t-rust)";
+          else if (entry.dataKey === "delta")
+            color = entry.value >= 0 ? "var(--t-sage)" : "var(--t-rust)";
           else if (entry.dataKey === "nominal") color = "var(--t-accent)";
           else if (entry.dataKey === "real") color = "var(--t-gold)";
 
-          const pct = isBreakdown && totalValue > 0 ? ` (${((entry.value / totalValue) * 100).toFixed(0)}%)` : "";
+          const pct =
+            isBreakdown && totalValue > 0
+              ? ` (${((entry.value / totalValue) * 100).toFixed(0)}%)`
+              : "";
 
           return (
-            <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: color,
+                    display: "inline-block",
+                  }}
+                />
                 <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--t-ink)" }}>
                   {entry.name}
-                  {pct && <span style={{ fontSize: "11px", color: "var(--t-muted)", fontWeight: 500 }}>{pct}</span>}
+                  {pct && (
+                    <span style={{ fontSize: "11px", color: "var(--t-muted)", fontWeight: 500 }}>
+                      {pct}
+                    </span>
+                  )}
                 </span>
               </div>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--t-ink)", fontVariantNumeric: "tabular-nums" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: "var(--t-ink)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
                 <Prv>{fmtINRFull(entry.value)}</Prv>
               </span>
             </div>
           );
         })}
         {isBreakdown && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: `1px solid var(--t-line)`, paddingTop: "6px", marginTop: "2px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--t-ink)" }}>Total Net Worth</span>
-            <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--t-accent)", fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              borderTop: `1px solid var(--t-line)`,
+              paddingTop: "6px",
+              marginTop: "2px",
+            }}
+          >
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--t-ink)" }}>
+              Total Net Worth
+            </span>
+            <span
+              style={{
+                fontSize: "13px",
+                fontWeight: 800,
+                color: "var(--t-accent)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               <Prv>{fmtINRFull(totalValue)}</Prv>
             </span>
           </div>
@@ -148,7 +225,9 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       label: h.label,
       month: h.month,
       delta: h.netWorth - history[i].netWorth,
-      pctChange: history[i].netWorth ? ((h.netWorth - history[i].netWorth) / history[i].netWorth) * 100 : 0,
+      pctChange: history[i].netWorth
+        ? ((h.netWorth - history[i].netWorth) / history[i].netWorth) * 100
+        : 0,
     }));
   }, [history]);
 
@@ -164,7 +243,9 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
     for (let i = 0; i <= months; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const nominal = currentNW * Math.pow(1 + monthlyReturn, i) + monthlySavings * ((Math.pow(1 + monthlyReturn, i) - 1) / monthlyReturn || i);
+      const nominal =
+        currentNW * Math.pow(1 + monthlyReturn, i) +
+        monthlySavings * ((Math.pow(1 + monthlyReturn, i) - 1) / monthlyReturn || i);
       const real = nominal / Math.pow(1 + monthlyInflation, i);
       points.push({
         label: formatMonth(ym),
@@ -177,7 +258,10 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
   }, [metrics.netWorth, projectionYears, selectedPreset, monthlySavings]);
 
   const milestones = useMemo(() => {
-    const targets = [10_00_000, 25_00_000, 50_00_000, 1_00_00_000, 2_00_00_000, 5_00_00_000, 10_00_00_000, 25_00_00_000, 50_00_00_000];
+    const targets = [
+      10_00_000, 25_00_000, 50_00_000, 1_00_00_000, 2_00_00_000, 5_00_00_000, 10_00_00_000,
+      25_00_00_000, 50_00_00_000,
+    ];
     const currentNW = metrics.netWorth || 0;
     const preset = projectionPresets[selectedPreset];
     const monthlyReturn = preset.returnRate / 100 / 12;
@@ -192,7 +276,8 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
           eta = hitInChart.label;
         } else if (monthlyReturn > 0 || monthlySavings > 0) {
           for (let i = 1; i <= maxMonths; i++) {
-            const nominal = currentNW * Math.pow(1 + monthlyReturn, i) +
+            const nominal =
+              currentNW * Math.pow(1 + monthlyReturn, i) +
               monthlySavings * ((Math.pow(1 + monthlyReturn, i) - 1) / monthlyReturn || i);
             if (nominal >= t) {
               const years = Math.ceil(i / 12);
@@ -214,7 +299,10 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
     const totalGrowth = last.netWorth - first.netWorth;
     const months = history.length - 1;
     const avgMonthly = months > 0 ? totalGrowth / months : 0;
-    const cagr = months > 0 ? (Math.pow(last.netWorth / Math.max(first.netWorth, 1), 12 / months) - 1) * 100 : 0;
+    const cagr =
+      months > 0
+        ? (Math.pow(last.netWorth / Math.max(first.netWorth, 1), 12 / months) - 1) * 100
+        : 0;
     const best = momDeltas.reduce((a, b) => (b.delta > a.delta ? b : a), momDeltas[0]);
     const worst = momDeltas.reduce((a, b) => (b.delta < a.delta ? b : a), momDeltas[0]);
     return { totalGrowth, avgMonthly, cagr, best, worst, months };
@@ -261,7 +349,10 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: stats.totalGrowth >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  background:
+                    stats.totalGrowth >= 0
+                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                      : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -272,7 +363,15 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 {stats.totalGrowth >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Total Growth
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -281,11 +380,31 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
-                <Prv>{(stats.totalGrowth < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.totalGrowth))}</Prv>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: THEME.ink,
+                  letterSpacing: "-0.04em",
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1,
+                }}
+              >
+                <Prv>
+                  {(stats.totalGrowth < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.totalGrowth))}
+                </Prv>
               </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: stats.totalGrowth >= 0 ? THEME.sage : THEME.rust, marginTop: 4 }}>
-                {stats.totalGrowth >= 0 ? "+" : ""}{((stats.totalGrowth / Math.max(1, history[0]?.netWorth || 0)) * 100).toFixed(1)}% Inception Growth
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: stats.totalGrowth >= 0 ? THEME.sage : THEME.rust,
+                  marginTop: 4,
+                }}
+              >
+                {stats.totalGrowth >= 0 ? "+" : ""}
+                {((stats.totalGrowth / Math.max(1, history[0]?.netWorth || 0)) * 100).toFixed(1)}%
+                Inception Growth
               </div>
             </div>
           </Card>
@@ -318,7 +437,15 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 <Calendar size={18} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Avg Monthly Growth
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -327,8 +454,19 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
-                <Prv>{(stats.avgMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.avgMonthly))}</Prv>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: THEME.ink,
+                  letterSpacing: "-0.04em",
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1,
+                }}
+              >
+                <Prv>
+                  {(stats.avgMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.avgMonthly))}
+                </Prv>
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
                 Net Monthly Wealth Accumulation
@@ -353,7 +491,10 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: stats.cagr >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  background:
+                    stats.cagr >= 0
+                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                      : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -364,7 +505,15 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 <Zap size={18} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Compounded CAGR
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -373,12 +522,38 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: THEME.ink,
+                  letterSpacing: "-0.04em",
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1,
+                }}
+              >
                 {stats.cagr.toFixed(1)}%
               </div>
               <div style={{ marginTop: 4 }}>
-                <Badge variant={stats.cagr >= 15 ? "sage" : stats.cagr >= 10 ? "accent" : stats.cagr >= 5 ? "gold" : "muted"} style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}>
-                  {stats.cagr >= 15 ? "Aggressive Build" : stats.cagr >= 10 ? "Steady Growth" : stats.cagr >= 5 ? "Conservative" : "Flat Growth"}
+                <Badge
+                  variant={
+                    stats.cagr >= 15
+                      ? "sage"
+                      : stats.cagr >= 10
+                        ? "accent"
+                        : stats.cagr >= 5
+                          ? "gold"
+                          : "muted"
+                  }
+                  style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
+                >
+                  {stats.cagr >= 15
+                    ? "Aggressive Build"
+                    : stats.cagr >= 10
+                      ? "Steady Growth"
+                      : stats.cagr >= 5
+                        ? "Conservative"
+                        : "Flat Growth"}
                 </Badge>
               </div>
             </div>
@@ -412,7 +587,15 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 <TrendingUp size={18} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Best Month
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -421,7 +604,16 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: THEME.sage,
+                  letterSpacing: "-0.04em",
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1,
+                }}
+              >
                 <Prv>+{fmtINRFull(stats.best?.delta || 0)}</Prv>
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
@@ -458,7 +650,15 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 <TrendingDown size={18} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Worst Month
                 </div>
                 <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -467,7 +667,16 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: THEME.rust,
+                  letterSpacing: "-0.04em",
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1,
+                }}
+              >
                 <Prv>{fmtINRFull(stats.worst?.delta || 0)}</Prv>
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
@@ -480,12 +689,21 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
 
       {/* ── Net Worth History Chart ────────────────────────────────────────── */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <TrendingUp size={18} style={{ color: THEME.accent }} />
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>Net Worth History</h3>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>
+              Net Worth History
+            </h3>
           </div>
-          
+
           {/* Segmented control toggle */}
           <div
             style={{
@@ -539,29 +757,39 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
             <AreaChart data={history} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.65}/>
-                  <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.05}/>
+                  <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-sage)" stopOpacity={0.65}/>
-                  <stop offset="100%" stopColor="var(--t-sage)" stopOpacity={0.05}/>
+                  <stop offset="0%" stopColor="var(--t-sage)" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="var(--t-sage)" stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="debtGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-gold)" stopOpacity={0.65}/>
-                  <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.05}/>
+                  <stop offset="0%" stopColor="var(--t-gold)" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="realEstateGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.65}/>
-                  <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.05}/>
+                  <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="vehiclesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#EC4899" stopOpacity={0.65}/>
-                  <stop offset="100%" stopColor="#EC4899" stopOpacity={0.05}/>
+                  <stop offset="0%" stopColor="#EC4899" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="#EC4899" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={false} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }}
+                axisLine={{ stroke: THEME.line }}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={(v) => fmtINRFull(v)}
+                tick={{ fontSize: 11, fill: THEME.muted }}
+                axisLine={false}
+                tickLine={false}
+              />
               <Tooltip content={<CustomTooltip />} />
               <Legend
                 verticalAlign="top"
@@ -570,25 +798,82 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 iconSize={8}
                 wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingBottom: 10 }}
               />
-              <Area type="monotone" dataKey="cash" stackId="1" stroke="var(--t-accent)" fill="url(#cashGrad)" strokeWidth={1.5} name="Cash" />
-              <Area type="monotone" dataKey="equity" stackId="1" stroke="var(--t-sage)" fill="url(#equityGrad)" strokeWidth={1.5} name="Equity" />
-              <Area type="monotone" dataKey="debt" stackId="1" stroke="var(--t-gold)" fill="url(#debtGrad)" strokeWidth={1.5} name="Debt Liabilities" />
-              <Area type="monotone" dataKey="realEstate" stackId="1" stroke="#8B5CF6" fill="url(#realEstateGrad)" strokeWidth={1.5} name="Real Estate" />
-              <Area type="monotone" dataKey="vehicles" stackId="1" stroke="#EC4899" fill="url(#vehiclesGrad)" strokeWidth={1.5} name="Vehicles" />
+              <Area
+                type="monotone"
+                dataKey="cash"
+                stackId="1"
+                stroke="var(--t-accent)"
+                fill="url(#cashGrad)"
+                strokeWidth={1.5}
+                name="Cash"
+              />
+              <Area
+                type="monotone"
+                dataKey="equity"
+                stackId="1"
+                stroke="var(--t-sage)"
+                fill="url(#equityGrad)"
+                strokeWidth={1.5}
+                name="Equity"
+              />
+              <Area
+                type="monotone"
+                dataKey="debt"
+                stackId="1"
+                stroke="var(--t-gold)"
+                fill="url(#debtGrad)"
+                strokeWidth={1.5}
+                name="Debt Liabilities"
+              />
+              <Area
+                type="monotone"
+                dataKey="realEstate"
+                stackId="1"
+                stroke="#8B5CF6"
+                fill="url(#realEstateGrad)"
+                strokeWidth={1.5}
+                name="Real Estate"
+              />
+              <Area
+                type="monotone"
+                dataKey="vehicles"
+                stackId="1"
+                stroke="#EC4899"
+                fill="url(#vehiclesGrad)"
+                strokeWidth={1.5}
+                name="Vehicles"
+              />
             </AreaChart>
           ) : (
             <AreaChart data={history} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="netWorthGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.35}/>
-                  <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.0}/>
+                  <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={false} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }}
+                axisLine={{ stroke: THEME.line }}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={(v) => fmtINRFull(v)}
+                tick={{ fontSize: 11, fill: THEME.muted }}
+                axisLine={false}
+                tickLine={false}
+              />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="netWorth" stroke="var(--t-accent)" fill="url(#netWorthGrad)" strokeWidth={3} name="Total Net Worth" />
+              <Area
+                type="monotone"
+                dataKey="netWorth"
+                stroke="var(--t-accent)"
+                fill="url(#netWorthGrad)"
+                strokeWidth={3}
+                name="Total Net Worth"
+              />
             </AreaChart>
           )}
         </ResponsiveContainer>
@@ -599,15 +884,31 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
         <Card style={{ padding: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
             <Calendar size={18} style={{ color: THEME.accent }} />
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>Monthly Change</h3>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>
+              Monthly Change
+            </h3>
           </div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={momDeltas}>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={false} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }}
+                axisLine={{ stroke: THEME.line }}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={(v) => fmtINRFull(v)}
+                tick={{ fontSize: 11, fill: THEME.muted }}
+                axisLine={false}
+                tickLine={false}
+              />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="delta" name="Change" fill="var(--t-accent)" radius={[4, 4, 0, 0]}
+              <Bar
+                dataKey="delta"
+                name="Change"
+                fill="var(--t-accent)"
+                radius={[4, 4, 0, 0]}
                 shape={(props: any) => {
                   const { x, y, width, height, value } = props;
                   const isPositive = value >= 0;
@@ -638,10 +939,26 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       {/* ── What-If Time Machine ───────────────────────────────────────────── */}
       <SectionTitle sub="Project your net worth into the future">What-If Time Machine</SectionTitle>
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 24, alignItems: "flex-end" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 20,
+            marginBottom: 24,
+            alignItems: "flex-end",
+          }}
+        >
           {/* Controls: projection Period */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: THEME.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
               Projection Period
             </span>
             <select
@@ -661,14 +978,24 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               }}
             >
               {[1, 2, 3, 5, 10, 15, 20, 25, 30].map((y) => (
-                <option key={y} value={y}>{y} Year{y > 1 ? "s" : ""}</option>
+                <option key={y} value={y}>
+                  {y} Year{y > 1 ? "s" : ""}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Controls: Scenario Selector */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: THEME.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
               Growth Scenario
             </span>
             <div
@@ -709,11 +1036,29 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
 
           {/* Controls: Monthly Savings input */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: THEME.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
               Monthly Savings
             </span>
             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <span style={{ position: "absolute", left: 12, fontSize: 13, fontWeight: 600, color: THEME.muted }}>₹</span>
+              <span
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: THEME.muted,
+                }}
+              >
+                ₹
+              </span>
               <input
                 type="number"
                 value={monthlySavings}
@@ -738,23 +1083,36 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
         <ResponsiveContainer width="100%" height={320}>
           {(() => {
             const step = projectionYears <= 3 ? 3 : projectionYears <= 10 ? 6 : 12;
-            const chartData = projection.filter((_, i) => i % step === 0 || i === projection.length - 1);
+            const chartData = projection.filter(
+              (_, i) => i % step === 0 || i === projection.length - 1
+            );
             const tickInterval = Math.max(0, Math.ceil(chartData.length / 10) - 1);
             return (
               <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="nominalGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.25}/>
-                    <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.0}/>
+                    <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="realGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--t-gold)" stopOpacity={0.15}/>
-                    <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.0}/>
+                    <stop offset="0%" stopColor="var(--t-gold)" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} interval={tickInterval} axisLine={{ stroke: THEME.line }} tickLine={false} />
-                <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: THEME.muted }}
+                  interval={tickInterval}
+                  axisLine={{ stroke: THEME.line }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tickFormatter={(v) => fmtINRFull(v)}
+                  tick={{ fontSize: 11, fill: THEME.muted }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
                   verticalAlign="top"
@@ -763,8 +1121,23 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                   iconSize={8}
                   wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingBottom: 10 }}
                 />
-                <Area type="monotone" dataKey="nominal" stroke="var(--t-accent)" fill="url(#nominalGrad)" strokeWidth={2.5} name="Nominal Future Value" />
-                <Area type="monotone" dataKey="real" stroke="var(--t-gold)" fill="url(#realGrad)" strokeWidth={2} strokeDasharray="5 5" name="Inflation-Adjusted Value" />
+                <Area
+                  type="monotone"
+                  dataKey="nominal"
+                  stroke="var(--t-accent)"
+                  fill="url(#nominalGrad)"
+                  strokeWidth={2.5}
+                  name="Nominal Future Value"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="real"
+                  stroke="var(--t-gold)"
+                  fill="url(#realGrad)"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  name="Inflation-Adjusted Value"
+                />
               </AreaChart>
             );
           })()}
@@ -781,14 +1154,31 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               minWidth: 200,
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: THEME.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
               Projected in {projectionYears} Years
             </div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.accent, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", marginTop: 4 }}>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: THEME.accent,
+                letterSpacing: "-0.02em",
+                fontVariantNumeric: "tabular-nums",
+                marginTop: 4,
+              }}
+            >
               <Prv>{fmtINRFull(projection[projection.length - 1]?.nominal || 0)}</Prv>
             </div>
           </div>
-          
+
           <div
             style={{
               padding: "12px 20px",
@@ -798,10 +1188,27 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               minWidth: 200,
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: THEME.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
               Inflation-Adjusted (Today's Value)
             </div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: "var(--t-gold)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", marginTop: 4 }}>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: "var(--t-gold)",
+                letterSpacing: "-0.02em",
+                fontVariantNumeric: "tabular-nums",
+                marginTop: 4,
+              }}
+            >
               <Prv>{fmtINRFull(projection[projection.length - 1]?.real || 0)}</Prv>
             </div>
           </div>
@@ -812,15 +1219,26 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       <Card style={{ padding: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
           <Target size={18} style={{ color: THEME.accent }} />
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>Wealth Milestones</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>
+            Wealth Milestones
+          </h3>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: 14,
+          }}
+        >
           {milestones
             .filter((m) => m.target >= (metrics.netWorth || 0) * 0.1)
             .map((m) => {
               const currentNW = metrics.netWorth || 0;
-              const pctToTarget = Math.min(100, Math.max(0, Math.round((currentNW / m.target) * 100)));
-              
+              const pctToTarget = Math.min(
+                100,
+                Math.max(0, Math.round((currentNW / m.target) * 100))
+              );
+
               return (
                 <div
                   key={m.target}
@@ -830,7 +1248,9 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                     gap: 10,
                     padding: "14px 16px",
                     borderRadius: 12,
-                    background: m.achieved ? `color-mix(in srgb, ${THEME.sage} 6%, var(--surface-0))` : "var(--surface-0)",
+                    background: m.achieved
+                      ? `color-mix(in srgb, ${THEME.sage} 6%, var(--surface-0))`
+                      : "var(--surface-0)",
                     border: `1.5px solid ${m.achieved ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `var(--t-line)`}`,
                     transition: "all 0.2s var(--ease-premium)",
                   }}
@@ -847,27 +1267,61 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                         justifyContent: "center",
                         background: m.achieved ? THEME.sage : "var(--surface-1)",
                         color: m.achieved ? "#fff" : THEME.muted,
-                        boxShadow: m.achieved ? `0 0 0 3px color-mix(in srgb, ${THEME.sage} 20%, transparent)` : "none",
+                        boxShadow: m.achieved
+                          ? `0 0 0 3px color-mix(in srgb, ${THEME.sage} 20%, transparent)`
+                          : "none",
                         flexShrink: 0,
                       }}
                     >
-                      {m.achieved ? <Check size={14} strokeWidth={3} /> : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--t-line)" }} />}
+                      {m.achieved ? (
+                        <Check size={14} strokeWidth={3} />
+                      ) : (
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: "var(--t-line)",
+                          }}
+                        />
+                      )}
                     </div>
-                    
+
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: 14,
+                          color: THEME.ink,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
                         {fmtINRFull(m.target)}
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: m.achieved ? THEME.sage : THEME.muted, marginTop: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: m.achieved ? THEME.sage : THEME.muted,
+                          marginTop: 1,
+                        }}
+                      >
                         {m.achieved ? "Achieved!" : m.eta ? `ETA: ${m.eta}` : "—"}
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Progress Line */}
                   {!m.achieved && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
-                      <div style={{ height: 4, borderRadius: 2, background: "var(--t-line)", overflow: "hidden" }}>
+                      <div
+                        style={{
+                          height: 4,
+                          borderRadius: 2,
+                          background: "var(--t-line)",
+                          overflow: "hidden",
+                        }}
+                      >
                         <div
                           style={{
                             width: `${pctToTarget}%`,
@@ -876,7 +1330,15 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                           }}
                         />
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 700, color: THEME.muted }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: 9,
+                          fontWeight: 700,
+                          color: THEME.muted,
+                        }}
+                      >
                         <span>Progress</span>
                         <span>{pctToTarget}%</span>
                       </div>

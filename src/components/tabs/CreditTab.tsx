@@ -27,14 +27,7 @@ import {
   Minus,
   Info,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINRFull, fmtINRExact, today, uid } from "../../utils/finance";
@@ -579,32 +572,56 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
       borderRadius: 16,
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
       border: "1px solid var(--t-line)",
-      ...cardStyle
+      ...cardStyle,
     }}
   >
     <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6, zIndex: 10 }}>
-      <button onClick={onEdit} style={{
-        ...iconBtn,
-        background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
-        border: "1px solid var(--t-line)",
-        borderRadius: 8,
-        width: 28, height: 28,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        color: THEME.muted,
-        transition: "all 0.2s ease"
-      }} onMouseEnter={(e) => { e.currentTarget.style.color = THEME.accent; }} onMouseLeave={(e) => { e.currentTarget.style.color = THEME.muted; }}>
+      <button
+        onClick={onEdit}
+        style={{
+          ...iconBtn,
+          background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
+          border: "1px solid var(--t-line)",
+          borderRadius: 8,
+          width: 28,
+          height: 28,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: THEME.muted,
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = THEME.accent;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = THEME.muted;
+        }}
+      >
         <Edit3 size={13} />
       </button>
-      <button onClick={onRemove} style={{
-        ...iconBtn,
-        background: "rgba(239, 68, 68, 0.08)",
-        border: "1px solid rgba(239, 68, 68, 0.2)",
-        borderRadius: 8,
-        width: 28, height: 28,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        color: THEME.rust,
-        transition: "all 0.2s ease"
-      }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)"; }}>
+      <button
+        onClick={onRemove}
+        style={{
+          ...iconBtn,
+          background: "rgba(239, 68, 68, 0.08)",
+          border: "1px solid rgba(239, 68, 68, 0.2)",
+          borderRadius: 8,
+          width: 28,
+          height: 28,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: THEME.rust,
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)";
+        }}
+      >
         <Trash2 size={13} />
       </button>
     </div>
@@ -718,14 +735,7 @@ function ScoreGauge({ score }: { score: number }) {
         );
       })}
       {/* Score text */}
-      <text
-        x={cx}
-        y={cy - 20}
-        textAnchor="middle"
-        fontSize="32"
-        fontWeight="900"
-        fill={color}
-      >
+      <text x={cx} y={cy - 20} textAnchor="middle" fontSize="32" fontWeight="900" fill={color}>
         {score}
       </text>
     </svg>
@@ -738,10 +748,7 @@ function CreditScoreTracker() {
   const [editEntry, setEditEntry] = useState<CreditScoreEntry | null>(null);
   const [form, setForm] = useState({ date: today(), score: "", bureau: "CIBIL", notes: "" });
 
-  const sorted = useMemo(
-    () => [...scores].sort((a, b) => a.date.localeCompare(b.date)),
-    [scores]
-  );
+  const sorted = useMemo(() => [...scores].sort((a, b) => a.date.localeCompare(b.date)), [scores]);
   const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
   const rating = latest ? getScoreRating(latest.score) : null;
 
@@ -756,7 +763,10 @@ function CreditScoreTracker() {
   );
 
   // History sorted newest first for table
-  const historyDesc = useMemo(() => [...scores].sort((a, b) => b.date.localeCompare(a.date)), [scores]);
+  const historyDesc = useMemo(
+    () => [...scores].sort((a, b) => b.date.localeCompare(a.date)),
+    [scores]
+  );
 
   function openAddModal() {
     setEditEntry(null);
@@ -901,11 +911,22 @@ function CreditScoreTracker() {
 
               {/* Score Info */}
               <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: THEME.muted,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: 6,
+                  }}
+                >
                   Latest Credit Score
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
-                  <span style={{ fontSize: 48, fontWeight: 900, color: rating!.color, lineHeight: 1 }}>
+                  <span
+                    style={{ fontSize: 48, fontWeight: 900, color: rating!.color, lineHeight: 1 }}
+                  >
                     {latest.score}
                   </span>
                   <Badge
@@ -920,7 +941,15 @@ function CreditScoreTracker() {
                     {rating!.label}
                   </Badge>
                 </div>
-                <div style={{ fontSize: 13, color: THEME.muted, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: THEME.muted,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                  }}
+                >
                   <span>
                     <strong>Bureau:</strong> {latest.bureau}
                   </span>
@@ -932,17 +961,23 @@ function CreditScoreTracker() {
                       year: "numeric",
                     })}
                   </span>
-                  {sorted.length >= 2 && (() => {
-                    const prev = sorted[sorted.length - 2];
-                    const diff = latest.score - prev.score;
-                    if (diff === 0) return null;
-                    return (
-                      <span style={{ color: diff > 0 ? "#16a34a" : "#dc2626", fontWeight: 700 }}>
-                        {diff > 0 ? <ArrowUp size={12} style={{ verticalAlign: "middle" }} /> : <ArrowDown size={12} style={{ verticalAlign: "middle" }} />}
-                        {" "}{diff > 0 ? "+" : ""}{diff} pts since last check
-                      </span>
-                    );
-                  })()}
+                  {sorted.length >= 2 &&
+                    (() => {
+                      const prev = sorted[sorted.length - 2];
+                      const diff = latest.score - prev.score;
+                      if (diff === 0) return null;
+                      return (
+                        <span style={{ color: diff > 0 ? "#16a34a" : "#dc2626", fontWeight: 700 }}>
+                          {diff > 0 ? (
+                            <ArrowUp size={12} style={{ verticalAlign: "middle" }} />
+                          ) : (
+                            <ArrowDown size={12} style={{ verticalAlign: "middle" }} />
+                          )}{" "}
+                          {diff > 0 ? "+" : ""}
+                          {diff} pts since last check
+                        </span>
+                      );
+                    })()}
                 </div>
               </div>
             </div>
@@ -1005,7 +1040,9 @@ function CreditScoreTracker() {
 
           {/* Score History Table */}
           <Card style={{ padding: 0, overflow: "hidden" }}>
-            <div style={{ padding: "16px 20px 12px", fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+            <div
+              style={{ padding: "16px 20px 12px", fontSize: 14, fontWeight: 800, color: THEME.ink }}
+            >
               All Entries
             </div>
             <div style={{ overflowX: "auto" }}>
@@ -1053,10 +1090,23 @@ function CreditScoreTracker() {
                           {trend === "down" && <ArrowDown size={14} color="#dc2626" />}
                           {trend === "same" && <Minus size={14} color={THEME.muted} />}
                         </td>
-                        <td style={{ ...td, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <td
+                          style={{
+                            ...td,
+                            maxWidth: 180,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
                           {entry.notes || <span style={{ color: THEME.muted }}>--</span>}
                         </td>
-                        <td style={{ ...td, textAlign: "right" as const, whiteSpace: "nowrap" as const }}>
+                        <td
+                          style={{
+                            ...td,
+                            textAlign: "right" as const,
+                            whiteSpace: "nowrap" as const,
+                          }}
+                        >
                           <button
                             onClick={() => openEditModal(entry)}
                             style={{
@@ -1112,11 +1162,7 @@ function CreditScoreTracker() {
                     lineHeight: 1.5,
                   }}
                 >
-                  <CheckCircle2
-                    size={15}
-                    color="#16a34a"
-                    style={{ flexShrink: 0, marginTop: 2 }}
-                  />
+                  <CheckCircle2 size={15} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
                   <span>{tip}</span>
                 </div>
               ))}
@@ -1178,9 +1224,14 @@ function CreditScoreTracker() {
           </Field>
           <ModalActions
             onSave={handleSave}
-            onClose={() => { setShowModal(false); setEditEntry(null); }}
+            onClose={() => {
+              setShowModal(false);
+              setEditEntry(null);
+            }}
             saveLabel={editEntry ? "Update" : "Save"}
-            disabled={!form.date || !form.score || Number(form.score) < 300 || Number(form.score) > 900}
+            disabled={
+              !form.date || !form.score || Number(form.score) < 300 || Number(form.score) > 900
+            }
           />
         </Modal>
       )}
@@ -1227,9 +1278,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           marginBottom: 24,
         }}
       >
-        <SectionTitle sub={activeMeta.sub}>
-          {activeMeta.label}
-        </SectionTitle>
+        <SectionTitle sub={activeMeta.sub}>{activeMeta.label}</SectionTitle>
         {sub !== "borrowed" &&
           sub !== "lent" &&
           sub !== "optimizer" &&
@@ -1454,76 +1503,93 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                           {value}
                         </div>
                         {subText && (
-                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>{subText}</div>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>
+                            {subText}
+                          </div>
                         )}
                       </div>
                     ))}
                   </div>
-                  {activeCards.length > 0 && (() => {
-                    const isCritical = utilPct > 70;
-                    const isWarning = utilPct > 30 && utilPct <= 70;
-                    const alertBg = isCritical
-                      ? "color-mix(in srgb, var(--t-rust) 6%, transparent)"
-                      : isWarning
-                        ? "color-mix(in srgb, var(--t-gold) 6%, transparent)"
-                        : "color-mix(in srgb, var(--t-sage) 6%, transparent)";
-                    const alertBorder = isCritical
-                      ? "color-mix(in srgb, var(--t-rust) 15%, transparent)"
-                      : isWarning
-                        ? "color-mix(in srgb, var(--t-gold) 15%, transparent)"
-                        : "color-mix(in srgb, var(--t-sage) 15%, transparent)";
-                    const alertLeftBorder = isCritical
-                      ? "var(--t-rust)"
-                      : isWarning
-                        ? "var(--t-gold)"
-                        : "var(--t-sage)";
-                    const alertColor = isCritical
-                      ? THEME.rust
-                      : isWarning
-                        ? THEME.gold
-                        : THEME.sage;
-                    const icon = isCritical ? "🚨" : isWarning ? "⚠️" : "✨";
-                    return (
-                      <div
-                        style={{
-                          marginBottom: 24,
-                          padding: "12px 16px",
-                          borderRadius: 12,
-                          fontSize: 12.5,
-                          fontWeight: 500,
-                          background: alertBg,
-                          border: `1px solid ${alertBorder}`,
-                          borderLeft: `4px solid ${alertLeftBorder}`,
-                          color: THEME.ink,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          lineHeight: 1.4
-                        }}
-                      >
-                        <span style={{ fontSize: 16 }}>{icon}</span>
-                        <div>
-                          {utilPct > 70 ? (
-                            <span>
-                              <strong style={{ color: alertColor }}>Critical: {utilPct}% overall utilization.</strong> This is very high and can negatively impact your credit score. Pay down balances urgently.
-                            </span>
-                          ) : utilPct > 30 ? (
-                            <span>
-                              <strong style={{ color: alertColor }}>Utilization warning: {utilPct}%.</strong> Above the recommended 30% threshold. Reducing this balance will improve your credit history.
-                            </span>
-                          ) : utilPct > 0 ? (
-                            <span>
-                              <strong style={{ color: alertColor }}>Healthy utilization: {utilPct}%.</strong> Excellent work keeping balances below the recommended 30% mark.
-                            </span>
-                          ) : (
-                            <span>
-                              <strong style={{ color: alertColor }}>Optimal: 0% utilization.</strong> No active credit outstanding — ideal credit score protection.
-                            </span>
-                          )}
+                  {activeCards.length > 0 &&
+                    (() => {
+                      const isCritical = utilPct > 70;
+                      const isWarning = utilPct > 30 && utilPct <= 70;
+                      const alertBg = isCritical
+                        ? "color-mix(in srgb, var(--t-rust) 6%, transparent)"
+                        : isWarning
+                          ? "color-mix(in srgb, var(--t-gold) 6%, transparent)"
+                          : "color-mix(in srgb, var(--t-sage) 6%, transparent)";
+                      const alertBorder = isCritical
+                        ? "color-mix(in srgb, var(--t-rust) 15%, transparent)"
+                        : isWarning
+                          ? "color-mix(in srgb, var(--t-gold) 15%, transparent)"
+                          : "color-mix(in srgb, var(--t-sage) 15%, transparent)";
+                      const alertLeftBorder = isCritical
+                        ? "var(--t-rust)"
+                        : isWarning
+                          ? "var(--t-gold)"
+                          : "var(--t-sage)";
+                      const alertColor = isCritical
+                        ? THEME.rust
+                        : isWarning
+                          ? THEME.gold
+                          : THEME.sage;
+                      const icon = isCritical ? "🚨" : isWarning ? "⚠️" : "✨";
+                      return (
+                        <div
+                          style={{
+                            marginBottom: 24,
+                            padding: "12px 16px",
+                            borderRadius: 12,
+                            fontSize: 12.5,
+                            fontWeight: 500,
+                            background: alertBg,
+                            border: `1px solid ${alertBorder}`,
+                            borderLeft: `4px solid ${alertLeftBorder}`,
+                            color: THEME.ink,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          <span style={{ fontSize: 16 }}>{icon}</span>
+                          <div>
+                            {utilPct > 70 ? (
+                              <span>
+                                <strong style={{ color: alertColor }}>
+                                  Critical: {utilPct}% overall utilization.
+                                </strong>{" "}
+                                This is very high and can negatively impact your credit score. Pay
+                                down balances urgently.
+                              </span>
+                            ) : utilPct > 30 ? (
+                              <span>
+                                <strong style={{ color: alertColor }}>
+                                  Utilization warning: {utilPct}%.
+                                </strong>{" "}
+                                Above the recommended 30% threshold. Reducing this balance will
+                                improve your credit history.
+                              </span>
+                            ) : utilPct > 0 ? (
+                              <span>
+                                <strong style={{ color: alertColor }}>
+                                  Healthy utilization: {utilPct}%.
+                                </strong>{" "}
+                                Excellent work keeping balances below the recommended 30% mark.
+                              </span>
+                            ) : (
+                              <span>
+                                <strong style={{ color: alertColor }}>
+                                  Optimal: 0% utilization.
+                                </strong>{" "}
+                                No active credit outstanding — ideal credit score protection.
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })()}
                 </>
               );
             })()}
@@ -1861,7 +1927,14 @@ function getNextFeeDate(c: any): { dateStr: string; daysLeft: number } | null {
   return { dateStr, daysLeft };
 }
 
-function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: _existingGroups }: any) {
+function CCList({
+  items,
+  onRemove,
+  onEdit,
+  onUpdateCard,
+  onAdd,
+  existingGroups: _existingGroups,
+}: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -1904,17 +1977,20 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           borderRadius: 16,
           boxShadow: isClosed ? "none" : "0 8px 30px rgba(0, 0, 0, 0.3)",
           border: "1px solid rgba(255, 255, 255, 0.12)",
-          overflow: "hidden"
+          overflow: "hidden",
         }}
       >
         {/* Shimmer/Reflective Mesh Effect Overlay */}
         {!isClosed && (
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(125deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, transparent 60%)",
-            pointerEvents: "none"
-          }} />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(125deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, transparent 60%)",
+              pointerEvents: "none",
+            }}
+          />
         )}
 
         {/* Action buttons */}
@@ -1926,7 +2002,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
             display: "flex",
             gap: 6,
             alignItems: "center",
-            zIndex: 10
+            zIndex: 10,
           }}
         >
           {!isClosed && closingId !== c.id && (
@@ -2059,7 +2135,14 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
         )}
 
         {/* Network logo + Bank Logo + owner badge */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 4,
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <BankLogo bankName={c.issuer} size={30} />
             <CardNetworkLogo network={c.network} />
@@ -2069,21 +2152,71 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
 
         {/* EMV Chip and Contactless indicator */}
         {!isClosed && (
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14, marginBottom: 4 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              marginTop: 14,
+              marginBottom: 4,
+            }}
+          >
             {/* EMV Chip */}
-            <div style={{
-              width: 34, height: 26, borderRadius: 6,
-              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #fef3c7 100%)",
-              position: "relative", opacity: 0.9,
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.15)",
-              overflow: "hidden"
-            }}>
-              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.2)" }} />
-              <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.2)" }} />
-              <div style={{ position: "absolute", left: "25%", right: "25%", top: "25%", bottom: "25%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.15)" }} />
+            <div
+              style={{
+                width: 34,
+                height: 26,
+                borderRadius: 6,
+                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #fef3c7 100%)",
+                position: "relative",
+                opacity: 0.9,
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.15)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: 0,
+                  right: 0,
+                  height: 1,
+                  background: "rgba(0,0,0,0.2)",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  background: "rgba(0,0,0,0.2)",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "25%",
+                  right: "25%",
+                  top: "25%",
+                  bottom: "25%",
+                  borderRadius: 2,
+                  border: "1px solid rgba(0,0,0,0.15)",
+                }}
+              />
             </div>
             {/* Contactless Icon */}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" style={{ transform: "rotate(90deg)" }}>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(255,255,255,0.85)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              style={{ transform: "rotate(90deg)" }}
+            >
               <path d="M5 12a7 7 0 0 1 7-7" />
               <path d="M5 17a12 12 0 0 1 12-12" />
               <path d="M5 22a17 17 0 0 1 17-17" />
@@ -2092,12 +2225,30 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           </div>
         )}
 
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 12, letterSpacing: "-0.02em" }}>{c.issuer}</div>
-        <div style={{ fontSize: 16, letterSpacing: "0.08em", marginTop: 8, opacity: 0.9, fontFamily: "monospace", fontWeight: 600 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 12, letterSpacing: "-0.02em" }}>
+          {c.issuer}
+        </div>
+        <div
+          style={{
+            fontSize: 16,
+            letterSpacing: "0.08em",
+            marginTop: 8,
+            opacity: 0.9,
+            fontFamily: "monospace",
+            fontWeight: 600,
+          }}
+        >
           •••• •••• •••• {c.last4 || "••••"}
         </div>
         {isClosed && c.closedDate && (
-          <div style={{ fontSize: 10.5, color: "rgba(255,140,140,0.85)", marginTop: 6, fontWeight: 600 }}>
+          <div
+            style={{
+              fontSize: 10.5,
+              color: "rgba(255,140,140,0.85)",
+              marginTop: 6,
+              fontWeight: 600,
+            }}
+          >
             Closed on{" "}
             {new Date(c.closedDate).toLocaleDateString("en-IN", {
               day: "numeric",
@@ -2118,19 +2269,35 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
         >
           <div>
             <div
-              style={{ color: "rgba(245,239,227,0.55)", fontSize: 9, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}
+              style={{
+                color: "rgba(245,239,227,0.55)",
+                fontSize: 9,
+                textTransform: "uppercase",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+              }}
             >
               Outstanding
             </div>
-            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}><Prv>{fmtINRFull(c.outstanding)}</Prv></div>
+            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}>
+              <Prv>{fmtINRFull(c.outstanding)}</Prv>
+            </div>
           </div>
           <div>
             <div
-              style={{ color: "rgba(245,239,227,0.55)", fontSize: 9, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}
+              style={{
+                color: "rgba(245,239,227,0.55)",
+                fontSize: 9,
+                textTransform: "uppercase",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+              }}
             >
               {c.sharedGroup ? "Sub-Limit" : "Limit"}
             </div>
-            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}><Prv>{fmtINRFull(c.limit)}</Prv></div>
+            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}>
+              <Prv>{fmtINRFull(c.limit)}</Prv>
+            </div>
           </div>
         </div>
         <div
@@ -2144,7 +2311,8 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           }}
         >
           <div>
-            Bill Date: <strong style={{ color: "#fff" }}>{c.billDate ? `${c.billDate}th` : "—"}</strong>
+            Bill Date:{" "}
+            <strong style={{ color: "#fff" }}>{c.billDate ? `${c.billDate}th` : "—"}</strong>
           </div>
           <div>
             Due Day: <strong style={{ color: "#fff" }}>{c.dueDay ? `${c.dueDay}th` : "—"}</strong>
@@ -2171,7 +2339,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               padding: "6px 10px",
               borderRadius: 6,
               color: THEME.gold,
-              fontWeight: 500
+              fontWeight: 500,
             }}
           >
             Waiver: {c.waiverInfo}
@@ -2189,7 +2357,9 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                 ? new Date(now.getFullYear(), now.getMonth(), dd)
                 : new Date(now.getFullYear(), now.getMonth() + 1, dd);
             const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const daysLeft = Math.ceil((dueDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+            const daysLeft = Math.ceil(
+              (dueDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24)
+            );
             const isUrgent = daysLeft <= 3;
             const isWarning = daysLeft <= 7 && daysLeft > 3;
 
@@ -2219,7 +2389,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                   color: badgeColor,
                   fontSize: 10.5,
                   fontWeight: daysLeft <= 7 ? 800 : 500,
-                  display: "inline-block"
+                  display: "inline-block",
                 }}
               >
                 {label}
@@ -2262,7 +2432,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                   color: badgeColor,
                   fontSize: 10.5,
                   fontWeight: daysLeft <= 30 ? 800 : 400,
-                  display: "inline-block"
+                  display: "inline-block",
                 }}
               >
                 {label}
@@ -2273,16 +2443,20 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
         {/* Sub-limit utilization bar — active cards only */}
         {!isClosed && (
           <div style={{ marginTop: 18 }}>
-            <div className="progress-track" style={{ height: 5, background: "rgba(255,255,255,0.2)", borderRadius: 2.5 }}>
+            <div
+              className="progress-track"
+              style={{ height: 5, background: "rgba(255,255,255,0.2)", borderRadius: 2.5 }}
+            >
               <div
                 className="progress-fill"
                 style={{
                   width: `${Math.min(util, 100)}%`,
-                  background: util > 70
-                    ? "linear-gradient(90deg, var(--t-rust), color-mix(in srgb, var(--t-rust) 75%, white))"
-                    : util > 40
-                      ? "linear-gradient(90deg, var(--t-gold), color-mix(in srgb, var(--t-gold) 75%, white))"
-                      : "linear-gradient(90deg, var(--t-sage), color-mix(in srgb, var(--t-sage) 75%, white))",
+                  background:
+                    util > 70
+                      ? "linear-gradient(90deg, var(--t-rust), color-mix(in srgb, var(--t-rust) 75%, white))"
+                      : util > 40
+                        ? "linear-gradient(90deg, var(--t-gold), color-mix(in srgb, var(--t-gold) 75%, white))"
+                        : "linear-gradient(90deg, var(--t-sage), color-mix(in srgb, var(--t-sage) 75%, white))",
                 }}
               />
             </div>
@@ -2324,10 +2498,14 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               gap: 8,
               borderBottomLeftRadius: 16,
               borderBottomRightRadius: 16,
-              transition: "background 0.2s ease"
+              transition: "background 0.2s ease",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+            }}
           >
             <List size={14} /> View Transactions ({c.transactions?.length || 0})
           </button>
@@ -2350,10 +2528,14 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              transition: "background 0.2s ease"
+              transition: "background 0.2s ease",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+            }}
           >
             <List size={12} /> View History ({c.transactions.length} txns)
           </button>
@@ -2375,7 +2557,11 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               borderRadius: 20,
               border: viewMode === mode ? "none" : `1.5px solid var(--t-line)`,
               background:
-                viewMode === mode ? (mode === "active" ? "var(--t-accent)" : "var(--t-muted)") : "transparent",
+                viewMode === mode
+                  ? mode === "active"
+                    ? "var(--t-accent)"
+                    : "var(--t-muted)"
+                  : "transparent",
               color: viewMode === mode ? "#fff" : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
@@ -2407,10 +2593,26 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           >
             <CreditCard size={26} color="#fff" />
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.02em" }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 6,
+              letterSpacing: "-0.02em",
+            }}
+          >
             {viewMode === "active" ? "No Active Credit Cards" : "No Closed Credit Cards"}
           </div>
-          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 340, margin: "0 auto", lineHeight: 1.5 }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              maxWidth: 340,
+              margin: "0 auto",
+              lineHeight: 1.5,
+            }}
+          >
             {viewMode === "active"
               ? "All your credit cards are currently closed. Add a new card or check the Closed tab."
               : "No closed credit cards yet. Cards you close will appear here."}
@@ -2490,7 +2692,9 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                   >
                     {groupUtil.toFixed(0)}%
                   </div>
-                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>of pool used</div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                    of pool used
+                  </div>
                 </div>
               </div>
               <div
@@ -2526,7 +2730,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                       textTransform: "uppercase",
                       letterSpacing: "0.07em",
                       marginBottom: 2,
-                      fontWeight: 700
+                      fontWeight: 700,
                     }}
                   >
                     Pool Limit
@@ -2543,7 +2747,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                       textTransform: "uppercase",
                       letterSpacing: "0.07em",
                       marginBottom: 2,
-                      fontWeight: 700
+                      fontWeight: 700,
                     }}
                   >
                     Combined Used
@@ -2560,7 +2764,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                       textTransform: "uppercase",
                       letterSpacing: "0.07em",
                       marginBottom: 2,
-                      fontWeight: 700
+                      fontWeight: 700,
                     }}
                   >
                     Available
@@ -2580,7 +2784,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                     border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
                     borderRadius: 8,
                     padding: "6px 12px",
-                    fontWeight: 500
+                    fontWeight: 500,
                   }}
                 >
                   Set the Pool Limit on any card in this group to track combined utilization.
@@ -2597,10 +2801,10 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           card={selectedCard}
           onClose={() => setSelectedLedger(null)}
           onUpdate={(newTransactions: any) => {
-            const newOutstanding = Math.max(0, newTransactions.reduce(
-              (acc: number, t: any) => acc + Number(t.amount),
-              0
-            ));
+            const newOutstanding = Math.max(
+              0,
+              newTransactions.reduce((acc: number, t: any) => acc + Number(t.amount), 0)
+            );
             onUpdateCard(selectedLedger, {
               transactions: newTransactions,
               outstanding: String(newOutstanding),
@@ -3455,7 +3659,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
       sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
       color: "var(--t-sage)",
       icon: <Wallet size={16} />,
-      iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`
+      iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
     },
     {
       label: "Total Loaded",
@@ -3463,7 +3667,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
       sub: "Total funds loaded into cards",
       color: "var(--t-accent)",
       icon: <ArrowUp size={16} />,
-      iconBg: `color-mix(in srgb, var(--t-accent) 10%, transparent)`
+      iconBg: `color-mix(in srgb, var(--t-accent) 10%, transparent)`,
     },
     {
       label: "Total Spent",
@@ -3471,8 +3675,8 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
       sub: "Total expenditures on cards",
       color: "var(--t-rust)",
       icon: <ArrowDown size={16} />,
-      iconBg: `color-mix(in srgb, var(--t-rust) 10%, transparent)`
-    }
+      iconBg: `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
+    },
   ];
 
   return (
@@ -3487,7 +3691,11 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
               borderRadius: 20,
               border: viewMode === mode ? "none" : `1.5px solid var(--t-line)`,
               background:
-                viewMode === mode ? (mode === "active" ? "var(--t-accent)" : "var(--t-muted)") : "transparent",
+                viewMode === mode
+                  ? mode === "active"
+                    ? "var(--t-accent)"
+                    : "var(--t-muted)"
+                  : "transparent",
               color: viewMode === mode ? "#fff" : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
@@ -3592,10 +3800,26 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
           >
             <Wallet size={26} color="#fff" />
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.02em" }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 6,
+              letterSpacing: "-0.02em",
+            }}
+          >
             {viewMode === "active" ? "No Active Prepaid Cards" : "No Closed Credit Cards"}
           </div>
-          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 340, margin: "0 auto", lineHeight: 1.5 }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              maxWidth: 340,
+              margin: "0 auto",
+              lineHeight: 1.5,
+            }}
+          >
             {viewMode === "active"
               ? "All your prepaid cards are currently closed. Add a new card or check the Closed tab."
               : "No closed prepaid cards yet. Cards you close will appear here."}
@@ -3625,17 +3849,20 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 filter: isClosed ? "grayscale(35%)" : "none",
                 boxShadow: isClosed ? "none" : "0 8px 30px rgba(0, 0, 0, 0.3)",
                 border: "1px solid rgba(255, 255, 255, 0.12)",
-                overflow: "hidden"
+                overflow: "hidden",
               }}
             >
               {/* Shimmer/Reflective Mesh Effect Overlay */}
               {!isClosed && (
-                <div style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "linear-gradient(125deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, transparent 60%)",
-                  pointerEvents: "none"
-                }} />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(125deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, transparent 60%)",
+                    pointerEvents: "none",
+                  }}
+                />
               )}
 
               <div
@@ -3646,7 +3873,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   display: "flex",
                   gap: 6,
                   alignItems: "center",
-                  zIndex: 10
+                  zIndex: 10,
                 }}
               >
                 {!isClosed && closingId !== p.id && (
@@ -3808,21 +4035,71 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
 
               {/* EMV Chip and Contactless indicator */}
               {!isClosed && (
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14, marginBottom: 4 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    marginTop: 14,
+                    marginBottom: 4,
+                  }}
+                >
                   {/* EMV Chip */}
-                  <div style={{
-                    width: 34, height: 26, borderRadius: 6,
-                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #fef3c7 100%)",
-                    position: "relative", opacity: 0.9,
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.15)",
-                    overflow: "hidden"
-                  }}>
-                    <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.2)" }} />
-                    <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.2)" }} />
-                    <div style={{ position: "absolute", left: "25%", right: "25%", top: "25%", bottom: "25%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.15)" }} />
+                  <div
+                    style={{
+                      width: 34,
+                      height: 26,
+                      borderRadius: 6,
+                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #fef3c7 100%)",
+                      position: "relative",
+                      opacity: 0.9,
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.15)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: 0,
+                        right: 0,
+                        height: 1,
+                        background: "rgba(0,0,0,0.2)",
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: 0,
+                        bottom: 0,
+                        width: 1,
+                        background: "rgba(0,0,0,0.2)",
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: "25%",
+                        right: "25%",
+                        top: "25%",
+                        bottom: "25%",
+                        borderRadius: 2,
+                        border: "1px solid rgba(0,0,0,0.15)",
+                      }}
+                    />
                   </div>
                   {/* Contactless Icon */}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" style={{ transform: "rotate(90deg)" }}>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.85)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    style={{ transform: "rotate(90deg)" }}
+                  >
                     <path d="M5 12a7 7 0 0 1 7-7" />
                     <path d="M5 17a12 12 0 0 1 12-12" />
                     <path d="M5 22a17 17 0 0 1 17-17" />
@@ -3831,14 +4108,34 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 </div>
               )}
 
-              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 12, letterSpacing: "-0.02em" }}>{name}</div>
+              <div
+                style={{ fontSize: 20, fontWeight: 800, marginTop: 12, letterSpacing: "-0.02em" }}
+              >
+                {name}
+              </div>
               {p.last4 && (
-                <div style={{ fontSize: 13, letterSpacing: "0.08em", marginTop: 6, opacity: 0.8, fontFamily: "monospace", fontWeight: 600 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    letterSpacing: "0.08em",
+                    marginTop: 6,
+                    opacity: 0.8,
+                    fontFamily: "monospace",
+                    fontWeight: 600,
+                  }}
+                >
                   •••• •••• •••• {p.last4}
                 </div>
               )}
               {isClosed && p.closedDate && (
-                <div style={{ fontSize: 10.5, color: "rgba(255,140,140,0.85)", marginTop: 6, fontWeight: 600 }}>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    color: "rgba(255,140,140,0.85)",
+                    marginTop: 6,
+                    fontWeight: 600,
+                  }}
+                >
                   Closed on{" "}
                   {new Date(p.closedDate).toLocaleDateString("en-IN", {
                     day: "numeric",
@@ -3855,7 +4152,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     color: "rgba(255,255,255,0.55)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
-                    fontWeight: 700
+                    fontWeight: 700,
                   }}
                 >
                   Available Balance
@@ -3866,7 +4163,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     fontWeight: 900,
                     color: balance >= 0 ? "#6ee7b7" : "#ff8888",
                     marginTop: 2,
-                    letterSpacing: "-0.02em"
+                    letterSpacing: "-0.02em",
                   }}
                 >
                   <Prv>{fmtINRFull(balance)}</Prv>
@@ -3883,13 +4180,26 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 }}
               >
                 <div>
-                  Loaded: <b style={{ color: "#6ee7b7" }}><Prv>{fmtINRFull(loaded)}</Prv></b>
+                  Loaded:{" "}
+                  <b style={{ color: "#6ee7b7" }}>
+                    <Prv>{fmtINRFull(loaded)}</Prv>
+                  </b>
                 </div>
                 <div>
-                  Spent: <b style={{ color: "#ff8888" }}><Prv>{fmtINRFull(spent)}</Prv></b>
+                  Spent:{" "}
+                  <b style={{ color: "#ff8888" }}>
+                    <Prv>{fmtINRFull(spent)}</Prv>
+                  </b>
                 </div>
               </div>
-              <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 11,
+                  color: "rgba(255,255,255,0.45)",
+                  fontWeight: 500,
+                }}
+              >
                 {txnCount} transaction{txnCount !== 1 ? "s" : ""}
               </div>
 
@@ -3917,10 +4227,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     gap: 8,
                     borderBottomLeftRadius: 16,
                     borderBottomRightRadius: 16,
-                    transition: "background 0.2s ease"
+                    transition: "background 0.2s ease",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                  }}
                 >
                   <List size={14} /> Transactions & Load Money ({txnCount})
                 </button>
@@ -3943,10 +4257,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
-                    transition: "background 0.2s ease"
+                    transition: "background 0.2s ease",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                  }}
                 >
                   <List size={12} /> View History ({txnCount} txns)
                 </button>
@@ -5003,7 +5321,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
             >
               {value}
             </div>
-            {sub && <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>}
+            {sub && (
+              <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>
+            )}
           </div>
         ))}
       </div>
@@ -5026,14 +5346,15 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                   return d.toLocaleString("en-IN", { month: "short", year: "numeric" });
                 })()
               : null;
-          const barColor = paidPct > 60 ? "var(--t-sage)" : paidPct > 30 ? "var(--t-gold)" : "var(--t-rust)";
+          const barColor =
+            paidPct > 60 ? "var(--t-sage)" : paidPct > 30 ? "var(--t-gold)" : "var(--t-rust)";
 
           return (
             <InvestCard
               key={l.id}
               onRemove={() => onRemove(l.id)}
               onEdit={() => onEdit(l.id)}
-              cardStyle={{ 
+              cardStyle={{
                 borderTop: `4px solid ${isPaidOff ? "var(--t-sage)" : "var(--t-rust)"}`,
                 boxShadow: "var(--shadow-card)",
               }}
@@ -5056,21 +5377,21 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       color: isPaidOff ? "var(--t-sage)" : "var(--t-rust)",
-                      lineHeight: 1.2
+                      lineHeight: 1.2,
                     }}
                   >
                     {l.type || "Loan"}
                   </div>
-                  <div 
-                    style={{ 
-                      fontSize: 16, 
-                      fontWeight: 800, 
-                      marginTop: 2, 
-                      color: "var(--t-ink)", 
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 800,
+                      marginTop: 2,
+                      color: "var(--t-ink)",
                       letterSpacing: "-0.01em",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
-                      textOverflow: "ellipsis"
+                      textOverflow: "ellipsis",
                     }}
                   >
                     {l.lender}
@@ -5095,7 +5416,15 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               </div>
 
               <div>
-                <div style={{ fontSize: 9, color: "var(--t-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                <div
+                  style={{
+                    fontSize: 9,
+                    color: "var(--t-muted)",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
                   Outstanding Balance
                 </div>
                 <div
@@ -5105,7 +5434,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     color: isPaidOff ? "var(--t-sage)" : "var(--t-rust)",
                     fontVariantNumeric: "tabular-nums",
                     letterSpacing: "-0.03em",
-                    marginTop: 2
+                    marginTop: 2,
                   }}
                 >
                   <Prv>{fmtINRFull(outstanding)}</Prv>
@@ -5136,7 +5465,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       className="progress-fill"
                       style={{
                         width: `${Math.min(paidPct, 100)}%`,
-                        background: `linear-gradient(90deg, ${barColor}, color-mix(in srgb, ${barColor} 65%, white))`
+                        background: `linear-gradient(90deg, ${barColor}, color-mix(in srgb, ${barColor} 65%, white))`,
                       }}
                     />
                   </div>
@@ -5149,12 +5478,20 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                   { k: "EMI Amount", v: `${fmtINRExact(emi)}/mo`, color: "var(--t-accent)" },
                   { k: "Interest Rate", v: `${l.rate}%`, color: "var(--t-muted)" },
                   { k: "Months Left", v: months > 0 ? String(months) : "—", color: "var(--t-ink)" },
-                  ...(payoffDate ? [{ k: "Payoff Date", v: payoffDate, color: "var(--t-sage)" }] : []),
+                  ...(payoffDate
+                    ? [{ k: "Payoff Date", v: payoffDate, color: "var(--t-sage)" }]
+                    : []),
                   ...(paid > 0
                     ? [{ k: "Total Paid", v: fmtINRExact(paid), color: "var(--t-sage)" }]
                     : []),
                   ...(interestRemaining > 0
-                    ? [{ k: "Est. Interest Left", v: fmtINRExact(interestRemaining), color: "var(--t-rust)" }]
+                    ? [
+                        {
+                          k: "Est. Interest Left",
+                          v: fmtINRExact(interestRemaining),
+                          color: "var(--t-rust)",
+                        },
+                      ]
                     : []),
                 ].map(({ k, v, color }) => (
                   <div
@@ -5176,12 +5513,20 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                         textTransform: "uppercase" as const,
                         color: "var(--t-muted)",
                         fontWeight: 700,
-                        letterSpacing: "0.04em"
+                        letterSpacing: "0.04em",
                       }}
                     >
                       {k}
                     </span>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: color === "var(--t-muted)" ? "var(--t-ink)" : color }}>{v}</span>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 800,
+                        color: color === "var(--t-muted)" ? "var(--t-ink)" : color,
+                      }}
+                    >
+                      {v}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -5197,7 +5542,16 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       alignItems: "center",
                     }}
                   >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "var(--t-ink)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: "var(--t-ink)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
                       ⚡ Prepayment Calculator
                     </div>
                     <button
@@ -5217,10 +5571,16 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                         cursor: "pointer",
                         fontWeight: 800,
                         padding: "4px 10px",
-                        transition: "background 0.2s ease"
+                        transition: "background 0.2s ease",
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 15%, transparent)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 8%, transparent)"; }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "color-mix(in srgb, var(--t-accent) 15%, transparent)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background =
+                          "color-mix(in srgb, var(--t-accent) 8%, transparent)";
+                      }}
                     >
                       {prepayExpanded.has(l.id) ? "Collapse ▲" : "Simulate ▼"}
                     </button>
@@ -5244,9 +5604,23 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                           marginBottom: 12,
                         }}
                       >
-                        <span style={{ fontSize: 12, color: "var(--t-muted)", fontWeight: 500 }}>If I prepay a lump sum of</span>
+                        <span style={{ fontSize: 12, color: "var(--t-muted)", fontWeight: 500 }}>
+                          If I prepay a lump sum of
+                        </span>
                         <div style={{ position: "relative", display: "inline-block" }}>
-                          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "var(--t-muted)", fontWeight: 700 }}>₹</span>
+                          <span
+                            style={{
+                              position: "absolute",
+                              left: 8,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              fontSize: 12,
+                              color: "var(--t-muted)",
+                              fontWeight: 700,
+                            }}
+                          >
+                            ₹
+                          </span>
                           <input
                             type="number"
                             placeholder="0.00"
@@ -5265,13 +5639,19 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                               color: "var(--t-ink)",
                               outline: "none",
                               boxShadow: "var(--shadow-xs)",
-                              transition: "border-color 0.2s ease"
+                              transition: "border-color 0.2s ease",
                             }}
-                            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--t-accent)"; }}
-                            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--t-line)"; }}
+                            onFocus={(e) => {
+                              e.currentTarget.style.borderColor = "var(--t-accent)";
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.borderColor = "var(--t-line)";
+                            }}
                           />
                         </div>
-                        <span style={{ fontSize: 12, color: "var(--t-muted)", fontWeight: 500 }}>today:</span>
+                        <span style={{ fontSize: 12, color: "var(--t-muted)", fontWeight: 500 }}>
+                          today:
+                        </span>
                       </div>
                       {prepayInputs[l.id] &&
                         Number(prepayInputs[l.id]) > 0 &&
@@ -5284,16 +5664,29 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                   padding: "12px 14px",
                                   borderRadius: 10,
                                   background: "color-mix(in srgb, var(--t-sage) 8%, transparent)",
-                                  border: "1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)",
+                                  border:
+                                    "1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)",
                                   borderLeft: `4px solid var(--t-sage)`,
                                   fontSize: 13,
                                   fontWeight: 600,
                                   color: "var(--t-ink)",
-                                  lineHeight: 1.4
+                                  lineHeight: 1.4,
                                 }}
                               >
-                                🎉 <strong style={{ color: "var(--t-sage)", textTransform: "uppercase", fontSize: 11, display: "block", marginBottom: 2 }}>Full Loan Settlement</strong>
-                                You will completely close this loan today, saving **{fmtINRFull(interestRemaining)}** in estimated remaining interest!
+                                🎉{" "}
+                                <strong
+                                  style={{
+                                    color: "var(--t-sage)",
+                                    textTransform: "uppercase",
+                                    fontSize: 11,
+                                    display: "block",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  Full Loan Settlement
+                                </strong>
+                                You will completely close this loan today, saving **
+                                {fmtINRFull(interestRemaining)}** in estimated remaining interest!
                               </div>
                             );
                           }
@@ -5347,7 +5740,8 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                     gap: 2,
                                     padding: "8px 14px",
                                     borderRadius: 10,
-                                    background: "color-mix(in srgb, var(--surface-0) 40%, transparent)",
+                                    background:
+                                      "color-mix(in srgb, var(--surface-0) 40%, transparent)",
                                     border: "1px solid var(--t-line)",
                                     flex: "1 1 90px",
                                     textAlign: "center" as const,
@@ -5359,7 +5753,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                       textTransform: "uppercase" as const,
                                       color: "var(--t-muted)",
                                       fontWeight: 700,
-                                      letterSpacing: "0.04em"
+                                      letterSpacing: "0.04em",
                                     }}
                                   >
                                     {label}
@@ -5512,7 +5906,9 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
             >
               {value}
             </div>
-            {sub && <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>}
+            {sub && (
+              <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>
+            )}
           </div>
         ))}
       </div>
@@ -5521,7 +5917,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
           const principal = Number(l.principal) || 0;
           const outstanding = Number(l.outstanding) || 0;
           const rate = Number(l.rate) || 0;
-          
+
           const isPaidOff = outstanding === 0;
           const isOverdue = !isPaidOff && l.dueDate && new Date(l.dueDate) < now;
           const daysOverdue = isOverdue
@@ -5538,19 +5934,32 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
 
           const startDate = l.date ? new Date(l.date + "T00:00:00") : null;
           const endDate = l.dueDate ? new Date(l.dueDate + "T00:00:00") : null;
-          const daysElapsed = startDate ? Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-          const totalTenureDays = (startDate && endDate) ? Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+          const daysElapsed = startDate
+            ? Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
+            : 0;
+          const totalTenureDays =
+            startDate && endDate
+              ? Math.max(
+                  0,
+                  Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+                )
+              : 0;
 
           // Accrued simple interest to date
           const accruedInterest = (principal * (rate / 100) * daysElapsed) / 365.25;
           // Simple interest at maturity
-          const maturityInterest = (principal * (rate / 100) * (totalTenureDays || daysElapsed)) / 365.25;
+          const maturityInterest =
+            (principal * (rate / 100) * (totalTenureDays || daysElapsed)) / 365.25;
           const maturityValue = principal + maturityInterest;
 
           const recovered = Math.max(0, principal - outstanding);
           const recoveredPct = principal > 0 ? Math.min(100, (recovered / principal) * 100) : 0;
-          
-          const barColor = isPaidOff ? "var(--t-sage)" : isOverdue ? "var(--t-rust)" : "var(--t-accent)";
+
+          const barColor = isPaidOff
+            ? "var(--t-sage)"
+            : isOverdue
+              ? "var(--t-rust)"
+              : "var(--t-accent)";
           const avatarGradient = getAvatarGradient(l.borrower || "B");
           const firstLetter = l.borrower ? l.borrower.charAt(0).toUpperCase() : "?";
 
@@ -5573,7 +5982,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                   justifyContent: "space-between",
                   alignItems: "center",
                   marginBottom: 10,
-                  paddingRight: 64
+                  paddingRight: 64,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -5595,16 +6004,39 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                     {firstLetter}
                   </div>
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--t-ink)", lineHeight: 1.2 }}>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 800,
+                        color: "var(--t-ink)",
+                        lineHeight: 1.2,
+                      }}
+                    >
                       {l.borrower}
                     </div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "var(--t-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: 2 }}>
+                    <div
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: "var(--t-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        marginTop: 2,
+                      }}
+                    >
                       Profile: {ownerLabel}
                     </div>
                   </div>
                 </div>
-                
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 2,
+                  }}
+                >
                   {isOverdue && (
                     <span
                       style={{
@@ -5671,17 +6103,29 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
               </div>
 
               <div style={{ marginTop: 12 }}>
-                <span style={{ fontSize: 9, textTransform: "uppercase", color: "var(--t-muted)", fontWeight: 700, letterSpacing: "0.05em" }}>
+                <span
+                  style={{
+                    fontSize: 9,
+                    textTransform: "uppercase",
+                    color: "var(--t-muted)",
+                    fontWeight: 700,
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   Outstanding Balance
                 </span>
                 <div
                   style={{
                     fontSize: 26,
                     fontWeight: 900,
-                    color: isPaidOff ? "var(--t-sage)" : isOverdue ? "var(--t-rust)" : "var(--t-ink)",
+                    color: isPaidOff
+                      ? "var(--t-sage)"
+                      : isOverdue
+                        ? "var(--t-rust)"
+                        : "var(--t-ink)",
                     fontVariantNumeric: "tabular-nums",
                     letterSpacing: "-0.03em",
-                    marginTop: 2
+                    marginTop: 2,
                   }}
                 >
                   <Prv>{fmtINRFull(outstanding)}</Prv>
@@ -5712,7 +6156,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                       className="progress-fill"
                       style={{
                         width: `${Math.min(recoveredPct, 100)}%`,
-                        background: `linear-gradient(90deg, ${barColor}, color-mix(in srgb, ${barColor} 65%, white))`
+                        background: `linear-gradient(90deg, ${barColor}, color-mix(in srgb, ${barColor} 65%, white))`,
                       }}
                     />
                   </div>
@@ -5722,18 +6166,22 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                 {[
                   { k: "Principal", v: fmtINRExact(principal), color: "var(--t-muted)" },
-                  { k: "Interest ROI", v: rate ? `${rate.toFixed(2)}%` : "—", color: "var(--t-muted)" },
-                  { 
-                    k: "Accrued Int.", 
-                    v: rate ? fmtINRExact(accruedInterest) : "—", 
-                    color: rate && accruedInterest > 0 ? "var(--t-sage)" : "var(--t-muted)",
-                    tooltip: "Simple interest accrued to date" 
+                  {
+                    k: "Interest ROI",
+                    v: rate ? `${rate.toFixed(2)}%` : "—",
+                    color: "var(--t-muted)",
                   },
-                  { 
-                    k: "Est. Maturity", 
-                    v: rate ? fmtINRExact(maturityValue) : fmtINRExact(principal), 
+                  {
+                    k: "Accrued Int.",
+                    v: rate ? fmtINRExact(accruedInterest) : "—",
+                    color: rate && accruedInterest > 0 ? "var(--t-sage)" : "var(--t-muted)",
+                    tooltip: "Simple interest accrued to date",
+                  },
+                  {
+                    k: "Est. Maturity",
+                    v: rate ? fmtINRExact(maturityValue) : fmtINRExact(principal),
                     color: rate ? "var(--t-accent)" : "var(--t-muted)",
-                    tooltip: "Principal + estimated interest at maturity"
+                    tooltip: "Principal + estimated interest at maturity",
                   },
                   { k: "Given On", v: fmtLoanDate(l.date), color: "var(--t-muted)" },
                   {
@@ -5762,12 +6210,18 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                         textTransform: "uppercase" as const,
                         color: "var(--t-muted)",
                         fontWeight: 700,
-                        letterSpacing: "0.04em"
+                        letterSpacing: "0.04em",
                       }}
                     >
                       {k}
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: color === "var(--t-muted)" ? "var(--t-ink)" : color }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: color === "var(--t-muted)" ? "var(--t-ink)" : color,
+                      }}
+                    >
                       {v}
                     </span>
                   </div>
@@ -5775,16 +6229,16 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
               </div>
 
               {l.note && (
-                <div 
-                  style={{ 
-                    fontSize: 12.5, 
-                    color: "var(--t-muted)", 
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: "var(--t-muted)",
                     marginTop: 12,
                     padding: "8px 12px",
                     borderRadius: 8,
                     background: "color-mix(in srgb, var(--surface-1) 40%, transparent)",
                     borderLeft: `3px solid var(--t-line)`,
-                    fontStyle: "italic"
+                    fontStyle: "italic",
                   }}
                 >
                   "{l.note}"
@@ -5802,7 +6256,16 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                       alignItems: "center",
                     }}
                   >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "var(--t-ink)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: "var(--t-ink)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
                       📥 Quick Repayment
                     </div>
                     <button
@@ -5822,10 +6285,16 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                         cursor: "pointer",
                         fontWeight: 800,
                         padding: "4px 10px",
-                        transition: "background 0.2s ease"
+                        transition: "background 0.2s ease",
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 15%, transparent)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 8%, transparent)"; }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "color-mix(in srgb, var(--t-accent) 15%, transparent)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background =
+                          "color-mix(in srgb, var(--t-accent) 8%, transparent)";
+                      }}
                     >
                       {logExpanded.has(l.id) ? "Collapse ▲" : "Log Payment ▼"}
                     </button>
@@ -5849,7 +6318,19 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                         }}
                       >
                         <div style={{ position: "relative", flex: 1 }}>
-                          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "var(--t-muted)", fontWeight: 700 }}>₹</span>
+                          <span
+                            style={{
+                              position: "absolute",
+                              left: 8,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              fontSize: 12,
+                              color: "var(--t-muted)",
+                              fontWeight: 700,
+                            }}
+                          >
+                            ₹
+                          </span>
                           <input
                             type="number"
                             placeholder="Amount received"
@@ -5903,12 +6384,31 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                           const val = Number(logInputs[l.id]);
                           const nextOutstanding = Math.max(0, outstanding - val);
                           const nextRecovered = Math.max(0, principal - nextOutstanding);
-                          const nextRecoveredPct = principal > 0 ? Math.min(100, (nextRecovered / principal) * 100) : 0;
+                          const nextRecoveredPct =
+                            principal > 0 ? Math.min(100, (nextRecovered / principal) * 100) : 0;
                           return (
-                            <div style={{ fontSize: 11, color: "var(--t-muted)", fontWeight: 500, lineHeight: 1.4 }}>
-                              New Outstanding: <strong style={{ color: "var(--t-ink)" }}>{fmtINRFull(nextOutstanding)}</strong> · 
-                              New Progress: <strong style={{ color: "var(--t-sage)" }}>{nextRecoveredPct.toFixed(1)}%</strong>
-                              {val >= outstanding && <span style={{ color: "var(--t-sage)", fontWeight: 700 }}> (Settles the loan!)</span>}
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "var(--t-muted)",
+                                fontWeight: 500,
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              New Outstanding:{" "}
+                              <strong style={{ color: "var(--t-ink)" }}>
+                                {fmtINRFull(nextOutstanding)}
+                              </strong>{" "}
+                              · New Progress:{" "}
+                              <strong style={{ color: "var(--t-sage)" }}>
+                                {nextRecoveredPct.toFixed(1)}%
+                              </strong>
+                              {val >= outstanding && (
+                                <span style={{ color: "var(--t-sage)", fontWeight: 700 }}>
+                                  {" "}
+                                  (Settles the loan!)
+                                </span>
+                              )}
                             </div>
                           );
                         })()}
@@ -6452,7 +6952,9 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
             >
               {value}
             </div>
-            {sub && <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>}
+            {sub && (
+              <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>
+            )}
           </div>
         ))}
       </div>
@@ -6478,18 +6980,18 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
 
           const progressPct = totalT > 0 ? Math.min(100, (totalP / totalT) * 100) : 0;
           const progressColor = settled ? "var(--t-sage)" : accentColor;
-          
+
           const avatarGradient = getAvatarGradient(person.person || "P");
           const firstLetter = person.person ? person.person.charAt(0).toUpperCase() : "?";
 
           return (
-            <div 
-              key={person.id} 
+            <div
+              key={person.id}
               className="glass card-lift"
-              style={{ 
-                ...card, 
-                background: "transparent", 
-                padding: 0, 
+              style={{
+                ...card,
+                background: "transparent",
+                padding: 0,
                 overflow: "hidden",
                 border: "1px solid var(--t-line)",
                 boxShadow: "var(--shadow-card)",
@@ -6506,10 +7008,17 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                 }}
                 onClick={() => setExpandedId(isExpanded ? null : person.id)}
               >
-                <div style={{ color: "var(--t-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                <div
+                  style={{
+                    color: "var(--t-muted)",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
                   {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
-                
+
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "1 1 200px" }}>
                   <div
                     style={{
@@ -6524,14 +7033,18 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       fontSize: 14,
                       fontWeight: 800,
                       boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                      flexShrink: 0
+                      flexShrink: 0,
                     }}
                   >
                     {firstLetter}
                   </div>
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontWeight: 800, fontSize: 16, color: "var(--t-ink)" }}>{person.person}</span>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
+                    >
+                      <span style={{ fontWeight: 800, fontSize: 16, color: "var(--t-ink)" }}>
+                        {person.person}
+                      </span>
                       {settled && (
                         <span
                           style={{
@@ -6549,17 +7062,49 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--t-muted)", marginTop: 2, fontWeight: 500 }}>
-                      {tranches.length} loan{tranches.length !== 1 ? "s" : ""} · {payments.length} payment{payments.length !== 1 ? "s" : ""}
-                      {person.note && <span style={{ color: "var(--t-muted)", fontStyle: "italic" }}> ({person.note})</span>}
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--t-muted)",
+                        marginTop: 2,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {tranches.length} loan{tranches.length !== 1 ? "s" : ""} · {payments.length}{" "}
+                      payment{payments.length !== 1 ? "s" : ""}
+                      {person.note && (
+                        <span style={{ color: "var(--t-muted)", fontStyle: "italic" }}>
+                          {" "}
+                          ({person.note})
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ flex: "2 2 150px", display: "flex", flexDirection: "column", gap: 4, padding: "0 12px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--t-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    flex: "2 2 150px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    padding: "0 12px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 9,
+                      color: "var(--t-muted)",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                    }}
+                  >
                     <span>Settlement</span>
-                    <span style={{ color: progressColor, fontWeight: 800 }}>{progressPct.toFixed(0)}%</span>
+                    <span style={{ color: progressColor, fontWeight: 800 }}>
+                      {progressPct.toFixed(0)}%
+                    </span>
                   </div>
                   <div className="progress-track" style={{ height: 5, borderRadius: 99 }}>
                     <div
@@ -6567,14 +7112,22 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       style={{
                         width: `${progressPct}%`,
                         background: progressColor,
-                        borderRadius: 99
+                        borderRadius: 99,
                       }}
                     />
                   </div>
                 </div>
 
                 <div style={{ textAlign: "right", flexShrink: 0, minWidth: 100 }}>
-                  <div style={{ fontSize: 9, color: "var(--t-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: "var(--t-muted)",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
                     Outstanding
                   </div>
                   <div
@@ -6584,31 +7137,38 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       color: settled ? "var(--t-sage)" : accentColor,
                       fontVariantNumeric: "tabular-nums",
                       letterSpacing: "-0.02em",
-                      marginTop: 2
+                      marginTop: 2,
                     }}
                   >
                     {settled ? "₹0" : fmtINRFull(outstanding)}
                   </div>
                 </div>
-                
+
                 <div style={{ display: "flex", gap: 4, flexShrink: 0, paddingLeft: 8 }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onRemove(person.id);
                     }}
-                    style={{ 
-                      ...iconBtn, 
+                    style={{
+                      ...iconBtn,
                       color: "var(--t-rust)",
                       background: "rgba(239, 68, 68, 0.08)",
                       border: "1px solid rgba(239, 68, 68, 0.2)",
                       borderRadius: 8,
-                      width: 28, height: 28,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.2s ease"
+                      width: 28,
+                      height: 28,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.2s ease",
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)"; }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)";
+                    }}
                     title="Delete person"
                   >
                     <Trash2 size={13} />
@@ -6616,7 +7176,9 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                 </div>
               </div>
               {isExpanded && (
-                <div style={{ background: "color-mix(in srgb, var(--surface-1) 15%, transparent)" }}>
+                <div
+                  style={{ background: "color-mix(in srgb, var(--surface-1) 15%, transparent)" }}
+                >
                   <div style={{ padding: "16px 20px", borderBottom: `1px solid var(--t-line)` }}>
                     <div
                       style={{
@@ -6635,25 +7197,26 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                           letterSpacing: "0.05em",
                           display: "flex",
                           alignItems: "center",
-                          gap: 6
+                          gap: 6,
                         }}
                       >
-                        <List size={13} /> {isBorrowed ? "Loans Received (Tranches)" : "Loans Given (Tranches)"}
+                        <List size={13} />{" "}
+                        {isBorrowed ? "Loans Received (Tranches)" : "Loans Given (Tranches)"}
                       </div>
                       <button
-                        style={{ 
-                          ...btnGhost, 
-                          fontSize: 11, 
-                          padding: "4px 10px", 
-                          display: "inline-flex", 
-                          alignItems: "center", 
+                        style={{
+                          ...btnGhost,
+                          fontSize: 11,
+                          padding: "4px 10px",
+                          display: "inline-flex",
+                          alignItems: "center",
                           gap: 4,
                           background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
                           color: "var(--t-accent)",
                           borderRadius: 6,
                           border: "none",
                           cursor: "pointer",
-                          fontWeight: 700
+                          fontWeight: 700,
                         }}
                         onClick={() => setTrancheTarget(person)}
                       >
@@ -6661,12 +7224,18 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       </button>
                     </div>
                     {tranches.length === 0 ? (
-                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>No loans recorded yet</div>
+                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>
+                        No loans recorded yet
+                      </div>
                     ) : (
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                         <thead>
                           <tr style={{ borderBottom: `1px solid var(--t-line)` }}>
-                            <th style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}>Date</th>
+                            <th
+                              style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}
+                            >
+                              Date
+                            </th>
                             <th style={{ ...th, textAlign: "right", width: "120px" }}>Amount</th>
                             <th style={{ ...th, textAlign: "left" }}>Note</th>
                             <th style={{ ...th, width: "40px" }}></th>
@@ -6684,7 +7253,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                   textAlign: "right",
                                   fontWeight: 800,
                                   color: accentColor,
-                                  fontVariantNumeric: "tabular-nums"
+                                  fontVariantNumeric: "tabular-nums",
                                 }}
                               >
                                 {fmtINRExact(t.amount)}
@@ -6698,10 +7267,14 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                     background: "transparent",
                                     border: "none",
                                     cursor: "pointer",
-                                    padding: 4
+                                    padding: 4,
                                   }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--t-rust)"; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--t-muted)"; }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = "var(--t-rust)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = "var(--t-muted)";
+                                  }}
                                   onClick={() => {
                                     const updated = tranches.filter((x: any) => x.id !== t.id);
                                     onUpdate(person.id, { tranches: updated });
@@ -6715,14 +7288,23 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                         </tbody>
                         <tfoot>
                           <tr>
-                            <td style={{ ...td, paddingLeft: 0, fontWeight: 800, color: "var(--t-ink)" }}>Total</td>
+                            <td
+                              style={{
+                                ...td,
+                                paddingLeft: 0,
+                                fontWeight: 800,
+                                color: "var(--t-ink)",
+                              }}
+                            >
+                              Total
+                            </td>
                             <td
                               style={{
                                 ...td,
                                 textAlign: "right",
                                 fontWeight: 900,
                                 color: accentColor,
-                                fontVariantNumeric: "tabular-nums"
+                                fontVariantNumeric: "tabular-nums",
                               }}
                             >
                               {fmtINRExact(totalT)}
@@ -6751,25 +7333,26 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                           letterSpacing: "0.05em",
                           display: "flex",
                           alignItems: "center",
-                          gap: 6
+                          gap: 6,
                         }}
                       >
-                        <CheckCircle2 size={13} /> {isBorrowed ? "Repayments Made" : "Repayments Received"}
+                        <CheckCircle2 size={13} />{" "}
+                        {isBorrowed ? "Repayments Made" : "Repayments Received"}
                       </div>
                       <button
-                        style={{ 
-                          ...btnGhost, 
-                          fontSize: 11, 
-                          padding: "4px 10px", 
-                          display: "inline-flex", 
-                          alignItems: "center", 
+                        style={{
+                          ...btnGhost,
+                          fontSize: 11,
+                          padding: "4px 10px",
+                          display: "inline-flex",
+                          alignItems: "center",
                           gap: 4,
                           background: "color-mix(in srgb, var(--t-sage) 8%, transparent)",
                           color: "var(--t-sage)",
                           borderRadius: 6,
                           border: "none",
                           cursor: "pointer",
-                          fontWeight: 700
+                          fontWeight: 700,
                         }}
                         onClick={() => setPaymentTarget(person)}
                       >
@@ -6777,12 +7360,18 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       </button>
                     </div>
                     {payments.length === 0 ? (
-                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>No payments recorded yet</div>
+                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>
+                        No payments recorded yet
+                      </div>
                     ) : (
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                         <thead>
                           <tr style={{ borderBottom: `1px solid var(--t-line)` }}>
-                            <th style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}>Date</th>
+                            <th
+                              style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}
+                            >
+                              Date
+                            </th>
                             <th style={{ ...th, textAlign: "right", width: "120px" }}>Amount</th>
                             <th style={{ ...th, textAlign: "left" }}>Note</th>
                             <th style={{ ...th, width: "40px" }}></th>
@@ -6800,7 +7389,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                   textAlign: "right",
                                   fontWeight: 800,
                                   color: "var(--t-sage)",
-                                  fontVariantNumeric: "tabular-nums"
+                                  fontVariantNumeric: "tabular-nums",
                                 }}
                               >
                                 {fmtINRExact(p.amount)}
@@ -6814,10 +7403,14 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                     background: "transparent",
                                     border: "none",
                                     cursor: "pointer",
-                                    padding: 4
+                                    padding: 4,
                                   }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--t-rust)"; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--t-muted)"; }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = "var(--t-rust)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = "var(--t-muted)";
+                                  }}
                                   onClick={() => {
                                     const updated = payments.filter((x: any) => x.id !== p.id);
                                     onUpdate(person.id, { payments: updated });
@@ -6831,14 +7424,23 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                         </tbody>
                         <tfoot>
                           <tr>
-                            <td style={{ ...td, paddingLeft: 0, fontWeight: 800, color: "var(--t-ink)" }}>Total Paid</td>
+                            <td
+                              style={{
+                                ...td,
+                                paddingLeft: 0,
+                                fontWeight: 800,
+                                color: "var(--t-ink)",
+                              }}
+                            >
+                              Total Paid
+                            </td>
                             <td
                               style={{
                                 ...td,
                                 textAlign: "right",
                                 fontWeight: 900,
                                 color: "var(--t-sage)",
-                                fontVariantNumeric: "tabular-nums"
+                                fontVariantNumeric: "tabular-nums",
                               }}
                             >
                               {fmtINRExact(totalP)}
@@ -6860,7 +7462,13 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                     }}
                   >
                     <span style={{ color: "var(--t-muted)" }}>Ledger Balance: </span>
-                    <span style={{ color: settled ? "var(--t-sage)" : accentColor, fontSize: 14, fontWeight: 800 }}>
+                    <span
+                      style={{
+                        color: settled ? "var(--t-sage)" : accentColor,
+                        fontSize: 14,
+                        fontWeight: 800,
+                      }}
+                    >
                       {settled ? "Fully Settled ✓" : `${fmtINRFull(outstanding)} pending`}
                     </span>
                   </div>
@@ -7054,7 +7662,10 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
               setF((prev: any) => ({
                 ...prev,
                 principal: val,
-                outstanding: prev.outstanding === "" || prev.outstanding === prev.principal ? val : prev.outstanding,
+                outstanding:
+                  prev.outstanding === "" || prev.outstanding === prev.principal
+                    ? val
+                    : prev.outstanding,
               }));
             }}
           />
@@ -7093,10 +7704,13 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           />
         </Field>
       </div>
-      <ModalActions onSave={() => {
-        if (!f.lender || !f.principal || !f.emi) return;
-        onSave({ ...f, outstanding: f.outstanding || f.principal });
-      }} onClose={onClose} />
+      <ModalActions
+        onSave={() => {
+          if (!f.lender || !f.principal || !f.emi) return;
+          onSave({ ...f, outstanding: f.outstanding || f.principal });
+        }}
+        onClose={onClose}
+      />
     </Modal>
   );
 }
@@ -7202,13 +7816,24 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           placeholder="e.g. Friendly loan for emergency expense"
         />
       </Field>
-      <div style={{ fontSize: 11, color: "var(--t-muted)", marginTop: -4, marginBottom: 12, fontStyle: "italic" }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--t-muted)",
+          marginTop: -4,
+          marginBottom: 12,
+          fontStyle: "italic",
+        }}
+      >
         * Outstanding balance defaults to the principal amount if left empty.
       </div>
-      <ModalActions onSave={() => {
-        if (!f.borrower || !f.principal) return;
-        onSave({ ...f, outstanding: f.outstanding !== "" ? f.outstanding : f.principal });
-      }} onClose={onClose} />
+      <ModalActions
+        onSave={() => {
+          if (!f.borrower || !f.principal) return;
+          onSave({ ...f, outstanding: f.outstanding !== "" ? f.outstanding : f.principal });
+        }}
+        onClose={onClose}
+      />
     </Modal>
   );
 }

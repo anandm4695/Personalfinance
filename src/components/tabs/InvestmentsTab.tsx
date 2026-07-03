@@ -665,13 +665,21 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Tier">
-              <select style={inp} value={nps.tier} onChange={(e) => setNps({ ...nps, tier: e.target.value })}>
+              <select
+                style={inp}
+                value={nps.tier}
+                onChange={(e) => setNps({ ...nps, tier: e.target.value })}
+              >
                 <option value="I">Tier I — Pension (Tax Benefits)</option>
                 <option value="II">Tier II — Savings (Flexible)</option>
               </select>
             </Field>
             <Field label="Subscriber Type">
-              <select style={inp} value={nps.schemeType} onChange={(e) => setNps({ ...nps, schemeType: e.target.value })}>
+              <select
+                style={inp}
+                value={nps.schemeType}
+                onChange={(e) => setNps({ ...nps, schemeType: e.target.value })}
+              >
                 <option value="All Citizen">All Citizen Model</option>
                 <option value="Corporate">Corporate NPS</option>
                 <option value="Government">Government (NPS-G)</option>
@@ -681,10 +689,20 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="PRAN Number">
-              <input style={inp} value={nps.pran} onChange={(e) => setNps({ ...nps, pran: e.target.value })} placeholder="12-digit PRAN" maxLength={12} />
+              <input
+                style={inp}
+                value={nps.pran}
+                onChange={(e) => setNps({ ...nps, pran: e.target.value })}
+                placeholder="12-digit PRAN"
+                maxLength={12}
+              />
             </Field>
             <Field label="Pension Fund Manager (PFM)">
-              <select style={inp} value={nps.fundManager} onChange={(e) => setNps({ ...nps, fundManager: e.target.value })}>
+              <select
+                style={inp}
+                value={nps.fundManager}
+                onChange={(e) => setNps({ ...nps, fundManager: e.target.value })}
+              >
                 <option value="">Select Fund Manager</option>
                 <option value="SBI">SBI Pension Funds</option>
                 <option value="LIC">LIC Pension Fund</option>
@@ -701,14 +719,22 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Investment Choice">
-              <select style={inp} value={nps.investmentChoice} onChange={(e) => setNps({ ...nps, investmentChoice: e.target.value })}>
+              <select
+                style={inp}
+                value={nps.investmentChoice}
+                onChange={(e) => setNps({ ...nps, investmentChoice: e.target.value })}
+              >
                 <option value="Auto">Auto Choice (Lifecycle)</option>
                 <option value="Active">Active Choice (Manual)</option>
               </select>
             </Field>
             {nps.investmentChoice === "Auto" ? (
               <Field label="Lifecycle Fund">
-                <select style={inp} value={nps.lifecycleFund} onChange={(e) => setNps({ ...nps, lifecycleFund: e.target.value })}>
+                <select
+                  style={inp}
+                  value={nps.lifecycleFund}
+                  onChange={(e) => setNps({ ...nps, lifecycleFund: e.target.value })}
+                >
                   <option value="LC-75">LC-75 Aggressive (High Equity)</option>
                   <option value="LC-50">LC-50 Moderate (Balanced)</option>
                   <option value="LC-25">LC-25 Conservative (Low Equity)</option>
@@ -716,7 +742,15 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
               </Field>
             ) : (
               <Field label="Equity (E) % — max 75%">
-                <input style={inp} type="number" min={0} max={75} value={nps.equityPct} onChange={(e) => setNps({ ...nps, equityPct: e.target.value })} placeholder="e.g. 50" />
+                <input
+                  style={inp}
+                  type="number"
+                  min={0}
+                  max={75}
+                  value={nps.equityPct}
+                  onChange={(e) => setNps({ ...nps, equityPct: e.target.value })}
+                  placeholder="e.g. 50"
+                />
               </Field>
             )}
           </div>
@@ -724,37 +758,94 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
             <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
                 <Field label="Corp Bond (C) %">
-                  <input style={inp} type="number" min={0} max={100} value={nps.corpBondPct} onChange={(e) => setNps({ ...nps, corpBondPct: e.target.value })} placeholder="e.g. 30" />
+                  <input
+                    style={inp}
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={nps.corpBondPct}
+                    onChange={(e) => setNps({ ...nps, corpBondPct: e.target.value })}
+                    placeholder="e.g. 30"
+                  />
                 </Field>
                 <Field label="Govt Sec (G) %">
-                  <input style={inp} type="number" min={0} max={100} value={nps.govtSecPct} onChange={(e) => setNps({ ...nps, govtSecPct: e.target.value })} placeholder="e.g. 15" />
+                  <input
+                    style={inp}
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={nps.govtSecPct}
+                    onChange={(e) => setNps({ ...nps, govtSecPct: e.target.value })}
+                    placeholder="e.g. 15"
+                  />
                 </Field>
                 <Field label="Alternative (A) % — max 5%">
-                  <input style={inp} type="number" min={0} max={5} value={nps.altAssetPct} onChange={(e) => setNps({ ...nps, altAssetPct: e.target.value })} placeholder="e.g. 5" />
+                  <input
+                    style={inp}
+                    type="number"
+                    min={0}
+                    max={5}
+                    value={nps.altAssetPct}
+                    onChange={(e) => setNps({ ...nps, altAssetPct: e.target.value })}
+                    placeholder="e.g. 5"
+                  />
                 </Field>
               </div>
               {(() => {
-                const allocTotal = (Number(nps.equityPct) || 0) + (Number(nps.corpBondPct) || 0) + (Number(nps.govtSecPct) || 0) + (Number(nps.altAssetPct) || 0);
-                if (allocTotal > 0 && allocTotal !== 100) return (
-                  <div style={{ padding: "8px 12px", borderRadius: 8, background: `${THEME.rust}0f`, border: `1px solid ${THEME.rust}33`, fontSize: 11, color: THEME.rust, fontWeight: 600 }}>
-                    Allocation total is {allocTotal}% — must sum to 100% (E + C + G + A)
-                  </div>
-                );
+                const allocTotal =
+                  (Number(nps.equityPct) || 0) +
+                  (Number(nps.corpBondPct) || 0) +
+                  (Number(nps.govtSecPct) || 0) +
+                  (Number(nps.altAssetPct) || 0);
+                if (allocTotal > 0 && allocTotal !== 100)
+                  return (
+                    <div
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        background: `${THEME.rust}0f`,
+                        border: `1px solid ${THEME.rust}33`,
+                        fontSize: 11,
+                        color: THEME.rust,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Allocation total is {allocTotal}% — must sum to 100% (E + C + G + A)
+                    </div>
+                  );
                 return null;
               })()}
             </>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Current Corpus (₹)">
-              <input style={inp} type="number" value={nps.balance} onChange={(e) => setNps({ ...nps, balance: e.target.value })} placeholder="e.g. 500000" />
+              <input
+                style={inp}
+                type="number"
+                value={nps.balance}
+                onChange={(e) => setNps({ ...nps, balance: e.target.value })}
+                placeholder="e.g. 500000"
+              />
             </Field>
             <Field label="Annual Contribution (₹)">
-              <input style={inp} type="number" value={nps.yearContribution} onChange={(e) => setNps({ ...nps, yearContribution: e.target.value })} placeholder="e.g. 50000" />
+              <input
+                style={inp}
+                type="number"
+                value={nps.yearContribution}
+                onChange={(e) => setNps({ ...nps, yearContribution: e.target.value })}
+                placeholder="e.g. 50000"
+              />
             </Field>
           </div>
           {nps.schemeType === "Corporate" && (
             <Field label="Employer Contribution (₹/year) — 80CCD(2)">
-              <input style={inp} type="number" value={nps.employerContribution} onChange={(e) => setNps({ ...nps, employerContribution: e.target.value })} placeholder="e.g. 60000" />
+              <input
+                style={inp}
+                type="number"
+                value={nps.employerContribution}
+                onChange={(e) => setNps({ ...nps, employerContribution: e.target.value })}
+                placeholder="e.g. 60000"
+              />
             </Field>
           )}
         </>
@@ -793,159 +884,164 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
       )}
 
       {/* ── Mutual Funds ── */}
-      {sub === "mf" && (() => {
-        const autoInvested = mf.units && mf.buyNav
-          ? Number(mf.units) * Number(mf.buyNav)
-          : null;
-        const currentValue = mf.units && mf.currentNav
-          ? Number(mf.units) * Number(mf.currentNav)
-          : null;
-        const costBasis = mf.invested ? Number(mf.invested) : autoInvested;
-        const pnl = currentValue !== null && costBasis ? currentValue - costBasis : null;
-        const pnlPct = pnl !== null && costBasis ? (pnl / costBasis) * 100 : null;
-        return (
-          <>
-            <Field label="Fund Name *">
-              <input
-                style={inp}
-                value={mf.name}
-                onChange={(e) => setMf({ ...mf, name: e.target.value })}
-                placeholder="e.g. Mirae Asset Large Cap Fund"
-              />
-            </Field>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Field label="Category (from Master Data)">
-                <select
-                  style={inp}
-                  value={mf.category}
-                  onChange={(e) => setMf({ ...mf, category: e.target.value })}
-                >
-                  {mfCategories.map((c: string) => (
-                    <option key={c}>{c}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Fund Type">
-                <select
-                  style={inp}
-                  value={mf.mfType}
-                  onChange={(e) => setMf({ ...mf, mfType: e.target.value })}
-                >
-                  <option>Direct Growth</option>
-                  <option>Direct IDCW</option>
-                  <option>Regular Growth</option>
-                  <option>Regular IDCW</option>
-                </select>
-              </Field>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Field label="Folio Number">
+      {sub === "mf" &&
+        (() => {
+          const autoInvested = mf.units && mf.buyNav ? Number(mf.units) * Number(mf.buyNav) : null;
+          const currentValue =
+            mf.units && mf.currentNav ? Number(mf.units) * Number(mf.currentNav) : null;
+          const costBasis = mf.invested ? Number(mf.invested) : autoInvested;
+          const pnl = currentValue !== null && costBasis ? currentValue - costBasis : null;
+          const pnlPct = pnl !== null && costBasis ? (pnl / costBasis) * 100 : null;
+          return (
+            <>
+              <Field label="Fund Name *">
                 <input
                   style={inp}
-                  value={mf.folioNumber}
-                  onChange={(e) => setMf({ ...mf, folioNumber: e.target.value })}
-                  placeholder="e.g. 1234567890"
+                  value={mf.name}
+                  onChange={(e) => setMf({ ...mf, name: e.target.value })}
+                  placeholder="e.g. Mirae Asset Large Cap Fund"
                 />
               </Field>
-              <Field label="AMFI Code (for live NAV)">
-                <input
-                  style={inp}
-                  value={mf.mfCode}
-                  onChange={(e) => setMf({ ...mf, mfCode: e.target.value })}
-                  placeholder="e.g. 120716"
-                />
-              </Field>
-              <Field label="Purchase Date">
-                <input
-                  style={inp}
-                  type="date"
-                  value={mf.buyDate}
-                  onChange={(e) => setMf({ ...mf, buyDate: e.target.value })}
-                />
-              </Field>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Field label="Units Held *">
-                <input
-                  style={inp}
-                  type="number"
-                  value={mf.units}
-                  onChange={(e) => setMf({ ...mf, units: e.target.value })}
-                  placeholder="1234.56"
-                  step="0.01"
-                />
-              </Field>
-              <Field label="Buy NAV (₹ per unit)">
-                <input
-                  style={inp}
-                  type="number"
-                  value={mf.buyNav}
-                  onChange={(e) => setMf({ ...mf, buyNav: e.target.value })}
-                  placeholder="80.00"
-                  step="0.0001"
-                />
-              </Field>
-              <Field label="Amount Invested (₹)">
-                <input
-                  style={inp}
-                  type="number"
-                  value={mf.invested}
-                  onChange={(e) => setMf({ ...mf, invested: e.target.value })}
-                  placeholder={autoInvested ? String(autoInvested.toFixed(2)) : "100000"}
-                />
-              </Field>
-              <Field label="Current NAV (₹)">
-                <input
-                  style={inp}
-                  type="number"
-                  value={mf.currentNav}
-                  onChange={(e) => setMf({ ...mf, currentNav: e.target.value })}
-                  placeholder="93.22"
-                  step="0.0001"
-                />
-              </Field>
-            </div>
-            {(autoInvested || currentValue) && (
-              <div
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  background: `${THEME.accent}09`,
-                  border: `1px solid ${THEME.accent}30`,
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: 12,
-                }}
-              >
-                {autoInvested && (
-                  <div>
-                    <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
-                    <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-                      {fmtINRFull(autoInvested)}
-                    </div>
-                  </div>
-                )}
-                {currentValue && (
-                  <div>
-                    <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
-                    <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
-                      {fmtINRFull(currentValue)}
-                    </div>
-                  </div>
-                )}
-                {pnl !== null && (
-                  <div>
-                    <div style={{ fontSize: 10, color: THEME.muted }}>P&L</div>
-                    <div style={{ fontWeight: 800, fontSize: 13, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
-                      {pnl >= 0 ? "+" : ""}{pnlPct !== null ? pnlPct.toFixed(2) : "0"}%
-                    </div>
-                  </div>
-                )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Category (from Master Data)">
+                  <select
+                    style={inp}
+                    value={mf.category}
+                    onChange={(e) => setMf({ ...mf, category: e.target.value })}
+                  >
+                    {mfCategories.map((c: string) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Fund Type">
+                  <select
+                    style={inp}
+                    value={mf.mfType}
+                    onChange={(e) => setMf({ ...mf, mfType: e.target.value })}
+                  >
+                    <option>Direct Growth</option>
+                    <option>Direct IDCW</option>
+                    <option>Regular Growth</option>
+                    <option>Regular IDCW</option>
+                  </select>
+                </Field>
               </div>
-            )}
-          </>
-        );
-      })()}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Folio Number">
+                  <input
+                    style={inp}
+                    value={mf.folioNumber}
+                    onChange={(e) => setMf({ ...mf, folioNumber: e.target.value })}
+                    placeholder="e.g. 1234567890"
+                  />
+                </Field>
+                <Field label="AMFI Code (for live NAV)">
+                  <input
+                    style={inp}
+                    value={mf.mfCode}
+                    onChange={(e) => setMf({ ...mf, mfCode: e.target.value })}
+                    placeholder="e.g. 120716"
+                  />
+                </Field>
+                <Field label="Purchase Date">
+                  <input
+                    style={inp}
+                    type="date"
+                    value={mf.buyDate}
+                    onChange={(e) => setMf({ ...mf, buyDate: e.target.value })}
+                  />
+                </Field>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Units Held *">
+                  <input
+                    style={inp}
+                    type="number"
+                    value={mf.units}
+                    onChange={(e) => setMf({ ...mf, units: e.target.value })}
+                    placeholder="1234.56"
+                    step="0.01"
+                  />
+                </Field>
+                <Field label="Buy NAV (₹ per unit)">
+                  <input
+                    style={inp}
+                    type="number"
+                    value={mf.buyNav}
+                    onChange={(e) => setMf({ ...mf, buyNav: e.target.value })}
+                    placeholder="80.00"
+                    step="0.0001"
+                  />
+                </Field>
+                <Field label="Amount Invested (₹)">
+                  <input
+                    style={inp}
+                    type="number"
+                    value={mf.invested}
+                    onChange={(e) => setMf({ ...mf, invested: e.target.value })}
+                    placeholder={autoInvested ? String(autoInvested.toFixed(2)) : "100000"}
+                  />
+                </Field>
+                <Field label="Current NAV (₹)">
+                  <input
+                    style={inp}
+                    type="number"
+                    value={mf.currentNav}
+                    onChange={(e) => setMf({ ...mf, currentNav: e.target.value })}
+                    placeholder="93.22"
+                    step="0.0001"
+                  />
+                </Field>
+              </div>
+              {(autoInvested || currentValue) && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: `${THEME.accent}09`,
+                    border: `1px solid ${THEME.accent}30`,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gap: 12,
+                  }}
+                >
+                  {autoInvested && (
+                    <div>
+                      <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
+                      <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
+                        {fmtINRFull(autoInvested)}
+                      </div>
+                    </div>
+                  )}
+                  {currentValue && (
+                    <div>
+                      <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
+                      <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
+                        {fmtINRFull(currentValue)}
+                      </div>
+                    </div>
+                  )}
+                  {pnl !== null && (
+                    <div>
+                      <div style={{ fontSize: 10, color: THEME.muted }}>P&L</div>
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: 13,
+                          color: pnl >= 0 ? THEME.sage : THEME.rust,
+                        }}
+                      >
+                        {pnl >= 0 ? "+" : ""}
+                        {pnlPct !== null ? pnlPct.toFixed(2) : "0"}%
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          );
+        })()}
 
       <ModalActions
         onSave={handleSave}
@@ -1027,8 +1123,12 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     (state.ppf?.reduce((s: number, x: any) => {
       const txs = x.transactions || [];
       if (txs.length > 0) {
-        const deposits = txs.filter((t: any) => t.type === "deposit").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-        const withdrawals = txs.filter((t: any) => t.type === "withdrawal").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const deposits = txs
+          .filter((t: any) => t.type === "deposit")
+          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const withdrawals = txs
+          .filter((t: any) => t.type === "withdrawal")
+          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
         return s + deposits - withdrawals;
       }
       return s + (Number(x.balance) || 0);
@@ -1036,7 +1136,14 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     (state.nps?.reduce((s: number, x: any) => {
       const txs = x.transactions || [];
       if (txs.length > 0) {
-        return s + txs.reduce((sum: number, t: any) => sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0);
+        return (
+          s +
+          txs.reduce(
+            (sum: number, t: any) =>
+              sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+            0
+          )
+        );
       }
       return s + (Number(x.balance) || 0);
     }, 0) || 0) +
@@ -1047,7 +1154,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     ) || 0) +
     (state.lic?.reduce((s: number, x: any) => {
       const txTotal = (x.transactions || []).reduce(
-        (sum: number, t: any) => sum + Number(t.amount || 0), 0
+        (sum: number, t: any) => sum + Number(t.amount || 0),
+        0
       );
       return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
     }, 0) || 0);
@@ -1063,8 +1171,13 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     (state.nps?.reduce((s: number, x: any) => {
       const bal = Number(x.balance) || 0;
       if (bal > 0) return s + bal;
-      return s + (x.transactions || []).reduce(
-        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      return (
+        s +
+        (x.transactions || []).reduce(
+          (ss: number, t: any) =>
+            ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+          0
+        )
       );
     }, 0) || 0) +
     (state.epf?.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0) || 0) +
@@ -1078,7 +1191,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     ) || 0) +
     (state.lic?.reduce((s: number, x: any) => {
       const txTotal = (x.transactions || []).reduce(
-        (sum: number, t: any) => sum + Number(t.amount || 0), 0
+        (sum: number, t: any) => sum + Number(t.amount || 0),
+        0
       );
       return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
     }, 0) || 0);
@@ -1215,7 +1329,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           },
           {
             label: "Instruments",
-            value: String(subs.filter((s) => s.id !== "income").reduce((sum, s) => sum + (s.count ?? 0), 0)),
+            value: String(
+              subs.filter((s) => s.id !== "income").reduce((sum, s) => sum + (s.count ?? 0), 0)
+            ),
             color: THEME.muted,
             Icon: BarChart3,
           },
@@ -1224,7 +1340,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             key={label}
             className="card-lift"
             style={{
-              background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+              background:
+                "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
               border: `1.5px solid ${THEME.line}`,
               borderTop: `4px solid ${color}`,
               borderRadius: 16,
@@ -1232,7 +1349,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+              boxShadow:
+                "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
               transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
@@ -1274,7 +1392,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                     fontWeight: 800,
                     padding: "2px 6px",
                     borderRadius: 20,
-                    background: netGain >= 0 ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                    background:
+                      netGain >= 0 ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
                     color: netGain >= 0 ? THEME.sage : THEME.rust,
                     marginLeft: "auto",
                     letterSpacing: "0.02em",
@@ -1302,18 +1421,18 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
       <div>
         {/* Inline sub-tab navigation */}
-        <div 
-          style={{ 
-            display: "flex", 
-            gap: 6, 
-            overflowX: "auto", 
-            padding: 6, 
-            background: "var(--surface-1)", 
-            border: `1.5px solid ${THEME.line}`, 
-            borderRadius: 16, 
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            padding: 6,
+            background: "var(--surface-1)",
+            border: `1.5px solid ${THEME.line}`,
+            borderRadius: 16,
             marginBottom: 28,
-            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)"
-          }} 
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
+          }}
           className="no-scrollbar"
         >
           {subs.map((s) => {
@@ -1333,8 +1452,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                   padding: "10px 18px",
                   borderRadius: 12,
                   border: "none",
-                  background: active 
-                    ? `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 85%, #000) 100%)` 
+                  background: active
+                    ? `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 85%, #000) 100%)`
                     : "transparent",
                   color: active ? "#ffffff" : THEME.muted,
                   fontWeight: active ? 800 : 600,
@@ -1354,7 +1473,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                       borderRadius: 20,
                       fontSize: 10,
                       fontWeight: 800,
-                      background: active ? "rgba(255, 255, 255, 0.25)" : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                      background: active
+                        ? "rgba(255, 255, 255, 0.25)"
+                        : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
                       color: active ? "#ffffff" : THEME.accent,
                       transition: "all 0.25s",
                     }}
@@ -1879,11 +2000,16 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
     buyNav: initial.buyNav != null ? String(initial.buyNav || "") : "",
     units: initial.units != null ? String(initial.units) : "",
     currentNav: initial.currentNav != null ? String(initial.currentNav) : "",
-    invested: initial.invested != null ? String(initial.invested || initial.investedValue || "") : "",
+    invested:
+      initial.invested != null ? String(initial.invested || initial.investedValue || "") : "",
   });
 
   const currentValue = Number(form.units) * Number(form.currentNav) || 0;
-  const costBasis = form.invested ? Number(form.invested) : (form.units && form.buyNav ? Number(form.units) * Number(form.buyNav) : 0);
+  const costBasis = form.invested
+    ? Number(form.invested)
+    : form.units && form.buyNav
+      ? Number(form.units) * Number(form.buyNav)
+      : 0;
   const pnl = currentValue - costBasis;
   const pnlPct = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
 
@@ -2018,8 +2144,11 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
           {currentValue > 0 && costBasis > 0 && (
             <div>
               <div style={{ fontSize: 10, color: THEME.muted }}>P&L</div>
-              <div style={{ fontWeight: 800, fontSize: 13, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
-                {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
+              <div
+                style={{ fontWeight: 800, fontSize: 13, color: pnl >= 0 ? THEME.sage : THEME.rust }}
+              >
+                {pnl >= 0 ? "+" : ""}
+                {pnlPct.toFixed(2)}%
               </div>
             </div>
           )}
@@ -2057,19 +2186,28 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
     govtSecPct: initial.govtSecPct != null ? String(initial.govtSecPct) : "",
     altAssetPct: initial.altAssetPct != null ? String(initial.altAssetPct) : "",
     yearContribution: initial.yearContribution != null ? String(initial.yearContribution) : "",
-    employerContribution: initial.employerContribution != null ? String(initial.employerContribution) : "",
+    employerContribution:
+      initial.employerContribution != null ? String(initial.employerContribution) : "",
   });
   return (
     <Modal title="Edit NPS Account" onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Tier">
-          <select style={inp} value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })}>
+          <select
+            style={inp}
+            value={form.tier}
+            onChange={(e) => setForm({ ...form, tier: e.target.value })}
+          >
             <option value="I">Tier I — Pension (Tax Benefits)</option>
             <option value="II">Tier II — Savings (Flexible)</option>
           </select>
         </Field>
         <Field label="Subscriber Type">
-          <select style={inp} value={form.schemeType} onChange={(e) => setForm({ ...form, schemeType: e.target.value })}>
+          <select
+            style={inp}
+            value={form.schemeType}
+            onChange={(e) => setForm({ ...form, schemeType: e.target.value })}
+          >
             <option value="All Citizen">All Citizen Model</option>
             <option value="Corporate">Corporate NPS</option>
             <option value="Government">Government (NPS-G)</option>
@@ -2079,10 +2217,20 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="PRAN Number">
-          <input style={inp} value={form.pran} onChange={(e) => setForm({ ...form, pran: e.target.value })} placeholder="12-digit PRAN" maxLength={12} />
+          <input
+            style={inp}
+            value={form.pran}
+            onChange={(e) => setForm({ ...form, pran: e.target.value })}
+            placeholder="12-digit PRAN"
+            maxLength={12}
+          />
         </Field>
         <Field label="Pension Fund Manager (PFM)">
-          <select style={inp} value={form.fundManager} onChange={(e) => setForm({ ...form, fundManager: e.target.value })}>
+          <select
+            style={inp}
+            value={form.fundManager}
+            onChange={(e) => setForm({ ...form, fundManager: e.target.value })}
+          >
             <option value="">Select Fund Manager</option>
             <option value="SBI">SBI Pension Funds</option>
             <option value="LIC">LIC Pension Fund</option>
@@ -2099,14 +2247,22 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Investment Choice">
-          <select style={inp} value={form.investmentChoice} onChange={(e) => setForm({ ...form, investmentChoice: e.target.value })}>
+          <select
+            style={inp}
+            value={form.investmentChoice}
+            onChange={(e) => setForm({ ...form, investmentChoice: e.target.value })}
+          >
             <option value="Auto">Auto Choice (Lifecycle)</option>
             <option value="Active">Active Choice (Manual)</option>
           </select>
         </Field>
         {form.investmentChoice === "Auto" ? (
           <Field label="Lifecycle Fund">
-            <select style={inp} value={form.lifecycleFund} onChange={(e) => setForm({ ...form, lifecycleFund: e.target.value })}>
+            <select
+              style={inp}
+              value={form.lifecycleFund}
+              onChange={(e) => setForm({ ...form, lifecycleFund: e.target.value })}
+            >
               <option value="LC-75">LC-75 Aggressive (High Equity)</option>
               <option value="LC-50">LC-50 Moderate (Balanced)</option>
               <option value="LC-25">LC-25 Conservative (Low Equity)</option>
@@ -2114,7 +2270,15 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
           </Field>
         ) : (
           <Field label="Equity (E) % — max 75%">
-            <input style={inp} type="number" min={0} max={75} value={form.equityPct} onChange={(e) => setForm({ ...form, equityPct: e.target.value })} placeholder="e.g. 50" />
+            <input
+              style={inp}
+              type="number"
+              min={0}
+              max={75}
+              value={form.equityPct}
+              onChange={(e) => setForm({ ...form, equityPct: e.target.value })}
+              placeholder="e.g. 50"
+            />
           </Field>
         )}
       </div>
@@ -2122,37 +2286,94 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
             <Field label="Corp Bond (C) %">
-              <input style={inp} type="number" min={0} max={100} value={form.corpBondPct} onChange={(e) => setForm({ ...form, corpBondPct: e.target.value })} placeholder="e.g. 30" />
+              <input
+                style={inp}
+                type="number"
+                min={0}
+                max={100}
+                value={form.corpBondPct}
+                onChange={(e) => setForm({ ...form, corpBondPct: e.target.value })}
+                placeholder="e.g. 30"
+              />
             </Field>
             <Field label="Govt Sec (G) %">
-              <input style={inp} type="number" min={0} max={100} value={form.govtSecPct} onChange={(e) => setForm({ ...form, govtSecPct: e.target.value })} placeholder="e.g. 15" />
+              <input
+                style={inp}
+                type="number"
+                min={0}
+                max={100}
+                value={form.govtSecPct}
+                onChange={(e) => setForm({ ...form, govtSecPct: e.target.value })}
+                placeholder="e.g. 15"
+              />
             </Field>
             <Field label="Alternative (A) % — max 5%">
-              <input style={inp} type="number" min={0} max={5} value={form.altAssetPct} onChange={(e) => setForm({ ...form, altAssetPct: e.target.value })} placeholder="e.g. 5" />
+              <input
+                style={inp}
+                type="number"
+                min={0}
+                max={5}
+                value={form.altAssetPct}
+                onChange={(e) => setForm({ ...form, altAssetPct: e.target.value })}
+                placeholder="e.g. 5"
+              />
             </Field>
           </div>
           {(() => {
-            const allocTotal = (Number(form.equityPct) || 0) + (Number(form.corpBondPct) || 0) + (Number(form.govtSecPct) || 0) + (Number(form.altAssetPct) || 0);
-            if (allocTotal > 0 && allocTotal !== 100) return (
-              <div style={{ padding: "8px 12px", borderRadius: 8, background: `${THEME.rust}0f`, border: `1px solid ${THEME.rust}33`, fontSize: 11, color: THEME.rust, fontWeight: 600 }}>
-                Allocation total is {allocTotal}% — must sum to 100% (E + C + G + A)
-              </div>
-            );
+            const allocTotal =
+              (Number(form.equityPct) || 0) +
+              (Number(form.corpBondPct) || 0) +
+              (Number(form.govtSecPct) || 0) +
+              (Number(form.altAssetPct) || 0);
+            if (allocTotal > 0 && allocTotal !== 100)
+              return (
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: `${THEME.rust}0f`,
+                    border: `1px solid ${THEME.rust}33`,
+                    fontSize: 11,
+                    color: THEME.rust,
+                    fontWeight: 600,
+                  }}
+                >
+                  Allocation total is {allocTotal}% — must sum to 100% (E + C + G + A)
+                </div>
+              );
             return null;
           })()}
         </>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Current Corpus (₹)">
-          <input style={inp} type="number" value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} placeholder="500000" />
+          <input
+            style={inp}
+            type="number"
+            value={form.balance}
+            onChange={(e) => setForm({ ...form, balance: e.target.value })}
+            placeholder="500000"
+          />
         </Field>
         <Field label="Annual Contribution (₹)">
-          <input style={inp} type="number" value={form.yearContribution} onChange={(e) => setForm({ ...form, yearContribution: e.target.value })} placeholder="50000" />
+          <input
+            style={inp}
+            type="number"
+            value={form.yearContribution}
+            onChange={(e) => setForm({ ...form, yearContribution: e.target.value })}
+            placeholder="50000"
+          />
         </Field>
       </div>
       {form.schemeType === "Corporate" && (
         <Field label="Employer Contribution (₹/year) — 80CCD(2)">
-          <input style={inp} type="number" value={form.employerContribution} onChange={(e) => setForm({ ...form, employerContribution: e.target.value })} placeholder="60000" />
+          <input
+            style={inp}
+            type="number"
+            value={form.employerContribution}
+            onChange={(e) => setForm({ ...form, employerContribution: e.target.value })}
+            placeholder="60000"
+          />
         </Field>
       )}
       <ModalActions onSave={() => onSave(form)} onClose={onClose} saveLabel="Save Changes" />
@@ -2176,7 +2397,8 @@ function InvestmentEmptyState({
       style={{
         padding: "54px 36px",
         textAlign: "center" as const,
-        background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
         border: `1.5px solid ${THEME.line}`,
         borderRadius: 20,
         boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
@@ -2348,7 +2570,8 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                 key={label}
                 className="card-lift"
                 style={{
-                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  background:
+                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
                   border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
                   borderRadius: 16,
@@ -2356,7 +2579,8 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                   display: "flex",
                   flexDirection: "column",
                   gap: 10,
-                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                  boxShadow:
+                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
@@ -2721,7 +2945,8 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                     key={label}
                     className="card-lift"
                     style={{
-                      background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                      background:
+                        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
                       border: `1.5px solid ${THEME.line}`,
                       borderTop: `4px solid ${color}`,
                       borderRadius: 16,
@@ -2729,7 +2954,8 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                       display: "flex",
                       flexDirection: "column",
                       gap: 10,
-                      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                      boxShadow:
+                        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
                       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                     }}
                   >
@@ -3028,9 +3254,24 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
               marginBottom: 24,
             }}
           >
-            <StatCard label="Total Invested" value={fmtINRFull(totalInvested)} icon={<IndianRupee />} color={BOND_AMBER} />
-            <StatCard label="Annual Coupon" value={fmtINRFull(annualIncome)} icon={<Coins />} color="#059669" />
-            <StatCard label="Bonds Held" value={String(items.length)} icon={<BarChart3 />} color={THEME.accent} />
+            <StatCard
+              label="Total Invested"
+              value={fmtINRFull(totalInvested)}
+              icon={<IndianRupee />}
+              color={BOND_AMBER}
+            />
+            <StatCard
+              label="Annual Coupon"
+              value={fmtINRFull(annualIncome)}
+              icon={<Coins />}
+              color="#059669"
+            />
+            <StatCard
+              label="Bonds Held"
+              value={String(items.length)}
+              icon={<BarChart3 />}
+              color={THEME.accent}
+            />
           </div>
 
           {/* Bond cards */}
@@ -3120,7 +3361,9 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                   </div>
 
                   {/* Logo + Bond name + ISIN */}
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}
+                  >
                     <BankLogo name={b.issuer || b.name} size={36} accentColor={BOND_AMBER} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
@@ -3257,7 +3500,9 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                         }}
                       >
                         <span>ELAPSED</span>
-                        <span style={{ color: ml?.matured ? THEME.sage : BOND_AMBER, fontWeight: 700 }}>
+                        <span
+                          style={{ color: ml?.matured ? THEME.sage : BOND_AMBER, fontWeight: 700 }}
+                        >
                           {bondProgress.toFixed(0)}%
                         </span>
                       </div>
@@ -3439,7 +3684,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
           const char = line[charIndex];
           if (char === '"') {
             inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
+          } else if (char === "," && !inQuotes) {
             parts.push(current.trim());
             current = "";
           } else {
@@ -3462,22 +3707,24 @@ function MFCsvPanel({ onImport, onClose }: any) {
           buyNav,
           units,
           currentNav,
-          owner
+          owner,
         ] = cleanParts;
 
         if (!name) throw new Error(`Row ${i + 1}: Fund Name is required`);
-        
+
         const bNav = Number(buyNav);
         if (isNaN(bNav) || bNav <= 0)
           throw new Error(`Row ${i + 1}: Buy NAV must be a positive number (got "${buyNav}")`);
-        
+
         const u = Number(units);
         if (isNaN(u) || u <= 0)
           throw new Error(`Row ${i + 1}: Units must be a positive number (got "${units}")`);
 
         const cNav = currentNav ? Number(currentNav) : bNav;
         if (isNaN(cNav) || cNav <= 0)
-          throw new Error(`Row ${i + 1}: Current NAV must be a positive number (got "${currentNav}")`);
+          throw new Error(
+            `Row ${i + 1}: Current NAV must be a positive number (got "${currentNav}")`
+          );
 
         let finalBuyDate = buyDate || "";
         if (finalBuyDate && !finalBuyDate.match(/^\d{4}-\d{2}-\d{2}$/))
@@ -3606,16 +3853,49 @@ function MFCsvPanel({ onImport, onClose }: any) {
   };
 
   return (
-    <Card style={{ padding: 20, border: `1px solid ${THEME.line}`, background: "var(--surface-0)", position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+    <Card
+      style={{
+        padding: 20,
+        border: `1px solid ${THEME.line}`,
+        background: "var(--surface-0)",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
           📥 Import Mutual Funds via CSV
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button style={{ ...btnStyle, background: `${THEME.accent}12`, color: THEME.accent }} onClick={downloadTemplate}>
+          <button
+            style={{ ...btnStyle, background: `${THEME.accent}12`, color: THEME.accent }}
+            onClick={downloadTemplate}
+          >
             <Download size={12} /> Download Template
           </button>
-          <button style={{ ...btnStyle, background: "transparent", color: THEME.muted, border: `1px solid ${THEME.line}` }} onClick={onClose}>
+          <button
+            style={{
+              ...btnStyle,
+              background: "transparent",
+              color: THEME.muted,
+              border: `1px solid ${THEME.line}`,
+            }}
+            onClick={onClose}
+          >
             Close
           </button>
         </div>
@@ -3631,12 +3911,28 @@ function MFCsvPanel({ onImport, onClose }: any) {
         <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
           {csvFileName || "Drop CSV file here or click to browse"}
         </div>
-        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Supports .csv and .txt files</div>
-        <input type="file" id="mf-file-input" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
+        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+          Supports .csv and .txt files
+        </div>
+        <input
+          type="file"
+          id="mf-file-input"
+          accept=".csv,.txt"
+          style={{ display: "none" }}
+          onChange={handleFile}
+        />
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 6, textTransform: "uppercase" }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: THEME.muted,
+            marginBottom: 6,
+            textTransform: "uppercase",
+          }}
+        >
           Or Paste CSV Raw Text
         </div>
         <textarea
@@ -3647,7 +3943,12 @@ function MFCsvPanel({ onImport, onClose }: any) {
         />
         <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
           <button
-            style={{ ...btnStyle, background: "var(--t-paper)", color: THEME.ink, border: `1px solid ${THEME.line}` }}
+            style={{
+              ...btnStyle,
+              background: "var(--t-paper)",
+              color: THEME.ink,
+              border: `1px solid ${THEME.line}`,
+            }}
             onClick={() => parseCsvText(csvText)}
           >
             Parse Text
@@ -3687,30 +3988,72 @@ function MFCsvPanel({ onImport, onClose }: any) {
             <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
               ✓ {csvPreview.length} rows parsed and ready for import
             </div>
-            <button style={{ ...btnStyle, background: THEME.sage, color: "#fff" }} onClick={doImport}>
+            <button
+              style={{ ...btnStyle, background: THEME.sage, color: "#fff" }}
+              onClick={doImport}
+            >
               Import {csvPreview.length} Lot{csvPreview.length !== 1 ? "s" : ""}
             </button>
           </div>
 
-          <div style={{ maxHeight: 200, overflowY: "auto", border: `1px solid ${THEME.line}`, borderRadius: 8 }}>
+          <div
+            style={{
+              maxHeight: 200,
+              overflowY: "auto",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: 8,
+            }}
+          >
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
               <thead>
                 <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>Fund Name</th>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>Folio</th>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Buy NAV</th>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Units</th>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Invested</th>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>
+                    Fund Name
+                  </th>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>
+                    Folio
+                  </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      textAlign: "right",
+                    }}
+                  >
+                    Buy NAV
+                  </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      textAlign: "right",
+                    }}
+                  >
+                    Units
+                  </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      textAlign: "right",
+                    }}
+                  >
+                    Invested
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {csvPreview.map((r, idx) => (
                   <tr key={idx} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                     <td style={{ padding: "6px 8px", fontWeight: 600 }}>{r.name}</td>
-                    <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.folioNumber || "—"}</td>
+                    <td style={{ padding: "6px 8px", color: THEME.muted }}>
+                      {r.folioNumber || "—"}
+                    </td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.buyNav}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.units}</td>
-                    <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>{fmtINRFull(Number(r.invested))}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>
+                      {fmtINRFull(Number(r.invested))}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -4453,9 +4796,16 @@ const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 const NPS_ORANGE = "#c2410c";
 
 const NPS_PFM_COLOR: Record<string, string> = {
-  SBI: "#0067b2", LIC: "#00a651", UTI: "#e31b23", HDFC: "#004c8f",
-  ICICI: "#F58220", Kotak: "#e31e25", "Aditya Birla": "#d2232a",
-  DSP: "#003087", Tata: "#00529b", "Max Life": "#c2185b",
+  SBI: "#0067b2",
+  LIC: "#00a651",
+  UTI: "#e31b23",
+  HDFC: "#004c8f",
+  ICICI: "#F58220",
+  Kotak: "#e31e25",
+  "Aditya Birla": "#d2232a",
+  DSP: "#003087",
+  Tata: "#00529b",
+  "Max Life": "#c2185b",
 };
 
 const NPS_LC_LABEL: Record<string, string> = {
@@ -4486,8 +4836,25 @@ function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: a
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 5, flexWrap: "wrap" as const }}>
         {bars.map((b) => (
-          <span key={b.label} style={{ fontSize: 10, color: THEME.muted, display: "flex", alignItems: "center", gap: 3 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: b.color, display: "inline-block" }} />
+          <span
+            key={b.label}
+            style={{
+              fontSize: 10,
+              color: THEME.muted,
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 2,
+                background: b.color,
+                display: "inline-block",
+              }}
+            />
             {b.label} {b.pct}%
           </span>
         ))}
@@ -4523,41 +4890,85 @@ function NPSTransactionModal({ onClose, onSave, initial }: any) {
   return (
     <Modal title={initial ? "Edit NPS Transaction" : "Add NPS Transaction"} onClose={onClose}>
       <Field label="Date *">
-        <input style={inp} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+        <input
+          style={inp}
+          type="date"
+          value={form.date}
+          onChange={(e) => setForm({ ...form, date: e.target.value })}
+        />
       </Field>
       <Field label="Particulars">
-        <input style={inp} value={form.particulars} onChange={(e) => setForm({ ...form, particulars: e.target.value })}
-          placeholder="e.g. By Arrear - Regular Contribution for April" />
+        <input
+          style={inp}
+          value={form.particulars}
+          onChange={(e) => setForm({ ...form, particulars: e.target.value })}
+          placeholder="e.g. By Arrear - Regular Contribution for April"
+        />
       </Field>
       <Field label="Uploaded By / Source">
-        <input style={inp} value={form.uploadedBy} onChange={(e) => setForm({ ...form, uploadedBy: e.target.value })}
-          placeholder="e.g. Kotak Mahindra Bank Limited (5000041) or eNPS - Online" />
+        <input
+          style={inp}
+          value={form.uploadedBy}
+          onChange={(e) => setForm({ ...form, uploadedBy: e.target.value })}
+          placeholder="e.g. Kotak Mahindra Bank Limited (5000041) or eNPS - Online"
+        />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Employee Contribution (₹)">
-          <input style={inp} type="number" min={0} value={form.employeeAmount}
-            onChange={(e) => setForm({ ...form, employeeAmount: e.target.value })} placeholder="0" />
+          <input
+            style={inp}
+            type="number"
+            min={0}
+            value={form.employeeAmount}
+            onChange={(e) => setForm({ ...form, employeeAmount: e.target.value })}
+            placeholder="0"
+          />
         </Field>
         <Field label="Employer Contribution (₹)">
-          <input style={inp} type="number" min={0} value={form.employerAmount}
-            onChange={(e) => setForm({ ...form, employerAmount: e.target.value })} placeholder="0" />
+          <input
+            style={inp}
+            type="number"
+            min={0}
+            value={form.employerAmount}
+            onChange={(e) => setForm({ ...form, employerAmount: e.target.value })}
+            placeholder="0"
+          />
         </Field>
       </div>
       {(empAmt > 0 || erAmt > 0) && (
-        <div style={{ padding: "8px 12px", background: `${NPS_ORANGE}0d`, borderRadius: 8, fontSize: 12, color: NPS_ORANGE, fontWeight: 700 }}>
+        <div
+          style={{
+            padding: "8px 12px",
+            background: `${NPS_ORANGE}0d`,
+            borderRadius: 8,
+            fontSize: 12,
+            color: NPS_ORANGE,
+            fontWeight: 700,
+          }}
+        >
           Total: {fmtINRFull(empAmt + erAmt)}
           {empAmt > 0 && erAmt > 0 && (
-            <span style={{ color: THEME.muted, fontWeight: 500 }}> (Employee: {fmtINRFull(empAmt)} + Employer: {fmtINRFull(erAmt)})</span>
+            <span style={{ color: THEME.muted, fontWeight: 500 }}>
+              {" "}
+              (Employee: {fmtINRFull(empAmt)} + Employer: {fmtINRFull(erAmt)})
+            </span>
           )}
         </div>
       )}
-      <ModalActions onSave={() => valid && onSave({
-        date: form.date,
-        particulars: form.particulars,
-        uploadedBy: form.uploadedBy,
-        employeeAmount: empAmt,
-        employerAmount: erAmt,
-      })} onClose={onClose} saveLabel={initial ? "Save Changes" : "Add Transaction"} />
+      <ModalActions
+        onSave={() =>
+          valid &&
+          onSave({
+            date: form.date,
+            particulars: form.particulars,
+            uploadedBy: form.uploadedBy,
+            employeeAmount: empAmt,
+            employerAmount: erAmt,
+          })
+        }
+        onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add Transaction"}
+      />
     </Modal>
   );
 }
@@ -4575,25 +4986,41 @@ function NPSCsvPanel({ onImport }: any) {
     setCsvPreview([]);
     setImportDone(false);
     try {
-      const lines = text.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
-      if (!lines.length) { setCsvError("No data rows found."); return; }
+      const lines = text
+        .trim()
+        .split("\n")
+        .filter((l) => l.trim() && !l.trim().startsWith("#"));
+      if (!lines.length) {
+        setCsvError("No data rows found.");
+        return;
+      }
       const rows = lines.map((line, i) => {
         const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
-        if (parts.length < 4) throw new Error(`Row ${i + 1}: need date, particulars, uploaded_by, employee_amount[, employer_amount]`);
+        if (parts.length < 4)
+          throw new Error(
+            `Row ${i + 1}: need date, particulars, uploaded_by, employee_amount[, employer_amount]`
+          );
         const [date, particulars, uploadedBy, empRaw, erRaw] = parts;
         if (!date.match(/^\d{4}-\d{2}-\d{2}$/))
           throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD`);
         const empAmt = Number(empRaw) || 0;
         const erAmt = Number(erRaw || 0) || 0;
         if (empAmt < 0 || erAmt < 0) throw new Error(`Row ${i + 1}: amounts cannot be negative`);
-        if (empAmt === 0 && erAmt === 0) throw new Error(`Row ${i + 1}: at least one of employee or employer amount must be > 0`);
+        if (empAmt === 0 && erAmt === 0)
+          throw new Error(`Row ${i + 1}: at least one of employee or employer amount must be > 0`);
         return {
           id: `npstx-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
-          date, particulars, uploadedBy, employeeAmount: empAmt, employerAmount: erAmt,
+          date,
+          particulars,
+          uploadedBy,
+          employeeAmount: empAmt,
+          employerAmount: erAmt,
         };
       });
       setCsvPreview(rows);
-    } catch (e: any) { setCsvError(e.message); }
+    } catch (e: any) {
+      setCsvError(e.message);
+    }
   };
 
   const handleFile = (e: any) => {
@@ -4601,7 +5028,11 @@ function NPSCsvPanel({ onImport }: any) {
     if (!file) return;
     setCsvFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      setCsvText(text);
+      parseCsvText(text);
+    };
     reader.readAsText(file);
   };
 
@@ -4611,7 +5042,11 @@ function NPSCsvPanel({ onImport }: any) {
     if (!file) return;
     setCsvFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      setCsvText(text);
+      parseCsvText(text);
+    };
     reader.readAsText(file);
   };
 
@@ -4621,91 +5056,275 @@ function NPSCsvPanel({ onImport }: any) {
     const blob = new Blob([content], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "nps_import_template.csv"; a.click();
+    a.href = url;
+    a.download = "nps_import_template.csv";
+    a.click();
     URL.revokeObjectURL(url);
   };
 
   const doImport = () => {
     if (!csvPreview.length) return;
     onImport(csvPreview);
-    setImportDone(true); setCsvPreview([]); setCsvText(""); setCsvFileName("");
+    setImportDone(true);
+    setCsvPreview([]);
+    setCsvText("");
+    setCsvFileName("");
   };
 
-  const btnStyle = { padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" } as const;
+  const btnStyle = {
+    padding: "8px 16px",
+    borderRadius: 8,
+    fontWeight: 700,
+    fontSize: 12,
+    cursor: "pointer",
+  } as const;
 
   return (
-    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: `${NPS_ORANGE}09`, border: `1px solid ${NPS_ORANGE}38` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: NPS_ORANGE, display: "flex", alignItems: "center", gap: 8 }}>
+    <div
+      style={{
+        padding: 18,
+        borderRadius: 12,
+        marginBottom: 16,
+        background: `${NPS_ORANGE}09`,
+        border: `1px solid ${NPS_ORANGE}38`,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: NPS_ORANGE,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <FileText size={15} /> Bulk Import via CSV
         </div>
-        <button onClick={downloadTemplate} style={{ ...btnStyle, border: `1px solid ${NPS_ORANGE}4d`, background: "transparent", color: NPS_ORANGE }}>
+        <button
+          onClick={downloadTemplate}
+          style={{
+            ...btnStyle,
+            border: `1px solid ${NPS_ORANGE}4d`,
+            background: "transparent",
+            color: NPS_ORANGE,
+          }}
+        >
           Download Template
         </button>
       </div>
-      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, lineHeight: 1.6 }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: THEME.muted,
+          marginBottom: 12,
+          padding: "8px 12px",
+          background: "var(--surface-0)",
+          border: `1px solid ${THEME.line}`,
+          borderRadius: 8,
+          lineHeight: 1.6,
+        }}
+      >
         <b style={{ color: THEME.ink }}>Format:</b>{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>date, particulars, uploaded_by, employee_amount, employer_amount</code>
-        <br />Use <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>0</code> for the side that did not contribute. Date format: <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>YYYY-MM-DD</code>
+        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+          date, particulars, uploaded_by, employee_amount, employer_amount
+        </code>
+        <br />
+        Use{" "}
+        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+          0
+        </code>{" "}
+        for the side that did not contribute. Date format:{" "}
+        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+          YYYY-MM-DD
+        </code>
       </div>
       <label
-        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${NPS_ORANGE}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${NPS_ORANGE}08` }}
-        onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
+        style={{
+          display: "flex",
+          flexDirection: "column" as const,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          padding: "20px 0",
+          border: `1.5px dashed ${NPS_ORANGE}66`,
+          borderRadius: 10,
+          cursor: "pointer",
+          marginBottom: 12,
+          background: `${NPS_ORANGE}08`,
+        }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
       >
         <Upload size={22} color={NPS_ORANGE} />
-        <div style={{ fontSize: 13, fontWeight: 600, color: NPS_ORANGE }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: NPS_ORANGE }}>
+          {csvFileName || "Drop CSV file here or click to browse"}
+        </div>
         <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
         <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
       </label>
-      <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" as const }}>— or paste CSV text below —</div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: THEME.muted,
+          marginBottom: 6,
+          textAlign: "center" as const,
+        }}
+      >
+        — or paste CSV text below —
+      </div>
       <textarea
-        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
+        style={{
+          width: "100%",
+          minHeight: 80,
+          padding: "10px 12px",
+          background: "var(--surface-0)",
+          border: `1.5px solid ${THEME.line}`,
+          borderRadius: 10,
+          color: THEME.ink,
+          fontSize: 12,
+          fontFamily: "monospace",
+          resize: "vertical" as const,
+          boxSizing: "border-box" as const,
+        }}
         value={csvText}
-        onChange={(e) => { setCsvText(e.target.value); setCsvPreview([]); setCsvError(""); setImportDone(false); }}
-        placeholder={"2025-04-14, By Arrear - Regular Contribution for April, Kotak Mahindra Bank (5000041), 0, 4664.60\n2025-08-17, By Voluntary Contributions, eNPS - Online (5000682), 20000, 0"}
+        onChange={(e) => {
+          setCsvText(e.target.value);
+          setCsvPreview([]);
+          setCsvError("");
+          setImportDone(false);
+        }}
+        placeholder={
+          "2025-04-14, By Arrear - Regular Contribution for April, Kotak Mahindra Bank (5000041), 0, 4664.60\n2025-08-17, By Voluntary Contributions, eNPS - Online (5000682), 20000, 0"
+        }
       />
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" as const }}>
-        <button style={{ ...btnStyle, border: `1px solid ${NPS_ORANGE}66`, background: "transparent", color: NPS_ORANGE }} onClick={() => parseCsvText(csvText)}>
+        <button
+          style={{
+            ...btnStyle,
+            border: `1px solid ${NPS_ORANGE}66`,
+            background: "transparent",
+            color: NPS_ORANGE,
+          }}
+          onClick={() => parseCsvText(csvText)}
+        >
           Preview Data
         </button>
         {csvPreview.length > 0 && !importDone && (
-          <button style={{ ...btnStyle, border: "none", background: NPS_ORANGE, color: "#fff" }} onClick={doImport}>
+          <button
+            style={{ ...btnStyle, border: "none", background: NPS_ORANGE, color: "#fff" }}
+            onClick={doImport}
+          >
             Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
           </button>
         )}
         {importDone && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.sage, fontSize: 12, fontWeight: 700 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: THEME.sage,
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
             <CheckCircle2 size={15} /> Imported!
           </div>
         )}
       </div>
       {csvError && (
-        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
+        <div
+          style={{
+            marginTop: 10,
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start",
+            color: THEME.rust,
+            fontSize: 12,
+            padding: "8px 12px",
+            background: `${THEME.rust}0f`,
+            borderRadius: 8,
+          }}
+        >
           <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
         </div>
       )}
       {csvPreview.length > 0 && (
-        <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 12px", background: `${NPS_ORANGE}12`, fontSize: 11, fontWeight: 700, color: NPS_ORANGE }}>
+        <div
+          style={{
+            marginTop: 12,
+            border: `1px solid ${THEME.line}`,
+            borderRadius: 10,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              padding: "8px 12px",
+              background: `${NPS_ORANGE}12`,
+              fontSize: 11,
+              fontWeight: 700,
+              color: NPS_ORANGE,
+            }}
+          >
             {csvPreview.length} rows ready — preview:
           </div>
           <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "var(--surface-0)" }}>
-                  {["Date", "Particulars", "Uploaded By", "Employee (₹)", "Employer (₹)"].map((h) => (
-                    <th key={h} style={{ padding: "6px 10px", textAlign: "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>
-                  ))}
+                  {["Date", "Particulars", "Uploaded By", "Employee (₹)", "Employer (₹)"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: "6px 10px",
+                          textAlign: "left" as const,
+                          fontWeight: 600,
+                          fontSize: 10,
+                          color: THEME.muted,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {csvPreview.map((r, i) => (
                   <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
                     <td style={{ padding: "6px 10px" }}>{r.date}</td>
-                    <td style={{ padding: "6px 10px", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{r.particulars || "—"}</td>
-                    <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 11 }}>{r.uploadedBy || "—"}</td>
-                    <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.accent }}>{r.employeeAmount > 0 ? fmtINRFull(r.employeeAmount) : "—"}</td>
-                    <td style={{ padding: "6px 10px", fontWeight: 700, color: "#0ea5e9" }}>{r.employerAmount > 0 ? fmtINRFull(r.employerAmount) : "—"}</td>
+                    <td
+                      style={{
+                        padding: "6px 10px",
+                        maxWidth: 180,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap" as const,
+                      }}
+                    >
+                      {r.particulars || "—"}
+                    </td>
+                    <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 11 }}>
+                      {r.uploadedBy || "—"}
+                    </td>
+                    <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.accent }}>
+                      {r.employeeAmount > 0 ? fmtINRFull(r.employeeAmount) : "—"}
+                    </td>
+                    <td style={{ padding: "6px 10px", fontWeight: 700, color: "#0ea5e9" }}>
+                      {r.employerAmount > 0 ? fmtINRFull(r.employerAmount) : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -4729,7 +5348,9 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showEditAccount, setShowEditAccount] = useState(false);
 
-  useEffect(() => { setTxs(n.transactions || []); }, [n.id]);
+  useEffect(() => {
+    setTxs(n.transactions || []);
+  }, [n.id]);
 
   const persistTxs = (updated: any[]) => {
     setTxs(updated);
@@ -4738,16 +5359,17 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
 
   const saveTx = (form: any) => {
     const entry = { ...form, id: editTx ? editTx.id : uid() };
-    const updated = editTx
-      ? txs.map((t) => (t.id === editTx.id ? entry : t))
-      : [...txs, entry];
+    const updated = editTx ? txs.map((t) => (t.id === editTx.id ? entry : t)) : [...txs, entry];
     persistTxs(updated);
     setShowTxModal(false);
     setEditTx(null);
   };
 
   const removeTx = (id: string) => persistTxs(txs.filter((t) => t.id !== id));
-  const importRows = (rows: any[]) => { persistTxs([...txs, ...rows]); setShowCsvImport(false); };
+  const importRows = (rows: any[]) => {
+    persistTxs([...txs, ...rows]);
+    setShowCsvImport(false);
+  };
 
   const sortedTxs = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalEmployee = txs.reduce((s, t) => s + (Number(t.employeeAmount) || 0), 0);
@@ -4756,12 +5378,21 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
   const annualTotal = (Number(n.yearContribution) || 0) + (Number(n.employerContribution) || 0);
 
   const fmtDate = (d: string) =>
-    d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+    d
+      ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "—";
 
   const exportCsv = () => {
-    const header = "Date,Particulars,Uploaded By,Employee Contribution (Rs),Employer Contribution (Rs)";
+    const header =
+      "Date,Particulars,Uploaded By,Employee Contribution (Rs),Employer Contribution (Rs)";
     const rows = sortedTxs.map((t) =>
-      [t.date, `"${(t.particulars || "").replace(/"/g, '""')}"`, `"${(t.uploadedBy || "").replace(/"/g, '""')}"`, t.employeeAmount || 0, t.employerAmount || 0].join(",")
+      [
+        t.date,
+        `"${(t.particulars || "").replace(/"/g, '""')}"`,
+        `"${(t.uploadedBy || "").replace(/"/g, '""')}"`,
+        t.employeeAmount || 0,
+        t.employerAmount || 0,
+      ].join(",")
     );
     const content = [header, ...rows].join("\n");
     const blob = new Blob([content], { type: "text/csv" });
@@ -4774,39 +5405,81 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
   };
 
   const btnGhost = {
-    background: "transparent", border: `1px solid ${THEME.line}`, borderRadius: 8,
-    color: THEME.ink, cursor: "pointer", display: "flex", alignItems: "center",
-    gap: 6, fontWeight: 600, fontSize: 12, padding: "7px 14px",
+    background: "transparent",
+    border: `1px solid ${THEME.line}`,
+    borderRadius: 8,
+    color: THEME.ink,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontWeight: 600,
+    fontSize: 12,
+    padding: "7px 14px",
   } as const;
 
   return (
     <Card style={{ padding: 20, borderTop: `3px solid ${pfmColor}` }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 14,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
           <BankLogo name={n.fundManager || "NPS"} size={36} accentColor={pfmColor} />
           <div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
               <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
               {n.schemeType && n.schemeType !== "All Citizen" && (
-                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: `${pfmColor}18`, color: pfmColor, fontWeight: 700, border: `1px solid ${pfmColor}40` }}>{n.schemeType}</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: "2px 8px",
+                    borderRadius: 20,
+                    background: `${pfmColor}18`,
+                    color: pfmColor,
+                    fontWeight: 700,
+                    border: `1px solid ${pfmColor}40`,
+                  }}
+                >
+                  {n.schemeType}
+                </span>
               )}
             </div>
             {n.fundManager && (
               <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
-                PFM: <span style={{ color: pfmColor, fontWeight: 700 }}>{n.fundManager} Pension</span>
+                PFM:{" "}
+                <span style={{ color: pfmColor, fontWeight: 700 }}>{n.fundManager} Pension</span>
               </div>
             )}
             {n.pran && (
               <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                PRAN: <span style={{ color: THEME.ink, fontWeight: 600 }}><Prv>{n.pran}</Prv></span>
+                PRAN:{" "}
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>
+                  <Prv>{n.pran}</Prv>
+                </span>
               </div>
             )}
           </div>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
-          <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setShowEditAccount(true)} />
-          <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("nps", n.id)} />
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Pencil size={12} />}
+            onClick={() => setShowEditAccount(true)}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Trash2 size={12} />}
+            style={{ color: THEME.rust }}
+            onClick={() => removeItem("nps", n.id)}
+          />
         </div>
       </div>
 
@@ -4825,7 +5498,15 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE, letterSpacing: "-0.03em", marginBottom: 12 }}>
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 900,
+                color: NPS_ORANGE,
+                letterSpacing: "-0.03em",
+                marginBottom: 12,
+              }}
+            >
               <Prv>{fmtINRFull(displayCorpus)}</Prv>
             </div>
           </>
@@ -4834,14 +5515,54 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
 
       {/* Contribution breakdown (from ledger) */}
       {totalContributed > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, marginBottom: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 8,
+            marginBottom: 14,
+          }}
+        >
           {[
-            { label: "Employee Total", value: totalEmployee, color: THEME.accent, bg: "rgba(99,102,241,0.07)", border: "rgba(99,102,241,0.22)" },
-            { label: "Employer Total", value: totalEmployer, color: "#0ea5e9",    bg: "rgba(14,165,233,0.07)",  border: "rgba(14,165,233,0.22)" },
+            {
+              label: "Employee Total",
+              value: totalEmployee,
+              color: THEME.accent,
+              bg: "rgba(99,102,241,0.07)",
+              border: "rgba(99,102,241,0.22)",
+            },
+            {
+              label: "Employer Total",
+              value: totalEmployer,
+              color: "#0ea5e9",
+              bg: "rgba(14,165,233,0.07)",
+              border: "rgba(14,165,233,0.22)",
+            },
           ].map(({ label, value, color, bg, border }) => (
-            <div key={label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${border}`, background: bg }}>
-              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>{label}</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color }}><Prv>{fmtINRFull(value)}</Prv></div>
+            <div
+              key={label}
+              style={{
+                padding: "9px 12px",
+                borderRadius: 10,
+                border: `1px solid ${border}`,
+                background: bg,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 9,
+                  color: THEME.muted,
+                  fontWeight: 700,
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em",
+                  marginBottom: 3,
+                }}
+              >
+                {label}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800, color }}>
+                <Prv>{fmtINRFull(value)}</Prv>
+              </div>
             </div>
           ))}
         </div>
@@ -4851,43 +5572,92 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
       <div style={{ fontSize: 11, marginBottom: 4 }}>
         <span style={{ color: THEME.muted }}>Investment: </span>
         <span style={{ fontWeight: 700, color: THEME.ink }}>
-          {isActive ? "Active Choice (Manual)" : `Auto Choice — ${NPS_LC_LABEL[n.lifecycleFund] || n.lifecycleFund || "LC-50"}`}
+          {isActive
+            ? "Active Choice (Manual)"
+            : `Auto Choice — ${NPS_LC_LABEL[n.lifecycleFund] || n.lifecycleFund || "LC-50"}`}
         </span>
       </div>
       {!isActive && (
         <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 8 }}>
-          {n.lifecycleFund === "LC-75" ? "Starts 75% equity at ≤35 yrs, tapers to 15% at 55"
-            : n.lifecycleFund === "LC-25" ? "Starts 25% equity, low risk — tapers to 5% at 55"
-            : "Starts 50% equity, balanced — tapers to 10% at 55"}
+          {n.lifecycleFund === "LC-75"
+            ? "Starts 75% equity at ≤35 yrs, tapers to 15% at 55"
+            : n.lifecycleFund === "LC-25"
+              ? "Starts 25% equity, low risk — tapers to 5% at 55"
+              : "Starts 50% equity, balanced — tapers to 10% at 55"}
         </div>
       )}
 
       {/* Asset allocation bar (Active only) */}
-      {isActive && <NpsAllocationBar equityPct={n.equityPct} corpBondPct={n.corpBondPct} govtSecPct={n.govtSecPct} altAssetPct={n.altAssetPct} />}
+      {isActive && (
+        <NpsAllocationBar
+          equityPct={n.equityPct}
+          corpBondPct={n.corpBondPct}
+          govtSecPct={n.govtSecPct}
+          altAssetPct={n.altAssetPct}
+        />
+      )}
 
       {/* Annual contribution from account fields */}
       {annualTotal > 0 && totalContributed === 0 && (
         <div style={{ marginTop: 8, fontSize: 10, color: "#0ea5e9", fontWeight: 600 }}>
-          Annual estimate: {fmtINRFull(annualTotal)}/yr{Number(n.employerContribution) > 0 ? " (incl. employer — 80CCD(2))" : ""}
+          Annual estimate: {fmtINRFull(annualTotal)}/yr
+          {Number(n.employerContribution) > 0 ? " (incl. employer — 80CCD(2))" : ""}
         </div>
       )}
 
       {/* Tier note */}
-      <div style={{ fontSize: 10, color: THEME.muted, marginTop: 12, padding: "6px 10px", background: "var(--surface-1)", borderRadius: 8, lineHeight: 1.5 }}>
+      <div
+        style={{
+          fontSize: 10,
+          color: THEME.muted,
+          marginTop: 12,
+          padding: "6px 10px",
+          background: "var(--surface-1)",
+          borderRadius: 8,
+          lineHeight: 1.5,
+        }}
+      >
         {n.tier === "II"
           ? "Tier II — No lock-in. Fully withdrawable anytime. No additional tax benefit."
           : "Tier I — Locked till age 60. At exit: 60% lump sum (tax-free) + 40% compulsory annuity."}
       </div>
 
       {/* Ledger toolbar */}
-      <div style={{ marginTop: 18, display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
-        <button style={{ ...btnGhost, color: NPS_ORANGE, borderColor: `${NPS_ORANGE}4d` }} onClick={() => { setShowLedger((v) => !v); setShowCsvImport(false); }}>
-          <List size={13} /> {showLedger ? "Hide Ledger" : `Ledger${txs.length > 0 ? ` (${txs.length})` : ""}`}
+      <div
+        style={{
+          marginTop: 18,
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap" as const,
+          alignItems: "center",
+        }}
+      >
+        <button
+          style={{ ...btnGhost, color: NPS_ORANGE, borderColor: `${NPS_ORANGE}4d` }}
+          onClick={() => {
+            setShowLedger((v) => !v);
+            setShowCsvImport(false);
+          }}
+        >
+          <List size={13} />{" "}
+          {showLedger ? "Hide Ledger" : `Ledger${txs.length > 0 ? ` (${txs.length})` : ""}`}
         </button>
-        <button style={{ ...btnGhost }} onClick={() => { setShowTxModal(true); setEditTx(null); }}>
+        <button
+          style={{ ...btnGhost }}
+          onClick={() => {
+            setShowTxModal(true);
+            setEditTx(null);
+          }}
+        >
           <Plus size={13} /> Add Transaction
         </button>
-        <button style={{ ...btnGhost }} onClick={() => { setShowCsvImport((v) => !v); setShowLedger(false); }}>
+        <button
+          style={{ ...btnGhost }}
+          onClick={() => {
+            setShowCsvImport((v) => !v);
+            setShowLedger(false);
+          }}
+        >
           <Upload size={13} /> Import CSV
         </button>
         {txs.length > 0 && (
@@ -4908,46 +5678,166 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
       {showLedger && (
         <div style={{ marginTop: 14 }}>
           {txs.length === 0 ? (
-            <div style={{ padding: "24px 0", textAlign: "center" as const, color: THEME.muted, fontSize: 13 }}>
+            <div
+              style={{
+                padding: "24px 0",
+                textAlign: "center" as const,
+                color: THEME.muted,
+                fontSize: 13,
+              }}
+            >
               No transactions yet — add manually or import CSV above
             </div>
           ) : (
-            <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 12, overflow: "hidden" }}>
+            <div
+              style={{ border: `1px solid ${THEME.line}`, borderRadius: 12, overflow: "hidden" }}
+            >
               <div style={{ overflowX: "auto" as const }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
                   <thead>
                     <tr style={{ background: "var(--surface-1)" }}>
-                      {["Date", "Particulars", "Uploaded By", "Employee (₹)", "Employer (₹)", ""].map((h) => (
-                        <th key={h} style={{ padding: "8px 12px", textAlign: h === "Employee (₹)" || h === "Employer (₹)" ? "right" as const : "left" as const, fontWeight: 700, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{h}</th>
+                      {[
+                        "Date",
+                        "Particulars",
+                        "Uploaded By",
+                        "Employee (₹)",
+                        "Employer (₹)",
+                        "",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: "8px 12px",
+                            textAlign:
+                              h === "Employee (₹)" || h === "Employer (₹)"
+                                ? ("right" as const)
+                                : ("left" as const),
+                            fontWeight: 700,
+                            fontSize: 10,
+                            color: THEME.muted,
+                            textTransform: "uppercase" as const,
+                            letterSpacing: "0.06em",
+                            whiteSpace: "nowrap" as const,
+                          }}
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {sortedTxs.map((t) => (
                       <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
-                        <td style={{ padding: "8px 12px", whiteSpace: "nowrap" as const, color: THEME.muted, fontSize: 11 }}>{fmtDate(t.date)}</td>
-                        <td style={{ padding: "8px 12px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{t.particulars || "—"}</td>
-                        <td style={{ padding: "8px 12px", color: THEME.muted, fontSize: 11, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{t.uploadedBy || "—"}</td>
-                        <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 700, color: t.employeeAmount > 0 ? THEME.accent : THEME.muted }}>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            whiteSpace: "nowrap" as const,
+                            color: THEME.muted,
+                            fontSize: 11,
+                          }}
+                        >
+                          {fmtDate(t.date)}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            maxWidth: 200,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap" as const,
+                          }}
+                        >
+                          {t.particulars || "—"}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            color: THEME.muted,
+                            fontSize: 11,
+                            maxWidth: 160,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap" as const,
+                          }}
+                        >
+                          {t.uploadedBy || "—"}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            textAlign: "right" as const,
+                            fontWeight: 700,
+                            color: t.employeeAmount > 0 ? THEME.accent : THEME.muted,
+                          }}
+                        >
                           {t.employeeAmount > 0 ? fmtINRFull(t.employeeAmount) : "—"}
                         </td>
-                        <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 700, color: t.employerAmount > 0 ? "#0ea5e9" : THEME.muted }}>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            textAlign: "right" as const,
+                            fontWeight: 700,
+                            color: t.employerAmount > 0 ? "#0ea5e9" : THEME.muted,
+                          }}
+                        >
                           {t.employerAmount > 0 ? fmtINRFull(t.employerAmount) : "—"}
                         </td>
                         <td style={{ padding: "8px 12px", whiteSpace: "nowrap" as const }}>
                           <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                            <Button variant="ghost" size="sm" icon={<Pencil size={11} />} onClick={() => { setEditTx(t); setShowTxModal(true); }} />
-                            <Button variant="ghost" size="sm" icon={<Trash2 size={11} />} style={{ color: THEME.rust }} onClick={() => removeTx(t.id)} />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil size={11} />}
+                              onClick={() => {
+                                setEditTx(t);
+                                setShowTxModal(true);
+                              }}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Trash2 size={11} />}
+                              style={{ color: THEME.rust }}
+                              onClick={() => removeTx(t.id)}
+                            />
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: `2px solid ${THEME.line}`, background: "var(--surface-1)" }}>
-                      <td colSpan={3} style={{ padding: "8px 12px", fontWeight: 700, fontSize: 11 }}>Total ({txs.length} entries)</td>
-                      <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 800, color: THEME.accent }}>{fmtINRFull(totalEmployee)}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 800, color: "#0ea5e9" }}>{fmtINRFull(totalEmployer)}</td>
+                    <tr
+                      style={{
+                        borderTop: `2px solid ${THEME.line}`,
+                        background: "var(--surface-1)",
+                      }}
+                    >
+                      <td
+                        colSpan={3}
+                        style={{ padding: "8px 12px", fontWeight: 700, fontSize: 11 }}
+                      >
+                        Total ({txs.length} entries)
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 12px",
+                          textAlign: "right" as const,
+                          fontWeight: 800,
+                          color: THEME.accent,
+                        }}
+                      >
+                        {fmtINRFull(totalEmployee)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 12px",
+                          textAlign: "right" as const,
+                          fontWeight: 800,
+                          color: "#0ea5e9",
+                        }}
+                      >
+                        {fmtINRFull(totalEmployer)}
+                      </td>
                       <td />
                     </tr>
                   </tfoot>
@@ -4962,7 +5852,10 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
       {showTxModal && (
         <NPSTransactionModal
           initial={editTx}
-          onClose={() => { setShowTxModal(false); setEditTx(null); }}
+          onClose={() => {
+            setShowTxModal(false);
+            setEditTx(null);
+          }}
           onSave={saveTx}
         />
       )}
@@ -4970,7 +5863,10 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
         <EditNPSModal
           nps={n}
           onClose={() => setShowEditAccount(false)}
-          onSave={(updated: any) => { updateItem("nps", n.id, updated); setShowEditAccount(false); }}
+          onSave={(updated: any) => {
+            updateItem("nps", n.id, updated);
+            setShowEditAccount(false);
+          }}
         />
       )}
     </Card>
@@ -4981,11 +5877,31 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
 function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
   const totalCorpus = items.reduce((s: number, n: any) => {
     const bal = Number(n.balance) || 0;
-    const txTotal = (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0);
+    const txTotal = (n.transactions || []).reduce(
+      (ss: number, t: any) =>
+        ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+      0
+    );
     return s + (bal > 0 ? bal : txTotal);
   }, 0);
-  const totalEmployee = items.reduce((s: number, n: any) => s + (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employeeAmount) || 0), 0), 0);
-  const totalEmployer = items.reduce((s: number, n: any) => s + (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employerAmount) || 0), 0), 0);
+  const totalEmployee = items.reduce(
+    (s: number, n: any) =>
+      s +
+      (n.transactions || []).reduce(
+        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0),
+        0
+      ),
+    0
+  );
+  const totalEmployer = items.reduce(
+    (s: number, n: any) =>
+      s +
+      (n.transactions || []).reduce(
+        (ss: number, t: any) => ss + (Number(t.employerAmount) || 0),
+        0
+      ),
+    0
+  );
   const totalTx = items.reduce((s: number, n: any) => s + (n.transactions || []).length, 0);
 
   return (
@@ -5004,14 +5920,47 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
       ) : (
         <>
           {/* Summary tiles */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+              marginBottom: 20,
+            }}
+          >
             {[
-              { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE, Icon: PiggyBank },
+              {
+                label: "Total NPS Corpus",
+                value: fmtINRFull(totalCorpus),
+                color: NPS_ORANGE,
+                Icon: PiggyBank,
+              },
               ...(totalEmployee + totalEmployer > 0
-                ? [{ label: "Employee Contributions", value: fmtINRFull(totalEmployee), color: THEME.accent, Icon: TrendingUp },
-                   { label: "Employer Contributions", value: fmtINRFull(totalEmployer), color: "#0ea5e9", Icon: Briefcase }]
-                : [{ label: "Accounts", value: String(items.length), color: THEME.accent, Icon: BarChart3 }]),
-              ...(totalTx > 0 ? [{ label: "Transactions", value: String(totalTx), color: THEME.gold, Icon: List }] : []),
+                ? [
+                    {
+                      label: "Employee Contributions",
+                      value: fmtINRFull(totalEmployee),
+                      color: THEME.accent,
+                      Icon: TrendingUp,
+                    },
+                    {
+                      label: "Employer Contributions",
+                      value: fmtINRFull(totalEmployer),
+                      color: "#0ea5e9",
+                      Icon: Briefcase,
+                    },
+                  ]
+                : [
+                    {
+                      label: "Accounts",
+                      value: String(items.length),
+                      color: THEME.accent,
+                      Icon: BarChart3,
+                    },
+                  ]),
+              ...(totalTx > 0
+                ? [{ label: "Transactions", value: String(totalTx), color: THEME.gold, Icon: List }]
+                : []),
             ].map(({ label, value, color, Icon }) => (
               <StatCard key={label} label={label} value={value} icon={<Icon />} color={color} />
             ))}
@@ -5762,7 +6711,9 @@ function EPFCsvPanel({ onImport }: any) {
                           {ti.label}
                         </span>
                       </td>
-                      <td style={{ padding: "6px 10px", fontWeight: 700 }}>{fmtINRFull(r.amount)}</td>
+                      <td style={{ padding: "6px 10px", fontWeight: 700 }}>
+                        {fmtINRFull(r.amount)}
+                      </td>
                       <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
                     </tr>
                   );
@@ -6214,7 +7165,9 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             {(p.uan || p.accountNumber) && (
               <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
                 UAN:{" "}
-                <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan || p.accountNumber}</span>
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>
+                  {p.uan || p.accountNumber}
+                </span>
               </div>
             )}
           </div>
@@ -6258,15 +7211,55 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       </div>
       {hasPassbook && (
         <div
-          style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 20 }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 8,
+            marginBottom: 20,
+          }}
         >
           {[
-            { label: "Employee PF", value: closingEmployee, color: THEME.accent, bg: "rgba(99,102,241,0.07)", border: "rgba(99,102,241,0.22)" },
-            { label: "Employer PF", value: closingEmployer, color: "#0ea5e9", bg: "rgba(14,165,233,0.07)", border: "rgba(14,165,233,0.22)" },
-            { label: "EPS (Pension)", value: closingPension, color: THEME.gold, bg: `rgba(234,179,8,0.07)`, border: `rgba(234,179,8,0.22)` },
+            {
+              label: "Employee PF",
+              value: closingEmployee,
+              color: THEME.accent,
+              bg: "rgba(99,102,241,0.07)",
+              border: "rgba(99,102,241,0.22)",
+            },
+            {
+              label: "Employer PF",
+              value: closingEmployer,
+              color: "#0ea5e9",
+              bg: "rgba(14,165,233,0.07)",
+              border: "rgba(14,165,233,0.22)",
+            },
+            {
+              label: "EPS (Pension)",
+              value: closingPension,
+              color: THEME.gold,
+              bg: `rgba(234,179,8,0.07)`,
+              border: `rgba(234,179,8,0.22)`,
+            },
           ].map(({ label, value, color, bg, border }) => (
-            <div key={label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${border}`, background: bg }}>
-              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>
+            <div
+              key={label}
+              style={{
+                padding: "9px 12px",
+                borderRadius: 10,
+                border: `1px solid ${border}`,
+                background: bg,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 9,
+                  color: THEME.muted,
+                  fontWeight: 700,
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em",
+                  marginBottom: 3,
+                }}
+              >
                 {label}
               </div>
               <div style={{ fontSize: 13, fontWeight: 800, color }}>
@@ -6379,7 +7372,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               const estTransIn = estTxs
                 .filter((x) => x.type === "transfer_in")
                 .reduce((s, x) => s + Number(x.amount || 0), 0);
-              const estClosing = estEmpC + estErC + estPenC + estIntEmp + estIntEr + estPenInt + estTransIn;
+              const estClosing =
+                estEmpC + estErC + estPenC + estIntEmp + estIntEr + estPenInt + estTransIn;
               const estHasTxs = estTxs.length > 0;
 
               /* transfer-in already recorded for this establishment */
@@ -6523,15 +7517,62 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
                     {/* per-establishment closing balance (only if transactions tagged to this est) */}
                     {estHasTxs && (
-                      <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
+                      <div
+                        style={{
+                          marginTop: 10,
+                          display: "grid",
+                          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                          gap: 6,
+                        }}
+                      >
                         {[
-                          { label: "Emp PF",  value: estEmpC + estIntEmp, color: THEME.accent, bg: "rgba(99,102,241,0.07)",  border: "rgba(99,102,241,0.2)" },
-                          { label: "Er PF",   value: estErC + estIntEr,   color: "#0ea5e9",    bg: "rgba(14,165,233,0.07)",  border: "rgba(14,165,233,0.2)" },
-                          { label: "Pension", value: estPenC + estPenInt,  color: THEME.gold,   bg: "rgba(234,179,8,0.07)",   border: "rgba(234,179,8,0.2)" },
+                          {
+                            label: "Emp PF",
+                            value: estEmpC + estIntEmp,
+                            color: THEME.accent,
+                            bg: "rgba(99,102,241,0.07)",
+                            border: "rgba(99,102,241,0.2)",
+                          },
+                          {
+                            label: "Er PF",
+                            value: estErC + estIntEr,
+                            color: "#0ea5e9",
+                            bg: "rgba(14,165,233,0.07)",
+                            border: "rgba(14,165,233,0.2)",
+                          },
+                          {
+                            label: "Pension",
+                            value: estPenC + estPenInt,
+                            color: THEME.gold,
+                            bg: "rgba(234,179,8,0.07)",
+                            border: "rgba(234,179,8,0.2)",
+                          },
                         ].map(({ label, value, color, bg, border }) => (
-                          <div key={label} style={{ padding: "7px 10px", borderRadius: 8, background: bg, border: `1px solid ${border}`, textAlign: "center" as const }}>
-                            <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>{label}</div>
-                            <div style={{ fontSize: 11, fontWeight: 800, color }}><Prv>{fmtINRFull(value)}</Prv></div>
+                          <div
+                            key={label}
+                            style={{
+                              padding: "7px 10px",
+                              borderRadius: 8,
+                              background: bg,
+                              border: `1px solid ${border}`,
+                              textAlign: "center" as const,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 8,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                textTransform: "uppercase" as const,
+                                letterSpacing: "0.06em",
+                                marginBottom: 2,
+                              }}
+                            >
+                              {label}
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 800, color }}>
+                              <Prv>{fmtINRFull(value)}</Prv>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -6623,13 +7664,39 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
       {/* ── Interest / Withdrawal Stats ── */}
       {stats.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 16 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
           {stats.map((s) => (
-            <div key={s.label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${s.color}33`, background: `${s.color}0d` }}>
-              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>
+            <div
+              key={s.label}
+              style={{
+                padding: "9px 12px",
+                borderRadius: 10,
+                border: `1px solid ${s.color}33`,
+                background: `${s.color}0d`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 9,
+                  color: THEME.muted,
+                  fontWeight: 700,
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em",
+                  marginBottom: 3,
+                }}
+              >
                 {s.label}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{fmtINRFull(s.value)}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>
+                {fmtINRFull(s.value)}
+              </div>
             </div>
           ))}
         </div>
@@ -7329,7 +8396,8 @@ function EPFEmptyState({ onAdd }: any) {
       style={{
         padding: "54px 36px",
         textAlign: "center" as const,
-        background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
         border: `1.5px solid ${THEME.line}`,
         borderRadius: 20,
         boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
@@ -7449,39 +8517,67 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 /* ── Bank / Institution Logo ─────────────────────────────────────────── */
 const BANK_LOGO_DOMAINS: Record<string, string> = {
   // Public sector banks
-  "state bank": "sbi.co.in", "sbi": "sbi.co.in",
+  "state bank": "sbi.co.in",
+  sbi: "sbi.co.in",
   // Private banks
-  "hdfc": "hdfcbank.com", "icici": "icicibank.com", "axis": "axisbank.com",
-  "kotak": "kotakmahindrabank.com", "yes bank": "yesbank.in", "yes ": "yesbank.in",
-  "indusind": "indusind.com", "rbl": "rblbank.com", "federal": "federalbank.co.in",
-  "idfc": "idfcfirstbank.com", "bandhan": "bandhanbank.com",
-  "au bank": "aubank.in", "au small": "aubank.in",
-  "south indian": "southindianbank.com", "karnataka bank": "karnatakabank.com",
-  "saraswat": "saraswatbank.com", "jammu": "jkbank.com",
+  hdfc: "hdfcbank.com",
+  icici: "icicibank.com",
+  axis: "axisbank.com",
+  kotak: "kotakmahindrabank.com",
+  "yes bank": "yesbank.in",
+  "yes ": "yesbank.in",
+  indusind: "indusind.com",
+  rbl: "rblbank.com",
+  federal: "federalbank.co.in",
+  idfc: "idfcfirstbank.com",
+  bandhan: "bandhanbank.com",
+  "au bank": "aubank.in",
+  "au small": "aubank.in",
+  "south indian": "southindianbank.com",
+  "karnataka bank": "karnatakabank.com",
+  saraswat: "saraswatbank.com",
+  jammu: "jkbank.com",
   // Public sector banks (more)
-  "bank of baroda": "bankofbaroda.in", "bob": "bankofbaroda.in",
-  "canara": "canarabank.in", "punjab national": "pnbindia.in", "pnb": "pnbindia.in",
-  "bank of india": "bankofindia.co.in", "union bank": "unionbankofindia.co.in",
-  "idbi": "idbi.co.in", "central bank": "centralbankofindia.co.in",
-  "indian bank": "indianbank.in", "uco bank": "ucobank.in",
+  "bank of baroda": "bankofbaroda.in",
+  bob: "bankofbaroda.in",
+  canara: "canarabank.in",
+  "punjab national": "pnbindia.in",
+  pnb: "pnbindia.in",
+  "bank of india": "bankofindia.co.in",
+  "union bank": "unionbankofindia.co.in",
+  idbi: "idbi.co.in",
+  "central bank": "centralbankofindia.co.in",
+  "indian bank": "indianbank.in",
+  "uco bank": "ucobank.in",
   // Post office / Govt savings
-  "post office": "indiapost.gov.in", "india post": "indiapost.gov.in",
+  "post office": "indiapost.gov.in",
+  "india post": "indiapost.gov.in",
   // Insurance
-  "lic": "licindia.in",
+  lic: "licindia.in",
   // Government / RBI (bonds)
-  "rbi": "rbi.org.in", "reserve bank": "rbi.org.in",
-  "government of india": "india.gov.in", "govt of india": "india.gov.in",
-  "nabard": "nabard.org", "nhai": "nhai.gov.in",
+  rbi: "rbi.org.in",
+  "reserve bank": "rbi.org.in",
+  "government of india": "india.gov.in",
+  "govt of india": "india.gov.in",
+  nabard: "nabard.org",
+  nhai: "nhai.gov.in",
   // NPS PFMs (use AMC domains)
-  "uti": "utimf.com", "aditya birla": "adityabirlacapital.com",
-  "dsp": "dspim.com", "tata": "tatamutualfund.com", "max life": "maxlifeinsurance.com",
+  uti: "utimf.com",
+  "aditya birla": "adityabirlacapital.com",
+  dsp: "dspim.com",
+  tata: "tatamutualfund.com",
+  "max life": "maxlifeinsurance.com",
   // EPFO
-  "epfo": "epfindia.gov.in", "employees provident": "epfindia.gov.in",
+  epfo: "epfindia.gov.in",
+  "employees provident": "epfindia.gov.in",
   // NBFCs / Bond issuers
-  "iifl": "iifl.com",
-  "arman financial": "armanindia.com", "arman india": "armanindia.com",
-  "muthoottu mini": "muthoottumini.com", "muthoottu": "muthoottumini.com",
-  "muthoot finance": "muthootfin.com", "muthoot fin": "muthootfin.com",
+  iifl: "iifl.com",
+  "arman financial": "armanindia.com",
+  "arman india": "armanindia.com",
+  "muthoottu mini": "muthoottumini.com",
+  muthoottu: "muthoottumini.com",
+  "muthoot finance": "muthootfin.com",
+  "muthoot fin": "muthootfin.com",
 };
 
 function getBankDomain(name: string): string {
@@ -7534,23 +8630,33 @@ const BankLogo = ({
       .filter((w: string) => w.length > 1)
       .slice(0, 2)
       .map((w: string) => w[0].toUpperCase())
-      .join("") || (name || "?")[0]?.toUpperCase() || "?";
+      .join("") ||
+    (name || "?")[0]?.toUpperCase() ||
+    "?";
 
   if (domain && fallbackLevel < 2 && imgSrc) {
     return (
       <div
         style={{
-          width: size, height: size,
+          width: size,
+          height: size,
           borderRadius: Math.round(size * 0.25),
           background: "var(--surface-0)",
           border: `1px solid ${THEME.line}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          overflow: "hidden", flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          flexShrink: 0,
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}
       >
-        <img src={imgSrc} alt={name} onError={handleError}
-          style={{ width: "80%", height: "80%", objectFit: "contain" }} />
+        <img
+          src={imgSrc}
+          alt={name}
+          onError={handleError}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }}
+        />
       </div>
     );
   }
@@ -7558,17 +8664,18 @@ const BankLogo = ({
   return (
     <div
       style={{
-        width: size, height: size,
+        width: size,
+        height: size,
         borderRadius: Math.round(size * 0.25),
         background: `${color}18`,
         border: `1px solid ${color}30`,
-        display: "flex", alignItems: "center", justifyContent: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: Math.round(size / 2.8), fontWeight: 800, color }}>
-        {initials}
-      </span>
+      <span style={{ fontSize: Math.round(size / 2.8), fontWeight: 800, color }}>{initials}</span>
     </div>
   );
 };
@@ -7576,80 +8683,80 @@ const BankLogo = ({
 /* ── MF Logo ──────────────────────────────────────────────────────────── */
 const MF_LOGO_DOMAINS: Record<string, string> = {
   // SBI
-  "sbi": "sbimf.com",
+  sbi: "sbimf.com",
   // HDFC
-  "hdfc": "hdfcfund.com",
+  hdfc: "hdfcfund.com",
   // ICICI
-  "icici": "icicipruamc.com",
+  icici: "icicipruamc.com",
   // Nippon / Reliance
-  "nippon": "nipponindiaim.com",
-  "reliance": "nipponindiaim.com",
+  nippon: "nipponindiaim.com",
+  reliance: "nipponindiaim.com",
   // Axis
-  "axis": "axismf.com",
+  axis: "axismf.com",
   // Mirae
-  "mirae": "miraeasset.co.in",
+  mirae: "miraeasset.co.in",
   // Kotak
-  "kotak": "kotakmf.com",
+  kotak: "kotakmf.com",
   // DSP
-  "dsp": "dspim.com",
+  dsp: "dspim.com",
   // Aditya Birla / ABSL
   "aditya birla": "adityabirlacapital.com",
-  "absl": "adityabirlacapital.com",
-  "birla": "adityabirlacapital.com",
+  absl: "adityabirlacapital.com",
+  birla: "adityabirlacapital.com",
   // Parag Parikh / PPFAS
   "parag parikh": "ppfas.com",
-  "ppfas": "ppfas.com",
+  ppfas: "ppfas.com",
   // UTI
-  "uti": "utimf.com",
+  uti: "utimf.com",
   // Tata
-  "tata": "tatamutualfund.com",
+  tata: "tatamutualfund.com",
   // Motilal Oswal
-  "motilal": "motilaloswalmf.com",
+  motilal: "motilaloswalmf.com",
   // Quant
-  "quant": "quantmutual.com",
+  quant: "quantmutual.com",
   // Sundaram
-  "sundaram": "sundarammf.com",
+  sundaram: "sundarammf.com",
   // Franklin / Templeton
-  "franklin": "franklintempletonindia.com",
-  "templeton": "franklintempletonindia.com",
+  franklin: "franklintempletonindia.com",
+  templeton: "franklintempletonindia.com",
   // PGIM
-  "pgim": "pgimindiamf.com",
+  pgim: "pgimindiamf.com",
   // Edelweiss
-  "edelweiss": "edelweissmf.com",
+  edelweiss: "edelweissmf.com",
   // Canara Robeco
   "canara robeco": "canararobeco.com",
-  "canara": "canararobeco.com",
+  canara: "canararobeco.com",
   // Invesco
-  "invesco": "invescomutualfund.com",
+  invesco: "invescomutualfund.com",
   // LIC
-  "lic": "licmf.com",
+  lic: "licmf.com",
   // Navi
-  "navi": "navifunds.com",
+  navi: "navifunds.com",
   // IDFC / Bandhan
-  "idfc": "bandhanmf.com",
-  "bandhan": "bandhanmf.com",
+  idfc: "bandhanmf.com",
+  bandhan: "bandhanmf.com",
   // WhiteOak
-  "whiteoak": "whiteoakam.com",
+  whiteoak: "whiteoakam.com",
   "white oak": "whiteoakam.com",
   // Mahindra
-  "mahindra": "mahindramanulife.com",
+  mahindra: "mahindramanulife.com",
   // Samco
-  "samco": "samcomf.com",
+  samco: "samcomf.com",
   // ITI
-  "iti": "itimf.com",
+  iti: "itimf.com",
   // JM
   "jm financial": "jmfinancialservices.in",
   // HSBC
-  "hsbc": "assetmanagement.hsbc.co.in",
+  hsbc: "assetmanagement.hsbc.co.in",
   // L&T (now HSBC)
   "l&t": "assetmanagement.hsbc.co.in",
   // Groww
-  "groww": "groww.in",
+  groww: "groww.in",
   // Zerodha / Coin
-  "zerodha": "zerodha.com",
-  "coin": "coin.zerodha.com",
+  zerodha: "zerodha.com",
+  coin: "coin.zerodha.com",
   // Trust
-  "trust": "trustmf.com",
+  trust: "trustmf.com",
 };
 
 function getMFDomain(fundName: string): string {
@@ -7757,11 +8864,15 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
   const [mfSortBy, setMfSortBy] = useState<"name" | "value" | "pnl" | "units">(() => {
     return (localStorage.getItem("finance_mf_sort") as any) || "value";
   });
-  useEffect(() => { localStorage.setItem("finance_mf_sort", mfSortBy); }, [mfSortBy]);
+  useEffect(() => {
+    localStorage.setItem("finance_mf_sort", mfSortBy);
+  }, [mfSortBy]);
   const [mfGroupBy, setMfGroupBy] = useState<"none" | "category" | "type">(() => {
     return (localStorage.getItem("finance_mf_group") as any) || "none";
   });
-  useEffect(() => { localStorage.setItem("finance_mf_group", mfGroupBy); }, [mfGroupBy]);
+  useEffect(() => {
+    localStorage.setItem("finance_mf_group", mfGroupBy);
+  }, [mfGroupBy]);
   const [lotExpandedGroups, setLotExpandedGroups] = useState<Set<string>>(new Set());
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showCasImport, setShowCasImport] = useState(false);
@@ -7769,21 +8880,24 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
 
   const handleExport = () => {
     if (!items || items.length === 0) return;
-    const header = "Fund Name,Category,Type,Folio Number,Fund Code,Buy Date,Buy NAV,Units,Current NAV,Invested,Owner\n";
-    const rows = items.map((m: any) => {
-      const name = `"${(m.name || m.scheme || "").replace(/"/g, '""')}"`;
-      const cat = `"${(m.category || m.type || "Equity").replace(/"/g, '""')}"`;
-      const type = `"${(m.mfType || "Direct Growth").replace(/"/g, '""')}"`;
-      const folio = `"${(m.folioNumber || "").replace(/"/g, '""')}"`;
-      const code = `"${(m.mfCode || "").replace(/"/g, '""')}"`;
-      const bDate = `"${m.buyDate || ""}"`;
-      const bNav = `"${m.buyNav || ""}"`;
-      const units = `"${m.units || ""}"`;
-      const cNav = `"${m.currentNav || ""}"`;
-      const inv = `"${m.invested || ""}"`;
-      const owner = `"${m.owner || "self"}"`;
-      return [name, cat, type, folio, code, bDate, bNav, units, cNav, inv, owner].join(",");
-    }).join("\n");
+    const header =
+      "Fund Name,Category,Type,Folio Number,Fund Code,Buy Date,Buy NAV,Units,Current NAV,Invested,Owner\n";
+    const rows = items
+      .map((m: any) => {
+        const name = `"${(m.name || m.scheme || "").replace(/"/g, '""')}"`;
+        const cat = `"${(m.category || m.type || "Equity").replace(/"/g, '""')}"`;
+        const type = `"${(m.mfType || "Direct Growth").replace(/"/g, '""')}"`;
+        const folio = `"${(m.folioNumber || "").replace(/"/g, '""')}"`;
+        const code = `"${(m.mfCode || "").replace(/"/g, '""')}"`;
+        const bDate = `"${m.buyDate || ""}"`;
+        const bNav = `"${m.buyNav || ""}"`;
+        const units = `"${m.units || ""}"`;
+        const cNav = `"${m.currentNav || ""}"`;
+        const inv = `"${m.invested || ""}"`;
+        const owner = `"${m.owner || "self"}"`;
+        return [name, cat, type, folio, code, bDate, bNav, units, cNav, inv, owner].join(",");
+      })
+      .join("\n");
 
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -7803,7 +8917,8 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
   const toggleLotExpand = (gKey: string) => {
     setLotExpandedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(gKey)) next.delete(gKey); else next.add(gKey);
+      if (next.has(gKey)) next.delete(gKey);
+      else next.add(gKey);
       return next;
     });
   };
@@ -7891,7 +9006,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
         if (!m) return;
         const units = Number(m.units) || 0;
         const currentNav = Number(m.currentNav) || 0;
-        const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
+        const invested = Number(m.invested || m.investedValue) || Number(m.buyNav || 0) * units;
         if (units > 0 && m.buyDate) {
           cashFlows.push({
             date: m.buyDate,
@@ -7999,8 +9114,12 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
               },
               {
                 label: "Overall XIRR",
-                value: overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—",
-                color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust,
+                value:
+                  overallXirr !== null
+                    ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%`
+                    : "—",
+                color:
+                  overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust,
                 Icon: TrendingUp,
               },
             ].map(({ label, value, color, Icon }) => (
@@ -8008,7 +9127,8 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                 key={label}
                 className="card-lift"
                 style={{
-                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  background:
+                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
                   border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
                   borderRadius: 16,
@@ -8016,7 +9136,8 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                   display: "flex",
                   flexDirection: "column",
                   gap: 10,
-                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                  boxShadow:
+                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
@@ -8067,7 +9188,16 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
           </div>
 
           {/* Sort + Refresh toolbar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 12,
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <div
                 style={{
@@ -8081,13 +9211,29 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                   height: 36,
                 }}
               >
-                <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   Group by:
                 </span>
                 <select
                   value={mfGroupBy}
                   onChange={(e) => setMfGroupBy(e.target.value as any)}
-                  style={{ background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none", cursor: "pointer" }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    outline: "none",
+                    cursor: "pointer",
+                  }}
                 >
                   <option value="none">None</option>
                   <option value="category">Category</option>
@@ -8106,13 +9252,29 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                   height: 36,
                 }}
               >
-                <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   Sort by:
                 </span>
                 <select
                   value={mfSortBy}
                   onChange={(e) => setMfSortBy(e.target.value as any)}
-                  style={{ background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none", cursor: "pointer" }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    outline: "none",
+                    cursor: "pointer",
+                  }}
                 >
                   <option value="value">Highest Value</option>
                   <option value="pnl">Best Returns (%)</option>
@@ -8196,29 +9358,71 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
 
           {/* Grouped by fund name + folio — table layout like stocks */}
           {(() => {
-            const mfTh: React.CSSProperties = { textAlign: "left", padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: THEME.muted, fontWeight: 700, borderBottom: `1.5px solid ${THEME.line}`, whiteSpace: "nowrap" };
-            const mfTd: React.CSSProperties = { padding: "12px 10px", verticalAlign: "middle", fontSize: 13, borderBottom: `1px solid ${THEME.line}`, fontVariantNumeric: "tabular-nums" };
+            const mfTh: React.CSSProperties = {
+              textAlign: "left",
+              padding: "11px 10px",
+              fontSize: 10,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: THEME.muted,
+              fontWeight: 700,
+              borderBottom: `1.5px solid ${THEME.line}`,
+              whiteSpace: "nowrap",
+            };
+            const mfTd: React.CSSProperties = {
+              padding: "12px 10px",
+              verticalAlign: "middle",
+              fontSize: 13,
+              borderBottom: `1px solid ${THEME.line}`,
+              fontVariantNumeric: "tabular-nums",
+            };
 
-            const folioGroups: Record<string, { fundName: string; folio: string; category: string; mfType: string; items: any[] }> = {};
+            const folioGroups: Record<
+              string,
+              { fundName: string; folio: string; category: string; mfType: string; items: any[] }
+            > = {};
             items.forEach((m: any) => {
               const name = (m.name || m.scheme || "").trim();
               const folio = (m.folioNumber || "").trim();
               const cat = (m.category || m.type || "Equity").trim();
               const mft = (m.mfType || "Direct Growth").trim();
               const key = `${name}|||${folio}|||${cat}|||${mft}`;
-              if (!folioGroups[key]) folioGroups[key] = { fundName: name, folio, category: cat, mfType: mft, items: [] };
+              if (!folioGroups[key])
+                folioGroups[key] = { fundName: name, folio, category: cat, mfType: mft, items: [] };
               folioGroups[key].items.push(m);
             });
-            const grpVal = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
-            const grpInvFn = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
-            const grpUnits = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
+            const grpVal = (g: any) =>
+              g.items.reduce(
+                (s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0),
+                0
+              );
+            const grpInvFn = (g: any) =>
+              g.items.reduce(
+                (s: number, m: any) =>
+                  s +
+                  (Number(m.invested || m.investedValue) ||
+                    (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)),
+                0
+              );
+            const grpUnits = (g: any) =>
+              g.items.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
 
             const sortedKeys = Object.keys(folioGroups).sort((a, b) => {
               const ga = folioGroups[a];
               const gb = folioGroups[b];
-              if (mfSortBy === "name") { const nc = ga.fundName.localeCompare(gb.fundName); return nc !== 0 ? nc : ga.folio.localeCompare(gb.folio); }
+              if (mfSortBy === "name") {
+                const nc = ga.fundName.localeCompare(gb.fundName);
+                return nc !== 0 ? nc : ga.folio.localeCompare(gb.folio);
+              }
               if (mfSortBy === "value") return grpVal(gb) - grpVal(ga);
-              if (mfSortBy === "pnl") { const invA = grpInvFn(ga); const invB = grpInvFn(gb); return (invB > 0 ? ((grpVal(gb) - invB) / invB) * 100 : 0) - (invA > 0 ? ((grpVal(ga) - invA) / invA) * 100 : 0); }
+              if (mfSortBy === "pnl") {
+                const invA = grpInvFn(ga);
+                const invB = grpInvFn(gb);
+                return (
+                  (invB > 0 ? ((grpVal(gb) - invB) / invB) * 100 : 0) -
+                  (invA > 0 ? ((grpVal(ga) - invA) / invA) * 100 : 0)
+                );
+              }
               if (mfSortBy === "units") return grpUnits(gb) - grpUnits(ga);
               return 0;
             });
@@ -8229,10 +9433,12 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
               const bucketOrder: string[] = [];
               sortedKeys.forEach((gKey) => {
                 const fg = folioGroups[gKey];
-                const bucket = mfGroupBy === "category"
-                  ? (fg.category || "Other")
-                  : (fg.mfType || "Other");
-                if (!buckets[bucket]) { buckets[bucket] = []; bucketOrder.push(bucket); }
+                const bucket =
+                  mfGroupBy === "category" ? fg.category || "Other" : fg.mfType || "Other";
+                if (!buckets[bucket]) {
+                  buckets[bucket] = [];
+                  bucketOrder.push(bucket);
+                }
                 buckets[bucket].push(gKey);
               });
               bucketOrder.sort((a, b) => {
@@ -8244,14 +9450,30 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
             })();
 
             const categoryColors: Record<string, string> = {
-              Equity: "#6366f1", Debt: "#f59e0b", Hybrid: "#10b981", ELSS: "#8b5cf6",
-              Index: "#0ea5e9", Liquid: "#64748b", International: "#ec4899",
-              "Direct Growth": "#6366f1", "Direct IDCW": "#f59e0b",
-              "Regular Growth": "#10b981", "Regular IDCW": "#ec4899",
+              Equity: "#6366f1",
+              Debt: "#f59e0b",
+              Hybrid: "#10b981",
+              ELSS: "#8b5cf6",
+              Index: "#0ea5e9",
+              Liquid: "#64748b",
+              International: "#ec4899",
+              "Direct Growth": "#6366f1",
+              "Direct IDCW": "#f59e0b",
+              "Regular Growth": "#10b981",
+              "Regular IDCW": "#ec4899",
             };
 
             return (
-              <div style={{ background: "var(--t-card-bg)", borderRadius: 16, border: `1px solid ${THEME.line}`, overflowX: "auto", boxShadow: "var(--t-card-shadow)", marginBottom: 20 }}>
+              <div
+                style={{
+                  background: "var(--t-card-bg)",
+                  borderRadius: 16,
+                  border: `1px solid ${THEME.line}`,
+                  overflowX: "auto",
+                  boxShadow: "var(--t-card-shadow)",
+                  marginBottom: 20,
+                }}
+              >
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: "var(--surface-0)" }}>
@@ -8261,15 +9483,24 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                       <th style={{ ...mfTh, textAlign: "right" }}>Current NAV</th>
                       <th style={{ ...mfTh, textAlign: "right" }}>Invested</th>
                       <th style={{ ...mfTh, textAlign: "right" }}>Current Value</th>
-                      <th style={{ ...mfTh, textAlign: "right", paddingRight: 20 }}>Total Return</th>
+                      <th style={{ ...mfTh, textAlign: "right", paddingRight: 20 }}>
+                        Total Return
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {sectionGroups.map((section) => {
-                      const sectionInvested = section.keys.reduce((s, k) => s + grpInvFn(folioGroups[k]), 0);
-                      const sectionValue = section.keys.reduce((s, k) => s + grpVal(folioGroups[k]), 0);
+                      const sectionInvested = section.keys.reduce(
+                        (s, k) => s + grpInvFn(folioGroups[k]),
+                        0
+                      );
+                      const sectionValue = section.keys.reduce(
+                        (s, k) => s + grpVal(folioGroups[k]),
+                        0
+                      );
                       const sectionPnl = sectionValue - sectionInvested;
-                      const sectionPnlPct = sectionInvested > 0 ? (sectionPnl / sectionInvested) * 100 : 0;
+                      const sectionPnlPct =
+                        sectionInvested > 0 ? (sectionPnl / sectionInvested) * 100 : 0;
                       const dotColor = categoryColors[section.label] || THEME.accent;
                       return (
                         <React.Fragment key={section.label || "__flat__"}>
@@ -8282,25 +9513,71 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                                   borderBottom: `2px solid ${dotColor}30`,
                                 }}
                               >
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    flexWrap: "wrap",
+                                    gap: 8,
+                                  }}
+                                >
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: dotColor, display: "inline-block", flexShrink: 0 }} />
-                                    <span style={{ fontSize: 13, fontWeight: 900, color: THEME.ink, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                    <span
+                                      style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: "50%",
+                                        background: dotColor,
+                                        display: "inline-block",
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <span
+                                      style={{
+                                        fontSize: 13,
+                                        fontWeight: 900,
+                                        color: THEME.ink,
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.04em",
+                                      }}
+                                    >
                                       {section.label}
                                     </span>
-                                    <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                                      ({section.keys.length} {section.keys.length === 1 ? "fund" : "funds"})
+                                    <span
+                                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}
+                                    >
+                                      ({section.keys.length}{" "}
+                                      {section.keys.length === 1 ? "fund" : "funds"})
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 12 }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 16,
+                                      fontSize: 12,
+                                    }}
+                                  >
                                     <span style={{ color: THEME.muted, fontWeight: 600 }}>
-                                      Invested: <b style={{ color: THEME.ink }}>{fmtINRFull(sectionInvested)}</b>
+                                      Invested:{" "}
+                                      <b style={{ color: THEME.ink }}>
+                                        {fmtINRFull(sectionInvested)}
+                                      </b>
                                     </span>
                                     <span style={{ color: THEME.muted, fontWeight: 600 }}>
-                                      Value: <b style={{ color: THEME.ink }}>{fmtINRFull(sectionValue)}</b>
+                                      Value:{" "}
+                                      <b style={{ color: THEME.ink }}>{fmtINRFull(sectionValue)}</b>
                                     </span>
-                                    <span style={{ fontWeight: 800, color: sectionPnl >= 0 ? THEME.sage : THEME.rust }}>
-                                      {sectionPnl >= 0 ? "+" : ""}{fmtINRFull(sectionPnl)} ({sectionPnlPct >= 0 ? "+" : ""}{sectionPnlPct.toFixed(2)}%)
+                                    <span
+                                      style={{
+                                        fontWeight: 800,
+                                        color: sectionPnl >= 0 ? THEME.sage : THEME.rust,
+                                      }}
+                                    >
+                                      {sectionPnl >= 0 ? "+" : ""}
+                                      {fmtINRFull(sectionPnl)} ({sectionPnlPct >= 0 ? "+" : ""}
+                                      {sectionPnlPct.toFixed(2)}%)
                                     </span>
                                   </div>
                                 </div>
@@ -8308,267 +9585,811 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                             </tr>
                           )}
                           {section.keys.map((gKey) => {
-                      const grp = folioGroups[gKey];
-                      const groupItems = grp.items;
-                      const hasMultiple = groupItems.length > 1;
-                      const totalUnits = groupItems.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
-                      const grpInvested = groupItems.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
-                      const grpCurrent = groupItems.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
-                      const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
-                      const grpPnlPct = grpInvested > 0 && grpCurrent > 0 ? (grpPnl / grpInvested) * 100 : 0;
-                      const displayName = grp.fundName || "Unnamed Fund";
-                      const displayFolio = grp.folio;
-                      const isExpanded = lotExpandedGroups.has(gKey);
-                      const firstWithCode = groupItems.find((m: any) => m.mfCode);
-                      const avgNav = totalUnits > 0 ? grpInvested / totalUnits : 0;
-                      const currentNav = Number(groupItems[0]?.currentNav) || 0;
+                            const grp = folioGroups[gKey];
+                            const groupItems = grp.items;
+                            const hasMultiple = groupItems.length > 1;
+                            const totalUnits = groupItems.reduce(
+                              (s: number, m: any) => s + (Number(m.units) || 0),
+                              0
+                            );
+                            const grpInvested = groupItems.reduce(
+                              (s: number, m: any) =>
+                                s +
+                                (Number(m.invested || m.investedValue) ||
+                                  (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)),
+                              0
+                            );
+                            const grpCurrent = groupItems.reduce(
+                              (s: number, m: any) =>
+                                s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0),
+                              0
+                            );
+                            const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
+                            const grpPnlPct =
+                              grpInvested > 0 && grpCurrent > 0 ? (grpPnl / grpInvested) * 100 : 0;
+                            const displayName = grp.fundName || "Unnamed Fund";
+                            const displayFolio = grp.folio;
+                            const isExpanded = lotExpandedGroups.has(gKey);
+                            const firstWithCode = groupItems.find((m: any) => m.mfCode);
+                            const avgNav = totalUnits > 0 ? grpInvested / totalUnits : 0;
+                            const currentNav = Number(groupItems[0]?.currentNav) || 0;
 
-                      const grpXirr = (() => {
-                        try {
-                          const cashFlows: any[] = [];
-                          const safeGroupItems = Array.isArray(groupItems) ? groupItems : [];
-                          const safeMfSells = Array.isArray(mfSells) ? mfSells : [];
+                            const grpXirr = (() => {
+                              try {
+                                const cashFlows: any[] = [];
+                                const safeGroupItems = Array.isArray(groupItems) ? groupItems : [];
+                                const safeMfSells = Array.isArray(mfSells) ? mfSells : [];
 
-                          safeGroupItems.forEach((m: any) => {
-                            if (!m) return;
-                            const units = Number(m.units) || 0;
-                            const currentNavVal = Number(m.currentNav) || 0;
-                            const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
-                            if (units > 0 && m.buyDate) {
-                              cashFlows.push({ date: m.buyDate, amount: -invested });
-                              cashFlows.push({ date: today(), amount: units * currentNavVal });
-                            }
-                          });
-                          const sells = safeMfSells.filter((s: any) => s && (s.scheme || "").trim().toLowerCase() === displayName.trim().toLowerCase());
-                          sells.forEach((s: any) => {
-                            const units = Number(s.units) || 0;
-                            const buyNav = Number(s.buyNav) || 0;
-                            const sellNav = Number(s.sellNav) || 0;
-                            const buyDate = s.buyDate;
-                            const sellDate = s.sellDate;
-                            if (units > 0 && sellDate) {
-                              if (buyDate) cashFlows.push({ date: buyDate, amount: -(units * buyNav) });
-                              cashFlows.push({ date: sellDate, amount: units * sellNav });
-                            }
-                          });
-                          return calcXIRR(cashFlows);
-                        } catch (e) {
-                          console.error("Error calculating group XIRR:", e);
-                          return null;
-                        }
-                      })();
+                                safeGroupItems.forEach((m: any) => {
+                                  if (!m) return;
+                                  const units = Number(m.units) || 0;
+                                  const currentNavVal = Number(m.currentNav) || 0;
+                                  const invested =
+                                    Number(m.invested || m.investedValue) ||
+                                    Number(m.buyNav || 0) * units;
+                                  if (units > 0 && m.buyDate) {
+                                    cashFlows.push({ date: m.buyDate, amount: -invested });
+                                    cashFlows.push({
+                                      date: today(),
+                                      amount: units * currentNavVal,
+                                    });
+                                  }
+                                });
+                                const sells = safeMfSells.filter(
+                                  (s: any) =>
+                                    s &&
+                                    (s.scheme || "").trim().toLowerCase() ===
+                                      displayName.trim().toLowerCase()
+                                );
+                                sells.forEach((s: any) => {
+                                  const units = Number(s.units) || 0;
+                                  const buyNav = Number(s.buyNav) || 0;
+                                  const sellNav = Number(s.sellNav) || 0;
+                                  const buyDate = s.buyDate;
+                                  const sellDate = s.sellDate;
+                                  if (units > 0 && sellDate) {
+                                    if (buyDate)
+                                      cashFlows.push({ date: buyDate, amount: -(units * buyNav) });
+                                    cashFlows.push({ date: sellDate, amount: units * sellNav });
+                                  }
+                                });
+                                return calcXIRR(cashFlows);
+                              } catch (e) {
+                                console.error("Error calculating group XIRR:", e);
+                                return null;
+                              }
+                            })();
 
-                      return (
-                        <React.Fragment key={gKey}>
-                          {/* Main row */}
-                          <tr
-                            onClick={() => toggleLotExpand(gKey)}
-                            style={{ cursor: "pointer", background: isExpanded ? `${THEME.accent}09` : "transparent", transition: "background 0.15s ease", borderBottom: `1px solid ${THEME.line}` }}
-                          >
-                            <td style={{ ...mfTd, paddingLeft: 20 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                <span style={{ color: isExpanded ? THEME.accent : THEME.muted, display: "inline-flex", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s cubic-bezier(0.16,1,0.3,1)" }}>
-                                  <ChevronDown size={16} />
-                                </span>
-                                <MFLogo fundName={displayName} size={36} />
-                                <div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{displayName}</span>
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
-                                    {displayFolio && (
-                                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Folio: {displayFolio}</span>
-                                    )}
-                                    {grp.category && (
-                                      <span style={{ fontSize: 9, background: `${categoryColors[grp.category] || THEME.accent}15`, color: categoryColors[grp.category] || THEME.accent, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${categoryColors[grp.category] || THEME.accent}30` }}>
-                                        {grp.category}
+                            return (
+                              <React.Fragment key={gKey}>
+                                {/* Main row */}
+                                <tr
+                                  onClick={() => toggleLotExpand(gKey)}
+                                  style={{
+                                    cursor: "pointer",
+                                    background: isExpanded ? `${THEME.accent}09` : "transparent",
+                                    transition: "background 0.15s ease",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                  }}
+                                >
+                                  <td style={{ ...mfTd, paddingLeft: 20 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                      <span
+                                        style={{
+                                          color: isExpanded ? THEME.accent : THEME.muted,
+                                          display: "inline-flex",
+                                          transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                                          transition: "transform 0.25s cubic-bezier(0.16,1,0.3,1)",
+                                        }}
+                                      >
+                                        <ChevronDown size={16} />
                                       </span>
-                                    )}
-                                    {grp.mfType && (
-                                      <span style={{ fontSize: 9, background: `${THEME.line}30`, color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>
-                                        {grp.mfType}
-                                      </span>
-                                    )}
-                                    <span style={{ fontSize: 9, background: `${THEME.line}40`, color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>
-                                      {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 700 }}>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}</td>
-                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}>₹{avgNav.toFixed(2)}</td>
-                            <td style={{ ...mfTd, textAlign: "right" }}>
-                              <div style={{ fontWeight: 700, color: THEME.ink }}>{currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "—"}</div>
-                            </td>
-                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}><Prv>{fmtINRFull(grpInvested)}</Prv></td>
-                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 800 }}><Prv>{fmtINRFull(grpCurrent || grpInvested)}</Prv></td>
-                            <td style={{ ...mfTd, textAlign: "right", paddingRight: 20 }}>
-                              {grpCurrent > 0 ? (
-                                <>
-                                  <div style={{ fontWeight: 800, color: grpPnl >= 0 ? THEME.sage : THEME.rust }}>
-                                    {grpPnl >= 0 ? "+" : ""}{fmtINRFull(grpPnl)}
-                                  </div>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: grpPnlPct >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
-                                    {grpPnlPct >= 0 ? "▲" : "▼"}{Math.abs(grpPnlPct).toFixed(2)}%
-                                  </div>
-                                  {grpXirr !== null && (
-                                    <div style={{ fontSize: 10, fontWeight: 800, color: grpXirr >= 0 ? THEME.sage : THEME.rust, marginTop: 2 }}>
-                                      {grpXirr >= 0 ? "+" : ""}{grpXirr.toFixed(1)}% XIRR
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                <span style={{ color: THEME.muted }}>—</span>
-                              )}
-                            </td>
-                          </tr>
-
-                          {/* Expanded detail drawer */}
-                          {isExpanded && (
-                            <tr style={{ background: `${THEME.accent}08` }}>
-                              <td colSpan={7} style={{ padding: "20px 24px", borderBottom: `1px solid ${THEME.line}` }}>
-                                <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
-                                  {/* Left: Chart */}
-                                  {firstWithCode && (() => {
-                                    const cId = firstWithCode.id;
-                                    const meta = mfMeta[cId];
-                                    const chart = mfChartData[cId];
-                                    const navUp = meta?.navChange != null ? meta.navChange >= 0 : true;
-                                    if (!chart?.length && !meta) fetchMFData(cId, firstWithCode.mfCode);
-                                    return (
-                                      <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                        <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                          30-Day NAV Trend
+                                      <MFLogo fundName={displayName} size={36} />
+                                      <div>
+                                        <div
+                                          style={{ display: "flex", alignItems: "center", gap: 6 }}
+                                        >
+                                          <span
+                                            style={{
+                                              fontWeight: 800,
+                                              fontSize: 14,
+                                              color: THEME.ink,
+                                            }}
+                                          >
+                                            {displayName}
+                                          </span>
                                         </div>
-                                        <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px" }}>
-                                          {chart?.length ? (
-                                            <ResponsiveContainer width="100%" height={150}>
-                                              <AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                                                <defs>
-                                                  <linearGradient id={`mf-g-${cId}`} x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.35} />
-                                                    <stop offset="95%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.02} />
-                                                  </linearGradient>
-                                                </defs>
-                                                <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
-                                                <YAxis hide domain={["auto", "auto"]} />
-                                                <Tooltip cursor={{ stroke: THEME.line }} contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} formatter={(v: any) => [`₹${Number(v).toFixed(4)}`, "NAV"]} />
-                                                <Area type="monotone" dataKey="p" stroke={navUp ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#mf-g-${cId})`} dot={false} />
-                                              </AreaChart>
-                                            </ResponsiveContainer>
-                                          ) : (
-                                            <div style={{ textAlign: "center", padding: "20px 0", fontSize: 11, color: THEME.muted }}>Loading chart…</div>
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 6,
+                                            marginTop: 2,
+                                            flexWrap: "wrap",
+                                          }}
+                                        >
+                                          {displayFolio && (
+                                            <span
+                                              style={{
+                                                fontSize: 11,
+                                                color: THEME.muted,
+                                                fontWeight: 600,
+                                              }}
+                                            >
+                                              Folio: {displayFolio}
+                                            </span>
                                           )}
-                                          {meta && (
-                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12, fontSize: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
-                                              {meta.prevNav != null && <span><span style={{ color: THEME.muted }}>Prev NAV: </span><b>₹{Number(meta.prevNav).toFixed(4)}</b></span>}
-                                              {meta.navChange != null && <span><span style={{ color: THEME.muted }}>Change: </span><b style={{ color: meta.navChange >= 0 ? THEME.sage : THEME.rust }}>{meta.navChange >= 0 ? "+" : ""}{Number(meta.navChange).toFixed(4)}{meta.navChangePct != null && ` (${meta.navChangePct >= 0 ? "+" : ""}${Number(meta.navChangePct).toFixed(2)}%)`}</b></span>}
-                                              {meta.high52 != null && <span><span style={{ color: THEME.muted }}>52W H/L: </span><b style={{ color: THEME.sage }}>₹{Number(meta.high52).toFixed(4)}</b>{" / "}<b style={{ color: THEME.rust }}>₹{meta.low52 != null ? Number(meta.low52).toFixed(4) : "—"}</b></span>}
-                                              {meta.navDate && <span><span style={{ color: THEME.muted }}>NAV Date: </span><b>{meta.navDate}</b></span>}
-                                            </div>
+                                          {grp.category && (
+                                            <span
+                                              style={{
+                                                fontSize: 9,
+                                                background: `${categoryColors[grp.category] || THEME.accent}15`,
+                                                color: categoryColors[grp.category] || THEME.accent,
+                                                padding: "1px 6px",
+                                                borderRadius: 10,
+                                                fontWeight: 700,
+                                                border: `1px solid ${categoryColors[grp.category] || THEME.accent}30`,
+                                              }}
+                                            >
+                                              {grp.category}
+                                            </span>
                                           )}
+                                          {grp.mfType && (
+                                            <span
+                                              style={{
+                                                fontSize: 9,
+                                                background: `${THEME.line}30`,
+                                                color: THEME.muted,
+                                                padding: "1px 6px",
+                                                borderRadius: 10,
+                                                fontWeight: 700,
+                                                border: `1px solid ${THEME.line}`,
+                                              }}
+                                            >
+                                              {grp.mfType}
+                                            </span>
+                                          )}
+                                          <span
+                                            style={{
+                                              fontSize: 9,
+                                              background: `${THEME.line}40`,
+                                              color: THEME.muted,
+                                              padding: "1px 6px",
+                                              borderRadius: 10,
+                                              fontWeight: 700,
+                                              border: `1px solid ${THEME.line}`,
+                                            }}
+                                          >
+                                            {groupItems.length}{" "}
+                                            {groupItems.length === 1 ? "lot" : "lots"}
+                                          </span>
                                         </div>
                                       </div>
-                                    );
-                                  })()}
-
-                                  {/* Right: Lot breakdown */}
-                                  <div style={{ flex: "1.2 1 450px", minWidth: 320 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                        Lot Breakdown
-                                      </span>
-                                      <span style={{ fontSize: 10, fontWeight: 800, background: `${THEME.accent}15`, color: THEME.accent, padding: "1px 8px", borderRadius: 20, border: `1px solid ${THEME.accent}25` }}>
-                                        {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
-                                      </span>
-                                      <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                                        <Button variant="secondary" size="sm" icon={<Plus size={12} />} onClick={(e: any) => { e.stopPropagation(); setAddLotGroup({ fundName: displayName, folio: displayFolio, refLot: groupItems[0] }); }}>
-                                          Add Lot
-                                        </Button>
-                                        {hasMultiple && (
-                                          <Button variant="secondary" size="sm" icon={<ArrowDownRight size={12} />} onClick={(e: any) => { e.stopPropagation(); setFifoSellMFGroup({ schemeName: displayName + (displayFolio ? ` (${displayFolio})` : ""), lots: groupItems }); }} style={{ color: THEME.gold }}>
-                                            Bulk Sell
-                                          </Button>
+                                    </div>
+                                  </td>
+                                  <td style={{ ...mfTd, textAlign: "right", fontWeight: 700 }}>
+                                    {totalUnits.toLocaleString("en-IN", {
+                                      maximumFractionDigits: 3,
+                                    })}
+                                  </td>
+                                  <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}>
+                                    ₹{avgNav.toFixed(2)}
+                                  </td>
+                                  <td style={{ ...mfTd, textAlign: "right" }}>
+                                    <div style={{ fontWeight: 700, color: THEME.ink }}>
+                                      {currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "—"}
+                                    </div>
+                                  </td>
+                                  <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}>
+                                    <Prv>{fmtINRFull(grpInvested)}</Prv>
+                                  </td>
+                                  <td style={{ ...mfTd, textAlign: "right", fontWeight: 800 }}>
+                                    <Prv>{fmtINRFull(grpCurrent || grpInvested)}</Prv>
+                                  </td>
+                                  <td style={{ ...mfTd, textAlign: "right", paddingRight: 20 }}>
+                                    {grpCurrent > 0 ? (
+                                      <>
+                                        <div
+                                          style={{
+                                            fontWeight: 800,
+                                            color: grpPnl >= 0 ? THEME.sage : THEME.rust,
+                                          }}
+                                        >
+                                          {grpPnl >= 0 ? "+" : ""}
+                                          {fmtINRFull(grpPnl)}
+                                        </div>
+                                        <div
+                                          style={{
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            color: grpPnlPct >= 0 ? THEME.sage : THEME.rust,
+                                            marginTop: 1,
+                                          }}
+                                        >
+                                          {grpPnlPct >= 0 ? "▲" : "▼"}
+                                          {Math.abs(grpPnlPct).toFixed(2)}%
+                                        </div>
+                                        {grpXirr !== null && (
+                                          <div
+                                            style={{
+                                              fontSize: 10,
+                                              fontWeight: 800,
+                                              color: grpXirr >= 0 ? THEME.sage : THEME.rust,
+                                              marginTop: 2,
+                                            }}
+                                          >
+                                            {grpXirr >= 0 ? "+" : ""}
+                                            {grpXirr.toFixed(1)}% XIRR
+                                          </div>
                                         )}
-                                      </div>
-                                    </div>
-                                    <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 6px", fontSize: 12 }}>
-                                      <thead>
-                                        <tr>
-                                          {["Buy Date", "Buy NAV", "Units", "Return", "Value", ""].map((h, i) => (
-                                            <th key={h || "act"} style={{ ...mfTh, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: i === 0 ? "left" : "right" }}>{h}</th>
-                                          ))}
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {[...groupItems].sort((a: any, b: any) => {
-                                          const da = a.buyDate ? new Date(a.buyDate).getTime() : 0;
-                                          const db = b.buyDate ? new Date(b.buyDate).getTime() : 0;
-                                          return da - db;
-                                        }).map((lot: any) => {
-                                          const lotUnits = Number(lot.units) || 0;
-                                          const lotBuyNav = Number(lot.buyNav) || 0;
-                                          const lotCurrentNav = Number(lot.currentNav) || 0;
-                                          const lotInv = Number(lot.invested || lot.investedValue) || (lotBuyNav * lotUnits);
-                                          const lotCurr = lotUnits * lotCurrentNav;
-                                          const lotPnl = lotCurr > 0 ? lotCurr - lotInv : 0;
-                                          const lotPnlPct = lotInv > 0 && lotCurr > 0 ? (lotPnl / lotInv) * 100 : 0;
-                                          const days = lot.buyDate ? Math.floor((Date.now() - new Date(lot.buyDate).getTime()) / (1000 * 60 * 60 * 24)) : null;
-                                          const isLTCG = days !== null && days > 365;
-                                          const nearLTCG = days !== null && !isLTCG && days > 300;
-                                          const cagr = lot.buyDate && lotInv > 0 && lotCurr > 0 ? calcCAGR(lotInv, lotCurr, lot.buyDate) : null;
+                                      </>
+                                    ) : (
+                                      <span style={{ color: THEME.muted }}>—</span>
+                                    )}
+                                  </td>
+                                </tr>
 
-                                          return (
-                                            <tr key={lot.id} style={{ background: `${THEME.accent}08` }}>
-                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }}>
-                                                <div style={{ fontWeight: 600 }}>
-                                                  {lot.buyDate ? new Date(lot.buyDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : <span style={{ color: THEME.muted }}>—</span>}
+                                {/* Expanded detail drawer */}
+                                {isExpanded && (
+                                  <tr style={{ background: `${THEME.accent}08` }}>
+                                    <td
+                                      colSpan={7}
+                                      style={{
+                                        padding: "20px 24px",
+                                        borderBottom: `1px solid ${THEME.line}`,
+                                      }}
+                                    >
+                                      <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+                                        {/* Left: Chart */}
+                                        {firstWithCode &&
+                                          (() => {
+                                            const cId = firstWithCode.id;
+                                            const meta = mfMeta[cId];
+                                            const chart = mfChartData[cId];
+                                            const navUp =
+                                              meta?.navChange != null ? meta.navChange >= 0 : true;
+                                            if (!chart?.length && !meta)
+                                              fetchMFData(cId, firstWithCode.mfCode);
+                                            return (
+                                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+                                                <div
+                                                  style={{
+                                                    fontSize: 11,
+                                                    color: THEME.muted,
+                                                    marginBottom: 8,
+                                                    fontWeight: 700,
+                                                    textTransform: "uppercase",
+                                                    letterSpacing: "0.05em",
+                                                  }}
+                                                >
+                                                  30-Day NAV Trend
                                                 </div>
-                                                {days !== null && (
-                                                  <span style={{ marginTop: 3, display: "inline-block", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 4, background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1a`, color: isLTCG ? THEME.sage : nearLTCG ? "#d97706" : THEME.gold }}>
-                                                    {isLTCG ? `LTCG · ${(days / 365).toFixed(1)}y` : `STCG · ${days}d`}
-                                                  </span>
-                                                )}
-                                              </td>
-                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 600 }}>
-                                                {lotBuyNav > 0 ? `₹${lotBuyNav.toFixed(4)}` : "—"}
-                                              </td>
-                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 700 }}>
-                                                {lotUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}
-                                              </td>
-                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right" }}>
-                                                {lotCurr > 0 ? (
-                                                  <>
-                                                    <div style={{ color: lotPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>{lotPnl >= 0 ? "+" : ""}{Math.round(lotPnlPct)}%</div>
-                                                    <div style={{ fontSize: 10, color: lotPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 600 }}>{lotPnl >= 0 ? "+" : ""}{fmtINRFull(lotPnl)}</div>
-                                                    {cagr !== null && <div style={{ fontSize: 9, fontWeight: 800, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust }}>{cagr.toFixed(0)}% CAGR</div>}
-                                                  </>
-                                                ) : <span style={{ color: THEME.muted }}>—</span>}
-                                              </td>
-                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 800 }}>
-                                                {lotCurr > 0 ? fmtINRFull(lotCurr) : "—"}
-                                              </td>
-                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", borderTopRightRadius: 8, borderBottomRightRadius: 8 }}>
-                                                <div style={{ display: "flex", gap: 3, justifyContent: "flex-end" }}>
-                                                  <Button variant="ghost" size="sm" icon={<ArrowDownRight size={11} />} style={{ color: THEME.gold }} onClick={(e: any) => { e.stopPropagation(); setSellMF(lot); }} title="Sell" />
-                                                  <Button variant="ghost" size="sm" icon={<Pencil size={11} />} onClick={(e: any) => { e.stopPropagation(); setEditMF(lot); }} title="Edit" />
-                                                  <Button variant="ghost" size="sm" icon={<Trash2 size={11} />} style={{ color: THEME.rust }} onClick={(e: any) => { e.stopPropagation(); removeItem("mutualFunds", lot.id); }} title="Delete" />
+                                                <div
+                                                  style={{
+                                                    background: "var(--surface-0)",
+                                                    border: `1.5px solid ${THEME.line}`,
+                                                    borderRadius: 12,
+                                                    padding: "12px 14px",
+                                                  }}
+                                                >
+                                                  {chart?.length ? (
+                                                    <ResponsiveContainer width="100%" height={150}>
+                                                      <AreaChart
+                                                        data={chart}
+                                                        margin={{
+                                                          top: 4,
+                                                          right: 4,
+                                                          bottom: 0,
+                                                          left: 0,
+                                                        }}
+                                                      >
+                                                        <defs>
+                                                          <linearGradient
+                                                            id={`mf-g-${cId}`}
+                                                            x1="0"
+                                                            y1="0"
+                                                            x2="0"
+                                                            y2="1"
+                                                          >
+                                                            <stop
+                                                              offset="5%"
+                                                              stopColor={
+                                                                navUp ? THEME.sage : THEME.rust
+                                                              }
+                                                              stopOpacity={0.35}
+                                                            />
+                                                            <stop
+                                                              offset="95%"
+                                                              stopColor={
+                                                                navUp ? THEME.sage : THEME.rust
+                                                              }
+                                                              stopOpacity={0.02}
+                                                            />
+                                                          </linearGradient>
+                                                        </defs>
+                                                        <XAxis
+                                                          dataKey="t"
+                                                          tick={{
+                                                            fontSize: 9,
+                                                            fill: "var(--t-muted)",
+                                                          }}
+                                                          interval="preserveStartEnd"
+                                                          axisLine={false}
+                                                          tickLine={false}
+                                                        />
+                                                        <YAxis hide domain={["auto", "auto"]} />
+                                                        <Tooltip
+                                                          cursor={{ stroke: THEME.line }}
+                                                          contentStyle={{
+                                                            fontSize: 12,
+                                                            background: "var(--surface-0)",
+                                                            border: `1px solid ${THEME.line}`,
+                                                            borderRadius: 6,
+                                                            color: THEME.ink,
+                                                          }}
+                                                          labelStyle={{ color: THEME.ink }}
+                                                          itemStyle={{ color: THEME.ink }}
+                                                          formatter={(v: any) => [
+                                                            `₹${Number(v).toFixed(4)}`,
+                                                            "NAV",
+                                                          ]}
+                                                        />
+                                                        <Area
+                                                          type="monotone"
+                                                          dataKey="p"
+                                                          stroke={navUp ? THEME.sage : THEME.rust}
+                                                          strokeWidth={1.5}
+                                                          fill={`url(#mf-g-${cId})`}
+                                                          dot={false}
+                                                        />
+                                                      </AreaChart>
+                                                    </ResponsiveContainer>
+                                                  ) : (
+                                                    <div
+                                                      style={{
+                                                        textAlign: "center",
+                                                        padding: "20px 0",
+                                                        fontSize: 11,
+                                                        color: THEME.muted,
+                                                      }}
+                                                    >
+                                                      Loading chart…
+                                                    </div>
+                                                  )}
+                                                  {meta && (
+                                                    <div
+                                                      style={{
+                                                        display: "flex",
+                                                        flexWrap: "wrap",
+                                                        gap: "10px 16px",
+                                                        marginTop: 12,
+                                                        fontSize: 12,
+                                                        borderTop: `1px solid ${THEME.line}`,
+                                                        paddingTop: 10,
+                                                      }}
+                                                    >
+                                                      {meta.prevNav != null && (
+                                                        <span>
+                                                          <span style={{ color: THEME.muted }}>
+                                                            Prev NAV:{" "}
+                                                          </span>
+                                                          <b>₹{Number(meta.prevNav).toFixed(4)}</b>
+                                                        </span>
+                                                      )}
+                                                      {meta.navChange != null && (
+                                                        <span>
+                                                          <span style={{ color: THEME.muted }}>
+                                                            Change:{" "}
+                                                          </span>
+                                                          <b
+                                                            style={{
+                                                              color:
+                                                                meta.navChange >= 0
+                                                                  ? THEME.sage
+                                                                  : THEME.rust,
+                                                            }}
+                                                          >
+                                                            {meta.navChange >= 0 ? "+" : ""}
+                                                            {Number(meta.navChange).toFixed(4)}
+                                                            {meta.navChangePct != null &&
+                                                              ` (${meta.navChangePct >= 0 ? "+" : ""}${Number(meta.navChangePct).toFixed(2)}%)`}
+                                                          </b>
+                                                        </span>
+                                                      )}
+                                                      {meta.high52 != null && (
+                                                        <span>
+                                                          <span style={{ color: THEME.muted }}>
+                                                            52W H/L:{" "}
+                                                          </span>
+                                                          <b style={{ color: THEME.sage }}>
+                                                            ₹{Number(meta.high52).toFixed(4)}
+                                                          </b>
+                                                          {" / "}
+                                                          <b style={{ color: THEME.rust }}>
+                                                            ₹
+                                                            {meta.low52 != null
+                                                              ? Number(meta.low52).toFixed(4)
+                                                              : "—"}
+                                                          </b>
+                                                        </span>
+                                                      )}
+                                                      {meta.navDate && (
+                                                        <span>
+                                                          <span style={{ color: THEME.muted }}>
+                                                            NAV Date:{" "}
+                                                          </span>
+                                                          <b>{meta.navDate}</b>
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  )}
                                                 </div>
-                                              </td>
-                                            </tr>
-                                          );
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
+                                              </div>
+                                            );
+                                          })()}
+
+                                        {/* Right: Lot breakdown */}
+                                        <div style={{ flex: "1.2 1 450px", minWidth: 320 }}>
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: 8,
+                                              marginBottom: 10,
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                fontSize: 11,
+                                                color: THEME.muted,
+                                                fontWeight: 700,
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.05em",
+                                              }}
+                                            >
+                                              Lot Breakdown
+                                            </span>
+                                            <span
+                                              style={{
+                                                fontSize: 10,
+                                                fontWeight: 800,
+                                                background: `${THEME.accent}15`,
+                                                color: THEME.accent,
+                                                padding: "1px 8px",
+                                                borderRadius: 20,
+                                                border: `1px solid ${THEME.accent}25`,
+                                              }}
+                                            >
+                                              {groupItems.length}{" "}
+                                              {groupItems.length === 1 ? "lot" : "lots"}
+                                            </span>
+                                            <div
+                                              style={{
+                                                marginLeft: "auto",
+                                                display: "flex",
+                                                gap: 6,
+                                              }}
+                                            >
+                                              <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                icon={<Plus size={12} />}
+                                                onClick={(e: any) => {
+                                                  e.stopPropagation();
+                                                  setAddLotGroup({
+                                                    fundName: displayName,
+                                                    folio: displayFolio,
+                                                    refLot: groupItems[0],
+                                                  });
+                                                }}
+                                              >
+                                                Add Lot
+                                              </Button>
+                                              {hasMultiple && (
+                                                <Button
+                                                  variant="secondary"
+                                                  size="sm"
+                                                  icon={<ArrowDownRight size={12} />}
+                                                  onClick={(e: any) => {
+                                                    e.stopPropagation();
+                                                    setFifoSellMFGroup({
+                                                      schemeName:
+                                                        displayName +
+                                                        (displayFolio ? ` (${displayFolio})` : ""),
+                                                      lots: groupItems,
+                                                    });
+                                                  }}
+                                                  style={{ color: THEME.gold }}
+                                                >
+                                                  Bulk Sell
+                                                </Button>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <table
+                                            style={{
+                                              width: "100%",
+                                              borderCollapse: "separate",
+                                              borderSpacing: "0 6px",
+                                              fontSize: 12,
+                                            }}
+                                          >
+                                            <thead>
+                                              <tr>
+                                                {[
+                                                  "Buy Date",
+                                                  "Buy NAV",
+                                                  "Units",
+                                                  "Return",
+                                                  "Value",
+                                                  "",
+                                                ].map((h, i) => (
+                                                  <th
+                                                    key={h || "act"}
+                                                    style={{
+                                                      ...mfTh,
+                                                      background: "transparent",
+                                                      borderBottom: `1.5px solid ${THEME.line}`,
+                                                      padding: "4px 8px",
+                                                      textAlign: i === 0 ? "left" : "right",
+                                                    }}
+                                                  >
+                                                    {h}
+                                                  </th>
+                                                ))}
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {[...groupItems]
+                                                .sort((a: any, b: any) => {
+                                                  const da = a.buyDate
+                                                    ? new Date(a.buyDate).getTime()
+                                                    : 0;
+                                                  const db = b.buyDate
+                                                    ? new Date(b.buyDate).getTime()
+                                                    : 0;
+                                                  return da - db;
+                                                })
+                                                .map((lot: any) => {
+                                                  const lotUnits = Number(lot.units) || 0;
+                                                  const lotBuyNav = Number(lot.buyNav) || 0;
+                                                  const lotCurrentNav = Number(lot.currentNav) || 0;
+                                                  const lotInv =
+                                                    Number(lot.invested || lot.investedValue) ||
+                                                    lotBuyNav * lotUnits;
+                                                  const lotCurr = lotUnits * lotCurrentNav;
+                                                  const lotPnl = lotCurr > 0 ? lotCurr - lotInv : 0;
+                                                  const lotPnlPct =
+                                                    lotInv > 0 && lotCurr > 0
+                                                      ? (lotPnl / lotInv) * 100
+                                                      : 0;
+                                                  const days = lot.buyDate
+                                                    ? Math.floor(
+                                                        (Date.now() -
+                                                          new Date(lot.buyDate).getTime()) /
+                                                          (1000 * 60 * 60 * 24)
+                                                      )
+                                                    : null;
+                                                  const isLTCG = days !== null && days > 365;
+                                                  const nearLTCG =
+                                                    days !== null && !isLTCG && days > 300;
+                                                  const cagr =
+                                                    lot.buyDate && lotInv > 0 && lotCurr > 0
+                                                      ? calcCAGR(lotInv, lotCurr, lot.buyDate)
+                                                      : null;
+
+                                                  return (
+                                                    <tr
+                                                      key={lot.id}
+                                                      style={{ background: `${THEME.accent}08` }}
+                                                    >
+                                                      <td
+                                                        style={{
+                                                          ...mfTd,
+                                                          borderBottom: "none",
+                                                          padding: "8px",
+                                                          borderTopLeftRadius: 8,
+                                                          borderBottomLeftRadius: 8,
+                                                        }}
+                                                      >
+                                                        <div style={{ fontWeight: 600 }}>
+                                                          {lot.buyDate ? (
+                                                            new Date(
+                                                              lot.buyDate + "T00:00:00"
+                                                            ).toLocaleDateString("en-IN", {
+                                                              day: "2-digit",
+                                                              month: "short",
+                                                              year: "numeric",
+                                                            })
+                                                          ) : (
+                                                            <span style={{ color: THEME.muted }}>
+                                                              —
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                        {days !== null && (
+                                                          <span
+                                                            style={{
+                                                              marginTop: 3,
+                                                              display: "inline-block",
+                                                              fontSize: 9,
+                                                              fontWeight: 800,
+                                                              padding: "1px 6px",
+                                                              borderRadius: 4,
+                                                              background: isLTCG
+                                                                ? `${THEME.sage}1f`
+                                                                : `${THEME.gold}1a`,
+                                                              color: isLTCG
+                                                                ? THEME.sage
+                                                                : nearLTCG
+                                                                  ? "#d97706"
+                                                                  : THEME.gold,
+                                                            }}
+                                                          >
+                                                            {isLTCG
+                                                              ? `LTCG · ${(days / 365).toFixed(1)}y`
+                                                              : `STCG · ${days}d`}
+                                                          </span>
+                                                        )}
+                                                      </td>
+                                                      <td
+                                                        style={{
+                                                          ...mfTd,
+                                                          borderBottom: "none",
+                                                          padding: "8px",
+                                                          textAlign: "right",
+                                                          fontWeight: 600,
+                                                        }}
+                                                      >
+                                                        {lotBuyNav > 0
+                                                          ? `₹${lotBuyNav.toFixed(4)}`
+                                                          : "—"}
+                                                      </td>
+                                                      <td
+                                                        style={{
+                                                          ...mfTd,
+                                                          borderBottom: "none",
+                                                          padding: "8px",
+                                                          textAlign: "right",
+                                                          fontWeight: 700,
+                                                        }}
+                                                      >
+                                                        {lotUnits.toLocaleString("en-IN", {
+                                                          maximumFractionDigits: 3,
+                                                        })}
+                                                      </td>
+                                                      <td
+                                                        style={{
+                                                          ...mfTd,
+                                                          borderBottom: "none",
+                                                          padding: "8px",
+                                                          textAlign: "right",
+                                                        }}
+                                                      >
+                                                        {lotCurr > 0 ? (
+                                                          <>
+                                                            <div
+                                                              style={{
+                                                                color:
+                                                                  lotPnl >= 0
+                                                                    ? THEME.sage
+                                                                    : THEME.rust,
+                                                                fontWeight: 800,
+                                                              }}
+                                                            >
+                                                              {lotPnl >= 0 ? "+" : ""}
+                                                              {Math.round(lotPnlPct)}%
+                                                            </div>
+                                                            <div
+                                                              style={{
+                                                                fontSize: 10,
+                                                                color:
+                                                                  lotPnl >= 0
+                                                                    ? THEME.sage
+                                                                    : THEME.rust,
+                                                                fontWeight: 600,
+                                                              }}
+                                                            >
+                                                              {lotPnl >= 0 ? "+" : ""}
+                                                              {fmtINRFull(lotPnl)}
+                                                            </div>
+                                                            {cagr !== null && (
+                                                              <div
+                                                                style={{
+                                                                  fontSize: 9,
+                                                                  fontWeight: 800,
+                                                                  color:
+                                                                    cagr >= 15
+                                                                      ? THEME.sage
+                                                                      : cagr >= 8
+                                                                        ? THEME.gold
+                                                                        : THEME.rust,
+                                                                }}
+                                                              >
+                                                                {cagr.toFixed(0)}% CAGR
+                                                              </div>
+                                                            )}
+                                                          </>
+                                                        ) : (
+                                                          <span style={{ color: THEME.muted }}>
+                                                            —
+                                                          </span>
+                                                        )}
+                                                      </td>
+                                                      <td
+                                                        style={{
+                                                          ...mfTd,
+                                                          borderBottom: "none",
+                                                          padding: "8px",
+                                                          textAlign: "right",
+                                                          fontWeight: 800,
+                                                        }}
+                                                      >
+                                                        {lotCurr > 0 ? fmtINRFull(lotCurr) : "—"}
+                                                      </td>
+                                                      <td
+                                                        style={{
+                                                          ...mfTd,
+                                                          borderBottom: "none",
+                                                          padding: "8px",
+                                                          borderTopRightRadius: 8,
+                                                          borderBottomRightRadius: 8,
+                                                        }}
+                                                      >
+                                                        <div
+                                                          style={{
+                                                            display: "flex",
+                                                            gap: 3,
+                                                            justifyContent: "flex-end",
+                                                          }}
+                                                        >
+                                                          <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            icon={<ArrowDownRight size={11} />}
+                                                            style={{ color: THEME.gold }}
+                                                            onClick={(e: any) => {
+                                                              e.stopPropagation();
+                                                              setSellMF(lot);
+                                                            }}
+                                                            title="Sell"
+                                                          />
+                                                          <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            icon={<Pencil size={11} />}
+                                                            onClick={(e: any) => {
+                                                              e.stopPropagation();
+                                                              setEditMF(lot);
+                                                            }}
+                                                            title="Edit"
+                                                          />
+                                                          <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            icon={<Trash2 size={11} />}
+                                                            style={{ color: THEME.rust }}
+                                                            onClick={(e: any) => {
+                                                              e.stopPropagation();
+                                                              removeItem("mutualFunds", lot.id);
+                                                            }}
+                                                            title="Delete"
+                                                          />
+                                                        </div>
+                                                      </td>
+                                                    </tr>
+                                                  );
+                                                })}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </React.Fragment>
                       );
                     })}
@@ -8616,7 +10437,8 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                       Expense Ratio Impact Analyzer
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
-                      Hidden cost of expense ratios and potential savings from switching to Direct plans
+                      Hidden cost of expense ratios and potential savings from switching to Direct
+                      plans
                     </div>
                   </div>
                 </div>
@@ -8631,233 +10453,380 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                 />
               </button>
 
-              {showExpenseAnalyzer && (() => {
-                const getExpenseInfo = (name: string, mfType: string, category: string) => {
-                  const nameLC = (name || "").toLowerCase();
-                  const typeLC = (mfType || "").toLowerCase();
-                  const catLC = (category || "").toLowerCase();
+              {showExpenseAnalyzer &&
+                (() => {
+                  const getExpenseInfo = (name: string, mfType: string, category: string) => {
+                    const nameLC = (name || "").toLowerCase();
+                    const typeLC = (mfType || "").toLowerCase();
+                    const catLC = (category || "").toLowerCase();
 
-                  const isDirect = nameLC.includes("direct") || typeLC.includes("direct");
-                  const isRegular = nameLC.includes("regular") || typeLC.includes("regular");
-                  const planType = isDirect ? "Direct" : isRegular ? "Regular" : (typeLC.includes("direct") ? "Direct" : "Regular");
+                    const isDirect = nameLC.includes("direct") || typeLC.includes("direct");
+                    const isRegular = nameLC.includes("regular") || typeLC.includes("regular");
+                    const planType = isDirect
+                      ? "Direct"
+                      : isRegular
+                        ? "Regular"
+                        : typeLC.includes("direct")
+                          ? "Direct"
+                          : "Regular";
 
-                  const isDebt = catLC.includes("debt") || catLC.includes("liquid") || catLC.includes("gilt") ||
-                    catLC.includes("overnight") || catLC.includes("money market") || catLC.includes("corporate bond") ||
-                    catLC.includes("banking") || catLC.includes("credit risk");
-                  const assetType = isDebt ? "Debt" : "Equity";
+                    const isDebt =
+                      catLC.includes("debt") ||
+                      catLC.includes("liquid") ||
+                      catLC.includes("gilt") ||
+                      catLC.includes("overnight") ||
+                      catLC.includes("money market") ||
+                      catLC.includes("corporate bond") ||
+                      catLC.includes("banking") ||
+                      catLC.includes("credit risk");
+                    const assetType = isDebt ? "Debt" : "Equity";
 
-                  let expenseRatio: number;
-                  if (planType === "Direct" && assetType === "Equity") expenseRatio = 0.005;
-                  else if (planType === "Direct" && assetType === "Debt") expenseRatio = 0.002;
-                  else if (planType === "Regular" && assetType === "Equity") expenseRatio = 0.015;
-                  else expenseRatio = 0.01;
+                    let expenseRatio: number;
+                    if (planType === "Direct" && assetType === "Equity") expenseRatio = 0.005;
+                    else if (planType === "Direct" && assetType === "Debt") expenseRatio = 0.002;
+                    else if (planType === "Regular" && assetType === "Equity") expenseRatio = 0.015;
+                    else expenseRatio = 0.01;
 
-                  return { planType, assetType, expenseRatio };
-                };
-
-                const fundAnalysis = items.map((m: any) => {
-                  const name = m.name || m.scheme || "";
-                  const units = Number(m.units) || 0;
-                  const nav = Number(m.currentNav) || 0;
-                  const currentValue = units * nav;
-                  const { planType, assetType, expenseRatio } = getExpenseInfo(name, m.mfType || "", m.category || "");
-                  const annualCost = currentValue * expenseRatio;
-
-                  let directRatio: number | null = null;
-                  if (planType === "Regular") {
-                    directRatio = assetType === "Equity" ? 0.005 : 0.002;
-                  }
-                  const directAnnualCost = directRatio !== null ? currentValue * directRatio : null;
-                  const annualSaving = directAnnualCost !== null ? annualCost - directAnnualCost : 0;
-
-                  return {
-                    name,
-                    currentValue,
-                    planType,
-                    assetType,
-                    expenseRatio,
-                    annualCost,
-                    directRatio,
-                    annualSaving,
+                    return { planType, assetType, expenseRatio };
                   };
-                }).filter((f: any) => f.currentValue > 0);
 
-                const totalAnnualCost = fundAnalysis.reduce((s: number, f: any) => s + f.annualCost, 0);
-                const totalAnnualSaving = fundAnalysis.reduce((s: number, f: any) => s + f.annualSaving, 0);
-                const regularFunds = fundAnalysis.filter((f: any) => f.planType === "Regular");
-                const directFunds = fundAnalysis.filter((f: any) => f.planType === "Direct");
+                  const fundAnalysis = items
+                    .map((m: any) => {
+                      const name = m.name || m.scheme || "";
+                      const units = Number(m.units) || 0;
+                      const nav = Number(m.currentNav) || 0;
+                      const currentValue = units * nav;
+                      const { planType, assetType, expenseRatio } = getExpenseInfo(
+                        name,
+                        m.mfType || "",
+                        m.category || ""
+                      );
+                      const annualCost = currentValue * expenseRatio;
 
-                const compoundSaving = (annual: number, years: number) => {
-                  if (annual <= 0) return 0;
-                  const rate = 0.12;
-                  let savings = 0;
-                  for (let y = 0; y < years; y++) {
-                    savings = (savings + annual) * (1 + rate);
-                  }
-                  return savings;
-                };
+                      let directRatio: number | null = null;
+                      if (planType === "Regular") {
+                        directRatio = assetType === "Equity" ? 0.005 : 0.002;
+                      }
+                      const directAnnualCost =
+                        directRatio !== null ? currentValue * directRatio : null;
+                      const annualSaving =
+                        directAnnualCost !== null ? annualCost - directAnnualCost : 0;
 
-                return (
-                  <div style={{ padding: "0 20px 20px" }}>
-                    {/* Summary strip */}
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                        gap: 10,
-                        marginBottom: 18,
-                      }}
-                    >
-                      {[
-                        { label: "Total Annual Cost", value: fmtINRFull(totalAnnualCost), color: THEME.rust },
-                        { label: "Regular Plans", value: String(regularFunds.length), color: THEME.gold },
-                        { label: "Direct Plans", value: String(directFunds.length), color: THEME.sage },
-                        { label: "Annual Savings Possible", value: fmtINRFull(totalAnnualSaving), color: THEME.accent },
-                      ].map(({ label, value, color }) => (
-                        <div
-                          key={label}
-                          style={{
-                            padding: "12px 14px",
-                            borderRadius: 10,
-                            background: `${color}0a`,
-                            border: `1px solid ${color}20`,
-                          }}
-                        >
-                          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>
-                            {label}
-                          </div>
-                          <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                            <Prv>{value}</Prv>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                      return {
+                        name,
+                        currentValue,
+                        planType,
+                        assetType,
+                        expenseRatio,
+                        annualCost,
+                        directRatio,
+                        annualSaving,
+                      };
+                    })
+                    .filter((f: any) => f.currentValue > 0);
 
-                    {/* Long-term savings projection */}
-                    {totalAnnualSaving > 0 && (
+                  const totalAnnualCost = fundAnalysis.reduce(
+                    (s: number, f: any) => s + f.annualCost,
+                    0
+                  );
+                  const totalAnnualSaving = fundAnalysis.reduce(
+                    (s: number, f: any) => s + f.annualSaving,
+                    0
+                  );
+                  const regularFunds = fundAnalysis.filter((f: any) => f.planType === "Regular");
+                  const directFunds = fundAnalysis.filter((f: any) => f.planType === "Direct");
+
+                  const compoundSaving = (annual: number, years: number) => {
+                    if (annual <= 0) return 0;
+                    const rate = 0.12;
+                    let savings = 0;
+                    for (let y = 0; y < years; y++) {
+                      savings = (savings + annual) * (1 + rate);
+                    }
+                    return savings;
+                  };
+
+                  return (
+                    <div style={{ padding: "0 20px 20px" }}>
+                      {/* Summary strip */}
                       <div
                         style={{
-                          padding: "14px 16px",
-                          borderRadius: 10,
-                          background: `${THEME.sage}08`,
-                          border: `1px solid ${THEME.sage}20`,
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                          gap: 10,
                           marginBottom: 18,
                         }}
                       >
-                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 10 }}>
-                          Potential Savings from Switching Regular to Direct (at 12% growth)
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                          {[10, 20, 30].map((yrs) => (
+                        {[
+                          {
+                            label: "Total Annual Cost",
+                            value: fmtINRFull(totalAnnualCost),
+                            color: THEME.rust,
+                          },
+                          {
+                            label: "Regular Plans",
+                            value: String(regularFunds.length),
+                            color: THEME.gold,
+                          },
+                          {
+                            label: "Direct Plans",
+                            value: String(directFunds.length),
+                            color: THEME.sage,
+                          },
+                          {
+                            label: "Annual Savings Possible",
+                            value: fmtINRFull(totalAnnualSaving),
+                            color: THEME.accent,
+                          },
+                        ].map(({ label, value, color }) => (
+                          <div
+                            key={label}
+                            style={{
+                              padding: "12px 14px",
+                              borderRadius: 10,
+                              background: `${color}0a`,
+                              border: `1px solid ${color}20`,
+                            }}
+                          >
                             <div
-                              key={yrs}
                               style={{
-                                textAlign: "center",
-                                padding: "10px 8px",
-                                borderRadius: 8,
-                                background: "var(--surface-0)",
-                                border: `1px solid ${THEME.line}`,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                color: THEME.muted,
+                                textTransform: "uppercase" as const,
+                                letterSpacing: "0.08em",
+                                marginBottom: 4,
                               }}
                             >
-                              <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, marginBottom: 4 }}>
-                                {yrs} Years
-                              </div>
-                              <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>
-                                <Prv>{fmtINRFull(compoundSaving(totalAnnualSaving, yrs))}</Prv>
-                              </div>
+                              {label}
                             </div>
-                          ))}
-                        </div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                              <Prv>{value}</Prv>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
 
-                    {/* Per-fund breakdown */}
-                    <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 10 }}>
-                      Per-Fund Expense Breakdown
-                    </div>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                        <thead>
-                          <tr>
-                            {["Fund", "Value", "Plan", "Type", "Expense %", "Annual Cost", "Savings/yr"].map((h) => (
-                              <th
-                                key={h}
+                      {/* Long-term savings projection */}
+                      {totalAnnualSaving > 0 && (
+                        <div
+                          style={{
+                            padding: "14px 16px",
+                            borderRadius: 10,
+                            background: `${THEME.sage}08`,
+                            border: `1px solid ${THEME.sage}20`,
+                            marginBottom: 18,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: THEME.muted,
+                              textTransform: "uppercase" as const,
+                              letterSpacing: "0.05em",
+                              marginBottom: 10,
+                            }}
+                          >
+                            Potential Savings from Switching Regular to Direct (at 12% growth)
+                          </div>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gap: 10,
+                            }}
+                          >
+                            {[10, 20, 30].map((yrs) => (
+                              <div
+                                key={yrs}
                                 style={{
-                                  textAlign: h === "Fund" ? "left" : "right",
+                                  textAlign: "center",
                                   padding: "10px 8px",
-                                  fontSize: 10,
-                                  letterSpacing: "0.1em",
-                                  textTransform: "uppercase" as const,
-                                  color: THEME.muted,
-                                  fontWeight: 700,
-                                  borderBottom: `1.5px solid ${THEME.line}`,
-                                  whiteSpace: "nowrap",
+                                  borderRadius: 8,
+                                  background: "var(--surface-0)",
+                                  border: `1px solid ${THEME.line}`,
                                 }}
                               >
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {fundAnalysis.map((f: any, idx: number) => (
-                            <tr key={idx}>
-                              <td
-                                style={{
-                                  padding: "10px 8px",
-                                  borderBottom: `1px solid ${THEME.line}`,
-                                  fontWeight: 600,
-                                  maxWidth: 200,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                                title={f.name}
-                              >
-                                {f.name.length > 30 ? f.name.slice(0, 30) + "..." : f.name}
-                              </td>
-                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                <Prv>{fmtINRFull(f.currentValue)}</Prv>
-                              </td>
-                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>
-                                <span
+                                <div
                                   style={{
                                     fontSize: 10,
                                     fontWeight: 700,
-                                    padding: "2px 8px",
-                                    borderRadius: 6,
-                                    background: f.planType === "Direct" ? `${THEME.sage}18` : `${THEME.gold}18`,
-                                    color: f.planType === "Direct" ? THEME.sage : THEME.gold,
+                                    color: THEME.muted,
+                                    textTransform: "uppercase" as const,
+                                    marginBottom: 4,
                                   }}
                                 >
-                                  {f.planType}
-                                </span>
-                              </td>
-                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", color: THEME.muted }}>
-                                {f.assetType}
-                              </td>
-                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", fontWeight: 700 }}>
-                                {(f.expenseRatio * 100).toFixed(1)}%
-                              </td>
-                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", color: THEME.rust, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                                <Prv>{fmtINRFull(f.annualCost)}</Prv>
-                              </td>
-                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", color: f.annualSaving > 0 ? THEME.sage : THEME.muted, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                                <Prv>{f.annualSaving > 0 ? fmtINRFull(f.annualSaving) : "—"}</Prv>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {fundAnalysis.length === 0 && (
-                      <div style={{ textAlign: "center", fontSize: 13, color: THEME.muted, padding: "16px 0" }}>
-                        No funds with current value to analyze
+                                  {yrs} Years
+                                </div>
+                                <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>
+                                  <Prv>{fmtINRFull(compoundSaving(totalAnnualSaving, yrs))}</Prv>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Per-fund breakdown */}
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: THEME.muted,
+                          textTransform: "uppercase" as const,
+                          letterSpacing: "0.05em",
+                          marginBottom: 10,
+                        }}
+                      >
+                        Per-Fund Expense Breakdown
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                          <thead>
+                            <tr>
+                              {[
+                                "Fund",
+                                "Value",
+                                "Plan",
+                                "Type",
+                                "Expense %",
+                                "Annual Cost",
+                                "Savings/yr",
+                              ].map((h) => (
+                                <th
+                                  key={h}
+                                  style={{
+                                    textAlign: h === "Fund" ? "left" : "right",
+                                    padding: "10px 8px",
+                                    fontSize: 10,
+                                    letterSpacing: "0.1em",
+                                    textTransform: "uppercase" as const,
+                                    color: THEME.muted,
+                                    fontWeight: 700,
+                                    borderBottom: `1.5px solid ${THEME.line}`,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {fundAnalysis.map((f: any, idx: number) => (
+                              <tr key={idx}>
+                                <td
+                                  style={{
+                                    padding: "10px 8px",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                    fontWeight: 600,
+                                    maxWidth: 200,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                  title={f.name}
+                                >
+                                  {f.name.length > 30 ? f.name.slice(0, 30) + "..." : f.name}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "10px 8px",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                    textAlign: "right",
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  <Prv>{fmtINRFull(f.currentValue)}</Prv>
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "10px 8px",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                    textAlign: "right",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      padding: "2px 8px",
+                                      borderRadius: 6,
+                                      background:
+                                        f.planType === "Direct"
+                                          ? `${THEME.sage}18`
+                                          : `${THEME.gold}18`,
+                                      color: f.planType === "Direct" ? THEME.sage : THEME.gold,
+                                    }}
+                                  >
+                                    {f.planType}
+                                  </span>
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "10px 8px",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                    textAlign: "right",
+                                    color: THEME.muted,
+                                  }}
+                                >
+                                  {f.assetType}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "10px 8px",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                    textAlign: "right",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {(f.expenseRatio * 100).toFixed(1)}%
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "10px 8px",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                    textAlign: "right",
+                                    color: THEME.rust,
+                                    fontWeight: 700,
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  <Prv>{fmtINRFull(f.annualCost)}</Prv>
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "10px 8px",
+                                    borderBottom: `1px solid ${THEME.line}`,
+                                    textAlign: "right",
+                                    color: f.annualSaving > 0 ? THEME.sage : THEME.muted,
+                                    fontWeight: 700,
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  <Prv>{f.annualSaving > 0 ? fmtINRFull(f.annualSaving) : "—"}</Prv>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {fundAnalysis.length === 0 && (
+                        <div
+                          style={{
+                            textAlign: "center",
+                            fontSize: 13,
+                            color: THEME.muted,
+                            padding: "16px 0",
+                          }}
+                        >
+                          No funds with current value to analyze
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
             </Card>
           )}
         </>
@@ -8883,7 +10852,10 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
               const newInvested = Number(sellMF.buyNav || 0) * remainingUnits;
               updateItem("mutualFunds", sellMF.id, {
                 units: String(remainingUnits),
-                invested: String(newInvested || (Number(sellMF.invested || 0) * remainingUnits / Number(sellMF.units))),
+                invested: String(
+                  newInvested ||
+                    (Number(sellMF.invested || 0) * remainingUnits) / Number(sellMF.units)
+                ),
               });
             }
             setSellMF(null);
@@ -8913,7 +10885,10 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                 const newInvested = Number(alloc.lot.buyNav || 0) * remaining;
                 updateItem("mutualFunds", alloc.lot.id, {
                   units: String(remaining),
-                  invested: String(newInvested || (Number(alloc.lot.invested || 0) * remaining / Number(alloc.lot.units))),
+                  invested: String(
+                    newInvested ||
+                      (Number(alloc.lot.invested || 0) * remaining) / Number(alloc.lot.units)
+                  ),
                 });
               }
             });
@@ -8973,7 +10948,10 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
   const fundLabel = group.fundName || "Mutual Fund";
 
   return (
-    <Modal title={`Add Lot — ${fundLabel.length > 40 ? fundLabel.slice(0, 40) + "…" : fundLabel}`} onClose={onClose}>
+    <Modal
+      title={`Add Lot — ${fundLabel.length > 40 ? fundLabel.slice(0, 40) + "…" : fundLabel}`}
+      onClose={onClose}
+    >
       {/* Auto-filled info */}
       <div
         style={{
@@ -8988,12 +10966,40 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
           gap: "6px 16px",
         }}
       >
-        <span><span style={{ color: THEME.muted }}>Fund: </span><b>{group.fundName}</b></span>
-        {group.folio && <span><span style={{ color: THEME.muted }}>Folio: </span><b>{group.folio}</b></span>}
-        {ref.category && <span><span style={{ color: THEME.muted }}>Category: </span><b>{ref.category}</b></span>}
-        {ref.mfType && <span><span style={{ color: THEME.muted }}>Type: </span><b>{ref.mfType}</b></span>}
-        {ref.mfCode && <span><span style={{ color: THEME.muted }}>AMFI: </span><b>{ref.mfCode}</b></span>}
-        {currentNav > 0 && <span><span style={{ color: THEME.muted }}>Current NAV: </span><b>₹{currentNav.toFixed(4)}</b></span>}
+        <span>
+          <span style={{ color: THEME.muted }}>Fund: </span>
+          <b>{group.fundName}</b>
+        </span>
+        {group.folio && (
+          <span>
+            <span style={{ color: THEME.muted }}>Folio: </span>
+            <b>{group.folio}</b>
+          </span>
+        )}
+        {ref.category && (
+          <span>
+            <span style={{ color: THEME.muted }}>Category: </span>
+            <b>{ref.category}</b>
+          </span>
+        )}
+        {ref.mfType && (
+          <span>
+            <span style={{ color: THEME.muted }}>Type: </span>
+            <b>{ref.mfType}</b>
+          </span>
+        )}
+        {ref.mfCode && (
+          <span>
+            <span style={{ color: THEME.muted }}>AMFI: </span>
+            <b>{ref.mfCode}</b>
+          </span>
+        )}
+        {currentNav > 0 && (
+          <span>
+            <span style={{ color: THEME.muted }}>Current NAV: </span>
+            <b>₹{currentNav.toFixed(4)}</b>
+          </span>
+        )}
       </div>
 
       {/* Lot-specific fields */}
@@ -9045,26 +11051,47 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: pnl !== null && pnl >= 0 ? `${THEME.sage}1a` : pnl !== null ? `${THEME.rust}1a` : `${THEME.accent}08`,
+            background:
+              pnl !== null && pnl >= 0
+                ? `${THEME.sage}1a`
+                : pnl !== null
+                  ? `${THEME.rust}1a`
+                  : `${THEME.accent}08`,
             marginTop: 8,
           }}
         >
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12 }}>
             <span>
               <span style={{ color: THEME.muted }}>Invested: </span>
-              <b>₹{(Number(f.invested) || autoInvested || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+              <b>
+                ₹
+                {(Number(f.invested) || autoInvested || 0).toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </b>
             </span>
             {currentValue !== null && (
               <span>
                 <span style={{ color: THEME.muted }}>Current: </span>
-                <b style={{ color: THEME.accent }}>₹{currentValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                <b style={{ color: THEME.accent }}>
+                  ₹
+                  {currentValue.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </b>
               </span>
             )}
             {pnl !== null && (
               <span>
                 <span style={{ color: THEME.muted }}>P&L: </span>
                 <b style={{ color: pnl >= 0 ? THEME.sage : THEME.rust }}>
-                  {pnl >= 0 ? "+" : ""}₹{Math.abs(pnl).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {pnl >= 0 ? "+" : ""}₹
+                  {Math.abs(pnl).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   {pnlPct !== null && ` (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)`}
                 </b>
               </span>
@@ -9093,7 +11120,9 @@ function SellMFModal({ mf, onClose, onSave }: any) {
   const profit = buyNav > 0 ? (sellNavNum - buyNav) * sellUnitsNum : 0;
   const remainingUnits = totalUnits - sellUnitsNum;
   const proceeds = sellUnitsNum * sellNavNum;
-  const isLTCG = mf.buyDate ? Date.now() - new Date(mf.buyDate).getTime() > 365 * 86400 * 1000 : false;
+  const isLTCG = mf.buyDate
+    ? Date.now() - new Date(mf.buyDate).getTime() > 365 * 86400 * 1000
+    : false;
 
   const handleSave = () => {
     if (!sellUnitsNum || !sellNavNum || sellUnitsNum > totalUnits) return;
@@ -9112,11 +11141,24 @@ function SellMFModal({ mf, onClose, onSave }: any) {
   };
 
   return (
-    <Modal title={`Sell — ${(mf.name || mf.scheme || "Mutual Fund").slice(0, 40)}`} onClose={onClose}>
+    <Modal
+      title={`Sell — ${(mf.name || mf.scheme || "Mutual Fund").slice(0, 40)}`}
+      onClose={onClose}
+    >
       <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
         Holding: <b>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}</b> units
         {buyNav > 0 && <> @ buy NAV ₹{buyNav.toFixed(4)}</>}
-        {mf.buyDate && <> · Bought {new Date(mf.buyDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}</>}
+        {mf.buyDate && (
+          <>
+            {" "}
+            · Bought{" "}
+            {new Date(mf.buyDate + "T00:00:00").toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "2-digit",
+            })}
+          </>
+        )}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Units to Sell">
@@ -9150,7 +11192,8 @@ function SellMFModal({ mf, onClose, onSave }: any) {
       </Field>
       {sellUnitsNum > totalUnits && (
         <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginTop: 4 }}>
-          Cannot sell more than {totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units available
+          Cannot sell more than {totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}{" "}
+          units available
         </div>
       )}
       {sellUnitsNum > 0 && sellNavNum > 0 && sellUnitsNum <= totalUnits && (
@@ -9164,21 +11207,42 @@ function SellMFModal({ mf, onClose, onSave }: any) {
         >
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", alignItems: "center" }}>
             <span style={{ fontSize: 13, color: "var(--t-muted)" }}>
-              Proceeds: <b>₹{proceeds.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+              Proceeds:{" "}
+              <b>
+                ₹
+                {proceeds.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </b>
             </span>
             <span style={{ fontSize: 13, color: "var(--t-muted)" }}>
               P&L:{" "}
               <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>
-                {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {profit >= 0 ? "+" : ""}₹
+                {Math.abs(profit).toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </b>
             </span>
-            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 800, background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`, color: isLTCG ? THEME.sage : THEME.gold }}>
+            <span
+              style={{
+                fontSize: 9,
+                padding: "2px 7px",
+                borderRadius: 4,
+                fontWeight: 800,
+                background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`,
+                color: isLTCG ? THEME.sage : THEME.gold,
+              }}
+            >
               {isLTCG ? "LTCG" : "STCG"}
             </span>
           </div>
           {remainingUnits > 0 && (
             <div style={{ fontSize: 12, color: "var(--t-muted)", marginTop: 6 }}>
-              {remainingUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units remaining after sell
+              {remainingUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units remaining
+              after sell
             </div>
           )}
         </div>
@@ -9215,7 +11279,14 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
   const sellNavNum = Number(f.sellNav) || 0;
   const qtyOver = sellUnitsNum > totalUnits;
 
-  type MFAlloc = { lot: any; consume: number; buyNav: number; pnl: number; isLTCG: boolean; fullyConsumed: boolean };
+  type MFAlloc = {
+    lot: any;
+    consume: number;
+    buyNav: number;
+    pnl: number;
+    isLTCG: boolean;
+    fullyConsumed: boolean;
+  };
   const allocs: MFAlloc[] = (() => {
     if (sellUnitsNum <= 0 || sellNavNum <= 0 || qtyOver) return [];
     const result: MFAlloc[] = [];
@@ -9226,7 +11297,9 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
       const available = Number(lot.units) || 0;
       const consume = Math.min(available, remaining);
       const lotBuyNav = Number(lot.buyNav) || 0;
-      const isLTCG = lot.buyDate ? now - new Date(lot.buyDate).getTime() > 365 * 86400 * 1000 : false;
+      const isLTCG = lot.buyDate
+        ? now - new Date(lot.buyDate).getTime() > 365 * 86400 * 1000
+        : false;
       result.push({
         lot,
         consume,
@@ -9248,11 +11321,16 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
   const remainingAfter = totalUnits - sellUnitsNum;
   const isValid = sellUnitsNum > 0 && sellNavNum > 0 && !qtyOver && !!f.sellDate;
 
-  const fmt2 = (n: number) => Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt2 = (n: number) =>
+    Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmt4 = (n: number) => Number(n).toFixed(4);
 
   return (
-    <Modal title={`Sell ${group.schemeName.length > 35 ? group.schemeName.slice(0, 35) + "…" : group.schemeName}`} onClose={onClose} maxWidth={720}>
+    <Modal
+      title={`Sell ${group.schemeName.length > 35 ? group.schemeName.slice(0, 35) + "…" : group.schemeName}`}
+      onClose={onClose}
+      maxWidth={720}
+    >
       <div
         style={{
           padding: "10px 14px",
@@ -9280,7 +11358,14 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
         </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
         <Field label="Units to Sell">
           <input
             style={{ ...inp, borderColor: qtyOver ? THEME.rust : undefined }}
@@ -9313,48 +11398,119 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
 
       {qtyOver && (
         <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginBottom: 10 }}>
-          Cannot sell more than {totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units available
+          Cannot sell more than {totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}{" "}
+          units available
         </div>
       )}
 
       {allocs.length > 0 && (
         <>
-          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              marginBottom: 8,
+            }}
+          >
             Lot-wise Allocation
           </div>
-          <div style={{ borderRadius: 10, border: `1px solid ${THEME.line}`, overflow: "hidden", marginBottom: 14 }}>
+          <div
+            style={{
+              borderRadius: 10,
+              border: `1px solid ${THEME.line}`,
+              overflow: "hidden",
+              marginBottom: 14,
+            }}
+          >
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "var(--surface-0)" }}>
-                  {["Buy Date", "Buy NAV", "Available", "Selling", "Cost Basis", "P&L", "Type"].map((h, i) => (
-                    <th key={h} style={{ padding: "8px 12px", fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : (i === 6 ? "center" : "right"), borderBottom: `1px solid ${THEME.line}` }}>
-                      {h}
-                    </th>
-                  ))}
+                  {["Buy Date", "Buy NAV", "Available", "Selling", "Cost Basis", "P&L", "Type"].map(
+                    (h, i) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: "8px 12px",
+                          fontSize: 9,
+                          fontWeight: 700,
+                          color: THEME.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          textAlign: i === 0 ? "left" : i === 6 ? "center" : "right",
+                          borderBottom: `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {allocs.map((a, i) => (
-                  <tr key={a.lot.id} style={{ borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined, background: i % 2 === 0 ? "transparent" : `${THEME.accent}08` }}>
+                  <tr
+                    key={a.lot.id}
+                    style={{
+                      borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined,
+                      background: i % 2 === 0 ? "transparent" : `${THEME.accent}08`,
+                    }}
+                  >
                     <td style={{ padding: "9px 12px" }}>
-                      {a.lot.buyDate
-                        ? new Date(a.lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
-                        : <span style={{ color: THEME.muted }}>—</span>}
+                      {a.lot.buyDate ? (
+                        new Date(a.lot.buyDate).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "2-digit",
+                        })
+                      ) : (
+                        <span style={{ color: THEME.muted }}>—</span>
+                      )}
                     </td>
                     <td style={{ padding: "9px 12px", textAlign: "right" }}>₹{fmt4(a.buyNav)}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>{Number(a.lot.units).toLocaleString("en-IN", { maximumFractionDigits: 3 })}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>
+                      {Number(a.lot.units).toLocaleString("en-IN", { maximumFractionDigits: 3 })}
+                    </td>
                     <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 800 }}>
                       {a.consume.toLocaleString("en-IN", { maximumFractionDigits: 3 })}
-                      <span style={{ display: "block", fontSize: 8, color: a.fullyConsumed ? THEME.rust : THEME.gold, fontWeight: 700, lineHeight: 1.2 }}>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: 8,
+                          color: a.fullyConsumed ? THEME.rust : THEME.gold,
+                          fontWeight: 700,
+                          lineHeight: 1.2,
+                        }}
+                      >
                         {a.fullyConsumed ? "full lot" : "partial"}
                       </span>
                     </td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>₹{fmt2(a.consume * a.buyNav)}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700, color: a.pnl >= 0 ? THEME.sage : THEME.rust }}>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>
+                      ₹{fmt2(a.consume * a.buyNav)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "9px 12px",
+                        textAlign: "right",
+                        fontWeight: 700,
+                        color: a.pnl >= 0 ? THEME.sage : THEME.rust,
+                      }}
+                    >
                       {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
                     </td>
                     <td style={{ padding: "9px 12px", textAlign: "center" }}>
-                      <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 800, background: a.isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`, color: a.isLTCG ? THEME.sage : THEME.gold }}>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          padding: "2px 7px",
+                          borderRadius: 4,
+                          fontWeight: 800,
+                          background: a.isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`,
+                          color: a.isLTCG ? THEME.sage : THEME.gold,
+                        }}
+                      >
                         {a.isLTCG ? "LTCG" : "STCG"}
                       </span>
                     </td>
@@ -9374,39 +11530,94 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
               marginBottom: 4,
             }}
           >
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
               <div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Total Proceeds</div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>
+                  Total Proceeds
+                </div>
                 <div style={{ fontSize: 15, fontWeight: 800 }}>₹{fmt2(totalProceeds)}</div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Cost Basis</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>₹{fmt2(totalCost)}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>
+                  ₹{fmt2(totalCost)}
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Net P&L</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: totalPnl >= 0 ? THEME.sage : THEME.rust,
+                  }}
+                >
                   {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 16, paddingTop: 10, borderTop: `1px solid ${THEME.line}40`, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                paddingTop: 10,
+                borderTop: `1px solid ${THEME.line}40`,
+                flexWrap: "wrap",
+              }}
+            >
               {stcgPnl !== 0 && (
                 <span style={{ fontSize: 12 }}>
-                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: `${THEME.gold}1f`, color: THEME.gold, marginRight: 6 }}>STCG</span>
-                  <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>{stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}</b>
+                  <span
+                    style={{
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      fontSize: 9,
+                      fontWeight: 800,
+                      background: `${THEME.gold}1f`,
+                      color: THEME.gold,
+                      marginRight: 6,
+                    }}
+                  >
+                    STCG
+                  </span>
+                  <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>
+                    {stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}
+                  </b>
                 </span>
               )}
               {ltcgPnl !== 0 && (
                 <span style={{ fontSize: 12 }}>
-                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: `${THEME.sage}1f`, color: THEME.sage, marginRight: 6 }}>LTCG</span>
-                  <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>{ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}</b>
+                  <span
+                    style={{
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      fontSize: 9,
+                      fontWeight: 800,
+                      background: `${THEME.sage}1f`,
+                      color: THEME.sage,
+                      marginRight: 6,
+                    }}
+                  >
+                    LTCG
+                  </span>
+                  <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>
+                    {ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}
+                  </b>
                 </span>
               )}
               {remainingAfter > 0 && (
                 <span style={{ fontSize: 12, marginLeft: "auto" }}>
                   <span style={{ color: THEME.muted }}>Remaining: </span>
-                  <b>{remainingAfter.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units</b>
+                  <b>
+                    {remainingAfter.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units
+                  </b>
                 </span>
               )}
             </div>
@@ -9427,7 +11638,16 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
 /* ── Dividend Tracker ──────────────────────────────────────────────── */
 const DividendTracker = ({ state, addItem, removeItem }: any) => {
   const [showForm, setShowForm] = React.useState(false);
-  const [form, setForm] = React.useState({ symbol: "", fundName: "", type: "stock", amount: "", tds: "", paymentDate: today(), fy: state?.profile?.fy || "2025-26", note: "" });
+  const [form, setForm] = React.useState({
+    symbol: "",
+    fundName: "",
+    type: "stock",
+    amount: "",
+    tds: "",
+    paymentDate: today(),
+    fy: state?.profile?.fy || "2025-26",
+    note: "",
+  });
 
   // Manual dividend records
   const manualDividends = state.dividends || [];
@@ -9440,7 +11660,11 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
         const note = (t.note || t.narration || t.description || "").toLowerCase();
         return (
           t.type === "credit" &&
-          (cat === "dividend" || cat === "dividends" || note.includes("dividend") || note.includes("div payout") || note.includes("interim div"))
+          (cat === "dividend" ||
+            cat === "dividends" ||
+            note.includes("dividend") ||
+            note.includes("div payout") ||
+            note.includes("interim div"))
         );
       })
       .map((t: any) => ({
@@ -9458,7 +11682,10 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
   }, [state.transactions]);
 
   // Combined view
-  const allDividends = [...manualDividends.map((d: any) => ({ ...d, isAuto: false })), ...autoDividends];
+  const allDividends = [
+    ...manualDividends.map((d: any) => ({ ...d, isAuto: false })),
+    ...autoDividends,
+  ];
   const totalDividends = allDividends.reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
   const totalTDS = allDividends.reduce((s: number, d: any) => s + (Number(d.tds) || 0), 0);
   const byFY: Record<string, { amount: number; tds: number; count: number }> = {};
@@ -9472,31 +11699,60 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
         {[
           { label: "Total Dividends", value: fmtINRFull(totalDividends), color: THEME.sage },
           { label: "TDS Deducted", value: fmtINRFull(totalTDS), color: THEME.rust },
-          { label: "Net Received", value: fmtINRFull(totalDividends - totalTDS), color: THEME.accent },
+          {
+            label: "Net Received",
+            value: fmtINRFull(totalDividends - totalTDS),
+            color: THEME.accent,
+          },
           { label: "Manual Records", value: String(manualDividends.length), color: THEME.gold },
-          ...(autoDividends.length > 0 ? [{ label: "Auto-Detected", value: String(autoDividends.length), color: THEME.accent }] : []),
+          ...(autoDividends.length > 0
+            ? [{ label: "Auto-Detected", value: String(autoDividends.length), color: THEME.accent }]
+            : []),
         ].map(({ label, value, color }) => (
           <Card key={label} style={{ padding: "16px 18px", borderTop: `3px solid ${color}` }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color }}><Prv>{value}</Prv></div>
+            <div style={{ fontSize: 20, fontWeight: 800, color }}>
+              <Prv>{value}</Prv>
+            </div>
           </Card>
         ))}
       </div>
 
       {autoDividends.length > 0 && (
-        <Card style={{ padding: "14px 18px", background: `${THEME.accent}06`, border: `1px solid ${THEME.accent}22` }}>
+        <Card
+          style={{
+            padding: "14px 18px",
+            background: `${THEME.accent}06`,
+            border: `1px solid ${THEME.accent}22`,
+          }}
+        >
           <div style={{ fontSize: 12, color: THEME.accent, fontWeight: 600 }}>
-            {autoDividends.length} dividend transaction{autoDividends.length > 1 ? "s" : ""} auto-detected from your bank transactions (category "Dividend" or narration containing "dividend"). These are shown below alongside manual records.
+            {autoDividends.length} dividend transaction{autoDividends.length > 1 ? "s" : ""}{" "}
+            auto-detected from your bank transactions (category "Dividend" or narration containing
+            "dividend"). These are shown below alongside manual records.
           </div>
         </Card>
       )}
 
       <Card style={{ padding: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
           <div style={{ fontSize: 15, fontWeight: 800 }}>Dividend Records</div>
           <Button variant="accent" size="sm" onClick={() => setShowForm(!showForm)}>
             {showForm ? "Cancel" : "+ Add Dividend"}
@@ -9504,35 +11760,110 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
         </div>
 
         {showForm && (
-          <div style={{ padding: 16, borderRadius: 12, background: `${THEME.accent}06`, border: `1px solid ${THEME.accent}22`, marginBottom: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+          <div
+            style={{
+              padding: 16,
+              borderRadius: 12,
+              background: `${THEME.accent}06`,
+              border: `1px solid ${THEME.accent}22`,
+              marginBottom: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: 10,
+              }}
+            >
               <Field label="Type">
-                <select className="form-input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-                  <option value="stock">Stock</option><option value="mf">Mutual Fund</option>
+                <select
+                  className="form-input"
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                >
+                  <option value="stock">Stock</option>
+                  <option value="mf">Mutual Fund</option>
                 </select>
               </Field>
               <Field label={form.type === "stock" ? "Symbol" : "Fund Name"}>
-                <input className="form-input" placeholder={form.type === "stock" ? "e.g. RELIANCE" : "e.g. HDFC Top 100"} value={form.type === "stock" ? form.symbol : form.fundName} onChange={(e) => setForm({ ...form, [form.type === "stock" ? "symbol" : "fundName"]: e.target.value })} />
+                <input
+                  className="form-input"
+                  placeholder={form.type === "stock" ? "e.g. RELIANCE" : "e.g. HDFC Top 100"}
+                  value={form.type === "stock" ? form.symbol : form.fundName}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      [form.type === "stock" ? "symbol" : "fundName"]: e.target.value,
+                    })
+                  }
+                />
               </Field>
               <Field label="Amount (₹)">
-                <input className="form-input" type="number" placeholder="e.g. 5000" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                <input
+                  className="form-input"
+                  type="number"
+                  placeholder="e.g. 5000"
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                />
               </Field>
               <Field label="TDS (₹)">
-                <input className="form-input" type="number" placeholder="e.g. 500" value={form.tds} onChange={(e) => setForm({ ...form, tds: e.target.value })} />
+                <input
+                  className="form-input"
+                  type="number"
+                  placeholder="e.g. 500"
+                  value={form.tds}
+                  onChange={(e) => setForm({ ...form, tds: e.target.value })}
+                />
               </Field>
               <Field label="Payment Date">
-                <input className="form-input" type="date" value={form.paymentDate} onChange={(e) => setForm({ ...form, paymentDate: e.target.value })} />
+                <input
+                  className="form-input"
+                  type="date"
+                  value={form.paymentDate}
+                  onChange={(e) => setForm({ ...form, paymentDate: e.target.value })}
+                />
               </Field>
               <Field label="FY">
-                <input className="form-input" placeholder="2025-26" value={form.fy} onChange={(e) => setForm({ ...form, fy: e.target.value })} />
+                <input
+                  className="form-input"
+                  placeholder="2025-26"
+                  value={form.fy}
+                  onChange={(e) => setForm({ ...form, fy: e.target.value })}
+                />
               </Field>
             </div>
-            <Button variant="accent" size="sm" style={{ marginTop: 12 }} onClick={() => {
-              if (!form.amount) return;
-              addItem("dividends", { symbol: form.symbol, fundName: form.fundName, type: form.type, amount: Number(form.amount) || 0, tds: Number(form.tds) || 0, paymentDate: form.paymentDate, fy: form.fy, note: form.note, owner: "self" });
-              setForm({ symbol: "", fundName: "", type: "stock", amount: "", tds: "", paymentDate: today(), fy: state?.profile?.fy || "2025-26", note: "" });
-              setShowForm(false);
-            }}>
+            <Button
+              variant="accent"
+              size="sm"
+              style={{ marginTop: 12 }}
+              onClick={() => {
+                if (!form.amount) return;
+                addItem("dividends", {
+                  symbol: form.symbol,
+                  fundName: form.fundName,
+                  type: form.type,
+                  amount: Number(form.amount) || 0,
+                  tds: Number(form.tds) || 0,
+                  paymentDate: form.paymentDate,
+                  fy: form.fy,
+                  note: form.note,
+                  owner: "self",
+                });
+                setForm({
+                  symbol: "",
+                  fundName: "",
+                  type: "stock",
+                  amount: "",
+                  tds: "",
+                  paymentDate: today(),
+                  fy: state?.profile?.fy || "2025-26",
+                  note: "",
+                });
+                setShowForm(false);
+              }}
+            >
               Save Dividend
             </Button>
           </div>
@@ -9540,14 +11871,17 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
 
         {allDividends.length === 0 ? (
           <div style={{ padding: 32, textAlign: "center", color: THEME.muted, fontSize: 13 }}>
-            No dividends tracked yet. Add dividend records manually above, or categorize bank transactions as "Dividend" for automatic detection.
+            No dividends tracked yet. Add dividend records manually above, or categorize bank
+            transactions as "Dividend" for automatic detection.
           </div>
         ) : (
           <div style={{ borderRadius: 12, border: `1px solid ${THEME.line}`, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: `${THEME.muted}09` }}>
-                  <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700 }}>Security</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700 }}>
+                    Security
+                  </th>
                   <th style={{ padding: "10px 12px", textAlign: "left" }}>Source</th>
                   <th style={{ padding: "10px 12px", textAlign: "right" }}>Amount</th>
                   <th style={{ padding: "10px 12px", textAlign: "right" }}>TDS</th>
@@ -9557,62 +11891,145 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                 </tr>
               </thead>
               <tbody>
-                {[...allDividends].sort((a: any, b: any) => (b.paymentDate || "").localeCompare(a.paymentDate || "")).map((d: any) => (
-                  <tr key={d.id} style={{ borderTop: `1px solid ${THEME.line}`, background: d.isAuto ? `${THEME.accent}04` : undefined }}>
-                    <td style={{ padding: "10px 12px", fontWeight: 600 }}>{d.symbol || d.fundName || "-"}</td>
-                    <td style={{ padding: "10px 12px" }}>
-                      {d.isAuto
-                        ? <Badge variant="muted" style={{ fontSize: 10, background: `${THEME.accent}15`, color: THEME.accent }}>Auto</Badge>
-                        : <Badge variant={d.type === "stock" ? "accent" : "muted"} style={{ fontSize: 10 }}>{d.type}</Badge>
-                      }
-                    </td>
-                    <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: THEME.sage }}><Prv>{fmtINRFull(d.amount)}</Prv></td>
-                    <td style={{ padding: "10px 12px", textAlign: "right", color: THEME.rust }}><Prv>{fmtINRFull(d.tds)}</Prv></td>
-                    <td style={{ padding: "10px 12px", color: THEME.muted }}>{d.paymentDate || "-"}</td>
-                    <td style={{ padding: "10px 12px" }}>{d.fy || "-"}</td>
-                    <td style={{ padding: "10px 6px" }}>
-                      {!d.isAuto && (
-                        <button onClick={() => removeItem("dividends", d.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 2 }}><Trash2 size={12} /></button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {[...allDividends]
+                  .sort((a: any, b: any) =>
+                    (b.paymentDate || "").localeCompare(a.paymentDate || "")
+                  )
+                  .map((d: any) => (
+                    <tr
+                      key={d.id}
+                      style={{
+                        borderTop: `1px solid ${THEME.line}`,
+                        background: d.isAuto ? `${THEME.accent}04` : undefined,
+                      }}
+                    >
+                      <td style={{ padding: "10px 12px", fontWeight: 600 }}>
+                        {d.symbol || d.fundName || "-"}
+                      </td>
+                      <td style={{ padding: "10px 12px" }}>
+                        {d.isAuto ? (
+                          <Badge
+                            variant="muted"
+                            style={{
+                              fontSize: 10,
+                              background: `${THEME.accent}15`,
+                              color: THEME.accent,
+                            }}
+                          >
+                            Auto
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant={d.type === "stock" ? "accent" : "muted"}
+                            style={{ fontSize: 10 }}
+                          >
+                            {d.type}
+                          </Badge>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontWeight: 600,
+                          color: THEME.sage,
+                        }}
+                      >
+                        <Prv>{fmtINRFull(d.amount)}</Prv>
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", color: THEME.rust }}>
+                        <Prv>{fmtINRFull(d.tds)}</Prv>
+                      </td>
+                      <td style={{ padding: "10px 12px", color: THEME.muted }}>
+                        {d.paymentDate || "-"}
+                      </td>
+                      <td style={{ padding: "10px 12px" }}>{d.fy || "-"}</td>
+                      <td style={{ padding: "10px 6px" }}>
+                        {!d.isAuto && (
+                          <button
+                            onClick={() => removeItem("dividends", d.id)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              color: THEME.muted,
+                              padding: 2,
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
         )}
 
         {Object.keys(byFY).length > 1 && (
-          <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: `${THEME.muted}06` }}>
+          <div
+            style={{ marginTop: 16, padding: 14, borderRadius: 10, background: `${THEME.muted}06` }}
+          >
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>FY-wise Summary</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
-              {Object.entries(byFY).sort((a, b) => b[0].localeCompare(a[0])).map(([fy, data]) => (
-                <div key={fy} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.accent }}>FY {fy}</div>
-                  <div style={{ fontSize: 14, fontWeight: 800 }}><Prv>{fmtINRFull(data.amount)}</Prv></div>
-                  <div style={{ fontSize: 10, color: THEME.muted }}>TDS: {fmtINRFull(data.tds)} · {data.count} records</div>
-                </div>
-              ))}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: 8,
+              }}
+            >
+              {Object.entries(byFY)
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .map(([fy, data]) => (
+                  <div
+                    key={fy}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: "var(--surface-0)",
+                      border: `1px solid ${THEME.line}`,
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 700, color: THEME.accent }}>
+                      FY {fy}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 800 }}>
+                      <Prv>{fmtINRFull(data.amount)}</Prv>
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>
+                      TDS: {fmtINRFull(data.tds)} · {data.count} records
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         )}
       </Card>
 
       {/* ── DRIP Simulator ──────────────────────────────────────────── */}
-      {allDividends.length > 0 && <DRIPSimulator allDividends={allDividends} totalDividends={totalDividends} />}
+      {allDividends.length > 0 && (
+        <DRIPSimulator allDividends={allDividends} totalDividends={totalDividends} />
+      )}
     </div>
   );
 };
 
 /* ── DRIP Simulator Component ─────────────────────────────────────── */
 const DRIP_RATES = [
-  { label: "10%", rate: 0.10 },
+  { label: "10%", rate: 0.1 },
   { label: "12%", rate: 0.12 },
   { label: "15%", rate: 0.15 },
   { label: "18%", rate: 0.18 },
 ];
 
-const DRIPSimulator = ({ allDividends, totalDividends }: { allDividends: any[]; totalDividends: number }) => {
+const DRIPSimulator = ({
+  allDividends,
+  totalDividends,
+}: {
+  allDividends: any[];
+  totalDividends: number;
+}) => {
   const [selectedRateIdx, setSelectedRateIdx] = React.useState(1); // default 12%
   const selectedRate = DRIP_RATES[selectedRateIdx].rate;
 
@@ -9662,26 +12079,83 @@ const DRIPSimulator = ({ allDividends, totalDividends }: { allDividends: any[]; 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
         <RefreshCw size={16} style={{ color: THEME.accent }} />
         <span style={{ fontSize: 15, fontWeight: 800 }}>DRIP Simulator</span>
-        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>What if you reinvested every dividend?</span>
+        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+          What if you reinvested every dividend?
+        </span>
       </div>
 
       {/* Summary cards: Total Received, If Reinvested at 12%, If Reinvested at 15%, Opportunity Cost */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
         <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.muted}` }}>
-          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Total Received</div>
-          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}><Prv>{fmtINRFull(totalDividends)}</Prv></div>
+          <div
+            style={{
+              fontSize: 10,
+              color: THEME.muted,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Total Received
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>
+            <Prv>{fmtINRFull(totalDividends)}</Prv>
+          </div>
         </Card>
         <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.sage}` }}>
-          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>If Reinvested at 12%</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, marginTop: 4 }}><Prv>{fmtINRFull(dripAt12)}</Prv></div>
+          <div
+            style={{
+              fontSize: 10,
+              color: THEME.muted,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            If Reinvested at 12%
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>
+            <Prv>{fmtINRFull(dripAt12)}</Prv>
+          </div>
         </Card>
         <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.accent}` }}>
-          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>If Reinvested at 15%</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent, marginTop: 4 }}><Prv>{fmtINRFull(dripAt15)}</Prv></div>
+          <div
+            style={{
+              fontSize: 10,
+              color: THEME.muted,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            If Reinvested at 15%
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>
+            <Prv>{fmtINRFull(dripAt15)}</Prv>
+          </div>
         </Card>
         <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.gold}` }}>
-          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Opportunity Cost</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold, marginTop: 4 }}><Prv>{fmtINRFull(dripAt12 - totalDividends)}</Prv></div>
+          <div
+            style={{
+              fontSize: 10,
+              color: THEME.muted,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Opportunity Cost
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold, marginTop: 4 }}>
+            <Prv>{fmtINRFull(dripAt12 - totalDividends)}</Prv>
+          </div>
           <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>at 12% CAGR</div>
         </Card>
       </div>
@@ -9699,7 +12173,8 @@ const DRIPSimulator = ({ allDividends, totalDividends }: { allDividends: any[]; 
               fontSize: 11,
               fontWeight: 700,
               cursor: "pointer",
-              border: i === selectedRateIdx ? `2px solid ${THEME.accent}` : `1px solid ${THEME.line}`,
+              border:
+                i === selectedRateIdx ? `2px solid ${THEME.accent}` : `1px solid ${THEME.line}`,
               background: i === selectedRateIdx ? `${THEME.accent}15` : "transparent",
               color: i === selectedRateIdx ? THEME.accent : THEME.muted,
               transition: "all 0.15s ease",
@@ -9713,39 +12188,118 @@ const DRIPSimulator = ({ allDividends, totalDividends }: { allDividends: any[]; 
       {/* Comparison visualization */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
         {/* Received card */}
-        <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.muted}08`, border: `1px solid ${THEME.line}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Received</div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}><Prv>{fmtINRFull(totalDividends)}</Prv></div>
+        <div
+          style={{
+            padding: "14px 16px",
+            borderRadius: 12,
+            background: `${THEME.muted}08`,
+            border: `1px solid ${THEME.line}`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              marginBottom: 6,
+            }}
+          >
+            Received
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>
+            <Prv>{fmtINRFull(totalDividends)}</Prv>
+          </div>
           {/* Bar */}
-          <div style={{ marginTop: 10, height: 8, borderRadius: 4, background: `${THEME.muted}15`, overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 4, background: THEME.muted, width: `${receivedPct}%`, transition: "width 0.3s ease" }} />
+          <div
+            style={{
+              marginTop: 10,
+              height: 8,
+              borderRadius: 4,
+              background: `${THEME.muted}15`,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                borderRadius: 4,
+                background: THEME.muted,
+                width: `${receivedPct}%`,
+                transition: "width 0.3s ease",
+              }}
+            />
           </div>
         </div>
         {/* If Reinvested card */}
-        <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.sage}08`, border: `1px solid ${THEME.sage}22` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.sage, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>If Reinvested at {DRIP_RATES[selectedRateIdx].label}</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}><Prv>{fmtINRFull(dripValue)}</Prv></div>
+        <div
+          style={{
+            padding: "14px 16px",
+            borderRadius: 12,
+            background: `${THEME.sage}08`,
+            border: `1px solid ${THEME.sage}22`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: THEME.sage,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              marginBottom: 6,
+            }}
+          >
+            If Reinvested at {DRIP_RATES[selectedRateIdx].label}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}>
+            <Prv>{fmtINRFull(dripValue)}</Prv>
+          </div>
           {/* Bar */}
-          <div style={{ marginTop: 10, height: 8, borderRadius: 4, background: `${THEME.sage}15`, overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 4, background: THEME.sage, width: `${dripPct}%`, transition: "width 0.3s ease" }} />
+          <div
+            style={{
+              marginTop: 10,
+              height: 8,
+              borderRadius: 4,
+              background: `${THEME.sage}15`,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                borderRadius: 4,
+                background: THEME.sage,
+                width: `${dripPct}%`,
+                transition: "width 0.3s ease",
+              }}
+            />
           </div>
         </div>
       </div>
 
       {/* Missed growth callout */}
       {opportunityCost > 0 && (
-        <div style={{
-          padding: "12px 16px",
-          borderRadius: 10,
-          background: `${THEME.sage}08`,
-          border: `1px solid ${THEME.sage}22`,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}>
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: 10,
+            background: `${THEME.sage}08`,
+            border: `1px solid ${THEME.sage}22`,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
           <TrendingUp size={16} style={{ color: THEME.sage, flexShrink: 0 }} />
           <span style={{ fontSize: 12, fontWeight: 600, color: THEME.sage }}>
-            You missed <Prv><b>{fmtINRFull(opportunityCost)}</b></Prv> in potential growth by not reinvesting dividends at {DRIP_RATES[selectedRateIdx].label} CAGR
+            You missed{" "}
+            <Prv>
+              <b>{fmtINRFull(opportunityCost)}</b>
+            </Prv>{" "}
+            in potential growth by not reinvesting dividends at {DRIP_RATES[selectedRateIdx].label}{" "}
+            CAGR
           </span>
         </div>
       )}
@@ -9813,7 +12367,9 @@ const YieldTracker = ({ state }: any) => {
   const npsGrowth = (state.nps || []).reduce((s: number, n: any) => {
     const bal = Number(n.balance) || 0;
     const txCorpus = (n.transactions || []).reduce(
-      (sum: number, t: any) => sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      (sum: number, t: any) =>
+        sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+      0
     );
     const corpus = bal > 0 ? bal : txCorpus;
     return s + (corpus * 10) / 100;

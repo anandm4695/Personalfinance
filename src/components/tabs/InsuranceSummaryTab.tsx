@@ -1706,12 +1706,52 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       </SectionTitle>
 
       <div className="ins-stats-grid">
-        <StatCard label="LIC Sum Assured" value={fmtINRFull(totalLICAssured)} sub="Life Insurance Corp policies" icon={<Shield />} color={THEME.rust} />
-        <StatCard label="Term Cover" value={fmtINRFull(totalTermCover)} sub="Pure protection cover" icon={<Zap />} color={THEME.accent} />
-        <StatCard label="Total Life Cover" value={fmtINRFull(totalLifeCover)} sub="LIC + Term combined" icon={<Heart />} color={THEME.accent} />
-        <StatCard label="Annual Premium" value={fmtINRFull(totalAnnualPremium)} sub={annualIncome > 0 ? `${premiumBurdenPct.toFixed(1)}% of income` : "Combined insurance cost"} icon={<Wallet />} color={THEME.gold} />
-        <StatCard label="Investment Maturity" value={fmtINRFull(totalInvestMaturity)} sub="Endowment & ULIP receivables" icon={<TrendingUp />} color={THEME.sage} />
-        <StatCard label="Cover Adequacy" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} sub={adequacyLabel} icon={<AlertCircle />} color={adequacyColor} />
+        <StatCard
+          label="LIC Sum Assured"
+          value={fmtINRFull(totalLICAssured)}
+          sub="Life Insurance Corp policies"
+          icon={<Shield />}
+          color={THEME.rust}
+        />
+        <StatCard
+          label="Term Cover"
+          value={fmtINRFull(totalTermCover)}
+          sub="Pure protection cover"
+          icon={<Zap />}
+          color={THEME.accent}
+        />
+        <StatCard
+          label="Total Life Cover"
+          value={fmtINRFull(totalLifeCover)}
+          sub="LIC + Term combined"
+          icon={<Heart />}
+          color={THEME.accent}
+        />
+        <StatCard
+          label="Annual Premium"
+          value={fmtINRFull(totalAnnualPremium)}
+          sub={
+            annualIncome > 0
+              ? `${premiumBurdenPct.toFixed(1)}% of income`
+              : "Combined insurance cost"
+          }
+          icon={<Wallet />}
+          color={THEME.gold}
+        />
+        <StatCard
+          label="Investment Maturity"
+          value={fmtINRFull(totalInvestMaturity)}
+          sub="Endowment & ULIP receivables"
+          icon={<TrendingUp />}
+          color={THEME.sage}
+        />
+        <StatCard
+          label="Cover Adequacy"
+          value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"}
+          sub={adequacyLabel}
+          icon={<AlertCircle />}
+          color={adequacyColor}
+        />
       </div>
 
       {hasPolicies && (
@@ -1766,7 +1806,17 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+                    <Tooltip
+                      formatter={(v: any) => fmtINRFull(v)}
+                      contentStyle={{
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 8,
+                        color: THEME.ink,
+                      }}
+                      labelStyle={{ color: THEME.ink }}
+                      itemStyle={{ color: THEME.ink }}
+                    />
                     <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1809,7 +1859,17 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+                    <Tooltip
+                      formatter={(v: any) => fmtINRFull(v)}
+                      contentStyle={{
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 8,
+                        color: THEME.ink,
+                      }}
+                      labelStyle={{ color: THEME.ink }}
+                      itemStyle={{ color: THEME.ink }}
+                    />
                     <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1822,9 +1882,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       {/* LIC SECTION */}
       <div style={{ marginBottom: 32 }}>
         <div className="ins-section-header">
-          <div className="ins-section-title">
-            Life Insurance (LIC)
-          </div>
+          <div className="ins-section-title">Life Insurance (LIC)</div>
           <Button
             onClick={() => setModal("lic")}
             size="sm"
@@ -2137,9 +2195,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       {/* TERM PLANS SECTION */}
       <div style={{ marginBottom: 32 }}>
         <div className="ins-section-header">
-          <div className="ins-section-title">
-            Term Insurance Plans
-          </div>
+          <div className="ins-section-title">Term Insurance Plans</div>
           <Button
             onClick={() => setModal("term")}
             size="sm"
@@ -2458,9 +2514,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       {/* INVESTMENT PLANS SECTION */}
       <div style={{ marginBottom: 32 }}>
         <div className="ins-section-header">
-          <div className="ins-section-title">
-            Investment Plans (Endowment / ULIP)
-          </div>
+          <div className="ins-section-title">Investment Plans (Endowment / ULIP)</div>
           <Button
             onClick={() => setModal("invest")}
             size="sm"

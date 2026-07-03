@@ -30,19 +30,36 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
-const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#6366F1", "#14B8A6"];
+const COLORS = [
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#EC4899",
+  "#6366F1",
+  "#14B8A6",
+];
 
 export const Section80TrackerTab = ({ state, metrics }) => {
   const data = useMemo(() => {
     // 80C components
-    const ppfContrib = (state.ppf || []).reduce((s, p) => s + Number(p.thisYearContribution || 0), 0);
+    const ppfContrib = (state.ppf || []).reduce(
+      (s, p) => s + Number(p.thisYearContribution || 0),
+      0
+    );
     const elss = (state.mutualFunds || [])
       .filter((m) => (m.category || m.type || "").toLowerCase().includes("elss"))
       .reduce((s, m) => s + Number(m.invested || 0), 0);
     const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
     const epfContrib = (state.epf || []).reduce((s, e) => {
       const txns = e.transactions || [];
-      return s + txns.filter((t) => t.type === "employee_contribution" || t.type === "monthly_contribution").reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0);
+      return (
+        s +
+        txns
+          .filter((t) => t.type === "employee_contribution" || t.type === "monthly_contribution")
+          .reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0)
+      );
     }, 0);
     const homeLoanPrincipal = (state.loansTaken || [])
       .filter((l) => (l.type || "").toLowerCase().includes("home"))
@@ -70,13 +87,19 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       .reduce((s, p) => s + Number(p.annualPremium || 0), 0);
 
     // 80CCD(1B) — NPS extra
-    const npsContrib = (state.nps || []).reduce((s, n) => s + Number(n.thisYearContribution || n.yearContribution || 0), 0);
+    const npsContrib = (state.nps || []).reduce(
+      (s, n) => s + Number(n.thisYearContribution || n.yearContribution || 0),
+      0
+    );
     const sec80CCD1B_limit = 50000;
     const sec80CCD1B_used = Math.min(npsContrib, sec80CCD1B_limit);
     const sec80CCD1B_remaining = Math.max(0, sec80CCD1B_limit - npsContrib);
 
     // 80CCD(2) — Employer NPS
-    const npsEmployer = (state.nps || []).reduce((s, n) => s + Number(n.employerContribution || 0), 0);
+    const npsEmployer = (state.nps || []).reduce(
+      (s, n) => s + Number(n.employerContribution || 0),
+      0
+    );
 
     // 80D — Health Insurance
     const selfHealthPremium = (state.termPlans || [])
@@ -101,40 +124,88 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // Section 24 — Home loan interest
     const homeLoanInterest = (state.loansTaken || [])
       .filter((l) => (l.type || "").toLowerCase().includes("home"))
-      .reduce((s, l) => s + Number(l.outstanding || l.principal || 0) * (Number(l.rate || 0) / 100), 0);
+      .reduce(
+        (s, l) => s + Number(l.outstanding || l.principal || 0) * (Number(l.rate || 0) / 100),
+        0
+      );
     const sec24_limit = 200000;
     const sec24_used = Math.min(homeLoanInterest, sec24_limit);
     const sec24_remaining = Math.max(0, sec24_limit - homeLoanInterest);
 
     // HRA exemption (estimate)
-    const monthlyRent = (state.rentedProperties || []).reduce((s, p) => s + Number(p.monthlyRent || 0), 0);
+    const monthlyRent = (state.rentedProperties || []).reduce(
+      (s, p) => s + Number(p.monthlyRent || 0),
+      0
+    );
     const annualRent = monthlyRent * 12;
 
-    const totalDeductions = sec80C_used + sec80CCD1B_used + npsEmployer + sec80D_total + sec80TTA_used + sec24_used;
+    const totalDeductions =
+      sec80C_used + sec80CCD1B_used + npsEmployer + sec80D_total + sec80TTA_used + sec24_used;
 
     // Tax savings estimate (assuming 30% bracket)
     const taxSaved = totalDeductions * 0.3;
 
     return {
-      sec80C: { items: sec80C_items, total: sec80C_total, used: sec80C_used, remaining: sec80C_remaining, limit: sec80C_limit },
-      sec80CCD1B: { total: npsContrib, used: sec80CCD1B_used, remaining: sec80CCD1B_remaining, limit: sec80CCD1B_limit },
+      sec80C: {
+        items: sec80C_items,
+        total: sec80C_total,
+        used: sec80C_used,
+        remaining: sec80C_remaining,
+        limit: sec80C_limit,
+      },
+      sec80CCD1B: {
+        total: npsContrib,
+        used: sec80CCD1B_used,
+        remaining: sec80CCD1B_remaining,
+        limit: sec80CCD1B_limit,
+      },
       sec80CCD2: { total: npsEmployer },
-      sec80D: { self: sec80D_self_used, parents: sec80D_parents_used, total: sec80D_total, selfLimit: sec80D_self_limit, parentsLimit: sec80D_parents_limit },
+      sec80D: {
+        self: sec80D_self_used,
+        parents: sec80D_parents_used,
+        total: sec80D_total,
+        selfLimit: sec80D_self_limit,
+        parentsLimit: sec80D_parents_limit,
+      },
       sec80TTA: { total: sec80TTA_used, limit: sec80TTA_limit },
       sec24: { total: sec24_used, remaining: sec24_remaining, limit: sec24_limit },
       hra: { annualRent },
-      totalDeductions, taxSaved,
+      totalDeductions,
+      taxSaved,
     };
   }, [state]);
 
   const ProgressBar = ({ used, limit, color }) => (
     <div style={{ marginTop: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.textSecondary, marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 11,
+          color: THEME.textSecondary,
+          marginBottom: 4,
+        }}
+      >
         <span>{fmtINRFull(used)} used</span>
         <span>{fmtINRFull(Math.max(0, limit - used))} remaining</span>
       </div>
-      <div style={{ height: 8, borderRadius: 4, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${Math.min(100, (used / limit) * 100)}%`, borderRadius: 4, background: color, transition: "width 0.5s" }} />
+      <div
+        style={{
+          height: 8,
+          borderRadius: 4,
+          background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: `${Math.min(100, (used / limit) * 100)}%`,
+            borderRadius: 4,
+            background: color,
+            transition: "width 0.5s",
+          }}
+        />
       </div>
     </div>
   );
@@ -150,26 +221,72 @@ export const Section80TrackerTab = ({ state, metrics }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle sub="Track tax-saving investments and deductions">Section 80C / 80D Tracker</SectionTitle>
+      <SectionTitle sub="Track tax-saving investments and deductions">
+        Section 80C / 80D Tracker
+      </SectionTitle>
 
       {/* Summary Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        <StatCard label="Total Deductions" value={fmtINRFull(data.totalDeductions)} icon={<CheckCircle />} color={THEME.sage} />
-        <StatCard label="Estimated Tax Saved" value={fmtINRFull(data.taxSaved)} sub="At 30% tax bracket" icon={<IndianRupee />} color="var(--accent)" />
-        <StatCard label="80C Remaining" value={fmtINRFull(data.sec80C.remaining)} sub={data.sec80C.remaining > 0 ? "Room to invest more" : "Limit exhausted!"} icon={<Shield />} color={data.sec80C.remaining > 0 ? THEME.gold : THEME.sage} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <StatCard
+          label="Total Deductions"
+          value={fmtINRFull(data.totalDeductions)}
+          icon={<CheckCircle />}
+          color={THEME.sage}
+        />
+        <StatCard
+          label="Estimated Tax Saved"
+          value={fmtINRFull(data.taxSaved)}
+          sub="At 30% tax bracket"
+          icon={<IndianRupee />}
+          color="var(--accent)"
+        />
+        <StatCard
+          label="80C Remaining"
+          value={fmtINRFull(data.sec80C.remaining)}
+          sub={data.sec80C.remaining > 0 ? "Room to invest more" : "Limit exhausted!"}
+          icon={<Shield />}
+          color={data.sec80C.remaining > 0 ? THEME.gold : THEME.sage}
+        />
       </div>
 
       {/* Pie Chart + Details */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {pieData.length > 0 && (
           <Card style={{ padding: 24 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Deduction Mix</h3>
+            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+              Deduction Mix
+            </h3>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
                 </Pie>
-                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+                <Tooltip
+                  formatter={(v) => fmtINRFull(v)}
+                  contentStyle={{
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    borderRadius: 8,
+                    color: THEME.ink,
+                  }}
+                  labelStyle={{ color: THEME.ink }}
+                  itemStyle={{ color: THEME.ink }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </Card>
@@ -177,14 +294,30 @@ export const Section80TrackerTab = ({ state, metrics }) => {
 
         {/* 80C Breakdown */}
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Section 80C Breakdown</h3>
-          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 16 }}>Limit: ₹1,50,000</div>
+          <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+            Section 80C Breakdown
+          </h3>
+          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 16 }}>
+            Limit: ₹1,50,000
+          </div>
           <ProgressBar used={data.sec80C.used} limit={data.sec80C.limit} color={THEME.accent} />
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
             {data.sec80C.items.map((item) => (
-              <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: THEME.bg }}>
+              <div
+                key={item.label}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: THEME.bg,
+                }}
+              >
                 <span style={{ fontSize: 13, color: THEME.text }}>{item.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)" }}><Prv>{fmtINRFull(item.amount)}</Prv></span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)" }}>
+                  <Prv>{fmtINRFull(item.amount)}</Prv>
+                </span>
               </div>
             ))}
           </div>
@@ -192,62 +325,107 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       </div>
 
       {/* Other Sections */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: 16,
+        }}
+      >
         {/* 80CCD(1B) */}
         <Card style={{ padding: 20 }}>
-          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>80CCD(1B) — NPS Self Contribution</h4>
-          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>Additional deduction up to ₹50,000</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#8B5CF6" }}><Prv>{fmtINRFull(data.sec80CCD1B.used)}</Prv></div>
+          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
+            80CCD(1B) — NPS Self Contribution
+          </h4>
+          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
+            Additional deduction up to ₹50,000
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "#8B5CF6" }}>
+            <Prv>{fmtINRFull(data.sec80CCD1B.used)}</Prv>
+          </div>
           <ProgressBar used={data.sec80CCD1B.used} limit={data.sec80CCD1B.limit} color="#8B5CF6" />
         </Card>
 
         {/* 80CCD(2) */}
         {data.sec80CCD2.total > 0 && (
           <Card style={{ padding: 20 }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>80CCD(2) — Employer NPS</h4>
-            <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>No cap (up to 10% of basic salary)</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: THEME.accent }}><Prv>{fmtINRFull(data.sec80CCD2.total)}</Prv></div>
+            <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
+              80CCD(2) — Employer NPS
+            </h4>
+            <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
+              No cap (up to 10% of basic salary)
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: THEME.accent }}>
+              <Prv>{fmtINRFull(data.sec80CCD2.total)}</Prv>
+            </div>
           </Card>
         )}
 
         {/* 80D */}
         <Card style={{ padding: 20 }}>
-          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>80D — Health Insurance</h4>
+          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
+            80D — Health Insurance
+          </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>Self & Family</span>
-              <span style={{ fontWeight: 600, color: THEME.text }}><Prv>{fmtINRFull(data.sec80D.self)}</Prv> / {fmtINRFull(data.sec80D.selfLimit)}</span>
+              <span style={{ fontWeight: 600, color: THEME.text }}>
+                <Prv>{fmtINRFull(data.sec80D.self)}</Prv> / {fmtINRFull(data.sec80D.selfLimit)}
+              </span>
             </div>
             <ProgressBar used={data.sec80D.self} limit={data.sec80D.selfLimit} color="#EC4899" />
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>Parents</span>
-              <span style={{ fontWeight: 600, color: THEME.text }}><Prv>{fmtINRFull(data.sec80D.parents)}</Prv> / {fmtINRFull(data.sec80D.parentsLimit)}</span>
+              <span style={{ fontWeight: 600, color: THEME.text }}>
+                <Prv>{fmtINRFull(data.sec80D.parents)}</Prv> /{" "}
+                {fmtINRFull(data.sec80D.parentsLimit)}
+              </span>
             </div>
-            <ProgressBar used={data.sec80D.parents} limit={data.sec80D.parentsLimit} color={THEME.gold} />
+            <ProgressBar
+              used={data.sec80D.parents}
+              limit={data.sec80D.parentsLimit}
+              color={THEME.gold}
+            />
           </div>
         </Card>
 
         {/* Section 24 */}
         <Card style={{ padding: 20 }}>
-          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>Section 24 — Home Loan Interest</h4>
-          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>Max deduction: ₹2,00,000 for self-occupied</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.gold }}><Prv>{fmtINRFull(data.sec24.total)}</Prv></div>
+          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
+            Section 24 — Home Loan Interest
+          </h4>
+          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
+            Max deduction: ₹2,00,000 for self-occupied
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.gold }}>
+            <Prv>{fmtINRFull(data.sec24.total)}</Prv>
+          </div>
           <ProgressBar used={data.sec24.total} limit={data.sec24.limit} color="#F59E0B" />
         </Card>
 
         {/* 80TTA */}
         <Card style={{ padding: 20 }}>
-          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>80TTA — Savings Interest</h4>
-          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>Max: ₹10,000 on savings account interest</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#14B8A6" }}><Prv>{fmtINRFull(data.sec80TTA.total)}</Prv></div>
+          <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
+            80TTA — Savings Interest
+          </h4>
+          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
+            Max: ₹10,000 on savings account interest
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "#14B8A6" }}>
+            <Prv>{fmtINRFull(data.sec80TTA.total)}</Prv>
+          </div>
           <ProgressBar used={data.sec80TTA.total} limit={data.sec80TTA.limit} color="#14B8A6" />
         </Card>
 
         {/* HRA */}
         {data.hra.annualRent > 0 && (
           <Card style={{ padding: 20 }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>HRA Exemption</h4>
-            <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>Based on rent paid: {fmtINRFull(data.hra.annualRent)}/year</div>
+            <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
+              HRA Exemption
+            </h4>
+            <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
+              Based on rent paid: {fmtINRFull(data.hra.annualRent)}/year
+            </div>
             <div style={{ fontSize: 13, color: THEME.textSecondary }}>
               Enter full HRA details in Tax Tools for exact calculation.
             </div>

@@ -980,7 +980,12 @@ function ProfileSection({ state, updateProfile }: any) {
     (state?.mfSells || []).forEach((m: any) => addDate(m.sellDate));
     (state?.stocks || []).forEach((s: any) => addDate(s.buyDate));
     (state?.mutualFunds || []).forEach((m: any) => addDate(m.buyDate || m.purchaseDate));
-    (state?.taxPayments || []).forEach((t: any) => { if (t.fy) { const y = Number(t.fy.split("-")[0]); if (y) fySet.add(y); } });
+    (state?.taxPayments || []).forEach((t: any) => {
+      if (t.fy) {
+        const y = Number(t.fy.split("-")[0]);
+        if (y) fySet.add(y);
+      }
+    });
     const now = new Date();
     const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
     fySet.add(currentFYStart);
@@ -988,7 +993,15 @@ function ProfileSection({ state, updateProfile }: any) {
     return Array.from(fySet)
       .sort((a, b) => b - a)
       .map((y) => `${y}-${String(y + 1).slice(-2)}`);
-  }, [state?.income, state?.transactions, state?.stockSells, state?.mfSells, state?.stocks, state?.mutualFunds, state?.taxPayments]);
+  }, [
+    state?.income,
+    state?.transactions,
+    state?.stockSells,
+    state?.mfSells,
+    state?.stocks,
+    state?.mutualFunds,
+    state?.taxPayments,
+  ]);
 
   const inp = {
     width: "100%",
@@ -1182,8 +1195,8 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
         <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Family Profiles</div>
         <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 4 }}>
           These names appear across owner selectors, filters, and reports wherever records are
-          tagged by family member. The four relations (Self / Wife / Daughter / HUF) are fixed
-          since existing records are linked to them, but you can rename each one.
+          tagged by family member. The four relations (Self / Wife / Daughter / HUF) are fixed since
+          existing records are linked to them, but you can rename each one.
         </div>
       </div>
 
@@ -1402,23 +1415,36 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
   const documents: any[] = state.documents || [];
 
   // Build related account options from state
-  const relatedOptions: { value: string; label: string }[] = [
-    { value: "", label: "-- None --" },
-  ];
+  const relatedOptions: { value: string; label: string }[] = [{ value: "", label: "-- None --" }];
   (state.bankAccounts || []).forEach((b: any) =>
-    relatedOptions.push({ value: `bank:${b.id}`, label: `Bank: ${b.bankName || b.name || "Account"}` })
+    relatedOptions.push({
+      value: `bank:${b.id}`,
+      label: `Bank: ${b.bankName || b.name || "Account"}`,
+    })
   );
   (state.termPlans || []).forEach((p: any) =>
-    relatedOptions.push({ value: `insurance:${p.id}`, label: `Insurance: ${p.company || p.policyName || "Policy"}` })
+    relatedOptions.push({
+      value: `insurance:${p.id}`,
+      label: `Insurance: ${p.company || p.policyName || "Policy"}`,
+    })
   );
   (state.investmentPlans || []).forEach((p: any) =>
-    relatedOptions.push({ value: `insurance:${p.id}`, label: `Insurance: ${p.company || p.planName || "Plan"}` })
+    relatedOptions.push({
+      value: `insurance:${p.id}`,
+      label: `Insurance: ${p.company || p.planName || "Plan"}`,
+    })
   );
   (state.realEstateProperties || []).forEach((p: any) =>
-    relatedOptions.push({ value: `property:${p.id}`, label: `Property: ${p.name || p.address || "Property"}` })
+    relatedOptions.push({
+      value: `property:${p.id}`,
+      label: `Property: ${p.name || p.address || "Property"}`,
+    })
   );
   (state.vehicles || []).forEach((v: any) =>
-    relatedOptions.push({ value: `vehicle:${v.id}`, label: `Vehicle: ${v.name || v.make || "Vehicle"}` })
+    relatedOptions.push({
+      value: `vehicle:${v.id}`,
+      label: `Vehicle: ${v.name || v.make || "Vehicle"}`,
+    })
   );
 
   const getCategoryIcon = (cat: string) => {
@@ -1444,7 +1470,10 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
     addItem("documents", {
       name: docName.trim(),
       category: docCategory,
-      tags: docTags.split(",").map((t: string) => t.trim()).filter(Boolean),
+      tags: docTags
+        .split(",")
+        .map((t: string) => t.trim())
+        .filter(Boolean),
       date: docDate,
       owner: docOwner,
       fileRef: docFileRef.trim(),
@@ -1476,7 +1505,10 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
       id: doc.id,
       name: editName.trim(),
       category: editCategory,
-      tags: editTags.split(",").map((t: string) => t.trim()).filter(Boolean),
+      tags: editTags
+        .split(",")
+        .map((t: string) => t.trim())
+        .filter(Boolean),
       date: editDate,
       owner: editOwner,
       fileRef: editFileRef.trim(),
@@ -1531,9 +1563,11 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
   });
 
   // Last added date
-  const lastAdded = documents.length > 0
-    ? [...documents].sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""))[0]?.date || "N/A"
-    : null;
+  const lastAdded =
+    documents.length > 0
+      ? [...documents].sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""))[0]
+          ?.date || "N/A"
+      : null;
 
   const getRelatedLabel = (val: string) => {
     const opt = relatedOptions.find((o) => o.value === val);
@@ -1559,16 +1593,57 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
           >
             <Database size={30} color="#fff" />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+          <div
+            style={{
+              fontSize: 18,
+              fontWeight: 800,
+              color: THEME.ink,
+              marginBottom: 8,
+              letterSpacing: "-0.02em",
+            }}
+          >
             No Documents Added Yet
           </div>
-          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 12px", lineHeight: 1.6 }}>
-            Keep all your important financial documents organized in one place — insurance policies, tax filings, property deeds, and more.
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              maxWidth: 380,
+              margin: "0 auto 12px",
+              lineHeight: 1.6,
+            }}
+          >
+            Keep all your important financial documents organized in one place — insurance policies,
+            tax filings, property deeds, and more.
           </div>
-          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
-            {["Insurance Policies", "Tax Returns", "Property Deeds", "Identity Docs", "Vehicle RC"].map((t) => (
+          <div
+            style={{
+              fontSize: 12,
+              color: THEME.muted,
+              marginBottom: 24,
+              display: "flex",
+              justifyContent: "center",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            {[
+              "Insurance Policies",
+              "Tax Returns",
+              "Property Deeds",
+              "Identity Docs",
+              "Vehicle RC",
+            ].map((t) => (
               <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.accent, display: "inline-block" }} />
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: THEME.accent,
+                    display: "inline-block",
+                  }}
+                />
                 {t}
               </span>
             ))}
@@ -1584,15 +1659,39 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
   return (
     <div style={{ display: "grid", gap: 20 }}>
       {/* ── Summary Stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: 12,
+        }}
+      >
         <Card style={{ padding: "16px 20px", borderTop: `3px solid ${THEME.accent}` }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              marginBottom: 4,
+            }}
+          >
             Total Documents
           </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: THEME.ink }}>{documents.length}</div>
         </Card>
         <Card style={{ padding: "16px 20px" }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              marginBottom: 6,
+            }}
+          >
             By Category
           </div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -1614,11 +1713,26 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
           </div>
         </Card>
         <Card style={{ padding: "16px 20px" }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              marginBottom: 4,
+            }}
+          >
             Last Added
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
-            {lastAdded ? new Date(lastAdded).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "N/A"}
+            {lastAdded
+              ? new Date(lastAdded).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "N/A"}
           </div>
         </Card>
       </div>
@@ -1643,7 +1757,9 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                     fontWeight: 800,
                     padding: "1px 6px",
                     borderRadius: 20,
-                    background: isActive ? `color-mix(in srgb, var(--t-accent) 16%, transparent)` : `${THEME.muted}15`,
+                    background: isActive
+                      ? `color-mix(in srgb, var(--t-accent) 16%, transparent)`
+                      : `${THEME.muted}15`,
                     color: isActive ? "var(--t-accent)" : THEME.muted,
                   }}
                 >
@@ -1687,7 +1803,9 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
               style={{ width: "auto", minWidth: 130, fontSize: 12 }}
             >
               {DOC_SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </div>
@@ -1700,13 +1818,24 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
       {/* ── Add Document Form ── */}
       {showForm && (
         <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              marginBottom: 4,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
             <Plus size={16} color={THEME.accent} /> Add New Document
           </div>
           <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 16, marginTop: 4 }}>
             Fill in the details below to add a document record to your vault.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}
+          >
             <Field label="Document Name">
               <input
                 className="form-input"
@@ -1716,9 +1845,15 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
               />
             </Field>
             <Field label="Category">
-              <select className="form-input" value={docCategory} onChange={(e) => setDocCategory(e.target.value)}>
+              <select
+                className="form-input"
+                value={docCategory}
+                onChange={(e) => setDocCategory(e.target.value)}
+              >
                 {DOC_CATEGORIES.filter((c) => c.id !== "all").map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -1739,16 +1874,28 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
               />
             </Field>
             <Field label="Owner">
-              <select className="form-input" value={docOwner} onChange={(e) => setDocOwner(e.target.value)}>
+              <select
+                className="form-input"
+                value={docOwner}
+                onChange={(e) => setDocOwner(e.target.value)}
+              >
                 {DOC_OWNERS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="Related Account (optional)">
-              <select className="form-input" value={docRelated} onChange={(e) => setDocRelated(e.target.value)}>
+              <select
+                className="form-input"
+                value={docRelated}
+                onChange={(e) => setDocRelated(e.target.value)}
+              >
                 {relatedOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -1775,7 +1922,13 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
             <Button variant="accent" onClick={handleAddDoc} disabled={!docName.trim()}>
               Save Document
             </Button>
-            <Button variant="ghost" onClick={() => { resetForm(); setShowForm(false); }}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+            >
               Cancel
             </Button>
           </div>
@@ -1784,7 +1937,13 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
 
       {/* ── Document Cards Grid ── */}
       {sorted.length > 0 ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gap: 14,
+          }}
+        >
           {sorted.map((doc: any) => {
             const cat = getDocCategory(doc);
             const CatIcon = getCategoryIcon(cat);
@@ -1809,40 +1968,89 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <Field label="Name">
-                      <input className="form-input" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                      <input
+                        className="form-input"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                      />
                     </Field>
                     <Field label="Category">
-                      <select className="form-input" value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
+                      <select
+                        className="form-input"
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                      >
                         {DOC_CATEGORIES.filter((c) => c.id !== "all").map((c) => (
-                          <option key={c.id} value={c.id}>{c.label}</option>
+                          <option key={c.id} value={c.id}>
+                            {c.label}
+                          </option>
                         ))}
                       </select>
                     </Field>
                     <Field label="Tags">
-                      <input className="form-input" value={editTags} onChange={(e) => setEditTags(e.target.value)} />
+                      <input
+                        className="form-input"
+                        value={editTags}
+                        onChange={(e) => setEditTags(e.target.value)}
+                      />
                     </Field>
                     <Field label="Date">
-                      <input className="form-input" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                      <input
+                        className="form-input"
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                      />
                     </Field>
                     <Field label="Owner">
-                      <select className="form-input" value={editOwner} onChange={(e) => setEditOwner(e.target.value)}>
-                        {DOC_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      <select
+                        className="form-input"
+                        value={editOwner}
+                        onChange={(e) => setEditOwner(e.target.value)}
+                      >
+                        {DOC_OWNERS.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
                       </select>
                     </Field>
                     <Field label="Related">
-                      <select className="form-input" value={editRelated} onChange={(e) => setEditRelated(e.target.value)}>
-                        {relatedOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      <select
+                        className="form-input"
+                        value={editRelated}
+                        onChange={(e) => setEditRelated(e.target.value)}
+                      >
+                        {relatedOptions.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
                       </select>
                     </Field>
                   </div>
                   <Field label="File Reference">
-                    <input className="form-input" value={editFileRef} onChange={(e) => setEditFileRef(e.target.value)} />
+                    <input
+                      className="form-input"
+                      value={editFileRef}
+                      onChange={(e) => setEditFileRef(e.target.value)}
+                    />
                   </Field>
                   <Field label="Notes">
-                    <textarea className="form-input" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={2} style={{ resize: "vertical" }} />
+                    <textarea
+                      className="form-input"
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      rows={2}
+                      style={{ resize: "vertical" }}
+                    />
                   </Field>
                   <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                    <Button variant="accent" onClick={() => saveEdit(doc)} disabled={!editName.trim()}>
+                    <Button
+                      variant="accent"
+                      onClick={() => saveEdit(doc)}
+                      disabled={!editName.trim()}
+                    >
                       Save
                     </Button>
                     <Button variant="ghost" onClick={() => setEditingDoc(null)}>
@@ -1874,7 +2082,15 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                     alignItems: "flex-start",
                   }}
                 >
-                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "flex-start",
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
                     <div
                       style={{
                         width: 36,
@@ -1953,10 +2169,21 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                 >
                   <div style={{ fontSize: 11, color: THEME.muted }}>
                     {doc.date
-                      ? new Date(doc.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                      ? new Date(doc.date).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
                       : "No date"}
                   </div>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 4,
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                    }}
+                  >
                     {(doc.tags || []).slice(0, 3).map((tag: string) => (
                       <span
                         key={tag}
@@ -1973,7 +2200,9 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                       </span>
                     ))}
                     {(doc.tags || []).length > 3 && (
-                      <span style={{ fontSize: 9, color: THEME.muted }}>+{doc.tags.length - 3}</span>
+                      <span style={{ fontSize: 9, color: THEME.muted }}>
+                        +{doc.tags.length - 3}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -1996,7 +2225,9 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                       )}
                       {(doc.notes || doc.note) && (
                         <div>
-                          <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>Notes</span>
+                          <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>
+                            Notes
+                          </span>
                           <div style={{ color: THEME.ink, marginTop: 2, lineHeight: 1.5 }}>
                             {doc.notes || doc.note}
                           </div>
@@ -2004,8 +2235,12 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                       )}
                       {doc.fileRef && (
                         <div>
-                          <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>File Reference</span>
-                          <div style={{ color: THEME.accent, marginTop: 2, wordBreak: "break-all" }}>
+                          <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>
+                            File Reference
+                          </span>
+                          <div
+                            style={{ color: THEME.accent, marginTop: 2, wordBreak: "break-all" }}
+                          >
                             {doc.fileRef}
                           </div>
                         </div>
@@ -2013,12 +2248,16 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                       {doc.relatedAccount && (
                         <div style={{ display: "flex", justifyContent: "space-between" }}>
                           <span style={{ color: THEME.muted, fontWeight: 600 }}>Related</span>
-                          <span style={{ color: THEME.ink }}>{getRelatedLabel(doc.relatedAccount)}</span>
+                          <span style={{ color: THEME.ink }}>
+                            {getRelatedLabel(doc.relatedAccount)}
+                          </span>
                         </div>
                       )}
                       {(doc.tags || []).length > 0 && (
                         <div>
-                          <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>All Tags</span>
+                          <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>
+                            All Tags
+                          </span>
                           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
                             {doc.tags.map((tag: string) => (
                               <span
@@ -2119,49 +2358,122 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
 }
 
 // ─── Section: Data & Account ──────────────────────────────────────────────────
-function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanupOrphaned, state }: any) {
+function DataSection({
+  exportJSON,
+  onRestoreBackup,
+  resetAll,
+  onSignOut,
+  cleanupOrphaned,
+  state,
+}: any) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [cleaning, setCleaning] = useState(false);
 
   const csvExports = [
-    { label: "Bank Transactions", key: "transactions", cols: [
-      { key: "date", label: "Date" }, { key: "type", label: "Type" }, { key: "category", label: "Category" },
-      { key: "amount", label: "Amount" }, { key: "note", label: "Note" }, { key: "narration", label: "Narration" },
-      { key: "referenceNumber", label: "Reference" }, { key: "owner", label: "Owner" },
-    ]},
-    { label: "Stocks", key: "stocks", cols: [
-      { key: "symbol", label: "Symbol" }, { key: "qty", label: "Qty" }, { key: "avgPrice", label: "Avg Price" },
-      { key: "currentPrice", label: "Current Price" }, { key: "owner", label: "Owner" },
-    ]},
-    { label: "Mutual Funds", key: "mutualFunds", cols: [
-      { key: "name", label: "Scheme" }, { key: "folio", label: "Folio" }, { key: "units", label: "Units" },
-      { key: "buyNav", label: "Buy NAV" }, { key: "currentNav", label: "Current NAV" },
-      { key: "mfCode", label: "AMFI Code" }, { key: "owner", label: "Owner" },
-    ]},
-    { label: "Fixed Deposits", key: "fixedDeposits", cols: [
-      { key: "bank", label: "Bank" }, { key: "principal", label: "Principal" }, { key: "rate", label: "Rate %" },
-      { key: "years", label: "Years" }, { key: "startDate", label: "Start" }, { key: "maturityDate", label: "Maturity" },
-    ]},
-    { label: "Goals", key: "goals", cols: [
-      { key: "name", label: "Goal" }, { key: "category", label: "Category" }, { key: "targetAmount", label: "Target" },
-      { key: "currentAmount", label: "Saved" }, { key: "priority", label: "Priority" }, { key: "targetDate", label: "Target Date" },
-    ]},
-    { label: "Tax Payments", key: "taxPayments", cols: [
-      { key: "date", label: "Date" }, { key: "type", label: "Type" }, { key: "amount", label: "Amount" },
-      { key: "note", label: "Note" },
-    ]},
-    { label: "Insurance (LIC)", key: "lic", cols: [
-      { key: "planName", label: "Plan" }, { key: "policyNumber", label: "Policy No" },
-      { key: "sumAssured", label: "Sum Assured" }, { key: "annualPremium", label: "Annual Premium" },
-    ]},
-    { label: "Loans", key: "loansTaken", cols: [
-      { key: "type", label: "Type" }, { key: "principal", label: "Principal" }, { key: "outstanding", label: "Outstanding" },
-      { key: "emi", label: "EMI" }, { key: "rate", label: "Rate %" },
-    ]},
-    { label: "Credit Cards", key: "creditCards", cols: [
-      { key: "issuer", label: "Issuer" }, { key: "network", label: "Network" }, { key: "cardLimit", label: "Limit" },
-      { key: "outstanding", label: "Outstanding" }, { key: "billDate", label: "Bill Date" },
-    ]},
+    {
+      label: "Bank Transactions",
+      key: "transactions",
+      cols: [
+        { key: "date", label: "Date" },
+        { key: "type", label: "Type" },
+        { key: "category", label: "Category" },
+        { key: "amount", label: "Amount" },
+        { key: "note", label: "Note" },
+        { key: "narration", label: "Narration" },
+        { key: "referenceNumber", label: "Reference" },
+        { key: "owner", label: "Owner" },
+      ],
+    },
+    {
+      label: "Stocks",
+      key: "stocks",
+      cols: [
+        { key: "symbol", label: "Symbol" },
+        { key: "qty", label: "Qty" },
+        { key: "avgPrice", label: "Avg Price" },
+        { key: "currentPrice", label: "Current Price" },
+        { key: "owner", label: "Owner" },
+      ],
+    },
+    {
+      label: "Mutual Funds",
+      key: "mutualFunds",
+      cols: [
+        { key: "name", label: "Scheme" },
+        { key: "folio", label: "Folio" },
+        { key: "units", label: "Units" },
+        { key: "buyNav", label: "Buy NAV" },
+        { key: "currentNav", label: "Current NAV" },
+        { key: "mfCode", label: "AMFI Code" },
+        { key: "owner", label: "Owner" },
+      ],
+    },
+    {
+      label: "Fixed Deposits",
+      key: "fixedDeposits",
+      cols: [
+        { key: "bank", label: "Bank" },
+        { key: "principal", label: "Principal" },
+        { key: "rate", label: "Rate %" },
+        { key: "years", label: "Years" },
+        { key: "startDate", label: "Start" },
+        { key: "maturityDate", label: "Maturity" },
+      ],
+    },
+    {
+      label: "Goals",
+      key: "goals",
+      cols: [
+        { key: "name", label: "Goal" },
+        { key: "category", label: "Category" },
+        { key: "targetAmount", label: "Target" },
+        { key: "currentAmount", label: "Saved" },
+        { key: "priority", label: "Priority" },
+        { key: "targetDate", label: "Target Date" },
+      ],
+    },
+    {
+      label: "Tax Payments",
+      key: "taxPayments",
+      cols: [
+        { key: "date", label: "Date" },
+        { key: "type", label: "Type" },
+        { key: "amount", label: "Amount" },
+        { key: "note", label: "Note" },
+      ],
+    },
+    {
+      label: "Insurance (LIC)",
+      key: "lic",
+      cols: [
+        { key: "planName", label: "Plan" },
+        { key: "policyNumber", label: "Policy No" },
+        { key: "sumAssured", label: "Sum Assured" },
+        { key: "annualPremium", label: "Annual Premium" },
+      ],
+    },
+    {
+      label: "Loans",
+      key: "loansTaken",
+      cols: [
+        { key: "type", label: "Type" },
+        { key: "principal", label: "Principal" },
+        { key: "outstanding", label: "Outstanding" },
+        { key: "emi", label: "EMI" },
+        { key: "rate", label: "Rate %" },
+      ],
+    },
+    {
+      label: "Credit Cards",
+      key: "creditCards",
+      cols: [
+        { key: "issuer", label: "Issuer" },
+        { key: "network", label: "Network" },
+        { key: "cardLimit", label: "Limit" },
+        { key: "outstanding", label: "Outstanding" },
+        { key: "billDate", label: "Bill Date" },
+      ],
+    },
   ];
 
   return (
@@ -2234,7 +2546,16 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
 
       {/* CSV Exports */}
       <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            marginBottom: 4,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <Download size={16} color={THEME.accent} /> Export as CSV
         </div>
         <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 16, marginTop: 4 }}>

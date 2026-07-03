@@ -18,7 +18,6 @@ const input: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-
 /* ══════════════════════════════════════════════════════════════════
    EscalationTiersSection — shared by both Rented Out & Rented In
 ══════════════════════════════════════════════════════════════════ */

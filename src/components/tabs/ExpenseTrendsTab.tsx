@@ -75,13 +75,33 @@ const td: React.CSSProperties = {
 };
 
 const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 const FULL_MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 type Period = "3m" | "6m" | "12m" | "ytd" | "custom";
@@ -217,24 +237,18 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
 
   const [rangeStart, rangeEnd] = useMemo(
     () => getDateRange(period, customStart, customEnd),
-    [period, customStart, customEnd],
+    [period, customStart, customEnd]
   );
 
   /* ── Filter transactions by period ── */
   const periodTxns = useMemo(
     () => txns.filter((t: any) => t.date >= rangeStart && t.date <= rangeEnd),
-    [txns, rangeStart, rangeEnd],
+    [txns, rangeStart, rangeEnd]
   );
 
-  const expenses = useMemo(
-    () => periodTxns.filter((t: any) => t.type === "debit"),
-    [periodTxns],
-  );
+  const expenses = useMemo(() => periodTxns.filter((t: any) => t.type === "debit"), [periodTxns]);
 
-  const income = useMemo(
-    () => periodTxns.filter((t: any) => t.type === "credit"),
-    [periodTxns],
-  );
+  const income = useMemo(() => periodTxns.filter((t: any) => t.type === "credit"), [periodTxns]);
 
   /* ── Build monthly aggregates ── */
   const monthlyData = useMemo(() => {
@@ -400,7 +414,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     const sorted = [...categoryTableData].sort((a: any, b: any) => {
       const aVal = a[sortCol] ?? 0;
       const bVal = b[sortCol] ?? 0;
-      if (typeof aVal === "string") return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      if (typeof aVal === "string")
+        return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       return sortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
     return sorted;
@@ -495,8 +510,17 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
             No Transactions Yet
           </div>
-          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto", lineHeight: 1.6 }}>
-            Add transactions from the Banks tab to start seeing your expense trends and analytics here.
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              maxWidth: 380,
+              margin: "0 auto",
+              lineHeight: 1.6,
+            }}
+          >
+            Add transactions from the Banks tab to start seeing your expense trends and analytics
+            here.
           </div>
         </Card>
       </div>
@@ -735,9 +759,10 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     content={({ active, payload }: any) => {
                       if (!active || !payload?.length) return null;
                       const d = payload[0];
-                      const pct = summary.totalSpend > 0
-                        ? ((d.value / summary.totalSpend) * 100).toFixed(1)
-                        : "0";
+                      const pct =
+                        summary.totalSpend > 0
+                          ? ((d.value / summary.totalSpend) * 100).toFixed(1)
+                          : "0";
                       return (
                         <div
                           style={{
@@ -824,10 +849,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   tickLine={false}
                   tickFormatter={(v: number) => fmtINRFull(v)}
                 />
-                <Tooltip
-                  content={<ChartTooltip />}
-                  cursor={{ fill: THEME.line, opacity: 0.4 }}
-                />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                 <Legend
                   wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
                   iconType="circle"
@@ -842,9 +864,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     stackId="cats"
                     fill={PIE_COLORS[i % PIE_COLORS.length]}
                     radius={
-                      i === categoryStackedData.categories.length - 1
-                        ? [4, 4, 0, 0]
-                        : [0, 0, 0, 0]
+                      i === categoryStackedData.categories.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]
                     }
                   />
                 ))}
@@ -904,7 +924,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         setExpandedCat(expandedCat === row.category ? null : row.category)
                       }
                       onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${THEME.accent} 4%, transparent)`;
+                        (e.currentTarget as HTMLElement).style.background =
+                          `color-mix(in srgb, ${THEME.accent} 4%, transparent)`;
                       }}
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -935,7 +956,12 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                       <td style={td}>
                         <span
                           style={{
-                            color: row.changePct > 0 ? THEME.rust : row.changePct < 0 ? THEME.sage : THEME.muted,
+                            color:
+                              row.changePct > 0
+                                ? THEME.rust
+                                : row.changePct < 0
+                                  ? THEME.sage
+                                  : THEME.muted,
                             fontWeight: 600,
                             display: "inline-flex",
                             alignItems: "center",
@@ -984,10 +1010,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                               Transactions in {row.category}
                             </div>
                             {expenses
-                              .filter(
-                                (t: any) =>
-                                  (t.category || "Uncategorized") === row.category,
-                              )
+                              .filter((t: any) => (t.category || "Uncategorized") === row.category)
                               .sort((a: any, b: any) => b.date.localeCompare(a.date))
                               .slice(0, 20)
                               .map((t: any) => (
@@ -1013,10 +1036,11 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                                       {t.narration || t.note || t.description || "No description"}
                                     </div>
                                     <div style={{ color: THEME.muted, fontSize: 11 }}>
-                                      {new Date(t.date + "T00:00:00").toLocaleDateString(
-                                        "en-IN",
-                                        { day: "numeric", month: "short", year: "numeric" },
-                                      )}
+                                      {new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                      })}
                                     </div>
                                   </div>
                                   <div style={{ fontWeight: 700, color: THEME.rust }}>
@@ -1025,8 +1049,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                                 </div>
                               ))}
                             {expenses.filter(
-                              (t: any) =>
-                                (t.category || "Uncategorized") === row.category,
+                              (t: any) => (t.category || "Uncategorized") === row.category
                             ).length > 20 && (
                               <div
                                 style={{
@@ -1039,8 +1062,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                                 Showing first 20 of{" "}
                                 {
                                   expenses.filter(
-                                    (t: any) =>
-                                      (t.category || "Uncategorized") === row.category,
+                                    (t: any) => (t.category || "Uncategorized") === row.category
                                   ).length
                                 }{" "}
                                 transactions
@@ -1098,8 +1120,12 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 content={({ active, payload }: any) => {
                   if (!active || !payload?.length) return null;
                   const val = payload[0]?.value || 0;
-                  const totalMerchantSpend = topMerchants.reduce((s: number, m: any) => s + m.amount, 0);
-                  const pct = totalMerchantSpend > 0 ? ((val / totalMerchantSpend) * 100).toFixed(1) : "0";
+                  const totalMerchantSpend = topMerchants.reduce(
+                    (s: number, m: any) => s + m.amount,
+                    0
+                  );
+                  const pct =
+                    totalMerchantSpend > 0 ? ((val / totalMerchantSpend) * 100).toFixed(1) : "0";
                   return (
                     <div
                       style={{
@@ -1181,7 +1207,10 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                       This month: <Prv>{fmtINRFull(c.thisMonth)}</Prv> vs 3-month avg:{" "}
                       <Prv>{fmtINRFull(c.avg3)}</Prv> (
-                      {c.avg3 > 0 ? `${((c.thisMonth / c.avg3) * 100 - 100).toFixed(0)}% above average` : "N/A"})
+                      {c.avg3 > 0
+                        ? `${((c.thisMonth / c.avg3) * 100 - 100).toFixed(0)}% above average`
+                        : "N/A"}
+                      )
                     </div>
                   </div>
                 </div>

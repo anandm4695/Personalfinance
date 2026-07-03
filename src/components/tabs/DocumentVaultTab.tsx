@@ -58,7 +58,14 @@ const CATEGORIES = {
     icon: Landmark,
     color: "#059669",
     gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
-    subcategories: ["Bank Statement", "Tax Return (ITR)", "Form 16", "26AS", "Investment Proof", "Other"],
+    subcategories: [
+      "Bank Statement",
+      "Tax Return (ITR)",
+      "Form 16",
+      "26AS",
+      "Investment Proof",
+      "Other",
+    ],
   },
   Insurance: {
     icon: ShieldCheck,
@@ -70,7 +77,15 @@ const CATEGORIES = {
     icon: Home,
     color: "#D97706",
     gradient: "linear-gradient(135deg, #D97706 0%, #FBBF24 100%)",
-    subcategories: ["Sale Deed", "Registry", "Agreement", "NOC", "Possession Letter", "RERA Certificate", "Other"],
+    subcategories: [
+      "Sale Deed",
+      "Registry",
+      "Agreement",
+      "NOC",
+      "Possession Letter",
+      "RERA Certificate",
+      "Other",
+    ],
   },
   Vehicle: {
     icon: Car,
@@ -174,9 +189,18 @@ function getLinkedAssets(state: any, assetType: string): { id: string; label: st
       }));
     case "insurance":
       return [
-        ...(state.lic || []).map((a: any) => ({ id: a.id, label: `LIC - ${a.policyName || a.policyNumber || a.id}` })),
-        ...(state.termPlans || []).map((a: any) => ({ id: a.id, label: `Term - ${a.policyName || a.insurer || a.id}` })),
-        ...(state.investmentPlans || []).map((a: any) => ({ id: a.id, label: `Investment - ${a.policyName || a.insurer || a.id}` })),
+        ...(state.lic || []).map((a: any) => ({
+          id: a.id,
+          label: `LIC - ${a.policyName || a.policyNumber || a.id}`,
+        })),
+        ...(state.termPlans || []).map((a: any) => ({
+          id: a.id,
+          label: `Term - ${a.policyName || a.insurer || a.id}`,
+        })),
+        ...(state.investmentPlans || []).map((a: any) => ({
+          id: a.id,
+          label: `Investment - ${a.policyName || a.insurer || a.id}`,
+        })),
       ];
     case "property":
       return (state.realEstateProperties || []).map((a: any) => ({
@@ -190,7 +214,10 @@ function getLinkedAssets(state: any, assetType: string): { id: string; label: st
       }));
     case "loan":
       return [
-        ...(state.loansTaken || []).map((a: any) => ({ id: a.id, label: `Loan - ${a.lender || a.id}` })),
+        ...(state.loansTaken || []).map((a: any) => ({
+          id: a.id,
+          label: `Loan - ${a.lender || a.id}`,
+        })),
       ];
     case "creditCard":
       return (state.creditCards || []).map((a: any) => ({
@@ -563,7 +590,15 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               >
                 {doc.name}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 4,
+                  flexWrap: "wrap",
+                }}
+              >
                 <Badge variant={badge.variant} style={{ fontSize: 10 }}>
                   {badge.label}
                 </Badge>
@@ -579,7 +614,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             {doc.documentNumber && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
                 <Hash size={12} style={{ flexShrink: 0 }} />
-                <span style={{ color: THEME.ink, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                <span
+                  style={{ color: THEME.ink, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}
+                >
                   <Prv>{doc.documentNumber}</Prv>
                 </span>
               </div>
@@ -587,7 +624,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             {doc.issuer && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
                 <Building size={12} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.issuer}</span>
+                <span
+                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                >
+                  {doc.issuer}
+                </span>
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
@@ -736,7 +777,14 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
             {doc.category}
             {doc.subcategory ? ` / ${doc.subcategory}` : ""}
-            {doc.documentNumber ? <> | <Prv>{doc.documentNumber}</Prv></> : ""}
+            {doc.documentNumber ? (
+              <>
+                {" "}
+                | <Prv>{doc.documentNumber}</Prv>
+              </>
+            ) : (
+              ""
+            )}
           </div>
         </div>
         {/* Desktop-only columns */}
@@ -784,7 +832,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     return (
       <Modal
         title="Renew Document"
-        onClose={() => { setRenewDoc(null); setRenewDate(""); }}
+        onClose={() => {
+          setRenewDoc(null);
+          setRenewDate("");
+        }}
         maxWidth={400}
       >
         <div style={{ marginBottom: 16 }}>
@@ -806,7 +857,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         </Field>
         <ModalActions
           onSave={handleRenewSave}
-          onClose={() => { setRenewDoc(null); setRenewDate(""); }}
+          onClose={() => {
+            setRenewDoc(null);
+            setRenewDate("");
+          }}
           saveLabel="Update Expiry"
           disabled={!renewDate}
         />
@@ -847,7 +901,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
 
           {/* Sub-category */}
           <Field label="Sub-category">
-            <Select value={form.subcategory} onChange={(e) => setField("subcategory", e.target.value)}>
+            <Select
+              value={form.subcategory}
+              onChange={(e) => setField("subcategory", e.target.value)}
+            >
               <option value="">-- Select --</option>
               {subcats.map((s) => (
                 <option key={s} value={s}>
@@ -939,8 +996,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 {!form.linkedAssetType
                   ? "-- Select type first --"
                   : linkedAssetOptions.length === 0
-                  ? "-- No assets found --"
-                  : "-- Select --"}
+                    ? "-- No assets found --"
+                    : "-- Select --"}
               </option>
               {linkedAssetOptions.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -1139,7 +1196,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               padding: "6px 14px",
               borderRadius: 20,
               border: `1.5px solid ${filterCategory === "all" ? THEME.accent : THEME.line}`,
-              background: filterCategory === "all" ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)` : "transparent",
+              background:
+                filterCategory === "all"
+                  ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                  : "transparent",
               cursor: "pointer",
               fontSize: 12,
               fontWeight: 600,
@@ -1166,7 +1226,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                   padding: "6px 14px",
                   borderRadius: 20,
                   border: `1.5px solid ${isActive ? catDef.color : THEME.line}`,
-                  background: isActive ? `color-mix(in srgb, ${catDef.color} 8%, transparent)` : "transparent",
+                  background: isActive
+                    ? `color-mix(in srgb, ${catDef.color} 8%, transparent)`
+                    : "transparent",
                   cursor: "pointer",
                   fontSize: 12,
                   fontWeight: 600,
@@ -1202,9 +1264,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <AlertTriangle size={16} color="#EF4444" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                Expiry Alerts
-              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Expiry Alerts</span>
               <Badge variant="rust" style={{ fontSize: 10 }}>
                 {expiryAlerts.length}
               </Badge>
@@ -1212,7 +1272,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <select
                 value={expiryFilter}
-                onChange={(e) => { e.stopPropagation(); setExpiryFilter(e.target.value as any); }}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setExpiryFilter(e.target.value as any);
+                }}
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   padding: "3px 8px",
@@ -1230,7 +1293,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 <option value="60">Next 60 days</option>
                 <option value="30">Next 30 days</option>
               </select>
-              {expandedAlerts ? <ChevronUp size={16} color={THEME.muted} /> : <ChevronDown size={16} color={THEME.muted} />}
+              {expandedAlerts ? (
+                <ChevronUp size={16} color={THEME.muted} />
+              ) : (
+                <ChevronDown size={16} color={THEME.muted} />
+              )}
             </div>
           </button>
           {expandedAlerts && (
@@ -1242,7 +1309,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                   <div key={doc.id} className="doc-vault-alert-row">
                     <CategoryIconBadge category={doc.category} size={28} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: THEME.ink,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {doc.name}
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted }}>
@@ -1258,8 +1334,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                             {isExpired
                               ? `${Math.abs(days)}d overdue`
                               : days === 0
-                              ? "today"
-                              : `${days}d left`}
+                                ? "today"
+                                : `${days}d left`}
                           </span>
                         )}
                       </div>
@@ -1339,7 +1415,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                         }}
                       />
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, flexShrink: 0 }}>
+                    <span
+                      style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, flexShrink: 0 }}
+                    >
                       {link.linked}/{link.total}
                     </span>
                   </div>
@@ -1382,8 +1460,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               outline: "none",
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => { e.target.style.borderColor = THEME.accent; }}
-            onBlur={(e) => { e.target.style.borderColor = ""; }}
+            onFocus={(e) => {
+              e.target.style.borderColor = THEME.accent;
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "";
+            }}
           />
           {searchQuery && (
             <button
@@ -1427,7 +1509,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 fontWeight: 600,
                 border: `1px solid ${sortBy === s.key ? THEME.accent : THEME.line}`,
                 borderRadius: 6,
-                background: sortBy === s.key ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)` : "transparent",
+                background:
+                  sortBy === s.key
+                    ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                    : "transparent",
                 color: sortBy === s.key ? THEME.accent : THEME.muted,
                 cursor: "pointer",
                 display: "flex",
@@ -1438,7 +1523,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               }}
             >
               {s.label}
-              {sortBy === s.key && (sortDir === "asc" ? <SortAsc size={11} /> : <SortDesc size={11} />)}
+              {sortBy === s.key &&
+                (sortDir === "asc" ? <SortAsc size={11} /> : <SortDesc size={11} />)}
             </button>
           ))}
         </div>
@@ -1459,7 +1545,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             style={{
               padding: "6px 10px",
               border: "none",
-              background: viewMode === "grid" ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)` : "transparent",
+              background:
+                viewMode === "grid"
+                  ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                  : "transparent",
               color: viewMode === "grid" ? THEME.accent : THEME.muted,
               cursor: "pointer",
               display: "flex",
@@ -1476,7 +1565,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               padding: "6px 10px",
               border: "none",
               borderLeft: `1px solid ${THEME.line}`,
-              background: viewMode === "list" ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)` : "transparent",
+              background:
+                viewMode === "list"
+                  ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                  : "transparent",
               color: viewMode === "list" ? THEME.accent : THEME.muted,
               cursor: "pointer",
               display: "flex",

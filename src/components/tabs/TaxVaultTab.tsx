@@ -24,7 +24,14 @@ import {
   Zap,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, calcTaxNewByFY, calcTaxOldByFY, today, uid } from "../../utils/finance";
+import {
+  fmtINRFull,
+  fmtINRExact,
+  calcTaxNewByFY,
+  calcTaxOldByFY,
+  today,
+  uid,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -140,9 +147,7 @@ const Reconciler26AS = ({
   const [parseError, setParseError] = useState("");
 
   // Filter to current FY
-  const fyIncome = income.filter(
-    (i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr
-  );
+  const fyIncome = income.filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr);
   const fyTDS = taxPayments.filter(
     (p: any) => p.type === "TDS" && p.date && p.date >= fyStartStr && p.date <= fyEndStr
   );
@@ -317,9 +322,9 @@ const Reconciler26AS = ({
       >
         <Info size={15} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
         <span>
-          <b style={{ color: THEME.ink }}>Form 26AS Reconciliation</b> — Download your 26AS from
-          the TRACES portal (incometax.gov.in), copy the TDS section data, and paste it below.
-          The reconciler will match entries against your recorded income and TDS payments for{" "}
+          <b style={{ color: THEME.ink }}>Form 26AS Reconciliation</b> — Download your 26AS from the
+          TRACES portal (incometax.gov.in), copy the TDS section data, and paste it below. The
+          reconciler will match entries against your recorded income and TDS payments for{" "}
           <b>FY {fy}</b>.
         </span>
       </div>
@@ -339,7 +344,8 @@ const Reconciler26AS = ({
           Paste 26AS Data
         </div>
         <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 10, lineHeight: 1.5 }}>
-          Expected columns (comma or tab separated): TAN, Name of Deductor, Section, Transaction Date, Amount Paid, TDS Deducted
+          Expected columns (comma or tab separated): TAN, Name of Deductor, Section, Transaction
+          Date, Amount Paid, TDS Deducted
         </div>
         <textarea
           style={{
@@ -401,7 +407,15 @@ const Reconciler26AS = ({
             }}
           >
             <Card style={{ padding: "12px 16px", borderLeft: `3px solid ${THEME.sage}` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
                 Matched
               </div>
               <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
@@ -409,7 +423,15 @@ const Reconciler26AS = ({
               </div>
             </Card>
             <Card style={{ padding: "12px 16px", borderLeft: `3px solid ${THEME.gold}` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
                 Unmatched in 26AS
               </div>
               <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold, marginTop: 4 }}>
@@ -417,7 +439,15 @@ const Reconciler26AS = ({
               </div>
             </Card>
             <Card style={{ padding: "12px 16px", borderLeft: `3px solid ${THEME.rust}` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
                 Missing from 26AS
               </div>
               <div style={{ fontSize: 22, fontWeight: 900, color: THEME.rust, marginTop: 4 }}>
@@ -459,11 +489,17 @@ const Reconciler26AS = ({
                   <tbody>
                     {reconciled.matched.map((r: any, i: number) => (
                       <tr key={i}>
-                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>{r.tan}</td>
+                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>
+                          {r.tan}
+                        </td>
                         <td style={tdStyle}>{r.deductor}</td>
                         <td style={{ ...tdStyle, color: THEME.muted }}>{r.section}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{fmtINRExact(r.amountPaid)}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{fmtINRFull(r.tdsDeducted)}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                          {fmtINRExact(r.amountPaid)}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                          {fmtINRFull(r.tdsDeducted)}
+                        </td>
                         <td style={tdStyle}>
                           <Badge variant="sage">Matched</Badge>
                         </td>
@@ -511,11 +547,17 @@ const Reconciler26AS = ({
                   <tbody>
                     {reconciled.unmatchedIn26AS.map((r: any, i: number) => (
                       <tr key={i}>
-                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>{r.tan}</td>
+                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>
+                          {r.tan}
+                        </td>
                         <td style={tdStyle}>{r.deductor}</td>
                         <td style={{ ...tdStyle, color: THEME.muted }}>{r.section}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{fmtINRExact(r.amountPaid)}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{fmtINRFull(r.tdsDeducted)}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                          {fmtINRExact(r.amountPaid)}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                          {fmtINRFull(r.tdsDeducted)}
+                        </td>
                         <td style={tdStyle}>
                           <Badge variant="gold">Unmatched</Badge>
                         </td>
@@ -565,7 +607,9 @@ const Reconciler26AS = ({
                         <td style={{ ...tdStyle, fontWeight: 600 }}>{r.type}</td>
                         <td style={tdStyle}>{r.note || "—"}</td>
                         <td style={{ ...tdStyle, color: THEME.muted }}>{r.item.date || "—"}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{fmtINRExact(r.amount)}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                          {fmtINRExact(r.amount)}
+                        </td>
                         <td style={tdStyle}>
                           <Badge variant="rust">Missing</Badge>
                         </td>
@@ -578,25 +622,28 @@ const Reconciler26AS = ({
           )}
 
           {/* All clear message */}
-          {reconciled.unmatchedIn26AS.length === 0 && reconciled.missingFrom26AS.length === 0 && reconciled.matched.length > 0 && (
-            <div
-              style={{
-                padding: "14px 16px",
-                borderRadius: 10,
-                background: `${THEME.sage}10`,
-                border: `1px solid ${THEME.sage}22`,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 700,
-                color: THEME.sage,
-              }}
-            >
-              <CheckCircle2 size={16} />
-              All {reconciled.matched.length} entries are perfectly reconciled. No discrepancies found.
-            </div>
-          )}
+          {reconciled.unmatchedIn26AS.length === 0 &&
+            reconciled.missingFrom26AS.length === 0 &&
+            reconciled.matched.length > 0 && (
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 10,
+                  background: `${THEME.sage}10`,
+                  border: `1px solid ${THEME.sage}22`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: THEME.sage,
+                }}
+              >
+                <CheckCircle2 size={16} />
+                All {reconciled.matched.length} entries are perfectly reconciled. No discrepancies
+                found.
+              </div>
+            )}
         </div>
       )}
     </div>
@@ -799,12 +846,20 @@ const HRACalculator = () => {
   const salary = basic + da;
 
   const c1 = received;
-  const c2 = Math.max(0, rent - 0.10 * salary);
-  const c3 = (hraMetro ? 0.50 : 0.40) * salary;
+  const c2 = Math.max(0, rent - 0.1 * salary);
+  const c3 = (hraMetro ? 0.5 : 0.4) * salary;
   const exempt = salary > 0 && received > 0 ? Math.min(c1, c2, c3) : 0;
   const taxable = Math.max(0, received - exempt);
 
-  const inputStyle: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: `1px solid ${THEME.line}`, fontSize: 13, background: "var(--surface-0)", color: THEME.ink, width: "100%" };
+  const inputStyle: React.CSSProperties = {
+    padding: "8px 10px",
+    borderRadius: 8,
+    border: `1px solid ${THEME.line}`,
+    fontSize: 13,
+    background: "var(--surface-0)",
+    color: THEME.ink,
+    width: "100%",
+  };
 
   return (
     <div style={{ marginBottom: 28 }}>
@@ -814,41 +869,115 @@ const HRACalculator = () => {
           <span style={{ fontSize: 14, fontWeight: 800 }}>HRA Exemption Calculator</span>
           <span style={{ fontSize: 11, color: THEME.muted }}>Section 10(13A)</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
           <Field label="Basic Salary (Annual)">
-            <input type="number" style={inputStyle} placeholder="e.g. 600000" value={hraBasic} onChange={(e) => setHraBasic(e.target.value)} />
+            <input
+              type="number"
+              style={inputStyle}
+              placeholder="e.g. 600000"
+              value={hraBasic}
+              onChange={(e) => setHraBasic(e.target.value)}
+            />
           </Field>
           <Field label="DA (Annual)">
-            <input type="number" style={inputStyle} placeholder="0" value={hraDa} onChange={(e) => setHraDa(e.target.value)} />
+            <input
+              type="number"
+              style={inputStyle}
+              placeholder="0"
+              value={hraDa}
+              onChange={(e) => setHraDa(e.target.value)}
+            />
           </Field>
           <Field label="HRA Received (Annual)">
-            <input type="number" style={inputStyle} placeholder="e.g. 240000" value={hraReceived} onChange={(e) => setHraReceived(e.target.value)} />
+            <input
+              type="number"
+              style={inputStyle}
+              placeholder="e.g. 240000"
+              value={hraReceived}
+              onChange={(e) => setHraReceived(e.target.value)}
+            />
           </Field>
           <Field label="Rent Paid (Annual)">
-            <input type="number" style={inputStyle} placeholder="e.g. 300000" value={hraRent} onChange={(e) => setHraRent(e.target.value)} />
+            <input
+              type="number"
+              style={inputStyle}
+              placeholder="e.g. 300000"
+              value={hraRent}
+              onChange={(e) => setHraRent(e.target.value)}
+            />
           </Field>
           <Field label="City Type">
             <div style={{ display: "flex", gap: 8 }}>
-              <Button size="sm" variant={hraMetro ? "accent" : "ghost"} onClick={() => setHraMetro(true)} style={{ flex: 1, height: 34 }}>Metro</Button>
-              <Button size="sm" variant={!hraMetro ? "accent" : "ghost"} onClick={() => setHraMetro(false)} style={{ flex: 1, height: 34 }}>Non-Metro</Button>
+              <Button
+                size="sm"
+                variant={hraMetro ? "accent" : "ghost"}
+                onClick={() => setHraMetro(true)}
+                style={{ flex: 1, height: 34 }}
+              >
+                Metro
+              </Button>
+              <Button
+                size="sm"
+                variant={!hraMetro ? "accent" : "ghost"}
+                onClick={() => setHraMetro(false)}
+                style={{ flex: 1, height: 34 }}
+              >
+                Non-Metro
+              </Button>
             </div>
           </Field>
         </div>
         {salary > 0 && received > 0 && (
-          <div style={{ background: `${THEME.accent}06`, border: `1px solid ${THEME.accent}22`, borderRadius: 12, padding: 16 }}>
+          <div
+            style={{
+              background: `${THEME.accent}06`,
+              border: `1px solid ${THEME.accent}22`,
+              borderRadius: 12,
+              padding: 16,
+            }}
+          >
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 13 }}>
               <span style={{ color: THEME.muted }}>A. Actual HRA Received</span>
               <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c1)}</span>
               <span style={{ color: THEME.muted }}>B. Rent Paid − 10% of Salary</span>
               <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c2)}</span>
-              <span style={{ color: THEME.muted }}>C. {hraMetro ? "50%" : "40%"} of Salary ({hraMetro ? "Metro" : "Non-Metro"})</span>
+              <span style={{ color: THEME.muted }}>
+                C. {hraMetro ? "50%" : "40%"} of Salary ({hraMetro ? "Metro" : "Non-Metro"})
+              </span>
               <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c3)}</span>
             </div>
-            <div style={{ borderTop: `1px solid ${THEME.line}`, marginTop: 10, paddingTop: 10, display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 14 }}>
-              <span style={{ fontWeight: 800, color: THEME.sage }}>HRA Exempt (Minimum of A, B, C)</span>
-              <span style={{ fontWeight: 900, fontSize: 18, color: THEME.sage, textAlign: "right" }}>{fmtINRFull(exempt)}</span>
+            <div
+              style={{
+                borderTop: `1px solid ${THEME.line}`,
+                marginTop: 10,
+                paddingTop: 10,
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                gap: 8,
+                fontSize: 14,
+              }}
+            >
+              <span style={{ fontWeight: 800, color: THEME.sage }}>
+                HRA Exempt (Minimum of A, B, C)
+              </span>
+              <span
+                style={{ fontWeight: 900, fontSize: 18, color: THEME.sage, textAlign: "right" }}
+              >
+                {fmtINRFull(exempt)}
+              </span>
               <span style={{ color: THEME.muted, fontSize: 12 }}>Taxable HRA</span>
-              <span style={{ fontWeight: 600, fontSize: 13, color: THEME.rust, textAlign: "right" }}>{fmtINRFull(taxable)}</span>
+              <span
+                style={{ fontWeight: 600, fontSize: 13, color: THEME.rust, textAlign: "right" }}
+              >
+                {fmtINRFull(taxable)}
+              </span>
             </div>
           </div>
         )}
@@ -894,11 +1023,18 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     (state.transactions || []).forEach((t: any) => addDate(t.date));
     (state.stockSells || []).forEach((s: any) => addDate(s.sellDate));
     (state.mfSells || []).forEach((m: any) => addDate(m.sellDate));
-    (state.taxPayments || []).forEach((t: any) => { if (t.fy) { const y = Number(t.fy.split("-")[0]); if (y) fySet.add(y); } });
+    (state.taxPayments || []).forEach((t: any) => {
+      if (t.fy) {
+        const y = Number(t.fy.split("-")[0]);
+        if (y) fySet.add(y);
+      }
+    });
     const now = new Date();
     const cur = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
     fySet.add(cur);
-    return Array.from(fySet).sort((a, b) => b - a).map((y) => `${y}-${String(y + 1).slice(-2)}`);
+    return Array.from(fySet)
+      .sort((a, b) => b - a)
+      .map((y) => `${y}-${String(y + 1).slice(-2)}`);
   }, [state.income, state.transactions, state.stockSells, state.mfSells, state.taxPayments]);
 
   const [fy, setFy] = useState(state.profile?.fy || availableFYs[0] || "2025-26");
@@ -960,9 +1096,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     );
     // 80C — EPF employee contributions in FY
     const epf = (state.epf || []).reduce((s: number, e: any) => {
-      const txs = (e.transactions || []).filter((t: any) => t.date >= fyStartStr && t.date <= fyEndStr);
-      const simpleEmp = txs.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const passbookEmp = txs.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
+      const txs = (e.transactions || []).filter(
+        (t: any) => t.date >= fyStartStr && t.date <= fyEndStr
+      );
+      const simpleEmp = txs
+        .filter((t: any) => t.type === "employee_contribution")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const passbookEmp = txs
+        .filter((t: any) => t.type === "monthly_contribution")
+        .reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
       return s + simpleEmp + passbookEmp;
     }, 0);
     const d80C_raw = elss + ppf + lic + epf;
@@ -1352,7 +1494,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         grandfathered = true;
       }
       const profit =
-        !grandfathered && s.profit != null && s.profit !== "" ? Number(s.profit) : (sellPrice - buyPrice) * qty;
+        !grandfathered && s.profit != null && s.profit !== ""
+          ? Number(s.profit)
+          : (sellPrice - buyPrice) * qty;
       allSells.push({
         id: s.id,
         name: s.symbol,
@@ -1507,7 +1651,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     const ltcgRate = fyStartYear >= 2024 ? 0.125 : 0.1;
     const ltcgExemption = fyStartYear >= 2024 ? 125_000 : 100_000;
     const actualTaxSTCG = Math.max(0, actualNetSTCG) * stcgRate;
-    const actualTaxLTCG = actualNetLTCG > ltcgExemption ? (actualNetLTCG - ltcgExemption) * ltcgRate : 0;
+    const actualTaxLTCG =
+      actualNetLTCG > ltcgExemption ? (actualNetLTCG - ltcgExemption) * ltcgRate : 0;
     const totalActualTax = actualTaxSTCG + actualTaxLTCG;
 
     let simulatedSTCLosses = 0,
@@ -1640,8 +1785,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           subTab === "income"
             ? `FY ${fy} · ${hasNewRegime ? "Regime comparison, " : ""}advance tax tracking & ITR deadline`
             : subTab === "capitalGains"
-            ? `FY ${fy} · Capital Gains (STCG/LTCG) & Loss Harvesting Simulator`
-            : `FY ${fy} · Reconcile Form 26AS with your income & TDS records`
+              ? `FY ${fy} · Capital Gains (STCG/LTCG) & Loss Harvesting Simulator`
+              : `FY ${fy} · Reconcile Form 26AS with your income & TDS records`
         }
         rightElement={
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1652,7 +1797,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130 }}
             >
               {availableFYs.map((f) => (
-                <option key={f} value={f}>FY {f}</option>
+                <option key={f} value={f}>
+                  FY {f}
+                </option>
               ))}
             </select>
             {subTab === "income" && hasNewRegime && (
@@ -2124,45 +2271,124 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                   <Target size={16} color={THEME.gold} />
-                  <span style={{ fontSize: 14, fontWeight: 800 }}>Deduction Utilisation — FY {fy}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>
+                    Deduction Utilisation — FY {fy}
+                  </span>
                 </div>
                 <div style={{ display: "grid", gap: 12 }}>
                   {[
-                    { label: "Sec 80C", used: Math.min(Number(deductions.d80C) || 0, 150000), limit: 150000, desc: "ELSS, PPF, LIC, EPF, NSC" },
-                    { label: "Sec 80D", used: Number(deductions.d80D) || 0, limit: 25000, desc: "Health Insurance Premium" },
-                    { label: "HRA", used: Number(deductions.hra) || 0, limit: null, desc: "House Rent Allowance" },
-                    { label: "Sec 80CCD(1B)", used: Number(deductions.nps) || 0, limit: 50000, desc: "NPS Contribution" },
-                    { label: "Sec 80CCD(2)", used: Number(deductions.d80CCD2) || 0, limit: null, desc: "Employer NPS" },
-                    { label: "Sec 24(b)", used: Math.min(Number(deductions.homeLoan) || 0, 200000), limit: 200000, desc: "Home Loan Interest" },
-                    { label: "Sec 80G", used: Number(deductions.d80G) || 0, limit: null, desc: "Donations" },
-                    { label: "Sec 80E", used: Number(deductions.d80E) || 0, limit: null, desc: "Education Loan Interest" },
-                    { label: "Sec 80TTA", used: Math.min(Number(deductions.d80TTA) || 0, 10000), limit: 10000, desc: "Savings A/c Interest" },
-                  ].filter(d => d.used > 0 || (d.limit && d.limit > 0)).map((d) => {
-                    const pct = d.limit ? Math.min(100, (d.used / d.limit) * 100) : 100;
-                    const barColor = d.limit ? (pct >= 100 ? THEME.sage : pct >= 50 ? THEME.gold : THEME.muted) : THEME.accent;
-                    const remaining = d.limit ? Math.max(0, d.limit - d.used) : 0;
-                    return (
-                      <div key={d.label}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <div>
-                            <span style={{ fontSize: 12, fontWeight: 700 }}>{d.label}</span>
-                            <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 6 }}>{d.desc}</span>
+                    {
+                      label: "Sec 80C",
+                      used: Math.min(Number(deductions.d80C) || 0, 150000),
+                      limit: 150000,
+                      desc: "ELSS, PPF, LIC, EPF, NSC",
+                    },
+                    {
+                      label: "Sec 80D",
+                      used: Number(deductions.d80D) || 0,
+                      limit: 25000,
+                      desc: "Health Insurance Premium",
+                    },
+                    {
+                      label: "HRA",
+                      used: Number(deductions.hra) || 0,
+                      limit: null,
+                      desc: "House Rent Allowance",
+                    },
+                    {
+                      label: "Sec 80CCD(1B)",
+                      used: Number(deductions.nps) || 0,
+                      limit: 50000,
+                      desc: "NPS Contribution",
+                    },
+                    {
+                      label: "Sec 80CCD(2)",
+                      used: Number(deductions.d80CCD2) || 0,
+                      limit: null,
+                      desc: "Employer NPS",
+                    },
+                    {
+                      label: "Sec 24(b)",
+                      used: Math.min(Number(deductions.homeLoan) || 0, 200000),
+                      limit: 200000,
+                      desc: "Home Loan Interest",
+                    },
+                    {
+                      label: "Sec 80G",
+                      used: Number(deductions.d80G) || 0,
+                      limit: null,
+                      desc: "Donations",
+                    },
+                    {
+                      label: "Sec 80E",
+                      used: Number(deductions.d80E) || 0,
+                      limit: null,
+                      desc: "Education Loan Interest",
+                    },
+                    {
+                      label: "Sec 80TTA",
+                      used: Math.min(Number(deductions.d80TTA) || 0, 10000),
+                      limit: 10000,
+                      desc: "Savings A/c Interest",
+                    },
+                  ]
+                    .filter((d) => d.used > 0 || (d.limit && d.limit > 0))
+                    .map((d) => {
+                      const pct = d.limit ? Math.min(100, (d.used / d.limit) * 100) : 100;
+                      const barColor = d.limit
+                        ? pct >= 100
+                          ? THEME.sage
+                          : pct >= 50
+                            ? THEME.gold
+                            : THEME.muted
+                        : THEME.accent;
+                      const remaining = d.limit ? Math.max(0, d.limit - d.used) : 0;
+                      return (
+                        <div key={d.label}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              marginBottom: 4,
+                            }}
+                          >
+                            <div>
+                              <span style={{ fontSize: 12, fontWeight: 700 }}>{d.label}</span>
+                              <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 6 }}>
+                                {d.desc}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 12, fontWeight: 600 }}>
+                              {fmtINRFull(d.used)}
+                              {d.limit ? ` / ${fmtINRFull(d.limit)}` : ""}
+                            </div>
                           </div>
-                          <div style={{ fontSize: 12, fontWeight: 600 }}>
-                            {fmtINRFull(d.used)}{d.limit ? ` / ${fmtINRFull(d.limit)}` : ""}
+                          <div
+                            style={{
+                              height: 6,
+                              borderRadius: 3,
+                              background: `${THEME.muted}18`,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: 6,
+                                borderRadius: 3,
+                                width: `${pct}%`,
+                                background: barColor,
+                                transition: "width 0.3s",
+                              }}
+                            />
                           </div>
+                          {d.limit && remaining > 0 && (
+                            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+                              Room to invest: {fmtINRFull(remaining)}
+                            </div>
+                          )}
                         </div>
-                        <div style={{ height: 6, borderRadius: 3, background: `${THEME.muted}18`, overflow: "hidden" }}>
-                          <div style={{ height: 6, borderRadius: 3, width: `${pct}%`, background: barColor, transition: "width 0.3s" }} />
-                        </div>
-                        {d.limit && remaining > 0 && (
-                          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-                            Room to invest: {fmtINRFull(remaining)}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </Card>
             </div>
@@ -2644,14 +2870,21 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               {(() => {
                 const now = new Date();
                 const fyStart = new Date(fyStartYear, 3, 1);
-                const monthsElapsed = Math.max(1, Math.round((now.getTime() - fyStart.getTime()) / (30.44 * 86400000)));
+                const monthsElapsed = Math.max(
+                  1,
+                  Math.round((now.getTime() - fyStart.getTime()) / (30.44 * 86400000))
+                );
                 const incomeThisYear = (state.income || [])
                   .filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr)
                   .reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
-                const projectedAnnualIncome = monthsElapsed < 12 ? Math.round((incomeThisYear / monthsElapsed) * 12) : incomeThisYear;
-                const projectedTaxResult = activeRegime === "new"
-                  ? calcTaxNewByFY(projectedAnnualIncome, fy)
-                  : calcTaxOldByFY(projectedAnnualIncome, totalOldDeductions, fy);
+                const projectedAnnualIncome =
+                  monthsElapsed < 12
+                    ? Math.round((incomeThisYear / monthsElapsed) * 12)
+                    : incomeThisYear;
+                const projectedTaxResult =
+                  activeRegime === "new"
+                    ? calcTaxNewByFY(projectedAnnualIncome, fy)
+                    : calcTaxOldByFY(projectedAnnualIncome, totalOldDeductions, fy);
                 const projectedTax = projectedTaxResult.total || 0;
 
                 const quarters = [
@@ -2668,7 +2901,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     const required = netLiability * (q.pct / 100);
                     const shortfall = Math.max(0, required - totalAdvancePaid);
                     if (shortfall > 0) {
-                      const monthsLate = Math.max(1, Math.ceil((now.getTime() - q.due.getTime()) / (30.44 * 86400000)));
+                      const monthsLate = Math.max(
+                        1,
+                        Math.ceil((now.getTime() - q.due.getTime()) / (30.44 * 86400000))
+                      );
                       totalPenalty234C += Math.round(shortfall * 0.01 * Math.min(monthsLate, 3));
                     }
                   }
@@ -2676,38 +2912,119 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
 
                 return (
                   <div style={{ display: "grid", gap: 16 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                      <div style={{ padding: 14, borderRadius: 10, background: `${THEME.accent}08`, border: `1px solid ${THEME.accent}22` }}>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Income Recorded ({monthsElapsed}m)</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent }}>{fmtINRFull(incomeThisYear)}</div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          background: `${THEME.accent}08`,
+                          border: `1px solid ${THEME.accent}22`,
+                        }}
+                      >
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          Income Recorded ({monthsElapsed}m)
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent }}>
+                          {fmtINRFull(incomeThisYear)}
+                        </div>
                       </div>
-                      <div style={{ padding: 14, borderRadius: 10, background: `${THEME.sage}08`, border: `1px solid ${THEME.sage}22` }}>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Projected Annual Income</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage }}>{fmtINRFull(projectedAnnualIncome)}</div>
+                      <div
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          background: `${THEME.sage}08`,
+                          border: `1px solid ${THEME.sage}22`,
+                        }}
+                      >
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          Projected Annual Income
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage }}>
+                          {fmtINRFull(projectedAnnualIncome)}
+                        </div>
                       </div>
-                      <div style={{ padding: 14, borderRadius: 10, background: `${THEME.gold}08`, border: `1px solid ${THEME.gold}22` }}>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Projected Tax ({activeRegime} regime)</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold }}>{fmtINRFull(projectedTax)}</div>
+                      <div
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          background: `${THEME.gold}08`,
+                          border: `1px solid ${THEME.gold}22`,
+                        }}
+                      >
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          Projected Tax ({activeRegime} regime)
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold }}>
+                          {fmtINRFull(projectedTax)}
+                        </div>
                       </div>
                       {totalPenalty234C > 0 && (
-                        <div style={{ padding: 14, borderRadius: 10, background: `${THEME.rust}08`, border: `1px solid ${THEME.rust}22` }}>
-                          <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Sec 234C Interest</div>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(totalPenalty234C)}</div>
-                          <div style={{ fontSize: 10, color: THEME.muted }}>1% per month on quarterly shortfall</div>
+                        <div
+                          style={{
+                            padding: 14,
+                            borderRadius: 10,
+                            background: `${THEME.rust}08`,
+                            border: `1px solid ${THEME.rust}22`,
+                          }}
+                        >
+                          <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                            Sec 234C Interest
+                          </div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>
+                            {fmtINRFull(totalPenalty234C)}
+                          </div>
+                          <div style={{ fontSize: 10, color: THEME.muted }}>
+                            1% per month on quarterly shortfall
+                          </div>
                         </div>
                       )}
                     </div>
                     <div style={{ background: `${THEME.muted}06`, borderRadius: 10, padding: 14 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Recommended Quarterly Payments</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+                        Recommended Quarterly Payments
+                      </div>
+                      <div
+                        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}
+                      >
                         {quarters.map((q) => {
                           const required = Math.round(projectedTax * (q.pct / 100));
                           const isPast = now > q.due;
                           return (
-                            <div key={q.q} style={{ padding: "8px 10px", borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, textAlign: "center" }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: isPast ? THEME.muted : THEME.accent }}>{q.q} — {q.due.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</div>
-                              <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{fmtINRFull(required)}</div>
-                              <div style={{ fontSize: 10, color: THEME.muted }}>{q.pct}% cumulative</div>
+                            <div
+                              key={q.q}
+                              style={{
+                                padding: "8px 10px",
+                                borderRadius: 8,
+                                background: "var(--surface-0)",
+                                border: `1px solid ${THEME.line}`,
+                                textAlign: "center",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: isPast ? THEME.muted : THEME.accent,
+                                }}
+                              >
+                                {q.q} —{" "}
+                                {q.due.toLocaleDateString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                })}
+                              </div>
+                              <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>
+                                {fmtINRFull(required)}
+                              </div>
+                              <div style={{ fontSize: 10, color: THEME.muted }}>
+                                {q.pct}% cumulative
+                              </div>
                             </div>
                           );
                         })}
@@ -4000,8 +4317,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 const taxSavedEst = cand.isSlabTaxed
                   ? cand.loss * marginalRate
                   : cand.isLtcg
-                  ? cand.loss * 0.125
-                  : cand.loss * 0.2;
+                    ? cand.loss * 0.125
+                    : cand.loss * 0.2;
                 return (
                   <div
                     key={cand.id}
@@ -4214,19 +4531,24 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      const { allSells, stcgGains, stcgLosses, ltcgGains, ltcgLosses } = realizedGainsData;
+                      const { allSells, stcgGains, stcgLosses, ltcgGains, ltcgLosses } =
+                        realizedGainsData;
                       const netSTCG = Math.max(0, stcgGains - stcgLosses);
                       const netLTCG = Math.max(0, ltcgGains - ltcgLosses);
-                      const stcgRate = fyStartYear >= 2024 ? 0.20 : 0.15;
+                      const stcgRate = fyStartYear >= 2024 ? 0.2 : 0.15;
                       const ltcgExempt = fyStartYear >= 2024 ? 125000 : 100000;
-                      const ltcgRate2 = fyStartYear >= 2024 ? 0.125 : 0.10;
+                      const ltcgRate2 = fyStartYear >= 2024 ? 0.125 : 0.1;
                       const taxSTCG = netSTCG * stcgRate;
                       const taxLTCG = netLTCG > ltcgExempt ? (netLTCG - ltcgExempt) * ltcgRate2 : 0;
                       const stcgRows = allSells.filter((s: any) => !s.isLtcg);
                       const ltcgRows = allSells.filter((s: any) => s.isLtcg);
-                      const rowHtml = (items: any[], label: string) => items.map((s: any) =>
-                        `<tr><td>${s.name}</td><td>${s.type}</td><td>${s.buyDate || "-"}</td><td>${s.sellDate || "-"}</td><td>${s.days}d</td><td style="text-align:right">${fmtINRFull(s.buyPrice * s.qty)}</td><td style="text-align:right">${fmtINRFull(s.sellPrice * s.qty)}</td><td style="text-align:right;color:${s.profit >= 0 ? "#22c55e" : "#ef4444"}">${fmtINRFull(s.profit)}</td>${s.grandfathered ? '<td style="font-size:10px;color:#f59e0b">GF</td>' : "<td></td>"}</tr>`
-                      ).join("");
+                      const rowHtml = (items: any[], label: string) =>
+                        items
+                          .map(
+                            (s: any) =>
+                              `<tr><td>${s.name}</td><td>${s.type}</td><td>${s.buyDate || "-"}</td><td>${s.sellDate || "-"}</td><td>${s.days}d</td><td style="text-align:right">${fmtINRFull(s.buyPrice * s.qty)}</td><td style="text-align:right">${fmtINRFull(s.sellPrice * s.qty)}</td><td style="text-align:right;color:${s.profit >= 0 ? "#22c55e" : "#ef4444"}">${fmtINRFull(s.profit)}</td>${s.grandfathered ? '<td style="font-size:10px;color:#f59e0b">GF</td>' : "<td></td>"}</tr>`
+                          )
+                          .join("");
                       const html = `<html><head><title>Capital Gains Report - FY ${fy}</title>
                         <style>body{font-family:Inter,sans-serif;padding:40px;max-width:1000px;margin:auto;font-size:13px}
                         h1{font-size:22px}h2{font-size:16px;margin-top:28px;border-bottom:2px solid #e5e7eb;padding-bottom:6px}
@@ -4238,22 +4560,33 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         <h1>ITR Capital Gains Report — FY ${fy}</h1>
                         <p style="color:#6b7280">Generated: ${new Date().toLocaleDateString("en-IN")} | Schedule CG Summary</p>
                         <div class="summary">
-                          <div class="box"><div class="label">Net Short-Term CG</div><div class="value">${fmtINRFull(netSTCG)}</div><div class="label">Tax @ ${(stcgRate * 100)}%: ${fmtINRFull(taxSTCG)}</div></div>
-                          <div class="box"><div class="label">Net Long-Term CG</div><div class="value">${fmtINRFull(netLTCG)}</div><div class="label">Exempt: ${fmtINRFull(ltcgExempt)} | Tax @ ${(ltcgRate2 * 100)}%: ${fmtINRFull(taxLTCG)}</div></div>
+                          <div class="box"><div class="label">Net Short-Term CG</div><div class="value">${fmtINRFull(netSTCG)}</div><div class="label">Tax @ ${stcgRate * 100}%: ${fmtINRFull(taxSTCG)}</div></div>
+                          <div class="box"><div class="label">Net Long-Term CG</div><div class="value">${fmtINRFull(netLTCG)}</div><div class="label">Exempt: ${fmtINRFull(ltcgExempt)} | Tax @ ${ltcgRate2 * 100}%: ${fmtINRFull(taxLTCG)}</div></div>
                           <div class="box"><div class="label">Total CG Tax Liability</div><div class="value" style="color:#ef4444">${fmtINRFull(taxSTCG + taxLTCG)}</div><div class="label">+ 4% Health & Education Cess</div></div>
                           <div class="box"><div class="label">Loss Set-off</div><div class="value">${fmtINRFull(stcgLosses + ltcgLosses)}</div><div class="label">STCL: ${fmtINRFull(stcgLosses)} | LTCL: ${fmtINRFull(ltcgLosses)}</div></div>
                         </div>
-                        ${stcgRows.length > 0 ? `<h2>Schedule CG — Part A: Short-Term Capital Gains (${stcgRows.length} transactions)</h2>
-                        <table><tr><th>Security</th><th>Type</th><th>Buy Date</th><th>Sell Date</th><th>Holding</th><th>Cost</th><th>Sale Value</th><th>Gain/Loss</th><th>GF</th></tr>${rowHtml(stcgRows, "STCG")}</table>` : ""}
-                        ${ltcgRows.length > 0 ? `<h2>Schedule CG — Part B: Long-Term Capital Gains (${ltcgRows.length} transactions)</h2>
-                        <table><tr><th>Security</th><th>Type</th><th>Buy Date</th><th>Sell Date</th><th>Holding</th><th>Cost</th><th>Sale Value</th><th>Gain/Loss</th><th>GF</th></tr>${rowHtml(ltcgRows, "LTCG")}</table>` : ""}
+                        ${
+                          stcgRows.length > 0
+                            ? `<h2>Schedule CG — Part A: Short-Term Capital Gains (${stcgRows.length} transactions)</h2>
+                        <table><tr><th>Security</th><th>Type</th><th>Buy Date</th><th>Sell Date</th><th>Holding</th><th>Cost</th><th>Sale Value</th><th>Gain/Loss</th><th>GF</th></tr>${rowHtml(stcgRows, "STCG")}</table>`
+                            : ""
+                        }
+                        ${
+                          ltcgRows.length > 0
+                            ? `<h2>Schedule CG — Part B: Long-Term Capital Gains (${ltcgRows.length} transactions)</h2>
+                        <table><tr><th>Security</th><th>Type</th><th>Buy Date</th><th>Sell Date</th><th>Holding</th><th>Cost</th><th>Sale Value</th><th>Gain/Loss</th><th>GF</th></tr>${rowHtml(ltcgRows, "LTCG")}</table>`
+                            : ""
+                        }
                         <h2>Notes</h2><ul>
                         <li>GF = Grandfathering applied (equity bought before 01-Feb-2018, FMV used as cost basis)</li>
                         <li>STCG: Listed equity sold within 12 months; LTCG: Listed equity sold after 12 months</li>
-                        <li>FY ${fy}: STCG rate ${(stcgRate * 100)}%, LTCG rate ${(ltcgRate2 * 100)}% (above ₹${(ltcgExempt / 100000).toFixed(2)}L exemption)</li>
+                        <li>FY ${fy}: STCG rate ${stcgRate * 100}%, LTCG rate ${ltcgRate2 * 100}% (above ₹${(ltcgExempt / 100000).toFixed(2)}L exemption)</li>
                         </ul></body></html>`;
                       const w = window.open("", "_blank");
-                      if (w) { w.document.write(html); w.document.close(); }
+                      if (w) {
+                        w.document.write(html);
+                        w.document.close();
+                      }
                     }}
                     style={{
                       display: "flex",

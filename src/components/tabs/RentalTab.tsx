@@ -435,113 +435,115 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
       {sub === "out" ? (
         <div className="animate-fade-in-up">
-          {propertiesOut.length > 0 && <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 14,
-              marginBottom: 32,
-            }}
-          >
-            {[
-              {
-                label: "Property Portfolio",
-                value: fmtINRFull(outPropertyValuation),
-                sub: "Total asset valuation",
-                color: "#A78BFA",
-                Icon: Building2,
-              },
-              {
-                label: "Monthly Rent",
-                value: fmtINRFull(outMonthlyRent),
-                sub: "Active agreements",
-                color: THEME.accent,
-                Icon: Landmark,
-              },
-              {
-                label: "Received (FY)",
-                value: fmtINRFull(outThisFY),
-                sub: `of ${fmtINRFull(outMonthlyRent * 12)} annual target`,
-                color: THEME.sage,
-                Icon: TrendingUp,
-              },
-              {
-                label: "Deposit Held",
-                value: fmtINRFull(outDepositHeld),
-                sub: "Total liability",
-                color: THEME.gold,
-                Icon: Shield,
-              },
-              {
-                label: "Taxable IHP",
-                value: fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7),
-                sub:
-                  municipalTaxPaid > 0
-                    ? "After muni tax + 30% deduction"
-                    : "Post 30% std deduction",
-                color: THEME.accent,
-                Icon: Percent,
-              },
-            ].map(({ label, value, sub, color, Icon }) => (
-              <div
-                key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `${color}1f`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
+          {propertiesOut.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 14,
+                marginBottom: 32,
+              }}
+            >
+              {[
+                {
+                  label: "Property Portfolio",
+                  value: fmtINRFull(outPropertyValuation),
+                  sub: "Total asset valuation",
+                  color: "#A78BFA",
+                  Icon: Building2,
+                },
+                {
+                  label: "Monthly Rent",
+                  value: fmtINRFull(outMonthlyRent),
+                  sub: "Active agreements",
+                  color: THEME.accent,
+                  Icon: Landmark,
+                },
+                {
+                  label: "Received (FY)",
+                  value: fmtINRFull(outThisFY),
+                  sub: `of ${fmtINRFull(outMonthlyRent * 12)} annual target`,
+                  color: THEME.sage,
+                  Icon: TrendingUp,
+                },
+                {
+                  label: "Deposit Held",
+                  value: fmtINRFull(outDepositHeld),
+                  sub: "Total liability",
+                  color: THEME.gold,
+                  Icon: Shield,
+                },
+                {
+                  label: "Taxable IHP",
+                  value: fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7),
+                  sub:
+                    municipalTaxPaid > 0
+                      ? "After muni tax + 30% deduction"
+                      : "Post 30% std deduction",
+                  color: THEME.accent,
+                  Icon: Percent,
+                },
+              ].map(({ label, value, sub, color, Icon }) => (
                 <div
+                  key={label}
+                  className="card-lift"
                   style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    borderTop: `4px solid ${color}`,
+                    borderRadius: 14,
+                    padding: "18px 20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    boxShadow: "var(--shadow-card)",
                   }}
                 >
-                  {value}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `${color}1f`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={18} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: THEME.muted,
+                        textTransform: "uppercase" as const,
+                        letterSpacing: "0.1em",
+                      }}
+                    >
+                      {label}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 26,
+                      fontWeight: 900,
+                      color: THEME.ink,
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {value}
+                  </div>
+                  {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
                 </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
-            ))}
-          </div>}
+              ))}
+            </div>
+          )}
 
           {propertiesOut.length === 0 ? (
             <EmptyState
@@ -714,7 +716,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   marginLeft: 6,
                                 }}
                               >
-                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of {p.escalationTiers.length}
+                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of{" "}
+                                {p.escalationTiers.length}
                               </span>
                             )}
                           </div>
@@ -920,13 +923,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             )}
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
-                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
+                            <div
+                              style={{
+                                fontSize: 9,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                marginTop: 2,
+                              }}
+                            >
                               Agreed:{" "}
-                              <span style={{ color: THEME.gold }}>{fmtINRExact(p.securityDeposit || 0)}</span>
+                              <span style={{ color: THEME.gold }}>
+                                {fmtINRExact(p.securityDeposit || 0)}
+                              </span>
                             </div>
                           ) : p.depositReceivedDate ? (
-                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
-                              Recd: <span style={{ color: THEME.gold }}>{fmtDate(p.depositReceivedDate)}</span>
+                            <div
+                              style={{
+                                fontSize: 9,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                marginTop: 2,
+                              }}
+                            >
+                              Recd:{" "}
+                              <span style={{ color: THEME.gold }}>
+                                {fmtDate(p.depositReceivedDate)}
+                              </span>
                             </div>
                           ) : null}
                         </div>
@@ -1812,103 +1834,105 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         </div>
       ) : (
         <div className="animate-fade-in-up">
-          {propertiesIn.length > 0 && <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 14,
-              marginBottom: 32,
-            }}
-          >
-            {[
-              {
-                label: "Monthly Rent",
-                value: fmtINRFull(inMonthlyRent),
-                sub: "Active agreements",
-                color: THEME.rust,
-                Icon: Landmark,
-              },
-              {
-                label: "Paid (FY)",
-                value: fmtINRFull(inThisFY),
-                sub: `of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`,
-                color: THEME.rust,
-                Icon: Receipt,
-              },
-              {
-                label: "Deposit Paid",
-                value: fmtINRFull(inDepositPaid),
-                sub: "Recoverable asset",
-                color: THEME.sage,
-                Icon: Shield,
-              },
-              {
-                label: "HRA Eligible",
-                value: fmtINRFull(inThisFY),
-                sub: "Annual rent paid",
-                color: THEME.accent,
-                Icon: Building2,
-              },
-            ].map(({ label, value, sub, color, Icon }) => (
-              <div
-                key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `${color}1f`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
+          {propertiesIn.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 14,
+                marginBottom: 32,
+              }}
+            >
+              {[
+                {
+                  label: "Monthly Rent",
+                  value: fmtINRFull(inMonthlyRent),
+                  sub: "Active agreements",
+                  color: THEME.rust,
+                  Icon: Landmark,
+                },
+                {
+                  label: "Paid (FY)",
+                  value: fmtINRFull(inThisFY),
+                  sub: `of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`,
+                  color: THEME.rust,
+                  Icon: Receipt,
+                },
+                {
+                  label: "Deposit Paid",
+                  value: fmtINRFull(inDepositPaid),
+                  sub: "Recoverable asset",
+                  color: THEME.sage,
+                  Icon: Shield,
+                },
+                {
+                  label: "HRA Eligible",
+                  value: fmtINRFull(inThisFY),
+                  sub: "Annual rent paid",
+                  color: THEME.accent,
+                  Icon: Building2,
+                },
+              ].map(({ label, value, sub, color, Icon }) => (
                 <div
+                  key={label}
+                  className="card-lift"
                   style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    borderTop: `4px solid ${color}`,
+                    borderRadius: 14,
+                    padding: "18px 20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    boxShadow: "var(--shadow-card)",
                   }}
                 >
-                  {value}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `${color}1f`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={18} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: THEME.muted,
+                        textTransform: "uppercase" as const,
+                        letterSpacing: "0.1em",
+                      }}
+                    >
+                      {label}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 26,
+                      fontWeight: 900,
+                      color: THEME.ink,
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {value}
+                  </div>
+                  {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
                 </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
-            ))}
-          </div>}
+              ))}
+            </div>
+          )}
 
           {propertiesIn.length === 0 ? (
             <EmptyState
@@ -2083,7 +2107,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   marginLeft: 6,
                                 }}
                               >
-                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of {p.escalationTiers.length}
+                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of{" "}
+                                {p.escalationTiers.length}
                               </span>
                             )}
                             {" · "}
@@ -2265,13 +2290,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             )}
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
-                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
+                            <div
+                              style={{
+                                fontSize: 9,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                marginTop: 2,
+                              }}
+                            >
                               Agreed:{" "}
-                              <span style={{ color: THEME.sage }}>{fmtINRExact(p.securityDeposit || 0)}</span>
+                              <span style={{ color: THEME.sage }}>
+                                {fmtINRExact(p.securityDeposit || 0)}
+                              </span>
                             </div>
                           ) : p.depositPaidDate ? (
-                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
-                              Paid: <span style={{ color: THEME.sage }}>{fmtDate(p.depositPaidDate)}</span>
+                            <div
+                              style={{
+                                fontSize: 9,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                marginTop: 2,
+                              }}
+                            >
+                              Paid:{" "}
+                              <span style={{ color: THEME.sage }}>
+                                {fmtDate(p.depositPaidDate)}
+                              </span>
                             </div>
                           ) : null}
                         </div>
@@ -3131,7 +3175,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 800, color }}>
                   {value !== 0
-                    ? (label === "Net Cashflow" ? (outThisFY >= inThisFY ? "+" : "-") : sign)
+                    ? label === "Net Cashflow"
+                      ? outThisFY >= inThisFY
+                        ? "+"
+                        : "-"
+                      : sign
                     : ""}
                   {fmtINRFull(Math.abs(value))}
                 </div>

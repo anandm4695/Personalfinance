@@ -4,7 +4,12 @@ import { today, fmtINRFull, getCCDueDate, getLocalDateString } from "../utils/fi
 export function useNotifications(loaded: boolean, session: any, state: any): void {
   // Fire browser push notifications for upcoming reminders (runs once per tab session)
   useEffect(() => {
-    if (!loaded || !session || typeof Notification === "undefined" || Notification.permission !== "granted")
+    if (
+      !loaded ||
+      !session ||
+      typeof Notification === "undefined" ||
+      Notification.permission !== "granted"
+    )
       return;
     // Guard: sessionStorage persists across page refreshes within the same tab,
     // so notifications fire at most once per tab open — not on every refresh.
@@ -24,7 +29,8 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
       }
     } catch {}
     const nowUtc = new Date();
-    const istHour = (nowUtc.getUTCHours() + 5 + Math.floor((nowUtc.getUTCMinutes() + 30) / 60)) % 24;
+    const istHour =
+      (nowUtc.getUTCHours() + 5 + Math.floor((nowUtc.getUTCMinutes() + 30) / 60)) % 24;
     if (istHour < notifStart || istHour >= notifEnd) return;
 
     sessionStorage.setItem(sessionKey, "1");

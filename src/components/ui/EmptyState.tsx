@@ -44,7 +44,9 @@ export function EmptyState({
             width: 64,
             height: 64,
             borderRadius: 20,
-            background: gradient || `linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`,
+            background:
+              gradient ||
+              `linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

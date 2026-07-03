@@ -13,7 +13,13 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, today, monthsBetween, getLocalDateString } from "../../utils/finance";
+import {
+  fmtINRFull,
+  fmtINRExact,
+  today,
+  monthsBetween,
+  getLocalDateString,
+} from "../../utils/finance";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -246,10 +252,42 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
           marginBottom: 28,
         }}
       >
-        <StatCard label="Monthly SIP" value={fmtINRFull(totalMonthlyEquivalent)} sub={metrics?.monthIncome > 0 ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income` : "Monthly equivalent"} icon={<Repeat />} color={THEME.accent} />
-        <StatCard label="Total Invested" value={fmtINRFull(totalInvested)} sub="Cumulative capital deployed" icon={<IndianRupee />} color={THEME.sage} />
-        <StatCard label="Est. Returns" value={totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—"} sub={totalGains > 0 ? `+${fmtINRFull(totalGains)} total return` : "Returns after first installment"} icon={<TrendingUp />} color={totalGains > 0 ? THEME.gold : THEME.muted} />
-        <StatCard label="Projected Corpus" value={fmtINRFull(totalProjected)} sub={`@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} done` : ""}`} icon={<Activity />} color={THEME.accent} />
+        <StatCard
+          label="Monthly SIP"
+          value={fmtINRFull(totalMonthlyEquivalent)}
+          sub={
+            metrics?.monthIncome > 0
+              ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
+              : "Monthly equivalent"
+          }
+          icon={<Repeat />}
+          color={THEME.accent}
+        />
+        <StatCard
+          label="Total Invested"
+          value={fmtINRFull(totalInvested)}
+          sub="Cumulative capital deployed"
+          icon={<IndianRupee />}
+          color={THEME.sage}
+        />
+        <StatCard
+          label="Est. Returns"
+          value={totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—"}
+          sub={
+            totalGains > 0
+              ? `+${fmtINRFull(totalGains)} total return`
+              : "Returns after first installment"
+          }
+          icon={<TrendingUp />}
+          color={totalGains > 0 ? THEME.gold : THEME.muted}
+        />
+        <StatCard
+          label="Projected Corpus"
+          value={fmtINRFull(totalProjected)}
+          sub={`@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} done` : ""}`}
+          icon={<Activity />}
+          color={THEME.accent}
+        />
       </div>
 
       {sipsWithCalc.length > 0 && (

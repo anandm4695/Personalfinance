@@ -80,9 +80,21 @@ const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: str
 };
 
 const CHART_PALETTE = [
-  "#0284c7", "#059669", "#7c3aed", "#d97706", "#ea580c",
-  "#0891b2", "#db2777", "#4f46e5", "#65a30d", "#dc2626",
-  "#0d9488", "#a855f7", "#ca8a04", "#2563eb", "#e11d48",
+  "#0284c7",
+  "#059669",
+  "#7c3aed",
+  "#d97706",
+  "#ea580c",
+  "#0891b2",
+  "#db2777",
+  "#4f46e5",
+  "#65a30d",
+  "#dc2626",
+  "#0d9488",
+  "#a855f7",
+  "#ca8a04",
+  "#2563eb",
+  "#e11d48",
 ];
 
 function getAccountTheme(type: string) {
@@ -416,7 +428,14 @@ function getCategoryStyle(cat: string) {
   return { color: THEME.muted as string, bg: "rgba(128,128,128,0.08)" };
 }
 
-export function BanksTab({ state, addItem, addTransactions, removeItem, updateItem, masterData: _masterData }: any) {
+export function BanksTab({
+  state,
+  addItem,
+  addTransactions,
+  removeItem,
+  updateItem,
+  masterData: _masterData,
+}: any) {
   const [showBank, setShowBank] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
   const [filterAcc, setFilterAcc] = useState("all");
@@ -608,9 +627,7 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
   }, [state.transactions]);
 
   const getDisplayBalance = (acc: any): number =>
-    txnNetByAccount[acc.id] !== undefined
-      ? txnNetByAccount[acc.id]
-      : Number(acc.balance || 0);
+    txnNetByAccount[acc.id] !== undefined ? txnNetByAccount[acc.id] : Number(acc.balance || 0);
 
   const totalBalance = state.bankAccounts.reduce(
     (acc: any, a: any) => acc + getDisplayBalance(a),
@@ -677,7 +694,9 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
 
   const chartColorById = useMemo(() => {
     const map: Record<string, string> = {};
-    liquidityWeights.forEach((w) => { map[w.id] = w.color; });
+    liquidityWeights.forEach((w) => {
+      map[w.id] = w.color;
+    });
     return map;
   }, [liquidityWeights]);
 
@@ -750,7 +769,15 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
               <IndianRupee size={18} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 Total Balance
               </div>
               <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -759,11 +786,21 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.04em",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
               <Prv>{fmtINRFull(totalBalance)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-              {state.bankAccounts.length} Connected Account{state.bankAccounts.length === 1 ? "" : "s"}
+              {state.bankAccounts.length} Connected Account
+              {state.bankAccounts.length === 1 ? "" : "s"}
             </div>
           </div>
         </Card>
@@ -796,7 +833,15 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
               <TrendingUp size={18} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 Monthly Income
               </div>
               <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -805,7 +850,16 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.04em",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
               <Prv>{fmtINRFull(monthlyIncome)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.sage, fontWeight: 700, marginTop: 4 }}>
@@ -842,7 +896,15 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
               <TrendingDown size={18} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 Monthly Spends
               </div>
               <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
@@ -851,7 +913,16 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.04em",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
               <Prv>{fmtINRFull(monthlyExpense)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
@@ -872,24 +943,69 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
           }}
         >
           {/* Column 1: Savings Rate indicator */}
-          <Card style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 20 }}>
+          <Card
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              height: "100%",
+              padding: 20,
+            }}
+          >
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
                 <span>📈 Monthly Savings Rate</span>
               </div>
-              
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>
+
+              <div
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}
+              >
+                <span
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 900,
+                    color: THEME.ink,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
                   {monthlySavingsRate.toFixed(1)}%
                 </span>
-                <Badge variant={monthlySavingsRate >= 40 ? "sage" : monthlySavingsRate >= 20 ? "gold" : "rust"} style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
-                  {monthlySavingsRate >= 40 ? "Excellent" : monthlySavingsRate >= 20 ? "Healthy" : "Low"}
+                <Badge
+                  variant={
+                    monthlySavingsRate >= 40 ? "sage" : monthlySavingsRate >= 20 ? "gold" : "rust"
+                  }
+                  style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}
+                >
+                  {monthlySavingsRate >= 40
+                    ? "Excellent"
+                    : monthlySavingsRate >= 20
+                      ? "Healthy"
+                      : "Low"}
                 </Badge>
               </div>
 
               {/* Savings Rate Bar */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ width: "100%", height: 8, background: "var(--t-line)", borderRadius: 4, overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: "100%",
+                    height: 8,
+                    background: "var(--t-line)",
+                    borderRadius: 4,
+                    overflow: "hidden",
+                  }}
+                >
                   <div
                     style={{
                       width: `${Math.min(100, Math.max(0, monthlySavingsRate))}%`,
@@ -900,14 +1016,35 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                     }}
                   />
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: THEME.muted }}>
-                  <span>Net Savings: <Prv>{fmtINRFull(Math.max(0, monthlyIncome - monthlyExpense))}</Prv></span>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                  }}
+                >
+                  <span>
+                    Net Savings:{" "}
+                    <Prv>{fmtINRFull(Math.max(0, monthlyIncome - monthlyExpense))}</Prv>
+                  </span>
                   <span>Monthly Buffer</span>
                 </div>
               </div>
             </div>
 
-            <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.5", fontWeight: 500, borderTop: `1.5px dashed ${THEME.line}`, paddingTop: 12, marginTop: 12 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: THEME.muted,
+                lineHeight: "1.5",
+                fontWeight: 500,
+                borderTop: `1.5px dashed ${THEME.line}`,
+                paddingTop: 12,
+                marginTop: 12,
+              }}
+            >
               {monthlySavingsRate >= 40
                 ? "Superb! You are maintaining an excellent savings buffer to accelerate your wealth building."
                 : monthlySavingsRate >= 20
@@ -917,14 +1054,39 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
           </Card>
 
           {/* Column 2: Top Expense Categories Breakdown */}
-          <Card style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 20 }}>
+          <Card
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              height: "100%",
+              padding: 20,
+            }}
+          >
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
                 <span>📊 Monthly Spend Categories</span>
               </div>
-              
+
               {topSpendCategories.length === 0 ? (
-                <div style={{ display: "flex", height: 120, alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    height: 120,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: THEME.muted,
+                    fontSize: 12,
+                  }}
+                >
                   No spend transactions recorded this month
                 </div>
               ) : (
@@ -932,14 +1094,38 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                   {topSpendCategories.slice(0, 4).map((c) => {
                     const percentage = monthlyExpense > 0 ? (c.amount / monthlyExpense) * 100 : 0;
                     return (
-                      <div key={c.name} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <div
+                        key={c.name}
+                        style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
                           <span style={{ color: THEME.ink }}>{c.name}</span>
-                          <span style={{ color: THEME.muted, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
+                          <span
+                            style={{
+                              color: THEME.muted,
+                              fontVariantNumeric: "tabular-nums",
+                              fontWeight: 700,
+                            }}
+                          >
                             ₹{c.amount.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)
                           </span>
                         </div>
-                        <div style={{ width: "100%", height: 6, background: "var(--t-line)", borderRadius: 3, overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 6,
+                            background: "var(--t-line)",
+                            borderRadius: 3,
+                            overflow: "hidden",
+                          }}
+                        >
                           <div
                             style={{
                               width: `${percentage}%`,
@@ -957,20 +1143,55 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
               )}
             </div>
             {topSpendCategories.length > 0 && (
-              <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.5", fontWeight: 500, borderTop: `1.5px dashed ${THEME.line}`, paddingTop: 12, marginTop: 12 }}>
-                Top expense categories for the current month. Optimize these to boost your savings rate.
+              <div
+                style={{
+                  fontSize: 12,
+                  color: THEME.muted,
+                  lineHeight: "1.5",
+                  fontWeight: 500,
+                  borderTop: `1.5px dashed ${THEME.line}`,
+                  paddingTop: 12,
+                  marginTop: 12,
+                }}
+              >
+                Top expense categories for the current month. Optimize these to boost your savings
+                rate.
               </div>
             )}
           </Card>
 
           {/* Column 3: Liquidity Distribution Share */}
-          <Card style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 20 }}>
+          <Card
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              height: "100%",
+              padding: 20,
+            }}
+          >
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
                 <span>💳 Liquidity Asset Weight</span>
               </div>
-              
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 11,
+                  color: THEME.muted,
+                  fontWeight: 700,
+                }}
+              >
                 <span>ACCOUNT ALLOCATION</span>
                 <span>SHARE %</span>
               </div>
@@ -1016,13 +1237,27 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: w.color, flexShrink: 0 }} />
+                      <div
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: w.color,
+                          flexShrink: 0,
+                        }}
+                      />
                       <span style={{ fontWeight: 700, color: THEME.ink }}>{w.bankName}</span>
                       <span style={{ color: THEME.muted, fontSize: 10, fontWeight: 600 }}>
                         ({w.type || "Savings"} •••• {w.accountNumberSuffix || "—"})
                       </span>
                     </div>
-                    <span style={{ fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                    <span
+                      style={{
+                        fontWeight: 800,
+                        color: THEME.ink,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
                       {w.share.toFixed(1)}%
                     </span>
                   </div>
@@ -1075,11 +1310,26 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
               />
 
               {/* Action buttons (top right) */}
-              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4, zIndex: 3 }}>
+              <div
+                style={{
+                  position: "absolute",
+                  top: 12,
+                  right: 12,
+                  display: "flex",
+                  gap: 4,
+                  zIndex: 3,
+                }}
+              >
                 <button
                   onClick={() => setEditBankId(a.id)}
                   className="icon-btn"
-                  style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "var(--surface-1)", border: `1.5px solid ${THEME.line}` }}
+                  style={{
+                    ...iconBtn,
+                    padding: 6,
+                    borderRadius: 8,
+                    background: "var(--surface-1)",
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
                   title="Edit account"
                 >
                   <Edit3 size={12} />
@@ -1087,7 +1337,13 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                 <button
                   onClick={() => removeItem("bankAccounts", a.id)}
                   className="icon-btn danger"
-                  style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "var(--surface-1)", border: `1.5px solid ${THEME.line}` }}
+                  style={{
+                    ...iconBtn,
+                    padding: 6,
+                    borderRadius: 8,
+                    background: "var(--surface-1)",
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
                   title="Delete account"
                 >
                   <Trash2 size={12} />
@@ -1109,7 +1365,9 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                 <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 48 }}>
                   <BankLogo bankName={a.bankName} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+                    >
                       <div
                         style={{
                           fontSize: 9,
@@ -1146,19 +1404,61 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                 </div>
 
                 {/* Balance & Account Number */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-end",
+                  }}
+                >
                   <div>
-                    <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        marginBottom: 4,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontWeight: 600,
+                      }}
+                    >
                       <span>Account Balance</span>
-                      <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`, color: THEME.sage, fontWeight: 800 }}>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                          color: THEME.sage,
+                          fontWeight: 800,
+                        }}
+                      >
                         ● Live
                       </span>
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                    <div
+                      style={{
+                        fontSize: 24,
+                        fontWeight: 900,
+                        color: THEME.ink,
+                        fontVariantNumeric: "tabular-nums",
+                        letterSpacing: "-0.02em",
+                        lineHeight: 1,
+                      }}
+                    >
                       <Prv>{fmtINRFull(getDisplayBalance(a))}</Prv>
                     </div>
                   </div>
-                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700, letterSpacing: "0.05em", paddingBottom: 2 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      paddingBottom: 2,
+                    }}
+                  >
                     <Prv>•••• {(a.accountNumber || "").slice(-4) || "—"}</Prv>
                   </div>
                 </div>
@@ -1175,7 +1475,8 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                   }}
                 >
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
-                    {state.transactions.filter((t: any) => t.accountId === a.id).length} Transactions recorded
+                    {state.transactions.filter((t: any) => t.accountId === a.id).length}{" "}
+                    Transactions recorded
                   </span>
                   <button
                     style={{
@@ -1219,7 +1520,7 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
             </span>
             <Badge variant="accent">{sortedTxns.length} entries</Badge>
           </div>
-          
+
           {/* Segmented presets buttons */}
           <div
             style={{
@@ -1289,7 +1590,17 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           {/* Search Notes */}
           <div style={{ position: "relative", flex: "2 1 200px", minWidth: 200 }}>
-            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: THEME.muted, fontSize: 13, pointerEvents: "none" }}>
+            <span
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: THEME.muted,
+                fontSize: 13,
+                pointerEvents: "none",
+              }}
+            >
               🔍
             </span>
             <input
@@ -1302,7 +1613,15 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
 
           {/* Account selector */}
           <select
-            style={{ ...input, width: "auto", minWidth: 150, height: 38, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            style={{
+              ...input,
+              width: "auto",
+              minWidth: 150,
+              height: 38,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
             value={filterAcc}
             onChange={(e) => setFilterAcc(e.target.value)}
           >
@@ -1316,7 +1635,15 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
 
           {/* Type selector */}
           <select
-            style={{ ...input, width: "auto", minWidth: 130, height: 38, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            style={{
+              ...input,
+              width: "auto",
+              minWidth: 130,
+              height: 38,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
           >
@@ -1333,15 +1660,23 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
               style={{ ...input, width: "auto", height: 38, fontSize: 13, fontWeight: 600 }}
               title="From date"
               value={dateFrom}
-              onChange={(e) => { setDateFrom(e.target.value); setActiveRange(null); }}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setActiveRange(null);
+              }}
             />
-            <span style={{ color: THEME.muted, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>to</span>
+            <span style={{ color: THEME.muted, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+              to
+            </span>
             <input
               type="date"
               style={{ ...input, width: "auto", height: 38, fontSize: 13, fontWeight: 600 }}
               title="To date"
               value={dateTo}
-              onChange={(e) => { setDateTo(e.target.value); setActiveRange(null); }}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setActiveRange(null);
+              }}
             />
           </div>
         </div>
@@ -1411,7 +1746,13 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                   </th>
                   <th style={{ ...th, padding: "12px 16px" }}>Account</th>
                   <th
-                    style={{ ...th, padding: "12px 16px", textAlign: "right", cursor: "pointer", userSelect: "none" }}
+                    style={{
+                      ...th,
+                      padding: "12px 16px",
+                      textAlign: "right",
+                      cursor: "pointer",
+                      userSelect: "none",
+                    }}
                     onClick={() => requestSort("amount")}
                   >
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -1428,7 +1769,13 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                     </span>
                   </th>
                   <th
-                    style={{ ...th, padding: "12px 16px", textAlign: "right", cursor: "pointer", userSelect: "none" }}
+                    style={{
+                      ...th,
+                      padding: "12px 16px",
+                      textAlign: "right",
+                      cursor: "pointer",
+                      userSelect: "none",
+                    }}
                     onClick={() => requestSort("amount")}
                   >
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -1475,7 +1822,13 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                             type="date"
                             value={inlineEdit.date}
                             onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })}
-                            style={{ ...input, padding: "6px 10px", fontSize: 12, height: 32, width: 130 }}
+                            style={{
+                              ...input,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              height: 32,
+                              width: 130,
+                            }}
                           />
                         </td>
                         <td style={{ ...td, padding: "12px 16px" }}>
@@ -1486,7 +1839,13 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                               if (e.key === "Enter") handleSaveInline();
                               if (e.key === "Escape") setInlineEditId(null);
                             }}
-                            style={{ ...input, padding: "6px 10px", fontSize: 12, height: 32, minWidth: 150 }}
+                            style={{
+                              ...input,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              height: 32,
+                              minWidth: 150,
+                            }}
                             autoFocus
                           />
                           <input
@@ -1531,7 +1890,15 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                             ))}
                           </select>
                         </td>
-                        <td style={{ ...td, padding: "12px 16px", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                        <td
+                          style={{
+                            ...td,
+                            padding: "12px 16px",
+                            color: THEME.muted,
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
                           {bank ? accountLabel(bank) : "—"}
                         </td>
                         <td style={{ ...td, padding: "12px 16px", textAlign: "right" }} colSpan={2}>
@@ -1630,7 +1997,16 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                       }}
                       title="Double-click to edit inline"
                     >
-                      <td style={{ ...td, padding: "12px 16px", color: THEME.muted, fontSize: 12, whiteSpace: "nowrap", fontWeight: 600 }}>
+                      <td
+                        style={{
+                          ...td,
+                          padding: "12px 16px",
+                          color: THEME.muted,
+                          fontSize: 12,
+                          whiteSpace: "nowrap",
+                          fontWeight: 600,
+                        }}
+                      >
                         {t.date
                           ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
                               day: "2-digit",
@@ -1641,7 +2017,16 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                       </td>
                       <td style={{ ...td, padding: "12px 16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: THEME.ink,
+                            }}
+                          >
                             {t.note || "—"}
                             {t.category === "Transfer" && (
                               <span
@@ -1649,7 +2034,8 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                                   fontSize: 8,
                                   padding: "1px 5px",
                                   borderRadius: 4,
-                                  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                                  background:
+                                    "color-mix(in srgb, var(--t-accent) 12%, transparent)",
                                   color: "var(--t-accent)",
                                   fontWeight: 800,
                                   whiteSpace: "nowrap",
@@ -1664,7 +2050,8 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                                   fontSize: 8,
                                   padding: "1px 5px",
                                   borderRadius: 4,
-                                  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                                  background:
+                                    "color-mix(in srgb, var(--t-accent) 12%, transparent)",
                                   color: "var(--t-accent)",
                                   fontWeight: 800,
                                   whiteSpace: "nowrap",
@@ -1691,7 +2078,14 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                               )}
                           </div>
                           {t.narration && (
-                            <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic", fontWeight: 500 }}>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                fontStyle: "italic",
+                                fontWeight: 500,
+                              }}
+                            >
                               {t.narration}
                             </div>
                           )}
@@ -1721,7 +2115,15 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                           <span style={{ color: THEME.muted }}>—</span>
                         )}
                       </td>
-                      <td style={{ ...td, padding: "12px 16px", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                      <td
+                        style={{
+                          ...td,
+                          padding: "12px 16px",
+                          color: THEME.muted,
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
                         {bank ? accountLabel(bank) : "—"}
                       </td>
                       <td
@@ -1753,7 +2155,12 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                           <button
                             onClick={() => setEditTxnId(t.id)}
                             className="icon-btn"
-                            style={{ ...iconBtn, padding: 6, borderRadius: 8, background: isHovered ? "var(--surface-0)" : "transparent" }}
+                            style={{
+                              ...iconBtn,
+                              padding: 6,
+                              borderRadius: 8,
+                              background: isHovered ? "var(--surface-0)" : "transparent",
+                            }}
                             title="Edit"
                           >
                             <Edit3 size={12} />
@@ -1761,7 +2168,12 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                           <button
                             onClick={() => removeItem("transactions", t.id)}
                             className="icon-btn danger"
-                            style={{ ...iconBtn, padding: 6, borderRadius: 8, background: isHovered ? "var(--surface-0)" : "transparent" }}
+                            style={{
+                              ...iconBtn,
+                              padding: 6,
+                              borderRadius: 8,
+                              background: isHovered ? "var(--surface-0)" : "transparent",
+                            }}
                             title="Delete"
                           >
                             <Trash2 size={12} />
@@ -1772,90 +2184,92 @@ export function BanksTab({ state, addItem, addTransactions, removeItem, updateIt
                   );
                 })}
               </tbody>
-              {sortedTxns.length > 0 && (() => {
-                const totalDebit = sortedTxns
-                  .filter((t: any) => t.type === "debit")
-                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-                const totalCredit = sortedTxns
-                  .filter((t: any) => t.type === "credit")
-                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-                const net = totalCredit - totalDebit;
-                const netColor = net > 0 ? THEME.sage : net < 0 ? THEME.rust : THEME.muted;
-                const borderTop = `1.5px solid ${THEME.line}`;
-                return (
-                  <tfoot>
-                    <tr style={{ background: "var(--surface-1)" }}>
-                      <td
-                        colSpan={3}
-                        style={{
-                          padding: "12px 16px",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: THEME.muted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          borderTop,
-                        }}
-                      >
-                        {sortedTxns.length} Transaction{sortedTxns.length === 1 ? "" : "s"} total
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "right",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: THEME.muted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          borderTop,
-                        }}
-                      >
-                        Net Balance
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "right",
-                          fontWeight: 800,
-                          color: THEME.rust,
-                          fontSize: 13,
-                          fontVariantNumeric: "tabular-nums",
-                          borderTop,
-                        }}
-                      >
-                        -{fmtINRExact(totalDebit)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "right",
-                          fontWeight: 800,
-                          color: THEME.sage,
-                          fontSize: 13,
-                          fontVariantNumeric: "tabular-nums",
-                          borderTop,
-                        }}
-                      >
-                        +{fmtINRExact(totalCredit)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "right",
-                          fontWeight: 900,
-                          color: netColor,
-                          fontSize: 13,
-                          fontVariantNumeric: "tabular-nums",
-                          borderTop,
-                        }}
-                      >
-                        {net >= 0 ? "+" : "-"}{fmtINRExact(Math.abs(net))}
-                      </td>
-                    </tr>
-                  </tfoot>
-                );
-              })()}
+              {sortedTxns.length > 0 &&
+                (() => {
+                  const totalDebit = sortedTxns
+                    .filter((t: any) => t.type === "debit")
+                    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                  const totalCredit = sortedTxns
+                    .filter((t: any) => t.type === "credit")
+                    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                  const net = totalCredit - totalDebit;
+                  const netColor = net > 0 ? THEME.sage : net < 0 ? THEME.rust : THEME.muted;
+                  const borderTop = `1.5px solid ${THEME.line}`;
+                  return (
+                    <tfoot>
+                      <tr style={{ background: "var(--surface-1)" }}>
+                        <td
+                          colSpan={3}
+                          style={{
+                            padding: "12px 16px",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: THEME.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            borderTop,
+                          }}
+                        >
+                          {sortedTxns.length} Transaction{sortedTxns.length === 1 ? "" : "s"} total
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: THEME.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            borderTop,
+                          }}
+                        >
+                          Net Balance
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontWeight: 800,
+                            color: THEME.rust,
+                            fontSize: 13,
+                            fontVariantNumeric: "tabular-nums",
+                            borderTop,
+                          }}
+                        >
+                          -{fmtINRExact(totalDebit)}
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontWeight: 800,
+                            color: THEME.sage,
+                            fontSize: 13,
+                            fontVariantNumeric: "tabular-nums",
+                            borderTop,
+                          }}
+                        >
+                          +{fmtINRExact(totalCredit)}
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontWeight: 900,
+                            color: netColor,
+                            fontSize: 13,
+                            fontVariantNumeric: "tabular-nums",
+                            borderTop,
+                          }}
+                        >
+                          {net >= 0 ? "+" : "-"}
+                          {fmtINRExact(Math.abs(net))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  );
+                })()}
             </table>
           </div>
         )}

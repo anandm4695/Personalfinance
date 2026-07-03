@@ -31,9 +31,12 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
         monthSpend[cat] = (monthSpend[cat] || 0) + Number(t.amount || 0);
       });
     const rentPaid = (state.rentedProperties || []).reduce((sum: number, p: any) => {
-      return sum + (p.payments || [])
-        .filter((pay: any) => pay.date && pay.date.startsWith(ym))
-        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+      return (
+        sum +
+        (p.payments || [])
+          .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+          .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
+      );
     }, 0);
     if (rentPaid > 0 && !monthSpend["Rent"]) monthSpend["Rent"] = rentPaid;
 
@@ -44,8 +47,12 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     } else {
       const priorBudgets = state.budgets.filter((b: any) => b.budgetMonth && b.budgetMonth < ym);
       if (priorBudgets.length > 0) {
-        const months = Array.from(new Set(priorBudgets.map((b: any) => b.budgetMonth))).sort() as string[];
-        budgetsForAlerts = state.budgets.filter((b: any) => b.budgetMonth === months[months.length - 1]);
+        const months = Array.from(
+          new Set(priorBudgets.map((b: any) => b.budgetMonth))
+        ).sort() as string[];
+        budgetsForAlerts = state.budgets.filter(
+          (b: any) => b.budgetMonth === months[months.length - 1]
+        );
       } else {
         budgetsForAlerts = state.budgets.filter((b: any) => !b.budgetMonth);
       }
@@ -361,7 +368,9 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // FD maturity alerts (within 30 days)
     (state.fixedDeposits || []).forEach((fd: any) => {
       if (!fd.maturityDate) return;
-      const days = Math.ceil((new Date(fd.maturityDate + "T00:00:00").getTime() - todayMidnight) / 86400000);
+      const days = Math.ceil(
+        (new Date(fd.maturityDate + "T00:00:00").getTime() - todayMidnight) / 86400000
+      );
       if (days >= 0 && days <= 30) {
         list.push({
           level: days <= 7 ? "error" : "warn",
@@ -373,7 +382,9 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     });
     // SIP bounce detection: SIP exists but no MF buy in current month
     const currentMonth = ym;
-    const mfBuyMonths = new Set((state.mutualFunds || []).map((m: any) => (m.buyDate || "").slice(0, 7)));
+    const mfBuyMonths = new Set(
+      (state.mutualFunds || []).map((m: any) => (m.buyDate || "").slice(0, 7))
+    );
     (state.sips || []).forEach((sip: any) => {
       if (!sip.startDate || sip.startDate > today()) return;
       if (!mfBuyMonths.has(currentMonth)) {
@@ -422,7 +433,9 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // Health insurance renewal alerts (30 days)
     (state.healthInsurance || []).forEach((p: any) => {
       if (!p.renewalDate) return;
-      const days = Math.ceil((new Date(p.renewalDate).getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000);
+      const days = Math.ceil(
+        (new Date(p.renewalDate).getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000
+      );
       if (days >= 0 && days <= 30) {
         list.push({
           level: days <= 7 ? "error" : "warn",
@@ -439,7 +452,8 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       const dueDay = Number(b.dueDay);
       const n = new Date();
       let billDue = new Date(n.getFullYear(), n.getMonth(), dueDay);
-      if (billDue.getTime() < n.getTime()) billDue = new Date(n.getFullYear(), n.getMonth() + 1, dueDay);
+      if (billDue.getTime() < n.getTime())
+        billDue = new Date(n.getFullYear(), n.getMonth() + 1, dueDay);
       const days = Math.ceil((billDue.getTime() - n.getTime()) / 86400000);
       if (days >= 0 && days <= 5) {
         list.push({

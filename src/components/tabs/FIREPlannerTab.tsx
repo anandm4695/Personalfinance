@@ -34,9 +34,7 @@ import { Prv } from "../../context/PrivacyContext";
 const SWR_DEFAULT = 4; // Safe Withdrawal Rate
 
 export const FIREPlannerTab = ({ state, metrics }) => {
-  const [monthlyExpense, setMonthlyExpense] = useState(
-    Math.round(metrics.monthExpense || 50000)
-  );
+  const [monthlyExpense, setMonthlyExpense] = useState(Math.round(metrics.monthExpense || 50000));
   const [inflationRate, setInflationRate] = useState(6);
   const [returnRate, setReturnRate] = useState(12);
   const [postRetireReturn, setPostRetireReturn] = useState(8);
@@ -65,7 +63,8 @@ export const FIREPlannerTab = ({ state, metrics }) => {
 
     // Lean FIRE: 60% of current expenses
     const leanFIREExpense = annualExpense * 0.6;
-    const leanFIRE = (leanFIREExpense * Math.pow(1 + inflationRate / 100, yearsToFIRE)) / (swr / 100);
+    const leanFIRE =
+      (leanFIREExpense * Math.pow(1 + inflationRate / 100, yearsToFIRE)) / (swr / 100);
 
     // Fat FIRE: 150% of current expenses
     const fatFIREExpense = annualExpense * 1.5;
@@ -104,7 +103,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         });
       }
       drawCorpus = drawCorpus * (1 + monthlyPostReturn) - monthlyWithdraw;
-      monthlyWithdraw *= (1 + monthlyInflAdj);
+      monthlyWithdraw *= 1 + monthlyInflAdj;
     }
 
     // Accumulation path
@@ -120,55 +119,154 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       accCorpus = accCorpus * (1 + returnRate / 100) + annualSavings;
     }
 
-    const savingsRate = metrics.monthIncome > 0 ? ((monthlySavings / metrics.monthIncome) * 100) : 0;
+    const savingsRate = metrics.monthIncome > 0 ? (monthlySavings / metrics.monthIncome) * 100 : 0;
 
     // Monthly pension: NPS has 40% mandatory annuity; EPF is fully withdrawable (no annuity)
     const npsCorpus = (state.nps || []).reduce((s: number, n: any) => {
       const bal = Number(n.balance) || 0;
       if (bal > 0) return s + bal;
-      return s + (n.transactions || []).reduce(
-        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      return (
+        s +
+        (n.transactions || []).reduce(
+          (ss: number, t: any) =>
+            ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+          0
+        )
       );
     }, 0);
     const pensionIncome = (npsCorpus * 0.4 * 0.06) / 12;
 
     return {
-      fireNumber, coastFIRE, baristaNumber, leanFIRE, fatFIRE,
-      progress, coastProgress, currentNW,
-      yearsToFIREActual, fireAge, monthsToFIRE,
-      expenseAtRetirement, savingsRate,
-      drawdown, accumulation, pensionIncome, retirementYears,
+      fireNumber,
+      coastFIRE,
+      baristaNumber,
+      leanFIRE,
+      fatFIRE,
+      progress,
+      coastProgress,
+      currentNW,
+      yearsToFIREActual,
+      fireAge,
+      monthsToFIRE,
+      expenseAtRetirement,
+      savingsRate,
+      drawdown,
+      accumulation,
+      pensionIncome,
+      retirementYears,
     };
-  }, [monthlyExpense, inflationRate, returnRate, postRetireReturn, swr, currentAge, targetAge, lifeExpectancy, monthlySavings, metrics, state.epf, state.nps]);
+  }, [
+    monthlyExpense,
+    inflationRate,
+    returnRate,
+    postRetireReturn,
+    swr,
+    currentAge,
+    targetAge,
+    lifeExpectancy,
+    monthlySavings,
+    metrics,
+    state.epf,
+    state.nps,
+  ]);
 
-  const progressColor = fireCalc.progress >= 100 ? THEME.sage : fireCalc.progress >= 50 ? THEME.accent : fireCalc.progress >= 25 ? THEME.gold : THEME.rust;
+  const progressColor =
+    fireCalc.progress >= 100
+      ? THEME.sage
+      : fireCalc.progress >= 50
+        ? THEME.accent
+        : fireCalc.progress >= 25
+          ? THEME.gold
+          : THEME.rust;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle sub="Financial Independence, Retire Early — detailed retirement planning">FIRE Planner</SectionTitle>
+      <SectionTitle sub="Financial Independence, Retire Early — detailed retirement planning">
+        FIRE Planner
+      </SectionTitle>
 
       {/* Input Panel */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Your Inputs</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+          Your Inputs
+        </h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+            gap: 16,
+          }}
+        >
           {[
-            { label: "Monthly Expense", value: monthlyExpense, set: setMonthlyExpense, prefix: "₹" },
-            { label: "Monthly Savings", value: monthlySavings, set: setMonthlySavings, prefix: "₹" },
+            {
+              label: "Monthly Expense",
+              value: monthlyExpense,
+              set: setMonthlyExpense,
+              prefix: "₹",
+            },
+            {
+              label: "Monthly Savings",
+              value: monthlySavings,
+              set: setMonthlySavings,
+              prefix: "₹",
+            },
             { label: "Current Age", value: currentAge, set: setCurrentAge, suffix: "years" },
             { label: "Target Retire Age", value: targetAge, set: setTargetAge, suffix: "years" },
-            { label: "Life Expectancy", value: lifeExpectancy, set: setLifeExpectancy, suffix: "years" },
+            {
+              label: "Life Expectancy",
+              value: lifeExpectancy,
+              set: setLifeExpectancy,
+              suffix: "years",
+            },
             { label: "Pre-Retire Return", value: returnRate, set: setReturnRate, suffix: "% p.a." },
-            { label: "Post-Retire Return", value: postRetireReturn, set: setPostRetireReturn, suffix: "% p.a." },
-            { label: "Inflation Rate", value: inflationRate, set: setInflationRate, suffix: "% p.a." },
+            {
+              label: "Post-Retire Return",
+              value: postRetireReturn,
+              set: setPostRetireReturn,
+              suffix: "% p.a.",
+            },
+            {
+              label: "Inflation Rate",
+              value: inflationRate,
+              set: setInflationRate,
+              suffix: "% p.a.",
+            },
             { label: "Safe Withdrawal Rate", value: swr, set: setSwr, suffix: "%" },
           ].map(({ label, value, set, prefix, suffix }) => (
             <div key={label}>
-              <label style={{ fontSize: 12, color: THEME.textSecondary, display: "block", marginBottom: 4 }}>{label}</label>
+              <label
+                style={{
+                  fontSize: 12,
+                  color: THEME.textSecondary,
+                  display: "block",
+                  marginBottom: 4,
+                }}
+              >
+                {label}
+              </label>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                {prefix && <span style={{ fontSize: 13, color: THEME.textSecondary }}>{prefix}</span>}
-                <input type="number" value={value} onChange={(e) => set(Number(e.target.value))}
-                  style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 14, width: "100%" }} />
-                {suffix && <span style={{ fontSize: 12, color: THEME.textSecondary, whiteSpace: "nowrap" }}>{suffix}</span>}
+                {prefix && (
+                  <span style={{ fontSize: 13, color: THEME.textSecondary }}>{prefix}</span>
+                )}
+                <input
+                  type="number"
+                  value={value}
+                  onChange={(e) => set(Number(e.target.value))}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${THEME.border}`,
+                    background: THEME.card,
+                    color: THEME.text,
+                    fontSize: 14,
+                    width: "100%",
+                  }}
+                />
+                {suffix && (
+                  <span style={{ fontSize: 12, color: THEME.textSecondary, whiteSpace: "nowrap" }}>
+                    {suffix}
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -176,67 +274,190 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       </Card>
 
       {/* FIRE Numbers */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        <StatCard label="FIRE Number" value={<Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>} icon={<Flame />} color={THEME.rust} />
-        <StatCard label="Coast FIRE" value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>} icon={<Shield />} color="#8B5CF6" />
-        <StatCard label="Lean FIRE" value={<Prv>{fmtINRFull(fireCalc.leanFIRE)}</Prv>} icon={<Target />} color={THEME.gold} />
-        <StatCard label="Fat FIRE" value={<Prv>{fmtINRFull(fireCalc.fatFIRE)}</Prv>} icon={<Zap />} color={THEME.sage} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <StatCard
+          label="FIRE Number"
+          value={<Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>}
+          icon={<Flame />}
+          color={THEME.rust}
+        />
+        <StatCard
+          label="Coast FIRE"
+          value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>}
+          icon={<Shield />}
+          color="#8B5CF6"
+        />
+        <StatCard
+          label="Lean FIRE"
+          value={<Prv>{fmtINRFull(fireCalc.leanFIRE)}</Prv>}
+          icon={<Target />}
+          color={THEME.gold}
+        />
+        <StatCard
+          label="Fat FIRE"
+          value={<Prv>{fmtINRFull(fireCalc.fatFIRE)}</Prv>}
+          icon={<Zap />}
+          color={THEME.sage}
+        />
       </div>
 
       {/* Progress */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>FIRE Progress</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+          FIRE Progress
+        </h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>To FIRE Number</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{Math.min(100, fireCalc.progress).toFixed(1)}%</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>
+                {Math.min(100, fireCalc.progress).toFixed(1)}%
+              </span>
             </div>
-            <div style={{ height: 12, borderRadius: 6, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.min(100, fireCalc.progress)}%`, borderRadius: 6, background: progressColor, transition: "width 0.5s" }} />
+            <div
+              style={{
+                height: 12,
+                borderRadius: 6,
+                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.min(100, fireCalc.progress)}%`,
+                  borderRadius: 6,
+                  background: progressColor,
+                  transition: "width 0.5s",
+                }}
+              />
             </div>
             <div style={{ marginTop: 8, fontSize: 12, color: THEME.textSecondary }}>
-              <Prv>{fmtINRFull(fireCalc.currentNW)}</Prv> of <Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>
+              <Prv>{fmtINRFull(fireCalc.currentNW)}</Prv> of{" "}
+              <Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>
             </div>
           </div>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>To Coast FIRE</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: fireCalc.coastProgress >= 100 ? THEME.sage : THEME.accent }}>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: fireCalc.coastProgress >= 100 ? THEME.sage : THEME.accent,
+                }}
+              >
                 {Math.min(100, fireCalc.coastProgress).toFixed(1)}%
               </span>
             </div>
-            <div style={{ height: 12, borderRadius: 6, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.min(100, fireCalc.coastProgress)}%`, borderRadius: 6, background: fireCalc.coastProgress >= 100 ? THEME.sage : THEME.accent, transition: "width 0.5s" }} />
+            <div
+              style={{
+                height: 12,
+                borderRadius: 6,
+                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.min(100, fireCalc.coastProgress)}%`,
+                  borderRadius: 6,
+                  background: fireCalc.coastProgress >= 100 ? THEME.sage : THEME.accent,
+                  transition: "width 0.5s",
+                }}
+              />
             </div>
             <div style={{ marginTop: 8, fontSize: 12, color: THEME.textSecondary }}>
-              {fireCalc.coastProgress >= 100
-                ? "You've reached Coast FIRE! You can stop saving and still retire on time."
-                : <><Prv>{fmtINRFull(fireCalc.currentNW)}</Prv> of <Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv></>}
+              {fireCalc.coastProgress >= 100 ? (
+                "You've reached Coast FIRE! You can stop saving and still retire on time."
+              ) : (
+                <>
+                  <Prv>{fmtINRFull(fireCalc.currentNW)}</Prv> of{" "}
+                  <Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-          <div style={{ padding: "16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
+        <div
+          style={{
+            marginTop: 24,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              padding: "16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+            }}
+          >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Estimated FIRE Age</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: fireCalc.fireAge <= targetAge ? THEME.sage : THEME.gold }}>
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 700,
+                color: fireCalc.fireAge <= targetAge ? THEME.sage : THEME.gold,
+              }}
+            >
               {fireCalc.fireAge <= 100 ? `${fireCalc.fireAge.toFixed(1)} years` : "50+ years"}
             </div>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              {fireCalc.fireAge <= targetAge ? `${(targetAge - fireCalc.fireAge).toFixed(1)} years ahead of target!` : `${(fireCalc.fireAge - targetAge).toFixed(1)} years behind target`}
+              {fireCalc.fireAge <= targetAge
+                ? `${(targetAge - fireCalc.fireAge).toFixed(1)} years ahead of target!`
+                : `${(fireCalc.fireAge - targetAge).toFixed(1)} years behind target`}
             </div>
           </div>
-          <div style={{ padding: "16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
+          <div
+            style={{
+              padding: "16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+            }}
+          >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Savings Rate</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: fireCalc.savingsRate >= 50 ? THEME.sage : fireCalc.savingsRate >= 25 ? THEME.accent : THEME.gold }}>
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 700,
+                color:
+                  fireCalc.savingsRate >= 50
+                    ? THEME.sage
+                    : fireCalc.savingsRate >= 25
+                      ? THEME.accent
+                      : THEME.gold,
+              }}
+            >
               {fireCalc.savingsRate.toFixed(0)}%
             </div>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              {fireCalc.savingsRate >= 50 ? "Excellent — aggressive FIRE path" : fireCalc.savingsRate >= 25 ? "Good savings rate" : "Consider increasing savings"}
+              {fireCalc.savingsRate >= 50
+                ? "Excellent — aggressive FIRE path"
+                : fireCalc.savingsRate >= 25
+                  ? "Good savings rate"
+                  : "Consider increasing savings"}
             </div>
           </div>
-          <div style={{ padding: "16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
+          <div
+            style={{
+              padding: "16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+            }}
+          >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Expense at Retirement</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text }}>
               <Prv>{fmtINRFull(fireCalc.expenseAtRetirement / 12)}</Prv>/mo
@@ -246,12 +467,21 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             </div>
           </div>
           {fireCalc.pensionIncome > 0 && (
-            <div style={{ padding: "16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
+            <div
+              style={{
+                padding: "16px",
+                borderRadius: 12,
+                background: THEME.bg,
+                border: `1px solid ${THEME.border}`,
+              }}
+            >
               <div style={{ fontSize: 12, color: THEME.textSecondary }}>Est. Pension Income</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
                 <Prv>{fmtINRFull(fireCalc.pensionIncome)}</Prv>/mo
               </div>
-              <div style={{ fontSize: 12, color: THEME.textSecondary }}>From EPF + NPS annuity (estimated)</div>
+              <div style={{ fontSize: 12, color: THEME.textSecondary }}>
+                From EPF + NPS annuity (estimated)
+              </div>
             </div>
           )}
         </div>
@@ -259,16 +489,54 @@ export const FIREPlannerTab = ({ state, metrics }) => {
 
       {/* Accumulation Chart */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Accumulation Path</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+          Accumulation Path
+        </h3>
         <ResponsiveContainer width="100%" height={350}>
           <AreaChart data={fireCalc.accumulation}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
-            <Area type="monotone" dataKey="corpus" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Your Corpus" />
-            <ReferenceLine y={fireCalc.fireNumber} stroke={THEME.rust} strokeDasharray="3 3" label={{ value: `FIRE: ${fmtINRFull(fireCalc.fireNumber)}`, fill: THEME.rust, fontSize: 11 }} />
+            <YAxis
+              tickFormatter={(v) => fmtINRFull(v)}
+              tick={{ fontSize: 11, fill: THEME.textSecondary }}
+            />
+            <Tooltip
+              formatter={(v) => fmtINRFull(v)}
+              cursor={{ stroke: THEME.line }}
+              contentStyle={{
+                background: THEME.card,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: 12,
+                color: THEME.ink,
+              }}
+              labelStyle={{ color: THEME.ink }}
+              itemStyle={{ color: THEME.ink }}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+              formatter={(value: string) => (
+                <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+              )}
+            />
+            <Area
+              type="monotone"
+              dataKey="corpus"
+              stroke="var(--accent)"
+              fill="var(--accent)"
+              fillOpacity={0.15}
+              strokeWidth={2}
+              name="Your Corpus"
+            />
+            <ReferenceLine
+              y={fireCalc.fireNumber}
+              stroke={THEME.rust}
+              strokeDasharray="3 3"
+              label={{
+                value: `FIRE: ${fmtINRFull(fireCalc.fireNumber)}`,
+                fill: THEME.rust,
+                fontSize: 11,
+              }}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
@@ -283,9 +551,31 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             <AreaChart data={fireCalc.drawdown}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-              <Area type="monotone" dataKey="corpus" stroke={THEME.gold} fill={THEME.gold} fillOpacity={0.15} strokeWidth={2} name="Remaining Corpus" />
+              <YAxis
+                tickFormatter={(v) => fmtINRFull(v)}
+                tick={{ fontSize: 11, fill: THEME.textSecondary }}
+              />
+              <Tooltip
+                formatter={(v) => fmtINRFull(v)}
+                cursor={{ stroke: THEME.line }}
+                contentStyle={{
+                  background: THEME.card,
+                  border: `1px solid ${THEME.border}`,
+                  borderRadius: 12,
+                  color: THEME.ink,
+                }}
+                labelStyle={{ color: THEME.ink }}
+                itemStyle={{ color: THEME.ink }}
+              />
+              <Area
+                type="monotone"
+                dataKey="corpus"
+                stroke={THEME.gold}
+                fill={THEME.gold}
+                fillOpacity={0.15}
+                strokeWidth={2}
+                name="Remaining Corpus"
+              />
               <ReferenceLine y={0} stroke={THEME.rust} />
             </AreaChart>
           </ResponsiveContainer>

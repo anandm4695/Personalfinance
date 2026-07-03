@@ -18,7 +18,14 @@ import {
   Filter,
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fmtINRExact, today, fdMaturity, rdMaturity } from "../../utils/finance";
+import {
+  fmtINR,
+  fmtINRFull,
+  fmtINRExact,
+  today,
+  fdMaturity,
+  rdMaturity,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -27,7 +34,20 @@ import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 const getDaysUntil = (dateStr) => {
   if (!dateStr) return Infinity;
@@ -62,7 +82,15 @@ const getUrgencyLabel = (days) => {
 export const FinancialCalendarTab = ({ state, metrics }) => {
   const [horizon, setHorizon] = useState(6);
   const [activeFilter, setActiveFilter] = useState("all");
-  const [expandedSection, setExpandedSection] = useState({ fd: true, rd: true, dividends: true, insurance: true, loans: true, subs: true, other: true });
+  const [expandedSection, setExpandedSection] = useState({
+    fd: true,
+    rd: true,
+    dividends: true,
+    insurance: true,
+    loans: true,
+    subs: true,
+    other: true,
+  });
 
   const cutoffDate = useMemo(() => {
     const d = new Date(today());
@@ -80,7 +108,11 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       const days = getDaysUntil(fd.maturityDate);
       if (days <= horizon * 31 + 10) {
         const maturityAmt = fdMaturity
-          ? fdMaturity(Number(fd.principal || 0), Number(fd.rate || 0), Math.max(1, Math.round(getDaysUntil(fd.startDate || todayStr) * -1 / 30)))
+          ? fdMaturity(
+              Number(fd.principal || 0),
+              Number(fd.rate || 0),
+              Math.max(1, Math.round((getDaysUntil(fd.startDate || todayStr) * -1) / 30))
+            )
           : Number(fd.principal || 0) * (1 + Number(fd.rate || 0) / 100);
         items.push({
           type: "fd_maturity",
@@ -328,25 +360,38 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
     const upcoming30 = events.filter((e) => e.days >= 0 && e.days <= 30).length;
     const overdue = events.filter((e) => e.days < 0).length;
     const totalInflows = events
-      .filter((e) => ["fd_maturity", "rd_maturity", "bond_maturity", "dividend", "ppf_maturity"].includes(e.type) && e.days >= 0)
+      .filter(
+        (e) =>
+          ["fd_maturity", "rd_maturity", "bond_maturity", "dividend", "ppf_maturity"].includes(
+            e.type
+          ) && e.days >= 0
+      )
       .reduce((s, e) => s + (e.maturityAmount || e.amount || 0), 0);
     const totalOutflows = events
-      .filter((e) => ["insurance_premium", "cc_fee", "subscription"].includes(e.type) && e.days >= 0)
+      .filter(
+        (e) => ["insurance_premium", "cc_fee", "subscription"].includes(e.type) && e.days >= 0
+      )
       .reduce((s, e) => s + (e.amount || 0), 0);
 
     // Monthly breakdown
     const monthlyMap = {};
-    events.filter((e) => e.days >= 0).forEach((e) => {
-      const m = e.date?.slice(0, 7);
-      if (!m) return;
-      if (!monthlyMap[m]) monthlyMap[m] = { inflow: 0, outflow: 0, events: 0 };
-      monthlyMap[m].events++;
-      if (["fd_maturity", "rd_maturity", "bond_maturity", "dividend", "ppf_maturity"].includes(e.type)) {
-        monthlyMap[m].inflow += e.maturityAmount || e.amount || 0;
-      } else {
-        monthlyMap[m].outflow += e.amount || 0;
-      }
-    });
+    events
+      .filter((e) => e.days >= 0)
+      .forEach((e) => {
+        const m = e.date?.slice(0, 7);
+        if (!m) return;
+        if (!monthlyMap[m]) monthlyMap[m] = { inflow: 0, outflow: 0, events: 0 };
+        monthlyMap[m].events++;
+        if (
+          ["fd_maturity", "rd_maturity", "bond_maturity", "dividend", "ppf_maturity"].includes(
+            e.type
+          )
+        ) {
+          monthlyMap[m].inflow += e.maturityAmount || e.amount || 0;
+        } else {
+          monthlyMap[m].outflow += e.amount || 0;
+        }
+      });
 
     return { upcoming7, upcoming30, overdue, totalInflows, totalOutflows, monthlyMap };
   }, [events]);
@@ -367,7 +412,9 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
   if (events.length === 0) {
     return (
       <div>
-        <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">Financial Calendar</SectionTitle>
+        <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">
+          Financial Calendar
+        </SectionTitle>
         <EmptyState
           icon={Calendar}
           title="No Upcoming Events"
@@ -387,10 +434,20 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
 
   return (
     <div>
-      <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">Financial Calendar</SectionTitle>
+      <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">
+        Financial Calendar
+      </SectionTitle>
 
       {/* Horizon Toggle */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 20,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
         <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Forecast:</span>
         {[3, 6, 12].map((m) => (
           <button
@@ -414,36 +471,92 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       </div>
 
       {/* Stats Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <StatCard label="This Week" value={String(stats.upcoming7)} icon={<Clock />} color={THEME.gold} />
-        <StatCard label="Next 30 Days" value={String(stats.upcoming30)} icon={<Calendar />} color={THEME.accent} />
-        <StatCard label="Overdue" value={String(stats.overdue)} icon={<AlertTriangle />} color={THEME.rust} />
-        <StatCard label="Expected Inflows" value={fmtINRFull(stats.totalInflows)} icon={<TrendingUp />} color={THEME.sage} />
-        <StatCard label="Expected Outflows" value={fmtINRFull(stats.totalOutflows)} icon={<Coins />} color={THEME.rust} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+          marginBottom: 24,
+        }}
+      >
+        <StatCard
+          label="This Week"
+          value={String(stats.upcoming7)}
+          icon={<Clock />}
+          color={THEME.gold}
+        />
+        <StatCard
+          label="Next 30 Days"
+          value={String(stats.upcoming30)}
+          icon={<Calendar />}
+          color={THEME.accent}
+        />
+        <StatCard
+          label="Overdue"
+          value={String(stats.overdue)}
+          icon={<AlertTriangle />}
+          color={THEME.rust}
+        />
+        <StatCard
+          label="Expected Inflows"
+          value={fmtINRFull(stats.totalInflows)}
+          icon={<TrendingUp />}
+          color={THEME.sage}
+        />
+        <StatCard
+          label="Expected Outflows"
+          value={fmtINRFull(stats.totalOutflows)}
+          icon={<Coins />}
+          color={THEME.rust}
+        />
       </div>
 
       {/* Monthly Summary Bar */}
       {Object.keys(stats.monthlyMap).length > 0 && (
         <Card>
           <div style={{ padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: THEME.ink }}>Monthly Breakdown</div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(Object.keys(stats.monthlyMap).length, 6)}, 1fr)`, gap: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: THEME.ink }}>
+              Monthly Breakdown
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${Math.min(Object.keys(stats.monthlyMap).length, 6)}, 1fr)`,
+                gap: 12,
+              }}
+            >
               {Object.entries(stats.monthlyMap)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .slice(0, horizon)
                 .map(([month, data]) => {
                   const [y, m] = month.split("-");
                   return (
-                    <div key={month} style={{ textAlign: "center", padding: 12, borderRadius: 10, background: "rgba(99,102,241,0.06)" }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>{MONTH_NAMES[parseInt(m) - 1]} {y}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{data.events} events</div>
+                    <div
+                      key={month}
+                      style={{
+                        textAlign: "center",
+                        padding: 12,
+                        borderRadius: 10,
+                        background: "rgba(99,102,241,0.06)",
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
+                        {MONTH_NAMES[parseInt(m) - 1]} {y}
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                        {data.events} events
+                      </div>
                       {data.inflow > 0 && (
-                        <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, marginTop: 6 }}>
+                        <div
+                          style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, marginTop: 6 }}
+                        >
                           +<Prv>{fmtINRExact(data.inflow)}</Prv>
                         </div>
                       )}
                       {data.outflow > 0 && (
-                        <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginTop: 2 }}>
+                        <div
+                          style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginTop: 2 }}
+                        >
                           -<Prv>{fmtINRExact(data.outflow)}</Prv>
                         </div>
                       )}
@@ -458,7 +571,8 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       {/* Filter Row */}
       <div style={{ display: "flex", gap: 6, marginTop: 20, marginBottom: 16, flexWrap: "wrap" }}>
         {filterOptions.map((f) => {
-          const count = f.key === "all" ? events.length : events.filter((e) => e.type.startsWith(f.key)).length;
+          const count =
+            f.key === "all" ? events.length : events.filter((e) => e.type.startsWith(f.key)).length;
           if (count === 0 && f.key !== "all") return null;
           return (
             <button
@@ -491,10 +605,22 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
             return (
               <Card key={month}>
                 <div style={{ padding: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 15,
+                      marginBottom: 14,
+                      color: THEME.ink,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     <Calendar size={16} style={{ color: THEME.accent }} />
                     {label}
-                    <Badge variant="muted" style={{ marginLeft: 8 }}>{monthEvents.length} events</Badge>
+                    <Badge variant="muted" style={{ marginLeft: 8 }}>
+                      {monthEvents.length} events
+                    </Badge>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {monthEvents.map((event, idx) => {
@@ -509,7 +635,12 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                             gap: 14,
                             padding: "12px 16px",
                             borderRadius: 10,
-                            background: event.days < 0 ? "rgba(239,68,68,0.06)" : event.days <= 7 ? "rgba(249,115,22,0.06)" : "rgba(99,102,241,0.04)",
+                            background:
+                              event.days < 0
+                                ? "rgba(239,68,68,0.06)"
+                                : event.days <= 7
+                                  ? "rgba(249,115,22,0.06)"
+                                  : "rgba(99,102,241,0.04)",
                             border: `1px solid ${event.days < 0 ? "rgba(239,68,68,0.15)" : THEME.line}`,
                           }}
                         >
@@ -528,19 +659,41 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                             <Icon size={18} style={{ color: event.color }} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <div
+                              style={{
+                                fontWeight: 600,
+                                fontSize: 14,
+                                color: THEME.ink,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
                               {event.name}
                               {event.projected && (
-                                <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 6, fontWeight: 500 }}>projected</span>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    color: THEME.muted,
+                                    marginLeft: 6,
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  projected
+                                </span>
                               )}
                             </div>
-                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{event.detail}</div>
+                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                              {event.detail}
+                            </div>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
                               <Prv>{fmtINRExact(event.maturityAmount || event.amount)}</Prv>
                             </div>
-                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{formatDate(event.date)}</div>
+                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                              {formatDate(event.date)}
+                            </div>
                           </div>
                           <div
                             style={{

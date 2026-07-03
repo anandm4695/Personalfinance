@@ -43,7 +43,9 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
       setDrawerSearch("");
       setExpandedGroup(null);
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [drawerOpen]);
 
   useEffect(() => {
@@ -477,8 +479,8 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
                                 gap: 1,
                               }}
                             >
-                              {item.children!
-                                .filter((child) =>
+                              {item
+                                .children!.filter((child) =>
                                   drawerSearch.trim()
                                     ? child.label.toLowerCase().includes(drawerSearch.toLowerCase())
                                     : true
@@ -560,9 +562,7 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
                 >
                   <Search size={24} style={{ marginBottom: 8, opacity: 0.4 }} />
                   <div style={{ fontSize: 14, fontWeight: 600 }}>No sections found</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>
-                    Try a different search term
-                  </div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>Try a different search term</div>
                 </div>
               )}
             </div>

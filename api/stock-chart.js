@@ -3,15 +3,15 @@ const { default: YahooFinance } = require("yahoo-finance2");
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 const RANGE_CONFIG = {
-  "1d":  { days: 7,    interval: "5m",  filterLastSession: true },
-  "5d":  { days: 7,    interval: "15m", filterLastSession: false },
-  "1m":  { days: 35,   interval: "1d",  filterLastSession: false },
-  "6m":  { days: 190,  interval: "1d",  filterLastSession: false },
-  "ytd": { ytd: true,  interval: "1d",  filterLastSession: false },
-  "1y":  { days: 370,  interval: "1wk", filterLastSession: false },
-  "3y":  { days: 1100, interval: "1wk", filterLastSession: false },
-  "5y":  { days: 1830, interval: "1mo", filterLastSession: false },
-  "max": { days: 7300, interval: "1mo", filterLastSession: false },
+  "1d": { days: 7, interval: "5m", filterLastSession: true },
+  "5d": { days: 7, interval: "15m", filterLastSession: false },
+  "1m": { days: 35, interval: "1d", filterLastSession: false },
+  "6m": { days: 190, interval: "1d", filterLastSession: false },
+  ytd: { ytd: true, interval: "1d", filterLastSession: false },
+  "1y": { days: 370, interval: "1wk", filterLastSession: false },
+  "3y": { days: 1100, interval: "1wk", filterLastSession: false },
+  "5y": { days: 1830, interval: "1mo", filterLastSession: false },
+  max: { days: 7300, interval: "1mo", filterLastSession: false },
 };
 
 module.exports = async function handler(req, res) {
@@ -79,16 +79,19 @@ module.exports = async function handler(req, res) {
         const d = new Date(q.date);
         let t;
         if (cfg.interval === "15m" || cfg.interval === "5m") {
-          t = d.toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            timeZone: "Asia/Kolkata",
-          }) + " " + d.toLocaleTimeString("en-IN", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-            timeZone: "Asia/Kolkata",
-          });
+          t =
+            d.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              timeZone: "Asia/Kolkata",
+            }) +
+            " " +
+            d.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "Asia/Kolkata",
+            });
         } else if (cfg.interval === "1d") {
           t = d.toLocaleDateString("en-IN", {
             day: "2-digit",

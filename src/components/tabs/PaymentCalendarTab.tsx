@@ -23,14 +23,34 @@ import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 const SHORT_MONTHS = [
-  "Jan","Feb","Mar","Apr","May","Jun",
-  "Jul","Aug","Sep","Oct","Nov","Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
-const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const ORDINAL = (d: number) => {
   if (d >= 11 && d <= 13) return "th";
@@ -42,14 +62,14 @@ const ORDINAL = (d: number) => {
 };
 
 const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  emi:          { label: "Loan EMI",      color: "#EF4444", icon: CreditCard },
-  sip:          { label: "SIP",           color: "#6366F1", icon: Activity },
-  rd:           { label: "RD Instalment", color: "#8B5CF6", icon: Repeat },
-  subscription: { label: "Subscription",  color: "#14B8A6", icon: Zap },
-  insurance:    { label: "Insurance",     color: "#EC4899", icon: Heart },
-  rent:         { label: "Rent",          color: "#F97316", icon: Building2 },
-  health:       { label: "Health Ins.",   color: "#0EA5E9", icon: Shield },
-  other:        { label: "Other",         color: THEME.muted, icon: Wallet },
+  emi: { label: "Loan EMI", color: "#EF4444", icon: CreditCard },
+  sip: { label: "SIP", color: "#6366F1", icon: Activity },
+  rd: { label: "RD Instalment", color: "#8B5CF6", icon: Repeat },
+  subscription: { label: "Subscription", color: "#14B8A6", icon: Zap },
+  insurance: { label: "Insurance", color: "#EC4899", icon: Heart },
+  rent: { label: "Rent", color: "#F97316", icon: Building2 },
+  health: { label: "Health Ins.", color: "#0EA5E9", icon: Shield },
+  other: { label: "Other", color: THEME.muted, icon: Wallet },
 };
 
 export function PaymentCalendarTab({ state }: any) {
@@ -85,9 +105,7 @@ export function PaymentCalendarTab({ state }: any) {
     // SIPs
     (state.sips || []).forEach((s: any) => {
       if (!s.amount || Number(s.amount) <= 0) return;
-      const dueDay = s.startDate
-        ? new Date(s.startDate + "T00:00:00").getDate()
-        : 5;
+      const dueDay = s.startDate ? new Date(s.startDate + "T00:00:00").getDate() : 5;
       items.push({
         id: `sip-${s.id}`,
         name: s.scheme || s.fundName || "SIP",
@@ -107,9 +125,7 @@ export function PaymentCalendarTab({ state }: any) {
     (state.recurringDeposits || []).forEach((rd: any) => {
       if (!rd.monthly || Number(rd.monthly) <= 0) return;
       if (rd.maturityDate && rd.maturityDate <= todayStr) return;
-      const dueDay = rd.startDate
-        ? new Date(rd.startDate + "T00:00:00").getDate()
-        : 5;
+      const dueDay = rd.startDate ? new Date(rd.startDate + "T00:00:00").getDate() : 5;
       items.push({
         id: `rd-${rd.id}`,
         name: `${rd.bank || "RD"} Instalment`,
@@ -126,9 +142,7 @@ export function PaymentCalendarTab({ state }: any) {
     // Subscriptions
     (state.subscriptions || []).forEach((s: any) => {
       if (!s.amount || s.paused) return;
-      const dueDay = s.renewalDate
-        ? new Date(s.renewalDate + "T00:00:00").getDate()
-        : 1;
+      const dueDay = s.renewalDate ? new Date(s.renewalDate + "T00:00:00").getDate() : 1;
       items.push({
         id: `sub-${s.id}`,
         name: s.name || s.provider || "Subscription",
@@ -148,9 +162,7 @@ export function PaymentCalendarTab({ state }: any) {
         const premium = Number(p.annualPremium || p.premium || 0);
         if (!premium) return;
         const startDate = p.commencementDate || p.startDate;
-        const dueDay = startDate
-          ? new Date(startDate + "T00:00:00").getDate()
-          : 1;
+        const dueDay = startDate ? new Date(startDate + "T00:00:00").getDate() : 1;
         items.push({
           id: `${tag}-${p.id}`,
           name: `${p.planName || p.insurer || tag} Premium`,
@@ -214,8 +226,7 @@ export function PaymentCalendarTab({ state }: any) {
     // For EMIs: check months remaining from today
     if (p.type === "emi" && p.monthsLeft !== undefined) {
       const now = todayDate;
-      const monthsDiff =
-        (year - now.getFullYear()) * 12 + month - now.getMonth();
+      const monthsDiff = (year - now.getFullYear()) * 12 + month - now.getMonth();
       return monthsDiff >= 0 && monthsDiff < p.monthsLeft;
     }
 
@@ -223,8 +234,7 @@ export function PaymentCalendarTab({ state }: any) {
     if (p.frequency === "quarterly" && p.startDate) {
       const startMonth = new Date(p.startDate + "T00:00:00").getMonth();
       const startYear = new Date(p.startDate + "T00:00:00").getFullYear();
-      const diff =
-        (year - startYear) * 12 + month - startMonth;
+      const diff = (year - startYear) * 12 + month - startMonth;
       return diff >= 0 && diff % 3 === 0;
     }
 
@@ -276,12 +286,8 @@ export function PaymentCalendarTab({ state }: any) {
       dayMap[day].push(p);
     });
 
-    const annualThisMonth = activePayments.filter(
-      (p) => p.frequency === "yearly"
-    );
-    const quarterlyThisMonth = activePayments.filter(
-      (p) => p.frequency === "quarterly"
-    );
+    const annualThisMonth = activePayments.filter((p) => p.frequency === "yearly");
+    const quarterlyThisMonth = activePayments.filter((p) => p.frequency === "quarterly");
 
     return {
       firstDay,
@@ -293,10 +299,7 @@ export function PaymentCalendarTab({ state }: any) {
   }, [viewDate, payments, todayStr]);
 
   const selectedMonthPayments = getMonthPayments(viewDate.year, viewDate.month);
-  const selectedMonthTotal = selectedMonthPayments.reduce(
-    (s: number, p: any) => s + p.amount,
-    0
-  );
+  const selectedMonthTotal = selectedMonthPayments.reduce((s: number, p: any) => s + p.amount, 0);
 
   const monthlyAvg = payments.reduce((s: number, p: any) => {
     if (p.frequency === "yearly") return s + p.amount / 12;
@@ -308,8 +311,14 @@ export function PaymentCalendarTab({ state }: any) {
     setViewDate((prev) => {
       let m = prev.month + dir;
       let y = prev.year;
-      if (m < 0) { m = 11; y--; }
-      if (m > 11) { m = 0; y++; }
+      if (m < 0) {
+        m = 11;
+        y--;
+      }
+      if (m > 11) {
+        m = 0;
+        y++;
+      }
       return { year: y, month: m };
     });
   };
@@ -390,8 +399,7 @@ export function PaymentCalendarTab({ state }: any) {
           >
             {monthlySummary.map((m, i) => {
               const barH = Math.max(8, (m.total / maxBar) * 84);
-              const isSelected =
-                m.year === viewDate.year && m.month === viewDate.month;
+              const isSelected = m.year === viewDate.year && m.month === viewDate.month;
               return (
                 <div
                   key={i}
@@ -404,9 +412,7 @@ export function PaymentCalendarTab({ state }: any) {
                     gap: 4,
                     cursor: "pointer",
                   }}
-                  onClick={() =>
-                    setViewDate({ year: m.year, month: m.month })
-                  }
+                  onClick={() => setViewDate({ year: m.year, month: m.month })}
                 >
                   <div
                     style={{
@@ -423,9 +429,7 @@ export function PaymentCalendarTab({ state }: any) {
                       width: "100%",
                       height: barH,
                       borderRadius: "4px 4px 0 0",
-                      background: isSelected
-                        ? THEME.accent
-                        : `${THEME.accent}44`,
+                      background: isSelected ? THEME.accent : `${THEME.accent}44`,
                       transition: "all 0.2s",
                     }}
                   />
@@ -440,18 +444,14 @@ export function PaymentCalendarTab({ state }: any) {
                     {SHORT_MONTHS[m.month]}
                     <br />
                     <span style={{ fontSize: 10, opacity: 0.7 }}>
-                      {m.year !== todayDate.getFullYear()
-                        ? m.year
-                        : ""}
+                      {m.year !== todayDate.getFullYear() ? m.year : ""}
                     </span>
                   </div>
                 </div>
               );
             })}
           </div>
-          <div
-            style={{ fontSize: 11, color: THEME.muted, marginTop: 8 }}
-          >
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 8 }}>
             Click a month bar to see day-level detail below
           </div>
         </div>
@@ -565,10 +565,7 @@ export function PaymentCalendarTab({ state }: any) {
                 viewDate.year === todayDate.getFullYear() &&
                 viewDate.month === todayDate.getMonth() &&
                 day === todayDate.getDate();
-              const dayTotal = dayPmts.reduce(
-                (s: number, p: any) => s + p.amount,
-                0
-              );
+              const dayTotal = dayPmts.reduce((s: number, p: any) => s + p.amount, 0);
               const hasPmts = dayPmts.length > 0;
 
               return (
@@ -578,17 +575,13 @@ export function PaymentCalendarTab({ state }: any) {
                     minHeight: 60,
                     borderRadius: 8,
                     border: `1.5px solid ${
-                      isToday
-                        ? THEME.accent
-                        : hasPmts
-                        ? THEME.line
-                        : "transparent"
+                      isToday ? THEME.accent : hasPmts ? THEME.line : "transparent"
                     }`,
                     background: isToday
                       ? `${THEME.accent}08`
                       : hasPmts
-                      ? "rgba(99,102,241,0.03)"
-                      : "transparent",
+                        ? "rgba(99,102,241,0.03)"
+                        : "transparent",
                     padding: "5px 4px",
                   }}
                 >
@@ -604,8 +597,7 @@ export function PaymentCalendarTab({ state }: any) {
                     {day}
                   </div>
                   {dayPmts.slice(0, 2).map((p, pi) => {
-                    const cfg =
-                      TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
+                    const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
                     return (
                       <div
                         key={pi}
@@ -623,9 +615,7 @@ export function PaymentCalendarTab({ state }: any) {
                         }}
                         title={`${p.name} — ₹${Number(p.amount).toLocaleString("en-IN")}`}
                       >
-                        {p.name.length > 8
-                          ? p.name.slice(0, 7) + "…"
-                          : p.name}
+                        {p.name.length > 8 ? p.name.slice(0, 7) + "…" : p.name}
                       </div>
                     );
                   })}
@@ -653,8 +643,8 @@ export function PaymentCalendarTab({ state }: any) {
                         {dayTotal >= 100000
                           ? `${(dayTotal / 100000).toFixed(1)}L`
                           : dayTotal >= 1000
-                          ? `${(dayTotal / 1000).toFixed(0)}K`
-                          : dayTotal}
+                            ? `${(dayTotal / 1000).toFixed(0)}K`
+                            : dayTotal}
                       </Prv>
                     </div>
                   )}
@@ -692,29 +682,26 @@ export function PaymentCalendarTab({ state }: any) {
                   gap: 6,
                 }}
               >
-                {[
-                  ...calendarData.annualThisMonth,
-                  ...calendarData.quarterlyThisMonth,
-                ].map((p, i) => {
-                  const cfg =
-                    TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        fontSize: 11,
-                        color: cfg.color,
-                        background: `${cfg.color}14`,
-                        borderRadius: 6,
-                        padding: "3px 8px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {p.name} —{" "}
-                      <Prv>₹{Number(p.amount).toLocaleString("en-IN")}</Prv>
-                    </div>
-                  );
-                })}
+                {[...calendarData.annualThisMonth, ...calendarData.quarterlyThisMonth].map(
+                  (p, i) => {
+                    const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          fontSize: 11,
+                          color: cfg.color,
+                          background: `${cfg.color}14`,
+                          borderRadius: 6,
+                          padding: "3px 8px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {p.name} — <Prv>₹{Number(p.amount).toLocaleString("en-IN")}</Prv>
+                      </div>
+                    );
+                  }
+                )}
               </div>
             </div>
           )}
@@ -736,17 +723,10 @@ export function PaymentCalendarTab({ state }: any) {
           </div>
 
           {Object.entries(TYPE_CONFIG)
-            .filter(([type]) =>
-              selectedMonthPayments.some((p) => p.type === type)
-            )
+            .filter(([type]) => selectedMonthPayments.some((p) => p.type === type))
             .map(([type, cfg]) => {
-              const typePayments = selectedMonthPayments.filter(
-                (p) => p.type === type
-              );
-              const typeTotal = typePayments.reduce(
-                (s: number, p: any) => s + p.amount,
-                0
-              );
+              const typePayments = selectedMonthPayments.filter((p) => p.type === type);
+              const typeTotal = typePayments.reduce((s: number, p: any) => s + p.amount, 0);
               return (
                 <div key={type} style={{ marginBottom: 16 }}>
                   <div

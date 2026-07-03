@@ -15,7 +15,14 @@ import {
   Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, calcTaxNew, calcTaxOld, getEffectiveRent } from "../../utils/finance";
+import {
+  fmtINR,
+  fmtINRFull,
+  today,
+  calcTaxNew,
+  calcTaxOld,
+  getEffectiveRent,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -24,7 +31,20 @@ import { EmptyState } from "../ui/EmptyState";
 import { FormField } from "../ui/Form";
 import { Prv } from "../../context/PrivacyContext";
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 const buildFYList = (state: any): string[] => {
   const fySet = new Set<number>();
@@ -35,20 +55,39 @@ const buildFYList = (state: any): string[] => {
   };
   (state.income || []).forEach((i: any) => addDate(i.date));
   (state.transactions || []).forEach((t: any) => addDate(t.date));
-  (state.taxPayments || []).forEach((t: any) => { if (t.fy) { const y = Number(t.fy.split("-")[0]); if (y) fySet.add(y); } });
+  (state.taxPayments || []).forEach((t: any) => {
+    if (t.fy) {
+      const y = Number(t.fy.split("-")[0]);
+      if (y) fySet.add(y);
+    }
+  });
   const now = new Date();
   fySet.add(now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1);
-  return Array.from(fySet).sort((a, b) => b - a).map((y) => `${y}-${String(y + 1).slice(-2)}`);
+  return Array.from(fySet)
+    .sort((a, b) => b - a)
+    .map((y) => `${y}-${String(y + 1).slice(-2)}`);
 };
 
-const FYSelector = ({ fy, setFy, fyList }: { fy: string; setFy: (v: string) => void; fyList: string[] }) => (
+const FYSelector = ({
+  fy,
+  setFy,
+  fyList,
+}: {
+  fy: string;
+  setFy: (v: string) => void;
+  fyList: string[];
+}) => (
   <select
     className="form-input"
     value={fy}
     onChange={(e) => setFy(e.target.value)}
     style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130, marginBottom: 16 }}
   >
-    {fyList.map((f) => <option key={f} value={f}>FY {f}</option>)}
+    {fyList.map((f) => (
+      <option key={f} value={f}>
+        FY {f}
+      </option>
+    ))}
   </select>
 );
 
@@ -62,7 +101,10 @@ const ADVANCE_TAX_DEADLINES = [
 ];
 
 const AdvanceTaxSection = ({ state, metrics }) => {
-  const fyList = useMemo(() => buildFYList(state), [state.income, state.transactions, state.taxPayments]);
+  const fyList = useMemo(
+    () => buildFYList(state),
+    [state.income, state.transactions, state.taxPayments]
+  );
   const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
   const regime = state.profile?.regime || "new";
   const fyStart = parseInt(fy.split("-")[0]);
@@ -109,8 +151,24 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ fontWeight: 700, fontSize: 17, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 6,
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 17,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <Calculator size={18} style={{ color: THEME.accent }} /> Advance Tax Calculator
         </div>
         <FYSelector fy={fy} setFy={setFy} fyList={fyList} />
@@ -124,11 +182,25 @@ const AdvanceTaxSection = ({ state, metrics }) => {
         <div style={{ padding: 20 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
-              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Auto-Detected Annual Income</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: THEME.ink }}><Prv>{fmtINRFull(projectedIncome)}</Prv></div>
+              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                Auto-Detected Annual Income
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: THEME.ink }}>
+                <Prv>{fmtINRFull(projectedIncome)}</Prv>
+              </div>
             </div>
             <div>
-              <label style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Override Income (optional)</label>
+              <label
+                style={{
+                  fontSize: 12,
+                  color: THEME.muted,
+                  fontWeight: 600,
+                  display: "block",
+                  marginBottom: 4,
+                }}
+              >
+                Override Income (optional)
+              </label>
               <input
                 type="number"
                 placeholder="Enter total taxable income"
@@ -151,18 +223,35 @@ const AdvanceTaxSection = ({ state, metrics }) => {
       </Card>
 
       {/* Tax Summary */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginTop: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 14,
+          marginTop: 16,
+        }}
+      >
         {[
           { label: "Estimated Tax", value: fmtINRFull(taxLiability), color: THEME.accent },
           { label: "TDS Already Paid", value: fmtINRFull(tdsPaid), color: "#10B981" },
           { label: "Net Tax Due", value: fmtINRFull(netTaxDue), color: "#F97316" },
           { label: "Advance Tax Paid", value: fmtINRFull(totalPaid), color: THEME.accent },
-          { label: "Remaining to Pay", value: fmtINRFull(remaining), color: remaining > 0 ? "#EF4444" : "#10B981" },
+          {
+            label: "Remaining to Pay",
+            value: fmtINRFull(remaining),
+            color: remaining > 0 ? "#EF4444" : "#10B981",
+          },
         ].map((s, i) => (
           <Card key={i}>
             <div style={{ padding: 14, textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: s.color, letterSpacing: "-0.03em" }}><Prv>{s.value}</Prv></div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>{s.label}</div>
+              <div
+                style={{ fontSize: 20, fontWeight: 800, color: s.color, letterSpacing: "-0.03em" }}
+              >
+                <Prv>{s.value}</Prv>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                {s.label}
+              </div>
             </div>
           </Card>
         ))}
@@ -171,18 +260,23 @@ const AdvanceTaxSection = ({ state, metrics }) => {
       {/* Quarterly Schedule */}
       <Card style={{ marginTop: 16 }}>
         <div style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>Quarterly Payment Schedule</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>
+            Quarterly Payment Schedule
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ADVANCE_TAX_DEADLINES.map((q, idx) => {
               const qAmount = (netTaxDue * q.cumPct) / 100;
-              const prevCum = idx > 0 ? (netTaxDue * ADVANCE_TAX_DEADLINES[idx - 1].cumPct) / 100 : 0;
+              const prevCum =
+                idx > 0 ? (netTaxDue * ADVANCE_TAX_DEADLINES[idx - 1].cumPct) / 100 : 0;
               const installment = qAmount - prevCum;
               const isPast = idx < currentQ;
               const isCurrent = idx === currentQ;
 
               const deadlineYear = q.date.startsWith("03") ? fyStart + 1 : fyStart;
               const deadlineFull = `${deadlineYear}-${q.date}`;
-              const daysLeft = Math.ceil((new Date(deadlineFull).getTime() - new Date(todayStr).getTime()) / 86400000);
+              const daysLeft = Math.ceil(
+                (new Date(deadlineFull).getTime() - new Date(todayStr).getTime()) / 86400000
+              );
 
               return (
                 <div
@@ -193,28 +287,55 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                     gap: 14,
                     padding: "12px 16px",
                     borderRadius: 10,
-                    background: isCurrent ? "rgba(99,102,241,0.08)" : isPast ? "rgba(16,185,129,0.05)" : "transparent",
+                    background: isCurrent
+                      ? "rgba(99,102,241,0.08)"
+                      : isPast
+                        ? "rgba(16,185,129,0.05)"
+                        : "transparent",
                     border: `1.5px solid ${isCurrent ? THEME.accent : THEME.line}`,
                   }}
                 >
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8,
-                    background: isPast ? "#10B98120" : isCurrent ? `${THEME.accent}20` : `${THEME.line}50`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    {isPast ? <CheckCircle2 size={16} style={{ color: "#10B981" }} /> : <Calendar size={16} style={{ color: isCurrent ? THEME.accent : THEME.muted }} />}
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: isPast
+                        ? "#10B98120"
+                        : isCurrent
+                          ? `${THEME.accent}20`
+                          : `${THEME.line}50`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {isPast ? (
+                      <CheckCircle2 size={16} style={{ color: "#10B981" }} />
+                    ) : (
+                      <Calendar
+                        size={16}
+                        style={{ color: isCurrent ? THEME.accent : THEME.muted }}
+                      />
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: THEME.ink }}>{q.label}</div>
                     <div style={{ fontSize: 12, color: THEME.muted }}>{q.cumPct}% cumulative</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}><Prv>{fmtINRFull(installment)}</Prv></div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
+                      <Prv>{fmtINRFull(installment)}</Prv>
+                    </div>
                     {isCurrent && daysLeft > 0 && (
-                      <div style={{ fontSize: 11, color: "#F97316", fontWeight: 600 }}>{daysLeft} days left</div>
+                      <div style={{ fontSize: 11, color: "#F97316", fontWeight: 600 }}>
+                        {daysLeft} days left
+                      </div>
                     )}
                     {isCurrent && daysLeft <= 0 && (
-                      <div style={{ fontSize: 11, color: "#EF4444", fontWeight: 600 }}>Overdue!</div>
+                      <div style={{ fontSize: 11, color: "#EF4444", fontWeight: 600 }}>
+                        Overdue!
+                      </div>
                     )}
                   </div>
                 </div>
@@ -223,14 +344,22 @@ const AdvanceTaxSection = ({ state, metrics }) => {
           </div>
 
           {remaining > 10000 && (
-            <div style={{
-              marginTop: 16, padding: "12px 16px", borderRadius: 10,
-              background: "rgba(234,179,8,0.08)", border: "1.5px solid rgba(234,179,8,0.2)",
-              display: "flex", alignItems: "center", gap: 10,
-            }}>
+            <div
+              style={{
+                marginTop: 16,
+                padding: "12px 16px",
+                borderRadius: 10,
+                background: "rgba(234,179,8,0.08)",
+                border: "1.5px solid rgba(234,179,8,0.2)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
               <AlertTriangle size={16} style={{ color: "#EAB308", flexShrink: 0 }} />
               <div style={{ fontSize: 13, color: THEME.ink }}>
-                <strong>Interest Alert:</strong> Under Sec 234B/234C, interest @ 1%/month is charged on shortfall in advance tax payment. Pay on time to avoid penalties.
+                <strong>Interest Alert:</strong> Under Sec 234B/234C, interest @ 1%/month is charged
+                on shortfall in advance tax payment. Pay on time to avoid penalties.
               </div>
             </div>
           )}
@@ -251,7 +380,10 @@ const HraReceiptSection = ({ state }) => {
   const [tenantName, setTenantName] = useState(state.profile?.name || "");
   const [showPreview, setShowPreview] = useState(false);
 
-  const fyList = useMemo(() => buildFYList(state), [state.income, state.transactions, state.taxPayments]);
+  const fyList = useMemo(
+    () => buildFYList(state),
+    [state.income, state.transactions, state.taxPayments]
+  );
   const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
   const fyStart = parseInt(fy.split("-")[0]);
 
@@ -273,7 +405,9 @@ const HraReceiptSection = ({ state }) => {
   const selectedProp = rentedProps.find((p) => p.id === selectedProperty);
 
   const toggleMonth = (key) => {
-    setMonths((prev) => (prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key].sort()));
+    setMonths((prev) =>
+      prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key].sort()
+    );
   };
 
   const selectAllMonths = () => {
@@ -320,7 +454,9 @@ const HraReceiptSection = ({ state }) => {
         <div class="no-print" style="text-align:center;margin-bottom:20px;">
           <button onclick="window.print()" style="padding:10px 30px;font-size:16px;cursor:pointer;background:var(--t-accent);color:#fff;border:none;border-radius:8px;">Print / Save PDF</button>
         </div>
-        ${receipts.map((r) => `
+        ${receipts
+          .map(
+            (r) => `
           <div class="receipt">
             <div class="receipt-header">RENT RECEIPT</div>
             <div class="receipt-row"><label>Receipt No:</label><span>${r.receiptNo}</span></div>
@@ -338,7 +474,9 @@ const HraReceiptSection = ({ state }) => {
               <div><div class="line">Landlord Signature</div></div>
             </div>
           </div>
-        `).join("")}
+        `
+          )
+          .join("")}
         <div class="summary receipt">
           <div class="receipt-header">RENT SUMMARY — FY ${fy}</div>
           <div class="receipt-row"><label>Total Months:</label><span>${receipts.length}</span></div>
@@ -356,13 +494,31 @@ const HraReceiptSection = ({ state }) => {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ fontWeight: 700, fontSize: 17, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 6,
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 17,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <Home size={18} style={{ color: THEME.accent }} /> HRA Rent Receipt Generator
         </div>
         <FYSelector fy={fy} setFy={setFy} fyList={fyList} />
       </div>
-      <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>Generate printable rent receipts for HRA tax exemption — FY {fy}</div>
+      <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>
+        Generate printable rent receipts for HRA tax exemption — FY {fy}
+      </div>
 
       {rentedProps.length === 0 ? (
         <Card>
@@ -377,55 +533,161 @@ const HraReceiptSection = ({ state }) => {
         <>
           <Card>
             <div style={{ padding: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                  marginBottom: 16,
+                }}
+              >
                 <div>
-                  <label style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Select Property</label>
+                  <label
+                    style={{
+                      fontSize: 12,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Select Property
+                  </label>
                   <select
                     value={selectedProperty}
                     onChange={(e) => setSelectedProperty(e.target.value)}
                     style={{
-                      width: "100%", padding: "8px 12px", borderRadius: 8,
-                      border: `1.5px solid ${THEME.line}`, background: "transparent",
-                      color: THEME.ink, fontSize: 14,
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 14,
                     }}
                   >
                     <option value="">— Select —</option>
                     {rentedProps.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name || p.address || "Property"} — {fmtINRFull(p.monthlyRent)}/mo</option>
+                      <option key={p.id} value={p.id}>
+                        {p.name || p.address || "Property"} — {fmtINRFull(p.monthlyRent)}/mo
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Tenant Name</label>
+                  <label
+                    style={{
+                      fontSize: 12,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Tenant Name
+                  </label>
                   <input
                     value={tenantName}
                     onChange={(e) => setTenantName(e.target.value)}
                     placeholder="Your full name"
                     style={{
-                      width: "100%", padding: "8px 12px", borderRadius: 8,
-                      border: `1.5px solid ${THEME.line}`, background: "transparent",
-                      color: THEME.ink, fontSize: 14, outline: "none",
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 14,
+                      outline: "none",
                     }}
                   />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Landlord Name</label>
-                  <input value={landlordName} onChange={(e) => setLandlordName(e.target.value)} placeholder="Full name"
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`, background: "transparent", color: THEME.ink, fontSize: 14, outline: "none" }}
+                  <label
+                    style={{
+                      fontSize: 12,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Landlord Name
+                  </label>
+                  <input
+                    value={landlordName}
+                    onChange={(e) => setLandlordName(e.target.value)}
+                    placeholder="Full name"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 14,
+                      outline: "none",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Landlord PAN</label>
-                  <input value={landlordPan} onChange={(e) => setLandlordPan(e.target.value.toUpperCase())} placeholder="ABCDE1234F" maxLength={10}
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`, background: "transparent", color: THEME.ink, fontSize: 14, outline: "none", textTransform: "uppercase" }}
+                  <label
+                    style={{
+                      fontSize: 12,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Landlord PAN
+                  </label>
+                  <input
+                    value={landlordPan}
+                    onChange={(e) => setLandlordPan(e.target.value.toUpperCase())}
+                    placeholder="ABCDE1234F"
+                    maxLength={10}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 14,
+                      outline: "none",
+                      textTransform: "uppercase",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Landlord Address</label>
-                  <input value={landlordAddress} onChange={(e) => setLandlordAddress(e.target.value)} placeholder="Address"
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`, background: "transparent", color: THEME.ink, fontSize: 14, outline: "none" }}
+                  <label
+                    style={{
+                      fontSize: 12,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Landlord Address
+                  </label>
+                  <input
+                    value={landlordAddress}
+                    onChange={(e) => setLandlordAddress(e.target.value)}
+                    placeholder="Address"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 14,
+                      outline: "none",
+                    }}
                   />
                 </div>
               </div>
@@ -435,9 +697,26 @@ const HraReceiptSection = ({ state }) => {
           {/* Month Selection */}
           <Card style={{ marginTop: 16 }}>
             <div style={{ padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
                 <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>Select Months</div>
-                <button onClick={selectAllMonths} style={{ fontSize: 12, color: THEME.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                <button
+                  onClick={selectAllMonths}
+                  style={{
+                    fontSize: 12,
+                    color: THEME.accent,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
                   {months.length === fyMonths.length ? "Deselect All" : "Select All"}
                 </button>
               </div>
@@ -450,27 +729,47 @@ const HraReceiptSection = ({ state }) => {
                       key={m.key}
                       onClick={() => toggleMonth(m.key)}
                       style={{
-                        padding: "10px 8px", borderRadius: 8,
+                        padding: "10px 8px",
+                        borderRadius: 8,
                         border: `1.5px solid ${isSelected ? THEME.accent : THEME.line}`,
                         background: isSelected ? `${THEME.accent}15` : "transparent",
                         color: isSelected ? THEME.accent : THEME.ink,
-                        cursor: "pointer", textAlign: "center",
+                        cursor: "pointer",
+                        textAlign: "center",
                       }}
                     >
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{m.label}</div>
-                      {rent > 0 && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{fmtINRFull(rent)}</div>}
+                      {rent > 0 && (
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                          {fmtINRFull(rent)}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
               {months.length > 0 && selectedProperty && (
-                <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div
+                  style={{
+                    marginTop: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <div style={{ fontSize: 14, color: THEME.ink }}>
-                    <strong>{months.length}</strong> months selected • Total: <strong><Prv>{fmtINRFull(getReceiptData().reduce((s, r) => s + r.amount, 0))}</Prv></strong>
+                    <strong>{months.length}</strong> months selected • Total:{" "}
+                    <strong>
+                      <Prv>{fmtINRFull(getReceiptData().reduce((s, r) => s + r.amount, 0))}</Prv>
+                    </strong>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <Button onClick={() => setShowPreview(!showPreview)} variant="secondary" size="sm">
+                    <Button
+                      onClick={() => setShowPreview(!showPreview)}
+                      variant="secondary"
+                      size="sm"
+                    >
                       {showPreview ? "Hide" : "Preview"}
                     </Button>
                     <Button onClick={printReceipts} size="sm">
@@ -486,27 +785,65 @@ const HraReceiptSection = ({ state }) => {
           {showPreview && months.length > 0 && (
             <Card style={{ marginTop: 16 }}>
               <div style={{ padding: 20 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: THEME.ink }}>Receipt Preview</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: THEME.ink }}>
+                  Receipt Preview
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: 12,
+                  }}
+                >
                   {getReceiptData().map((r) => (
-                    <div key={r.monthKey} style={{ padding: 16, borderRadius: 10, border: `1.5px solid ${THEME.line}`, background: "rgba(99,102,241,0.03)" }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: THEME.ink }}>Receipt #{r.receiptNo} — {r.month}</div>
-                      <div style={{ fontSize: 12, color: THEME.muted, display: "flex", justifyContent: "space-between" }}>
-                        <span>Tenant: {tenantName}</span>
-                        <span style={{ fontWeight: 700, color: THEME.ink }}><Prv>{fmtINRFull(r.amount)}</Prv></span>
+                    <div
+                      key={r.monthKey}
+                      style={{
+                        padding: 16,
+                        borderRadius: 10,
+                        border: `1.5px solid ${THEME.line}`,
+                        background: "rgba(99,102,241,0.03)",
+                      }}
+                    >
+                      <div
+                        style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: THEME.ink }}
+                      >
+                        Receipt #{r.receiptNo} — {r.month}
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Landlord: {landlordName}</div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: THEME.muted,
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span>Tenant: {tenantName}</span>
+                        <span style={{ fontWeight: 700, color: THEME.ink }}>
+                          <Prv>{fmtINRFull(r.amount)}</Prv>
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+                        Landlord: {landlordName}
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 {/* PAN requirement warning */}
                 {getReceiptData().reduce((s, r) => s + r.amount, 0) > 100000 && !landlordPan && (
-                  <div style={{
-                    marginTop: 12, padding: "10px 14px", borderRadius: 8,
-                    background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.2)",
-                    display: "flex", alignItems: "center", gap: 8,
-                  }}>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: "10px 14px",
+                      borderRadius: 8,
+                      background: "rgba(234,179,8,0.08)",
+                      border: "1px solid rgba(234,179,8,0.2)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     <AlertTriangle size={14} style={{ color: "#EAB308" }} />
                     <span style={{ fontSize: 12, color: THEME.ink }}>
                       Total rent exceeds ₹1L — Landlord PAN is mandatory for HRA exemption claim.
@@ -527,8 +864,17 @@ const HraReceiptSection = ({ state }) => {
 const Form26ASSection = ({ state }) => {
   const [entries, setEntries] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [newEntry, setNewEntry] = useState({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
-  const fyList = useMemo(() => buildFYList(state), [state.income, state.transactions, state.taxPayments]);
+  const [newEntry, setNewEntry] = useState({
+    deductor: "",
+    tan: "",
+    amount: "",
+    dateOfPayment: "",
+    section: "192",
+  });
+  const fyList = useMemo(
+    () => buildFYList(state),
+    [state.income, state.transactions, state.taxPayments]
+  );
   const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
 
   const taxPayments = useMemo(() => {
@@ -537,22 +883,55 @@ const Form26ASSection = ({ state }) => {
 
   const addEntry = () => {
     if (!newEntry.deductor || !newEntry.amount) return;
-    setEntries((p) => [...p, { ...newEntry, id: Date.now().toString(), amount: Number(newEntry.amount) }]);
+    setEntries((p) => [
+      ...p,
+      { ...newEntry, id: Date.now().toString(), amount: Number(newEntry.amount) },
+    ]);
     setNewEntry({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
     setShowAdd(false);
   };
 
   const total26AS = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const totalApp = taxPayments.filter((t) => t.taxType === "TDS" || t.type === "TDS").reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalApp = taxPayments
+    .filter((t) => t.taxType === "TDS" || t.type === "TDS")
+    .reduce((s, t) => s + Number(t.amount || 0), 0);
   const mismatch = Math.abs(total26AS - totalApp);
   const isMatch = mismatch < 100;
 
-  const SECTIONS = ["192", "194A", "194B", "194C", "194D", "194H", "194I", "194J", "194N", "206C", "Other"];
+  const SECTIONS = [
+    "192",
+    "194A",
+    "194B",
+    "194C",
+    "194D",
+    "194H",
+    "194I",
+    "194J",
+    "194N",
+    "206C",
+    "Other",
+  ];
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ fontWeight: 700, fontSize: 17, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 6,
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 17,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <FileText size={18} style={{ color: THEME.accent }} /> Form 26AS / AIS Reconciliation
         </div>
         <FYSelector fy={fy} setFy={setFy} fyList={fyList} />
@@ -562,17 +941,25 @@ const Form26ASSection = ({ state }) => {
       </div>
 
       {/* Summary */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}
+      >
         <Card>
           <div style={{ padding: 14, textAlign: "center" }}>
-            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>26AS / AIS Total</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINRFull(total26AS)}</Prv></div>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+              26AS / AIS Total
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
+              <Prv>{fmtINRFull(total26AS)}</Prv>
+            </div>
           </div>
         </Card>
         <Card>
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>App Records</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINRFull(totalApp)}</Prv></div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
+              <Prv>{fmtINRFull(totalApp)}</Prv>
+            </div>
           </div>
         </Card>
         <Card>
@@ -580,7 +967,14 @@ const Form26ASSection = ({ state }) => {
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Mismatch</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: isMatch ? "#10B981" : "#EF4444" }}>
               {isMatch ? (
-                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                  }}
+                >
                   <CheckCircle2 size={18} /> Match
                 </span>
               ) : (
@@ -594,41 +988,158 @@ const Form26ASSection = ({ state }) => {
       {/* 26AS Entries */}
       <Card>
         <div style={{ padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>26AS / AIS Entries</div>
-            <Button onClick={() => setShowAdd(!showAdd)} size="sm">{showAdd ? "Cancel" : "+ Add Entry"}</Button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 14,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
+              26AS / AIS Entries
+            </div>
+            <Button onClick={() => setShowAdd(!showAdd)} size="sm">
+              {showAdd ? "Cancel" : "+ Add Entry"}
+            </Button>
           </div>
 
           {showAdd && (
-            <div style={{ padding: 16, borderRadius: 10, background: "rgba(99,102,241,0.04)", marginBottom: 14, border: `1px solid ${THEME.line}` }}>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 10, alignItems: "end" }}>
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 10,
+                background: "rgba(99,102,241,0.04)",
+                marginBottom: 14,
+                border: `1px solid ${THEME.line}`,
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+                  gap: 10,
+                  alignItems: "end",
+                }}
+              >
                 <div>
-                  <label style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 3 }}>Deductor Name</label>
-                  <input value={newEntry.deductor} onChange={(e) => setNewEntry({ ...newEntry, deductor: e.target.value })}
-                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "transparent", color: THEME.ink, fontSize: 13 }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 3 }}>TAN</label>
-                  <input value={newEntry.tan} onChange={(e) => setNewEntry({ ...newEntry, tan: e.target.value.toUpperCase() })} maxLength={10}
-                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "transparent", color: THEME.ink, fontSize: 13, textTransform: "uppercase" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 3 }}>Amount (₹)</label>
-                  <input type="number" value={newEntry.amount} onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
-                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "transparent", color: THEME.ink, fontSize: 13 }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 3 }}>Section</label>
-                  <select value={newEntry.section} onChange={(e) => setNewEntry({ ...newEntry, section: e.target.value })}
-                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "transparent", color: THEME.ink, fontSize: 13 }}
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 3,
+                    }}
                   >
-                    {SECTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    Deductor Name
+                  </label>
+                  <input
+                    value={newEntry.deductor}
+                    onChange={(e) => setNewEntry({ ...newEntry, deductor: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "7px 10px",
+                      borderRadius: 6,
+                      border: `1px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 13,
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 3,
+                    }}
+                  >
+                    TAN
+                  </label>
+                  <input
+                    value={newEntry.tan}
+                    onChange={(e) =>
+                      setNewEntry({ ...newEntry, tan: e.target.value.toUpperCase() })
+                    }
+                    maxLength={10}
+                    style={{
+                      width: "100%",
+                      padding: "7px 10px",
+                      borderRadius: 6,
+                      border: `1px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 13,
+                      textTransform: "uppercase",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 3,
+                    }}
+                  >
+                    Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={newEntry.amount}
+                    onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "7px 10px",
+                      borderRadius: 6,
+                      border: `1px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 13,
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 3,
+                    }}
+                  >
+                    Section
+                  </label>
+                  <select
+                    value={newEntry.section}
+                    onChange={(e) => setNewEntry({ ...newEntry, section: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "7px 10px",
+                      borderRadius: 6,
+                      border: `1px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 13,
+                    }}
+                  >
+                    {SECTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <Button onClick={addEntry} size="sm">Add</Button>
+                <Button onClick={addEntry} size="sm">
+                  Add
+                </Button>
               </div>
             </div>
           )}
@@ -643,19 +1154,52 @@ const Form26ASSection = ({ state }) => {
                 <thead>
                   <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
                     {["Deductor", "TAN", "Section", "Amount", ""].map((h) => (
-                      <th key={h} style={{ textAlign: "left", padding: "8px 10px", color: THEME.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase" }}>{h}</th>
+                      <th
+                        key={h}
+                        style={{
+                          textAlign: "left",
+                          padding: "8px 10px",
+                          color: THEME.muted,
+                          fontWeight: 600,
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {entries.map((e) => (
                     <tr key={e.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                      <td style={{ padding: "8px 10px", color: THEME.ink, fontWeight: 500 }}>{e.deductor}</td>
-                      <td style={{ padding: "8px 10px", color: THEME.muted, fontFamily: "monospace" }}>{e.tan || "—"}</td>
-                      <td style={{ padding: "8px 10px" }}><Badge variant="muted">{e.section}</Badge></td>
-                      <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(e.amount)}</Prv></td>
+                      <td style={{ padding: "8px 10px", color: THEME.ink, fontWeight: 500 }}>
+                        {e.deductor}
+                      </td>
+                      <td
+                        style={{ padding: "8px 10px", color: THEME.muted, fontFamily: "monospace" }}
+                      >
+                        {e.tan || "—"}
+                      </td>
                       <td style={{ padding: "8px 10px" }}>
-                        <button onClick={() => setEntries((p) => p.filter((x) => x.id !== e.id))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12 }}>Remove</button>
+                        <Badge variant="muted">{e.section}</Badge>
+                      </td>
+                      <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}>
+                        <Prv>{fmtINRFull(e.amount)}</Prv>
+                      </td>
+                      <td style={{ padding: "8px 10px" }}>
+                        <button
+                          onClick={() => setEntries((p) => p.filter((x) => x.id !== e.id))}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#EF4444",
+                            cursor: "pointer",
+                            fontSize: 12,
+                          }}
+                        >
+                          Remove
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -669,7 +1213,9 @@ const Form26ASSection = ({ state }) => {
       {/* App TDS Records */}
       <Card style={{ marginTop: 16 }}>
         <div style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>Your Tax Payment Records</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>
+            Your Tax Payment Records
+          </div>
           {taxPayments.length === 0 ? (
             <div style={{ textAlign: "center", padding: 16, color: THEME.muted, fontSize: 13 }}>
               No tax payments recorded for FY {fy}. Add them in the Tax Vault tab.
@@ -680,17 +1226,42 @@ const Form26ASSection = ({ state }) => {
                 <thead>
                   <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
                     {["Type", "Date", "Amount", "Challan/Ref"].map((h) => (
-                      <th key={h} style={{ textAlign: "left", padding: "8px 10px", color: THEME.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase" }}>{h}</th>
+                      <th
+                        key={h}
+                        style={{
+                          textAlign: "left",
+                          padding: "8px 10px",
+                          color: THEME.muted,
+                          fontWeight: 600,
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {taxPayments.map((t) => (
                     <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                      <td style={{ padding: "8px 10px" }}><Badge>{t.taxType || t.type || "Tax"}</Badge></td>
+                      <td style={{ padding: "8px 10px" }}>
+                        <Badge>{t.taxType || t.type || "Tax"}</Badge>
+                      </td>
                       <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.date || "—"}</td>
-                      <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(t.amount)}</Prv></td>
-                      <td style={{ padding: "8px 10px", color: THEME.muted, fontFamily: "monospace", fontSize: 12 }}>{t.challan || t.reference || "—"}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}>
+                        <Prv>{fmtINRFull(t.amount)}</Prv>
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          color: THEME.muted,
+                          fontFamily: "monospace",
+                          fontSize: 12,
+                        }}
+                      >
+                        {t.challan || t.reference || "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -716,7 +1287,9 @@ export const TaxToolsTab = ({ state, metrics }) => {
 
   return (
     <div>
-      <SectionTitle sub="Advance tax calculator, 26AS reconciliation & HRA rent receipts">Tax Tools</SectionTitle>
+      <SectionTitle sub="Advance tax calculator, 26AS reconciliation & HRA rent receipts">
+        Tax Tools
+      </SectionTitle>
 
       {/* Sub-tab navigation */}
       <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
@@ -728,12 +1301,17 @@ export const TaxToolsTab = ({ state, metrics }) => {
               key={s.key}
               onClick={() => setActiveSection(s.key)}
               style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "8px 18px", borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 18px",
+                borderRadius: 10,
                 border: `1.5px solid ${active ? THEME.accent : THEME.line}`,
                 background: active ? THEME.accent : "transparent",
                 color: active ? "#fff" : THEME.ink,
-                fontWeight: 600, fontSize: 13, cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
               }}
             >
               <Icon size={15} /> {s.label}

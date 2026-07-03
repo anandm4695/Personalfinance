@@ -33,7 +33,13 @@ import {
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
-import { fmtINRFull, rdMaturity, calculateEpfBalance, monthsBetween, today } from "../../utils/finance";
+import {
+  fmtINRFull,
+  rdMaturity,
+  calculateEpfBalance,
+  monthsBetween,
+  today,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -93,15 +99,16 @@ const ASSET_CLASS_COLORS_DARK = {
   "Informal Loans Given": "#60A5FA",
 };
 
-const getMemberColors = (dark: boolean) => dark ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT;
-const getAssetClassColors = (dark: boolean) => dark ? ASSET_CLASS_COLORS_DARK : ASSET_CLASS_COLORS_LIGHT;
+const getMemberColors = (dark: boolean) => (dark ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT);
+const getAssetClassColors = (dark: boolean) =>
+  dark ? ASSET_CLASS_COLORS_DARK : ASSET_CLASS_COLORS_LIGHT;
 
 // ── Custom Tooltip for Recharts ────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
 
   const isPie = payload[0]?.payload?.percent !== undefined || payload[0]?.payload?.cx !== undefined;
-  
+
   return (
     <div
       style={{
@@ -118,7 +125,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         minWidth: "200px",
       }}
     >
-      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--t-muted)", borderBottom: `1px solid var(--t-line)`, paddingBottom: "6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "var(--t-muted)",
+          borderBottom: `1px solid var(--t-line)`,
+          paddingBottom: "6px",
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+        }}
+      >
         {isPie ? "Wealth Share" : label}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -126,14 +143,37 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           const color = entry.color || entry.fill;
           const value = Number(entry.value) || 0;
           return (
-            <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: color,
+                    display: "inline-block",
+                  }}
+                />
                 <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--t-ink)" }}>
                   {entry.name}
                 </span>
               </div>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--t-ink)", fontVariantNumeric: "tabular-nums" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: "var(--t-ink)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
                 <Prv>{fmtINRFull(value)}</Prv>
               </span>
             </div>
@@ -174,37 +214,45 @@ const memberAssets = (state, owner, marketData) => {
   const nps = filter(state.nps).reduce((s, n) => {
     const bal = Number(n.balance) || 0;
     if (bal > 0) return s + bal;
-    return s + (n.transactions || []).reduce(
-      (ss, t) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+    return (
+      s +
+      (n.transactions || []).reduce(
+        (ss, t) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+        0
+      )
     );
   }, 0);
   const epf = filter(state.epf).reduce((s, e) => s + calculateEpfBalance(e), 0);
   const lic = filter(state.lic).reduce((s, l) => {
-    const txTotal = (l.transactions || []).reduce(
-      (sum, t) => sum + Number(t.amount || 0), 0
-    );
+    const txTotal = (l.transactions || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
     return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
   }, 0);
   const bonds = filter(state.bonds).reduce(
-    (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0), 0
+    (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+    0
   );
   const investmentPlans = filter(state.investmentPlans).reduce((s, ip) => {
-    const txTotal = (ip.transactions || []).reduce(
-      (sum, t) => sum + Number(t.amount || 0), 0
-    );
+    const txTotal = (ip.transactions || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
     return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
   }, 0);
   const re = filter(state.realEstateProperties)
     .filter((p) => p.status !== "sold")
     .reduce((s, r) => s + Number(r.marketValue || r.agreementValue || 0), 0);
-  const vehicles = filter(state.vehicles).reduce((s, v) => s + Number(v.currentValue || v.purchasePrice || 0), 0);
+  const vehicles = filter(state.vehicles).reduce(
+    (s, v) => s + Number(v.currentValue || v.purchasePrice || 0),
+    0
+  );
   const loansGiven = filter(state.loansGiven).reduce((s, l) => s + Number(l.outstanding || 0), 0);
   const prepaid = filter(state.prepaidCards)
     .filter((p) => (p.status || "").toLowerCase() !== "closed")
     .reduce((s, p) => {
       const txns = p.transactions || [];
-      const loaded = txns.filter((t) => t.type === "load").reduce((sum, t) => sum + Number(t.amount || 0), 0);
-      const spent = txns.filter((t) => t.type === "spend").reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      const loaded = txns
+        .filter((t) => t.type === "load")
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      const spent = txns
+        .filter((t) => t.type === "spend")
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
       return s + (loaded - spent);
     }, 0);
   const rentedDeposit = filter(state.rentedProperties || []).reduce((s, p) => {
@@ -221,15 +269,20 @@ const memberAssets = (state, owner, marketData) => {
     return s + Math.max(0, totalT - totalP);
   }, 0);
   const rentalProps = filter(state.rentalProperties || []).reduce(
-    (s, r) => s + Number(r.propertyValue || 0), 0
+    (s, r) => s + Number(r.propertyValue || 0),
+    0
   );
   const goldPrice = (() => {
-    try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; }
+    try {
+      return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
+    } catch {
+      return 7200;
+    }
   })();
   const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
   const gold = filter(state.goldHoldings || []).reduce((s, h) => {
     const grams = Number(h.grams || 0);
-    const purityMul = h.type === "physical" ? (PURITY_FACTOR[h.purity] || 1) : 1;
+    const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
     return s + grams * goldPrice * purityMul;
   }, 0);
 
@@ -268,16 +321,57 @@ const memberAssets = (state, owner, marketData) => {
     return Math.max(0, demanded - paid);
   })();
 
-  const totalAssets = cash + fd + rd + stocks + mf + ppf + nps + epf + lic + bonds +
-    investmentPlans + re + vehicles + loansGiven + prepaid + rentedDeposit +
-    informalLent + rentalProps + gold;
-  const totalLiabilities = loans + cc + rentalDepositLiab + informalBorrowed + realEstateOutstanding;
+  const totalAssets =
+    cash +
+    fd +
+    rd +
+    stocks +
+    mf +
+    ppf +
+    nps +
+    epf +
+    lic +
+    bonds +
+    investmentPlans +
+    re +
+    vehicles +
+    loansGiven +
+    prepaid +
+    rentedDeposit +
+    informalLent +
+    rentalProps +
+    gold;
+  const totalLiabilities =
+    loans + cc + rentalDepositLiab + informalBorrowed + realEstateOutstanding;
 
   return {
-    cash, fd, rd, stocks, mf, ppf, nps, epf, lic, bonds, investmentPlans,
-    re, vehicles, loansGiven, prepaid, rentedDeposit, informalLent, rentalProps, gold,
-    totalAssets, totalLiabilities, netWorth: totalAssets - totalLiabilities,
-    loans, cc, rentalDepositLiab, informalBorrowed, realEstateOutstanding,
+    cash,
+    fd,
+    rd,
+    stocks,
+    mf,
+    ppf,
+    nps,
+    epf,
+    lic,
+    bonds,
+    investmentPlans,
+    re,
+    vehicles,
+    loansGiven,
+    prepaid,
+    rentedDeposit,
+    informalLent,
+    rentalProps,
+    gold,
+    totalAssets,
+    totalLiabilities,
+    netWorth: totalAssets - totalLiabilities,
+    loans,
+    cc,
+    rentalDepositLiab,
+    informalBorrowed,
+    realEstateOutstanding,
   };
 };
 
@@ -313,21 +407,24 @@ const getTopHoldings = (state, owner) => {
     .filter((s) => s.owner === owner)
     .forEach((s) => {
       const val = (Number(s.qty) || 0) * (Number(s.currentPrice) || Number(s.avgPrice) || 0);
-      if (val > 0) holdings.push({ name: s.symbol || s.name || "Stock", value: val, type: "Stock" });
+      if (val > 0)
+        holdings.push({ name: s.symbol || s.name || "Stock", value: val, type: "Stock" });
     });
 
   (state.mutualFunds || [])
     .filter((m) => m.owner === owner)
     .forEach((m) => {
       const val = (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
-      if (val > 0) holdings.push({ name: m.schemeName || m.name || "MF", value: val, type: "Mutual Fund" });
+      if (val > 0)
+        holdings.push({ name: m.schemeName || m.name || "MF", value: val, type: "Mutual Fund" });
     });
 
   (state.realEstateProperties || [])
     .filter((r) => r.owner === owner)
     .forEach((r) => {
       const val = Number(r.marketValue || r.agreementValue || 0);
-      if (val > 0) holdings.push({ name: r.name || r.type || "Property", value: val, type: "Real Estate" });
+      if (val > 0)
+        holdings.push({ name: r.name || r.type || "Property", value: val, type: "Real Estate" });
     });
 
   (state.fixedDeposits || [])
@@ -341,7 +438,8 @@ const getTopHoldings = (state, owner) => {
     .filter((b) => b.owner === owner)
     .forEach((b) => {
       const val = Number(b.balance || 0);
-      if (val > 0) holdings.push({ name: b.bankName || b.name || "Bank", value: val, type: "Cash" });
+      if (val > 0)
+        holdings.push({ name: b.bankName || b.name || "Bank", value: val, type: "Cash" });
     });
 
   holdings.sort((a, b) => b.value - a.value);
@@ -377,8 +475,15 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       const memberIncome = latestMonthlyIncome * 12;
 
       return {
-        ...p, ...assets, topHoldings, allocation, color,
-        licCover, termCover, totalLifeCover, memberIncome,
+        ...p,
+        ...assets,
+        topHoldings,
+        allocation,
+        color,
+        licCover,
+        termCover,
+        totalLifeCover,
+        memberIncome,
         coverageRatio: memberIncome > 0 ? totalLifeCover / memberIncome : 0,
         hasAssets: assets.totalAssets > 0 || assets.totalLiabilities > 0,
       };
@@ -429,8 +534,14 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           flagged.push({
             type: label,
             name:
-              item.name || item.bankName || item.symbol || item.schemeName ||
-              item.planName || item.insurer || item.bank || "Unnamed",
+              item.name ||
+              item.bankName ||
+              item.symbol ||
+              item.schemeName ||
+              item.planName ||
+              item.insurer ||
+              item.bank ||
+              "Unnamed",
             owner: item.owner || "none",
           });
         }
@@ -482,13 +593,23 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       }));
   }, [familyData]);
 
-  const { activeMembers, totalNetWorth, totalAssets, totalLiabilities, totalLifeCover } = familyData;
+  const { activeMembers, totalNetWorth, totalAssets, totalLiabilities, totalLifeCover } =
+    familyData;
 
   // ─── EMPTY STATE ────────────────────────────────────────────────────────────
   if (activeMembers.length === 0) {
     return (
       <div className="tab-content-enter">
-        <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+        <Card
+          style={{
+            padding: "60px 40px",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 20,
+          }}
+        >
           <div
             style={{
               width: 64,
@@ -519,35 +640,41 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-            {["Net Worth Breakdown", "Asset Comparison", "Insurance Coverage", "Contribution Split"].map(
-              (t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 11,
-                    padding: "5px 12px",
-                    borderRadius: 20,
-                    background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
-                    color: THEME.accent,
-                    fontWeight: 600,
-                    border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
-                  }}
-                >
-                  {t}
-                </span>
-              )
-            )}
+            {[
+              "Net Worth Breakdown",
+              "Asset Comparison",
+              "Insurance Coverage",
+              "Contribution Split",
+            ].map((t) => (
+              <span
+                key={t}
+                style={{
+                  fontSize: 11,
+                  padding: "5px 12px",
+                  borderRadius: 20,
+                  background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                  color: THEME.accent,
+                  fontWeight: 600,
+                  border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
+                }}
+              >
+                {t}
+              </span>
+            ))}
           </div>
         </Card>
       </div>
     );
   }
 
-  const debtToAssetRatio = totalAssets > 0 ? ((totalLiabilities / totalAssets) * 100) : 0;
+  const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 
   // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <div className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div
+      className="tab-content-enter"
+      style={{ display: "flex", flexDirection: "column", gap: 24 }}
+    >
       {/* ── PAGE HEADER ───────────────────────────────────────────── */}
       <SectionTitle sub="Consolidated financial overview across all family members">
         Family View
@@ -767,13 +894,30 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               <TrendingUp size={16} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 Total Family Assets
               </div>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.03em",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
               <Prv>{fmtINRFull(totalAssets)}</Prv>
             </div>
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
@@ -799,7 +943,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 width: 32,
                 height: 32,
                 borderRadius: 10,
-                background: totalLiabilities > 0 ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)` : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                background:
+                  totalLiabilities > 0
+                    ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)`
+                    : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -809,13 +956,30 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               <CreditCard size={16} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 Total Liabilities
               </div>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.03em",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
               <Prv>{fmtINRFull(totalLiabilities)}</Prv>
             </div>
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
@@ -851,13 +1015,30 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               <Users size={16} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 Active Profiles
               </div>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.03em",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
               {activeMembers.length} / {familyProfiles.length}
             </div>
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
@@ -887,24 +1068,53 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage,
+                color:
+                  debtToAssetRatio > 30
+                    ? THEME.rust
+                    : debtToAssetRatio > 15
+                      ? THEME.gold
+                      : THEME.sage,
               }}
             >
               <Percent size={16} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 Debt-to-Asset Ratio
               </div>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.03em",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
               {debtToAssetRatio.toFixed(1)}%
             </div>
             <div style={{ marginTop: 4 }}>
-              <Badge variant={debtToAssetRatio > 30 ? "rust" : debtToAssetRatio > 15 ? "gold" : "sage"} style={{ fontSize: 9, padding: "1px 5px", textTransform: "uppercase" }}>
-                {debtToAssetRatio > 30 ? "High Leverage" : debtToAssetRatio > 15 ? "Moderate Leverage" : "Healthy Leverage"}
+              <Badge
+                variant={debtToAssetRatio > 30 ? "rust" : debtToAssetRatio > 15 ? "gold" : "sage"}
+                style={{ fontSize: 9, padding: "1px 5px", textTransform: "uppercase" }}
+              >
+                {debtToAssetRatio > 30
+                  ? "High Leverage"
+                  : debtToAssetRatio > 15
+                    ? "Moderate Leverage"
+                    : "Healthy Leverage"}
               </Badge>
             </div>
           </div>
@@ -938,13 +1148,30 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 <Shield size={16} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   Consolidated Life Cover
                 </div>
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: THEME.ink,
+                  letterSpacing: "-0.03em",
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1,
+                }}
+              >
                 <Prv>{fmtINRFull(totalLifeCover)}</Prv>
               </div>
               <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
@@ -987,7 +1214,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       paddingAngle={2}
                     >
                       {contributionData.map((d, i) => (
-                        <Cell key={i} fill={d.color} style={{ outline: "none", cursor: "pointer" }} />
+                        <Cell
+                          key={i}
+                          fill={d.color}
+                          style={{ outline: "none", cursor: "pointer" }}
+                        />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
@@ -996,9 +1227,18 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               </div>
 
               {/* Legend List on Right */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minWidth: 240 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  flex: 1,
+                  minWidth: 240,
+                }}
+              >
                 {contributionData.map((d) => {
-                  const pct = totalNetWorth > 0 ? ((d.value / totalNetWorth) * 100).toFixed(1) : "0";
+                  const pct =
+                    totalNetWorth > 0 ? ((d.value / totalNetWorth) * 100).toFixed(1) : "0";
                   return (
                     <div
                       key={d.name}
@@ -1037,7 +1277,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       >
                         <Prv>{fmtINRFull(d.value)}</Prv>
                       </span>
-                      <Badge variant="accent" style={{ fontSize: 10, fontWeight: 800, minWidth: 42, textAlign: "center" }}>
+                      <Badge
+                        variant="accent"
+                        style={{ fontSize: 10, fontWeight: 800, minWidth: 42, textAlign: "center" }}
+                      >
                         {pct}%
                       </Badge>
                     </div>
@@ -1050,9 +1293,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       )}
 
       {/* ── 4. MEMBER PORTFOLIO CARDS ────────────────────────────── */}
-      <SectionTitle sub="Detailed breakdown per family member">
-        Member Portfolios
-      </SectionTitle>
+      <SectionTitle sub="Detailed breakdown per family member">Member Portfolios</SectionTitle>
       <div
         style={{
           display: "grid",
@@ -1100,11 +1341,19 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   <MemberIcon size={22} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.01em" }}>
+                  <div
+                    style={{
+                      fontSize: 17,
+                      fontWeight: 800,
+                      color: THEME.ink,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
                     {m.name}
                   </div>
                   <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
-                    {m.allocation.length} asset {m.allocation.length === 1 ? "class" : "classes"} · {pct}% of family
+                    {m.allocation.length} asset {m.allocation.length === 1 ? "class" : "classes"} ·{" "}
+                    {pct}% of family
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -1139,7 +1388,16 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                           border: `1.5px solid color-mix(in srgb, ${assetColor} 15%, transparent)`,
                         }}
                       >
-                        <div style={{ fontSize: 9, fontWeight: 800, color: assetColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        <div
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            color: assetColor,
+                            marginBottom: 4,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
                           Assets
                         </div>
                         <div
@@ -1162,7 +1420,16 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                           border: `1.5px solid color-mix(in srgb, ${liabColor} 15%, transparent)`,
                         }}
                       >
-                        <div style={{ fontSize: 9, fontWeight: 800, color: liabColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        <div
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            color: liabColor,
+                            marginBottom: 4,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
                           Liabilities
                         </div>
                         <div
@@ -1183,7 +1450,17 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
               {/* Asset allocation pie + legend */}
               {m.allocation.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 16, background: "var(--surface-1)", padding: "12px", borderRadius: 14, border: `1.5px solid ${THEME.line}` }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                    background: "var(--surface-1)",
+                    padding: "12px",
+                    borderRadius: 14,
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
+                >
                   <div style={{ width: 100, height: 100, flexShrink: 0 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -1228,17 +1505,43 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                               width: 7,
                               height: 7,
                               borderRadius: "50%",
-                              background: ASSET_CLASS_COLORS[d.name] || PIE_COLORS[i % PIE_COLORS.length],
+                              background:
+                                ASSET_CLASS_COLORS[d.name] || PIE_COLORS[i % PIE_COLORS.length],
                               flexShrink: 0,
                             }}
                           />
-                          <span style={{ color: THEME.muted, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
-                          <span style={{ fontWeight: 700, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>{allocPct}%</span>
+                          <span
+                            style={{
+                              color: THEME.muted,
+                              flex: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {d.name}
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              color: THEME.ink,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {allocPct}%
+                          </span>
                         </div>
                       );
                     })}
                     {m.allocation.length > 5 && (
-                      <div style={{ fontSize: 10, color: THEME.muted, paddingLeft: 13, fontWeight: 600 }}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: THEME.muted,
+                          paddingLeft: 13,
+                          fontWeight: 600,
+                        }}
+                      >
                         +{m.allocation.length - 5} more classes
                       </div>
                     )}
@@ -1299,7 +1602,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                           >
                             {h.name}
                           </div>
-                          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 1 }}>{h.type}</div>
+                          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 1 }}>
+                            {h.type}
+                          </div>
                         </div>
                         <div
                           style={{
@@ -1345,7 +1650,12 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       </linearGradient>
                     ))}
                   </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} vertical={false} />
+                  <CartesianGrid
+                    strokeDasharray="4 4"
+                    stroke={THEME.line}
+                    opacity={0.25}
+                    vertical={false}
+                  />
                   <XAxis
                     dataKey="name"
                     tick={{ fill: THEME.muted, fontSize: 11, fontWeight: 600 }}
@@ -1399,7 +1709,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             const isAdequate = m.coverageRatio >= 10;
             const hasCoverage = m.totalLifeCover > 0;
 
-            const statusColor = !hasCoverage ? THEME.rust : hasIncome && !isAdequate ? THEME.gold : THEME.sage;
+            const statusColor = !hasCoverage
+              ? THEME.rust
+              : hasIncome && !isAdequate
+                ? THEME.gold
+                : THEME.sage;
             const goodColor = THEME.sage;
             const warnColor = THEME.gold;
             const dangerColor = THEME.rust;
@@ -1437,13 +1751,25 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 </div>
 
                 <div style={{ flex: 1, minWidth: 120 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                    {m.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, display: "flex", gap: 6, flexWrap: "wrap", fontWeight: 600 }}>
-                    <span>LIC: <Prv>{fmtINRFull(m.licCover)}</Prv></span>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{m.name}</div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      marginTop: 2,
+                      display: "flex",
+                      gap: 6,
+                      flexWrap: "wrap",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>
+                      LIC: <Prv>{fmtINRFull(m.licCover)}</Prv>
+                    </span>
                     <span style={{ opacity: 0.3 }}>|</span>
-                    <span>Term: <Prv>{fmtINRFull(m.termCover)}</Prv></span>
+                    <span>
+                      Term: <Prv>{fmtINRFull(m.termCover)}</Prv>
+                    </span>
                   </div>
                 </div>
 
@@ -1471,24 +1797,66 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         {!isAdequate && " (need 10x)"}
                       </span>
                     ) : (
-                      <span style={{ color: THEME.muted, fontStyle: "italic", fontSize: 10, fontWeight: 600 }}>
+                      <span
+                        style={{
+                          color: THEME.muted,
+                          fontStyle: "italic",
+                          fontSize: 10,
+                          fontWeight: 600,
+                        }}
+                      >
                         No income data
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div style={{ flexShrink: 0, marginLeft: 6, display: "flex", alignItems: "center" }}>
+                <div
+                  style={{ flexShrink: 0, marginLeft: 6, display: "flex", alignItems: "center" }}
+                >
                   {!hasCoverage ? (
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: `color-mix(in srgb, ${dangerColor} 12%, transparent)`, color: dangerColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: `color-mix(in srgb, ${dangerColor} 12%, transparent)`,
+                        color: dangerColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       <XCircle size={16} strokeWidth={2.5} />
                     </div>
                   ) : hasIncome && !isAdequate ? (
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: `color-mix(in srgb, ${warnColor} 12%, transparent)`, color: warnColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: `color-mix(in srgb, ${warnColor} 12%, transparent)`,
+                        color: warnColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       <AlertTriangle size={15} strokeWidth={2.5} />
                     </div>
                   ) : (
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: `color-mix(in srgb, ${goodColor} 12%, transparent)`, color: goodColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: `color-mix(in srgb, ${goodColor} 12%, transparent)`,
+                        color: goodColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       <CheckCircle2 size={16} strokeWidth={2.5} />
                     </div>
                   )}
@@ -1563,7 +1931,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               </div>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
-                  {unownedAssets.length} Asset{unownedAssets.length !== 1 ? "s" : ""} without Owner assigned
+                  {unownedAssets.length} Asset{unownedAssets.length !== 1 ? "s" : ""} without Owner
+                  assigned
                 </div>
                 <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1, fontWeight: 600 }}>
                   Edit assets and set a specific member owner to incorporate them in the summary
@@ -1585,7 +1954,17 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   }}
                 >
                   <Info size={14} color={THEME.gold} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: THEME.ink,
+                      flex: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {a.name}
                   </span>
                   <Badge variant="gold" style={{ fontSize: 10, fontWeight: 800 }}>

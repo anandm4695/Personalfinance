@@ -105,7 +105,10 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
     }, 0);
 
     // Rental income
-    const rentalIncome = (state.rentedProperties || []).reduce((s, p) => s + Number(p.monthlyRent || 0) * 12, 0);
+    const rentalIncome = (state.rentedProperties || []).reduce(
+      (s, p) => s + Number(p.monthlyRent || 0) * 12,
+      0
+    );
 
     // Dividend income
     const dividendIncome = (state.dividends || [])
@@ -120,49 +123,95 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
       .filter((s) => inFY(s.sellDate || s.date))
       .reduce((s, t) => s + Number(t.profit || 0), 0);
 
-    const totalIncome = salaryIncome + otherIncome + bankInterest + rentalIncome + dividendIncome + Math.max(0, stockGains + mfGains);
+    const totalIncome =
+      salaryIncome +
+      otherIncome +
+      bankInterest +
+      rentalIncome +
+      dividendIncome +
+      Math.max(0, stockGains + mfGains);
 
-    return { salaryIncome, otherIncome, bankInterest, rentalIncome, dividendIncome, stockGains, mfGains, totalIncome };
+    return {
+      salaryIncome,
+      otherIncome,
+      bankInterest,
+      rentalIncome,
+      dividendIncome,
+      stockGains,
+      mfGains,
+      totalIncome,
+    };
   }, [state, selectedFY]);
 
   const deductions = useMemo(() => {
     // 80C
-    const ppfContrib = (state.ppf || []).reduce((s, p) => s + Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0), 0);
+    const ppfContrib = (state.ppf || []).reduce(
+      (s, p) =>
+        s + Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0),
+      0
+    );
     const elss = (state.mutualFunds || [])
       .filter((m) => (m.category || m.type || "").toLowerCase().includes("elss"))
       .reduce((s, m) => s + Number(m.invested || 0), 0);
     const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
     const epfContrib = (state.epf || []).reduce((s, e) => {
       const txns = e.transactions || [];
-      const empContrib = txns.filter((t) => t.type === "employee_contribution" || t.type === "monthly_contribution").reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0);
+      const empContrib = txns
+        .filter((t) => t.type === "employee_contribution" || t.type === "monthly_contribution")
+        .reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0);
       return s + empContrib;
     }, 0);
     const sec80C = Math.min(150000, ppfContrib + elss + licPremium + epfContrib);
 
     // 80CCD(1B) — NPS
-    const npsContrib = (state.nps || []).reduce((s, n) => s + Number(n.thisYearContribution || n.yearContribution || 0), 0);
+    const npsContrib = (state.nps || []).reduce(
+      (s, n) => s + Number(n.thisYearContribution || n.yearContribution || 0),
+      0
+    );
     const sec80CCD1B = Math.min(50000, npsContrib);
 
     // 80D — Health insurance (estimated)
-    const healthInsurance = (state.termPlans || []).reduce((s, t) => s + Number(t.annualPremium || t.premium || 0), 0);
+    const healthInsurance = (state.termPlans || []).reduce(
+      (s, t) => s + Number(t.annualPremium || t.premium || 0),
+      0
+    );
     const sec80D = Math.min(75000, healthInsurance);
 
     // Home loan interest
     const homeLoanInterest = (state.loansTaken || [])
-      .filter((l) => (l.type || "").toLowerCase().includes("home") || (l.type || "").toLowerCase().includes("housing"))
-      .reduce((s, l) => s + Number(l.outstanding || l.principal || 0) * (Number(l.rate || 0) / 100), 0);
+      .filter(
+        (l) =>
+          (l.type || "").toLowerCase().includes("home") ||
+          (l.type || "").toLowerCase().includes("housing")
+      )
+      .reduce(
+        (s, l) => s + Number(l.outstanding || l.principal || 0) * (Number(l.rate || 0) / 100),
+        0
+      );
     const sec24 = Math.min(200000, homeLoanInterest);
 
     // 80TTA
     const savingsInterest = (state.bankAccounts || []).reduce((s, a) => {
-      if ((a.type || "").toLowerCase() === "savings") return s + (Number(a.balance || 0) * 0.03);
+      if ((a.type || "").toLowerCase() === "savings") return s + Number(a.balance || 0) * 0.03;
       return s;
     }, 0);
     const sec80TTA = Math.min(10000, savingsInterest);
 
     const totalDeductions = sec80C + sec80CCD1B + sec80D + sec24 + sec80TTA;
 
-    return { sec80C, ppfContrib, elss, licPremium, epfContrib, sec80CCD1B, npsContrib, sec80D, sec24, sec80TTA, totalDeductions };
+    return {
+      sec80C,
+      ppfContrib,
+      elss,
+      licPremium,
+      epfContrib,
+      sec80CCD1B,
+      npsContrib,
+      sec80D,
+      sec24,
+      sec80TTA,
+      totalDeductions,
+    };
   }, [state]);
 
   const taxPaid = useMemo(() => {
@@ -176,12 +225,15 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
     const now = today();
     const fy = selectedFY;
     const [startYear] = fy.split("-").map(Number);
-    const estimatedTax = Math.max(0, (incomeSummary.totalIncome - deductions.totalDeductions) * 0.2); // rough estimate
+    const estimatedTax = Math.max(
+      0,
+      (incomeSummary.totalIncome - deductions.totalDeductions) * 0.2
+    ); // rough estimate
 
     return ADVANCE_TAX_DATES.map((d) => {
       const fullDate = `${d.date.startsWith("03") ? startYear + 1 : startYear}-${d.date}`;
       const isPast = fullDate < now;
-      const due = Math.round(estimatedTax * d.pct / 100);
+      const due = Math.round((estimatedTax * d.pct) / 100);
       return { ...d, fullDate, isPast, due };
     });
   }, [selectedFY, incomeSummary, deductions]);
@@ -192,105 +244,289 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <SectionTitle sub="Pre-filled summary, checklist & advance tax tracker">Income Tax Filing Helper</SectionTitle>
-        <select value={selectedFY} onChange={(e) => setSelectedFY(e.target.value)}
-          style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 14 }}>
-          {availableFYs.map((fy) => <option key={fy} value={fy}>FY {fy}</option>)}
+        <SectionTitle sub="Pre-filled summary, checklist & advance tax tracker">
+          Income Tax Filing Helper
+        </SectionTitle>
+        <select
+          value={selectedFY}
+          onChange={(e) => setSelectedFY(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: `1px solid ${THEME.border}`,
+            background: THEME.card,
+            color: THEME.text,
+            fontSize: 14,
+          }}
+        >
+          {availableFYs.map((fy) => (
+            <option key={fy} value={fy}>
+              FY {fy}
+            </option>
+          ))}
         </select>
       </div>
 
       {/* ITR Summary */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Income Summary — FY {selectedFY}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+          Income Summary — FY {selectedFY}
+        </h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: 14,
+          }}
+        >
           {[
             { label: "Salary Income", value: incomeSummary.salaryIncome, color: THEME.accent },
             { label: "Rental Income", value: incomeSummary.rentalIncome, color: "#10B981" },
             { label: "Bank/FD Interest", value: incomeSummary.bankInterest, color: "#F59E0B" },
             { label: "Dividend Income", value: incomeSummary.dividendIncome, color: "#8B5CF6" },
-            { label: "Capital Gains (Stocks)", value: incomeSummary.stockGains, color: incomeSummary.stockGains >= 0 ? "#10B981" : "#EF4444" },
-            { label: "Capital Gains (MF)", value: incomeSummary.mfGains, color: incomeSummary.mfGains >= 0 ? "#10B981" : "#EF4444" },
+            {
+              label: "Capital Gains (Stocks)",
+              value: incomeSummary.stockGains,
+              color: incomeSummary.stockGains >= 0 ? "#10B981" : "#EF4444",
+            },
+            {
+              label: "Capital Gains (MF)",
+              value: incomeSummary.mfGains,
+              color: incomeSummary.mfGains >= 0 ? "#10B981" : "#EF4444",
+            },
             { label: "Other Income", value: incomeSummary.otherIncome, color: "#64748B" },
-          ].filter((i) => i.value !== 0).map(({ label, value, color }) => (
-            <div key={label} style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
-              <div style={{ fontSize: 12, color: THEME.textSecondary }}>{label}</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color }}><Prv>{fmtINRFull(value)}</Prv></div>
-            </div>
-          ))}
+          ]
+            .filter((i) => i.value !== 0)
+            .map(({ label, value, color }) => (
+              <div
+                key={label}
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  background: THEME.bg,
+                  border: `1px solid ${THEME.border}`,
+                }}
+              >
+                <div style={{ fontSize: 12, color: THEME.textSecondary }}>{label}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color }}>
+                  <Prv>{fmtINRFull(value)}</Prv>
+                </div>
+              </div>
+            ))}
         </div>
-        <div style={{ marginTop: 16, padding: "12px 16px", borderRadius: 12, background: "var(--accent)10", border: "1px solid var(--accent)30" }}>
+        <div
+          style={{
+            marginTop: 16,
+            padding: "12px 16px",
+            borderRadius: 12,
+            background: "var(--accent)10",
+            border: "1px solid var(--accent)30",
+          }}
+        >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Gross Total Income</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--accent)" }}><Prv>{fmtINRFull(incomeSummary.totalIncome)}</Prv></div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--accent)" }}>
+            <Prv>{fmtINRFull(incomeSummary.totalIncome)}</Prv>
+          </div>
         </div>
       </Card>
 
       {/* Deductions */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Deductions</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
-          <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+          Deductions
+        </h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              padding: "12px 16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+            }}
+          >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80C (max ₹1.5L)</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#10B981" }}><Prv>{fmtINRFull(deductions.sec80C)}</Prv></div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#10B981" }}>
+              <Prv>{fmtINRFull(deductions.sec80C)}</Prv>
+            </div>
             <div style={{ fontSize: 11, color: THEME.textSecondary, marginTop: 4 }}>
-              PPF: {fmtINRFull(deductions.ppfContrib)} | ELSS: {fmtINRFull(deductions.elss)} | LIC: {fmtINRFull(deductions.licPremium)} | EPF: {fmtINRFull(deductions.epfContrib)}
+              PPF: {fmtINRFull(deductions.ppfContrib)} | ELSS: {fmtINRFull(deductions.elss)} | LIC:{" "}
+              {fmtINRFull(deductions.licPremium)} | EPF: {fmtINRFull(deductions.epfContrib)}
             </div>
-            <div style={{ height: 4, borderRadius: 2, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, marginTop: 8 }}>
-              <div style={{ height: "100%", width: `${Math.min(100, (deductions.sec80C / 150000) * 100)}%`, borderRadius: 2, background: "#10B981" }} />
+            <div
+              style={{
+                height: 4,
+                borderRadius: 2,
+                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
+                marginTop: 8,
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.min(100, (deductions.sec80C / 150000) * 100)}%`,
+                  borderRadius: 2,
+                  background: "#10B981",
+                }}
+              />
             </div>
           </div>
-          <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80CCD(1B) — NPS (max ₹50K)</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6" }}><Prv>{fmtINRFull(deductions.sec80CCD1B)}</Prv></div>
-            <div style={{ height: 4, borderRadius: 2, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, marginTop: 8 }}>
-              <div style={{ height: "100%", width: `${Math.min(100, (deductions.sec80CCD1B / 50000) * 100)}%`, borderRadius: 2, background: "#8B5CF6" }} />
+          <div
+            style={{
+              padding: "12px 16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+            }}
+          >
+            <div style={{ fontSize: 12, color: THEME.textSecondary }}>
+              Section 80CCD(1B) — NPS (max ₹50K)
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6" }}>
+              <Prv>{fmtINRFull(deductions.sec80CCD1B)}</Prv>
+            </div>
+            <div
+              style={{
+                height: 4,
+                borderRadius: 2,
+                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
+                marginTop: 8,
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.min(100, (deductions.sec80CCD1B / 50000) * 100)}%`,
+                  borderRadius: 2,
+                  background: "#8B5CF6",
+                }}
+              />
             </div>
           </div>
-          <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80D — Health Insurance</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}><Prv>{fmtINRFull(deductions.sec80D)}</Prv></div>
+          <div
+            style={{
+              padding: "12px 16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+            }}
+          >
+            <div style={{ fontSize: 12, color: THEME.textSecondary }}>
+              Section 80D — Health Insurance
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}>
+              <Prv>{fmtINRFull(deductions.sec80D)}</Prv>
+            </div>
           </div>
-          <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 24 — Home Loan Interest</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#F59E0B" }}><Prv>{fmtINRFull(deductions.sec24)}</Prv></div>
+          <div
+            style={{
+              padding: "12px 16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+            }}
+          >
+            <div style={{ fontSize: 12, color: THEME.textSecondary }}>
+              Section 24 — Home Loan Interest
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#F59E0B" }}>
+              <Prv>{fmtINRFull(deductions.sec24)}</Prv>
+            </div>
           </div>
         </div>
-        <div style={{ marginTop: 16, padding: "12px 16px", borderRadius: 12, background: "#10B98110", border: "1px solid #10B98130" }}>
+        <div
+          style={{
+            marginTop: 16,
+            padding: "12px 16px",
+            borderRadius: 12,
+            background: "#10B98110",
+            border: "1px solid #10B98130",
+          }}
+        >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Total Deductions</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#10B981" }}><Prv>{fmtINRFull(deductions.totalDeductions)}</Prv></div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#10B981" }}>
+            <Prv>{fmtINRFull(deductions.totalDeductions)}</Prv>
+          </div>
         </div>
       </Card>
 
       {/* Tax Paid & Advance Tax */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Tax Already Paid</h3>
+          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+            Tax Already Paid
+          </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: THEME.textSecondary }}>TDS Deducted</span>
-              <span style={{ fontWeight: 600, color: THEME.text }}><Prv>{fmtINRFull(taxPaid.tds)}</Prv></span>
+              <span style={{ fontWeight: 600, color: THEME.text }}>
+                <Prv>{fmtINRFull(taxPaid.tds)}</Prv>
+              </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: THEME.textSecondary }}>Advance Tax Paid</span>
-              <span style={{ fontWeight: 600, color: THEME.text }}><Prv>{fmtINRFull(taxPaid.advanceTax)}</Prv></span>
+              <span style={{ fontWeight: 600, color: THEME.text }}>
+                <Prv>{fmtINRFull(taxPaid.advanceTax)}</Prv>
+              </span>
             </div>
-            <div style={{ borderTop: `1px solid ${THEME.border}`, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
+            <div
+              style={{
+                borderTop: `1px solid ${THEME.border}`,
+                paddingTop: 8,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
               <span style={{ fontWeight: 600, color: THEME.text }}>Total Tax Paid</span>
-              <span style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}><Prv>{fmtINRFull(taxPaid.total)}</Prv></span>
+              <span style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+                <Prv>{fmtINRFull(taxPaid.total)}</Prv>
+              </span>
             </div>
           </div>
         </Card>
 
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Advance Tax Schedule</h3>
+          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+            Advance Tax Schedule
+          </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {advanceTaxSchedule.map((d) => (
-              <div key={d.date} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px",
-                borderRadius: 8, background: d.isPast ? THEME.bg : "var(--accent)08", border: `1px solid ${d.isPast ? THEME.border : "var(--accent)30"}` }}>
+              <div
+                key={d.date}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: d.isPast ? THEME.bg : "var(--accent)08",
+                  border: `1px solid ${d.isPast ? THEME.border : "var(--accent)30"}`,
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {d.isPast ? <CheckCircle size={16} color="#10B981" /> : <Clock size={16} color="var(--accent)" />}
-                  <span style={{ fontSize: 13, color: THEME.text }}>{d.label} ({d.pct}% due)</span>
+                  {d.isPast ? (
+                    <CheckCircle size={16} color="#10B981" />
+                  ) : (
+                    <Clock size={16} color="var(--accent)" />
+                  )}
+                  <span style={{ fontSize: 13, color: THEME.text }}>
+                    {d.label} ({d.pct}% due)
+                  </span>
                 </div>
-                <span style={{ fontWeight: 600, fontSize: 13, color: d.isPast ? "#10B981" : THEME.text }}><Prv>{fmtINRFull(d.due)}</Prv></span>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: d.isPast ? "#10B981" : THEME.text,
+                  }}
+                >
+                  <Prv>{fmtINRFull(d.due)}</Prv>
+                </span>
               </div>
             ))}
           </div>
@@ -299,23 +535,81 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
 
       {/* Filing Checklist */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>ITR Filing Checklist</h3>
-          <span style={{ fontSize: 13, color: THEME.textSecondary }}>{checklistProgress} / {ITR_CHECKLIST.length} completed</span>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
+            ITR Filing Checklist
+          </h3>
+          <span style={{ fontSize: 13, color: THEME.textSecondary }}>
+            {checklistProgress} / {ITR_CHECKLIST.length} completed
+          </span>
         </div>
-        <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, marginBottom: 20 }}>
-          <div style={{ height: "100%", width: `${(checklistProgress / ITR_CHECKLIST.length) * 100}%`, borderRadius: 3, background: "var(--accent)", transition: "width 0.3s" }} />
+        <div
+          style={{
+            height: 6,
+            borderRadius: 3,
+            background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${(checklistProgress / ITR_CHECKLIST.length) * 100}%`,
+              borderRadius: 3,
+              background: "var(--accent)",
+              transition: "width 0.3s",
+            }}
+          />
         </div>
 
         {categories.map((cat) => (
           <div key={cat} style={{ marginBottom: 16 }}>
-            <h4 style={{ fontSize: 13, fontWeight: 600, color: THEME.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{cat}</h4>
+            <h4
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: THEME.textSecondary,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+              }}
+            >
+              {cat}
+            </h4>
             {ITR_CHECKLIST.filter((i) => i.category === cat).map((item) => (
-              <label key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", cursor: "pointer",
-                borderBottom: `1px solid ${THEME.border}`, color: checkedItems[item.id] ? "#10B981" : THEME.text }}>
-                <input type="checkbox" checked={!!checkedItems[item.id]} onChange={() => toggleCheck(item.id)}
-                  style={{ width: 18, height: 18, accentColor: "var(--accent)" }} />
-                <span style={{ fontSize: 14, textDecoration: checkedItems[item.id] ? "line-through" : "none" }}>{item.label}</span>
+              <label
+                key={item.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 0",
+                  cursor: "pointer",
+                  borderBottom: `1px solid ${THEME.border}`,
+                  color: checkedItems[item.id] ? "#10B981" : THEME.text,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={!!checkedItems[item.id]}
+                  onChange={() => toggleCheck(item.id)}
+                  style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+                />
+                <span
+                  style={{
+                    fontSize: 14,
+                    textDecoration: checkedItems[item.id] ? "line-through" : "none",
+                  }}
+                >
+                  {item.label}
+                </span>
               </label>
             ))}
           </div>

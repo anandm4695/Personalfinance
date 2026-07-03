@@ -1,13 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   Printer,
   FileText,
@@ -98,8 +91,7 @@ const PIE_COLORS = [
 ];
 
 /* ── P&L color helper ──────────────────────────────────────────────── */
-const plColor = (v: number) =>
-  v > 0 ? "#059669" : v < 0 ? "#DC2626" : THEME.muted;
+const plColor = (v: number) => (v > 0 ? "#059669" : v < 0 ? "#DC2626" : THEME.muted);
 
 const plSign = (v: number) => (v > 0 ? "+" : "");
 
@@ -200,10 +192,7 @@ export const InvestmentStatementTab = ({
   /* ── Helper: RD elapsed months ───────────────────────────────────── */
   const rdElapsed = (x: any) =>
     x.startDate
-      ? Math.min(
-          Number(x.tenureMonths) || 0,
-          Math.max(0, monthsBetween(x.startDate, today()))
-        )
+      ? Math.min(Number(x.tenureMonths) || 0, Math.max(0, monthsBetween(x.startDate, today())))
       : Number(x.tenureMonths) || 0;
 
   const rdCurrentValue = (x: any) =>
@@ -259,9 +248,7 @@ export const InvestmentStatementTab = ({
     );
     // Use earliest buyDate for CAGR
     const stockDates = stocks.filter((s: any) => s.buyDate).map((s: any) => s.buyDate);
-    const earliestStockDate = stockDates.length
-      ? stockDates.sort()[0]
-      : null;
+    const earliestStockDate = stockDates.length ? stockDates.sort()[0] : null;
     const stockCAGR =
       earliestStockDate && stockInvested > 0
         ? calcCAGR(stockInvested, stockCurrent, earliestStockDate)
@@ -275,20 +262,28 @@ export const InvestmentStatementTab = ({
     );
     const debtMFs = mfs.filter(
       (m: any) =>
-        !((m.category || "").toLowerCase().includes("equity") ||
-          (m.category || "").toLowerCase().includes("elss"))
+        !(
+          (m.category || "").toLowerCase().includes("equity") ||
+          (m.category || "").toLowerCase().includes("elss")
+        )
     );
 
     const mfInvested = (list: any[]) =>
       list.reduce(
         (s: number, m: any) =>
-          s + (Number(m.invested || m.investedValue) || (Number(m.units || 0) * Number(m.buyNav || 0)) || 0),
+          s +
+          (Number(m.invested || m.investedValue) ||
+            Number(m.units || 0) * Number(m.buyNav || 0) ||
+            0),
         0
       );
     const mfCurrent = (list: any[]) =>
       list.reduce(
         (s: number, m: any) =>
-          s + (Number(m.units || 0) * Number(m.currentNav || 0) || Number(m.invested || m.investedValue) || 0),
+          s +
+          (Number(m.units || 0) * Number(m.currentNav || 0) ||
+            Number(m.invested || m.investedValue) ||
+            0),
         0
       );
 
@@ -298,9 +293,10 @@ export const InvestmentStatementTab = ({
     const debtMFCurrent = mfCurrent(debtMFs);
 
     const eqMFDates = equityMFs.filter((m: any) => m.buyDate).map((m: any) => m.buyDate);
-    const eqMFCAGR = eqMFDates.length && eqMFInvested > 0
-      ? calcCAGR(eqMFInvested, eqMFCurrent, eqMFDates.sort()[0])
-      : null;
+    const eqMFCAGR =
+      eqMFDates.length && eqMFInvested > 0
+        ? calcCAGR(eqMFInvested, eqMFCurrent, eqMFDates.sort()[0])
+        : null;
 
     /* ── Debt - FDs ───────────────────────────────────────────────── */
     const fdInvested = fds.reduce((s: number, x: any) => s + (Number(x.principal) || 0), 0);
@@ -344,10 +340,7 @@ export const InvestmentStatementTab = ({
       }
       return s + (Number(x.balance) || 0);
     }, 0);
-    const ppfBalance = ppfs.reduce(
-      (s: number, x: any) => s + (Number(x.balance) || 0),
-      0
-    );
+    const ppfBalance = ppfs.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0);
 
     /* ── NPS ──────────────────────────────────────────────────────── */
     const npsContributions = npsList.reduce((s: number, x: any) => {
@@ -364,59 +357,61 @@ export const InvestmentStatementTab = ({
       }
       return s + (Number(x.balance) || 0);
     }, 0);
-    const npsBalance = npsList.reduce(
-      (s: number, x: any) => s + (Number(x.balance) || 0),
-      0
-    );
+    const npsBalance = npsList.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0);
 
     /* ── EPF ──────────────────────────────────────────────────────── */
-    const epfBalance = epfs.reduce(
-      (s: number, x: any) => s + calculateEpfBalance(x),
-      0
-    );
+    const epfBalance = epfs.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0);
     const epfContributions = epfs.reduce((s: number, x: any) => {
       const txs = x.transactions || [];
       const hasPassbook = txs.some(
-        (t: any) => t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in"
+        (t: any) =>
+          t.type === "monthly_contribution" ||
+          t.type === "interest_credit" ||
+          t.type === "transfer_in"
       );
       if (!hasPassbook) return s + (Number(x.balance) || 0);
       const monthlyRows = txs.filter((t: any) => t.type === "monthly_contribution");
-      const empContrib = txs.filter((t: any) => t.type === "employee_contribution").reduce((a: number, t: any) => a + Number(t.amount || 0), 0)
-        + monthlyRows.reduce((a: number, t: any) => a + Number(t.employeeShare || 0), 0);
-      const erContrib = txs.filter((t: any) => t.type === "employer_contribution").reduce((a: number, t: any) => a + Number(t.amount || 0), 0)
-        + monthlyRows.reduce((a: number, t: any) => a + Number(t.employerShare || 0), 0);
-      const penContrib = monthlyRows.reduce((a: number, t: any) => a + Number(t.pensionShare || 0), 0);
-      const transferIn = txs.filter((t: any) => t.type === "transfer_in").reduce((a: number, t: any) => a + Number(t.amount || 0), 0);
-      const withdrawal = txs.filter((t: any) => t.type === "withdrawal").reduce((a: number, t: any) => a + Number(t.amount || 0), 0);
+      const empContrib =
+        txs
+          .filter((t: any) => t.type === "employee_contribution")
+          .reduce((a: number, t: any) => a + Number(t.amount || 0), 0) +
+        monthlyRows.reduce((a: number, t: any) => a + Number(t.employeeShare || 0), 0);
+      const erContrib =
+        txs
+          .filter((t: any) => t.type === "employer_contribution")
+          .reduce((a: number, t: any) => a + Number(t.amount || 0), 0) +
+        monthlyRows.reduce((a: number, t: any) => a + Number(t.employerShare || 0), 0);
+      const penContrib = monthlyRows.reduce(
+        (a: number, t: any) => a + Number(t.pensionShare || 0),
+        0
+      );
+      const transferIn = txs
+        .filter((t: any) => t.type === "transfer_in")
+        .reduce((a: number, t: any) => a + Number(t.amount || 0), 0);
+      const withdrawal = txs
+        .filter((t: any) => t.type === "withdrawal")
+        .reduce((a: number, t: any) => a + Number(t.amount || 0), 0);
       return s + empContrib + erContrib + penContrib + transferIn - withdrawal;
     }, 0);
 
     /* ── LIC / Insurance Plans ────────────────────────────────────── */
-    const licPremiums = licPolicies.reduce(
-      (s: number, x: any) => {
-        const txTotal = (x.transactions || []).reduce(
-          (sum: number, t: any) => sum + Number(t.amount || 0), 0
-        );
-        return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
-      },
-      0
-    );
-    const licValue = licPolicies.reduce(
-      (s: number, x: any) => s + (Number(x.sumAssured) || 0),
-      0
-    );
-    const investPremiums = investmentPlans.reduce(
-      (s: number, x: any) => {
-        const txTotal = (x.transactions || []).reduce(
-          (sum: number, t: any) => sum + Number(t.amount || 0), 0
-        );
-        return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
-      },
-      0
-    );
+    const licPremiums = licPolicies.reduce((s: number, x: any) => {
+      const txTotal = (x.transactions || []).reduce(
+        (sum: number, t: any) => sum + Number(t.amount || 0),
+        0
+      );
+      return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+    }, 0);
+    const licValue = licPolicies.reduce((s: number, x: any) => s + (Number(x.sumAssured) || 0), 0);
+    const investPremiums = investmentPlans.reduce((s: number, x: any) => {
+      const txTotal = (x.transactions || []).reduce(
+        (sum: number, t: any) => sum + Number(t.amount || 0),
+        0
+      );
+      return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+    }, 0);
     const investValue = investmentPlans.reduce(
-      (s: number, x: any) =>
-        s + (Number(x.expectedMaturityAmount || x.sumAssured) || 0),
+      (s: number, x: any) => s + (Number(x.expectedMaturityAmount || x.sumAssured) || 0),
       0
     );
     const insurancePremiums = licPremiums + investPremiums;
@@ -424,17 +419,19 @@ export const InvestmentStatementTab = ({
 
     /* ── Debt MFs row ─────────────────────────────────────────────── */
     const debtMFDates = debtMFs.filter((m: any) => m.buyDate).map((m: any) => m.buyDate);
-    const debtMFCAGR = debtMFDates.length && debtMFInvested > 0
-      ? calcCAGR(debtMFInvested, debtMFCurrent, debtMFDates.sort()[0])
-      : null;
+    const debtMFCAGR =
+      debtMFDates.length && debtMFInvested > 0
+        ? calcCAGR(debtMFInvested, debtMFCurrent, debtMFDates.sort()[0])
+        : null;
 
     /* ── NPS CAGR ─────────────────────────────────────────────────── */
     const npsTxDates = npsList.flatMap((x: any) =>
       (x.transactions || []).filter((t: any) => t.date).map((t: any) => t.date)
     );
-    const npsCAGR = npsTxDates.length && npsContributions > 0
-      ? calcCAGR(npsContributions, npsBalance, npsTxDates.sort()[0])
-      : null;
+    const npsCAGR =
+      npsTxDates.length && npsContributions > 0
+        ? calcCAGR(npsContributions, npsBalance, npsTxDates.sort()[0])
+        : null;
 
     /* ── Build rows ───────────────────────────────────────────────── */
     const rows = [
@@ -531,10 +528,7 @@ export const InvestmentStatementTab = ({
     const weightedRows = rows.filter((r) => r.rate != null && r.current > 0);
     const weightedCAGR =
       totalCurrent > 0 && weightedRows.length > 0
-        ? weightedRows.reduce(
-            (s, r) => s + (r.rate || 0) * (r.current / totalCurrent),
-            0
-          )
+        ? weightedRows.reduce((s, r) => s + (r.rate || 0) * (r.current / totalCurrent), 0)
         : null;
 
     // Add allocation %
@@ -717,9 +711,7 @@ export const InvestmentStatementTab = ({
                   </Prv>
                 </td>
                 <td style={tdBoldRight}>
-                  {summary.weightedCAGR != null
-                    ? `${summary.weightedCAGR.toFixed(1)}%`
-                    : "--"}
+                  {summary.weightedCAGR != null ? `${summary.weightedCAGR.toFixed(1)}%` : "--"}
                 </td>
                 <td style={tdBoldRight}>100%</td>
               </tr>
@@ -761,14 +753,12 @@ export const InvestmentStatementTab = ({
                       0
                     );
                     const totalInvested = g.lots.reduce(
-                      (s: number, l: any) =>
-                        s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0),
+                      (s: number, l: any) => s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0),
                       0
                     );
                     const avgPrice = totalQty > 0 ? totalInvested / totalQty : 0;
                     const livePrice =
-                      marketData?.[g.yfSym]?.price ??
-                      Number(g.lots[0]?.currentPrice || 0);
+                      marketData?.[g.yfSym]?.price ?? Number(g.lots[0]?.currentPrice || 0);
                     const currentValue = totalQty * livePrice;
                     const pl = currentValue - totalInvested;
                     const plPct = totalInvested > 0 ? (pl / totalInvested) * 100 : 0;
@@ -801,9 +791,7 @@ export const InvestmentStatementTab = ({
                             {fmtINRFull(pl)}
                           </Prv>
                         </td>
-                        <td style={{ ...tdRight, color: plColor(plPct) }}>
-                          {fmtPct(plPct)}
-                        </td>
+                        <td style={{ ...tdRight, color: plColor(plPct) }}>{fmtPct(plPct)}</td>
                         <td
                           style={{
                             ...td,
@@ -858,8 +846,7 @@ export const InvestmentStatementTab = ({
                     const units = Number(mf.units) || 0;
                     const buyNav = Number(mf.buyNav) || 0;
                     const currentNav = Number(mf.currentNav) || 0;
-                    const invested =
-                      Number(mf.invested || mf.investedValue) || units * buyNav || 0;
+                    const invested = Number(mf.invested || mf.investedValue) || units * buyNav || 0;
                     const currentValue = units * currentNav || invested;
                     const pl = currentValue - invested;
                     const plPct = invested > 0 ? (pl / invested) * 100 : 0;
@@ -880,9 +867,7 @@ export const InvestmentStatementTab = ({
                         <td style={td}>
                           <Badge
                             variant={
-                              (mf.category || "")
-                                .toLowerCase()
-                                .includes("equity")
+                              (mf.category || "").toLowerCase().includes("equity")
                                 ? "accent"
                                 : "sage"
                             }
@@ -894,20 +879,12 @@ export const InvestmentStatementTab = ({
                         <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
                           {mf.folioNumber || "--"}
                         </td>
+                        <td style={tdRight}>{units > 0 ? units.toFixed(3) : "--"}</td>
                         <td style={tdRight}>
-                          {units > 0 ? units.toFixed(3) : "--"}
+                          <Prv>{buyNav > 0 ? `₹${buyNav.toFixed(2)}` : "--"}</Prv>
                         </td>
                         <td style={tdRight}>
-                          <Prv>
-                            {buyNav > 0 ? `₹${buyNav.toFixed(2)}` : "--"}
-                          </Prv>
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>
-                            {currentNav > 0
-                              ? `₹${currentNav.toFixed(2)}`
-                              : "--"}
-                          </Prv>
+                          <Prv>{currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "--"}</Prv>
                         </td>
                         <td style={tdRight}>
                           <Prv>{fmtINRFull(invested)}</Prv>
@@ -921,9 +898,7 @@ export const InvestmentStatementTab = ({
                             {fmtINRFull(pl)}
                           </Prv>
                         </td>
-                        <td style={{ ...tdRight, color: plColor(plPct) }}>
-                          {fmtPct(plPct)}
-                        </td>
+                        <td style={{ ...tdRight, color: plColor(plPct) }}>{fmtPct(plPct)}</td>
                       </tr>
                     );
                   })}
@@ -969,9 +944,7 @@ export const InvestmentStatementTab = ({
 
                     return (
                       <tr key={fd.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>
-                          {fd.bank || "--"}
-                        </td>
+                        <td style={{ ...td, fontWeight: 600 }}>{fd.bank || "--"}</td>
                         <td style={tdRight}>
                           <Prv>{fmtINRFull(principal)}</Prv>
                         </td>
@@ -1035,9 +1008,7 @@ export const InvestmentStatementTab = ({
 
                     return (
                       <tr key={rd.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>
-                          {rd.bank || "--"}
-                        </td>
+                        <td style={{ ...td, fontWeight: 600 }}>{rd.bank || "--"}</td>
                         <td style={tdRight}>
                           <Prv>{fmtINRFull(monthly)}</Prv>
                         </td>
@@ -1080,25 +1051,18 @@ export const InvestmentStatementTab = ({
                 </thead>
                 <tbody>
                   {state.bonds.map((b: any) => {
-                    const faceValue =
-                      Number(b.totalInvestmentAmount || b.faceValue) || 0;
+                    const faceValue = Number(b.totalInvestmentAmount || b.faceValue) || 0;
                     const coupon = Number(b.coupon) || 0;
                     const ytm = Number(b.ytmRate) || 0;
 
                     return (
                       <tr key={b.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>
-                          {b.name || "--"}
-                        </td>
+                        <td style={{ ...td, fontWeight: 600 }}>{b.name || "--"}</td>
                         <td style={tdRight}>
                           <Prv>{fmtINRFull(faceValue)}</Prv>
                         </td>
-                        <td style={tdRight}>
-                          {coupon > 0 ? `${coupon}%` : "--"}
-                        </td>
-                        <td style={tdRight}>
-                          {ytm > 0 ? `${ytm}%` : "--"}
-                        </td>
+                        <td style={tdRight}>{coupon > 0 ? `${coupon}%` : "--"}</td>
+                        <td style={tdRight}>{ytm > 0 ? `${ytm}%` : "--"}</td>
                         <td style={td}>{b.maturityDate || "--"}</td>
                       </tr>
                     );
@@ -1135,25 +1099,18 @@ export const InvestmentStatementTab = ({
                 <tbody>
                   {state.ppf.map((p: any) => {
                     const balance = Number(p.balance) || 0;
-                    const currentFY = new Date().getMonth() >= 3
-                      ? new Date().getFullYear()
-                      : new Date().getFullYear() - 1;
+                    const currentFY =
+                      new Date().getMonth() >= 3
+                        ? new Date().getFullYear()
+                        : new Date().getFullYear() - 1;
                     const fyStart = `${currentFY}-04-01`;
                     const thisYearDeposit = (p.transactions || [])
-                      .filter(
-                        (t: any) =>
-                          t.type === "deposit" && t.date && t.date >= fyStart
-                      )
-                      .reduce(
-                        (s: number, t: any) => s + (Number(t.amount) || 0),
-                        0
-                      );
+                      .filter((t: any) => t.type === "deposit" && t.date && t.date >= fyStart)
+                      .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
 
                     return (
                       <tr key={p.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>
-                          {p.institution || "--"}
-                        </td>
+                        <td style={{ ...td, fontWeight: 600 }}>{p.institution || "--"}</td>
                         <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
                           {p.accountNumber || "--"}
                         </td>
@@ -1161,11 +1118,7 @@ export const InvestmentStatementTab = ({
                           <Prv>{fmtINRFull(balance)}</Prv>
                         </td>
                         <td style={tdRight}>
-                          <Prv>
-                            {thisYearDeposit > 0
-                              ? fmtINRFull(thisYearDeposit)
-                              : "--"}
-                          </Prv>
+                          <Prv>{thisYearDeposit > 0 ? fmtINRFull(thisYearDeposit) : "--"}</Prv>
                         </td>
                       </tr>
                     );
@@ -1201,12 +1154,8 @@ export const InvestmentStatementTab = ({
                 <tbody>
                   {state.nps.map((n: any) => (
                     <tr key={n.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>
-                        {n.fundManager || "--"}
-                      </td>
-                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
-                        {n.pran || "--"}
-                      </td>
+                      <td style={{ ...td, fontWeight: 600 }}>{n.fundManager || "--"}</td>
+                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>{n.pran || "--"}</td>
                       <td style={td}>
                         <Badge
                           variant={n.tier === "II" ? "gold" : "accent"}
@@ -1216,13 +1165,21 @@ export const InvestmentStatementTab = ({
                         </Badge>
                       </td>
                       <td style={tdRight}>
-                        <Prv>{fmtINRFull((() => {
-                          const bal = Number(n.balance) || 0;
-                          if (bal > 0) return bal;
-                          return (n.transactions || []).reduce(
-                            (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
-                          );
-                        })())}</Prv>
+                        <Prv>
+                          {fmtINRFull(
+                            (() => {
+                              const bal = Number(n.balance) || 0;
+                              if (bal > 0) return bal;
+                              return (n.transactions || []).reduce(
+                                (ss: number, t: any) =>
+                                  ss +
+                                  (Number(t.employeeAmount) || 0) +
+                                  (Number(t.employerAmount) || 0),
+                                0
+                              );
+                            })()
+                          )}
+                        </Prv>
                       </td>
                     </tr>
                   ))}
@@ -1256,12 +1213,8 @@ export const InvestmentStatementTab = ({
                 <tbody>
                   {state.epf.map((e: any) => (
                     <tr key={e.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>
-                        {e.employer || "--"}
-                      </td>
-                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
-                        {e.uan || "--"}
-                      </td>
+                      <td style={{ ...td, fontWeight: 600 }}>{e.employer || "--"}</td>
+                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>{e.uan || "--"}</td>
                       <td style={tdRight}>
                         <Prv>{fmtINRFull(calculateEpfBalance(e))}</Prv>
                       </td>
@@ -1275,7 +1228,7 @@ export const InvestmentStatementTab = ({
       )}
 
       {/* ── Insurance ──────────────────────────────────────────────── */}
-      {((state.lic?.length || 0) + (state.investmentPlans?.length || 0)) > 0 && (
+      {(state.lic?.length || 0) + (state.investmentPlans?.length || 0) > 0 && (
         <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
           <SectionHeader
             icon={Heart}
@@ -1300,9 +1253,7 @@ export const InvestmentStatementTab = ({
                 <tbody>
                   {(state.lic || []).map((l: any) => (
                     <tr key={l.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>
-                        {l.planName || "--"}
-                      </td>
+                      <td style={{ ...td, fontWeight: 600 }}>{l.planName || "--"}</td>
                       <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
                         {l.policyNumber || "--"}
                       </td>
@@ -1312,12 +1263,17 @@ export const InvestmentStatementTab = ({
                         </Badge>
                       </td>
                       <td style={tdRight}>
-                        <Prv>{fmtINRFull((() => {
-                          const txTotal = (l.transactions || []).reduce(
-                            (sum: number, t: any) => sum + Number(t.amount || 0), 0
-                          );
-                          return txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
-                        })())}</Prv>
+                        <Prv>
+                          {fmtINRFull(
+                            (() => {
+                              const txTotal = (l.transactions || []).reduce(
+                                (sum: number, t: any) => sum + Number(t.amount || 0),
+                                0
+                              );
+                              return txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
+                            })()
+                          )}
+                        </Prv>
                       </td>
                       <td style={tdRight}>
                         <Prv>{fmtINRFull(Number(l.sumAssured) || 0)}</Prv>
@@ -1339,18 +1295,21 @@ export const InvestmentStatementTab = ({
                         </Badge>
                       </td>
                       <td style={tdRight}>
-                        <Prv>{fmtINRFull((() => {
-                          const txTotal = (ip.transactions || []).reduce(
-                            (sum: number, t: any) => sum + Number(t.amount || 0), 0
-                          );
-                          return txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
-                        })())}</Prv>
+                        <Prv>
+                          {fmtINRFull(
+                            (() => {
+                              const txTotal = (ip.transactions || []).reduce(
+                                (sum: number, t: any) => sum + Number(t.amount || 0),
+                                0
+                              );
+                              return txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
+                            })()
+                          )}
+                        </Prv>
                       </td>
                       <td style={tdRight}>
                         <Prv>
-                          {fmtINRFull(
-                            Number(ip.expectedMaturityAmount || ip.sumAssured) || 0
-                          )}
+                          {fmtINRFull(Number(ip.expectedMaturityAmount || ip.sumAssured) || 0)}
                         </Prv>
                       </td>
                       <td style={td}>{ip.maturityDate || "--"}</td>
@@ -1401,10 +1360,7 @@ export const InvestmentStatementTab = ({
                     stroke="none"
                   >
                     {summary.pieData.map((_: any, i: number) => (
-                      <Cell
-                        key={`cell-${i}`}
-                        fill={PIE_COLORS[i % PIE_COLORS.length]}
-                      />
+                      <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -1423,9 +1379,7 @@ export const InvestmentStatementTab = ({
                     verticalAlign="bottom"
                     height={36}
                     formatter={(value: string) => (
-                      <span style={{ color: THEME.ink, fontSize: 12 }}>
-                        {value}
-                      </span>
+                      <span style={{ color: THEME.ink, fontSize: 12 }}>{value}</span>
                     )}
                   />
                 </PieChart>
@@ -1440,10 +1394,7 @@ export const InvestmentStatementTab = ({
               }}
             >
               {summary.pieData.map((d: any, i: number) => {
-                const total = summary.pieData.reduce(
-                  (s: number, x: any) => s + x.value,
-                  0
-                );
+                const total = summary.pieData.reduce((s: number, x: any) => s + x.value, 0);
                 const pct = total > 0 ? ((d.value / total) * 100).toFixed(1) : "0";
                 return (
                   <div

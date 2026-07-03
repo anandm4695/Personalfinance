@@ -66,8 +66,18 @@ const parseDate = (dateStr: string): string | null => {
   const dmy = d.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
   const MONTHS: Record<string, string> = {
-    jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
-    jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+    jan: "01",
+    feb: "02",
+    mar: "03",
+    apr: "04",
+    may: "05",
+    jun: "06",
+    jul: "07",
+    aug: "08",
+    sep: "09",
+    oct: "10",
+    nov: "11",
+    dec: "12",
   };
   const dMonY = d.match(/^(\d{1,2})-?(\w{3})-?(\d{2,4})$/i);
   if (dMonY) {
@@ -159,7 +169,12 @@ interface BrokerImportModalProps {
   onImport: (buys: any[], sells: any[]) => void;
 }
 
-export function BrokerImportModal({ existingStocks, demats, onClose, onImport }: BrokerImportModalProps) {
+export function BrokerImportModal({
+  existingStocks,
+  demats,
+  onClose,
+  onImport,
+}: BrokerImportModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,14 +212,20 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
         setUploadError("Could not read file contents.");
         return;
       }
-      const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+      const lines = text
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
       if (lines.length < 2) {
         setUploadError("CSV must have a header row and at least one data row.");
         return;
       }
       const headers = parseCSVLine(lines[0]).map((h) => h.replace(/^"|"$/g, ""));
       const headersLower = headers.map((h) => h.toLowerCase().trim());
-      const dataRows = lines.slice(1).map((l) => parseCSVLine(l)).filter((r) => r.length >= headers.length * 0.5);
+      const dataRows = lines
+        .slice(1)
+        .map((l) => parseCSVLine(l))
+        .filter((r) => r.length >= headers.length * 0.5);
 
       if (dataRows.length === 0) {
         setUploadError("No valid data rows found in the file.");
@@ -217,7 +238,12 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
       // Auto-detect broker
       let broker = "";
       let autoMap: Record<MappingKey, number> = {
-        symbol: -1, exchange: -1, date: -1, qty: -1, price: -1, tradeType: -1,
+        symbol: -1,
+        exchange: -1,
+        date: -1,
+        qty: -1,
+        price: -1,
+        tradeType: -1,
       };
 
       for (const profile of BROKER_PROFILES) {
@@ -262,10 +288,7 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
   /* ── Step 2: Validate mapping completeness ───────────────────────── */
   const mappingValid = useMemo(() => {
     return (
-      columnMap.symbol >= 0 &&
-      columnMap.date >= 0 &&
-      columnMap.qty >= 0 &&
-      columnMap.price >= 0
+      columnMap.symbol >= 0 && columnMap.date >= 0 && columnMap.qty >= 0 && columnMap.price >= 0
     );
   }, [columnMap]);
 
@@ -273,12 +296,17 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
   const parseTrades = () => {
     const parsed: ParsedTrade[] = [];
     for (const row of rawRows) {
-      const rawSymbol = (row[columnMap.symbol] || "").trim().toUpperCase().replace(/\.(NS|BO)$/i, "");
+      const rawSymbol = (row[columnMap.symbol] || "")
+        .trim()
+        .toUpperCase()
+        .replace(/\.(NS|BO)$/i, "");
       const rawDate = row[columnMap.date] || "";
       const rawQty = row[columnMap.qty] || "";
       const rawPrice = row[columnMap.price] || "";
-      const rawExchange = columnMap.exchange >= 0 ? (row[columnMap.exchange] || "").trim().toUpperCase() : "";
-      const rawType = columnMap.tradeType >= 0 ? (row[columnMap.tradeType] || "").trim().toUpperCase() : "";
+      const rawExchange =
+        columnMap.exchange >= 0 ? (row[columnMap.exchange] || "").trim().toUpperCase() : "";
+      const rawType =
+        columnMap.tradeType >= 0 ? (row[columnMap.tradeType] || "").trim().toUpperCase() : "";
 
       if (!rawSymbol) continue;
 
@@ -289,18 +317,17 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
       const price = Math.abs(parseFloat(rawPrice.replace(/,/g, "")));
       if (isNaN(qty) || qty <= 0 || isNaN(price) || price <= 0) continue;
 
-      const exchange = rawExchange === "BSE" ? "BSE" : (rawExchange === "NSE" ? "NSE" : defaultExchange);
-      const tradeType: "BUY" | "SELL" = rawType.includes("SELL") || rawType === "S" ? "SELL" : "BUY";
+      const exchange =
+        rawExchange === "BSE" ? "BSE" : rawExchange === "NSE" ? "NSE" : defaultExchange;
+      const tradeType: "BUY" | "SELL" =
+        rawType.includes("SELL") || rawType === "S" ? "SELL" : "BUY";
 
       // Check for duplicates against existing portfolio
       const isDuplicate = existingStocks.some((s: any) => {
         const sBase = (s.symbol || "").replace(/\.(NS|BO)$/i, "").toUpperCase();
         const sExch = (s.exchange || "NSE").toUpperCase();
         return (
-          sBase === rawSymbol &&
-          sExch === exchange &&
-          Number(s.qty) === qty &&
-          s.buyDate === date
+          sBase === rawSymbol && sExch === exchange && Number(s.qty) === qty && s.buyDate === date
         );
       });
 
@@ -321,22 +348,24 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
 
   /* ── Step 3: Count selected trades ───────────────────────────────── */
   const selectedTrades = useMemo(() => trades.filter((t) => t.selected), [trades]);
-  const buyTrades = useMemo(() => selectedTrades.filter((t) => t.tradeType === "BUY"), [selectedTrades]);
-  const sellTrades = useMemo(() => selectedTrades.filter((t) => t.tradeType === "SELL"), [selectedTrades]);
+  const buyTrades = useMemo(
+    () => selectedTrades.filter((t) => t.tradeType === "BUY"),
+    [selectedTrades]
+  );
+  const sellTrades = useMemo(
+    () => selectedTrades.filter((t) => t.tradeType === "SELL"),
+    [selectedTrades]
+  );
   const duplicateCount = useMemo(() => trades.filter((t) => t.isDuplicate).length, [trades]);
 
   const toggleTrade = (idx: number) => {
-    setTrades((prev) =>
-      prev.map((t, i) => (i === idx ? { ...t, selected: !t.selected } : t))
-    );
+    setTrades((prev) => prev.map((t, i) => (i === idx ? { ...t, selected: !t.selected } : t)));
   };
 
   const toggleSkipDuplicates = () => {
     const newSkip = !skipDuplicates;
     setSkipDuplicates(newSkip);
-    setTrades((prev) =>
-      prev.map((t) => (t.isDuplicate ? { ...t, selected: !newSkip } : t))
-    );
+    setTrades((prev) => prev.map((t) => (t.isDuplicate ? { ...t, selected: !newSkip } : t)));
   };
 
   /* ── Final import ──────────────────────────────────────────────── */
@@ -377,9 +406,7 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
           { num: 3, label: "Review" },
         ].map((s, idx) => (
           <React.Fragment key={s.num}>
-            {idx > 0 && (
-              <ChevronRight size={14} color={THEME.muted} style={{ flexShrink: 0 }} />
-            )}
+            {idx > 0 && <ChevronRight size={14} color={THEME.muted} style={{ flexShrink: 0 }} />}
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={stepBadge(step === s.num, step > s.num)}>
                 {step > s.num ? <CheckCircle size={14} /> : s.num}
@@ -414,8 +441,8 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
               Upload your broker trade statement
             </div>
             <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
-              Supports Zerodha (Kite), Groww, and generic CSV formats. Download your trade
-              history CSV from your broker app and upload it here.
+              Supports Zerodha (Kite), Groww, and generic CSV formats. Download your trade history
+              CSV from your broker app and upload it here.
             </div>
           </div>
 
@@ -490,7 +517,14 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
                   borderRadius: 10,
                 }}
               >
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, whiteSpace: "nowrap" }}>
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: 11,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   <thead>
                     <tr style={{ background: "var(--surface-0)" }}>
                       {rawHeaders.map((h, i) => (
@@ -516,7 +550,10 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
                     {previewRows.map((row, ri) => (
                       <tr key={ri} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                         {rawHeaders.map((_, ci) => (
-                          <td key={ci} style={{ padding: "6px 10px", color: THEME.ink, fontSize: 12 }}>
+                          <td
+                            key={ci}
+                            style={{ padding: "6px 10px", color: THEME.ink, fontSize: 12 }}
+                          >
                             {row[ci] || ""}
                           </td>
                         ))}
@@ -574,7 +611,9 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}
+          >
             {MAPPING_TARGETS.map((target) => (
               <Field key={target.key} label={`${target.label}${target.required ? " *" : ""}`}>
                 <select
@@ -610,11 +649,7 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
           </Field>
 
           <Field label="Import into Demat Account">
-            <select
-              style={inputStyle}
-              value={dematId}
-              onChange={(e) => setDematId(e.target.value)}
-            >
+            <select style={inputStyle} value={dematId} onChange={(e) => setDematId(e.target.value)}>
               {demats.length === 0 && <option value="">Add demat account first</option>}
               {demats.map((d: any) => (
                 <option key={d.id} value={d.id}>
@@ -628,11 +663,7 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
             <Button variant="ghost" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button
-              variant="accent"
-              onClick={parseTrades}
-              disabled={!mappingValid}
-            >
+            <Button variant="accent" onClick={parseTrades} disabled={!mappingValid}>
               Next: Review Trades
             </Button>
           </div>
@@ -682,7 +713,8 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
                 onChange={toggleSkipDuplicates}
                 style={{ accentColor: THEME.accent }}
               />
-              Skip {duplicateCount} duplicate{duplicateCount !== 1 ? "s" : ""} (already in portfolio)
+              Skip {duplicateCount} duplicate{duplicateCount !== 1 ? "s" : ""} (already in
+              portfolio)
             </label>
           )}
 
@@ -698,7 +730,9 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
           >
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
-                <tr style={{ background: "var(--surface-0)", position: "sticky", top: 0, zIndex: 1 }}>
+                <tr
+                  style={{ background: "var(--surface-0)", position: "sticky", top: 0, zIndex: 1 }}
+                >
                   <th
                     style={{
                       padding: "8px 10px",
@@ -765,9 +799,7 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
                     <td style={{ padding: "8px 10px", fontWeight: 700, color: THEME.ink }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         {t.symbol}
-                        {t.isDuplicate && (
-                          <AlertTriangle size={12} color={THEME.gold} />
-                        )}
+                        {t.isDuplicate && <AlertTriangle size={12} color={THEME.gold} />}
                       </div>
                     </td>
                     <td style={{ padding: "8px 10px" }}>
@@ -807,7 +839,14 @@ export function BrokerImportModal({ existingStocks, demats, onClose, onImport }:
                     <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600 }}>
                       {fmtINRFull(t.price)}
                     </td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: THEME.ink }}>
+                    <td
+                      style={{
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontWeight: 800,
+                        color: THEME.ink,
+                      }}
+                    >
                       {fmtINRFull(t.qty * t.price)}
                     </td>
                   </tr>

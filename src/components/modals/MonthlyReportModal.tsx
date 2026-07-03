@@ -284,17 +284,20 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   function handleDownloadPDF() {
     // Walk up from our ref to find the portal's modal-backdrop root
     const el = reportRef.current;
-    if (!el) { window.print(); return; }
-    const modalRoot = el.closest('.modal-backdrop') || el.parentElement;
+    if (!el) {
+      window.print();
+      return;
+    }
+    const modalRoot = el.closest(".modal-backdrop") || el.parentElement;
     if (modalRoot) {
-      modalRoot.classList.add('monthly-report-print-root');
+      modalRoot.classList.add("monthly-report-print-root");
     }
     // Small delay to let DOM update before triggering print
     requestAnimationFrame(() => {
       window.print();
       // Clean up the class after print dialog closes
       if (modalRoot) {
-        modalRoot.classList.remove('monthly-report-print-root');
+        modalRoot.classList.remove("monthly-report-print-root");
       }
     });
   }
@@ -317,7 +320,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   return (
     <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose}>
       <div ref={reportRef}>
-      <style>{`
+        <style>{`
         @media print {
           /* Hide everything on the page except our report */
           body > *:not(.monthly-report-print-root) { display: none !important; }
@@ -342,298 +345,394 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           @page { margin: 15mm 12mm; size: A4; }
         }
       `}</style>
-      {/* Print-only header — hidden on screen, shown in print */}
-      <div
-        className="print-header"
-        style={{
-          display: "none",
-          textAlign: "center",
-          padding: "16px 24px 12px",
-          borderBottom: "2px solid #1e293b",
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ fontSize: 18, fontWeight: 900, color: "#1e293b", letterSpacing: "-0.02em" }}>
-          Personal Finance by Anand Mohta
-        </div>
-        <div style={{ fontSize: 13, color: "#64748b", marginTop: 4, fontWeight: 600 }}>
-          Monthly Report — {reportDate.toLocaleString("en-IN", { month: "long", year: "numeric" })}
-        </div>
-        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>
-          Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
-        </div>
-      </div>
-      <div style={{ maxHeight: "72vh", overflowY: "auto" }} className="print-scroll">
-        {/* Month Selector Bar */}
+        {/* Print-only header — hidden on screen, shown in print */}
         <div
+          className="print-header"
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "12px 16px",
-            background: "rgba(128,128,128,0.06)",
-            borderRadius: 10,
-            marginBottom: 16,
-            border: `1px solid ${THEME.line}`,
-          }}
-          className="no-print"
-        >
-          <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Select Report Month</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              onClick={() =>
-                setReportDate(new Date(reportDate.getFullYear(), reportDate.getMonth() - 1, 1))
-              }
-              style={{
-                ...btnGhost,
-                padding: "5px 8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              title="Previous Month"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                minWidth: 100,
-                textAlign: "center",
-                color: THEME.accent,
-              }}
-            >
-              {reportDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}
-            </span>
-            <button
-              onClick={() =>
-                setReportDate(new Date(reportDate.getFullYear(), reportDate.getMonth() + 1, 1))
-              }
-              style={{
-                ...btnGhost,
-                padding: "5px 8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              title="Next Month"
-            >
-              <ChevronRight size={16} />
-            </button>
-            <button
-              onClick={() => setReportDate(selectedDate || new Date())}
-              style={{
-                ...btnGhost,
-                padding: "5px 12px",
-                fontSize: 11,
-                fontWeight: 700,
-                color: THEME.muted,
-                border: `1px solid ${THEME.line}`,
-              }}
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-
-        {/* Net Worth Snapshot */}
-        <div
-          style={{
-            background: "var(--surface-2, #0f172a)",
-            borderRadius: 10,
-            padding: "16px 20px",
-            marginBottom: 16,
+            display: "none",
             textAlign: "center",
+            padding: "16px 24px 12px",
+            borderBottom: "2px solid #1e293b",
+            marginBottom: 16,
           }}
         >
           <div
+            style={{ fontSize: 18, fontWeight: 900, color: "#1e293b", letterSpacing: "-0.02em" }}
+          >
+            Personal Finance by Anand Mohta
+          </div>
+          <div style={{ fontSize: 13, color: "#64748b", marginTop: 4, fontWeight: 600 }}>
+            Monthly Report —{" "}
+            {reportDate.toLocaleString("en-IN", { month: "long", year: "numeric" })}
+          </div>
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>
+            Generated on{" "}
+            {new Date().toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </div>
+        </div>
+        <div style={{ maxHeight: "72vh", overflowY: "auto" }} className="print-scroll">
+          {/* Month Selector Bar */}
+          <div
             style={{
-              fontSize: 10,
-              color: "rgba(255,255,255,0.45)",
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              marginBottom: 6,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "12px 16px",
+              background: "rgba(128,128,128,0.06)",
+              borderRadius: 10,
+              marginBottom: 16,
+              border: `1px solid ${THEME.line}`,
+            }}
+            className="no-print"
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+              Select Report Month
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() =>
+                  setReportDate(new Date(reportDate.getFullYear(), reportDate.getMonth() - 1, 1))
+                }
+                style={{
+                  ...btnGhost,
+                  padding: "5px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Previous Month"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  minWidth: 100,
+                  textAlign: "center",
+                  color: THEME.accent,
+                }}
+              >
+                {reportDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}
+              </span>
+              <button
+                onClick={() =>
+                  setReportDate(new Date(reportDate.getFullYear(), reportDate.getMonth() + 1, 1))
+                }
+                style={{
+                  ...btnGhost,
+                  padding: "5px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Next Month"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button
+                onClick={() => setReportDate(selectedDate || new Date())}
+                style={{
+                  ...btnGhost,
+                  padding: "5px 12px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
+          {/* Net Worth Snapshot */}
+          <div
+            style={{
+              background: "var(--surface-2, #0f172a)",
+              borderRadius: 10,
+              padding: "16px 20px",
+              marginBottom: 16,
+              textAlign: "center",
             }}
           >
-            Net Worth Snapshot
-          </div>
-          <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
-            {fmtINRFull(displayNetWorth)}
-          </div>
-          {nwDelta !== 0 && (
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: nwDelta > 0 ? "#34d399" : "#f87171",
-                marginTop: 4,
+                fontSize: 10,
+                color: "rgba(255,255,255,0.45)",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                marginBottom: 6,
               }}
             >
-              {nwDelta > 0 ? "▲" : "▼"} {fmtINRFull(Math.abs(nwDelta))} vs{" "}
-              {prevDate.toLocaleString("en-IN", { month: "short" })}
+              Net Worth Snapshot
             </div>
-          )}
-          {isCurrentMonth && (
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
-              Assets {fmtINRFull(metrics.totalAssets)} · Liabilities{" "}
-              {fmtINRFull(metrics.totalLiabilities)}
+            <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
+              {fmtINRFull(displayNetWorth)}
             </div>
-          )}
-        </div>
-
-        {/* Income / Expense / Saving tiles with MoM delta */}
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}
-        >
-          {[
-            { label: "Income", value: income, prev: incomePrev, color: THEME.sage },
-            { label: "Expense", value: expense, prev: expensePrev, color: THEME.rust },
-            {
-              label: `Saved (${savingRate}%)`,
-              value: saving,
-              prev: savingPrev,
-              color: saving >= 0 ? THEME.sage : THEME.rust,
-            },
-          ].map(({ label, value, prev, color }) => (
-            <div
-              key={label}
-              style={{
-                padding: 12,
-                borderRadius: 8,
-                background: "rgba(128,128,128,0.06)",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>{label}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color }}>{fmtINRFull(value)}</div>
-              <div style={{ marginTop: 5 }}>
-                <DeltaBadge current={value} prev={prev} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Income Breakdown by Source */}
-        {incomeBySource.length > 1 && (
-          <div style={{ marginBottom: 16 }}>
-            <SectionLabel>Income by Source</SectionLabel>
-            {incomeBySource.map(([cat, amt], i) => (
+            {nwDelta !== 0 && (
               <div
-                key={cat}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "7px 0",
-                  borderBottom: `1px dashed ${THEME.line}`,
-                  fontSize: 13,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: nwDelta > 0 ? "#34d399" : "#f87171",
+                  marginTop: 4,
                 }}
               >
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: PIE_COLORS[(i + 4) % PIE_COLORS.length],
-                      display: "inline-block",
-                    }}
-                  />
-                  {cat}
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 50,
-                      height: 4,
-                      background: THEME.line,
-                      borderRadius: 2,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
+                {nwDelta > 0 ? "▲" : "▼"} {fmtINRFull(Math.abs(nwDelta))} vs{" "}
+                {prevDate.toLocaleString("en-IN", { month: "short" })}
+              </div>
+            )}
+            {isCurrentMonth && (
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+                Assets {fmtINRFull(metrics.totalAssets)} · Liabilities{" "}
+                {fmtINRFull(metrics.totalLiabilities)}
+              </div>
+            )}
+          </div>
+
+          {/* Income / Expense / Saving tiles with MoM delta */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            {[
+              { label: "Income", value: income, prev: incomePrev, color: THEME.sage },
+              { label: "Expense", value: expense, prev: expensePrev, color: THEME.rust },
+              {
+                label: `Saved (${savingRate}%)`,
+                value: saving,
+                prev: savingPrev,
+                color: saving >= 0 ? THEME.sage : THEME.rust,
+              },
+            ].map(({ label, value, prev, color }) => (
+              <div
+                key={label}
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  background: "rgba(128,128,128,0.06)",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color }}>{fmtINRFull(value)}</div>
+                <div style={{ marginTop: 5 }}>
+                  <DeltaBadge current={value} prev={prev} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Income Breakdown by Source */}
+          {incomeBySource.length > 1 && (
+            <div style={{ marginBottom: 16 }}>
+              <SectionLabel>Income by Source</SectionLabel>
+              {incomeBySource.map(([cat, amt], i) => (
+                <div
+                  key={cat}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "7px 0",
+                    borderBottom: `1px dashed ${THEME.line}`,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
                       style={{
-                        height: "100%",
-                        width: `${income > 0 ? Math.min(100, (amt / income) * 100) : 0}%`,
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
                         background: PIE_COLORS[(i + 4) % PIE_COLORS.length],
+                        display: "inline-block",
                       }}
                     />
-                  </div>
-                  <span
-                    style={{ fontWeight: 700, minWidth: 80, textAlign: "right", color: THEME.sage }}
-                  >
-                    {fmtINRExact(amt)}
+                    {cat}
                   </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Top Expenses */}
-        {topCats.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <SectionLabel>Top Expenses</SectionLabel>
-            {topCats.map(([cat, amt], i) => (
-              <div
-                key={cat}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "7px 0",
-                  borderBottom: `1px dashed ${THEME.line}`,
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: PIE_COLORS[i % PIE_COLORS.length],
-                      display: "inline-block",
-                    }}
-                  />
-                  {cat}
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 50,
-                      height: 4,
-                      background: THEME.line,
-                      borderRadius: 2,
-                      overflow: "hidden",
-                    }}
-                  >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
                       style={{
-                        height: "100%",
-                        width: `${expense > 0 ? Math.min(100, (amt / expense) * 100) : 0}%`,
+                        width: 50,
+                        height: 4,
+                        background: THEME.line,
+                        borderRadius: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${income > 0 ? Math.min(100, (amt / income) * 100) : 0}%`,
+                          background: PIE_COLORS[(i + 4) % PIE_COLORS.length],
+                        }}
+                      />
+                    </div>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        minWidth: 80,
+                        textAlign: "right",
+                        color: THEME.sage,
+                      }}
+                    >
+                      {fmtINRExact(amt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Top Expenses */}
+          {topCats.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <SectionLabel>Top Expenses</SectionLabel>
+              {topCats.map(([cat, amt], i) => (
+                <div
+                  key={cat}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "7px 0",
+                    borderBottom: `1px dashed ${THEME.line}`,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
                         background: PIE_COLORS[i % PIE_COLORS.length],
+                        display: "inline-block",
                       }}
                     />
+                    {cat}
+                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 50,
+                        height: 4,
+                        background: THEME.line,
+                        borderRadius: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${expense > 0 ? Math.min(100, (amt / expense) * 100) : 0}%`,
+                          background: PIE_COLORS[i % PIE_COLORS.length],
+                        }}
+                      />
+                    </div>
+                    <span style={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}>
+                      {fmtINRExact(amt)}
+                    </span>
                   </div>
-                  <span style={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}>
-                    {fmtINRExact(amt)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Budget vs Actual */}
+          {budgetRows.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <SectionLabel>Budget vs Actual</SectionLabel>
+              {budgetRows.map((row) => {
+                const pct = Math.min(100, row.budget > 0 ? (row.spent / row.budget) * 100 : 0);
+                return (
+                  <div key={row.category} style={{ marginBottom: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: THEME.ink }}>{row.category}</span>
+                      <span style={{ fontWeight: 700, color: row.over ? THEME.rust : THEME.sage }}>
+                        {fmtINRExact(row.spent)} / {fmtINRExact(row.budget)}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 5,
+                        background: THEME.line,
+                        borderRadius: 3,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${pct}%`,
+                          background: row.over ? THEME.rust : THEME.sage,
+                          borderRadius: 3,
+                        }}
+                      />
+                    </div>
+                    {row.over && (
+                      <div
+                        style={{ fontSize: 10, color: THEME.rust, marginTop: 2, fontWeight: 600 }}
+                      >
+                        Over by {fmtINRExact(row.spent - row.budget)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Investment Activity */}
+          {investTxns.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <SectionLabel>
+                Investment Activity · {fmtINRFull(totalInvested)} invested
+              </SectionLabel>
+              {investTxns.slice(0, 6).map((t: any, i: number) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "7px 0",
+                    borderBottom: `1px dashed ${THEME.line}`,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ color: THEME.ink }}>{t.note || t.category}</span>
+                  <span style={{ fontWeight: 700, color: THEME.accent }}>
+                    {fmtINRFull(Number(t.amount || 0))}
                   </span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
-        {/* Budget vs Actual */}
-        {budgetRows.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <SectionLabel>Budget vs Actual</SectionLabel>
-            {budgetRows.map((row) => {
-              const pct = Math.min(100, row.budget > 0 ? (row.spent / row.budget) * 100 : 0);
-              return (
-                <div key={row.category} style={{ marginBottom: 10 }}>
+          {/* Goal Progress */}
+          {goalRows.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <SectionLabel>Goal Progress</SectionLabel>
+              {goalRows.map((g) => (
+                <div key={g.name} style={{ marginBottom: 10 }}>
                   <div
                     style={{
                       display: "flex",
@@ -642,9 +741,14 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                       marginBottom: 4,
                     }}
                   >
-                    <span style={{ fontWeight: 600, color: THEME.ink }}>{row.category}</span>
-                    <span style={{ fontWeight: 700, color: row.over ? THEME.rust : THEME.sage }}>
-                      {fmtINRExact(row.spent)} / {fmtINRExact(row.budget)}
+                    <span style={{ fontWeight: 600, color: THEME.ink }}>{g.name}</span>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        color: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.muted,
+                      }}
+                    >
+                      {g.done ? "✓ Complete" : `${g.pct}%`}
                     </span>
                   </div>
                   <div
@@ -658,301 +762,28 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                     <div
                       style={{
                         height: "100%",
-                        width: `${pct}%`,
-                        background: row.over ? THEME.rust : THEME.sage,
+                        width: `${g.pct}%`,
+                        background: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.gold,
                         borderRadius: 3,
                       }}
                     />
                   </div>
-                  {row.over && (
-                    <div style={{ fontSize: 10, color: THEME.rust, marginTop: 2, fontWeight: 600 }}>
-                      Over by {fmtINRExact(row.spent - row.budget)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Investment Activity */}
-        {investTxns.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <SectionLabel>Investment Activity · {fmtINRFull(totalInvested)} invested</SectionLabel>
-            {investTxns.slice(0, 6).map((t: any, i: number) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "7px 0",
-                  borderBottom: `1px dashed ${THEME.line}`,
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: THEME.ink }}>{t.note || t.category}</span>
-                <span style={{ fontWeight: 700, color: THEME.accent }}>
-                  {fmtINRFull(Number(t.amount || 0))}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Goal Progress */}
-        {goalRows.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <SectionLabel>Goal Progress</SectionLabel>
-            {goalRows.map((g) => (
-              <div key={g.name} style={{ marginBottom: 10 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 12,
-                    marginBottom: 4,
-                  }}
-                >
-                  <span style={{ fontWeight: 600, color: THEME.ink }}>{g.name}</span>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      color: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.muted,
-                    }}
-                  >
-                    {g.done ? "✓ Complete" : `${g.pct}%`}
-                  </span>
-                </div>
-                <div
-                  style={{ height: 5, background: THEME.line, borderRadius: 3, overflow: "hidden" }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${g.pct}%`,
-                      background: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.gold,
-                      borderRadius: 3,
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
-                  {fmtINRFull(g.current)} saved of {fmtINRFull(g.target)}
-                  {!g.done && ` · ${fmtINRFull(g.target - g.current)} remaining`}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Subscriptions this month */}
-        {subsThisMonth.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <SectionLabel>Subscriptions This Month · {fmtINRFull(totalSubsThisMonth)}</SectionLabel>
-            {subsThisMonth.map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "7px 0",
-                  borderBottom: `1px dashed ${THEME.line}`,
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: THEME.muted,
-                      background: "rgba(128,128,128,0.08)",
-                      padding: "1px 6px",
-                      borderRadius: 4,
-                    }}
-                  >
-                    {s.cycle === "monthly" ? "/mo" : s.cycle === "quarterly" ? "/qtr" : "/yr"}
-                  </span>
-                  {s.name}
-                </span>
-                <span style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(s.amount)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Portfolio Snapshot */}
-        <div style={{ marginBottom: 16 }}>
-          <SectionLabel>
-            Portfolio Snapshot{" "}
-            <span
-              style={{ fontWeight: 500, textTransform: "none", fontSize: 10, letterSpacing: 0 }}
-            >
-              (current allocation)
-            </span>
-          </SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            {(
-              [
-                ["Bank Cash", metrics.cashInBanks],
-                ["Fixed Deposits", metrics.fdValue],
-                ["Mutual Funds", metrics.mfValue],
-                ["Stocks", metrics.stockValue],
-                ["PPF", metrics.ppfValue],
-                ["NPS", metrics.npsValue],
-              ] as [string, number][]
-            )
-              .filter(([, v]) => v > 0)
-              .map(([label, val]) => (
-                <div
-                  key={label}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "6px 10px",
-                    background: "rgba(128,128,128,0.05)",
-                    borderRadius: 6,
-                    fontSize: 13,
-                  }}
-                >
-                  <span style={{ color: THEME.muted }}>{label}</span>
-                  <span style={{ fontWeight: 700 }}>{fmtINRFull(val)}</span>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
+                    {fmtINRFull(g.current)} saved of {fmtINRFull(g.target)}
+                    {!g.done && ` · ${fmtINRFull(g.target - g.current)} remaining`}
+                  </div>
                 </div>
               ))}
-          </div>
-        </div>
-
-        {/* Top Movers — biggest stock/MF gains & losses */}
-        {(() => {
-          const movers: { name: string; gain: number; pct: number; type: string }[] = [];
-          (state.stocks || []).forEach((s: any) => {
-            const qty = Number(s.qty || 0);
-            const avg = Number(s.avgPrice || 0);
-            const cmp = Number(s.currentPrice || avg);
-            if (qty > 0 && avg > 0) {
-              const gain = (cmp - avg) * qty;
-              const pct = ((cmp - avg) / avg) * 100;
-              const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
-              movers.push({ name: base, gain, pct, type: "Stock" });
-            }
-          });
-          (state.mutualFunds || []).forEach((m: any) => {
-            const units = Number(m.units || 0);
-            const buyNav = Number(m.buyNav || 0);
-            const curNav = Number(m.currentNav || buyNav);
-            if (units > 0 && buyNav > 0) {
-              const gain = (curNav - buyNav) * units;
-              const pct = ((curNav - buyNav) / buyNav) * 100;
-              movers.push({ name: m.name || m.scheme || "MF", gain, pct, type: "MF" });
-            }
-          });
-          if (movers.length === 0) return null;
-          movers.sort((a, b) => b.gain - a.gain);
-          const topGainers = movers.filter((m) => m.gain > 0).slice(0, 3);
-          const topLosers = movers.filter((m) => m.gain < 0).sort((a, b) => a.gain - b.gain).slice(0, 3);
-          const display = [...topGainers, ...topLosers];
-          if (display.length === 0) return null;
-          return (
-            <div style={{ marginBottom: 16 }}>
-              <SectionLabel>Top Movers</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {topGainers.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                      Gainers
-                    </div>
-                    {topGainers.map((m, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 12 }}>
-                        <span style={{ color: THEME.ink, fontWeight: 600 }}>
-                          {m.name}
-                          <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>{m.type}</span>
-                        </span>
-                        <span style={{ color: THEME.sage, fontWeight: 700 }}>
-                          +{m.pct.toFixed(1)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {topLosers.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 10, color: THEME.rust, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                      Losers
-                    </div>
-                    {topLosers.map((m, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 12 }}>
-                        <span style={{ color: THEME.ink, fontWeight: 600 }}>
-                          {m.name}
-                          <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>{m.type}</span>
-                        </span>
-                        <span style={{ color: THEME.rust, fontWeight: 700 }}>
-                          {m.pct.toFixed(1)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
-          );
-        })()}
+          )}
 
-        {/* Upcoming Renewals — subscriptions & insurance premiums due in next 30 days */}
-        {(() => {
-          const now = new Date();
-          const in30 = new Date(now.getTime() + 30 * 86400000);
-          const renewals: { name: string; amount: number; date: string; type: string }[] = [];
-
-          // Subscriptions with upcoming renewals
-          (state.subscriptions || []).forEach((s: any) => {
-            if (s.paused) return;
-            const rd = s.renewalDate ? new Date(s.renewalDate) : null;
-            if (rd && rd >= now && rd <= in30) {
-              renewals.push({
-                name: s.name || s.serviceName || "Subscription",
-                amount: Number(s.amount || 0),
-                date: rd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-                type: "Subscription",
-              });
-            }
-          });
-
-          // Insurance premiums due
-          (state.lic || []).forEach((l: any) => {
-            if (!l.premiumDueDate) return;
-            const dd = new Date(l.premiumDueDate);
-            if (dd >= now && dd <= in30) {
-              renewals.push({
-                name: l.policyName || l.insurer || "LIC Policy",
-                amount: Number(l.premium || 0),
-                date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-                type: "Insurance",
-              });
-            }
-          });
-          (state.termPlans || []).forEach((t: any) => {
-            if (!t.premiumDueDate) return;
-            const dd = new Date(t.premiumDueDate);
-            if (dd >= now && dd <= in30) {
-              renewals.push({
-                name: t.insurer || "Term Plan",
-                amount: Number(t.premium || 0),
-                date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-                type: "Insurance",
-              });
-            }
-          });
-
-          if (renewals.length === 0) return null;
-          renewals.sort((a, b) => a.amount - b.amount);
-          const totalRenewals = renewals.reduce((s, r) => s + r.amount, 0);
-
-          return (
+          {/* Subscriptions this month */}
+          {subsThisMonth.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <SectionLabel>
-                Upcoming Renewals (30 days) · {fmtINRFull(totalRenewals)}
+                Subscriptions This Month · {fmtINRFull(totalSubsThisMonth)}
               </SectionLabel>
-              {renewals.map((r, i) => (
+              {subsThisMonth.map((s, i) => (
                 <div
                   key={i}
                   style={{
@@ -965,142 +796,392 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                   }}
                 >
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Bell size={12} color={THEME.gold} />
-                    <span>
-                      {r.name}
-                      <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 6 }}>{r.type}</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        background: "rgba(128,128,128,0.08)",
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      {s.cycle === "monthly" ? "/mo" : s.cycle === "quarterly" ? "/qtr" : "/yr"}
                     </span>
+                    {s.name}
                   </span>
+                  <span style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(s.amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Portfolio Snapshot */}
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>
+              Portfolio Snapshot{" "}
+              <span
+                style={{ fontWeight: 500, textTransform: "none", fontSize: 10, letterSpacing: 0 }}
+              >
+                (current allocation)
+              </span>
+            </SectionLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {(
+                [
+                  ["Bank Cash", metrics.cashInBanks],
+                  ["Fixed Deposits", metrics.fdValue],
+                  ["Mutual Funds", metrics.mfValue],
+                  ["Stocks", metrics.stockValue],
+                  ["PPF", metrics.ppfValue],
+                  ["NPS", metrics.npsValue],
+                ] as [string, number][]
+              )
+                .filter(([, v]) => v > 0)
+                .map(([label, val]) => (
+                  <div
+                    key={label}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "6px 10px",
+                      background: "rgba(128,128,128,0.05)",
+                      borderRadius: 6,
+                      fontSize: 13,
+                    }}
+                  >
+                    <span style={{ color: THEME.muted }}>{label}</span>
+                    <span style={{ fontWeight: 700 }}>{fmtINRFull(val)}</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Top Movers — biggest stock/MF gains & losses */}
+          {(() => {
+            const movers: { name: string; gain: number; pct: number; type: string }[] = [];
+            (state.stocks || []).forEach((s: any) => {
+              const qty = Number(s.qty || 0);
+              const avg = Number(s.avgPrice || 0);
+              const cmp = Number(s.currentPrice || avg);
+              if (qty > 0 && avg > 0) {
+                const gain = (cmp - avg) * qty;
+                const pct = ((cmp - avg) / avg) * 100;
+                const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
+                movers.push({ name: base, gain, pct, type: "Stock" });
+              }
+            });
+            (state.mutualFunds || []).forEach((m: any) => {
+              const units = Number(m.units || 0);
+              const buyNav = Number(m.buyNav || 0);
+              const curNav = Number(m.currentNav || buyNav);
+              if (units > 0 && buyNav > 0) {
+                const gain = (curNav - buyNav) * units;
+                const pct = ((curNav - buyNav) / buyNav) * 100;
+                movers.push({ name: m.name || m.scheme || "MF", gain, pct, type: "MF" });
+              }
+            });
+            if (movers.length === 0) return null;
+            movers.sort((a, b) => b.gain - a.gain);
+            const topGainers = movers.filter((m) => m.gain > 0).slice(0, 3);
+            const topLosers = movers
+              .filter((m) => m.gain < 0)
+              .sort((a, b) => a.gain - b.gain)
+              .slice(0, 3);
+            const display = [...topGainers, ...topLosers];
+            if (display.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 16 }}>
+                <SectionLabel>Top Movers</SectionLabel>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {topGainers.length > 0 && (
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: THEME.sage,
+                          fontWeight: 700,
+                          marginBottom: 6,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
+                        }}
+                      >
+                        Gainers
+                      </div>
+                      {topGainers.map((m, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            padding: "6px 0",
+                            borderBottom: `1px dashed ${THEME.line}`,
+                            fontSize: 12,
+                          }}
+                        >
+                          <span style={{ color: THEME.ink, fontWeight: 600 }}>
+                            {m.name}
+                            <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>
+                              {m.type}
+                            </span>
+                          </span>
+                          <span style={{ color: THEME.sage, fontWeight: 700 }}>
+                            +{m.pct.toFixed(1)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {topLosers.length > 0 && (
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: THEME.rust,
+                          fontWeight: 700,
+                          marginBottom: 6,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
+                        }}
+                      >
+                        Losers
+                      </div>
+                      {topLosers.map((m, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            padding: "6px 0",
+                            borderBottom: `1px dashed ${THEME.line}`,
+                            fontSize: 12,
+                          }}
+                        >
+                          <span style={{ color: THEME.ink, fontWeight: 600 }}>
+                            {m.name}
+                            <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>
+                              {m.type}
+                            </span>
+                          </span>
+                          <span style={{ color: THEME.rust, fontWeight: 700 }}>
+                            {m.pct.toFixed(1)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Upcoming Renewals — subscriptions & insurance premiums due in next 30 days */}
+          {(() => {
+            const now = new Date();
+            const in30 = new Date(now.getTime() + 30 * 86400000);
+            const renewals: { name: string; amount: number; date: string; type: string }[] = [];
+
+            // Subscriptions with upcoming renewals
+            (state.subscriptions || []).forEach((s: any) => {
+              if (s.paused) return;
+              const rd = s.renewalDate ? new Date(s.renewalDate) : null;
+              if (rd && rd >= now && rd <= in30) {
+                renewals.push({
+                  name: s.name || s.serviceName || "Subscription",
+                  amount: Number(s.amount || 0),
+                  date: rd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                  type: "Subscription",
+                });
+              }
+            });
+
+            // Insurance premiums due
+            (state.lic || []).forEach((l: any) => {
+              if (!l.premiumDueDate) return;
+              const dd = new Date(l.premiumDueDate);
+              if (dd >= now && dd <= in30) {
+                renewals.push({
+                  name: l.policyName || l.insurer || "LIC Policy",
+                  amount: Number(l.premium || 0),
+                  date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                  type: "Insurance",
+                });
+              }
+            });
+            (state.termPlans || []).forEach((t: any) => {
+              if (!t.premiumDueDate) return;
+              const dd = new Date(t.premiumDueDate);
+              if (dd >= now && dd <= in30) {
+                renewals.push({
+                  name: t.insurer || "Term Plan",
+                  amount: Number(t.premium || 0),
+                  date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                  type: "Insurance",
+                });
+              }
+            });
+
+            if (renewals.length === 0) return null;
+            renewals.sort((a, b) => a.amount - b.amount);
+            const totalRenewals = renewals.reduce((s, r) => s + r.amount, 0);
+
+            return (
+              <div style={{ marginBottom: 16 }}>
+                <SectionLabel>
+                  Upcoming Renewals (30 days) · {fmtINRFull(totalRenewals)}
+                </SectionLabel>
+                {renewals.map((r, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "7px 0",
+                      borderBottom: `1px dashed ${THEME.line}`,
+                      fontSize: 13,
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Bell size={12} color={THEME.gold} />
+                      <span>
+                        {r.name}
+                        <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 6 }}>
+                          {r.type}
+                        </span>
+                      </span>
+                    </span>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontWeight: 700, color: THEME.gold }}>
+                        {fmtINRFull(r.amount)}
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted }}>Due {r.date}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Upcoming Dues — only for current/future months */}
+          {showDues && upcoming.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <SectionLabel>Upcoming Dues</SectionLabel>
+              {upcoming.map((d, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "7px 0",
+                    borderBottom: `1px dashed ${THEME.line}`,
+                    fontSize: 13,
+                  }}
+                >
+                  <span>{d.label}</span>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, color: THEME.gold }}>{fmtINRFull(r.amount)}</div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>Due {r.date}</div>
+                    <div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(d.amount)}</div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{d.date}</div>
                   </div>
                 </div>
               ))}
             </div>
-          );
-        })()}
+          )}
+        </div>
 
-        {/* Upcoming Dues — only for current/future months */}
-        {showDues && upcoming.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <SectionLabel>Upcoming Dues</SectionLabel>
-            {upcoming.map((d, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "7px 0",
-                  borderBottom: `1px dashed ${THEME.line}`,
-                  fontSize: 13,
-                }}
-              >
-                <span>{d.label}</span>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(d.amount)}</div>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>{d.date}</div>
-                </div>
-              </div>
-            ))}
+        {/* Footer actions */}
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}
+          className="no-print"
+        >
+          {/* Email status messages */}
+          {emailStatus === "ok" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 12px",
+                background: "rgba(52,211,153,0.08)",
+                border: `1px solid rgba(52,211,153,0.25)`,
+                borderRadius: 8,
+                fontSize: 12,
+                color: THEME.sage,
+                fontWeight: 600,
+              }}
+            >
+              <CheckCircle2 size={14} /> Report emailed to {state.settings?.emailAddress}
+            </div>
+          )}
+          {emailStatus === "err" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 12px",
+                background: "rgba(239,68,68,0.07)",
+                border: `1px solid rgba(239,68,68,0.2)`,
+                borderRadius: 8,
+                fontSize: 12,
+                color: THEME.rust,
+                fontWeight: 600,
+              }}
+            >
+              <AlertCircle size={14} /> Failed to send — check email config in Settings
+            </div>
+          )}
+          {emailStatus === "no-email" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 12px",
+                background: "rgba(251,191,36,0.07)",
+                border: `1px solid rgba(251,191,36,0.25)`,
+                borderRadius: 8,
+                fontSize: 12,
+                color: THEME.gold,
+                fontWeight: 600,
+              }}
+            >
+              <AlertCircle size={14} /> No email address configured — go to Settings → Email Reports
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button style={btnGhost} onClick={onClose}>
+              Close
+            </button>
+            <button
+              style={{
+                ...btnGhost,
+                color: emailSending ? THEME.muted : THEME.accent,
+                borderColor: THEME.accent + "55",
+                opacity: emailSending ? 0.7 : 1,
+              }}
+              onClick={handleEmailReport}
+              disabled={emailSending}
+            >
+              <Mail size={13} />
+              {emailSending ? "Sending…" : "Email to me"}
+            </button>
+            <button
+              style={{
+                ...btnGhost,
+                color: THEME.accent,
+                borderColor: THEME.accent + "55",
+              }}
+              onClick={handleDownloadPDF}
+              title="Download as PDF via browser print dialog"
+            >
+              <Download size={13} /> Download PDF
+            </button>
+            <button style={btnSolid} onClick={() => window.print()}>
+              <Printer size={14} /> Print
+            </button>
           </div>
-        )}
-      </div>
-
-      {/* Footer actions */}
-      <div
-        style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}
-        className="no-print"
-      >
-        {/* Email status messages */}
-        {emailStatus === "ok" && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 12px",
-              background: "rgba(52,211,153,0.08)",
-              border: `1px solid rgba(52,211,153,0.25)`,
-              borderRadius: 8,
-              fontSize: 12,
-              color: THEME.sage,
-              fontWeight: 600,
-            }}
-          >
-            <CheckCircle2 size={14} /> Report emailed to {state.settings?.emailAddress}
-          </div>
-        )}
-        {emailStatus === "err" && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 12px",
-              background: "rgba(239,68,68,0.07)",
-              border: `1px solid rgba(239,68,68,0.2)`,
-              borderRadius: 8,
-              fontSize: 12,
-              color: THEME.rust,
-              fontWeight: 600,
-            }}
-          >
-            <AlertCircle size={14} /> Failed to send — check email config in Settings
-          </div>
-        )}
-        {emailStatus === "no-email" && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 12px",
-              background: "rgba(251,191,36,0.07)",
-              border: `1px solid rgba(251,191,36,0.25)`,
-              borderRadius: 8,
-              fontSize: 12,
-              color: THEME.gold,
-              fontWeight: 600,
-            }}
-          >
-            <AlertCircle size={14} /> No email address configured — go to Settings → Email Reports
-          </div>
-        )}
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button style={btnGhost} onClick={onClose}>
-            Close
-          </button>
-          <button
-            style={{
-              ...btnGhost,
-              color: emailSending ? THEME.muted : THEME.accent,
-              borderColor: THEME.accent + "55",
-              opacity: emailSending ? 0.7 : 1,
-            }}
-            onClick={handleEmailReport}
-            disabled={emailSending}
-          >
-            <Mail size={13} />
-            {emailSending ? "Sending…" : "Email to me"}
-          </button>
-          <button
-            style={{
-              ...btnGhost,
-              color: THEME.accent,
-              borderColor: THEME.accent + "55",
-            }}
-            onClick={handleDownloadPDF}
-            title="Download as PDF via browser print dialog"
-          >
-            <Download size={13} /> Download PDF
-          </button>
-          <button style={btnSolid} onClick={() => window.print()}>
-            <Printer size={14} /> Print
-          </button>
         </div>
       </div>
-    </div>
     </Modal>
   );
 }

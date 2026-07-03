@@ -50,8 +50,9 @@ module.exports = async function handler(req, res) {
   const rtoCode = reg.slice(0, 4);
   const state = STATE_MAP[statePrefix] || "India";
   const rtoName = RTO_MAP[rtoCode] || (statePrefix ? `${state} RTO` : "India RTO");
-  
-  const hasAnyKey = process.env.SUREPASS_TOKEN || process.env.ATTESTR_TOKEN || process.env.RAPIDAPI_KEY;
+
+  const hasAnyKey =
+    process.env.SUREPASS_TOKEN || process.env.ATTESTR_TOKEN || process.env.RAPIDAPI_KEY;
   const sourceName = hasAnyKey ? "RTO offline fallback (live API failed)" : "RTO offline fallback";
 
   return res.json({
@@ -69,7 +70,7 @@ module.exports = async function handler(req, res) {
     ownerName: mockData.ownerName,
     rto: rtoName,
     state: state,
-    source: sourceName
+    source: sourceName,
   });
 };
 
@@ -209,9 +210,20 @@ function mapFuel(fuel) {
 
 function mapClass(cls) {
   if (!cls) return "two-wheeler";
-  if (cls.includes("M-CYCLE") || cls.includes("SCOOTER") || cls.includes("TWO WHEELER") || cls.includes("MOTOR CYCLE"))
+  if (
+    cls.includes("M-CYCLE") ||
+    cls.includes("SCOOTER") ||
+    cls.includes("TWO WHEELER") ||
+    cls.includes("MOTOR CYCLE")
+  )
     return "two-wheeler";
-  if (cls.includes("LMV") || cls.includes("CAR") || cls.includes("JEEP") || cls.includes("MOTOR CAB") || cls.includes("FOUR"))
+  if (
+    cls.includes("LMV") ||
+    cls.includes("CAR") ||
+    cls.includes("JEEP") ||
+    cls.includes("MOTOR CAB") ||
+    cls.includes("FOUR")
+  )
     return "four-wheeler";
   if (cls.includes("GOODS") || cls.includes("BUS") || cls.includes("TRUCK") || cls.includes("HMV"))
     return "commercial";
@@ -221,11 +233,17 @@ function mapClass(cls) {
 function normalizeMake(name) {
   const n = (name || "").toUpperCase();
   if (n.includes("HONDA")) return "Honda";
-  if (n.includes("HERO MOTOCORP") || n.includes("HERO HONDA") || (n.includes("HERO") && !n.includes("HONDA"))) return "Hero";
+  if (
+    n.includes("HERO MOTOCORP") ||
+    n.includes("HERO HONDA") ||
+    (n.includes("HERO") && !n.includes("HONDA"))
+  )
+    return "Hero";
   if (n.includes("BAJAJ")) return "Bajaj";
   if (n.includes("TVS")) return "TVS";
   if (n.includes("YAMAHA")) return "Yamaha";
-  if (n.includes("ROYAL ENFIELD") || n.includes("ROYALENFIELD") || n.includes("ENFIELD")) return "Royal Enfield";
+  if (n.includes("ROYAL ENFIELD") || n.includes("ROYALENFIELD") || n.includes("ENFIELD"))
+    return "Royal Enfield";
   if (n.includes("KTM")) return "KTM";
   if (n.includes("KAWASAKI")) return "Kawasaki";
   if (n.includes("SUZUKI") && !n.includes("MARUTI")) return "Suzuki";
@@ -317,7 +335,7 @@ const STATE_MAP = {
   UP: "Uttar Pradesh",
   UK: "Uttarakhand",
   UA: "Uttarakhand",
-  WB: "West Bengal"
+  WB: "West Bengal",
 };
 
 const RTO_MAP = {
@@ -342,7 +360,7 @@ const RTO_MAP = {
   UP32: "Lucknow RTO",
   GJ01: "Ahmedabad RTO",
   GJ03: "Rajkot RTO",
-  GJ05: "Surat RTO"
+  GJ05: "Surat RTO",
 };
 
 function getDeterministicMockVehicle(reg) {
@@ -353,23 +371,65 @@ function getDeterministicMockVehicle(reg) {
   hash = Math.abs(hash);
 
   const mockVehicles = [
-    { make: "Honda", model: "Activa 6G", type: "two-wheeler", fuel: "petrol", color: "Pearl White" },
-    { make: "Maruti", model: "Swift LXI", type: "four-wheeler", fuel: "petrol", color: "Metallic Silky Silver" },
-    { make: "Hyundai", model: "i20 Asta", type: "four-wheeler", fuel: "petrol", color: "Polar White" },
+    {
+      make: "Honda",
+      model: "Activa 6G",
+      type: "two-wheeler",
+      fuel: "petrol",
+      color: "Pearl White",
+    },
+    {
+      make: "Maruti",
+      model: "Swift LXI",
+      type: "four-wheeler",
+      fuel: "petrol",
+      color: "Metallic Silky Silver",
+    },
+    {
+      make: "Hyundai",
+      model: "i20 Asta",
+      type: "four-wheeler",
+      fuel: "petrol",
+      color: "Polar White",
+    },
     { make: "Tata", model: "Nexon EV", type: "four-wheeler", fuel: "electric", color: "Teal Blue" },
-    { make: "Royal Enfield", model: "Classic 350", type: "two-wheeler", fuel: "petrol", color: "Stealth Black" },
+    {
+      make: "Royal Enfield",
+      model: "Classic 350",
+      type: "two-wheeler",
+      fuel: "petrol",
+      color: "Stealth Black",
+    },
     { make: "Ather", model: "450X", type: "two-wheeler", fuel: "electric", color: "Space Grey" },
-    { make: "TVS", model: "Jupiter 125", type: "two-wheeler", fuel: "petrol", color: "Titanium Grey" },
-    { make: "Suzuki", model: "Access 125", type: "two-wheeler", fuel: "petrol", color: "Matte Black" },
+    {
+      make: "TVS",
+      model: "Jupiter 125",
+      type: "two-wheeler",
+      fuel: "petrol",
+      color: "Titanium Grey",
+    },
+    {
+      make: "Suzuki",
+      model: "Access 125",
+      type: "two-wheeler",
+      fuel: "petrol",
+      color: "Matte Black",
+    },
     { make: "Mahindra", model: "Thar LX", type: "four-wheeler", fuel: "diesel", color: "Red Rage" },
-    { make: "Kia", model: "Seltos HTX", type: "four-wheeler", fuel: "diesel", color: "Gravity Grey" }
+    {
+      make: "Kia",
+      model: "Seltos HTX",
+      type: "four-wheeler",
+      fuel: "diesel",
+      color: "Gravity Grey",
+    },
   ];
 
   const vehicle = mockVehicles[hash % mockVehicles.length];
   const currentYear = new Date().getFullYear();
   const yearOffset = 1 + (hash % 10);
   const year = currentYear - yearOffset;
-  
+
   const chassisNumber = "ME4" + reg + "CH" + (100000 + (hash % 900000));
   const engineNumber = "ENG" + (100000 + (hash % 900000));
 
@@ -380,7 +440,7 @@ function getDeterministicMockVehicle(reg) {
   const basePrices = {
     "two-wheeler": { purchase: 95000, valueRatio: 0.6 },
     "four-wheeler": { purchase: 980000, valueRatio: 0.55 },
-    "commercial": { purchase: 1600000, valueRatio: 0.5 }
+    commercial: { purchase: 1600000, valueRatio: 0.5 },
   };
   const priceMeta = basePrices[vehicle.type] || basePrices["two-wheeler"];
   const priceFluctuation = (hash % 20) - 10;
@@ -390,12 +450,34 @@ function getDeterministicMockVehicle(reg) {
 
   const insExpiryDate = new Date(Date.now() + ((hash % 400) - 100) * 86400000);
   const pucExpiryDate = new Date(Date.now() + ((hash % 180) - 30) * 86400000);
-  
+
   const insuranceExpiry = insExpiryDate.toISOString().slice(0, 10);
   const pucExpiry = pucExpiryDate.toISOString().slice(0, 10);
 
-  const firstNames = ["Anand", "Rajesh", "Amit", "Sanjay", "Vijay", "Sunil", "Priya", "Kiran", "Deepak", "Rohan"];
-  const lastNames = ["Mohta", "Sharma", "Joshi", "Patel", "Mehta", "Nair", "Verma", "Gupta", "Rao", "Kumar"];
+  const firstNames = [
+    "Anand",
+    "Rajesh",
+    "Amit",
+    "Sanjay",
+    "Vijay",
+    "Sunil",
+    "Priya",
+    "Kiran",
+    "Deepak",
+    "Rohan",
+  ];
+  const lastNames = [
+    "Mohta",
+    "Sharma",
+    "Joshi",
+    "Patel",
+    "Mehta",
+    "Nair",
+    "Verma",
+    "Gupta",
+    "Rao",
+    "Kumar",
+  ];
   const ownerName = `${firstNames[hash % firstNames.length]} ${lastNames[(hash >> 2) % lastNames.length]}`;
 
   return {
@@ -408,6 +490,6 @@ function getDeterministicMockVehicle(reg) {
     currentValue,
     insuranceExpiry,
     pucExpiry,
-    ownerName
+    ownerName,
   };
 }

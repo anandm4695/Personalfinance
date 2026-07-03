@@ -1809,11 +1809,14 @@ input[type="date"].form-input {
 }
 
 .demat-portfolio-pill.active {
-  background: linear-gradient(135deg, var(--t-accent) 0%, color-mix(in srgb, var(--t-accent) 85%, #000) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--t-accent) 0%,
+    color-mix(in srgb, var(--t-accent) 85%, #000) 100%
+  );
   color: #fff;
   font-weight: 800;
-  box-shadow:
-    0 4px 12px color-mix(in srgb, var(--t-accent) 25%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--t-accent) 25%, transparent);
 }
 
 /* ── Sub-tab hero header ────────────────────────────────────────── */
@@ -1938,8 +1941,17 @@ input[type="date"].form-input {
 
 /* Pulsing live market status dot */
 @keyframes liveMarketPulse {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
-  50% { opacity: 0.8; transform: scale(1.15); box-shadow: 0 0 0 4px transparent; }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 .demat-live-dot {
   width: 8px;
@@ -1972,18 +1984,24 @@ input[type="date"].form-input {
 .demat-allocation-bar-fill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 70%, #a78bfa));
+  background: linear-gradient(
+    90deg,
+    var(--t-accent),
+    color-mix(in srgb, var(--t-accent) 70%, #a78bfa)
+  );
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Stat card glow border effect */
 .demat-stat-card-glow {
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.2s ease;
 }
 .demat-stat-card-glow:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 8px 24px rgba(0,0,0,0.08),
+    0 8px 24px rgba(0, 0, 0, 0.08),
     0 0 0 1px color-mix(in srgb, var(--t-accent) 15%, transparent),
     0 4px 12px color-mix(in srgb, var(--t-accent) 10%, transparent);
 }
@@ -2028,14 +2046,23 @@ input[type="date"].form-input {
 .demat-inv-bar-fill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 70%, #818cf8));
+  background: linear-gradient(
+    90deg,
+    var(--t-accent),
+    color-mix(in srgb, var(--t-accent) 70%, #818cf8)
+  );
   transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Watchlist near-target badge */
 @keyframes nearTargetGlow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--t-sage) 30%, transparent); }
-  50% { box-shadow: 0 0 0 4px transparent; }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--t-sage) 30%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 .watchlist-near-target {
   animation: nearTargetGlow 2s ease-in-out infinite;
@@ -2065,7 +2092,9 @@ input[type="date"].form-input {
   border-radius: 14px;
   font-size: 13px;
   line-height: 1.55;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .demat-insight-card:hover {
   transform: translateX(3px);
@@ -2096,11 +2125,19 @@ input[type="date"].form-input {
   margin-bottom: 20px;
 }
 .demat-benchmark-banner.outperform {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--t-sage) 10%, transparent), color-mix(in srgb, var(--t-sage) 4%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--t-sage) 10%, transparent),
+    color-mix(in srgb, var(--t-sage) 4%, transparent)
+  );
   border: 1.5px solid color-mix(in srgb, var(--t-sage) 25%, transparent);
 }
 .demat-benchmark-banner.underperform {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--t-rust) 10%, transparent), color-mix(in srgb, var(--t-rust) 4%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--t-rust) 10%, transparent),
+    color-mix(in srgb, var(--t-rust) 4%, transparent)
+  );
   border: 1.5px solid color-mix(in srgb, var(--t-rust) 25%, transparent);
 }
 
@@ -2111,7 +2148,8 @@ input[type="date"].form-input {
   gap: 16px;
   padding: 20px 24px;
   border-radius: 16px;
-  background: linear-gradient(135deg,
+  background: linear-gradient(
+    135deg,
     color-mix(in srgb, var(--t-accent) 8%, var(--surface-1)) 0%,
     var(--surface-1) 100%
   );
@@ -2123,16 +2161,27 @@ input[type="date"].form-input {
 .watchlist-hero::before {
   content: "";
   position: absolute;
-  left: 0; top: 0; bottom: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 50%, #f59e0b));
+  background: linear-gradient(
+    180deg,
+    var(--t-accent),
+    color-mix(in srgb, var(--t-accent) 50%, #f59e0b)
+  );
   border-radius: 4px 0 0 4px;
 }
 
 /* Watchlist buy-signal badge */
 @keyframes buySignalPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 .buy-signal-badge {
   display: inline-flex;
@@ -2152,13 +2201,24 @@ input[type="date"].form-input {
 
 /* Table header gradient */
 .demat-table-thead tr {
-  background: linear-gradient(90deg, var(--surface-0) 0%, color-mix(in srgb, var(--t-accent) 3%, var(--surface-0)) 100%) !important;
+  background: linear-gradient(
+    90deg,
+    var(--surface-0) 0%,
+    color-mix(in srgb, var(--t-accent) 3%, var(--surface-0)) 100%
+  ) !important;
 }
 
 /* Broker pulsing dot */
 @keyframes brokerLivePulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.7; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.7;
+  }
 }
 .broker-live-dot {
   width: 7px;

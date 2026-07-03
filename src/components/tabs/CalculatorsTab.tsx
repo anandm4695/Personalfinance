@@ -192,7 +192,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   }, [stepSipAmt, stepSipStep, stepSipYrs, stepSipRate]);
 
   // ── 2c. SWP (SYSTEMATIC WITHDRAWAL PLAN) STATE & LOGIC ──
-  const [swpCorpus, setSwpCorpus] = useState(() => String(Math.round((metrics?.netWorth || 5000000) / 100000) * 100000));
+  const [swpCorpus, setSwpCorpus] = useState(() =>
+    String(Math.round((metrics?.netWorth || 5000000) / 100000) * 100000)
+  );
   const [swpWithdrawal, setSwpWithdrawal] = useState("30000");
   const [swpRate, setSwpRate] = useState("8");
   const [swpYears, setSwpYears] = useState("20");
@@ -629,7 +631,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     let tempCorpus = curPort;
     for (let y = 1; y <= 60; y++) {
       tempCorpus = tempCorpus * (1 + preRet) + mSavings * 12;
-      const inflAdjReq = retAnnualExp * ((1 - Math.pow(1 + realPostReturn, -(lifeExp - curAge - y))) / (realPostReturn || 1));
+      const inflAdjReq =
+        retAnnualExp *
+        ((1 - Math.pow(1 + realPostReturn, -(lifeExp - curAge - y))) / (realPostReturn || 1));
       if (tempCorpus >= inflAdjReq && inflAdjReq > 0) {
         projectedFireYear = new Date().getFullYear() + y;
         break;
@@ -639,13 +643,15 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     // Monthly savings needed to close the gap
     let monthlySavingsNeeded = 0;
     if (gap > 0 && monthlyPreRate > 0 && monthsToRet > 0) {
-      const fvFactor = ((Math.pow(1 + monthlyPreRate, monthsToRet) - 1) / monthlyPreRate) * (1 + monthlyPreRate);
+      const fvFactor =
+        ((Math.pow(1 + monthlyPreRate, monthsToRet) - 1) / monthlyPreRate) * (1 + monthlyPreRate);
       monthlySavingsNeeded = Math.round(gap / fvFactor);
     }
 
     // 4% Rule status
     const fourPctCorpus = retAnnualExp / 0.04;
-    const fourPctProgress = fourPctCorpus > 0 ? Math.min(100, Math.round((projectedCorpus / fourPctCorpus) * 100)) : 0;
+    const fourPctProgress =
+      fourPctCorpus > 0 ? Math.min(100, Math.round((projectedCorpus / fourPctCorpus) * 100)) : 0;
 
     return {
       retMonthlyExp,
@@ -724,12 +730,30 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
   // ── INDEXATION BENEFIT CALCULATOR STATE & LOGIC ──
   const CII_TABLE: Record<string, number> = {
-    "2001-02": 100, "2002-03": 105, "2003-04": 109, "2004-05": 113,
-    "2005-06": 117, "2006-07": 122, "2007-08": 129, "2008-09": 137,
-    "2009-10": 148, "2010-11": 167, "2011-12": 184, "2012-13": 200,
-    "2013-14": 220, "2014-15": 240, "2015-16": 254, "2016-17": 264,
-    "2017-18": 272, "2018-19": 280, "2019-20": 289, "2020-21": 301,
-    "2021-22": 317, "2022-23": 331, "2023-24": 348, "2024-25": 363,
+    "2001-02": 100,
+    "2002-03": 105,
+    "2003-04": 109,
+    "2004-05": 113,
+    "2005-06": 117,
+    "2006-07": 122,
+    "2007-08": 129,
+    "2008-09": 137,
+    "2009-10": 148,
+    "2010-11": 167,
+    "2011-12": 184,
+    "2012-13": 200,
+    "2013-14": 220,
+    "2014-15": 240,
+    "2015-16": 254,
+    "2016-17": 264,
+    "2017-18": 272,
+    "2018-19": 280,
+    "2019-20": 289,
+    "2020-21": 301,
+    "2021-22": 317,
+    "2022-23": 331,
+    "2023-24": 348,
+    "2024-25": 363,
     "2025-26": 377,
   };
   const CII_YEARS = Object.keys(CII_TABLE);
@@ -738,7 +762,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   const [idxPurchaseYear, setIdxPurchaseYear] = useState("2014-15");
   const [idxSalePrice, setIdxSalePrice] = useState("2500000");
   const [idxSaleYear, setIdxSaleYear] = useState("2024-25");
-  const [idxAssetType, setIdxAssetType] = useState<"Debt MF" | "Property" | "Gold/Bonds" | "Other">("Property");
+  const [idxAssetType, setIdxAssetType] = useState<"Debt MF" | "Property" | "Gold/Bonds" | "Other">(
+    "Property"
+  );
 
   const idxResult = useMemo(() => {
     const purchase = Math.max(0, Number(idxPurchasePrice) || 0);
@@ -748,12 +774,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
     // Without indexation
     const gainWithout = sale - purchase;
-    const taxWithout = Math.max(0, gainWithout * 0.20);
+    const taxWithout = Math.max(0, gainWithout * 0.2);
 
     // With indexation
     const indexedCost = purchase * (ciiSale / ciiPurchase);
     const gainWith = sale - indexedCost;
-    const taxWith = Math.max(0, gainWith * 0.20);
+    const taxWith = Math.max(0, gainWith * 0.2);
 
     // Tax saved
     const taxSaved = Math.max(0, taxWithout - taxWith);
@@ -776,11 +802,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     };
   }, [idxPurchasePrice, idxSalePrice, idxPurchaseYear, idxSaleYear]);
 
-  const idxBarData = useMemo(() => [
-    { name: "Purchase Price", value: idxResult.purchase, fill: THEME.accent },
-    { name: "Indexed Cost", value: idxResult.indexedCost, fill: THEME.sage },
-    { name: "Sale Price", value: idxResult.sale, fill: THEME.gold },
-  ], [idxResult]);
+  const idxBarData = useMemo(
+    () => [
+      { name: "Purchase Price", value: idxResult.purchase, fill: THEME.accent },
+      { name: "Indexed Cost", value: idxResult.indexedCost, fill: THEME.sage },
+      { name: "Sale Price", value: idxResult.sale, fill: THEME.gold },
+    ],
+    [idxResult]
+  );
 
   // ── RETIREMENT INCOME PLANNER STATE & LOGIC ──
   const [riCurrentAge, setRiCurrentAge] = useState("30");
@@ -1471,7 +1500,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+                        <Tooltip
+                          formatter={(v: any) => fmtINRFull(v)}
+                          contentStyle={{
+                            background: "var(--surface-0)",
+                            border: `1px solid ${THEME.line}`,
+                            borderRadius: 8,
+                            color: THEME.ink,
+                          }}
+                          labelStyle={{ color: THEME.ink }}
+                          itemStyle={{ color: THEME.ink }}
+                        />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1545,7 +1584,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+                        <Tooltip
+                          formatter={(v: any) => fmtINRFull(v)}
+                          contentStyle={{
+                            background: "var(--surface-0)",
+                            border: `1px solid ${THEME.line}`,
+                            borderRadius: 8,
+                            color: THEME.ink,
+                          }}
+                          labelStyle={{ color: THEME.ink }}
+                          itemStyle={{ color: THEME.ink }}
+                        />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1875,14 +1924,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     background: swpResult.isSustainable
                       ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
                       : swpResult.remainingCorpus > 0
-                      ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
-                      : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
+                        ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
+                        : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
                     border: `1.5px solid color-mix(in srgb, ${
                       swpResult.isSustainable
                         ? THEME.sage
                         : swpResult.remainingCorpus > 0
-                        ? THEME.accent
-                        : THEME.rust
+                          ? THEME.accent
+                          : THEME.rust
                     } 30%, transparent)`,
                   }}
                 >
@@ -1905,8 +1954,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       color: swpResult.isSustainable
                         ? THEME.sage
                         : swpResult.remainingCorpus > 0
-                        ? THEME.accent
-                        : THEME.rust,
+                          ? THEME.accent
+                          : THEME.rust,
                     }}
                   >
                     {fmtINRFull(swpResult.remainingCorpus)}
@@ -1947,14 +1996,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     background: swpResult.isSustainable
                       ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
                       : swpResult.depletionMonth > 0
-                      ? `color-mix(in srgb, ${THEME.rust} 10%, transparent)`
-                      : `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+                        ? `color-mix(in srgb, ${THEME.rust} 10%, transparent)`
+                        : `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
                     border: `1.5px solid color-mix(in srgb, ${
                       swpResult.isSustainable
                         ? THEME.sage
                         : swpResult.depletionMonth > 0
-                        ? THEME.rust
-                        : THEME.gold
+                          ? THEME.rust
+                          : THEME.gold
                     } 30%, transparent)`,
                   }}
                 >
@@ -1977,15 +2026,15 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       color: swpResult.isSustainable
                         ? THEME.sage
                         : swpResult.depletionMonth > 0
-                        ? THEME.rust
-                        : THEME.gold,
+                          ? THEME.rust
+                          : THEME.gold,
                     }}
                   >
                     {swpResult.isSustainable
                       ? "Self-Sustaining"
                       : swpResult.depletionMonth > 0
-                      ? `Depletes in ${Math.floor(swpResult.depletionMonth / 12)}y ${swpResult.depletionMonth % 12}m`
-                      : "Corpus Survives"}
+                        ? `Depletes in ${Math.floor(swpResult.depletionMonth / 12)}y ${swpResult.depletionMonth % 12}m`
+                        : "Corpus Survives"}
                   </div>
                 </div>
               </div>
@@ -2017,14 +2066,27 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       gap: 12,
                     }}
                   >
-                    <CheckCircle2 size={18} color={THEME.sage} style={{ marginTop: 1, flexShrink: 0 }} />
+                    <CheckCircle2
+                      size={18}
+                      color={THEME.sage}
+                      style={{ marginTop: 1, flexShrink: 0 }}
+                    />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, marginBottom: 4 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: THEME.sage,
+                          marginBottom: 4,
+                        }}
+                      >
                         Corpus is fully self-sustaining
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
                         Your monthly interest of{" "}
-                        <strong style={{ color: THEME.ink }}>{fmtINRFull(swpResult.monthlyInterest)}</strong>{" "}
+                        <strong style={{ color: THEME.ink }}>
+                          {fmtINRFull(swpResult.monthlyInterest)}
+                        </strong>{" "}
                         exceeds your withdrawal of{" "}
                         <strong style={{ color: THEME.ink }}>
                           ₹{Number(swpWithdrawal).toLocaleString("en-IN")}
@@ -2047,9 +2109,20 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         marginBottom: 12,
                       }}
                     >
-                      <AlertTriangle size={18} color={THEME.rust} style={{ marginTop: 1, flexShrink: 0 }} />
+                      <AlertTriangle
+                        size={18}
+                        color={THEME.rust}
+                        style={{ marginTop: 1, flexShrink: 0 }}
+                      />
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: THEME.rust,
+                            marginBottom: 4,
+                          }}
+                        >
                           Corpus depletes in{" "}
                           {Math.floor(swpResult.depletionMonth / 12) > 0
                             ? `${Math.floor(swpResult.depletionMonth / 12)} year${Math.floor(swpResult.depletionMonth / 12) > 1 ? "s" : ""}`
@@ -2059,8 +2132,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             : ""}
                         </div>
                         <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
-                          At ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/month, your corpus runs
-                          out before the {swpYears}-year planning period ends.
+                          At ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/month, your corpus
+                          runs out before the {swpYears}-year planning period ends.
                         </div>
                       </div>
                     </div>
@@ -2073,14 +2146,22 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           border: `1.5px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
                         }}
                       >
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            marginBottom: 4,
+                          }}
+                        >
                           MIN CORPUS NEEDED
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 900, color: THEME.gold }}>
                           {fmtINRFull(swpResult.minCorpus)}
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
-                          to sustain ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/mo for {swpYears}y
+                          to sustain ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/mo for{" "}
+                          {swpYears}y
                         </div>
                       </div>
                       <div
@@ -2091,7 +2172,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           border: `1.5px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
                         }}
                       >
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            marginBottom: 4,
+                          }}
+                        >
                           CORPUS SHORTFALL
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 900, color: THEME.rust }}>
@@ -2117,7 +2205,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     <Info size={18} color={THEME.gold} style={{ marginTop: 1, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.gold, marginBottom: 4 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: THEME.gold,
+                          marginBottom: 4,
+                        }}
+                      >
                         Corpus survives the planning period
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
@@ -2154,8 +2249,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       <defs>
                         <linearGradient id="gSwpBalance" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent} stopOpacity={0.35} />
-                          <stop offset="100%" stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent} stopOpacity={0} />
+                          <stop
+                            offset="0%"
+                            stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent}
+                            stopOpacity={0.35}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent}
+                            stopOpacity={0}
+                          />
                         </linearGradient>
                         <linearGradient id="gSwpWithdrawn" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.2} />
@@ -2168,7 +2271,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tick={{ fontSize: 10, fill: "var(--t-muted)" }}
                         tickFormatter={(v) => `Y${v}`}
                       />
-                      <YAxis tickFormatter={fmtINRFull} tick={{ fontSize: 10, fill: "var(--t-muted)" }} />
+                      <YAxis
+                        tickFormatter={fmtINRFull}
+                        tick={{ fontSize: 10, fill: "var(--t-muted)" }}
+                      />
                       <Tooltip
                         formatter={(v: any) => fmtINRFull(v)}
                         cursor={{ stroke: THEME.line }}
@@ -2556,41 +2662,140 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
               {/* ── FIRE Enhancement: Additional Insights ── */}
               <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
-                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 16, letterSpacing: "-0.02em" }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    marginBottom: 16,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
                   FIRE Quick Insights
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.accent}08`, border: `1px solid ${THEME.accent}22` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Current Runway</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.accent }}>
-                      {fireResult.currentRunwayYears === Infinity ? "∞" : `${fireResult.currentRunwayYears} yrs`}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `${THEME.accent}08`,
+                      border: `1px solid ${THEME.accent}22`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                    >
+                      Current Runway
                     </div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>{fireResult.currentRunwayMonths === Infinity ? "No expenses" : `${fireResult.currentRunwayMonths} months at current spend`}</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.accent }}>
+                      {fireResult.currentRunwayYears === Infinity
+                        ? "∞"
+                        : `${fireResult.currentRunwayYears} yrs`}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>
+                      {fireResult.currentRunwayMonths === Infinity
+                        ? "No expenses"
+                        : `${fireResult.currentRunwayMonths} months at current spend`}
+                    </div>
                   </div>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.sage}08`, border: `1px solid ${THEME.sage}22` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Projected FIRE Year</div>
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `${THEME.sage}08`,
+                      border: `1px solid ${THEME.sage}22`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                    >
+                      Projected FIRE Year
+                    </div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage }}>
                       {fireResult.projectedFireYear ? fireResult.projectedFireYear : "N/A"}
                     </div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>{fireResult.projectedFireYear ? `Age ${Number(fireAge) + (fireResult.projectedFireYear - new Date().getFullYear())}` : "Increase savings to project"}</div>
-                  </div>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.gold}08`, border: `1px solid ${THEME.gold}22` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Savings Needed to Close Gap</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold }}>
-                      {fireResult.monthlySavingsNeeded > 0 ? fmtINRFull(fireResult.monthlySavingsNeeded) : "On Track ✓"}
+                    <div style={{ fontSize: 11, color: THEME.muted }}>
+                      {fireResult.projectedFireYear
+                        ? `Age ${Number(fireAge) + (fireResult.projectedFireYear - new Date().getFullYear())}`
+                        : "Increase savings to project"}
                     </div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>{fireResult.monthlySavingsNeeded > 0 ? "additional per month needed" : "Current savings exceed target"}</div>
                   </div>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}08`, border: `1px solid ${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}22` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>4% Rule Status</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust }}>
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `${THEME.gold}08`,
+                      border: `1px solid ${THEME.gold}22`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                    >
+                      Savings Needed to Close Gap
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold }}>
+                      {fireResult.monthlySavingsNeeded > 0
+                        ? fmtINRFull(fireResult.monthlySavingsNeeded)
+                        : "On Track ✓"}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>
+                      {fireResult.monthlySavingsNeeded > 0
+                        ? "additional per month needed"
+                        : "Current savings exceed target"}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}08`,
+                      border: `1px solid ${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}22`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                    >
+                      4% Rule Status
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 22,
+                        fontWeight: 900,
+                        color: fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust,
+                      }}
+                    >
                       {fireResult.fourPctProgress}%
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted }}>
                       Need {fmtINRFull(fireResult.fourPctCorpus)} corpus
                     </div>
-                    <div style={{ height: 4, borderRadius: 2, background: `${THEME.muted}22`, marginTop: 6 }}>
-                      <div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, fireResult.fourPctProgress)}%`, background: fireResult.fourPctProgress >= 100 ? THEME.sage : fireResult.fourPctProgress >= 50 ? THEME.gold : THEME.rust, transition: "width 0.3s" }} />
+                    <div
+                      style={{
+                        height: 4,
+                        borderRadius: 2,
+                        background: `${THEME.muted}22`,
+                        marginTop: 6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 4,
+                          borderRadius: 2,
+                          width: `${Math.min(100, fireResult.fourPctProgress)}%`,
+                          background:
+                            fireResult.fourPctProgress >= 100
+                              ? THEME.sage
+                              : fireResult.fourPctProgress >= 50
+                                ? THEME.gold
+                                : THEME.rust,
+                          transition: "width 0.3s",
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -2756,7 +2961,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+                        <Tooltip
+                          formatter={(v: any) => fmtINRFull(v)}
+                          contentStyle={{
+                            background: "var(--surface-0)",
+                            border: `1px solid ${THEME.line}`,
+                            borderRadius: 8,
+                            color: THEME.ink,
+                          }}
+                          labelStyle={{ color: THEME.ink }}
+                          itemStyle={{ color: THEME.ink }}
+                        />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -3071,7 +3286,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <Tooltip
                         formatter={(v: any) => fmtINRFull(v)}
                         cursor={{ stroke: THEME.line }}
-                        contentStyle={{ background: "var(--t-card-bg)", borderColor: THEME.line, color: THEME.ink }}
+                        contentStyle={{
+                          background: "var(--t-card-bg)",
+                          borderColor: THEME.line,
+                          color: THEME.ink,
+                        }}
                         labelStyle={{ color: THEME.ink }}
                         itemStyle={{ color: THEME.ink }}
                       />
@@ -4485,7 +4704,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 {inpRow("Purchase Price (₹)", idxPurchasePrice, setIdxPurchasePrice)}
 
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                  <div
+                    style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                  >
                     Purchase Year (FY)
                   </div>
                   <select
@@ -4502,7 +4723,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     {CII_YEARS.map((yr) => (
-                      <option key={yr} value={yr}>FY {yr}</option>
+                      <option key={yr} value={yr}>
+                        FY {yr}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -4510,7 +4733,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 {inpRow("Sale Price (₹)", idxSalePrice, setIdxSalePrice)}
 
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                  <div
+                    style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                  >
                     Sale Year (FY)
                   </div>
                   <select
@@ -4527,13 +4752,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     {CII_YEARS.map((yr) => (
-                      <option key={yr} value={yr}>FY {yr}</option>
+                      <option key={yr} value={yr}>
+                        FY {yr}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                  <div
+                    style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                  >
                     Asset Type
                   </div>
                   <select
@@ -4550,7 +4779,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     {["Debt MF", "Property", "Gold/Bonds", "Other"].map((a) => (
-                      <option key={a} value={a}>{a}</option>
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -4572,7 +4803,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
                     <b>Budget 2024 Note:</b> Indexation benefit was removed for most asset classes
                     for purchases made after April 2023. This calculator applies to assets purchased
-                    before that cutoff date, where the old LTCG regime with indexation still applies.
+                    before that cutoff date, where the old LTCG regime with indexation still
+                    applies.
                   </div>
                 </div>
               </Card>
@@ -4580,7 +4812,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
             <div className="bento-col-8">
               <Card style={{ padding: 24 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}
+                >
                   Indexation Benefit Analysis
                 </div>
 
@@ -4596,16 +4830,37 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       border: `1px solid ${THEME.rust}25`,
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, marginBottom: 14 }}>
+                    <div
+                      style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, marginBottom: 14 }}
+                    >
                       Without Indexation
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "8px 0",
+                        borderBottom: `1px dashed ${THEME.line}`,
+                        fontSize: 13,
+                      }}
+                    >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Capital Gain</span>
-                      <span style={{ fontWeight: 700, color: THEME.ink }}>{fmtINRFull(idxResult.gainWithout)}</span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>
+                        {fmtINRFull(idxResult.gainWithout)}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "8px 0",
+                        fontSize: 13,
+                      }}
+                    >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
-                      <span style={{ fontWeight: 800, color: THEME.rust, fontSize: 16 }}>{fmtINRFull(idxResult.taxWithout)}</span>
+                      <span style={{ fontWeight: 800, color: THEME.rust, fontSize: 16 }}>
+                        {fmtINRFull(idxResult.taxWithout)}
+                      </span>
                     </div>
                   </div>
 
@@ -4619,28 +4874,77 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       border: `1px solid ${THEME.sage}25`,
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, marginBottom: 14 }}>
+                    <div
+                      style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, marginBottom: 14 }}
+                    >
                       With Indexation
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "8px 0",
+                        borderBottom: `1px dashed ${THEME.line}`,
+                        fontSize: 13,
+                      }}
+                    >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>CII (Purchase)</span>
-                      <span style={{ fontWeight: 700, color: THEME.ink }}>{idxResult.ciiPurchase}</span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>
+                        {idxResult.ciiPurchase}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "8px 0",
+                        borderBottom: `1px dashed ${THEME.line}`,
+                        fontSize: 13,
+                      }}
+                    >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>CII (Sale)</span>
                       <span style={{ fontWeight: 700, color: THEME.ink }}>{idxResult.ciiSale}</span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "8px 0",
+                        borderBottom: `1px dashed ${THEME.line}`,
+                        fontSize: 13,
+                      }}
+                    >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Indexed Cost</span>
-                      <span style={{ fontWeight: 700, color: THEME.sage }}>{fmtINRFull(idxResult.indexedCost)}</span>
+                      <span style={{ fontWeight: 700, color: THEME.sage }}>
+                        {fmtINRFull(idxResult.indexedCost)}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "8px 0",
+                        borderBottom: `1px dashed ${THEME.line}`,
+                        fontSize: 13,
+                      }}
+                    >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Indexed Gain</span>
-                      <span style={{ fontWeight: 700, color: THEME.ink }}>{fmtINRFull(idxResult.gainWith)}</span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>
+                        {fmtINRFull(idxResult.gainWith)}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "8px 0",
+                        fontSize: 13,
+                      }}
+                    >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
-                      <span style={{ fontWeight: 800, color: THEME.sage, fontSize: 16 }}>{fmtINRFull(idxResult.taxWith)}</span>
+                      <span style={{ fontWeight: 800, color: THEME.sage, fontSize: 16 }}>
+                        {fmtINRFull(idxResult.taxWith)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -4661,7 +4965,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                    <div
+                      style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                    >
                       Tax Saved via Indexation
                     </div>
                     <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage }}>
@@ -4669,7 +4975,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                    <div
+                      style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                    >
                       Effective Tax Rate
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent }}>
@@ -4682,7 +4990,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </div>
 
                 {/* Bar Chart: Purchase Price vs Indexed Cost vs Sale Price */}
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, marginBottom: 12 }}>
+                <div
+                  style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, marginBottom: 12 }}
+                >
                   Cost Comparison
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
@@ -4751,14 +5061,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       riResult.adequacy === "green"
                         ? `${THEME.sage}18`
                         : riResult.adequacy === "yellow"
-                        ? `${THEME.gold}18`
-                        : `${THEME.rust}18`,
+                          ? `${THEME.gold}18`
+                          : `${THEME.rust}18`,
                     border: `1.5px solid ${
                       riResult.adequacy === "green"
                         ? THEME.sage
                         : riResult.adequacy === "yellow"
-                        ? THEME.gold
-                        : THEME.rust
+                          ? THEME.gold
+                          : THEME.rust
                     }`,
                   }}
                 >
@@ -4778,23 +5088,23 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           riResult.adequacy === "green"
                             ? THEME.sage
                             : riResult.adequacy === "yellow"
-                            ? THEME.gold
-                            : THEME.rust,
+                              ? THEME.gold
+                              : THEME.rust,
                       }}
                     >
                       {riResult.adequacy === "green"
                         ? "Fully Covered"
                         : riResult.adequacy === "yellow"
-                        ? "Partially Covered"
-                        : "Significant Shortfall"}
+                          ? "Partially Covered"
+                          : "Significant Shortfall"}
                     </span>
                   </div>
                   <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
                     {riResult.adequacy === "green"
                       ? "Your income sources cover 100%+ of expenses throughout retirement."
                       : riResult.adequacy === "yellow"
-                      ? `Income covers expenses initially but falls short at age ${riResult.firstDeficitAge}.`
-                      : "Income doesn't cover expenses even at retirement. You need additional corpus."}
+                        ? `Income covers expenses initially but falls short at age ${riResult.firstDeficitAge}.`
+                        : "Income doesn't cover expenses even at retirement. You need additional corpus."}
                   </div>
                 </div>
               </Card>
@@ -4803,7 +5113,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             {/* Results Panel */}
             <div className="bento-col-8">
               <Card style={{ padding: 24, marginBottom: 20 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 16 }}>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 16 }}
+                >
                   Summary at Retirement
                 </div>
                 <div className="bento-grid" style={{ gap: 16 }}>
@@ -4816,7 +5128,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         border: `1px solid ${THEME.line}`,
                       }}
                     >
-                      {resultRow("Monthly Income at Retirement", riResult.totalIncomeAtRetire, true, THEME.sage)}
+                      {resultRow(
+                        "Monthly Income at Retirement",
+                        riResult.totalIncomeAtRetire,
+                        true,
+                        THEME.sage
+                      )}
                       {resultRow(
                         "Inflation-Adjusted Expense",
                         riResult.inflatedExpAtRetire,
@@ -4960,7 +5277,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
               {/* Income Timeline Chart */}
               <Card style={{ padding: 24, marginBottom: 20 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 16 }}>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 16 }}
+                >
                   Income vs Expenses Timeline
                 </div>
                 <ResponsiveContainer width="100%" height={340}>
@@ -4971,7 +5290,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tick={{ fontSize: 11, fill: THEME.muted }}
                       axisLine={false}
                       tickLine={false}
-                      label={{ value: "Age", position: "insideBottomRight", offset: -5, fontSize: 11, fill: THEME.muted }}
+                      label={{
+                        value: "Age",
+                        position: "insideBottomRight",
+                        offset: -5,
+                        fontSize: 11,
+                        fill: THEME.muted,
+                      }}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: THEME.muted }}
@@ -5074,19 +5399,54 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           textAlign: "left",
                         }}
                       >
-                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                        <th
+                          style={{
+                            padding: "8px 6px",
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            fontSize: 11,
+                          }}
+                        >
                           Source Name
                         </th>
-                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                        <th
+                          style={{
+                            padding: "8px 6px",
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            fontSize: 11,
+                          }}
+                        >
                           Monthly (₹)
                         </th>
-                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                        <th
+                          style={{
+                            padding: "8px 6px",
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            fontSize: 11,
+                          }}
+                        >
                           Start Age
                         </th>
-                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                        <th
+                          style={{
+                            padding: "8px 6px",
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            fontSize: 11,
+                          }}
+                        >
                           End Age
                         </th>
-                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                        <th
+                          style={{
+                            padding: "8px 6px",
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            fontSize: 11,
+                          }}
+                        >
                           Growth %
                         </th>
                         <th style={{ padding: "8px 6px", width: 40 }}></th>

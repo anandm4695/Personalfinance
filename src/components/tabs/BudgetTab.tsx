@@ -393,7 +393,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       overdueCount,
       overdueTotal,
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRecurringExpenses, state.transactions, selectedMonth]);
 
   // One-click Record Payment (Quick Post)
@@ -621,9 +621,18 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 <AlertTriangle size={18} color={THEME.gold} />
               )}
               <div style={{ flex: 1 }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: overBudgetCount > 0 ? THEME.rust : THEME.gold }}>
+                <span
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 14,
+                    color: overBudgetCount > 0 ? THEME.rust : THEME.gold,
+                  }}
+                >
                   {overBudgetCount > 0 && (
-                    <span>{overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget</span>
+                    <span>
+                      {overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over
+                      budget
+                    </span>
                   )}
                   {overBudgetCount > 0 && approachingBudgetCount > 0 && (
                     <span style={{ color: THEME.muted }}>, </span>
@@ -643,79 +652,155 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
           )}
 
           {/* Monthly Budget Summary Stats */}
-          {budgetsToUse.length > 0 && (() => {
-            const utilizationPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-            const remaining = Math.max(0, totalBudget - totalSpent);
-            const utilizationColor = utilizationPct > 100 ? THEME.rust : utilizationPct > 80 ? THEME.gold : THEME.sage;
-            return (
-              <Card
-                style={{
-                  marginBottom: 24,
-                  padding: "16px 24px",
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--surface-0)",
-                }}
-              >
-                <div style={{
-                  fontSize: 10,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  color: THEME.muted,
-                  marginBottom: 16,
-                  fontWeight: 800,
-                }}>
-                  Monthly Budget Summary
-                </div>
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                  gap: 16,
-                }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Total Budget</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent, fontVariantNumeric: "tabular-nums" }}>
-                      {fmtINRFull(totalBudget)}
-                    </div>
+          {budgetsToUse.length > 0 &&
+            (() => {
+              const utilizationPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+              const remaining = Math.max(0, totalBudget - totalSpent);
+              const utilizationColor =
+                utilizationPct > 100 ? THEME.rust : utilizationPct > 80 ? THEME.gold : THEME.sage;
+              return (
+                <Card
+                  style={{
+                    marginBottom: 24,
+                    padding: "16px 24px",
+                    border: `1px solid ${THEME.line}`,
+                    background: "var(--surface-0)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      color: THEME.muted,
+                      marginBottom: 16,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Monthly Budget Summary
                   </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Total Spent</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: totalSpent > totalBudget ? THEME.rust : THEME.ink, fontVariantNumeric: "tabular-nums" }}>
-                      {fmtINRFull(totalSpent)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Remaining</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: remaining > 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
-                      {totalSpent > totalBudget ? `-${fmtINRFull(totalSpent - totalBudget)}` : fmtINRFull(remaining)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Utilization</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: utilizationColor, fontVariantNumeric: "tabular-nums" }}>
-                        {utilizationPct.toFixed(0)}%
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                      gap: 16,
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.muted,
+                          fontWeight: 600,
+                          marginBottom: 4,
+                        }}
+                      >
+                        Total Budget
                       </div>
-                      <div style={{
-                        width: 60,
-                        height: 6,
-                        borderRadius: 3,
-                        background: `${THEME.line}`,
-                        overflow: "hidden",
-                      }}>
-                        <div style={{
-                          width: `${Math.min(utilizationPct, 100)}%`,
-                          height: "100%",
-                          borderRadius: 3,
-                          background: utilizationColor,
-                          transition: "width 0.5s ease",
-                        }} />
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: THEME.accent,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {fmtINRFull(totalBudget)}
                       </div>
                     </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.muted,
+                          fontWeight: 600,
+                          marginBottom: 4,
+                        }}
+                      >
+                        Total Spent
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: totalSpent > totalBudget ? THEME.rust : THEME.ink,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {fmtINRFull(totalSpent)}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.muted,
+                          fontWeight: 600,
+                          marginBottom: 4,
+                        }}
+                      >
+                        Remaining
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: remaining > 0 ? THEME.sage : THEME.rust,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {totalSpent > totalBudget
+                          ? `-${fmtINRFull(totalSpent - totalBudget)}`
+                          : fmtINRFull(remaining)}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.muted,
+                          fontWeight: 600,
+                          marginBottom: 4,
+                        }}
+                      >
+                        Utilization
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 900,
+                            color: utilizationColor,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {utilizationPct.toFixed(0)}%
+                        </div>
+                        <div
+                          style={{
+                            width: 60,
+                            height: 6,
+                            borderRadius: 3,
+                            background: `${THEME.line}`,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${Math.min(utilizationPct, 100)}%`,
+                              height: "100%",
+                              borderRadius: 3,
+                              background: utilizationColor,
+                              transition: "width 0.5s ease",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            );
-          })()}
+                </Card>
+              );
+            })()}
 
           {/* Budget Inheritance Notification Banner */}
           {isInherited && budgetsToUse.length > 0 && (
@@ -829,8 +914,11 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                   {
                     label: "Spent in Month",
                     value: fmtINRFull(allSpent),
-                    sub: `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used` +
-                      (totalUnbudgetedSpent > 0 ? ` · ${fmtINRFull(totalUnbudgetedSpent)} unbudgeted` : ""),
+                    sub:
+                      `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used` +
+                      (totalUnbudgetedSpent > 0
+                        ? ` · ${fmtINRFull(totalUnbudgetedSpent)} unbudgeted`
+                        : ""),
                     color: totalSpent > totalBudget ? THEME.rust : THEME.accent,
                     Icon: Receipt,
                   },
@@ -1042,7 +1130,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           { label: "Spent so far", val: fmtINRFull(totalSpent), color: THEME.ink },
                           {
                             label: "Daily average",
-                            val: fmtINRFull(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day",
+                            val:
+                              fmtINRFull(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day",
                             color: THEME.muted,
                           },
                           {
@@ -1139,11 +1228,26 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 // Per-category status badge
                 const statusBadge = (() => {
                   if (over) {
-                    return { label: `Over by ${fmtINRFull(spent - budget)}`, color: THEME.rust, icon: AlertCircle, variant: "danger" as const };
+                    return {
+                      label: `Over by ${fmtINRFull(spent - budget)}`,
+                      color: THEME.rust,
+                      icon: AlertCircle,
+                      variant: "danger" as const,
+                    };
                   } else if (pct >= 80) {
-                    return { label: `${pct.toFixed(0)}% used`, color: THEME.gold, icon: AlertTriangle, variant: "warning" as const };
+                    return {
+                      label: `${pct.toFixed(0)}% used`,
+                      color: THEME.gold,
+                      icon: AlertTriangle,
+                      variant: "warning" as const,
+                    };
                   } else {
-                    return { label: "On track", color: THEME.sage, icon: CheckCircle2, variant: "success" as const };
+                    return {
+                      label: "On track",
+                      color: THEME.sage,
+                      icon: CheckCircle2,
+                      variant: "success" as const,
+                    };
                   }
                 })();
 
@@ -1153,16 +1257,20 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 return (
                   <Card
                     key={b.id}
-                    ref={(el: HTMLDivElement | null) => { categoryRefs.current[b.category] = el; }}
+                    ref={(el: HTMLDivElement | null) => {
+                      categoryRefs.current[b.category] = el;
+                    }}
                     style={{
                       padding: "18px 20px",
                       borderTop: `3px solid ${barColor}`,
                       position: "relative",
                       transition: "box-shadow 0.3s ease, transform 0.3s ease",
-                      ...(isHighlighted ? {
-                        boxShadow: `0 0 0 2px ${barColor}, 0 4px 16px ${barColor}33`,
-                        transform: "scale(1.01)",
-                      } : {}),
+                      ...(isHighlighted
+                        ? {
+                            boxShadow: `0 0 0 2px ${barColor}, 0 4px 16px ${barColor}33`,
+                            transform: "scale(1.01)",
+                          }
+                        : {}),
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -1193,7 +1301,14 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             marginBottom: 2,
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              flexWrap: "wrap",
+                            }}
+                          >
                             <span
                               style={{
                                 fontWeight: 800,
@@ -1901,7 +2016,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       ? `Paid · ${fmtINRFull(paidThisMonth)}`
                       : isOverdue
                         ? `Overdue · ${fmtINRFull(effectiveRent)} due`
-                        : `Due on ${dueDay}${(dueDay % 10 === 1 && dueDay !== 11) ? "st" : (dueDay % 10 === 2 && dueDay !== 12) ? "nd" : (dueDay % 10 === 3 && dueDay !== 13) ? "rd" : "th"} · ${fmtINRFull(effectiveRent)}`;
+                        : `Due on ${dueDay}${dueDay % 10 === 1 && dueDay !== 11 ? "st" : dueDay % 10 === 2 && dueDay !== 12 ? "nd" : dueDay % 10 === 3 && dueDay !== 13 ? "rd" : "th"} · ${fmtINRFull(effectiveRent)}`;
 
                     // Tier info
                     const tiers = p.escalationTiers;
@@ -2076,7 +2191,10 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               addItem("budgets", { ...v, budgetMonth: selectedMonth });
             } else {
               // Update existing month specific record — preserve budgetMonth
-              updateItem("budgets", editBudget.id, { ...v, budgetMonth: editBudget.budgetMonth || selectedMonth });
+              updateItem("budgets", editBudget.id, {
+                ...v,
+                budgetMonth: editBudget.budgetMonth || selectedMonth,
+              });
             }
             setEditBudget(null);
           }}

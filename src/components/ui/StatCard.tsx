@@ -27,7 +27,8 @@ export const StatCard = ({
   <div
     className="card-lift"
     style={{
-      background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+      background:
+        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
       border: `1.5px solid ${THEME.line}`,
       borderTop: `4px solid ${borderColor || color}`,
       borderRadius: 16,
@@ -45,7 +46,9 @@ export const StatCard = ({
           width: 38,
           height: 38,
           borderRadius: 11,
-          background: iconBg || `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+          background:
+            iconBg ||
+            `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
           border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
           boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
           display: "flex",
@@ -98,4 +101,3 @@ export const StatCard = ({
     </div>
   </div>
 );
-
