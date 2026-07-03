@@ -1486,26 +1486,29 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           {/* Card 1: Portfolio Value */}
           <Card
             hover
+            className="demat-stat-card-glow"
             style={{
               padding: "18px 20px",
               borderTop: `4px solid ${THEME.accent}`,
               display: "flex",
               flexDirection: "column",
               gap: 12,
+              boxShadow: `0 4px 16px color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.accent} 18%, transparent), color-mix(in srgb, ${THEME.accent} 8%, transparent))`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: THEME.accent,
                   flexShrink: 0,
+                  boxShadow: `0 2px 8px color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
                 }}
               >
                 <BarChart3 size={18} />
@@ -1520,43 +1523,61 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                 <Prv>{fmtINRFull(totalValue)}</Prv>
               </div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-                Invested: <Prv>{fmtINRFull(totalInvested)}</Prv>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                  Invested: <Prv>{fmtINRFull(totalInvested)}</Prv>
+                </div>
+                {pnl !== 0 && (
+                  <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`}>
+                    {pnl >= 0 ? "▲" : "▼"} {totalInvested > 0 ? Math.abs((pnl / totalInvested) * 100).toFixed(1) : "0.0"}%
+                  </span>
+                )}
               </div>
+              {totalInvested > 0 && (
+                <div className="demat-inv-bar-track">
+                  <div
+                    className="demat-inv-bar-fill"
+                    style={{ width: `${Math.min(100, (totalInvested / totalValue) * 100).toFixed(1)}%` }}
+                  />
+                </div>
+              )}
             </div>
           </Card>
 
           {/* Card 2: Day's P&L */}
           <Card
             hover
+            className="demat-stat-card-glow"
             style={{
               padding: "18px 20px",
               borderTop: `4px solid ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust}`,
               display: "flex",
               flexDirection: "column",
               gap: 12,
+              boxShadow: `0 4px 16px color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 8%, transparent)`,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 18%, transparent), color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 8%, transparent))`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
                   flexShrink: 0,
+                  boxShadow: `0 2px 8px color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 15%, transparent)`,
                 }}
               >
                 <Activity size={18} />
               </div>
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   Day's P&L
                 </div>
@@ -1564,15 +1585,20 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   Daily market fluctuation
                 </div>
               </div>
+              <span className="demat-live-dot" />
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                 <Prv>{(totalDaysPnL >= 0 ? "+" : "") + fmtINRFull(totalDaysPnL)}</Prv>
               </div>
-              <div style={{ fontSize: 11, color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust, fontWeight: 700, marginTop: 4 }}>
-                {totalDaysPnL !== 0
-                  ? `${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}% today`
-                  : "No change today"}
+              <div style={{ marginTop: 6 }}>
+                {totalDaysPnL !== 0 ? (
+                  <span className={`demat-trend-pill ${totalDaysPnL >= 0 ? "up" : "down"}`}>
+                    {totalDaysPnL >= 0 ? "▲" : "▼"} {Math.abs(totalDaysPnLPct).toFixed(2)}% today
+                  </span>
+                ) : (
+                  <span className="demat-trend-pill neutral">No change today</span>
+                )}
               </div>
             </div>
           </Card>
@@ -1580,26 +1606,29 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           {/* Card 3: Unrealized P&L */}
           <Card
             hover
+            className="demat-stat-card-glow"
             style={{
               padding: "18px 20px",
               borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
               display: "flex",
               flexDirection: "column",
               gap: 12,
+              boxShadow: `0 4px 16px color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 8%, transparent)`,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 18%, transparent), color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 8%, transparent))`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: pnl >= 0 ? THEME.sage : THEME.rust,
                   flexShrink: 0,
+                  boxShadow: `0 2px 8px color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 15%, transparent)`,
                 }}
               >
                 <TrendingUp size={18} />
@@ -1614,13 +1643,17 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: pnl >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: pnl >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                 <Prv>{(pnl >= 0 ? "+" : "") + fmtINRFull(pnl)}</Prv>
               </div>
-              <div style={{ fontSize: 11, color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 700, marginTop: 4 }}>
-                {totalInvested
-                  ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
-                  : "—"}
+              <div style={{ marginTop: 6 }}>
+                {totalInvested ? (
+                  <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`}>
+                    {pnl >= 0 ? "▲" : "▼"} {Math.abs((pnl / totalInvested) * 100).toFixed(2)}% absolute return
+                  </span>
+                ) : (
+                  <span className="demat-trend-pill neutral">—</span>
+                )}
               </div>
             </div>
           </Card>
@@ -1628,26 +1661,29 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           {/* Card 4: Overall XIRR */}
           <Card
             hover
+            className="demat-stat-card-glow"
             style={{
               padding: "18px 20px",
               borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
               display: "flex",
               flexDirection: "column",
               gap: 12,
+              boxShadow: `0 4px 16px color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 8%, transparent)`,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 18%, transparent), color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 8%, transparent))`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust,
                   flexShrink: 0,
+                  boxShadow: `0 2px 8px color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 15%, transparent)`,
                 }}
               >
                 <Percent size={18} />
@@ -1662,11 +1698,17 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                 {overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
               </div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-                Annualized rate of return
+              <div style={{ marginTop: 6 }}>
+                {overallXirr !== null ? (
+                  <span className={`demat-trend-pill ${overallXirr >= 0 ? "up" : "down"}`}>
+                    {overallXirr >= 0 ? "▲" : "▼"} Annualized return
+                  </span>
+                ) : (
+                  <span className="demat-trend-pill neutral">Annualized rate of return</span>
+                )}
               </div>
             </div>
           </Card>
@@ -1710,6 +1752,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   justifyContent: "space-between",
                   gap: 16,
                   height: "100%",
+                  boxShadow: `0 4px 16px color-mix(in srgb, ${theme.color} 8%, transparent)`,
+                  transition: "transform 0.2s ease, box-shadow 0.25s ease",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -1726,13 +1770,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           color: THEME.sage,
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: 4,
+                          gap: 5,
                           background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                           padding: "2px 8px",
                           borderRadius: 20,
                         }}
                       >
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.sage }} />
+                        <span className="broker-live-dot" />
                         Active
                       </span>
                     </div>
@@ -1800,7 +1844,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       )}
                       {!d.dpId && !d.clientId && (
                         <span style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>
-                          DP & Client ID not configured
+                          DP &amp; Client ID not configured
                         </span>
                       )}
                     </div>
@@ -1811,34 +1855,37 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   style={{
                     borderTop: `1.5px dashed ${THEME.line}`,
                     paddingTop: 14,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-end",
                   }}
                 >
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      Holding Value
-                    </div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
-                      {fmtINRFull(dematValue)}
-                    </div>
-                    {dematStocks.length > 0 && (
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: dematPnl >= 0 ? THEME.sage : THEME.rust,
-                          marginTop: 3,
-                        }}
-                      >
-                        {dematPnl >= 0 ? "+" : ""}
-                        {dematPnlPct.toFixed(2)}% ({dematPnl >= 0 ? "+" : ""}₹{Math.round(dematPnl).toLocaleString("en-IN")})
+                  {/* 2-column financial summary */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
+                        Invested
                       </div>
-                    )}
+                      <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                        {fmtINRFull(dematInvested)}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
+                        Current Value
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                        {fmtINRFull(dematValue)}
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    {dematStocks.length > 0 ? (
+                      <span className={`demat-trend-pill ${dematPnl >= 0 ? "up" : "down"}`} style={{ fontSize: 12 }}>
+                        {dematPnl >= 0 ? "▲" : "▼"} {dematPnlPct.toFixed(2)}%
+                        &nbsp;({dematPnl >= 0 ? "+" : ""}{fmtINRFull(dematPnl)})
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 12, color: THEME.muted }}>No holdings</span>
+                    )}
                     <span
                       style={{
                         fontSize: 10,
@@ -1871,25 +1918,58 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               flexWrap: "wrap",
             }}
           >
-            <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 400 }}>
-              <input
-                placeholder="Search stocks or sectors..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  ...input,
-                  paddingLeft: 40,
-                  borderRadius: 12,
-                  height: 42,
-                  border: `1.5px solid ${THEME.line}`,
-                  background: "var(--t-input-bg)",
-                  color: THEME.ink,
-                  transition: "border-color 0.2s, box-shadow 0.2s",
-                }}
-              />
-              <div style={{ position: "absolute", left: 14, top: 12, color: THEME.muted }}>
-                <Search size={16} />
+            {/* Search box + stock count */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 240px" }}>
+              <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 400 }}>
+                <input
+                  placeholder="Search stocks or sectors..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    ...input,
+                    paddingLeft: 40,
+                    borderRadius: 12,
+                    height: 42,
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "var(--t-input-bg)",
+                    color: THEME.ink,
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                  }}
+                />
+                <div style={{ position: "absolute", left: 14, top: 12, color: THEME.muted }}>
+                  <Search size={16} />
+                </div>
               </div>
+              {/* Market Status Badge */}
+              {(() => {
+                const now = new Date();
+                const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+                const h = ist.getHours(), m = ist.getMinutes(), day = ist.getDay();
+                const isWeekday = day >= 1 && day <= 5;
+                const afterOpen = h > 9 || (h === 9 && m >= 15);
+                const beforeClose = h < 15 || (h === 15 && m <= 30);
+                const isOpen = isWeekday && afterOpen && beforeClose;
+                return (
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 12px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: isOpen
+                      ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
+                      : `color-mix(in srgb, ${THEME.muted} 10%, transparent)`,
+                    color: isOpen ? THEME.sage : THEME.muted,
+                    border: `1px solid ${isOpen ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.muted} 15%, transparent)`}`,
+                    whiteSpace: "nowrap" as const,
+                  }}>
+                    <span className={`demat-live-dot ${isOpen ? "" : "closed"}`} />
+                    {isOpen ? "Market Open" : "Market Closed"}
+                  </div>
+                );
+              })()}
             </div>
             
             <div
@@ -1965,8 +2045,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             }}
           >
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: "var(--surface-0)" }}>
+              <thead className="demat-table-thead">
+                <tr>
                   <th style={{ ...th, paddingLeft: 20, borderBottom: `1.5px solid ${THEME.line}` }}>
                     Asset / Scrip
                   </th>
@@ -1994,6 +2074,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}
                   >
                     Current Value
+                  </th>
+                  <th
+                    style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}
+                  >
+                    Weight
                   </th>
                   <th
                     style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}
@@ -2223,6 +2308,26 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           {fmtINRFull(totalCurr)}
                         </td>
 
+                        {/* Portfolio Weight column with allocation bar */}
+                        <td style={{ ...td, textAlign: "right", minWidth: 90 }}>
+                          {totalValue > 0 ? (() => {
+                            const weight = (totalCurr / totalValue) * 100;
+                            return (
+                              <div className="demat-allocation-bar-wrap" style={{ justifyContent: "flex-end" }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, minWidth: 36, textAlign: "right" }}>
+                                  {weight.toFixed(1)}%
+                                </span>
+                                <div className="demat-allocation-bar-track" style={{ width: 52 }}>
+                                  <div
+                                    className="demat-allocation-bar-fill"
+                                    style={{ width: `${Math.min(100, weight)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })() : <span style={{ color: THEME.muted }}>—</span>}
+                        </td>
+
                         <td style={{ ...td, textAlign: "right" }}>
                           {isLive ? (
                             <>
@@ -2298,7 +2403,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           }}
                         >
                           <td
-                            colSpan={8}
+                            colSpan={9}
                             style={{
                               padding: "24px 28px",
                               borderBottom: `1.5px solid ${THEME.line}`,
@@ -3739,11 +3844,17 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
               {/* Actionable Financial Insights checklist */}
               <Card style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
-                  💡 Financial Optimization Suggestions
+                <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 22 }}>💡</span>
+                  <div>
+                    <div>Financial Optimization Suggestions</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginTop: 2 }}>
+                      AI-driven insights based on your portfolio composition
+                    </div>
+                  </div>
                 </div>
                 
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {portfolioScoreData.insights.map((insight: string, idx: number) => {
                     const isWarn = insight.includes("⚠️") || insight.includes("📉");
                     const isIdea = insight.includes("💡") || insight.includes("ℹ️");
@@ -3755,38 +3866,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       .replace("✓ ", "");
                     
                     return (
-                      <div key={idx} style={{
-                        display: "flex",
-                        gap: 12,
-                        alignItems: "flex-start",
-                        padding: "12px 16px",
-                        borderRadius: 12,
-                        background: isWarn 
-                          ? `color-mix(in srgb, ${THEME.rust} 6%, transparent)` 
-                          : isIdea 
-                            ? `color-mix(in srgb, ${THEME.gold} 6%, transparent)` 
-                            : `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
-                        border: `1.5px solid ${
-                          isWarn 
-                            ? `color-mix(in srgb, ${THEME.rust} 15%, transparent)` 
-                            : isIdea 
-                              ? `color-mix(in srgb, ${THEME.gold} 15%, transparent)` 
-                              : `color-mix(in srgb, ${THEME.sage} 15%, transparent)`
-                        }`,
-                        fontSize: 13,
-                        lineHeight: 1.5,
-                        color: THEME.ink
-                      }}>
-                        <div style={{ marginTop: 2, display: "flex", flexShrink: 0 }}>
-                          {isWarn ? (
-                            <AlertTriangle size={15} color={THEME.rust} />
-                          ) : isIdea ? (
-                            <Lightbulb size={15} color={THEME.gold} />
-                          ) : (
-                            <CheckCircle2 size={15} color={THEME.sage} />
-                          )}
+                      <div key={idx} className={`demat-insight-card ${isWarn ? "warn" : isIdea ? "idea" : "ok"}`}>
+                        <div style={{ marginTop: 1, flexShrink: 0, fontSize: 20, lineHeight: 1 }}>
+                          {isWarn ? "⚠️" : isIdea ? "💡" : "✅"}
                         </div>
-                        <div style={{ fontWeight: 650, flex: 1 }}>{text}</div>
+                        <div style={{ flex: 1, color: THEME.ink }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{text}</div>
+                        </div>
                       </div>
                     );
                   })}
@@ -3801,24 +3887,56 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
       {/* ── WATCHLIST SECTION ── */}
       {dematView === "watchlist" && (
         <div style={{ width: "100%", marginTop: 24 }}>
-          {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Your Watchlists</div>
-              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
-                {wishlists.length === 0
-                  ? "Create watchlists to track stocks you want to buy"
-                  : `${wishlists.length} watchlist${wishlists.length !== 1 ? "s" : ""} · ${wishlistItems.length} stock${wishlistItems.length !== 1 ? "s" : ""} total`}
+          {/* Hero Header */}
+          {(() => {
+            const allWlItems = wishlistItems || [];
+            const nearTargetCount = allWlItems.filter((it: any) => {
+              const base = (it.symbol || "").replace(/\.(NS|BO)$/i, "");
+              const exch = it.exchange || "NSE";
+              const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+              const livePrice = marketData[yfSym]?.price;
+              if (!livePrice || !it.targetPrice) return false;
+              const gap = Math.abs(((Number(it.targetPrice) - Number(livePrice)) / Number(livePrice)) * 100);
+              return gap <= 5;
+            }).length;
+            const wlCount = wishlists.length;
+            const totalItems = allWlItems.length;
+            return (
+              <div className="watchlist-hero">
+                <div style={{ fontSize: 38, lineHeight: 1, flexShrink: 0 }}>⭐</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>
+                    My Watchlists
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 3, fontWeight: 500 }}>
+                    Track stocks you're interested in buying
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`, color: THEME.accent, border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)` }}>
+                      {wlCount} Watchlist{wlCount !== 1 ? "s" : ""}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: `color-mix(in srgb, ${THEME.muted} 10%, transparent)`, color: THEME.muted, border: `1px solid color-mix(in srgb, ${THEME.muted} 15%, transparent)` }}>
+                      {totalItems} Stock{totalItems !== 1 ? "s" : ""} Tracked
+                    </span>
+                    {nearTargetCount > 0 && (
+                      <span className="watchlist-near-target" style={{ fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 20, background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`, color: THEME.sage, border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)` }}>
+                        🎯 {nearTargetCount} Near Target
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <Button
+                    variant="accent"
+                    icon={<Plus size={14} />}
+                    onClick={() => setShowWishlistModal(true)}
+                  >
+                    New Watchlist
+                  </Button>
+                </div>
               </div>
-            </div>
-            <Button
-              variant="accent"
-              icon={<Plus size={14} />}
-              onClick={() => setShowWishlistModal(true)}
-            >
-              New Watchlist
-            </Button>
-          </div>
+            );
+          })()}
 
           {/* Empty state */}
           {wishlists.length === 0 && (
@@ -3900,7 +4018,32 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         </div>
                       )}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {/* Near target badge */}
+                      {(() => {
+                        const nearCount = items.filter((it: any) => {
+                          const base = (it.symbol || "").replace(/\.(NS|BO)$/i, "");
+                          const exch = it.exchange || "NSE";
+                          const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+                          const livePrice = marketData[yfSym]?.price;
+                          if (!livePrice || !it.targetPrice) return false;
+                          const gap = Math.abs(((Number(it.targetPrice) - Number(livePrice)) / Number(livePrice)) * 100);
+                          return gap <= 5;
+                        }).length;
+                        return nearCount > 0 ? (
+                          <span className="watchlist-near-target" style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: "2px 8px",
+                            borderRadius: 20,
+                            background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                            color: THEME.sage,
+                            border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                          }}>
+                            🎯 {nearCount} near target
+                          </span>
+                        ) : null;
+                      })()}
                       <span style={{
                         background: `${wl.color || WISHLIST_COLORS[0]}18`,
                         color: wl.color || WISHLIST_COLORS[0],
@@ -3909,6 +4052,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         padding: "3px 10px",
                         borderRadius: 20,
                         whiteSpace: "nowrap",
+                        border: `1px solid ${wl.color || WISHLIST_COLORS[0]}30`,
                       }}>
                         {items.length} stock{items.length !== 1 ? "s" : ""}
                       </span>
@@ -4062,11 +4206,32 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           <span style={{ color: THEME.muted }}>—</span>
                                         )}
                                       </td>
-                                      <td style={{ ...td, textAlign: "right" }}>
+                                      <td style={{ ...td, textAlign: "right", minWidth: 160 }}>
                                         {gap !== null ? (
-                                          <span style={{ fontWeight: 700, color: gapColor }}>
-                                            {gap >= 0 ? "▲ " : "▼ "}{Math.abs(gap).toFixed(1)}% {gap >= 0 ? "below target" : "above target"}
-                                          </span>
+                                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                              {Math.abs(gap) <= 2 && it.targetPrice && livePrice && (
+                                                <span className="buy-signal-badge">🎯 Buy Signal</span>
+                                              )}
+                                              <span style={{ fontWeight: 700, color: gapColor, fontSize: 12 }}>
+                                                {gap >= 0 ? "▲ " : "▼ "}{Math.abs(gap).toFixed(1)}%{" "}
+                                                <span style={{ fontWeight: 500, color: THEME.muted, fontSize: 11 }}>
+                                                  {gap >= 0 ? "to target" : "above target"}
+                                                </span>
+                                              </span>
+                                            </div>
+                                            {gap >= 0 && (
+                                              <div className="watchlist-target-bar-track" style={{ width: 100 }}>
+                                                <div
+                                                  className="watchlist-target-bar-fill"
+                                                  style={{
+                                                    width: `${Math.min(100, Math.max(0, 100 - Math.min(100, gap)))}%`,
+                                                    background: gap <= 5 ? THEME.sage : gap <= 15 ? THEME.gold : THEME.accent,
+                                                  }}
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
                                         ) : (
                                           <span style={{ color: THEME.muted }}>—</span>
                                         )}

@@ -1934,6 +1934,242 @@ input[type="date"].form-input {
   will-change: transform, opacity;
 }
 
+/* ── Demat Premium UI Classes ────────────────────────────────────────────── */
+
+/* Pulsing live market status dot */
+@keyframes liveMarketPulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
+  50% { opacity: 0.8; transform: scale(1.15); box-shadow: 0 0 0 4px transparent; }
+}
+.demat-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--t-sage, #22c55e);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: liveMarketPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.demat-live-dot.closed {
+  background: var(--t-muted);
+  animation: none;
+}
+
+/* Mini allocation bar for portfolio weight */
+.demat-allocation-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+}
+.demat-allocation-bar-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--t-line);
+  overflow: hidden;
+}
+.demat-allocation-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 70%, #a78bfa));
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Stat card glow border effect */
+.demat-stat-card-glow {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.demat-stat-card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.08),
+    0 0 0 1px color-mix(in srgb, var(--t-accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--t-accent) 10%, transparent);
+}
+
+/* Trend pill badge for stat cards */
+.demat-trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: opacity 0.2s;
+}
+.demat-trend-pill.up {
+  background: color-mix(in srgb, var(--t-sage) 12%, transparent);
+  color: var(--t-sage);
+  border: 1px solid color-mix(in srgb, var(--t-sage) 20%, transparent);
+}
+.demat-trend-pill.down {
+  background: color-mix(in srgb, var(--t-rust) 12%, transparent);
+  color: var(--t-rust);
+  border: 1px solid color-mix(in srgb, var(--t-rust) 20%, transparent);
+}
+.demat-trend-pill.neutral {
+  background: color-mix(in srgb, var(--t-muted) 12%, transparent);
+  color: var(--t-muted);
+  border: 1px solid color-mix(in srgb, var(--t-muted) 20%, transparent);
+}
+
+/* Progress bar for invested/value ratio */
+.demat-inv-bar-track {
+  width: 100%;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--t-line);
+  margin-top: 8px;
+  overflow: hidden;
+}
+.demat-inv-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 70%, #818cf8));
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Watchlist near-target badge */
+@keyframes nearTargetGlow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--t-sage) 30%, transparent); }
+  50% { box-shadow: 0 0 0 4px transparent; }
+}
+.watchlist-near-target {
+  animation: nearTargetGlow 2s ease-in-out infinite;
+}
+
+/* Target progress bar in watchlist */
+.watchlist-target-bar-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--t-line);
+  margin-top: 4px;
+  overflow: hidden;
+}
+.watchlist-target-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Premium insight card (Analytics view) */
+.demat-insight-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.demat-insight-card:hover {
+  transform: translateX(3px);
+}
+.demat-insight-card.warn {
+  background: color-mix(in srgb, var(--t-rust) 6%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--t-rust) 15%, transparent);
+  border-left: 4px solid var(--t-rust);
+}
+.demat-insight-card.idea {
+  background: color-mix(in srgb, var(--t-gold, #f59e0b) 6%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--t-gold, #f59e0b) 15%, transparent);
+  border-left: 4px solid var(--t-gold, #f59e0b);
+}
+.demat-insight-card.ok {
+  background: color-mix(in srgb, var(--t-sage) 6%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--t-sage) 15%, transparent);
+  border-left: 4px solid var(--t-sage);
+}
+
+/* Benchmark result banner */
+.demat-benchmark-banner {
+  padding: 16px 20px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.demat-benchmark-banner.outperform {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--t-sage) 10%, transparent), color-mix(in srgb, var(--t-sage) 4%, transparent));
+  border: 1.5px solid color-mix(in srgb, var(--t-sage) 25%, transparent);
+}
+.demat-benchmark-banner.underperform {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--t-rust) 10%, transparent), color-mix(in srgb, var(--t-rust) 4%, transparent));
+  border: 1.5px solid color-mix(in srgb, var(--t-rust) 25%, transparent);
+}
+
+/* Watchlist hero header */
+.watchlist-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--t-accent) 8%, var(--surface-1)) 0%,
+    var(--surface-1) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line));
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.watchlist-hero::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 50%, #f59e0b));
+  border-radius: 4px 0 0 4px;
+}
+
+/* Watchlist buy-signal badge */
+@keyframes buySignalPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.buy-signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--t-sage) 15%, transparent);
+  color: var(--t-sage);
+  border: 1px solid color-mix(in srgb, var(--t-sage) 30%, transparent);
+  animation: buySignalPulse 2s ease-in-out infinite;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+/* Table header gradient */
+.demat-table-thead tr {
+  background: linear-gradient(90deg, var(--surface-0) 0%, color-mix(in srgb, var(--t-accent) 3%, var(--surface-0)) 100%) !important;
+}
+
+/* Broker pulsing dot */
+@keyframes brokerLivePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+}
+.broker-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--t-sage, #22c55e);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: brokerLivePulse 2s ease-in-out infinite;
+}
+
 /* ── Range Slider Custom Styling for Projection Engine ── */
 input[type="range"].cxo-slider {
   -webkit-appearance: none;
