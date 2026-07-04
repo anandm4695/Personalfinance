@@ -2810,15 +2810,16 @@ function FinanceDashboard() {
                 const demoPass = import.meta.env.VITE_DEMO_USER_PASSWORD;
                 if (demoEmail && demoPass) {
                   try {
-                    const { data, error } = await supabase.auth.signInWithPassword({
-                      email: demoEmail,
-                      password: demoPass,
-                    });
+                    setDemoMode(true);
+                    const { data, error } = await signInToDemo(demoEmail, demoPass);
                     if (!error && data.session) {
                       setSession(data.session);
                       return;
                     }
-                  } catch {}
+                    setDemoMode(false);
+                  } catch {
+                    setDemoMode(false);
+                  }
                 }
                 const demoSession = {
                   user: { id: "offline-user", email: "demo@personalfinance.app" },
