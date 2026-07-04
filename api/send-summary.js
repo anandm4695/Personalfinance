@@ -342,6 +342,11 @@ function computeSummary(state) {
     .filter((p) => p.status !== "sold")
     .reduce((s, p) => s + Number(p.marketValue || p.agreementValue || 0), 0);
 
+  const govtSchemesTotal = (state.govtSchemes || []).reduce(
+    (s, sc) => s + Number(sc.currentBalance || 0),
+    0
+  );
+
   const totalAssets =
     bankTotal +
     investTotal +
@@ -352,7 +357,8 @@ function computeSummary(state) {
     informalLentTotal +
     rentalPropertiesAsset +
     realEstateAsset +
-    vehicleAsset;
+    vehicleAsset +
+    govtSchemesTotal;
 
   const activeCards = (state.creditCards || []).filter(
     (c) => (c.status || "active").toLowerCase() !== "closed"
@@ -424,12 +430,14 @@ function computeSummary(state) {
   // ── Cash flow (current month) ──────────────────────────────────────────────
   const monthTxns = (state.transactions || []).filter((t) => t.date && t.date.startsWith(curYm));
 
+  const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat);
+
   const monthIncome = (() => {
     const explicitIncomeMonth = (state.income || [])
       .filter((i) => i.date && i.date.startsWith(curYm))
       .reduce((s, i) => s + Number(i.amount || 0), 0);
     const txnIncomeMonth = monthTxns
-      .filter((t) => t.type === "credit")
+      .filter((t) => t.type === "credit" && !isTransferCat(t.category))
       .reduce((s, t) => s + Number(t.amount || 0), 0);
     return explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
   })();
@@ -447,7 +455,11 @@ function computeSummary(state) {
     (t) => t.type === "debit" && (t.category || "").toLowerCase() === "rent"
   );
   const monthExpense =
-    monthTxns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0) +
+    monthTxns
+      .filter(
+        (t) => t.type === "debit" && !isTransferCat(t.category) && t.category !== "Investment"
+      )
+      .reduce((s, t) => s + Number(t.amount || 0), 0) +
     (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
 
   const netSavings = monthIncome - monthExpense;
@@ -456,7 +468,7 @@ function computeSummary(state) {
   // ── Top spending categories this month ────────────────────────────────────
   const catMap = {};
   monthTxns
-    .filter((t) => t.type === "debit")
+    .filter((t) => t.type === "debit" && !isTransferCat(t.category) && t.category !== "Investment")
     .forEach((t) => {
       const cat = t.category || "Other";
       catMap[cat] = (catMap[cat] || 0) + Math.abs(Number(t.amount));
@@ -707,6 +719,7 @@ function computeSummary(state) {
     rentalPropertiesAsset,
     realEstateAsset,
     vehicleAsset,
+    govtSchemesTotal,
     creditOutstanding,
     creditLimit,
     creditUtil,
@@ -754,6 +767,7 @@ function generateHTML(summary, frequency, recipientName) {
     rentalPropertiesAsset,
     realEstateAsset,
     vehicleAsset,
+    govtSchemesTotal,
     creditOutstanding,
     creditUtil,
     loanOutstanding,
@@ -1023,6 +1037,7 @@ function generateHTML(summary, frequency, recipientName) {
     informalLentTotal > 0 && listRow("Informal Lending", fmtINR(informalLentTotal), "💰"),
     prepaidTotal > 0 && listRow("Prepaid Cards", fmtINR(prepaidTotal), "💳"),
     rentedDepositAsset > 0 && listRow("Security Deposits", fmtINR(rentedDepositAsset), "🔑"),
+    govtSchemesTotal > 0 && listRow("Govt Schemes", fmtINR(govtSchemesTotal), "🏛️"),
   ]
     .filter(Boolean)
     .join("");
@@ -1315,6 +1330,7 @@ async function fetchStateFromSupabase(supabase, userId) {
     vehicles,
     gold,
     settingsGold,
+    govtSchemesQ,
   ] = await Promise.all([
     supabase.from("bank_accounts").select("*").eq("user_id", userId),
     supabase.from("transactions").select("*").eq("user_id", userId),
@@ -1427,6 +1443,14 @@ async function fetchStateFromSupabase(supabase, userId) {
         (res) => res,
         () => ({ data: null })
       ),
+    supabase
+      .from("govt_schemes")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
   ]);
 
   const camelBanks = snakeToCamel(banks.data || []);
@@ -1467,6 +1491,7 @@ async function fetchStateFromSupabase(supabase, userId) {
   const camelRePayments = snakeToCamel(rePayments.data || []);
   const camelVehicles = snakeToCamel(vehicles.data || []);
   const camelGold = snakeToCamel(gold.data || []);
+  const camelGovtSchemes = snakeToCamel(govtSchemesQ.data || []);
 
   const rentalProperties = camelRentalData
     .filter((x) => x.propertyType === "out")
@@ -1507,6 +1532,7 @@ async function fetchStateFromSupabase(supabase, userId) {
     vehicles: camelVehicles,
     goldHoldings: camelGold,
     goldPricePerGram: settingsGold.data?.gold_price_per_gram || 7200,
+    govtSchemes: camelGovtSchemes,
   };
 }
 
