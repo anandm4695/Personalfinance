@@ -29,6 +29,8 @@ import {
   Car,
   Scale,
   X,
+  Copy,
+  Check,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -168,6 +170,52 @@ function formatDate(d: string): string {
 function getCategoryIcon(category: string) {
   const cat = CATEGORIES[category as CategoryKey];
   return cat ? cat.icon : FileText;
+}
+
+// Custom function to return theme profiles structure
+function getOwnerAvatarInfo(ownerId: string) {
+  switch (ownerId) {
+    case "self":
+      return {
+        initials: "AM",
+        name: "Anand Mohta",
+        relation: "Self",
+        color: "#6366F1",
+        bg: "color-mix(in srgb, #6366F1 12%, transparent)",
+      };
+    case "wife":
+      return {
+        initials: "DM",
+        name: "Dharna Mohta",
+        relation: "Wife",
+        color: "#EC4899",
+        bg: "color-mix(in srgb, #EC4899 12%, transparent)",
+      };
+    case "daughter":
+      return {
+        initials: "RM",
+        name: "Revika Mohta",
+        relation: "Daughter",
+        color: "#A855F7",
+        bg: "color-mix(in srgb, #A855F7 12%, transparent)",
+      };
+    case "huf":
+      return {
+        initials: "H",
+        name: "Anand Mohta HUF",
+        relation: "HUF",
+        color: "#14B8A6",
+        bg: "color-mix(in srgb, #14B8A6 12%, transparent)",
+      };
+    default:
+      return {
+        initials: "??",
+        name: ownerId,
+        relation: "",
+        color: "#64748B",
+        bg: "color-mix(in srgb, #64748B 12%, transparent)",
+      };
+  }
 }
 
 function getCategoryColor(category: string) {
@@ -310,6 +358,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   const [expandedAlerts, setExpandedAlerts] = useState(true);
   const [renewDoc, setRenewDoc] = useState<any>(null);
   const [renewDate, setRenewDate] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [viewDocId, setViewDocId] = useState<string | null>(null);
 
   // ── Computed ────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -420,12 +470,72 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       });
     }
 
-    return links.filter((l) => l.total > 0);
+    return links;
+  }, [state, documents]);
+
+  // Overall Coverage statistics
+  const coverageMetrics = useMemo(() => {
+    let total = 0;
+    let linked = 0;
+    quickLinks.forEach((link) => {
+      total += link.total;
+      linked += link.linked;
+    });
+    const percentage = total > 0 ? Math.round((linked / total) * 100) : 0;
+    return { total, linked, percentage };
+  }, [quickLinks]);
+
+  // Identify assets missing documents
+  const missingAssets = useMemo(() => {
+    const missing: { type: string; label: string; assetName: string; assetId: string }[] = [];
+    const assetMap: Record<string, { key: string; label: string }> = {
+      bankAccount: { key: "bankAccounts", label: "Bank Account" },
+      insurance: { key: "lic", label: "Insurance Policy" },
+      property: { key: "realEstateProperties", label: "Property" },
+      vehicle: { key: "vehicles", label: "Vehicle" },
+      creditCard: { key: "creditCards", label: "Credit Card" },
+    };
+
+    for (const [typeId, info] of Object.entries(assetMap)) {
+      let assets = state[info.key] || [];
+      if (typeId === "insurance") {
+        assets = [
+          ...(state.lic || []),
+          ...(state.termPlans || []),
+          ...(state.investmentPlans || []),
+        ];
+      }
+
+      assets.forEach((asset: any) => {
+        const hasDoc = documents.some(
+          (d) => d.linkedAssetType === typeId && d.linkedAsset === asset.id
+        );
+        if (!hasDoc) {
+          let name = asset.name || asset.bankName || asset.policyName || asset.make || asset.id;
+          if (typeId === "vehicle" && asset.make) {
+            name = `${asset.make} ${asset.model || ""}`.trim();
+          } else if (typeId === "bankAccount" && asset.bankName) {
+            name = `${asset.bankName} (${asset.accountNumber?.slice(-4) || asset.id})`;
+          }
+          missing.push({
+            type: typeId,
+            label: info.label,
+            assetName: name,
+            assetId: asset.id,
+          });
+        }
+      });
+    }
+    return missing;
   }, [state, documents]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const openAddModal = () => {
-    setForm({ ...EMPTY_DOC });
+  const openAddModal = (defaultAssetType = "", defaultAssetId = "") => {
+    setForm({
+      ...EMPTY_DOC,
+      linkedAssetType: defaultAssetType,
+      linkedAsset: defaultAssetId,
+    });
     setEditId(null);
     setShowModal(true);
   };
@@ -506,6 +616,13 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     });
   };
 
+  const handleCopy = (id: string, text: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
   const linkedAssetOptions = useMemo(
     () => (form.linkedAssetType ? getLinkedAssets(state, form.linkedAssetType) : []),
     [state, form.linkedAssetType]
@@ -526,32 +643,79 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           description="Add your identity proofs, financial documents, insurance policies, property papers, and more. Track expiry dates and link documents to your assets."
           pills={["PAN Card", "Passport", "Sale Deeds", "Insurance", "RC Book", "ITR"]}
           buttonLabel="Add Document"
-          onAdd={openAddModal}
+          onAdd={() => openAddModal()}
         />
         {showModal && renderModal()}
       </div>
     );
   }
 
-  // ── Category icon badge ─────────────────────────────────────────────────
-  function CategoryIconBadge({ category, size = 36 }: { category: string; size?: number }) {
-    const Icon = getCategoryIcon(category);
-    const color = getCategoryColor(category);
+  // ── Family Initial Avatar ───────────────────────────────────────────────
+  function OwnerAvatar({ ownerId, size = 26 }: { ownerId: string; size?: number }) {
+    const info = getOwnerAvatarInfo(ownerId);
     return (
       <div
+        title={`${info.name} (${info.relation})`}
         style={{
           width: size,
           height: size,
-          borderRadius: 10,
-          background: `color-mix(in srgb, ${color} 12%, transparent)`,
+          borderRadius: "50%",
+          background: info.bg,
+          border: `1.5px solid ${info.color}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: color,
+          color: info.color,
+          fontSize: size * 0.45,
+          fontWeight: 700,
+          cursor: "default",
           flexShrink: 0,
         }}
       >
-        <Icon size={size * 0.5} />
+        {info.initials}
+      </div>
+    );
+  }
+
+  // ── Circular Progress Wheel ──────────────────────────────────────────────
+  function CircularProgressWheel({ percentage, size = 80 }: { percentage: number; size?: number }) {
+    const strokeWidth = 6;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    return (
+      <div className="coverage-circular-progress" style={{ width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)", overflow: "visible" }}>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="transparent"
+            stroke="var(--surface-2)"
+            strokeWidth={strokeWidth}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="transparent"
+            stroke={percentage === 100 ? THEME.sage : THEME.accent}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+        </svg>
+        <div className="coverage-circular-progress-text">
+          <span style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}>
+            {percentage}%
+          </span>
+          <span style={{ fontSize: 8, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>
+            Covered
+          </span>
+        </div>
       </div>
     );
   }
@@ -561,25 +725,63 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     const status = getDocStatus(doc.expiryDate);
     const badge = statusBadge(status);
     const days = daysUntilExpiry(doc.expiryDate);
-    const catColor = getCategoryColor(doc.category);
+    const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
+    const ownerInfo = getOwnerAvatarInfo(doc.owner);
 
     return (
-      <Card
-        className="card-lift"
+      <div
+        className="doc-vault-card"
+        onClick={() => setViewDocId(doc.id)}
         style={{
-          padding: 0,
-          overflow: "hidden",
-          borderTop: `3px solid ${catColor}`,
-        }}
+          "--cat-color": cat.color,
+          cursor: "pointer",
+        } as React.CSSProperties}
       >
-        <div style={{ padding: "16px 18px" }}>
-          {/* Header */}
+        {/* Card Decorative Top Header */}
+        <div
+          style={{
+            height: 12,
+            background: cat.gradient,
+            position: "relative",
+            width: "100%",
+          }}
+        >
+          {days !== null && days <= 30 && (
+            <span
+              className="status-pulse-dot"
+              style={{
+                position: "absolute",
+                top: 4,
+                right: 8,
+                color: days < 0 ? "#EF4444" : "#D97706",
+                transform: "scale(0.8)",
+              }}
+            />
+          )}
+        </div>
+
+        <div style={{ padding: "16px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
+          {/* Main Info */}
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-            <CategoryIconBadge category={doc.category} size={40} />
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: cat.color,
+                flexShrink: 0,
+              }}
+            >
+              {React.createElement(cat.icon, { size: 18 })}
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: 700,
                   color: THEME.ink,
                   letterSpacing: "-0.01em",
@@ -590,91 +792,149 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               >
                 {doc.name}
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 4,
-                  flexWrap: "wrap",
-                }}
-              >
-                <Badge variant={badge.variant} style={{ fontSize: 10 }}>
-                  {badge.label}
-                </Badge>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: cat.color }}>
+                  {doc.category}
+                </span>
                 {doc.subcategory && (
-                  <span style={{ fontSize: 11, color: THEME.muted }}>{doc.subcategory}</span>
+                  <span style={{ fontSize: 10, color: THEME.muted }}>• {doc.subcategory}</span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Details */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12 }}>
-            {doc.documentNumber && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-                <Hash size={12} style={{ flexShrink: 0 }} />
-                <span
-                  style={{ color: THEME.ink, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}
+          {/* Copyable Doc Number */}
+          {doc.documentNumber && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "6px 10px",
+                background: "var(--surface-1)",
+                borderRadius: 8,
+                border: `1px solid ${THEME.line}`,
+                marginBottom: 12,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: THEME.ink,
+                  letterSpacing: "0.03em",
+                }}
+              >
+                <Prv>{doc.documentNumber}</Prv>
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
+                  onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
+                  title="Copy Number"
                 >
-                  <Prv>{doc.documentNumber}</Prv>
-                </span>
+                  {copiedId === doc.id ? <Check size={12} /> : <Copy size={12} />}
+                </button>
+                {copiedId === doc.id && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage }}>Copied</span>
+                )}
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11, flex: 1 }}>
             {doc.issuer && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-                <Building size={12} style={{ flexShrink: 0 }} />
-                <span
-                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                >
+                <Building size={11} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {doc.issuer}
                 </span>
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-              <Calendar size={12} style={{ flexShrink: 0 }} />
-              <span>
-                {doc.issueDate ? formatDate(doc.issueDate) : "--"}
-                {doc.expiryDate ? ` to ${formatDate(doc.expiryDate)}` : ""}
+              <Calendar size={11} style={{ flexShrink: 0 }} />
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                Exp: {doc.expiryDate ? formatDate(doc.expiryDate) : "No expiry"}
               </span>
             </div>
-            {days !== null && days <= 30 && days >= 0 && (
-              <div style={{ fontSize: 11, color: "#D97706", fontWeight: 600, marginTop: 2 }}>
-                {days === 0 ? "Expires today" : `${days} day${days === 1 ? "" : "s"} remaining`}
+
+            {/* Expiry visual indicator */}
+            {days !== null && days >= 0 && days <= 30 && (
+              <div style={{ marginTop: 2 }}>
+                <div style={{ height: 4, borderRadius: 2, background: "var(--surface-2)", overflow: "hidden", marginBottom: 3 }}>
+                  <div style={{ width: `${(days / 30) * 100}%`, height: "100%", background: THEME.gold }} />
+                </div>
+                <span style={{ fontSize: 10, color: THEME.gold, fontWeight: 700 }}>
+                  {days === 0 ? "Expires today" : `${days} day(s) left`}
+                </span>
               </div>
             )}
+
             {days !== null && days < 0 && (
-              <div style={{ fontSize: 11, color: "#EF4444", fontWeight: 600, marginTop: 2 }}>
-                Expired {Math.abs(days)} day{Math.abs(days) === 1 ? "" : "s"} ago
+              <div style={{ fontSize: 10, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
+                Expired {Math.abs(days)} day(s) ago
               </div>
             )}
           </div>
 
-          {/* Owner */}
-          {doc.owner && (
-            <div style={{ marginTop: 10 }}>
-              <Badge variant="muted" style={{ fontSize: 10, textTransform: "capitalize" }}>
-                {familyProfiles.find((p) => p.id === doc.owner)?.name || doc.owner}
-              </Badge>
+          {/* Owner details and Asset Links indicator */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderTop: `1px dashed ${THEME.line}`,
+              paddingTop: 10,
+              marginTop: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <OwnerAvatar ownerId={doc.owner} size={20} />
+              <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+                {ownerInfo.name}
+              </span>
             </div>
-          )}
+
+            {doc.linkedAsset && (
+              <div
+                title="Linked with financial asset"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: THEME.accent,
+                  background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                }}
+              >
+                <Link2 size={10} />
+                Linked
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Actions */}
+        {/* Card actions bottom bar */}
         <div
           style={{
             display: "flex",
             borderTop: `1px solid ${THEME.line}`,
-            background: "var(--surface-0)",
+            background: "var(--surface-1)",
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           {doc.url && (
             <button
               onClick={() => window.open(doc.url, "_blank")}
-              className="card-lift"
               style={{
                 flex: 1,
-                padding: "9px 0",
+                padding: "8px 0",
                 border: "none",
                 background: "transparent",
                 cursor: "pointer",
@@ -682,22 +942,21 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 5,
-                fontSize: 11,
-                fontWeight: 600,
+                fontSize: 10,
+                fontWeight: 700,
                 color: THEME.accent,
                 transition: "background 0.15s",
               }}
             >
-              <ExternalLink size={12} />
+              <ExternalLink size={11} />
               Open
             </button>
           )}
           <button
             onClick={() => openEditModal(doc)}
-            className="card-lift"
             style={{
               flex: 1,
-              padding: "9px 0",
+              padding: "8px 0",
               border: "none",
               borderLeft: doc.url ? `1px solid ${THEME.line}` : "none",
               background: "transparent",
@@ -706,21 +965,20 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               alignItems: "center",
               justifyContent: "center",
               gap: 5,
-              fontSize: 11,
-              fontWeight: 600,
+              fontSize: 10,
+              fontWeight: 700,
               color: THEME.muted,
               transition: "background 0.15s",
             }}
           >
-            <Pencil size={12} />
+            <Pencil size={11} />
             Edit
           </button>
           <button
             onClick={() => handleDelete(doc.id)}
-            className="card-lift"
             style={{
               flex: 1,
-              padding: "9px 0",
+              padding: "8px 0",
               border: "none",
               borderLeft: `1px solid ${THEME.line}`,
               background: "transparent",
@@ -729,17 +987,17 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               alignItems: "center",
               justifyContent: "center",
               gap: 5,
-              fontSize: 11,
-              fontWeight: 600,
+              fontSize: 10,
+              fontWeight: 700,
               color: THEME.rust,
               transition: "background 0.15s",
             }}
           >
-            <Trash2 size={12} />
+            <Trash2 size={11} />
             Delete
           </button>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -747,6 +1005,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   function DocRow({ doc }: { doc: any }) {
     const status = getDocStatus(doc.expiryDate);
     const badge = statusBadge(status);
+    const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
+    const ownerInfo = getOwnerAvatarInfo(doc.owner);
 
     return (
       <div
@@ -754,13 +1014,29 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           display: "flex",
           alignItems: "center",
           gap: 12,
-          padding: "12px 16px",
+          padding: "10px 16px",
           borderBottom: `1px solid ${THEME.line}`,
           transition: "background 0.15s",
+          cursor: "pointer",
         }}
+        onClick={() => setViewDocId(doc.id)}
         className="card-lift"
       >
-        <CategoryIconBadge category={doc.category} size={32} />
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: cat.color,
+            flexShrink: 0,
+          }}
+        >
+          {React.createElement(cat.icon, { size: 14 })}
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -774,52 +1050,67 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           >
             {doc.name}
           </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
             {doc.category}
             {doc.subcategory ? ` / ${doc.subcategory}` : ""}
             {doc.documentNumber ? (
               <>
                 {" "}
-                | <Prv>{doc.documentNumber}</Prv>
+                | <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}><Prv>{doc.documentNumber}</Prv></span>
               </>
             ) : (
               ""
             )}
           </div>
         </div>
-        {/* Desktop-only columns */}
-        <div className="doc-vault-list-meta" style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontSize: 11, color: THEME.muted }}>{doc.issuer || "--"}</div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-            {doc.expiryDate ? formatDate(doc.expiryDate) : "No expiry"}
+        
+        {/* Desktop elements */}
+        <div className="doc-vault-list-meta" style={{ textAlign: "right", flexShrink: 0, paddingRight: 10 }}>
+          <div style={{ fontSize: 11, color: THEME.ink, fontWeight: 600 }}>{doc.issuer || "--"}</div>
+          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+            {doc.expiryDate ? `Expires ${formatDate(doc.expiryDate)}` : "No expiry"}
           </div>
         </div>
-        <Badge variant={badge.variant} style={{ fontSize: 10, flexShrink: 0 }}>
+
+        {/* Owner profile badge */}
+        <div style={{ flexShrink: 0, marginRight: 4 }}>
+          <OwnerAvatar ownerId={doc.owner} size={20} />
+        </div>
+
+        <Badge variant={badge.variant} style={{ fontSize: 9, flexShrink: 0, padding: "2px 6px" }}>
           {badge.label}
         </Badge>
-        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+        
+        <div style={{ display: "flex", gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+          {doc.documentNumber && (
+            <button
+              className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
+              onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
+              title="Copy Number"
+              style={actionBtnBase}
+            >
+              {copiedId === doc.id ? <Check size={13} /> : <Copy size={13} />}
+            </button>
+          )}
           {doc.url && (
             <button
               onClick={() => window.open(doc.url, "_blank")}
-              aria-label="Open link"
               style={{ ...actionBtnBase, color: THEME.accent }}
             >
-              <ExternalLink size={14} />
+              <ExternalLink size={13} />
             </button>
           )}
           <button
             onClick={() => openEditModal(doc)}
-            aria-label="Edit document"
             style={{ ...actionBtnBase, color: THEME.muted }}
           >
-            <Pencil size={14} />
+            <Pencil size={13} />
           </button>
           <button
             onClick={() => handleDelete(doc.id)}
-            aria-label="Delete document"
             style={{ ...actionBtnBase, color: THEME.rust }}
           >
-            <Trash2 size={14} />
+            <Trash2 size={13} />
           </button>
         </div>
       </div>
@@ -855,6 +1146,47 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             autoFocus
           />
         </Field>
+        {/* Quick Date renewal buttons */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10, marginBottom: 16 }}>
+          {[
+            { label: "+1 Year", val: 1 },
+            { label: "+3 Years", val: 3 },
+            { label: "+5 Years", val: 5 },
+            { label: "+10 Years", val: 10 },
+          ].map((btn) => (
+            <button
+              key={btn.label}
+              type="button"
+              onClick={() => {
+                const base = renewDoc.expiryDate ? new Date(renewDoc.expiryDate) : new Date();
+                const current = base.getTime() < new Date().getTime() ? new Date() : base;
+                current.setFullYear(current.getFullYear() + btn.val);
+                setRenewDate(current.toISOString().split("T")[0]);
+              }}
+              style={{
+                padding: "6px 12px",
+                fontSize: 11,
+                fontWeight: 700,
+                borderRadius: 6,
+                border: `1px solid ${THEME.line}`,
+                background: "var(--surface-1)",
+                color: THEME.ink,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = THEME.accent;
+                e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 6%, var(--surface-1))`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = THEME.line;
+                e.currentTarget.style.background = "var(--surface-1)";
+              }}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
         <ModalActions
           onSave={handleRenewSave}
           onClose={() => {
@@ -868,7 +1200,284 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     );
   }
 
-  // ── Main Modal ─────────────────────────────────────────────────────────
+  // ── Document View Details Modal ─────────────────────────────────────────
+  function renderDetailModal() {
+    if (!viewDocId) return null;
+    const doc = documents.find((d) => d.id === viewDocId);
+    if (!doc) return null;
+
+    const status = getDocStatus(doc.expiryDate);
+    const badge = statusBadge(status);
+    const days = daysUntilExpiry(doc.expiryDate);
+    const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
+    const ownerInfo = getOwnerAvatarInfo(doc.owner);
+
+    let linkedAssetLabel = "";
+    if (doc.linkedAssetType && doc.linkedAsset) {
+      const assets = getLinkedAssets(state, doc.linkedAssetType);
+      const matched = assets.find((a) => a.id === doc.linkedAsset);
+      if (matched) {
+        linkedAssetLabel = matched.label;
+      }
+    }
+
+    return (
+      <Modal
+        title="Document Details"
+        onClose={() => setViewDocId(null)}
+        maxWidth={540}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Card Header mesh preview */}
+          <div
+            style={{
+              padding: "20px 24px",
+              borderRadius: 12,
+              background: cat.gradient,
+              position: "relative",
+              color: "#fff",
+              overflow: "hidden",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 15px rgba(0,0,0,0.08)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15) 0%, transparent 50%)",
+                pointerEvents: "none",
+              }}
+            />
+            
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    background: "rgba(255, 255, 255, 0.2)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {React.createElement(cat.icon, { size: 22, color: "#fff" })}
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>{doc.name}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.8)", marginTop: 2, fontWeight: 600 }}>
+                    {doc.category} {doc.subcategory ? `• ${doc.subcategory}` : ""}
+                  </div>
+                </div>
+              </div>
+              <Badge variant={badge.variant} style={{ fontSize: 10, padding: "3px 8px" }}>
+                {badge.label}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Details Box */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "16px 24px",
+              padding: "16px 20px",
+              background: "var(--surface-1)",
+              borderRadius: 12,
+              border: `1.5px solid ${THEME.line}`,
+            }}
+          >
+            {doc.documentNumber && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Document Number
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "var(--font-mono)", color: THEME.ink }}>
+                    <Prv>{doc.documentNumber}</Prv>
+                  </span>
+                  <button
+                    className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
+                    onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
+                    title="Copy Document Number"
+                  >
+                    {copiedId === doc.id ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                  {copiedId === doc.id && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.sage }}>Copied!</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                Issuer
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                {doc.issuer || "--"}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                Owner / Profile
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <OwnerAvatar ownerId={doc.owner} size={22} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                  {ownerInfo.name}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                Issue Date
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                {doc.issueDate ? formatDate(doc.issueDate) : "--"}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                Expiry Date
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                {doc.expiryDate ? formatDate(doc.expiryDate) : "No Expiry"}
+              </div>
+            </div>
+
+            {days !== null && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Expiry Status
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    className="status-pulse-dot"
+                    style={{
+                      color: days < 0 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: days < 0 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage,
+                    }}
+                  >
+                    {days < 0
+                      ? `Expired ${Math.abs(days)} day(s) ago`
+                      : days === 0
+                        ? "Expires today"
+                        : `${days} day(s) remaining`}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {linkedAssetLabel && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Linked Financial Asset
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: THEME.accent,
+                  }}
+                >
+                  <Link2 size={12} />
+                  {LINKED_ASSET_TYPES.find((t) => t.id === doc.linkedAssetType)?.label}: {linkedAssetLabel}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          {doc.notes && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                Notes & Comments
+              </div>
+              <div className="notepad-notes-box">
+                {doc.notes}
+              </div>
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, borderTop: `1.5px solid ${THEME.line}`, paddingTop: 18 }}>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setViewDocId(null);
+                  openEditModal(doc);
+                }}
+                icon={<Pencil size={13} />}
+              >
+                Edit Details
+              </Button>
+              {days !== null && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setViewDocId(null);
+                    openRenewModal(doc);
+                  }}
+                  icon={<RefreshCw size={13} />}
+                  style={{ color: THEME.sage, borderColor: THEME.sage }}
+                >
+                  Renew
+                </Button>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              {doc.url && (
+                <Button
+                  variant="accent"
+                  size="sm"
+                  onClick={() => window.open(doc.url, "_blank")}
+                  icon={<ExternalLink size={13} />}
+                >
+                  Open Original
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  setViewDocId(null);
+                  handleDelete(doc.id);
+                }}
+                icon={<Trash2 size={13} />}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  // ── Main Modal (Add/Edit) ──────────────────────────────────────────────
   function renderModal() {
     const subcats = CATEGORIES[form.category as CategoryKey]?.subcategories || [];
 
@@ -1050,16 +1659,67 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           grid-template-columns: 1fr 1fr;
           gap: 0 16px;
         }
+        .doc-vault-form-grid input,
+        .doc-vault-form-grid select {
+          border-radius: var(--radius-md, 8px) !important;
+          border: 1.5px solid var(--t-line) !important;
+          background: var(--surface-0) !important;
+          color: var(--t-ink) !important;
+          outline: none !important;
+          transition: all 0.2s ease-in-out !important;
+        }
+        .doc-vault-form-grid input:focus,
+        .doc-vault-form-grid select:focus,
+        .doc-vault-form-grid textarea:focus {
+          border-color: var(--t-accent) !important;
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 12%, transparent) !important;
+        }
         .doc-vault-stats-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 14px;
           margin-bottom: 24px;
         }
-        .doc-vault-cat-pills {
+        .doc-vault-coverage-panel {
+          display: grid;
+          grid-template-columns: 1.2fr 2fr;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+        .category-browser-container {
           display: flex;
-          flex-wrap: wrap;
+          gap: 12px;
+          overflow-x: auto;
+          padding: 8px 4px 16px;
+          scrollbar-width: none;
+        }
+        .category-browser-container::-webkit-scrollbar {
+          display: none;
+        }
+        .category-browser-card {
+          flex: 0 0 120px;
+          padding: 14px 10px;
+          border-radius: 12px;
+          background: var(--surface-0);
+          border: 1.5px solid var(--t-line);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
           gap: 8px;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .category-browser-card:hover {
+          transform: translateY(-2px);
+          border-color: var(--cat-color);
+          box-shadow: 0 6px 20px -5px color-mix(in srgb, var(--cat-color) 12%, transparent);
+        }
+        .category-browser-card.active {
+          border-color: var(--cat-color);
+          background: color-mix(in srgb, var(--cat-color) 6%, var(--surface-0));
+          box-shadow: 0 4px 18px -4px color-mix(in srgb, var(--cat-color) 20%, transparent);
         }
         .doc-vault-toolbar {
           display: flex;
@@ -1081,10 +1741,92 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 16px;
         }
-        .doc-vault-coverage-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 12px;
+        .doc-vault-card {
+          position: relative;
+          background: var(--surface-0);
+          border: 1.5px solid var(--t-line);
+          border-radius: 14px;
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: var(--shadow-sm);
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+        .doc-vault-card:hover {
+          transform: translateY(-4px);
+          border-color: var(--cat-color);
+          box-shadow: 0 12px 30px -8px color-mix(in srgb, var(--cat-color) 15%, rgba(15, 23, 42, 0.12));
+        }
+        .coverage-circular-progress {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+        .coverage-circular-progress-text {
+          position: absolute;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+        .copy-btn {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--t-muted);
+          transition: all 0.15s;
+        }
+        .copy-btn:hover {
+          color: var(--t-accent);
+          background: color-mix(in srgb, var(--t-accent) 8%, transparent);
+        }
+        .copy-btn.copied {
+          color: var(--t-sage);
+          background: color-mix(in srgb, var(--t-sage) 10%, transparent);
+        }
+        .status-pulse-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          position: relative;
+          display: inline-block;
+          background-color: currentColor;
+        }
+        .status-pulse-dot::after {
+          content: '';
+          position: absolute;
+          top: -4px;
+          left: -4px;
+          right: -4px;
+          bottom: -4px;
+          border-radius: 50%;
+          border: 2px solid currentColor;
+          opacity: 0;
+          animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+          0% { transform: scale(0.35); opacity: 0.8; }
+          80%, 100% { transform: scale(1.2); opacity: 0; }
+        }
+        .notepad-notes-box {
+          padding: 14px 18px;
+          border-radius: 10px;
+          background: linear-gradient(rgba(0, 0, 0, 0.01) 95%, var(--t-line) 100%);
+          background-size: 100% 24px;
+          line-height: 24px;
+          border: 1px solid var(--t-line);
+          color: var(--t-ink);
+          font-size: 13px;
+          font-family: inherit;
+          white-space: pre-wrap;
         }
         .doc-vault-alert-row {
           display: flex;
@@ -1110,11 +1852,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           .doc-vault-form-grid { grid-template-columns: 1fr; }
           .doc-vault-form-grid [style*="grid-column"] { grid-column: auto !important; }
           .doc-vault-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .doc-vault-coverage-panel { grid-template-columns: 1fr; gap: 16px; }
           .doc-vault-toolbar { flex-wrap: wrap; gap: 8px; }
           .doc-vault-toolbar-search { min-width: 100%; order: -1; }
           .doc-vault-sort-group { flex-wrap: wrap; }
           .doc-vault-doc-grid { grid-template-columns: 1fr; gap: 12px; }
-          .doc-vault-coverage-grid { grid-template-columns: repeat(2, 1fr); }
           .doc-vault-alert-row { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
           .doc-vault-alert-meta { width: 100%; justify-content: flex-end; gap: 6px; margin-top: 4px; }
           .doc-vault-list-meta { display: none !important; }
@@ -1123,8 +1865,6 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         @media (max-width: 480px) {
           .doc-vault-stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
           .doc-vault-sort-group { gap: 3px; }
-          .doc-vault-coverage-grid { grid-template-columns: 1fr; }
-          .doc-vault-cat-pills { gap: 6px; }
         }
       `}</style>
 
@@ -1132,7 +1872,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       <SectionTitle
         sub="Store, organize and track all your important documents in one secure vault."
         rightElement={
-          <Button variant="accent" icon={<Plus size={14} />} onClick={openAddModal}>
+          <Button variant="accent" icon={<Plus size={14} />} onClick={() => openAddModal()}>
             Add Document
           </Button>
         }
@@ -1173,6 +1913,84 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         />
       </div>
 
+      {/* ── Vault Security & Coverage Hub ────────────────────────────────── */}
+      <div className="doc-vault-coverage-panel">
+        <Card style={{ padding: "20px 24px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+            <Link2 size={16} color={THEME.accent} />
+            Asset Coverage
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            <CircularProgressWheel percentage={coverageMetrics.percentage} />
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted }}>
+                Total Assets: <strong style={{ color: THEME.ink }}>{coverageMetrics.total}</strong>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginTop: 4 }}>
+                Documented: <strong style={{ color: THEME.ink }}>{coverageMetrics.linked}</strong>
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 12, lineHeight: 1.4 }}>
+                {coverageMetrics.percentage === 100 
+                  ? "Outstanding! All financial assets are secured with documentation." 
+                  : "Link your identity cards, certificates and policies to keep the vault audit complete."}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card style={{ padding: "20px 24px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangle size={15} color={THEME.gold} />
+              Vault Recommendations
+            </div>
+            <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+              {missingAssets.length} action item(s)
+            </span>
+          </div>
+          
+          <div style={{ maxHeight: 100, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
+            {missingAssets.length === 0 ? (
+              <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, padding: "16px 0", textAlign: "center" }}>
+                All clear! No missing documents detected.
+              </div>
+            ) : (
+              missingAssets.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {item.assetName}
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+                      No {item.label} document linked
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openAddModal(item.type, item.assetId)}
+                    style={{ padding: "4px 8px", fontSize: 10, color: THEME.accent }}
+                  >
+                    + Add
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
       {/* ── Category Breakdown ───────────────────────────────────────────── */}
       <Card style={{ padding: "20px 24px", marginBottom: 24 }}>
         <div
@@ -1184,62 +2002,100 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             letterSpacing: "-0.01em",
           }}
         >
-          Categories
+          Browse by Category
         </div>
-        <div className="doc-vault-cat-pills">
-          <button
+        <div className="category-browser-container">
+          <div
             onClick={() => setFilterCategory("all")}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 14px",
-              borderRadius: 20,
-              border: `1.5px solid ${filterCategory === "all" ? THEME.accent : THEME.line}`,
-              background:
-                filterCategory === "all"
-                  ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
-                  : "transparent",
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 600,
-              color: filterCategory === "all" ? THEME.accent : THEME.muted,
-              transition: "all 0.2s",
-            }}
+            className={`category-browser-card ${filterCategory === "all" ? "active" : ""}`}
+            style={{ "--cat-color": THEME.accent } as React.CSSProperties}
           >
-            <Folder size={14} />
-            All ({stats.total})
-          </button>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.accent,
+              }}
+            >
+              <Folder size={16} />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: filterCategory === "all" ? THEME.accent : THEME.muted }}>
+              All Docs
+            </span>
+            <span
+              style={{
+                position: "absolute",
+                top: -5,
+                right: -5,
+                background: THEME.accent,
+                color: "#fff",
+                fontSize: 9,
+                fontWeight: 700,
+                padding: "2px 6px",
+                borderRadius: 10,
+                boxShadow: `0 2px 8px ${THEME.accent}40`,
+              }}
+            >
+              {stats.total}
+            </span>
+          </div>
+
           {CATEGORY_KEYS.map((cat) => {
             const catDef = CATEGORIES[cat];
             const Icon = catDef.icon;
             const count = stats.catCounts[cat] || 0;
             const isActive = filterCategory === cat;
             return (
-              <button
+              <div
                 key={cat}
                 onClick={() => setFilterCategory(isActive ? "all" : cat)}
+                className={`category-browser-card ${isActive ? "active" : ""}`}
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 14px",
-                  borderRadius: 20,
-                  border: `1.5px solid ${isActive ? catDef.color : THEME.line}`,
-                  background: isActive
-                    ? `color-mix(in srgb, ${catDef.color} 8%, transparent)`
-                    : "transparent",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: isActive ? catDef.color : THEME.muted,
-                  transition: "all 0.2s",
+                  "--cat-color": catDef.color,
                   opacity: count === 0 && !isActive ? 0.5 : 1,
-                }}
+                } as React.CSSProperties}
               >
-                <Icon size={14} />
-                {cat} ({count})
-              </button>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 9,
+                    background: `color-mix(in srgb, ${catDef.color} 12%, transparent)`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: catDef.color,
+                  }}
+                >
+                  <Icon size={16} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? catDef.color : THEME.muted }}>
+                  {cat}
+                </span>
+                {count > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -5,
+                      right: -5,
+                      background: catDef.color,
+                      color: "#fff",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      padding: "2px 6px",
+                      borderRadius: 10,
+                      boxShadow: `0 2px 8px ${catDef.color}40`,
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </div>
             );
           })}
         </div>
@@ -1307,7 +2163,20 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 const isExpired = days !== null && days < 0;
                 return (
                   <div key={doc.id} className="doc-vault-alert-row">
-                    <CategoryIconBadge category={doc.category} size={28} />
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 6,
+                        background: `color-mix(in srgb, ${getCategoryColor(doc.category)} 12%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: getCategoryColor(doc.category),
+                      }}
+                    >
+                      {React.createElement(getCategoryIcon(doc.category), { size: 14 })}
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
@@ -1359,72 +2228,6 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               })}
             </div>
           )}
-        </Card>
-      )}
-
-      {/* ── Quick Links ──────────────────────────────────────────────────── */}
-      {quickLinks.length > 0 && (
-        <Card style={{ padding: "18px 24px", marginBottom: 24 }}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: THEME.ink,
-              marginBottom: 12,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <Link2 size={16} color={THEME.accent} />
-            Asset Document Coverage
-          </div>
-          <div className="doc-vault-coverage-grid">
-            {quickLinks.map((link) => {
-              const pct = link.total > 0 ? Math.round((link.linked / link.total) * 100) : 0;
-              return (
-                <div
-                  key={link.type}
-                  style={{
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: `1px solid ${THEME.line}`,
-                    background: "var(--surface-0)",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
-                    {link.label}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div
-                      style={{
-                        flex: 1,
-                        height: 6,
-                        borderRadius: 3,
-                        background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${pct}%`,
-                          height: "100%",
-                          borderRadius: 3,
-                          background: pct === 100 ? "#059669" : THEME.accent,
-                          transition: "width 0.3s",
-                        }}
-                      />
-                    </div>
-                    <span
-                      style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, flexShrink: 0 }}
-                    >
-                      {link.linked}/{link.total}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </Card>
       )}
 
@@ -1625,13 +2428,13 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         </div>
       ) : (
         <Card style={{ padding: 0, overflow: "hidden" }}>
-          {/* List header — hidden on mobile via CSS */}
           <div className="doc-vault-list-header">
-            <div style={{ width: 32 }} />
+            <div style={{ width: 28 }} />
             <div style={{ flex: 1 }}>Document</div>
-            <div style={{ width: 140, textAlign: "right" }}>Issuer / Expiry</div>
+            <div style={{ width: 140, textAlign: "right", paddingRight: 10 }}>Issuer / Expiry</div>
+            <div style={{ width: 24, textIndent: -999 }}>Owner</div>
             <div style={{ width: 90, textAlign: "center" }}>Status</div>
-            <div style={{ width: 90, textAlign: "center" }}>Actions</div>
+            <div style={{ width: 110, textAlign: "center" }}>Actions</div>
           </div>
           {filteredDocs.map((doc) => (
             <DocRow key={doc.id} doc={doc} />
@@ -1642,6 +2445,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       {/* ── Modals ───────────────────────────────────────────────────────── */}
       {showModal && renderModal()}
       {renderRenewModal()}
+      {renderDetailModal()}
     </div>
   );
 };
