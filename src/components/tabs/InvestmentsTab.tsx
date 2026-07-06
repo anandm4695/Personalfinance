@@ -4049,25 +4049,84 @@ function MFCsvPanel({ onImport, onClose }: any) {
           <div
             style={{
               maxHeight: 200,
-              overflowY: "auto",
+              overflow: "auto",
               border: `1px solid ${THEME.line}`,
               borderRadius: 8,
             }}
           >
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <table
+              style={{
+                width: "100%",
+                minWidth: 820,
+                borderCollapse: "collapse",
+                fontSize: 11,
+              }}
+            >
               <thead>
                 <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
+                    }}
+                  >
                     Fund Name
                   </th>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
+                    }}
+                  >
+                    Category
+                  </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
+                    }}
+                  >
+                    Type
+                  </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
+                    }}
+                  >
                     Folio
                   </th>
                   <th
                     style={{
                       padding: "6px 8px",
                       borderBottom: `1px solid ${THEME.line}`,
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
+                    }}
+                  >
+                    Buy Date
+                  </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
                       textAlign: "right",
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
                     }}
                   >
                     Buy NAV
@@ -4077,6 +4136,9 @@ function MFCsvPanel({ onImport, onClose }: any) {
                       padding: "6px 8px",
                       borderBottom: `1px solid ${THEME.line}`,
                       textAlign: "right",
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
                     }}
                   >
                     Units
@@ -4086,11 +4148,34 @@ function MFCsvPanel({ onImport, onClose }: any) {
                       padding: "6px 8px",
                       borderBottom: `1px solid ${THEME.line}`,
                       textAlign: "right",
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
+                    }}
+                  >
+                    Current NAV
+                  </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      textAlign: "right",
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
                     }}
                   >
                     Invested
                   </th>
-                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      position: "sticky",
+                      top: 0,
+                      background: "var(--surface-0)",
+                    }}
+                  >
                     Owner
                   </th>
                 </tr>
@@ -4099,11 +4184,15 @@ function MFCsvPanel({ onImport, onClose }: any) {
                 {csvPreview.map((r, idx) => (
                   <tr key={idx} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                     <td style={{ padding: "6px 8px", fontWeight: 600 }}>{r.name}</td>
+                    <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.category}</td>
+                    <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.mfType}</td>
                     <td style={{ padding: "6px 8px", color: THEME.muted }}>
                       {r.folioNumber || "—"}
                     </td>
+                    <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.buyDate}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.buyNav}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.units}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.currentNav}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>
                       {fmtINRFull(Number(r.invested))}
                     </td>
