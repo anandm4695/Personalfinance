@@ -2,6 +2,9 @@
 // Triggered by Vercel Cron (GET) or manually from Settings UI (POST)
 const { Resend } = require("resend");
 const { createClient } = require("@supabase/supabase-js");
+const { default: YahooFinance } = require("yahoo-finance2");
+
+const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 const RESEND_KEY = process.env.Resend_Email_API || process.env.RESEND_API_KEY;
 const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
@@ -1536,6 +1539,43 @@ async function fetchStateFromSupabase(supabase, userId) {
   };
 }
 
+// ── Live stock prices ─────────────────────────────────────────────────────────
+// The dashboard's net worth uses live Yahoo Finance quotes (fetched client-side) rather
+// than the stocks table's stored current_price column, which is only refreshed by the
+// cron-update-prices job on weekday evenings. Without this, the email's stock valuation
+// can lag the dashboard's by whatever the stock has moved since that last sync — so we
+// fetch the same live quotes here, using the same symbol format (SYMBOL.NS / SYMBOL.BO).
+async function withLiveStockPrices(state) {
+  const stocks = state.stocks || [];
+  if (stocks.length === 0) return state;
+
+  const yfSymFor = (s) =>
+    `${String(s.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+
+  const uniqueSymbols = [...new Set(stocks.map(yfSymFor).filter((sym) => sym !== "."))];
+  const priceMap = {};
+
+  await Promise.allSettled(
+    uniqueSymbols.map(async (sym) => {
+      try {
+        const quote = await yf.quote(sym, {}, { validateResult: false });
+        const price = quote?.regularMarketPrice ?? quote?.postMarketPrice ?? quote?.preMarketPrice;
+        if (price != null && !isNaN(price)) priceMap[sym] = price;
+      } catch (err) {
+        console.error(`[send-summary] Failed to fetch live price for ${sym}:`, err.message);
+      }
+    })
+  );
+
+  return {
+    ...state,
+    stocks: stocks.map((s) => {
+      const live = priceMap[yfSymFor(s)];
+      return live != null ? { ...s, currentPrice: live } : s;
+    }),
+  };
+}
+
 // ── Check if current IST day matches user's schedule ─────────────────────────
 // Cron fires once daily at 8AM IST — only check frequency + day, not hour.
 function shouldSendNow(settings, frequency) {
@@ -1639,7 +1679,7 @@ module.exports = async function handler(req, res) {
       const effectiveFromEmail = getEffectiveFromEmail(fromEmail);
       const effectiveFromAddr = `Personal Finance <${effectiveFromEmail}>`;
 
-      const summary = computeSummary(state);
+      const summary = computeSummary(await withLiveStockPrices(state));
       const freq = frequency || "weekly";
       const html = generateHTML(summary, freq, recipientName || "there");
       const subject = buildSubject(freq, summary.netWorth);
@@ -1717,7 +1757,7 @@ module.exports = async function handler(req, res) {
             .maybeSingle();
           const recipientName = profData?.name || row.email_address?.split("@")[0] || "there";
 
-          const summary = computeSummary(state);
+          const summary = computeSummary(await withLiveStockPrices(state));
           const html = generateHTML(summary, freq, recipientName);
           const subject = buildSubject(freq, summary.netWorth);
 
