@@ -6047,9 +6047,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           existingStocks={state.stocks || []}
           demats={state.demat || []}
           onClose={() => setShowBrokerImport(false)}
-          onImport={(buys: any[], sells: any[]) => {
-            buys.forEach((t: any) => addItem("stocks", t));
+          onImport={(
+            newStocks: any[],
+            sells: any[],
+            stockUpdates: { id: string; qty: string }[],
+            stockRemovals: string[]
+          ) => {
+            newStocks.forEach((t: any) => addItem("stocks", t));
             sells.forEach((s: any) => addItem("stockSells", s));
+            stockUpdates.forEach((u) => updateItem("stocks", u.id, { qty: u.qty }));
+            stockRemovals.forEach((id) => removeItem("stocks", id));
             setShowBrokerImport(false);
           }}
         />

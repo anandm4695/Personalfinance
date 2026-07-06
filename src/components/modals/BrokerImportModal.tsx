@@ -166,7 +166,12 @@ interface BrokerImportModalProps {
   existingStocks: any[];
   demats: any[];
   onClose: () => void;
-  onImport: (buys: any[], sells: any[]) => void;
+  onImport: (
+    newStocks: any[],
+    sells: any[],
+    stockUpdates: { id: string; qty: string }[],
+    stockRemovals: string[]
+  ) => void;
 }
 
 export function BrokerImportModal({
@@ -369,31 +374,141 @@ export function BrokerImportModal({
   };
 
   /* ── Final import ──────────────────────────────────────────────── */
+  /* Nets SELL trades against BUY lots (both existing holdings and BUY
+     rows in this same import) FIFO by buy date, so a stock that was
+     bought and later fully sold never lingers in current holdings, and
+     realized P&L is computed against the actual buy price instead of
+     defaulting to zero. */
   const handleImport = () => {
     const broker = demats.find((d: any) => d.id === dematId)?.broker || "";
-    const buys = buyTrades.map((t) => ({
-      symbol: t.symbol,
-      exchange: t.exchange,
-      qty: String(t.qty),
-      avgPrice: String(t.price),
-      buyDate: t.date,
-      currentPrice: String(t.price),
-      dematId,
-      broker,
-      owner: "self",
-    }));
-    const sells = sellTrades.map((t) => ({
-      symbol: t.symbol,
-      exchange: t.exchange,
-      qty: t.qty,
-      sellPrice: t.price,
-      sellDate: t.date,
-      buyPrice: t.price,
-      broker,
-      dematId,
-      owner: "self",
-    }));
-    onImport(buys, sells);
+
+    type Lot = {
+      source: "existing" | "new";
+      id?: string;
+      qty: number;
+      buyPrice: number;
+      buyDate: string;
+    };
+
+    const groupKey = (symbol: string, exchange: string) => `${symbol}::${exchange}`;
+    const lotsByGroup = new Map<string, Lot[]>();
+
+    const addLot = (key: string, lot: Lot) => {
+      if (!lotsByGroup.has(key)) lotsByGroup.set(key, []);
+      lotsByGroup.get(key)!.push(lot);
+    };
+
+    existingStocks
+      .filter((s: any) => (s.dematId || "") === dematId)
+      .forEach((s: any) => {
+        const key = groupKey(
+          (s.symbol || "").toUpperCase(),
+          (s.exchange || "NSE").toUpperCase()
+        );
+        addLot(key, {
+          source: "existing",
+          id: s.id,
+          qty: Number(s.qty) || 0,
+          buyPrice: Number(s.avgPrice) || 0,
+          buyDate: s.buyDate || "",
+        });
+      });
+
+    buyTrades.forEach((t) => {
+      addLot(groupKey(t.symbol, t.exchange), {
+        source: "new",
+        qty: t.qty,
+        buyPrice: t.price,
+        buyDate: t.date,
+      });
+    });
+
+    // Sort each group's lots chronologically (FIFO); undated lots last.
+    lotsByGroup.forEach((lots) => {
+      lots.sort((a, b) => {
+        if (!a.buyDate && !b.buyDate) return 0;
+        if (!a.buyDate) return 1;
+        if (!b.buyDate) return -1;
+        return new Date(a.buyDate).getTime() - new Date(b.buyDate).getTime();
+      });
+    });
+
+    const sells: any[] = [];
+    const sortedSells = [...sellTrades].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    for (const t of sortedSells) {
+      const key = groupKey(t.symbol, t.exchange);
+      const lots = lotsByGroup.get(key) || [];
+      let remaining = t.qty;
+
+      for (const lot of lots) {
+        if (remaining <= 0) break;
+        if (lot.qty <= 0) continue;
+        const consume = Math.min(lot.qty, remaining);
+        sells.push({
+          symbol: t.symbol,
+          exchange: t.exchange,
+          qty: consume,
+          sellPrice: t.price,
+          sellDate: t.date,
+          buyPrice: lot.buyPrice,
+          buyDate: lot.buyDate,
+          profit: Number(((t.price - lot.buyPrice) * consume).toFixed(2)),
+          broker,
+          dematId,
+          owner: "self",
+        });
+        lot.qty -= consume;
+        remaining -= consume;
+      }
+
+      // No matching buy lot found (e.g. holding predates tracked history) —
+      // still record the sell so it isn't silently dropped.
+      if (remaining > 0) {
+        sells.push({
+          symbol: t.symbol,
+          exchange: t.exchange,
+          qty: remaining,
+          sellPrice: t.price,
+          sellDate: t.date,
+          buyPrice: t.price,
+          profit: 0,
+          broker,
+          dematId,
+          owner: "self",
+        });
+      }
+    }
+
+    const newStocks: any[] = [];
+    const stockUpdates: { id: string; qty: string }[] = [];
+    const stockRemovals: string[] = [];
+
+    lotsByGroup.forEach((lots, key) => {
+      const [symbol, exchange] = key.split("::");
+      lots.forEach((lot) => {
+        if (lot.source === "existing") {
+          if (lot.qty <= 0) stockRemovals.push(lot.id!);
+          else stockUpdates.push({ id: lot.id!, qty: String(lot.qty) });
+        } else if (lot.qty > 0) {
+          newStocks.push({
+            symbol,
+            exchange,
+            qty: String(lot.qty),
+            avgPrice: String(lot.buyPrice),
+            buyDate: lot.buyDate,
+            currentPrice: String(lot.buyPrice),
+            dematId,
+            broker,
+            owner: "self",
+          });
+        }
+      });
+    });
+
+    onImport(newStocks, sells, stockUpdates, stockRemovals);
   };
 
   return (
