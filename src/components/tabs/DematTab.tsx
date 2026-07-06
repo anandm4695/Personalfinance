@@ -5544,7 +5544,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     display: "flex",
                                                     alignItems: "center",
                                                     justifyContent: "space-between",
-                                                    marginBottom: 8,
+                                                    marginBottom: 12,
                                                     flexWrap: "wrap",
                                                     gap: 6,
                                                   }}
@@ -5588,7 +5588,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                       </div>
                                                     )}
                                                   </div>
-                                                  <div style={{ display: "flex", gap: 2 }}>
+                                                  <div
+                                                    style={{
+                                                      display: "flex",
+                                                      background: "var(--t-line)",
+                                                      padding: 2,
+                                                      borderRadius: 8,
+                                                      border: `1px solid ${THEME.line}`,
+                                                    }}
+                                                  >
                                                     {CHART_PERIODS.map((p) => (
                                                       <button
                                                         key={p}
@@ -5601,22 +5609,27 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                           fetchChart(yfSym, p);
                                                         }}
                                                         style={{
-                                                          padding: "3px 7px",
-                                                          fontSize: 10,
+                                                          padding: "4px 8px",
+                                                          fontSize: 9,
                                                           fontWeight:
-                                                            wlActivePeriod === p ? 800 : 600,
+                                                            wlActivePeriod === p ? 850 : 600,
                                                           border: "none",
-                                                          borderRadius: 4,
+                                                          borderRadius: 6,
                                                           cursor: "pointer",
                                                           background:
                                                             wlActivePeriod === p
-                                                              ? THEME.accent
+                                                              ? "var(--t-card-bg)"
                                                               : "transparent",
                                                           color:
                                                             wlActivePeriod === p
-                                                              ? "#fff"
+                                                              ? THEME.accent
                                                               : THEME.muted,
-                                                          transition: "all 0.15s ease",
+                                                          boxShadow:
+                                                            wlActivePeriod === p
+                                                              ? "0 1px 3px rgba(0,0,0,0.08)"
+                                                              : "none",
+                                                          transition:
+                                                            "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                                                         }}
                                                       >
                                                         {CHART_PERIOD_LABELS[p]}
