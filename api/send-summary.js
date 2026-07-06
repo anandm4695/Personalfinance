@@ -842,7 +842,7 @@ function generateHTML(summary, frequency, recipientName) {
 
   function sectionHeader(title, emoji) {
     return `
-      <tr><td style="padding:32px 28px 14px;">
+      <tr><td class="sec-pad" style="padding:32px 28px 14px;">
         <table cellpadding="0" cellspacing="0" width="100%"><tr>
           <td style="font-size:18px;padding-right:10px;vertical-align:middle;width:28px;">${emoji}</td>
           <td style="font-size:14px;font-weight:800;color:${textPrimary};text-transform:uppercase;letter-spacing:0.1em;vertical-align:middle;">${title}</td>
@@ -1084,15 +1084,25 @@ function generateHTML(summary, frequency, recipientName) {
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <!--[if gte mso 9]><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
 <title>Finance Summary</title>
+<style>
+  @media only screen and (max-width:480px) {
+    .sec-pad { padding-left:16px !important; padding-right:16px !important; }
+    .hero-value { font-size:32px !important; }
+    .stat4 td { display:block !important; width:100% !important; margin-bottom:8px; }
+    .stat4 td:empty { display:none !important; }
+    .stat3 td { display:block !important; width:100% !important; margin-bottom:8px; }
+    .stat3 td:last-child { margin-bottom:0; }
+  }
+</style>
 </head>
 <body style="margin:0;Margin:0;padding:0;background:${bodyBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 
 <table width="100%" cellpadding="0" cellspacing="0" style="background:${bodyBg};padding:24px 16px;">
 <tr><td>
-<table width="600" cellpadding="0" cellspacing="0" align="center" style="max-width:600px;margin:0 auto;">
+<table width="680" cellpadding="0" cellspacing="0" align="center" style="max-width:680px;margin:0 auto;">
 
   <!-- HEADER -->
-  <tr><td style="background:${navyBg};border-radius:16px 16px 0 0;padding:28px 28px 24px;">
+  <tr><td class="sec-pad" style="background:${navyBg};border-radius:16px 16px 0 0;padding:28px 28px 24px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td>
         <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">Personal Finance</div>
@@ -1109,10 +1119,10 @@ function generateHTML(summary, frequency, recipientName) {
   </td></tr>
 
   <!-- NET WORTH HERO -->
-  <tr><td style="background:#1e1b4b;padding:32px 28px;">
+  <tr><td class="sec-pad" style="background:#1e1b4b;padding:32px 28px;">
     <div style="font-size:13px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Total Net Worth</div>
-    <div style="font-size:44px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1;">${fmtINRFull(netWorth)}</div>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr>
+    <div class="hero-value" style="font-size:44px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1;">${fmtINRFull(netWorth)}</div>
+    <table class="stat4" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr>
       <td style="padding:10px 12px;background:#2a2755;border-radius:8px;text-align:center;">
         <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Total Assets</div>
         <div style="font-size:20px;font-weight:800;color:#34d399;margin-top:5px;">${fmtINR(totalAssets)}</div>
@@ -1137,8 +1147,8 @@ function generateHTML(summary, frequency, recipientName) {
 
   <!-- CASHFLOW -->
   ${sectionHeader("Monthly Cash Flow", "💸")}
-  <tr><td style="background:${cardBg};padding:4px 28px 24px;">
-    <table width="100%" cellpadding="0" cellspacing="8"><tr>
+  <tr><td class="sec-pad" style="background:${cardBg};padding:4px 28px 24px;">
+    <table class="stat3" width="100%" cellpadding="0" cellspacing="8"><tr>
       ${statBox("Income", fmtINRFull(monthIncome), "This month", posColor)}
       ${statBox("Expenses", fmtINRFull(monthExpense), "This month", negColor)}
       ${statBox("Net Saved", fmtINRFull(Math.abs(netSavings)), netSavings >= 0 ? `${savingsPct}% savings rate` : "Overspent", netSavColor)}
