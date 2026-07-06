@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DividendCalendarTab } from "../components/tabs/DividendCalendarTab";
+import { PrivacyProvider } from "../context/PrivacyContext";
 
 // Mounts the component into a real DOM (via act) so useEffect-driven fetches fire,
 // unlike renderToString which only produces static markup.
@@ -104,5 +105,46 @@ describe("DividendCalendarTab data-fetch correctness", () => {
     );
     expect(symbolCells.length).toBe(1);
     expect(container.textContent).toContain("30");
+  });
+
+  it("falls back to live marketData price when the stock's stored currentPrice is stale/zero, instead of showing Current Value as zero", async () => {
+    const stateStalePrice = {
+      stocks: [
+        { id: "s1", symbol: "TCS.NS", exchange: "NSE", qty: 10, avgPrice: 3000, currentPrice: 0 },
+      ],
+      dividends: [],
+    };
+    const marketData = { "TCS.NS": { price: 3800 } };
+
+    const container = await mount(
+      <PrivacyProvider>
+        <DividendCalendarTab state={stateStalePrice} marketData={marketData} />
+      </PrivacyProvider>
+    );
+
+    // 10 shares * live price 3800 = 38,000 — Current Value must reflect the
+    // live marketData price, not render as ₹0 because the stored
+    // currentPrice field on the lot is stale/unset.
+    expect(container.textContent).toContain("₹38,000");
+  });
+
+  it("falls back to avgPrice when neither live marketData nor stored currentPrice is available", async () => {
+    const stateNoPriceAtAll = {
+      stocks: [
+        { id: "s1", symbol: "TCS.NS", exchange: "NSE", qty: 10, avgPrice: 3000, currentPrice: 0 },
+      ],
+      dividends: [],
+    };
+
+    const container = await mount(
+      <PrivacyProvider>
+        <DividendCalendarTab state={stateNoPriceAtAll} />
+      </PrivacyProvider>
+    );
+
+    // 10 shares * avgPrice 3000 = 30,000 — with no live price and a zeroed
+    // stored currentPrice, Current Value must still fall back to avgPrice
+    // rather than showing ₹0.
+    expect(container.textContent).toContain("₹30,000");
   });
 });

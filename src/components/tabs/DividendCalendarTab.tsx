@@ -156,7 +156,7 @@ const DividendStatCard = ({ label, value, icon: Icon, color }: any) => {
   );
 };
 
-export function DividendCalendarTab({ state }: any) {
+export function DividendCalendarTab({ state, marketData }: any) {
   const todayStr = today();
   const [exData, setExData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
@@ -176,7 +176,13 @@ export function DividendCalendarTab({ state }: any) {
       const yfSym = `${base}.${exchange === "BSE" ? "BO" : "NS"}`;
       const key = `${base}|${exchange}`;
       const qty = Number(s.qty || 0);
-      const currentPrice = Number(s.currentPrice || 0);
+      // Same fallback chain used app-wide (see useMetrics.ts stockValue calc):
+      // live market price first, then the stock's stored currentPrice, then
+      // avgPrice — since currentPrice on a lot is only set once at buy-time
+      // and isn't kept in sync, it's frequently 0/stale on its own.
+      const livePrice = marketData?.[yfSym]?.price;
+      const currentPrice =
+        Number(livePrice ?? 0) || Number(s.currentPrice || 0) || Number(s.avgPrice || 0);
       if (!map.has(key)) {
         map.set(key, { symbol: base, exchange, yfSym, qty: 0, currentValue: 0 });
       }
@@ -185,7 +191,7 @@ export function DividendCalendarTab({ state }: any) {
       g.currentValue += qty * currentPrice;
     });
     return Array.from(map.values());
-  }, [state.stocks]);
+  }, [state.stocks, marketData]);
 
   // Unique Yahoo Finance symbols to fetch ex-dividend/yield data for
   const symbols = useMemo<string[]>(

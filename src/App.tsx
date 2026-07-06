@@ -4328,7 +4328,7 @@ function FinanceDashboard() {
               )}
               {tab === "xirrreport" && <XIRRReportTab state={filteredState} metrics={metrics} />}
               {tab === "dividendcal" && (
-                <DividendCalendarTab state={filteredState} metrics={metrics} />
+                <DividendCalendarTab state={filteredState} metrics={metrics} marketData={marketData} />
               )}
               {tab === "salaryslip" && (
                 <SalarySlipTab
