@@ -163,14 +163,35 @@ export function DividendCalendarTab({ state }: any) {
   const [fetched, setFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Unique stock symbols from portfolio
-  const symbols = useMemo<string[]>(() => {
-    const s = new Set<string>();
-    (state.stocks || []).forEach((st: any) => {
-      if (st.symbol) s.add(st.symbol);
+  // Group portfolio buy-lots into one entry per symbol+exchange, and derive
+  // the correct Yahoo Finance ticker (base symbol + .NS/.BO exchange suffix —
+  // without it, Yahoo resolves to the wrong/foreign security, e.g. bare
+  // "INFY" returns the US-listed Infosys ADR instead of the NSE stock).
+  const stockGroups = useMemo(() => {
+    const map = new Map<string, any>();
+    (state.stocks || []).forEach((s: any) => {
+      if (!s.symbol || Number(s.qty || 0) <= 0) return;
+      const base = String(s.symbol).replace(/\.(NS|BO)$/i, "");
+      const exchange = s.exchange || "NSE";
+      const yfSym = `${base}.${exchange === "BSE" ? "BO" : "NS"}`;
+      const key = `${base}|${exchange}`;
+      const qty = Number(s.qty || 0);
+      const currentPrice = Number(s.currentPrice || 0);
+      if (!map.has(key)) {
+        map.set(key, { symbol: base, exchange, yfSym, qty: 0, currentValue: 0 });
+      }
+      const g = map.get(key);
+      g.qty += qty;
+      g.currentValue += qty * currentPrice;
     });
-    return Array.from(s);
+    return Array.from(map.values());
   }, [state.stocks]);
+
+  // Unique Yahoo Finance symbols to fetch ex-dividend/yield data for
+  const symbols = useMemo<string[]>(
+    () => Array.from(new Set(stockGroups.map((g: any) => g.yfSym))),
+    [stockGroups]
+  );
 
   const fetchExDates = async () => {
     if (symbols.length === 0) return;
@@ -204,48 +225,46 @@ export function DividendCalendarTab({ state }: any) {
     }
   }, [symbols]);
 
-  // Build enriched rows per stock
+  // Build enriched rows — one per distinct stock (not per buy-lot), so a
+  // stock bought across multiple lots doesn't show up multiple times with
+  // fragmented quantities/values.
   const stockRows = useMemo(() => {
-    return (state.stocks || [])
-      .filter((s: any) => s.symbol && Number(s.qty || 0) > 0)
-      .map((s: any) => {
-        const info = exData[s.symbol] || {};
-        const exDate = tsToDate(info.exDividendDate);
-        const divPayDate = tsToDate(info.dividendDate);
-        const divRate = Number(info.trailingAnnualDividendRate || info.dividendRate || 0);
-        const divYield = Number(info.dividendYield || 0) * 100;
-        const qty = Number(s.qty || 0);
-        const currentPrice = Number(s.currentPrice || 0);
-        const currentValue = currentPrice * qty;
-        const estDivIncome = divRate * qty;
-        const daysToEx = getDaysUntil(exDate);
+    return stockGroups.map((g: any) => {
+      const info = exData[g.yfSym] || {};
+      const exDate = tsToDate(info.exDividendDate);
+      const divPayDate = tsToDate(info.dividendDate);
+      const divRate = Number(info.trailingAnnualDividendRate || info.dividendRate || 0);
+      const divYield = Number(info.dividendYield || 0) * 100;
+      const currentPrice = g.qty > 0 ? g.currentValue / g.qty : 0;
+      const estDivIncome = divRate * g.qty;
+      const daysToEx = getDaysUntil(exDate);
 
-        // Past dividends received for this symbol
-        const pastDivs = (state.dividends || [])
-          .filter((d: any) => d.symbol === s.symbol || d.fundName === s.symbol)
-          .sort((a: any, b: any) =>
-            (b.recordDate || b.paymentDate || "").localeCompare(a.recordDate || a.paymentDate || "")
-          );
-        const lastDiv = pastDivs[0] || null;
+      // Past dividends received for this symbol
+      const pastDivs = (state.dividends || [])
+        .filter((d: any) => d.symbol === g.symbol || d.fundName === g.symbol)
+        .sort((a: any, b: any) =>
+          (b.recordDate || b.paymentDate || "").localeCompare(a.recordDate || a.paymentDate || "")
+        );
+      const lastDiv = pastDivs[0] || null;
 
-        return {
-          symbol: s.symbol,
-          exchange: s.exchange,
-          qty,
-          currentPrice,
-          currentValue,
-          exDate,
-          divPayDate,
-          divRate,
-          divYield,
-          estDivIncome,
-          daysToEx,
-          lastDiv,
-          hasLiveData: fetched && !!info.trailingAnnualDividendRate,
-          isDivPayer: divRate > 0,
-        };
-      });
-  }, [state.stocks, state.dividends, exData, fetched]);
+      return {
+        symbol: g.symbol,
+        exchange: g.exchange,
+        qty: g.qty,
+        currentPrice,
+        currentValue: g.currentValue,
+        exDate,
+        divPayDate,
+        divRate,
+        divYield,
+        estDivIncome,
+        daysToEx,
+        lastDiv,
+        hasLiveData: fetched && !!info.trailingAnnualDividendRate,
+        isDivPayer: divRate > 0,
+      };
+    });
+  }, [stockGroups, state.dividends, exData, fetched]);
 
   // Upcoming ex-dates within 90 days (or past 7 days)
   const upcomingExDates = useMemo(
