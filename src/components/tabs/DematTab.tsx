@@ -117,6 +117,20 @@ function brokerInitials(broker: string): string {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+// Value/% change across the currently selected chart period (first vs last point),
+// as opposed to the quote API's change/changePercent which is always today-vs-prev-close.
+function calcPeriodChange(points: Array<{ p: number }> | null | undefined) {
+  if (!points || points.length < 2) return null;
+  const first = points[0]?.p;
+  const last = points[points.length - 1]?.p;
+  if (first == null || last == null || !isFinite(first) || !isFinite(last) || first === 0) {
+    return null;
+  }
+  const amount = last - first;
+  const pct = (amount / first) * 100;
+  return { amount, pct };
+}
+
 // NSE symbols that have been renamed — Groww CDN uses the current exchange symbol
 const GROWW_SYMBOL_OVERRIDES: Record<string, string> = {
   ZOMATO: "ETERNAL", // Zomato Ltd rebranded to Eternal Ltd on NSE (2025)
@@ -2482,6 +2496,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     const chartDate: string | null = chartEntry?.date ?? null;
                     const changeAmt = md?.change ?? 0;
                     const changePct = md?.changePercent ?? 0;
+                    const periodChange = calcPeriodChange(charts);
+                    const chartChangeAmt = periodChange?.amount ?? changeAmt;
 
                     return (
                       <React.Fragment key={yfSym}>
@@ -2754,16 +2770,42 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     >
                                       <div
                                         style={{
-                                          fontSize: 11,
-                                          color: THEME.muted,
-                                          fontWeight: 700,
-                                          textTransform: "uppercase",
-                                          letterSpacing: "0.05em",
+                                          display: "flex",
+                                          alignItems: "baseline",
+                                          gap: 8,
+                                          flexWrap: "wrap",
                                         }}
                                       >
-                                        {activePeriod === "1d" && chartDate
-                                          ? `Intraday — ${chartDate}`
-                                          : `${CHART_PERIOD_LABELS[activePeriod]} Chart`}
+                                        <div
+                                          style={{
+                                            fontSize: 11,
+                                            color: THEME.muted,
+                                            fontWeight: 700,
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                          }}
+                                        >
+                                          {activePeriod === "1d" && chartDate
+                                            ? `Intraday — ${chartDate}`
+                                            : `${CHART_PERIOD_LABELS[activePeriod]} Chart`}
+                                        </div>
+                                        {periodChange && (
+                                          <div
+                                            style={{
+                                              fontSize: 12,
+                                              fontWeight: 800,
+                                              color:
+                                                periodChange.amount >= 0
+                                                  ? THEME.sage
+                                                  : THEME.rust,
+                                            }}
+                                          >
+                                            {periodChange.amount >= 0 ? "+" : "-"}₹
+                                            {Math.abs(periodChange.amount).toFixed(2)} (
+                                            {periodChange.amount >= 0 ? "+" : "-"}
+                                            {Math.abs(periodChange.pct).toFixed(2)}%)
+                                          </div>
+                                        )}
                                       </div>
 
                                       {/* Segmented Period Selector */}
@@ -2838,14 +2880,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   <stop
                                                     offset="5%"
                                                     stopColor={
-                                                      changeAmt >= 0 ? THEME.sage : THEME.rust
+                                                      chartChangeAmt >= 0
+                                                        ? THEME.sage
+                                                        : THEME.rust
                                                     }
                                                     stopOpacity={0.3}
                                                   />
                                                   <stop
                                                     offset="95%"
                                                     stopColor={
-                                                      changeAmt >= 0 ? THEME.sage : THEME.rust
+                                                      chartChangeAmt >= 0
+                                                        ? THEME.sage
+                                                        : THEME.rust
                                                     }
                                                     stopOpacity={0.01}
                                                   />
@@ -2882,7 +2928,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               <Area
                                                 type="monotone"
                                                 dataKey="p"
-                                                stroke={changeAmt >= 0 ? THEME.sage : THEME.rust}
+                                                stroke={
+                                                  chartChangeAmt >= 0 ? THEME.sage : THEME.rust
+                                                }
                                                 strokeWidth={1.5}
                                                 fill={`url(#ig-${base})`}
                                                 dot={false}
@@ -5234,6 +5282,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 const chartDate: string | null = chartEntry?.date ?? null;
                                 const changeAmt = md?.change ?? 0;
                                 const changePct = md?.changePercent ?? 0;
+                                const periodChange = calcPeriodChange(charts);
+                                const chartChangeAmt = periodChange?.amount ?? changeAmt;
 
                                 const toggleWatchItem = () => {
                                   const isExpanding = !expandedWatchlistItems.has(it.id);
@@ -5501,16 +5551,42 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 >
                                                   <div
                                                     style={{
-                                                      fontSize: 11,
-                                                      color: THEME.muted,
-                                                      fontWeight: 700,
-                                                      textTransform: "uppercase",
-                                                      letterSpacing: "0.05em",
+                                                      display: "flex",
+                                                      alignItems: "baseline",
+                                                      gap: 8,
+                                                      flexWrap: "wrap",
                                                     }}
                                                   >
-                                                    {wlActivePeriod === "1d" && chartDate
-                                                      ? `Intraday — ${chartDate}`
-                                                      : `${CHART_PERIOD_LABELS[wlActivePeriod]} Chart`}
+                                                    <div
+                                                      style={{
+                                                        fontSize: 11,
+                                                        color: THEME.muted,
+                                                        fontWeight: 700,
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                      }}
+                                                    >
+                                                      {wlActivePeriod === "1d" && chartDate
+                                                        ? `Intraday — ${chartDate}`
+                                                        : `${CHART_PERIOD_LABELS[wlActivePeriod]} Chart`}
+                                                    </div>
+                                                    {periodChange && (
+                                                      <div
+                                                        style={{
+                                                          fontSize: 12,
+                                                          fontWeight: 800,
+                                                          color:
+                                                            periodChange.amount >= 0
+                                                              ? THEME.sage
+                                                              : THEME.rust,
+                                                        }}
+                                                      >
+                                                        {periodChange.amount >= 0 ? "+" : "-"}₹
+                                                        {Math.abs(periodChange.amount).toFixed(2)}{" "}
+                                                        ({periodChange.amount >= 0 ? "+" : "-"}
+                                                        {Math.abs(periodChange.pct).toFixed(2)}%)
+                                                      </div>
+                                                    )}
                                                   </div>
                                                   <div style={{ display: "flex", gap: 2 }}>
                                                     {CHART_PERIODS.map((p) => (
@@ -5583,7 +5659,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                               <stop
                                                                 offset="5%"
                                                                 stopColor={
-                                                                  changeAmt >= 0
+                                                                  chartChangeAmt >= 0
                                                                     ? THEME.sage
                                                                     : THEME.rust
                                                                 }
@@ -5592,7 +5668,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                               <stop
                                                                 offset="95%"
                                                                 stopColor={
-                                                                  changeAmt >= 0
+                                                                  chartChangeAmt >= 0
                                                                     ? THEME.sage
                                                                     : THEME.rust
                                                                 }
@@ -5631,7 +5707,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                             type="monotone"
                                                             dataKey="p"
                                                             stroke={
-                                                              changeAmt >= 0
+                                                              chartChangeAmt >= 0
                                                                 ? THEME.sage
                                                                 : THEME.rust
                                                             }
