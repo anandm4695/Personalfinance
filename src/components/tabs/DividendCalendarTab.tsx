@@ -233,7 +233,14 @@ export function DividendCalendarTab({ state }: any) {
       const info = exData[g.yfSym] || {};
       const exDate = tsToDate(info.exDividendDate);
       const divPayDate = tsToDate(info.dividendDate);
-      const divRate = Number(info.trailingAnnualDividendRate || info.dividendRate || 0);
+      // Yahoo's `dividendYield` is computed off `dividendRate` (the forward
+      // indicated annual rate), not `trailingAnnualDividendRate` (actual
+      // trailing 12mo payout). Prioritizing the trailing figure here made the
+      // displayed "Div/Share" and "Yield %" reconcile to different numbers —
+      // e.g. INFY.NS: dividendRate=50 (yield-consistent) vs a stale/bad
+      // trailingAnnualDividendRate=0.52. Use dividendRate first so the two
+      // figures agree.
+      const divRate = Number(info.dividendRate || info.trailingAnnualDividendRate || 0);
       const divYield = Number(info.dividendYield || 0) * 100;
       const currentPrice = g.qty > 0 ? g.currentValue / g.qty : 0;
       const estDivIncome = divRate * g.qty;
@@ -260,7 +267,7 @@ export function DividendCalendarTab({ state }: any) {
         estDivIncome,
         daysToEx,
         lastDiv,
-        hasLiveData: fetched && !!info.trailingAnnualDividendRate,
+        hasLiveData: fetched && divRate > 0,
         isDivPayer: divRate > 0,
       };
     });
