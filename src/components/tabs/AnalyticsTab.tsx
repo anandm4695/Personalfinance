@@ -3453,18 +3453,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                    {(() => {
-                      const hr = new Date().getHours();
-                      if (hr < 12) return "Good morning";
-                      if (hr < 17) return "Good afternoon";
-                      return "Good evening";
-                    })()}
-                    ,{" "}
                     {activeProfile === "all"
-                      ? state.profile?.name || "there"
-                      : familyProfiles.find((p) => p.id === activeProfile)?.name || activeProfile}
+                      ? "Family Wealth Overview"
+                      : `${
+                          familyProfiles.find((p) => p.id === activeProfile)?.name || activeProfile
+                        }'s Portfolio`}
                   </span>
-                  <span style={{ fontSize: 18 }}>👋</span>
                 </div>
                 <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
                   Here is the consolidated summary of your{" "}
