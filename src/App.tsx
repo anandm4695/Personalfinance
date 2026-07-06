@@ -4059,6 +4059,7 @@ function FinanceDashboard() {
                   updateItem={updateItem}
                   subTab={subTab}
                   onSubTabChange={setSubTab}
+                  activeProfile={activeProfile}
                 />
               )}
               {tab === "tax" && (

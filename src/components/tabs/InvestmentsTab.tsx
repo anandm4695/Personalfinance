@@ -42,7 +42,7 @@ import {
   calcXIRR,
 } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
-import { useMasterData } from "../../utils/masterData";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -59,6 +59,7 @@ interface InvestmentsTabProps {
   updateItem: (key: string, id: string, data: any) => void;
   subTab?: string;
   onSubTabChange?: (sub: string) => void;
+  activeProfile?: string;
 }
 
 /* ── shared input style (matches GoalModal) ─────────────────────────── */
@@ -85,11 +86,24 @@ const SUBS = [
   { id: "income", label: "Yield Tracker", icon: Activity, stateKey: null },
 ];
 
+const OwnerBadge = ({ owner }: { owner?: string }) => {
+  const { familyProfiles } = useMasterData();
+  if (!owner) return null;
+  const p = familyProfiles.find((x) => x.id === owner);
+  if (!p) return null;
+  return (
+    <Badge variant="accent" style={{ fontSize: 10 }}>
+      {p.name}
+    </Badge>
+  );
+};
+
 /* ══════════════════════════════════════════════════════════════════════
    ADD INVESTMENT MODAL
 ══════════════════════════════════════════════════════════════════════ */
-const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
-  const { mfCategories } = useMasterData();
+const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any) => {
+  const { mfCategories, familyProfiles } = useMasterData();
+  const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const subMeta = SUBS.find((s) => s.id === sub);
 
   // ── FD State ──
@@ -180,6 +194,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
     units: "",
     currentNav: "",
     invested: "",
+    owner: defaultOwner,
   });
 
   const handleSave = () => {
@@ -902,6 +917,19 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
                   placeholder="e.g. Mirae Asset Large Cap Fund"
                 />
               </Field>
+              <Field label="Owner / Profile">
+                <select
+                  style={inp}
+                  value={mf.owner || "self"}
+                  onChange={(e) => setMf({ ...mf, owner: e.target.value })}
+                >
+                  {familyProfiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {formatProfileOption(p)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Field label="Category (from Master Data)">
                   <select
@@ -1062,6 +1090,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   updateItem,
   subTab,
   onSubTabChange,
+  activeProfile = "all",
 }) => {
   const [sub, setSub] = useState(subTab || "fd");
   const [showModal, setShowModal] = useState(false);
@@ -1266,6 +1295,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
+            activeProfile={activeProfile}
           />
         );
       case "dividends":
@@ -1492,7 +1522,12 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
       {/* ── ADD MODAL ── */}
       {showModal && (
-        <AddInvestmentModal sub={sub} onClose={() => setShowModal(false)} onSave={handleSave} />
+        <AddInvestmentModal
+          sub={sub}
+          onClose={() => setShowModal(false)}
+          onSave={handleSave}
+          activeProfile={activeProfile}
+        />
       )}
     </div>
   );
@@ -1988,8 +2023,9 @@ function EditRDModal({ rd: initial, onClose, onSave }: any) {
 }
 
 /* ── Edit MF Modal ────────────────────────────────────────────────────── */
-function EditMFModal({ mf: initial, onClose, onSave }: any) {
-  const { mfCategories } = useMasterData();
+function EditMFModal({ mf: initial, onClose, onSave, activeProfile = "all" }: any) {
+  const { mfCategories, familyProfiles } = useMasterData();
+  const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [form, setForm] = useState({
     name: initial.name || "",
     category: initial.category || "Equity",
@@ -2002,6 +2038,7 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
     currentNav: initial.currentNav != null ? String(initial.currentNav) : "",
     invested:
       initial.invested != null ? String(initial.invested || initial.investedValue || "") : "",
+    owner: initial.owner || defaultOwner,
   });
 
   const currentValue = Number(form.units) * Number(form.currentNav) || 0;
@@ -2022,6 +2059,19 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="e.g. Mirae Asset Large Cap Fund"
         />
+      </Field>
+      <Field label="Owner / Profile">
+        <select
+          style={inp}
+          value={form.owner || "self"}
+          onChange={(e) => setForm({ ...form, owner: e.target.value })}
+        >
+          {familyProfiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {formatProfileOption(p)}
+            </option>
+          ))}
+        </select>
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Category (from Master Data)">
@@ -8874,7 +8924,15 @@ function calcMfPeriodChange(points: Array<{ p: number }> | null | undefined) {
 }
 
 /* ── MF Section ─────────────────────────────────────────────────────── */
-function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: any) {
+function MFSection({
+  items,
+  mfSells,
+  addItem,
+  removeItem,
+  updateItem,
+  onAdd,
+  activeProfile = "all",
+}: any) {
   const [editMF, setEditMF] = useState<any>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
@@ -9791,6 +9849,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                                               {grp.mfType}
                                             </span>
                                           )}
+                                          <OwnerBadge owner={groupItems[0]?.owner} />
                                           <span
                                             style={{
                                               fontSize: 9,
@@ -10980,6 +11039,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
             updateItem("mutualFunds", editMF.id, updated);
             setEditMF(null);
           }}
+          activeProfile={activeProfile}
         />
       )}
       {sellMF && (
@@ -11083,6 +11143,7 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
       buyNav: f.buyNav,
       units: f.units,
       invested,
+      owner: ref.owner || "self",
     });
   };
 
