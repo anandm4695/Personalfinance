@@ -4090,6 +4090,9 @@ function MFCsvPanel({ onImport, onClose }: any) {
                   >
                     Invested
                   </th>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>
+                    Owner
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -4104,6 +4107,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
                     <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>
                       {fmtINRFull(Number(r.invested))}
                     </td>
+                    <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.owner || "self"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -9451,7 +9455,8 @@ function MFSection({
                   setShowCasImport(false);
                 }}
                 onClose={() => setShowCasImport(false)}
-                existingFunds={state.mutualFunds || []}
+                existingFunds={items || []}
+                activeProfile={activeProfile}
               />
             </div>
           )}

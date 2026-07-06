@@ -5,11 +5,13 @@ import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 
 interface MFCasPanelProps {
   onImport: (data: any[]) => void;
   onClose: () => void;
   existingFunds?: any[];
+  activeProfile?: string;
 }
 
 /* ── Fuzzy match helper ────────────────────────────────────────────── */
@@ -57,12 +59,15 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
   onImport,
   onClose,
   existingFunds = [],
+  activeProfile = "all",
 }) => {
+  const { familyProfiles } = useMasterData();
   const [inputText, setInputText] = useState("");
   const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [importDone, setImportDone] = useState(false);
   const [mergeMode, setMergeMode] = useState(true);
+  const [owner, setOwner] = useState(activeProfile !== "all" ? activeProfile : "self");
 
   /* ── Build match map from parsed rows to existing funds ────────── */
   const matchMap = useMemo(() => {
@@ -328,7 +333,6 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                 units: String(units.toFixed(3)),
                 currentNav: String(nav.toFixed(4)),
                 invested: String(amount.toFixed(2)),
-                owner: "self",
                 id: uid(),
                 type: type,
               });
@@ -382,7 +386,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           units: r.units,
           currentNav: r.currentNav,
           invested: r.invested,
-          owner: r.owner,
+          owner,
           id: r.id,
         });
       }
@@ -522,6 +526,37 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: THEME.muted,
+                }}
+              >
+                Owner
+                <select
+                  value={owner}
+                  onChange={(e) => setOwner(e.target.value)}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: `1px solid ${THEME.line}`,
+                    background: "var(--surface-0)",
+                    color: THEME.ink,
+                  }}
+                >
+                  {familyProfiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {formatProfileOption(p)}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {matchMap.size > 0 && (
                 <label
                   style={{
