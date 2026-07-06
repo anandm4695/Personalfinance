@@ -8849,6 +8849,30 @@ export const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: numbe
   );
 };
 
+const MF_CHART_PERIOD_LABELS: Record<string, string> = {
+  "1m": "1M",
+  "3m": "3M",
+  "6m": "6M",
+  "1y": "1Y",
+  "3y": "3Y",
+  "5y": "5Y",
+  max: "All",
+};
+const MF_CHART_PERIODS = Object.keys(MF_CHART_PERIOD_LABELS);
+
+// Value/% change across the currently selected chart period (first vs last NAV point)
+function calcMfPeriodChange(points: Array<{ p: number }> | null | undefined) {
+  if (!points || points.length < 2) return null;
+  const first = points[0]?.p;
+  const last = points[points.length - 1]?.p;
+  if (first == null || last == null || !isFinite(first) || !isFinite(last) || first === 0) {
+    return null;
+  }
+  const amount = last - first;
+  const pct = (amount / first) * 100;
+  return { amount, pct };
+}
+
 /* ── MF Section ─────────────────────────────────────────────────────── */
 function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: any) {
   const [editMF, setEditMF] = useState<any>(null);
@@ -8857,6 +8881,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
   const [navError, setNavError] = useState<Record<string, string>>({});
   const [mfMeta, setMfMeta] = useState<Record<string, any>>({});
   const [mfChartData, setMfChartData] = useState<Record<string, any[]>>({});
+  const [mfChartPeriod, setMfChartPeriod] = useState<Record<string, string>>({});
   const [expandedMF, setExpandedMF] = useState<Set<string>>(new Set());
   const [sellMF, setSellMF] = useState<any>(null);
   const [fifoSellMFGroup, setFifoSellMFGroup] = useState<any>(null);
@@ -8930,16 +8955,25 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
         next.delete(id);
       } else {
         next.add(id);
-        if (mfCode && !mfMeta[id]) fetchMFData(id, mfCode);
+        if (mfCode && !mfMeta[id]) fetchMFData(id, mfCode, mfChartPeriod[id] || "3m");
       }
       return next;
     });
   };
 
-  const fetchMFData = async (id: string, mfCode: string) => {
+  const mfFetchInFlight = React.useRef<Set<string>>(new Set());
+  const fetchMFData = async (id: string, mfCode: string, period: string = "3m") => {
+    const cacheKey = `${id}__${period}`;
+    if (mfChartData[cacheKey] || mfFetchInFlight.current.has(cacheKey)) return;
+    mfFetchInFlight.current.add(cacheKey);
     try {
-      const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(mfCode)}`);
-      if (!res.ok) return;
+      const res = await fetch(
+        `/api/mf-nav?code=${encodeURIComponent(mfCode)}&range=${encodeURIComponent(period)}`
+      );
+      if (!res.ok) {
+        setMfChartData((prev) => ({ ...prev, [cacheKey]: [] }));
+        return;
+      }
       const data = await res.json();
       setMfMeta((prev) => ({
         ...prev,
@@ -8952,16 +8986,23 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
           navDate: data.date,
         },
       }));
-      if (data.chart?.length) setMfChartData((prev) => ({ ...prev, [id]: data.chart }));
-    } catch (_) {}
+      setMfChartData((prev) => ({ ...prev, [cacheKey]: data.chart?.length ? data.chart : [] }));
+    } catch (_) {
+      setMfChartData((prev) => ({ ...prev, [cacheKey]: [] }));
+    } finally {
+      mfFetchInFlight.current.delete(cacheKey);
+    }
   };
 
   const refreshNav = async (m: any) => {
     if (!m.mfCode) return;
     setRefreshingId(m.id);
     setNavError((prev) => ({ ...prev, [m.id]: "" }));
+    const period = mfChartPeriod[m.id] || "3m";
     try {
-      const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(m.mfCode)}`);
+      const res = await fetch(
+        `/api/mf-nav?code=${encodeURIComponent(m.mfCode)}&range=${encodeURIComponent(period)}`
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data.nav) throw new Error("No NAV in response");
@@ -8977,7 +9018,8 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
           navDate: data.date,
         },
       }));
-      if (data.chart?.length) setMfChartData((prev) => ({ ...prev, [m.id]: data.chart }));
+      if (data.chart?.length)
+        setMfChartData((prev) => ({ ...prev, [`${m.id}__${period}`]: data.chart }));
     } catch (e: any) {
       setNavError((prev) => ({ ...prev, [m.id]: e.message || "Refresh failed" }));
     } finally {
@@ -9845,24 +9887,121 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                                           (() => {
                                             const cId = firstWithCode.id;
                                             const meta = mfMeta[cId];
-                                            const chart = mfChartData[cId];
-                                            const navUp =
-                                              meta?.navChange != null ? meta.navChange >= 0 : true;
-                                            if (!chart?.length && !meta)
-                                              fetchMFData(cId, firstWithCode.mfCode);
+                                            const activePeriod = mfChartPeriod[cId] || "3m";
+                                            const chart = mfChartData[`${cId}__${activePeriod}`];
+                                            const periodChange = calcMfPeriodChange(chart);
+                                            const navUp = periodChange
+                                              ? periodChange.amount >= 0
+                                              : meta?.navChange != null
+                                                ? meta.navChange >= 0
+                                                : true;
+                                            if (!chart?.length)
+                                              fetchMFData(cId, firstWithCode.mfCode, activePeriod);
                                             return (
                                               <div style={{ flex: "1 1 300px", minWidth: 280 }}>
                                                 <div
                                                   style={{
-                                                    fontSize: 11,
-                                                    color: THEME.muted,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "space-between",
                                                     marginBottom: 8,
-                                                    fontWeight: 700,
-                                                    textTransform: "uppercase",
-                                                    letterSpacing: "0.05em",
+                                                    flexWrap: "wrap",
+                                                    gap: 6,
                                                   }}
                                                 >
-                                                  30-Day NAV Trend
+                                                  <div
+                                                    style={{
+                                                      display: "flex",
+                                                      alignItems: "baseline",
+                                                      gap: 8,
+                                                      flexWrap: "wrap",
+                                                    }}
+                                                  >
+                                                    <div
+                                                      style={{
+                                                        fontSize: 11,
+                                                        color: THEME.muted,
+                                                        fontWeight: 700,
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                      }}
+                                                    >
+                                                      {MF_CHART_PERIOD_LABELS[activePeriod]} NAV
+                                                      Trend
+                                                    </div>
+                                                    {periodChange && (
+                                                      <div
+                                                        style={{
+                                                          fontSize: 12,
+                                                          fontWeight: 800,
+                                                          color:
+                                                            periodChange.amount >= 0
+                                                              ? THEME.sage
+                                                              : THEME.rust,
+                                                        }}
+                                                      >
+                                                        {periodChange.amount >= 0 ? "+" : "-"}₹
+                                                        {Math.abs(periodChange.amount).toFixed(4)} (
+                                                        {periodChange.amount >= 0 ? "+" : "-"}
+                                                        {Math.abs(periodChange.pct).toFixed(2)}%)
+                                                      </div>
+                                                    )}
+                                                  </div>
+
+                                                  {/* Segmented Period Selector */}
+                                                  <div
+                                                    style={{
+                                                      display: "flex",
+                                                      background: "var(--t-line)",
+                                                      padding: 2,
+                                                      borderRadius: 8,
+                                                      border: `1px solid ${THEME.line}`,
+                                                    }}
+                                                  >
+                                                    {MF_CHART_PERIODS.map((p) => (
+                                                      <button
+                                                        key={p}
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setMfChartPeriod((prev) => ({
+                                                            ...prev,
+                                                            [cId]: p,
+                                                          }));
+                                                          if (!mfChartData[`${cId}__${p}`])
+                                                            fetchMFData(
+                                                              cId,
+                                                              firstWithCode.mfCode,
+                                                              p
+                                                            );
+                                                        }}
+                                                        style={{
+                                                          padding: "4px 8px",
+                                                          fontSize: 9,
+                                                          fontWeight:
+                                                            activePeriod === p ? 850 : 600,
+                                                          border: "none",
+                                                          borderRadius: 6,
+                                                          cursor: "pointer",
+                                                          background:
+                                                            activePeriod === p
+                                                              ? "var(--t-card-bg)"
+                                                              : "transparent",
+                                                          color:
+                                                            activePeriod === p
+                                                              ? THEME.accent
+                                                              : THEME.muted,
+                                                          boxShadow:
+                                                            activePeriod === p
+                                                              ? "0 1px 3px rgba(0,0,0,0.08)"
+                                                              : "none",
+                                                          transition:
+                                                            "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                                                        }}
+                                                      >
+                                                        {MF_CHART_PERIOD_LABELS[p]}
+                                                      </button>
+                                                    ))}
+                                                  </div>
                                                 </div>
                                                 <div
                                                   style={{
@@ -9953,7 +10092,9 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                                                         color: THEME.muted,
                                                       }}
                                                     >
-                                                      Loading chart…
+                                                      {chart
+                                                        ? "No data for this period"
+                                                        : "Loading chart…"}
                                                     </div>
                                                   )}
                                                   {meta && (

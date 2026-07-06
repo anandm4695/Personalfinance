@@ -1,5 +1,27 @@
-// Vercel serverless function — fetches latest NAV + 30-day chart + 52W H/L from mfapi.in
+// Vercel serverless function — fetches latest NAV + historical chart + 52W H/L from mfapi.in
 const https = require("https");
+
+// Approximate trading-day counts per period (mfapi.in returns ~1 point/day, incl. weekends sometimes skipped)
+const RANGE_DAYS = {
+  "1m": 30,
+  "3m": 90,
+  "6m": 182,
+  "1y": 365,
+  "3y": 365 * 3,
+  "5y": 365 * 5,
+  max: Infinity,
+};
+
+// Downsample to keep chart payloads/rendering fast for long ranges, always keeping the last point
+function downsample(points, maxPoints) {
+  if (points.length <= maxPoints) return points;
+  const step = Math.ceil(points.length / maxPoints);
+  const out = [];
+  for (let i = 0; i < points.length; i += step) out.push(points[i]);
+  const last = points[points.length - 1];
+  if (out[out.length - 1] !== last) out.push(last);
+  return out;
+}
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
@@ -26,10 +48,11 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { code } = req.query;
+  const { code, range } = req.query;
   if (!code) return res.status(400).json({ error: "code required" });
   if (!/^\d+$/.test(String(code).trim()))
     return res.status(400).json({ error: "code must be numeric" });
+  const rangeDays = RANGE_DAYS[String(range || "3m")] ?? RANGE_DAYS["3m"];
 
   try {
     const data = await fetchJson(`https://api.mfapi.in/mf/${String(code).trim()}`);
@@ -55,15 +78,18 @@ module.exports = async function handler(req, res) {
         ? (navChange / prevNav) * 100
         : null;
 
-    // 30-day chart — mfapi.in stores newest first, so reverse for chronological order
-    const chart = data.data
-      .slice(0, 30)
-      .reverse()
-      .map((d) => ({
-        t: d.date,
-        p: parseFloat(d.nav),
-      }))
-      .filter((pt) => pt.p > 0);
+    // mfapi.in stores newest first, sliced to the requested range then reversed for chronological order
+    const sliced = data.data.slice(0, rangeDays === Infinity ? data.data.length : rangeDays);
+    const chart = downsample(
+      sliced
+        .reverse()
+        .map((d) => ({
+          t: d.date,
+          p: parseFloat(d.nav),
+        }))
+        .filter((pt) => pt.p > 0),
+      500
+    );
 
     res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=7200");
     return res.status(200).json({
