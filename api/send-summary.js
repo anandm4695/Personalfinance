@@ -57,10 +57,6 @@ function nowIST() {
   return d;
 }
 
-function istHour() {
-  return nowIST().getUTCHours();
-}
-
 function istDayOfWeek() {
   return nowIST().getUTCDay(); // 0=Sun,1=Mon,...,6=Sat
 }
@@ -1751,10 +1747,6 @@ module.exports = async function handler(req, res) {
       for (const row of allSettings || []) {
         const freq = row.email_frequency || "weekly";
         if (!shouldSendNow(row, freq)) continue;
-
-        // Verify if the current IST hour matches the user's configured hour (defaulting to 8 AM IST)
-        const userHour = Number(row.email_hour ?? 8);
-        if (istHour() !== userHour) continue;
 
         try {
           const state = await fetchStateFromSupabase(supabase, row.user_id);

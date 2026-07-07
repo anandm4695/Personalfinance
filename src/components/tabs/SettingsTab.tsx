@@ -2700,13 +2700,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const frequency = es.emailFrequency || "weekly";
   const day = Number(es.emailDay ?? 1);
   const address = es.emailAddress || "";
-  const emailHour = Number(es.emailHour ?? 8);
-
-  const formatHour = (h24: number) => {
-    const h = h24 % 12 === 0 ? 12 : h24 % 12;
-    const ampm = h24 < 12 ? "AM" : "PM";
-    return `${h}:00 ${ampm} IST`;
-  };
 
   const [sending, setSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<"" | "ok" | "err">("");
@@ -3091,26 +3084,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               </div>
             )}
 
-            <div style={{ marginBottom: 20 }}>
-              <Field label="Delivery Time (IST)">
-                <select
-                  style={inp}
-                  value={emailHour}
-                  onChange={(e) => updateEmailSettings({ emailHour: Number(e.target.value) })}
-                >
-                  {Array.from({ length: 24 }, (_, i) => {
-                    const h = i % 12 === 0 ? 12 : i % 12;
-                    const ampm = i < 12 ? "AM" : "PM";
-                    return (
-                      <option key={i} value={i}>
-                        {h}:00 {ampm} IST
-                      </option>
-                    );
-                  })}
-                </select>
-              </Field>
-            </div>
-
             <div
               style={{
                 marginTop: 8,
@@ -3131,9 +3104,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               >
                 <span>⏰</span>
                 <span>
-                  Emails are delivered at{" "}
-                  <strong style={{ color: THEME.ink }}>{formatHour(emailHour)}</strong> on your
-                  chosen day.
+                  Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong> on
+                  your chosen day.
                 </span>
               </div>
             </div>
