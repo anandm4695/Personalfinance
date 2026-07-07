@@ -8876,8 +8876,8 @@ const MF_LOGO_DOMAINS: Record<string, string> = {
   // Navi
   navi: "navifunds.com",
   // IDFC / Bandhan
-  idfc: "bandhanmf.com",
-  bandhan: "bandhanmf.com",
+  idfc: "bandhanmutual.com",
+  bandhan: "bandhanmutual.com",
   // WhiteOak
   whiteoak: "whiteoakam.com",
   "white oak": "whiteoakam.com",
