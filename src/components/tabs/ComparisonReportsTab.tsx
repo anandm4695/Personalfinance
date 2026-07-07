@@ -68,6 +68,18 @@ const getMonthLabel = (ym) => {
   return `${MONTH_NAMES[parseInt(m) - 1]} '${y.slice(-2)}`;
 };
 
+const selectStyle: React.CSSProperties = {
+  padding: "6px 12px",
+  borderRadius: 8,
+  border: `1px solid ${THEME.line}`,
+  background: "var(--surface-0)",
+  color: THEME.ink,
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+  outline: "none",
+};
+
 /* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
 const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   if (!active || !payload?.length) return null;
@@ -235,44 +247,252 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
   const now = new Date();
   const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const lastYM = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, "0")}`;
-  const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  const lastFYStart = currentFYStart - 1;
 
-  const [compMode, setCompMode] = useState("mom"); // "mom" or "yoy"
+  // Fiscal-year period key helpers (FY runs Apr–Mar; quarters/halves anchored to FY start year)
+  const getFYQuarterKey = (ym) => {
+    const [yStr, mStr] = ym.split("-");
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+    if (m >= 4 && m <= 6) return `${y}-Q1`;
+    if (m >= 7 && m <= 9) return `${y}-Q2`;
+    if (m >= 10 && m <= 12) return `${y}-Q3`;
+    return `${y - 1}-Q4`;
+  };
+  const getFYHalfKey = (ym) => {
+    const [yStr, mStr] = ym.split("-");
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+    if (m >= 4 && m <= 9) return `${y}-H1`;
+    if (m >= 10 && m <= 12) return `${y}-H2`;
+    return `${y - 1}-H2`;
+  };
+  const getFYYearKey = (ym) => {
+    const [yStr, mStr] = ym.split("-");
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+    return String(m >= 4 ? y : y - 1);
+  };
 
-  // Build monthly expense data
-  const monthlyData = useMemo(() => {
+  const monthsInQuarter = (key) => {
+    const [fyStr, qStr] = key.split("-Q");
+    const fy = parseInt(fyStr, 10);
+    const q = parseInt(qStr, 10);
+    const table = {
+      1: [
+        [fy, 4],
+        [fy, 5],
+        [fy, 6],
+      ],
+      2: [
+        [fy, 7],
+        [fy, 8],
+        [fy, 9],
+      ],
+      3: [
+        [fy, 10],
+        [fy, 11],
+        [fy, 12],
+      ],
+      4: [
+        [fy + 1, 1],
+        [fy + 1, 2],
+        [fy + 1, 3],
+      ],
+    };
+    return table[q].map(([y, m]) => `${y}-${String(m).padStart(2, "0")}`);
+  };
+  const monthsInHalf = (key) => {
+    const [fyStr, hStr] = key.split("-H");
+    const fy = parseInt(fyStr, 10);
+    const h = parseInt(hStr, 10);
+    if (h === 1) return [4, 5, 6, 7, 8, 9].map((m) => `${fy}-${String(m).padStart(2, "0")}`);
+    return [
+      ...[10, 11, 12].map((m) => `${fy}-${String(m).padStart(2, "0")}`),
+      ...[1, 2, 3].map((m) => `${fy + 1}-${String(m).padStart(2, "0")}`),
+    ];
+  };
+  const monthsInYear = (key) => {
+    const fy = parseInt(key, 10);
+    return [
+      ...[4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => `${fy}-${String(m).padStart(2, "0")}`),
+      ...[1, 2, 3].map((m) => `${fy + 1}-${String(m).padStart(2, "0")}`),
+    ];
+  };
+  const monthsForPeriod = (periodType, key) =>
+    periodType === "month"
+      ? [key]
+      : periodType === "quarter"
+        ? monthsInQuarter(key)
+        : periodType === "half"
+          ? monthsInHalf(key)
+          : monthsInYear(key);
+
+  const getQuarterLabel = (key) => {
+    const [fyStr, qStr] = key.split("-Q");
+    const fy = parseInt(fyStr, 10);
+    return `Q${qStr} FY${String(fy).slice(-2)}-${String(fy + 1).slice(-2)}`;
+  };
+  const getHalfLabel = (key) => {
+    const [fyStr, hStr] = key.split("-H");
+    const fy = parseInt(fyStr, 10);
+    return `H${hStr} FY${String(fy).slice(-2)}-${String(fy + 1).slice(-2)}`;
+  };
+  const getYearLabel = (key) => {
+    const fy = parseInt(key, 10);
+    return `FY ${fy}-${String(fy + 1).slice(-2)}`;
+  };
+  const getPeriodLabel = (periodType, key) =>
+    periodType === "month"
+      ? getMonthLabel(key)
+      : periodType === "quarter"
+        ? getQuarterLabel(key)
+        : periodType === "half"
+          ? getHalfLabel(key)
+          : getYearLabel(key);
+
+  const prevPeriodKey = (periodType, key) => {
+    if (periodType === "month") {
+      const [y, m] = key.split("-").map(Number);
+      const py = m === 1 ? y - 1 : y;
+      const pm = m === 1 ? 12 : m - 1;
+      return `${py}-${String(pm).padStart(2, "0")}`;
+    }
+    if (periodType === "quarter") {
+      const [fyStr, qStr] = key.split("-Q");
+      const fy = parseInt(fyStr, 10);
+      const q = parseInt(qStr, 10);
+      return q === 1 ? `${fy - 1}-Q4` : `${fy}-Q${q - 1}`;
+    }
+    if (periodType === "half") {
+      const [fyStr, hStr] = key.split("-H");
+      const fy = parseInt(fyStr, 10);
+      const h = parseInt(hStr, 10);
+      return h === 1 ? `${fy - 1}-H2` : `${fy}-H1`;
+    }
+    return String(parseInt(key, 10) - 1);
+  };
+
+  const currentQuarterKey = getFYQuarterKey(currentYM);
+  const currentHalfKey = getFYHalfKey(currentYM);
+  const currentYearKey = getFYYearKey(currentYM);
+
+  const [compMode, setCompMode] = useState("month"); // "month" | "quarter" | "half" | "year"
+  const [periodA, setPeriodA] = useState(currentYM);
+  const [periodB, setPeriodB] = useState(lastYM);
+
+  const handleModeChange = (mode) => {
+    setCompMode(mode);
+    const defaultA =
+      mode === "month"
+        ? currentYM
+        : mode === "quarter"
+          ? currentQuarterKey
+          : mode === "half"
+            ? currentHalfKey
+            : currentYearKey;
+    setPeriodA(defaultA);
+    setPeriodB(prevPeriodKey(mode, defaultA));
+  };
+
+  // Monthly expense totals + category breakdown (debit transactions)
+  const monthlyExpense = useMemo(() => {
     const map = {};
     (state.transactions || [])
       .filter((t) => t.type === "debit" && t.date)
       .forEach((t) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";
-        if (!map[ym]) map[ym] = { total: 0, income: 0, cats: {} };
+        if (!map[ym]) map[ym] = { total: 0, cats: {} };
         map[ym].total += Number(t.amount || 0);
         map[ym].cats[cat] = (map[ym].cats[cat] || 0) + Number(t.amount || 0);
       });
-    (state.transactions || [])
-      .filter((t) => t.type === "credit" && t.date)
-      .forEach((t) => {
-        const ym = t.date.slice(0, 7);
-        if (!map[ym]) map[ym] = { total: 0, income: 0, cats: {} };
-        map[ym].income += Number(t.amount || 0);
-      });
+    return map;
+  }, [state.transactions]);
+
+  // Monthly income, tracked separately by source so period aggregates can
+  // prefer the manual income ledger over credit transactions (avoids double-counting
+  // the same income when both are logged for a period).
+  const monthlyIncomeLedger = useMemo(() => {
+    const map = {};
     (state.income || [])
       .filter((i) => i.date)
       .forEach((i) => {
         const ym = i.date.slice(0, 7);
-        if (!map[ym]) map[ym] = { total: 0, income: 0, cats: {} };
-        map[ym].income += Number(i.amount || 0);
+        map[ym] = (map[ym] || 0) + Number(i.amount || 0);
       });
     return map;
-  }, [state.transactions, state.income]);
+  }, [state.income]);
 
-  // Month over Month comparison
-  const momComparison = useMemo(() => {
-    const current = monthlyData[currentYM] || { total: 0, income: 0, cats: {} };
-    const previous = monthlyData[lastYM] || { total: 0, income: 0, cats: {} };
+  const monthlyIncomeTxn = useMemo(() => {
+    const map = {};
+    (state.transactions || [])
+      .filter((t) => t.type === "credit" && t.date)
+      .forEach((t) => {
+        const ym = t.date.slice(0, 7);
+        map[ym] = (map[ym] || 0) + Number(t.amount || 0);
+      });
+    return map;
+  }, [state.transactions]);
+
+  const availableMonths = useMemo(() => {
+    const set = new Set([
+      ...Object.keys(monthlyExpense),
+      ...Object.keys(monthlyIncomeLedger),
+      ...Object.keys(monthlyIncomeTxn),
+      currentYM,
+    ]);
+    return [...set].sort().reverse();
+  }, [monthlyExpense, monthlyIncomeLedger, monthlyIncomeTxn, currentYM]);
+
+  const availableQuarters = useMemo(
+    () => [...new Set(availableMonths.map(getFYQuarterKey))].sort().reverse(),
+    [availableMonths]
+  );
+  const availableHalves = useMemo(
+    () => [...new Set(availableMonths.map(getFYHalfKey))].sort().reverse(),
+    [availableMonths]
+  );
+  const availableYears = useMemo(
+    () => [...new Set(availableMonths.map(getFYYearKey))].sort().reverse(),
+    [availableMonths]
+  );
+
+  const periodOptions = useMemo(() => {
+    const base =
+      compMode === "month"
+        ? availableMonths
+        : compMode === "quarter"
+          ? availableQuarters
+          : compMode === "half"
+            ? availableHalves
+            : availableYears;
+    return [...new Set([...base, periodA, periodB])].sort().reverse();
+  }, [compMode, availableMonths, availableQuarters, availableHalves, availableYears, periodA, periodB]);
+
+  const comp = useMemo(() => {
+    const aggregate = (key) => {
+      const months = monthsForPeriod(compMode, key);
+      let total = 0;
+      let incomeLedger = 0;
+      let incomeTxn = 0;
+      const cats = {};
+      months.forEach((ym) => {
+        const e = monthlyExpense[ym];
+        if (e) {
+          total += e.total;
+          Object.entries(e.cats).forEach(([cat, amt]: any) => {
+            cats[cat] = (cats[cat] || 0) + amt;
+          });
+        }
+        incomeLedger += monthlyIncomeLedger[ym] || 0;
+        incomeTxn += monthlyIncomeTxn[ym] || 0;
+      });
+      const income = incomeLedger > 0 ? incomeLedger : incomeTxn;
+      return { total, income, cats };
+    };
+
+    const current = aggregate(periodA);
+    const previous = aggregate(periodB);
 
     const allCats = new Set([...Object.keys(current.cats), ...Object.keys(previous.cats)]);
     const categoryComps = [...allCats]
@@ -280,7 +500,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
         const curr = current.cats[cat] || 0;
         const prev = previous.cats[cat] || 0;
         const delta = curr - prev;
-        const pctChange = prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0;
+        const pctChange = prev > 0 ? (delta / prev) * 100 : curr > 0 ? 100 : 0;
         return {
           category: cat,
           current: Math.round(curr),
@@ -291,102 +511,35 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       })
       .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
+    // Net worth: use live net worth if the period includes the current month,
+    // otherwise the latest snapshot on record within that period.
+    const nwHistory = state.netWorthHistory || [];
+    const findNW = (months) => {
+      if (months.includes(currentYM)) return metrics.netWorth || 0;
+      for (let i = months.length - 1; i >= 0; i--) {
+        const entry = nwHistory.find((h) => h.month === months[i]);
+        if (entry) return entry.netWorth || 0;
+      }
+      return 0;
+    };
+    const currentNW = findNW(monthsForPeriod(compMode, periodA));
+    const previousNW = findNW(monthsForPeriod(compMode, periodB));
+
     return {
-      currentLabel: getMonthLabel(currentYM),
-      previousLabel: getMonthLabel(lastYM),
+      currentLabel: getPeriodLabel(compMode, periodA),
+      previousLabel: getPeriodLabel(compMode, periodB),
       currentExpense: current.total,
       previousExpense: previous.total,
       currentIncome: current.income,
       previousIncome: previous.income,
       expenseDelta: current.total - previous.total,
       incomeDelta: current.income - previous.income,
-      categoryComps,
-    };
-  }, [monthlyData, currentYM, lastYM]);
-
-  // Year over Year (FY comparison)
-  const yoyComparison = useMemo(() => {
-    const inFY = (date, startYear) => {
-      if (!date) return false;
-      return date >= `${startYear}-04-01` && date <= `${startYear + 1}-03-31`;
-    };
-
-    const currentFYExpense = (state.transactions || [])
-      .filter((t) => t.type === "debit" && inFY(t.date, currentFYStart))
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-    const lastFYExpense = (state.transactions || [])
-      .filter((t) => t.type === "debit" && inFY(t.date, lastFYStart))
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-
-    const currentFYIncomeFromLedger = (state.income || [])
-      .filter((i) => inFY(i.date, currentFYStart))
-      .reduce((s, i) => s + Number(i.amount || 0), 0);
-    const currentFYIncomeFromTxn = (state.transactions || [])
-      .filter((t) => t.type === "credit" && inFY(t.date, currentFYStart))
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-    const currentFYIncome =
-      currentFYIncomeFromLedger > 0 ? currentFYIncomeFromLedger : currentFYIncomeFromTxn;
-
-    const lastFYIncomeFromLedger = (state.income || [])
-      .filter((i) => inFY(i.date, lastFYStart))
-      .reduce((s, i) => s + Number(i.amount || 0), 0);
-    const lastFYIncomeFromTxn = (state.transactions || [])
-      .filter((t) => t.type === "credit" && inFY(t.date, lastFYStart))
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-    const lastFYIncome = lastFYIncomeFromLedger > 0 ? lastFYIncomeFromLedger : lastFYIncomeFromTxn;
-
-    // Category breakdown
-    const catCurrent = {};
-    const catLast = {};
-    (state.transactions || [])
-      .filter((t) => t.type === "debit")
-      .forEach((t) => {
-        const cat = t.category || "Uncategorized";
-        if (inFY(t.date, currentFYStart))
-          catCurrent[cat] = (catCurrent[cat] || 0) + Number(t.amount || 0);
-        if (inFY(t.date, lastFYStart)) catLast[cat] = (catLast[cat] || 0) + Number(t.amount || 0);
-      });
-
-    const allCats = new Set([...Object.keys(catCurrent), ...Object.keys(catLast)]);
-    const categoryComps = [...allCats]
-      .map((cat) => {
-        const curr = catCurrent[cat] || 0;
-        const prev = catLast[cat] || 0;
-        return {
-          category: cat,
-          current: Math.round(curr),
-          previous: Math.round(prev),
-          delta: Math.round(curr - prev),
-          pctChange: prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0,
-        };
-      })
-      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-
-    // Net worth comparison
-    const nwHistory = state.netWorthHistory || [];
-    const currentNW = metrics.netWorth || 0;
-    const lastYearNW =
-      nwHistory.find(
-        (h) => h.month === `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, "0")}`
-      )?.netWorth || 0;
-
-    return {
-      currentLabel: `FY ${currentFYStart}-${String(currentFYStart + 1).slice(-2)}`,
-      previousLabel: `FY ${lastFYStart}-${String(lastFYStart + 1).slice(-2)}`,
-      currentExpense: currentFYExpense,
-      previousExpense: lastFYExpense,
-      currentIncome: currentFYIncome,
-      previousIncome: lastFYIncome,
-      expenseDelta: currentFYExpense - lastFYExpense,
-      incomeDelta: currentFYIncome - lastFYIncome,
       currentNW,
-      lastYearNW,
-      nwDelta: currentNW - lastYearNW,
+      previousNW,
+      nwDelta: currentNW - previousNW,
       categoryComps,
     };
-  }, [state, currentFYStart, lastFYStart, metrics]);
-
-  const comp = compMode === "mom" ? momComparison : yoyComparison;
+  }, [compMode, periodA, periodB, monthlyExpense, monthlyIncomeLedger, monthlyIncomeTxn, state.netWorthHistory, metrics, currentYM]);
 
   // Chart data for category comparison
   const chartData = useMemo(() => {
@@ -458,7 +611,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
           gap: 12,
         }}
       >
-        <SectionTitle sub="Month-over-month and year-over-year analysis">
+        <SectionTitle sub="Compare any month, quarter, half-year, or year side-by-side">
           Comparison Reports
         </SectionTitle>
 
@@ -472,17 +625,20 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
             padding: "4px",
             borderRadius: 16,
             boxShadow: "var(--shadow-sm)",
+            flexWrap: "wrap",
           }}
         >
           {[
-            { id: "mom", label: "Month vs Month" },
-            { id: "yoy", label: "FY vs FY" },
+            { id: "month", label: "Month vs Month" },
+            { id: "quarter", label: "Quarter vs Quarter" },
+            { id: "half", label: "Half-Year vs Half-Year" },
+            { id: "year", label: "Year vs Year" },
           ].map((m) => {
             const active = compMode === m.id;
             return (
               <button
                 key={m.id}
-                onClick={() => setCompMode(m.id)}
+                onClick={() => handleModeChange(m.id)}
                 className="card-lift"
                 style={{
                   padding: "6px 14px",
@@ -501,6 +657,30 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Period Selectors */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>Compare</span>
+          <select value={periodA} onChange={(e) => setPeriodA(e.target.value)} style={selectStyle}>
+            {periodOptions.map((key) => (
+              <option key={key} value={key}>
+                {getPeriodLabel(compMode, key)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>with</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <select value={periodB} onChange={(e) => setPeriodB(e.target.value)} style={selectStyle}>
+            {periodOptions.map((key) => (
+              <option key={key} value={key}>
+                {getPeriodLabel(compMode, key)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -553,21 +733,17 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
             deltaIndicator={<DeltaIndicator value={comp.incomeDelta} showAmount={false} />}
           />
 
-          {compMode === "yoy" && yoyComparison.lastYearNW > 0 && (
+          {compMode === "year" && comp.previousNW > 0 && (
             <ComparisonSplitCard
               label="Net Worth"
-              currentLabel="Now"
-              previousLabel="Last Year"
-              currentValue={yoyComparison.currentNW}
-              previousValue={yoyComparison.lastYearNW}
-              delta={yoyComparison.nwDelta}
-              percentChange={
-                yoyComparison.lastYearNW > 0
-                  ? (yoyComparison.nwDelta / yoyComparison.lastYearNW) * 100
-                  : undefined
-              }
+              currentLabel={comp.currentLabel}
+              previousLabel={comp.previousLabel}
+              currentValue={comp.currentNW}
+              previousValue={comp.previousNW}
+              delta={comp.nwDelta}
+              percentChange={comp.previousNW > 0 ? (comp.nwDelta / comp.previousNW) * 100 : undefined}
               isNetWorth={true}
-              deltaIndicator={<DeltaIndicator value={yoyComparison.nwDelta} showAmount={false} />}
+              deltaIndicator={<DeltaIndicator value={comp.nwDelta} showAmount={false} />}
             />
           )}
         </div>
