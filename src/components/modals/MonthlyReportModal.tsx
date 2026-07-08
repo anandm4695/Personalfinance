@@ -132,6 +132,9 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"" | "ok" | "err" | "no-email">("");
   const reportRef = useRef<HTMLDivElement>(null);
+  // Net Worth Snapshot is a fixed dark "hero" card by design (white text) in both themes —
+  // var(--surface-2) resolves to a light color in light mode, so it can't be used directly here.
+  const isDark = state.settings?.darkMode ?? false;
 
   const monthLabel = reportDate.toLocaleString("en-IN", { month: "long", year: "numeric" });
   const ym = toYM(reportDate);
@@ -483,7 +486,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           {/* Net Worth Snapshot */}
           <div
             style={{
-              background: "var(--surface-2, #0f172a)",
+              background: isDark ? "var(--surface-2)" : "#0f172a",
               borderRadius: 10,
               padding: "16px 20px",
               marginBottom: 16,
