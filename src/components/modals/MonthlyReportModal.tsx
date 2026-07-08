@@ -52,9 +52,21 @@ function toYM(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function DeltaBadge({ current, prev }: { current: number; prev: number }) {
+function DeltaBadge({
+  current,
+  prev,
+  higherIsBetter = true,
+}: {
+  current: number;
+  prev: number;
+  higherIsBetter?: boolean;
+}) {
   if (prev === 0) return null;
-  const pct = Math.round(((current - prev) / prev) * 100);
+  // Use abs(prev) as the base so a swing across zero (e.g. overspend narrowing
+  // from -1000 to -500) reads as the real-world improvement it is, instead of
+  // flipping sign the way (current-prev)/prev would when prev is negative.
+  const diff = current - prev;
+  const pct = Math.round((diff / Math.abs(prev)) * 100);
   if (pct === 0)
     return (
       <span
@@ -70,7 +82,8 @@ function DeltaBadge({ current, prev }: { current: number; prev: number }) {
         <Minus size={9} /> same
       </span>
     );
-  const up = pct > 0;
+  const increased = pct > 0;
+  const good = higherIsBetter ? increased : !increased;
   return (
     <span
       style={{
@@ -79,11 +92,11 @@ function DeltaBadge({ current, prev }: { current: number; prev: number }) {
         gap: 2,
         fontSize: 10,
         fontWeight: 700,
-        color: up ? THEME.sage : THEME.rust,
+        color: good ? THEME.sage : THEME.rust,
       }}
     >
-      {up ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
-      {up ? "+" : ""}
+      {increased ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+      {increased ? "+" : ""}
       {pct}% vs prev
     </span>
   );
@@ -93,6 +106,14 @@ function DeltaBadge({ current, prev }: { current: number; prev: number }) {
 function subRenewedInMonth(sub: any, ym: string): boolean {
   if (sub.paused) return false;
   const [y, m] = ym.split("-").map(Number);
+  // Never count a renewal before the subscription existed
+  const createdAt = sub.createdAt || sub.created_at;
+  if (createdAt) {
+    const created = new Date(createdAt);
+    const createdYm = created.getFullYear() * 12 + created.getMonth();
+    const targetYm = y * 12 + (m - 1);
+    if (targetYm < createdYm) return false;
+  }
   if (sub.cycle === "monthly") return true;
   if (!sub.renewalDate) return false;
   const rd = new Date(sub.renewalDate);
@@ -233,20 +254,26 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   }
 
   // Net worth: for the current month always use live metrics to avoid stale snapshots;
-  // for past months use the stored snapshot which reflects that month's closing value
+  // for past/future months use the stored snapshot which reflects that month's closing value.
+  // Snapshots are only written for the month the app happens to be opened in, so a past month
+  // can legitimately have no record — in that case we show "no data" rather than silently
+  // reusing today's live net worth under a different month's label.
   const historicalNW = !isCurrentMonth
     ? (state.netWorthHistory || []).find((h: any) => h.month === ym)
     : null;
-  const displayNetWorth = historicalNW
-    ? (historicalNW.netWorth ?? historicalNW.net_worth ?? 0)
-    : metrics.netWorth;
+  const hasNWData = isCurrentMonth || !!historicalNW;
+  const displayNetWorth = isCurrentMonth
+    ? metrics.netWorth
+    : historicalNW
+      ? (historicalNW.netWorth ?? historicalNW.net_worth ?? 0)
+      : null;
 
   // Net worth change vs previous month (use null to distinguish "no prior data" from zero/negative NW)
   const historicalNWPrev = (state.netWorthHistory || []).find((h: any) => h.month === ymPrev);
   const prevNW = historicalNWPrev
     ? (historicalNWPrev.netWorth ?? historicalNWPrev.net_worth ?? null)
     : null;
-  const nwDelta = prevNW !== null ? displayNetWorth - prevNW : 0;
+  const nwDelta = hasNWData && prevNW !== null ? displayNetWorth - prevNW : 0;
 
   // Email report handler
   async function handleEmailReport() {
@@ -318,7 +345,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   );
 
   return (
-    <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose}>
+    <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose} maxWidth={760}>
       <div ref={reportRef}>
         <style>{`
         @media print {
@@ -423,14 +450,17 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                 onClick={() =>
                   setReportDate(new Date(reportDate.getFullYear(), reportDate.getMonth() + 1, 1))
                 }
+                disabled={isCurrentMonth}
                 style={{
                   ...btnGhost,
                   padding: "5px 8px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  opacity: isCurrentMonth ? 0.35 : 1,
+                  cursor: isCurrentMonth ? "not-allowed" : "pointer",
                 }}
-                title="Next Month"
+                title={isCurrentMonth ? "Already viewing the current month" : "Next Month"}
               >
                 <ChevronRight size={16} />
               </button>
@@ -471,26 +501,36 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
             >
               Net Worth Snapshot
             </div>
-            <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
-              {fmtINRFull(displayNetWorth)}
-            </div>
-            {nwDelta !== 0 && (
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: nwDelta > 0 ? "#34d399" : "#f87171",
-                  marginTop: 4,
-                }}
-              >
-                {nwDelta > 0 ? "▲" : "▼"} {fmtINRFull(Math.abs(nwDelta))} vs{" "}
-                {prevDate.toLocaleString("en-IN", { month: "short" })}
-              </div>
-            )}
-            {isCurrentMonth && (
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
-                Assets {fmtINRFull(metrics.totalAssets)} · Liabilities{" "}
-                {fmtINRFull(metrics.totalLiabilities)}
+            {hasNWData ? (
+              <>
+                <div
+                  style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}
+                >
+                  {fmtINRFull(displayNetWorth)}
+                </div>
+                {nwDelta !== 0 && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: nwDelta > 0 ? "#34d399" : "#f87171",
+                      marginTop: 4,
+                    }}
+                  >
+                    {nwDelta > 0 ? "▲" : "▼"} {fmtINRFull(Math.abs(nwDelta))} vs{" "}
+                    {prevDate.toLocaleString("en-IN", { month: "short" })}
+                  </div>
+                )}
+                {isCurrentMonth && (
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+                    Assets {fmtINRFull(metrics.totalAssets)} · Liabilities{" "}
+                    {fmtINRFull(metrics.totalLiabilities)}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>
+                No net worth snapshot recorded for {monthLabel}
               </div>
             )}
           </div>
@@ -505,15 +545,28 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
             }}
           >
             {[
-              { label: "Income", value: income, prev: incomePrev, color: THEME.sage },
-              { label: "Expense", value: expense, prev: expensePrev, color: THEME.rust },
+              {
+                label: "Income",
+                value: income,
+                prev: incomePrev,
+                color: THEME.sage,
+                higherIsBetter: true,
+              },
+              {
+                label: "Expense",
+                value: expense,
+                prev: expensePrev,
+                color: THEME.rust,
+                higherIsBetter: false,
+              },
               {
                 label: `Saved (${savingRate}%)`,
                 value: saving,
                 prev: savingPrev,
                 color: saving >= 0 ? THEME.sage : THEME.rust,
+                higherIsBetter: true,
               },
-            ].map(({ label, value, prev, color }) => (
+            ].map(({ label, value, prev, color, higherIsBetter }) => (
               <div
                 key={label}
                 style={{
@@ -526,7 +579,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>{label}</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color }}>{fmtINRFull(value)}</div>
                 <div style={{ marginTop: 5 }}>
-                  <DeltaBadge current={value} prev={prev} />
+                  <DeltaBadge current={value} prev={prev} higherIsBetter={higherIsBetter} />
                 </div>
               </div>
             ))}
@@ -822,7 +875,9 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
               <span
                 style={{ fontWeight: 500, textTransform: "none", fontSize: 10, letterSpacing: 0 }}
               >
-                (current allocation)
+                {isCurrentMonth
+                  ? "(current allocation)"
+                  : `(current holdings as of today, not a ${monthLabel} snapshot)`}
               </span>
             </SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
@@ -856,18 +911,17 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
             </div>
           </div>
 
-          {/* Top Movers — biggest stock/MF gains & losses */}
+          {/* Top Movers — biggest stock/MF % gains & losses */}
           {(() => {
-            const movers: { name: string; gain: number; pct: number; type: string }[] = [];
+            const movers: { name: string; pct: number; type: string }[] = [];
             (state.stocks || []).forEach((s: any) => {
               const qty = Number(s.qty || 0);
               const avg = Number(s.avgPrice || 0);
               const cmp = Number(s.currentPrice || avg);
               if (qty > 0 && avg > 0) {
-                const gain = (cmp - avg) * qty;
                 const pct = ((cmp - avg) / avg) * 100;
                 const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
-                movers.push({ name: base, gain, pct, type: "Stock" });
+                movers.push({ name: base, pct, type: "Stock" });
               }
             });
             (state.mutualFunds || []).forEach((m: any) => {
@@ -875,23 +929,41 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
               const buyNav = Number(m.buyNav || 0);
               const curNav = Number(m.currentNav || buyNav);
               if (units > 0 && buyNav > 0) {
-                const gain = (curNav - buyNav) * units;
                 const pct = ((curNav - buyNav) / buyNav) * 100;
-                movers.push({ name: m.name || m.scheme || "MF", gain, pct, type: "MF" });
+                movers.push({ name: m.name || m.scheme || "MF", pct, type: "MF" });
               }
             });
             if (movers.length === 0) return null;
-            movers.sort((a, b) => b.gain - a.gain);
-            const topGainers = movers.filter((m) => m.gain > 0).slice(0, 3);
+            // Rank by the % figure actually displayed below, not absolute rupee gain —
+            // otherwise a large position with a small % move could bump a smaller
+            // position with a much bigger % move out of the list.
+            const topGainers = movers
+              .filter((m) => m.pct > 0)
+              .sort((a, b) => b.pct - a.pct)
+              .slice(0, 3);
             const topLosers = movers
-              .filter((m) => m.gain < 0)
-              .sort((a, b) => a.gain - b.gain)
+              .filter((m) => m.pct < 0)
+              .sort((a, b) => a.pct - b.pct)
               .slice(0, 3);
             const display = [...topGainers, ...topLosers];
             if (display.length === 0) return null;
             return (
               <div style={{ marginBottom: 16 }}>
-                <SectionLabel>Top Movers</SectionLabel>
+                <SectionLabel>
+                  Top Movers{" "}
+                  {!isCurrentMonth && (
+                    <span
+                      style={{
+                        fontWeight: 500,
+                        textTransform: "none",
+                        fontSize: 10,
+                        letterSpacing: 0,
+                      }}
+                    >
+                      (current prices as of today, not a {monthLabel} snapshot)
+                    </span>
+                  )}
+                </SectionLabel>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   {topGainers.length > 0 && (
                     <div>
