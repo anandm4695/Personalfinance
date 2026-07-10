@@ -457,14 +457,16 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
     setAssignModal(asset);
   };
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (!assignModal || !assignName.trim()) return;
-    for (const itemId of assignModal.ids) {
-      updateItem(assignModal.key, itemId, {
-        nominee: assignName.trim(),
-        nomineeRelation: assignRelation,
-      });
-    }
+    await Promise.all(
+      assignModal.ids.map((itemId) =>
+        updateItem(assignModal.key, itemId, {
+          nominee: assignName.trim(),
+          nomineeRelation: assignRelation,
+        })
+      )
+    );
     setAssignModal(null);
     setAssignName("");
     setAssignRelation("Spouse");
