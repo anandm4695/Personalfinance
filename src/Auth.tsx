@@ -160,6 +160,8 @@ export default function Auth({
   const [msg, setMsg] = useState<string | null>(null);
   const [showMobileFeatures, setShowMobileFeatures] = useState(false);
   const [slideDir, setSlideDir] = useState(1); // 1 = forward (slide in from right), -1 = back (from left)
+  const [transitionPhase, setTransitionPhase] = useState<"idle" | "out" | "in">("idle");
+  const [pendingMode, setPendingMode] = useState<"login" | "signup" | "forgot" | "reset" | null>(null);
 
   // Field-level touched state
   const [emailTouched, setEmailTouched] = useState(false);
@@ -293,11 +295,10 @@ export default function Auth({
     }
   };
 
-  const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
-    setSlideDir(MODE_ORDER[m] >= MODE_ORDER[mode] ? 1 : -1);
+  // Actually swaps the visible mode + resets field state (runs once the "slide out" half has played)
+  const applyModeSwitch = (m: "login" | "signup" | "forgot" | "reset") => {
     setError(null);
     setMsg(null);
-    // Reset ALL field state when switching modes
     setEmailTouched(false);
     setPassTouched(false);
     setConfirmPassTouched(false);
@@ -314,6 +315,37 @@ export default function Auth({
     setShowConfirmNewPass(false);
     setMode(m);
   };
+
+  const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
+    if (m === mode || transitionPhase !== "idle") return;
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) {
+      applyModeSwitch(m);
+      return;
+    }
+    setSlideDir(MODE_ORDER[m] >= MODE_ORDER[mode] ? 1 : -1);
+    setPendingMode(m);
+    setTransitionPhase("out"); // old panel slides out first, then the new one slides in
+  };
+
+  // Drives the two-phase slide: "out" (old content exits) -> swap mode -> "in" (new content enters) -> idle
+  useEffect(() => {
+    if (transitionPhase === "out" && pendingMode) {
+      const t = setTimeout(() => {
+        applyModeSwitch(pendingMode);
+        setPendingMode(null);
+        setTransitionPhase("in");
+      }, 200);
+      return () => clearTimeout(t);
+    }
+    if (transitionPhase === "in") {
+      const t = setTimeout(() => setTransitionPhase("idle"), 320);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transitionPhase, pendingMode]);
 
   // ── Shared input styles ────────────────────────────────────────────────
   const wrapCls = (focused: boolean, err: string) =>
@@ -488,8 +520,15 @@ export default function Auth({
             </div>
           </div>
 
-          {/* Animated mode panel — slides + fades whenever login/signup/forgot/reset changes */}
-          <div key={mode} className="af-mode-panel" style={{ "--af-dir": slideDir } as React.CSSProperties}>
+          {/* Animated mode panel — old content slides out, new content slides in, on every mode change */}
+          <div
+            key={mode}
+            className={
+              "af-mode-panel" +
+              (transitionPhase === "out" ? " af-mode-out" : transitionPhase === "in" ? " af-mode-in" : "")
+            }
+            style={{ "--af-dir": slideDir } as React.CSSProperties}
+          >
           {/* Header */}
           <div className="af-card-head">
             {!isReset && !isForgot && !isSignUp && (
@@ -1459,12 +1498,21 @@ const AF_STYLES = `
   animation: af-field-in 0.45s cubic-bezier(0.22,1,0.36,1) both;
 }
 
-/* Mode panel — slide + fade transition on login/signup/forgot/reset switch */
-.af-mode-panel {
-  animation: af-mode-in 0.4s cubic-bezier(0.22,1,0.36,1) both;
+/* Mode panel — two-phase slide transition on login/signup/forgot/reset switch:
+   old content slides out first, then the new content slides in from the opposite side. */
+.af-mode-panel.af-mode-out {
+  animation: af-mode-slide-out 0.2s cubic-bezier(0.4,0,1,1) both;
+  pointer-events: none;
 }
-@keyframes af-mode-in {
-  from { opacity: 0; transform: translateX(calc(var(--af-dir, 1) * 22px)); }
+.af-mode-panel.af-mode-in {
+  animation: af-mode-slide-in 0.32s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes af-mode-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(calc(var(--af-dir, 1) * -40px)); }
+}
+@keyframes af-mode-slide-in {
+  from { opacity: 0; transform: translateX(calc(var(--af-dir, 1) * 40px)); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @media (prefers-reduced-motion: reduce) {
