@@ -55,7 +55,8 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { MonthlyReportModal } from "../modals/MonthlyReportModal";
-import { Modal } from "../ui/Modal";
+import { Modal, ModalActions } from "../ui/Modal";
+import { Field, Input, Select } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StockLogo } from "./DematTab";
 import { Prv } from "../../context/PrivacyContext";
@@ -518,6 +519,7 @@ interface AnalyticsTabProps {
   setState: any;
   marketData?: any;
   updateMasterData?: any;
+  updateItem?: any;
   setTab?: any;
   dashboardWidgets?: Record<string, boolean>;
   onUpdateWidgets?: (widgets: Record<string, boolean>) => void;
@@ -588,6 +590,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   setState,
   marketData,
   updateMasterData,
+  updateItem,
   setTab,
   dashboardWidgets,
   onUpdateWidgets,
@@ -777,6 +780,36 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   // ── Estate Planning — Nomination Coverage States ──
   const [nominationOpen, setNominationOpen] = useState(false);
+  const [nomineeModal, setNomineeModal] = useState<{
+    key: string;
+    ids: string[];
+    type: string;
+    name: string;
+  } | null>(null);
+  const [nomineeName, setNomineeName] = useState("");
+  const [nomineeRelation, setNomineeRelation] = useState("Spouse");
+  const NOMINEE_RELATION_OPTIONS = ["Spouse", "Child", "Parent", "Sibling", "Other"];
+
+  const openNomineeModal = (acc: { key: string; ids: string[]; type: string; name: string }) => {
+    setNomineeName("");
+    setNomineeRelation("Spouse");
+    setNomineeModal(acc);
+  };
+
+  const handleAssignNominee = async () => {
+    if (!nomineeModal || !nomineeName.trim() || !updateItem) return;
+    await Promise.all(
+      nomineeModal.ids.map((itemId) =>
+        updateItem(nomineeModal.key, itemId, {
+          nominee: nomineeName.trim(),
+          nomineeRelation,
+        })
+      )
+    );
+    setNomineeModal(null);
+    setNomineeName("");
+    setNomineeRelation("Spouse");
+  };
   const [nwPercentileAge, setNwPercentileAge] = useState(35);
   const [estateChecklist, setEstateChecklist] = useState<Record<string, boolean>>(() => {
     try {
@@ -977,22 +1010,38 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   // ── Estate Planning — Nomination Coverage Audit ──
   const nominationAudit = useMemo(() => {
-    const accounts: { type: string; name: string; hasNominee: boolean }[] = [];
+    const accounts: {
+      type: string;
+      name: string;
+      hasNominee: boolean;
+      key: string;
+      ids: string[];
+    }[] = [];
     (state.bankAccounts || []).forEach((a: any) =>
       accounts.push({
         type: "Bank Account",
         name: a.bankName || a.name || "Bank",
         hasNominee: !!a.nominee,
+        key: "bankAccounts",
+        ids: [a.id],
       })
     );
     (state.demat || []).forEach((a: any) =>
-      accounts.push({ type: "Demat", name: a.broker || a.name || "Demat", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "Demat",
+        name: a.broker || a.name || "Demat",
+        hasNominee: !!a.nominee,
+        key: "demat",
+        ids: [a.id],
+      })
     );
     (state.lic || []).forEach((a: any) =>
       accounts.push({
         type: "Insurance (LIC)",
         name: a.planName || a.name || "LIC Policy",
         hasNominee: !!a.nominee,
+        key: "lic",
+        ids: [a.id],
       })
     );
     (state.termPlans || []).forEach((a: any) =>
@@ -1000,6 +1049,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         type: "Term Insurance",
         name: a.planName || a.provider || a.name || "Term Plan",
         hasNominee: !!a.nominee,
+        key: "termPlans",
+        ids: [a.id],
       })
     );
     (state.investmentPlans || []).forEach((a: any) =>
@@ -1007,16 +1058,26 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         type: "Investment Plan",
         name: a.planName || a.name || "Investment Plan",
         hasNominee: !!a.nominee,
+        key: "investmentPlans",
+        ids: [a.id],
       })
     );
     (state.ppf || []).forEach((a: any) =>
-      accounts.push({ type: "PPF", name: a.bankName || a.name || "PPF", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "PPF",
+        name: a.bankName || a.name || "PPF",
+        hasNominee: !!a.nominee,
+        key: "ppf",
+        ids: [a.id],
+      })
     );
     (state.nps || []).forEach((a: any) =>
       accounts.push({
         type: "NPS",
         name: a.fundManager || a.name || "NPS",
         hasNominee: !!a.nominee,
+        key: "nps",
+        ids: [a.id],
       })
     );
     (state.fixedDeposits || []).forEach((a: any) =>
@@ -1024,6 +1085,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         type: "Fixed Deposit",
         name: a.bankName || a.name || "FD",
         hasNominee: !!a.nominee,
+        key: "fixedDeposits",
+        ids: [a.id],
       })
     );
     // Nominee is registered per folio (one AMC enrollment covers every
@@ -1040,6 +1103,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         type: "Mutual Fund",
         name: group[0].fundName || group[0].name || "MF",
         hasNominee,
+        key: "mutualFunds",
+        ids: group.map((m: any) => m.id),
       });
     });
 
@@ -5984,6 +6049,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               <td style={{ padding: "10px 16px", textAlign: "center" }}>
                                 {!acc.hasNominee && (
                                   <span
+                                    onClick={() =>
+                                      openNomineeModal({
+                                        key: acc.key,
+                                        ids: acc.ids,
+                                        type: acc.type,
+                                        name: acc.name,
+                                      })
+                                    }
                                     style={{
                                       fontSize: 11,
                                       fontWeight: 700,
@@ -14745,6 +14818,45 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           selectedDate={calendarDate}
           onClose={() => setShowReport(false)}
         />
+      )}
+
+      {nomineeModal && (
+        <Modal title="Assign Nominee" onClose={() => setNomineeModal(null)} maxWidth={420}>
+          <div style={{ marginBottom: 16 }}>
+            <Badge variant="muted" style={{ fontSize: 10, marginBottom: 6 }}>
+              {nomineeModal.type}
+            </Badge>
+            <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+              <Prv>{nomineeModal.name}</Prv>
+            </div>
+          </div>
+
+          <Field label="Nominee Name">
+            <Input
+              value={nomineeName}
+              onChange={(e) => setNomineeName(e.target.value)}
+              placeholder="Enter nominee name"
+              autoFocus
+            />
+          </Field>
+
+          <Field label="Relation">
+            <Select value={nomineeRelation} onChange={(e) => setNomineeRelation(e.target.value)}>
+              {NOMINEE_RELATION_OPTIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <ModalActions
+            onSave={handleAssignNominee}
+            onClose={() => setNomineeModal(null)}
+            saveLabel="Assign Nominee"
+            disabled={!nomineeName.trim()}
+          />
+        </Modal>
       )}
 
       {selectedDayEvents && (
