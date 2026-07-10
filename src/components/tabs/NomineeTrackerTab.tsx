@@ -19,6 +19,7 @@ import {
   Users,
   Scale,
   Briefcase,
+  ChevronDown,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -70,22 +71,6 @@ const assetTypes = [
     idLabel: (a: any) => `${fmtINRFull(a.monthly)}/mo`,
   },
   {
-    key: "mutualFunds",
-    label: "Mutual Fund",
-    nameField: "name",
-    valueField: null,
-    calcValue: (a: any) => (a.units || 0) * (a.currentNav || a.buyNav || 0),
-    idLabel: (a: any) => a.folio || "",
-  },
-  {
-    key: "stocks",
-    label: "Stock Holding",
-    nameField: "symbol",
-    valueField: null,
-    calcValue: (a: any) => (a.qty || 0) * (a.currentPrice || a.avgPrice || 0),
-    idLabel: (a: any) => a.exchange || "",
-  },
-  {
     key: "bonds",
     label: "Bond",
     nameField: "name",
@@ -101,14 +86,6 @@ const assetTypes = [
     valueField: null,
     calcValue: (a: any) => Number(a.currentValue || a.investedAmount || 0),
     idLabel: (a: any) => a.subType || a.form || "",
-  },
-  {
-    key: "demat",
-    label: "Demat Account",
-    nameField: "broker",
-    valueField: null,
-    calcValue: () => 0,
-    idLabel: (a: any) => a.accountId || a.dpId || "",
   },
   {
     key: "ppf",
@@ -183,20 +160,56 @@ const CONTACT_ROLES = ["Lawyer", "CA", "Financial Advisor", "Insurance Agent", "
 
 type FilterMode = "all" | "missing" | "covered";
 
+// Groups asset types into sections for the tracker UI. Stocks and mutual
+// fund schemes are deliberately absent here — they're not nominee-able on
+// their own (see flattenAssets below).
+const CATEGORY_MAP: Record<string, string> = {
+  bankAccounts: "Bank & Deposits",
+  fixedDeposits: "Bank & Deposits",
+  recurringDeposits: "Bank & Deposits",
+  demat: "Investments",
+  mutualFunds: "Investments",
+  bonds: "Investments",
+  goldHoldings: "Investments",
+  ppf: "Retirement",
+  nps: "Retirement",
+  epf: "Retirement",
+  lic: "Insurance",
+  termPlans: "Insurance",
+  investmentPlans: "Insurance",
+  realEstateProperties: "Property & Vehicles",
+  vehicles: "Property & Vehicles",
+};
+const CATEGORY_ORDER = [
+  "Bank & Deposits",
+  "Investments",
+  "Retirement",
+  "Insurance",
+  "Property & Vehicles",
+];
+
 interface FlatAsset {
   key: string;
   label: string;
   id: string;
+  ids: string[];
   name: string;
   identifier: string;
   value: number;
   nominee: string;
   nomineeRelation: string;
   covered: boolean;
+  category: string;
 }
 
+// In India, a nominee is registered once per demat account (covering every
+// stock held in it) and once per mutual fund folio (covering every scheme
+// under that folio) — never per individual stock or scheme. So stocks roll
+// up into their demat account, and mutual fund schemes roll up into their
+// folio group, instead of each getting their own nominee entry.
 function flattenAssets(state: any): FlatAsset[] {
   const result: FlatAsset[] = [];
+
   for (const at of assetTypes) {
     const items = state[at.key] || [];
     for (const item of items) {
@@ -209,15 +222,78 @@ function flattenAssets(state: any): FlatAsset[] {
         key: at.key,
         label: at.label,
         id: item.id,
+        ids: [item.id],
         name: item[at.nameField] || at.label,
         identifier: at.idLabel(item),
         value: val,
         nominee: item.nominee || "",
         nomineeRelation: item.nomineeRelation || "",
         covered: !!(item.nominee && item.nominee.trim()),
+        category: CATEGORY_MAP[at.key] || "Other",
       });
     }
   }
+
+  // Demat accounts — nominee lives on the account; its value is every
+  // linked stock holding's current value.
+  const stocks = state.stocks || [];
+  for (const d of state.demat || []) {
+    const linkedStocks = stocks.filter((s: any) => s.dematId === d.id);
+    const val = linkedStocks.reduce(
+      (s: number, st: any) => s + (Number(st.qty) || 0) * (Number(st.currentPrice || st.avgPrice) || 0),
+      0
+    );
+    result.push({
+      key: "demat",
+      label: "Demat Account",
+      id: d.id,
+      ids: [d.id],
+      name: d.broker || "Demat Account",
+      identifier: d.accountId || d.dpId || "",
+      value: val,
+      nominee: d.nominee || "",
+      nomineeRelation: d.nomineeRelation || "",
+      covered: !!(d.nominee && d.nominee.trim()),
+      category: "Investments",
+    });
+  }
+
+  // Mutual funds — nominee lives on the folio (one folio = one AMC
+  // enrollment); schemes without a folio number can't be safely grouped, so
+  // each stays its own entry until a folio is recorded.
+  const mfGroups: Record<string, any[]> = {};
+  for (const mf of state.mutualFunds || []) {
+    const folio = (mf.folioNumber || "").trim();
+    const groupKey = folio ? `folio:${folio}` : `item:${mf.id}`;
+    (mfGroups[groupKey] = mfGroups[groupKey] || []).push(mf);
+  }
+  for (const groupKey of Object.keys(mfGroups)) {
+    const items = mfGroups[groupKey];
+    const withNominee = items.find((m) => m.nominee && m.nominee.trim());
+    const rep = withNominee || items[0];
+    const val = items.reduce(
+      (s, m) => s + (Number(m.units) || 0) * (Number(m.currentNav || m.buyNav) || 0),
+      0
+    );
+    const schemeNames = Array.from(new Set(items.map((m) => m.name).filter(Boolean)));
+    result.push({
+      key: "mutualFunds",
+      label: "Mutual Fund",
+      id: groupKey,
+      ids: items.map((m) => m.id),
+      name:
+        schemeNames.length > 1
+          ? `${schemeNames[0]} +${schemeNames.length - 1} more`
+          : schemeNames[0] || "Mutual Fund",
+      identifier: rep.folioNumber ? `Folio ${rep.folioNumber}` : "",
+      value: val,
+      nominee: rep.nominee || "",
+      nomineeRelation: rep.nomineeRelation || "",
+      covered: !!(rep.nominee && rep.nominee.trim()),
+      category: "Investments",
+    });
+  }
+
   return result;
 }
 
@@ -299,6 +375,15 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
   const [assignModal, setAssignModal] = useState<FlatAsset | null>(null);
   const [assignName, setAssignName] = useState("");
   const [assignRelation, setAssignRelation] = useState("Spouse");
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const toggleCategory = (cat: string) => {
+    setCollapsedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
 
   // Will tracker
   const [showWillForm, setShowWillForm] = useState(false);
@@ -350,6 +435,17 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
     return list;
   }, [allAssets, filter, search]);
 
+  const categorizedAssets = useMemo(() => {
+    const map: Record<string, FlatAsset[]> = {};
+    for (const a of filteredAssets) {
+      (map[a.category] = map[a.category] || []).push(a);
+    }
+    return CATEGORY_ORDER.filter((c) => map[c]?.length).map((c) => ({
+      category: c,
+      items: map[c],
+    }));
+  }, [filteredAssets]);
+
   const documents: any[] = state.documents || [];
   const willDocs = documents.filter((d: any) => d.type === "will");
   const keyContacts = documents.filter((d: any) => d.type === "key_contact");
@@ -363,10 +459,12 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
 
   const handleAssign = () => {
     if (!assignModal || !assignName.trim()) return;
-    updateItem(assignModal.key, assignModal.id, {
-      nominee: assignName.trim(),
-      nomineeRelation: assignRelation,
-    });
+    for (const itemId of assignModal.ids) {
+      updateItem(assignModal.key, itemId, {
+        nominee: assignName.trim(),
+        nomineeRelation: assignRelation,
+      });
+    }
     setAssignModal(null);
     setAssignName("");
     setAssignRelation("Spouse");
@@ -673,9 +771,9 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </div>
       </div>
 
-      {/* Asset Nominees List Grid */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {filteredAssets.length === 0 ? (
+      {/* Asset Nominees — grouped into collapsible category sections */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {categorizedAssets.length === 0 ? (
           <Card
             style={{
               padding: "40px 24px",
@@ -688,123 +786,198 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
             </div>
           </Card>
         ) : (
-          filteredAssets.map((asset) => (
-            <Card
-              key={`${asset.key}-${asset.id}`}
-              className="card-lift"
-              style={{
-                padding: "16px 20px",
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-                flexWrap: "wrap",
-                border: `1.5px solid ${THEME.line}`,
-                boxShadow: "var(--shadow-sm)",
-                transition: "all 0.2s ease",
-              }}
-            >
-              {/* Status badge */}
-              <div
+          categorizedAssets.map(({ category, items }) => {
+            const coveredCount = items.filter((a) => a.covered).length;
+            const isCollapsed = collapsedCategories.has(category);
+            const allCovered = coveredCount === items.length;
+            return (
+              <Card
+                key={category}
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: asset.covered
-                    ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                    : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: asset.covered ? THEME.sage : THEME.rust,
-                  flexShrink: 0,
+                  padding: 0,
+                  overflow: "hidden",
+                  border: `1.5px solid ${THEME.line}`,
+                  boxShadow: "var(--shadow-sm)",
                 }}
               >
-                {asset.covered ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
-              </div>
-
-              {/* Asset info */}
-              <div style={{ flex: "1 1 200px", minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
-                    {asset.name}
-                  </span>
-                  <Badge variant="muted" style={{ fontSize: 10, padding: "2px 6px" }}>
-                    {asset.label}
-                  </Badge>
-                </div>
-                {asset.identifier && (
-                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
-                    <Prv>{asset.identifier}</Prv>
-                  </div>
-                )}
-              </div>
-
-              {/* Value */}
-              <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 110 }}>
-                <div
+                <button
+                  onClick={() => toggleCategory(category)}
                   style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "16px 20px",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
                   }}
                 >
-                  Asset Value
-                </div>
-                <div
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: THEME.ink,
-                    fontVariantNumeric: "tabular-nums",
-                    marginTop: 2,
-                  }}
-                >
-                  <Prv>{fmtINRFull(asset.value)}</Prv>
-                </div>
-              </div>
-
-              {/* Nominee info */}
-              <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 130 }}>
-                {asset.covered ? (
-                  <>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: THEME.ink }}>
-                      {asset.nominee}
-                    </div>
-                    <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 2 }}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
+                      {category}
+                    </span>
+                    <Badge
+                      variant={allCovered ? "sage" : "rust"}
+                      style={{ fontSize: 10, padding: "3px 8px" }}
                     >
-                      {asset.nomineeRelation}
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ fontSize: 12.5, color: THEME.rust, fontWeight: 700 }}>
-                    No Nominee Assigned
+                      {coveredCount}/{items.length} covered
+                    </Badge>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    style={{
+                      color: THEME.muted,
+                      flexShrink: 0,
+                      transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease",
+                    }}
+                  />
+                </button>
+
+                {!isCollapsed && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      padding: "0 20px 16px",
+                    }}
+                  >
+                    {items.map((asset, idx) => (
+                      <div
+                        key={`${asset.key}-${asset.id}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 16,
+                          flexWrap: "wrap",
+                          padding: "14px 0",
+                          borderTop: idx === 0 ? "none" : `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        {/* Status badge */}
+                        <div
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 10,
+                            background: asset.covered
+                              ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                              : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: asset.covered ? THEME.sage : THEME.rust,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {asset.covered ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+                        </div>
+
+                        {/* Asset info */}
+                        <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+                          <div
+                            style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
+                          >
+                            <span style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
+                              {asset.name}
+                            </span>
+                            <Badge variant="muted" style={{ fontSize: 10, padding: "2px 6px" }}>
+                              {asset.label}
+                            </Badge>
+                          </div>
+                          {asset.identifier && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: THEME.muted,
+                                marginTop: 4,
+                                fontWeight: 500,
+                              }}
+                            >
+                              <Prv>{asset.identifier}</Prv>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Value */}
+                        <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 110 }}>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: THEME.muted,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                            }}
+                          >
+                            Asset Value
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 15,
+                              fontWeight: 800,
+                              color: THEME.ink,
+                              fontVariantNumeric: "tabular-nums",
+                              marginTop: 2,
+                            }}
+                          >
+                            <Prv>{fmtINRFull(asset.value)}</Prv>
+                          </div>
+                        </div>
+
+                        {/* Nominee info */}
+                        <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 130 }}>
+                          {asset.covered ? (
+                            <>
+                              <div style={{ fontSize: 13.5, fontWeight: 800, color: THEME.ink }}>
+                                {asset.nominee}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: THEME.muted,
+                                  fontWeight: 600,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {asset.nomineeRelation}
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 12.5, color: THEME.rust, fontWeight: 700 }}>
+                              No Nominee Assigned
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Status capsule */}
+                        <Badge
+                          variant={asset.covered ? "sage" : "rust"}
+                          style={{ fontSize: 10, padding: "3px 8px" }}
+                        >
+                          {asset.covered ? "Covered" : "Missing"}
+                        </Badge>
+
+                        {/* Action trigger */}
+                        <Button
+                          variant={asset.covered ? "ghost" : "primary"}
+                          size="sm"
+                          icon={asset.covered ? <Edit2 size={12} /> : <UserPlus size={12} />}
+                          onClick={() => openAssignModal(asset)}
+                          style={{ flexShrink: 0 }}
+                        >
+                          {asset.covered ? "Edit" : "Assign"}
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-
-              {/* Status capsule */}
-              <Badge
-                variant={asset.covered ? "sage" : "rust"}
-                style={{ fontSize: 10, padding: "3px 8px" }}
-              >
-                {asset.covered ? "Covered" : "Missing"}
-              </Badge>
-
-              {/* Action trigger */}
-              <Button
-                variant={asset.covered ? "ghost" : "primary"}
-                size="sm"
-                icon={asset.covered ? <Edit2 size={12} /> : <UserPlus size={12} />}
-                onClick={() => openAssignModal(asset)}
-                style={{ flexShrink: 0 }}
-              >
-                {asset.covered ? "Edit" : "Assign"}
-              </Button>
-            </Card>
-          ))
+              </Card>
+            );
+          })
         )}
       </div>
 

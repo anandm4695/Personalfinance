@@ -1026,13 +1026,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         hasNominee: !!a.nominee,
       })
     );
-    (state.mutualFunds || []).forEach((a: any) =>
+    // Nominee is registered per folio (one AMC enrollment covers every
+    // scheme under it), not per individual scheme — group before counting.
+    const mfByFolio: Record<string, any[]> = {};
+    (state.mutualFunds || []).forEach((m: any) => {
+      const folio = (m.folioNumber || "").trim();
+      const gk = folio ? `folio:${folio}` : `item:${m.id}`;
+      (mfByFolio[gk] = mfByFolio[gk] || []).push(m);
+    });
+    Object.values(mfByFolio).forEach((group: any[]) => {
+      const hasNominee = group.some((m) => m.nominee && m.nominee.trim());
       accounts.push({
         type: "Mutual Fund",
-        name: a.fundName || a.name || "MF",
-        hasNominee: !!a.nominee,
-      })
-    );
+        name: group[0].fundName || group[0].name || "MF",
+        hasNominee,
+      });
+    });
 
     const total = accounts.length;
     const covered = accounts.filter((a) => a.hasNominee).length;

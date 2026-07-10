@@ -218,7 +218,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
       // Check if scheme already exists by folio
       const existing = existingMFs.find(
         (m) =>
-          (m.folio && f.folio && m.folio === f.folio) ||
+          (m.folioNumber && f.folio && m.folioNumber === f.folio) ||
           (m.name || m.scheme || "").toLowerCase() === f.scheme.toLowerCase()
       );
 
@@ -228,13 +228,13 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
           currentNav: f.nav,
           name: f.scheme,
           category: f.category,
-          folio: f.folio || existing.folio,
+          folioNumber: f.folio || existing.folioNumber,
         });
       } else {
         await addItem("mutualFunds", {
           name: f.scheme,
           category: f.category,
-          folio: f.folio,
+          folioNumber: f.folio,
           units: f.units,
           buyNav: f.costValue && f.units ? f.costValue / f.units : "",
           currentNav: f.nav,

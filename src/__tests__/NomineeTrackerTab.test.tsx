@@ -56,4 +56,50 @@ describe("NomineeTrackerTab Premium UI Statically", () => {
     expect(html).toContain("Will Documents");
     expect(html).toContain("Key Contacts");
   });
+
+  it("groups stocks under their demat account and mutual fund schemes under their folio, instead of listing each individually", () => {
+    const state = {
+      demat: [{ id: "d1", broker: "Zerodha", dpId: "DP123", nominee: "Spouse Name" }],
+      stocks: [
+        { id: "s1", dematId: "d1", symbol: "TCS", qty: 10, currentPrice: 3500 },
+        { id: "s2", dematId: "d1", symbol: "INFY", qty: 20, currentPrice: 1500 },
+      ],
+      mutualFunds: [
+        {
+          id: "m1",
+          name: "Mirae Asset Large Cap Fund",
+          folioNumber: "12345",
+          units: 100,
+          currentNav: 90,
+          nominee: "Spouse Name",
+          nomineeRelation: "Spouse",
+        },
+        {
+          id: "m2",
+          name: "Mirae Asset ELSS Fund",
+          folioNumber: "12345",
+          units: 50,
+          currentNav: 40,
+        },
+      ],
+    };
+
+    const html = renderToString(
+      <NomineeTrackerTab state={state} addItem={() => {}} removeItem={() => {}} updateItem={() => {}} />
+    );
+
+    // One demat account entry, not two separate stock entries
+    expect(html).toContain("Zerodha");
+    expect(html).not.toContain("TCS");
+    expect(html).not.toContain("INFY");
+
+    // One folio-grouped mutual fund entry, not two separate scheme entries
+    // (the folio/account identifier itself renders behind privacy masking)
+    expect(html).toContain("Mirae Asset Large Cap Fund +1 more");
+    expect(html).not.toContain("Mirae Asset ELSS Fund");
+
+    // Both roll-ups inherit an existing nominee assigned on any linked record
+    expect(html).toContain("Investments");
+    expect((html.match(/No Nominee Assigned/g) || []).length).toBe(0);
+  });
 });
