@@ -39,8 +39,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-  <!-- Load fonts with display=swap for performance -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Poppins:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet" />
+  <!-- Critical fonts only — Inter + Outfit are used by the pre-login shell and default app theme.
+       The other 6 families only back the authenticated Settings font-picker; loading them here
+       would block first paint for every anonymous visitor to pay for a feature they can't reach yet. -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <script>
     // Detect saved theme early to prevent flash of wrong theme
@@ -143,6 +145,20 @@
       }
     });
     observer.observe(document.getElementById('root'), { childList: true });
+
+    // Lazy-load the remaining font-picker families (Settings > Appearance) after the app
+    // is idle, so anonymous/login-screen visitors never pay for fonts they can't use yet.
+    const loadDeferredFonts = () => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Poppins:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Lato:wght@400;700;900&display=swap';
+      document.head.appendChild(link);
+    };
+    if ('requestIdleCallback' in window) {
+      window.addEventListener('load', () => requestIdleCallback(loadDeferredFonts, { timeout: 4000 }));
+    } else {
+      window.addEventListener('load', () => setTimeout(loadDeferredFonts, 2000));
+    }
   </script>
 
   <script type="module" src="/src/index.tsx"></script>

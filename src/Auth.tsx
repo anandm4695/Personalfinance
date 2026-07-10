@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { supabase } from "./supabaseClient";
 import {
   Eye,
@@ -125,6 +126,149 @@ const FEATURES = [
 /* ─── Mode order — used to pick slide direction on transition ────────── */
 const MODE_ORDER = { login: 0, signup: 1, forgot: 2, reset: 3 } as const;
 
+/* ─── Onboarding carousel — mobile-only, first-visit only ─────────────
+   Desktop already tells the product story via the left brand panel; this exists
+   because that panel is hidden below 800px, leaving mobile visitors with nothing. */
+const ONBOARDING_SEEN_KEY = "pf_onboarding_seen";
+
+const ONBOARDING_SLIDES = [
+  {
+    icon: <IndianRupee size={20} />,
+    color: "#10B981",
+    bg: "rgba(16,185,129,0.12)",
+    border: "rgba(16,185,129,0.22)",
+    title: "Every account. One view.",
+    desc: "Banks, cards, and daily spend tracked together — no more five different apps.",
+  },
+  {
+    icon: <TrendingUp size={20} />,
+    color: "#818CF8",
+    bg: "rgba(129,140,248,0.12)",
+    border: "rgba(129,140,248,0.22)",
+    title: "Your full portfolio, tracked.",
+    desc: "Stocks, mutual funds, FDs, PPF and NPS — one number for what you actually own.",
+  },
+  {
+    icon: <Wallet size={20} />,
+    color: "#F59E0B",
+    bg: "rgba(245,158,11,0.12)",
+    border: "rgba(245,158,11,0.22)",
+    title: "Loans and bills, handled.",
+    desc: "EMIs, due dates, and renewals — nothing quietly missed again.",
+  },
+  {
+    icon: <Sparkles size={20} />,
+    color: "#A78BFA",
+    bg: "rgba(167,139,250,0.12)",
+    border: "rgba(167,139,250,0.22)",
+    title: "Goals you can actually see.",
+    desc: "Set a target, watch progress, get an honest read on whether you're on track.",
+  },
+];
+
+function OnboardingCarousel({ onDone }: { onDone: () => void }) {
+  const [index, setIndex] = useState(0);
+  const [dir, setDir] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+  const lastSlide = index === ONBOARDING_SLIDES.length - 1;
+
+  const go = (next: number) => {
+    if (next < 0 || next >= ONBOARDING_SLIDES.length) return;
+    setDir(next > index ? 1 : -1);
+    setIndex(next);
+  };
+
+  // Auto-advance, but never fight the user: pause on hover/focus/drag, skip entirely under reduced motion
+  useEffect(() => {
+    if (shouldReduceMotion || paused) return;
+    const t = setTimeout(() => {
+      setDir(1);
+      setIndex((i) => (i + 1) % ONBOARDING_SLIDES.length);
+    }, 4500);
+    return () => clearTimeout(t);
+  }, [index, paused, shouldReduceMotion]);
+
+  const onDotsKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") go(index + 1);
+    else if (e.key === "ArrowLeft") go(index - 1);
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(ONBOARDING_SLIDES.length - 1);
+  };
+
+  const slide = ONBOARDING_SLIDES[index];
+
+  return (
+    <div
+      className="af-onboard"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <div className="af-onboard-top">
+        <span className="af-onboard-eyebrow">Welcome</span>
+        <button type="button" className="af-onboard-skip" onClick={onDone}>
+          Skip
+        </button>
+      </div>
+
+      <div className="af-onboard-stage">
+        <AnimatePresence mode="wait" custom={dir} initial={false}>
+          <motion.div
+            key={index}
+            custom={dir}
+            drag={shouldReduceMotion ? false : "x"}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.6}
+            onDragEnd={(_e, info) => {
+              if (info.offset.x < -60) go(index + 1);
+              else if (info.offset.x > 60) go(index - 1);
+            }}
+            initial={{ opacity: 0, x: shouldReduceMotion ? 0 : dir * 36 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: shouldReduceMotion ? 0 : dir * -36 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="af-onboard-slide"
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${index + 1} of ${ONBOARDING_SLIDES.length}: ${slide.title}`}
+          >
+            <div
+              className="af-onboard-icon"
+              style={{ background: slide.bg, border: `1px solid ${slide.border}`, color: slide.color }}
+            >
+              {slide.icon}
+            </div>
+            <div className="af-onboard-slide-title">{slide.title}</div>
+            <div className="af-onboard-slide-desc">{slide.desc}</div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className="af-onboard-dots" role="tablist" aria-label="Onboarding slides" onKeyDown={onDotsKeyDown}>
+        {ONBOARDING_SLIDES.map((s, i) => (
+          <button
+            key={s.title}
+            type="button"
+            role="tab"
+            aria-selected={i === index}
+            aria-label={`Slide ${i + 1}: ${s.title}`}
+            tabIndex={i === index ? 0 : -1}
+            className={"af-onboard-dot" + (i === index ? " af-onboard-dot-active" : "")}
+            onClick={() => go(i)}
+          />
+        ))}
+      </div>
+
+      <button type="button" className="af-onboard-cta" onClick={lastSlide ? onDone : () => go(index + 1)}>
+        <span>{lastSlide ? "Get started" : "Next"}</span>
+        <ArrowRight size={15} strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+}
+
 /* ─── Main Component ─────────────────────────────────────────────────── */
 export default function Auth({
   onLogin,
@@ -140,6 +284,28 @@ export default function Auth({
     }
     return "login";
   });
+
+  // Mobile-only first-visit onboarding: skipped entirely on desktop (which has its own
+  // brand panel) and on returning visits (localStorage flag set once dismissed).
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (window.location.hash.includes("type=recovery")) return false;
+    const isMobile = window.matchMedia?.("(max-width: 800px)").matches;
+    if (!isMobile) return false;
+    try {
+      return !localStorage.getItem(ONBOARDING_SEEN_KEY);
+    } catch {
+      return false;
+    }
+  });
+  const dismissOnboarding = () => {
+    try {
+      localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
+    } catch {
+      /* ignore — worst case onboarding reappears next visit */
+    }
+    setShowOnboarding(false);
+  };
 
   // Remember Me: restore saved email
   const savedEmail =
@@ -160,8 +326,7 @@ export default function Auth({
   const [msg, setMsg] = useState<string | null>(null);
   const [showMobileFeatures, setShowMobileFeatures] = useState(false);
   const [slideDir, setSlideDir] = useState(1); // 1 = forward (slide in from right), -1 = back (from left)
-  const [transitionPhase, setTransitionPhase] = useState<"idle" | "out" | "in">("idle");
-  const [pendingMode, setPendingMode] = useState<"login" | "signup" | "forgot" | "reset" | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   // Field-level touched state
   const [emailTouched, setEmailTouched] = useState(false);
@@ -295,8 +460,11 @@ export default function Auth({
     }
   };
 
-  // Actually swaps the visible mode + resets field state (runs once the "slide out" half has played)
-  const applyModeSwitch = (m: "login" | "signup" | "forgot" | "reset") => {
+  // Swaps the visible mode + resets field state. AnimatePresence around the mode panel
+  // handles the exit/enter animation declaratively, so this just needs to set state once.
+  const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
+    if (m === mode) return;
+    setSlideDir(MODE_ORDER[m] >= MODE_ORDER[mode] ? 1 : -1);
     setError(null);
     setMsg(null);
     setEmailTouched(false);
@@ -315,37 +483,6 @@ export default function Auth({
     setShowConfirmNewPass(false);
     setMode(m);
   };
-
-  const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
-    if (m === mode || transitionPhase !== "idle") return;
-    const reducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) {
-      applyModeSwitch(m);
-      return;
-    }
-    setSlideDir(MODE_ORDER[m] >= MODE_ORDER[mode] ? 1 : -1);
-    setPendingMode(m);
-    setTransitionPhase("out"); // old panel slides out first, then the new one slides in
-  };
-
-  // Drives the two-phase slide: "out" (old content exits) -> swap mode -> "in" (new content enters) -> idle
-  useEffect(() => {
-    if (transitionPhase === "out" && pendingMode) {
-      const t = setTimeout(() => {
-        applyModeSwitch(pendingMode);
-        setPendingMode(null);
-        setTransitionPhase("in");
-      }, 200);
-      return () => clearTimeout(t);
-    }
-    if (transitionPhase === "in") {
-      const t = setTimeout(() => setTransitionPhase("idle"), 320);
-      return () => clearTimeout(t);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transitionPhase, pendingMode]);
 
   // ── Shared input styles ────────────────────────────────────────────────
   const wrapCls = (focused: boolean, err: string) =>
@@ -520,14 +657,19 @@ export default function Auth({
             </div>
           </div>
 
+          {showOnboarding ? (
+            <OnboardingCarousel onDone={dismissOnboarding} />
+          ) : (
+          <>
           {/* Animated mode panel — old content slides out, new content slides in, on every mode change */}
-          <div
+          <AnimatePresence mode="wait" initial={false} custom={slideDir}>
+          <motion.div
             key={mode}
-            className={
-              "af-mode-panel" +
-              (transitionPhase === "out" ? " af-mode-out" : transitionPhase === "in" ? " af-mode-in" : "")
-            }
-            style={{ "--af-dir": slideDir } as React.CSSProperties}
+            custom={slideDir}
+            initial={{ opacity: 0, x: shouldReduceMotion ? 0 : slideDir * 32 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: shouldReduceMotion ? 0 : slideDir * -32 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
           >
           {/* Header */}
           <div className="af-card-head">
@@ -608,7 +750,6 @@ export default function Auth({
                     onClick={() => setShowNewPass((v) => !v)}
                     className="af-eye-btn"
                     aria-label={showNewPass ? "Hide password" : "Show password"}
-                    tabIndex={-1}
                   >
                     {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
@@ -620,7 +761,7 @@ export default function Auth({
                   </div>
                 )}
                 {newPassword && (
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: 8 }} aria-live="polite">
                     <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                       {[1, 2, 3, 4, 5].map((i) => (
                         <div
@@ -677,7 +818,6 @@ export default function Auth({
                     onClick={() => setShowConfirmNewPass((v) => !v)}
                     className="af-eye-btn"
                     aria-label={showConfirmNewPass ? "Hide" : "Show"}
-                    tabIndex={-1}
                   >
                     {showConfirmNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
@@ -825,7 +965,6 @@ export default function Auth({
                         onClick={() => setShowPass((v) => !v)}
                         className="af-eye-btn"
                         aria-label={showPass ? "Hide password" : "Show password"}
-                        tabIndex={-1}
                       >
                         {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
@@ -839,7 +978,7 @@ export default function Auth({
 
                     {/* Password strength — signup only */}
                     {isSignUp && password && (
-                      <div style={{ marginTop: 8 }}>
+                      <div style={{ marginTop: 8 }} aria-live="polite">
                         <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                           {[1, 2, 3, 4, 5].map((i) => (
                             <div
@@ -904,7 +1043,6 @@ export default function Auth({
                         onClick={() => setShowConfirmPass((v) => !v)}
                         className="af-eye-btn"
                         aria-label={showConfirmPass ? "Hide" : "Show"}
-                        tabIndex={-1}
                       >
                         {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
@@ -994,7 +1132,8 @@ export default function Auth({
               )}
             </div>
           )}
-          </div>
+          </motion.div>
+          </AnimatePresence>
 
           {/* Security indicators */}
           <div className="af-sec-bar" aria-label="Security features">
@@ -1042,6 +1181,8 @@ export default function Auth({
               </div>
             )}
           </div>
+          </>
+          )}
         </div>
       </div>
 
@@ -1054,6 +1195,17 @@ export default function Auth({
 const AF_STYLES = `
 /* ── Root ─────────────────────────────── */
 .af-root {
+  /* Design tokens — single source per color, redeclared once below for dark mode
+     instead of scattered as duplicate hex literals throughout this file. */
+  --af-accent: #4F46E5;
+  --af-accent-hover: #3730A3;
+  --af-success: #10B981;
+  --af-text: #0F172A;
+  --af-text-secondary: #374151;
+  --af-border: #E2E8F0;
+  --af-border-hover: #CBD5E1;
+  --af-cta-gradient: linear-gradient(135deg, #4F46E5 0%, #6D5BF7 50%, #7C3AED 100%);
+
   min-height: 100vh;
   display: flex;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -1261,7 +1413,7 @@ const AF_STYLES = `
 .af-mobile-logo { display: none; align-items: center; gap: 10px; margin-bottom: 36px; }
 .af-mobile-brand {
   font-family: 'Outfit', sans-serif; font-size: 19px; font-weight: 900;
-  color: #0F172A; letter-spacing: -0.04em;
+  color: var(--af-text); letter-spacing: -0.04em;
 }
 
 /* Greeting badge */
@@ -1270,7 +1422,7 @@ const AF_STYLES = `
   background: linear-gradient(135deg, rgba(79,70,229,0.08), rgba(124,58,237,0.06));
   border: 1px solid rgba(79,70,229,0.12);
   border-radius: 100px; padding: 5px 12px 5px 10px;
-  font-size: 11.5px; font-weight: 600; color: #4F46E5;
+  font-size: 11.5px; font-weight: 600; color: var(--af-accent);
   letter-spacing: 0.01em; margin-bottom: 14px;
   animation: af-rise 0.5s cubic-bezier(0.22,1,0.36,1) 0.1s both;
 }
@@ -1279,7 +1431,7 @@ const AF_STYLES = `
 .af-card-head { margin-bottom: 26px; }
 .af-card-title {
   font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 900;
-  color: #0F172A; letter-spacing: -0.04em; line-height: 1.12; margin-bottom: 8px;
+  color: var(--af-text); letter-spacing: -0.04em; line-height: 1.12; margin-bottom: 8px;
 }
 .af-card-sub { font-size: 14px; color: #64748B; line-height: 1.55; font-weight: 400; }
 
@@ -1298,7 +1450,7 @@ const AF_STYLES = `
   display: flex; align-items: center; gap: 10px;
   padding: 12px 16px; background: rgba(79,70,229,0.06);
   border-radius: 10px; border: 1px solid rgba(79,70,229,0.15);
-  margin-bottom: 4px; font-size: 13px; color: #4F46E5; font-weight: 500;
+  margin-bottom: 4px; font-size: 13px; color: var(--af-accent); font-weight: 500;
 }
 
 /* Form container (for OAuth + form) */
@@ -1307,16 +1459,16 @@ const AF_STYLES = `
 /* Form */
 .af-form { display: flex; flex-direction: column; gap: 18px; }
 .af-field { display: flex; flex-direction: column; gap: 6px; }
-.af-lbl { font-size: 13px; font-weight: 600; color: #374151; letter-spacing: -0.01em; }
+.af-lbl { font-size: 13px; font-weight: 600; color: var(--af-text-secondary); letter-spacing: -0.01em; }
 
 /* Input wrapper */
 .af-inp-wrap {
   position: relative; display: flex; align-items: center;
-  background: rgba(255,255,255,0.7); border: 1.5px solid #E2E8F0; border-radius: 12px;
+  background: rgba(255,255,255,0.7); border: 1.5px solid var(--af-border); border-radius: 12px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   box-shadow: 0 1px 3px rgba(15,23,42,0.04);
 }
-.af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: #CBD5E1; background: rgba(255,255,255,0.9); }
+.af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: var(--af-border-hover); background: rgba(255,255,255,0.9); }
 .af-inp-wrap.af-focused {
   border-color: #818CF8; background: #FFFFFF;
   box-shadow: 0 0 0 3.5px rgba(79,70,229,0.1), 0 2px 8px rgba(79,70,229,0.08);
@@ -1326,20 +1478,20 @@ const AF_STYLES = `
   flex: 1; background: none; border: none; outline: none;
   padding: 13px 16px; font-size: 15px;
   font-family: 'Inter', -apple-system, sans-serif;
-  color: #0F172A; font-weight: 400; min-width: 0;
+  color: var(--af-text); font-weight: 400; min-width: 0;
 }
 .af-inp-padded { padding-left: 8px; }
 .af-inp-icon {
   display: flex; align-items: center; padding-left: 14px; color: #94A3B8; flex-shrink: 0;
   transition: color 0.2s;
 }
-.af-focused .af-inp-icon { color: #4F46E5; }
+.af-focused .af-inp-icon { color: var(--af-accent); }
 .af-inp::placeholder { color: #B0B8C8; }
 .af-eye-btn {
   background: none; border: none; padding: 0 14px; color: #94A3B8;
   cursor: pointer; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s;
 }
-.af-eye-btn:hover { color: #4F46E5; }
+.af-eye-btn:hover { color: var(--af-accent); }
 .af-err-msg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #EF4444; font-weight: 500; }
 
 /* Divider */
@@ -1347,7 +1499,7 @@ const AF_STYLES = `
   display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
 }
 .af-divider-line {
-  flex: 1; height: 1px; background: #E2E8F0;
+  flex: 1; height: 1px; background: var(--af-border);
 }
 .af-divider-text {
   font-size: 12px; font-weight: 500; color: #9CA3AF; white-space: nowrap;
@@ -1361,22 +1513,22 @@ const AF_STYLES = `
   font-size: 13px; color: #4B5563; cursor: pointer; font-weight: 500; user-select: none;
 }
 .af-chk {
-  width: 16px; height: 16px; accent-color: #4F46E5; cursor: pointer; border-radius: 4px;
+  width: 16px; height: 16px; accent-color: var(--af-accent); cursor: pointer; border-radius: 4px;
   margin: 0;
 }
 
 /* Link button */
 .af-link {
-  background: none; border: none; font-size: 13px; font-weight: 600; color: #4F46E5;
+  background: none; border: none; font-size: 13px; font-weight: 600; color: var(--af-accent);
   cursor: pointer; padding: 0; font-family: inherit; transition: color 0.15s; text-decoration: none;
 }
-.af-link:hover { color: #3730A3; text-decoration: underline; }
+.af-link:hover { color: var(--af-accent-hover); text-decoration: underline; }
 .af-link-bold { font-weight: 700; }
 
 /* CTA Button */
 .af-cta-btn {
   width: 100%; padding: 14px 20px;
-  background: linear-gradient(135deg, #4F46E5 0%, #6D5BF7 50%, #7C3AED 100%);
+  background: var(--af-cta-gradient);
   background-size: 200% 100%; background-position: 0% 0%;
   color: #FFFFFF; border: none; border-radius: 13px;
   font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;
@@ -1423,14 +1575,14 @@ const AF_STYLES = `
   background: none; border: none; font-size: 12px; font-weight: 500;
   color: #94A3B8; cursor: pointer; font-family: inherit; transition: color 0.15s;
 }
-.af-demo-btn:hover { color: #4F46E5; }
+.af-demo-btn:hover { color: var(--af-accent); }
 
 /* Mobile feature accordion */
 .af-mobile-features { display: none; margin-top: 24px; }
 .af-mob-feat-toggle {
   width: 100%; display: flex; align-items: center; justify-content: space-between;
-  background: none; border: 1px solid #E2E8F0; border-radius: 10px;
-  padding: 11px 16px; font-size: 13px; font-weight: 600; color: #374151;
+  background: none; border: 1px solid var(--af-border); border-radius: 10px;
+  padding: 11px 16px; font-size: 13px; font-weight: 600; color: var(--af-text-secondary);
   cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
 .af-mob-feat-toggle:hover { background: #F8FAFC; }
@@ -1448,9 +1600,58 @@ const AF_STYLES = `
 .af-mob-feat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 /* ══════════════════════════════════════
+   ONBOARDING CAROUSEL — mobile, first visit only
+══════════════════════════════════════ */
+.af-onboard { display: flex; flex-direction: column; }
+.af-onboard-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.af-onboard-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9CA3AF;
+}
+.af-onboard-skip {
+  background: none; border: 1px solid var(--af-border); border-radius: 100px; padding: 6px 14px;
+  font-size: 12.5px; font-weight: 600; color: #6B7280; cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.af-onboard-skip:hover { border-color: var(--af-border-hover); color: var(--af-text-secondary); }
+.af-onboard-stage { min-height: 190px; overflow: hidden; touch-action: pan-y; }
+.af-onboard-slide { cursor: grab; padding: 4px 2px 8px; }
+.af-onboard-slide:active { cursor: grabbing; }
+.af-onboard-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
+}
+.af-onboard-slide-title {
+  font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800;
+  color: var(--af-text); letter-spacing: -0.02em; margin-bottom: 8px; line-height: 1.2;
+}
+.af-onboard-slide-desc { font-size: 14px; color: #64748B; line-height: 1.55; max-width: 34ch; }
+.af-onboard-dots { display: flex; gap: 6px; margin: 18px 0 20px; }
+.af-onboard-dot {
+  width: 7px; height: 7px; border-radius: 99px; background: var(--af-border); border: none; padding: 0;
+  cursor: pointer; transition: width 0.25s, background 0.25s;
+}
+.af-onboard-dot-active { width: 22px; background: var(--af-accent); }
+.af-onboard-cta {
+  width: 100%; padding: 13px 20px;
+  background: var(--af-cta-gradient);
+  color: #FFFFFF; border: none; border-radius: 13px;
+  font-size: 14.5px; font-weight: 700; font-family: 'Inter', sans-serif;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(79,70,229,0.3); transition: transform 0.2s, box-shadow 0.2s;
+}
+.af-onboard-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,70,229,0.4); }
+
+/* ══════════════════════════════════════
    DARK MODE — right panel
 ══════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
+  .af-root {
+    --af-accent: #818CF8;
+    --af-accent-hover: #A5B4FC;
+    --af-text: #F9FAFB;
+    --af-text-secondary: #D1D5DB;
+    --af-border: #374151;
+    --af-border-hover: #4B5563;
+  }
   .af-right { background: linear-gradient(165deg, #0F1420 0%, #111827 40%, #131B2E 100%); }
   .af-right-glow { background: radial-gradient(circle, rgba(79,70,229,0.08) 0%, transparent 65%); }
   .af-card {
@@ -1458,25 +1659,17 @@ const AF_STYLES = `
     border-color: rgba(55,65,81,0.6);
     box-shadow: 0 1px 2px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15), 0 16px 40px rgba(0,0,0,0.15);
   }
-  .af-mobile-brand { color: #F9FAFB; }
-  .af-card-title { color: #F9FAFB; }
   .af-card-sub { color: #9CA3AF; }
-  .af-greeting-badge { background: rgba(129,140,248,0.1); border-color: rgba(129,140,248,0.2); color: #A5B4FC; }
-  .af-lbl { color: #D1D5DB; }
-  .af-inp-wrap { background: rgba(17,24,39,0.6); border-color: #374151; box-shadow: none; }
-  .af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: #4B5563; background: rgba(17,24,39,0.8); }
-  .af-inp-wrap.af-focused { border-color: #818CF8; background: rgba(17,24,39,0.9); box-shadow: 0 0 0 3px rgba(129,140,248,0.12); }
-  .af-inp { color: #F9FAFB; }
+  .af-greeting-badge { background: rgba(129,140,248,0.1); border-color: rgba(129,140,248,0.2); }
+  .af-inp-wrap { background: rgba(17,24,39,0.6); box-shadow: none; }
+  .af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { background: rgba(17,24,39,0.8); }
+  .af-inp-wrap.af-focused { background: rgba(17,24,39,0.9); box-shadow: 0 0 0 3px rgba(129,140,248,0.12); }
   .af-inp::placeholder { color: #4B5563; }
   .af-inp-icon { color: #6B7280; }
-  .af-focused .af-inp-icon { color: #818CF8; }
   .af-oauth-btn { background: #1F2937; border-color: #374151; color: #D1D5DB; }
   .af-oauth-btn:hover:not(:disabled) { background: #243143; border-color: #4B5563; }
-  .af-divider-line { background: #374151; }
   .af-divider-text { background: transparent; color: #6B7280; }
   .af-switch-txt { color: #9CA3AF; }
-  .af-link { color: #818CF8; }
-  .af-link:hover { color: #A5B4FC; }
   .af-sec-bar { border-top-color: rgba(55,65,81,0.5); }
   .af-sec-chip { background: rgba(31,41,55,0.5); border-color: rgba(55,65,81,0.5); color: #6B7280; }
   .af-sec-item { color: #6B7280; }
@@ -1484,12 +1677,15 @@ const AF_STYLES = `
   .af-remember { color: #9CA3AF; }
   .af-alert-err { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
   .af-alert-ok  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6EE7B7; }
-  .af-info-banner { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.2); color: #818CF8; }
-  .af-mob-feat-toggle { border-color: #374151; color: #D1D5DB; }
+  .af-info-banner { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.2); }
   .af-mob-feat-toggle:hover { background: #1F2937; }
   .af-mob-feat-item { background: #1F2937; border-color: #374151; color: #D1D5DB; }
   .af-demo-btn { color: #6B7280; }
   .af-left::after { background: linear-gradient(90deg, transparent, rgba(15,20,32,0.1)); }
+  .af-onboard-eyebrow { color: #6B7280; }
+  .af-onboard-skip { color: #9CA3AF; }
+  .af-onboard-slide-desc { color: #9CA3AF; }
+  .af-onboard-cta { box-shadow: 0 4px 16px rgba(79,70,229,0.4); }
 }
 
 /* Field stagger animation */
@@ -1498,25 +1694,13 @@ const AF_STYLES = `
   animation: af-field-in 0.45s cubic-bezier(0.22,1,0.36,1) both;
 }
 
-/* Mode panel — two-phase slide transition on login/signup/forgot/reset switch:
-   old content slides out first, then the new content slides in from the opposite side. */
-.af-mode-panel.af-mode-out {
-  animation: af-mode-slide-out 0.2s cubic-bezier(0.4,0,1,1) both;
-  pointer-events: none;
-}
-.af-mode-panel.af-mode-in {
-  animation: af-mode-slide-in 0.32s cubic-bezier(0.22,1,0.36,1) both;
-}
-@keyframes af-mode-slide-out {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(calc(var(--af-dir, 1) * -40px)); }
-}
-@keyframes af-mode-slide-in {
-  from { opacity: 0; transform: translateX(calc(var(--af-dir, 1) * 40px)); }
-  to   { opacity: 1; transform: translateX(0); }
-}
 @media (prefers-reduced-motion: reduce) {
-  .af-mode-panel, .af-card, .af-field-anim, .af-feature-item, .af-chart-card { animation: none !important; }
+  .af-card, .af-field-anim, .af-feature-item, .af-chart-card,
+  .af-line-anim, .af-fill-anim, .af-dot-core, .af-dot-ring {
+    animation: none !important;
+  }
+  .af-line-anim { stroke-dashoffset: 0; }
+  .af-fill-anim, .af-dot-core { opacity: 1; }
 }
 
 /* ══════════════════════════════════════
