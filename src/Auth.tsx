@@ -122,6 +122,9 @@ const FEATURES = [
   },
 ];
 
+/* ─── Mode order — used to pick slide direction on transition ────────── */
+const MODE_ORDER = { login: 0, signup: 1, forgot: 2, reset: 3 } as const;
+
 /* ─── Main Component ─────────────────────────────────────────────────── */
 export default function Auth({
   onLogin,
@@ -156,6 +159,7 @@ export default function Auth({
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [showMobileFeatures, setShowMobileFeatures] = useState(false);
+  const [slideDir, setSlideDir] = useState(1); // 1 = forward (slide in from right), -1 = back (from left)
 
   // Field-level touched state
   const [emailTouched, setEmailTouched] = useState(false);
@@ -290,6 +294,7 @@ export default function Auth({
   };
 
   const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
+    setSlideDir(MODE_ORDER[m] >= MODE_ORDER[mode] ? 1 : -1);
     setError(null);
     setMsg(null);
     // Reset ALL field state when switching modes
@@ -483,6 +488,8 @@ export default function Auth({
             </div>
           </div>
 
+          {/* Animated mode panel — slides + fades whenever login/signup/forgot/reset changes */}
+          <div key={mode} className="af-mode-panel" style={{ "--af-dir": slideDir } as React.CSSProperties}>
           {/* Header */}
           <div className="af-card-head">
             {!isReset && !isForgot && !isSignUp && (
@@ -948,6 +955,7 @@ export default function Auth({
               )}
             </div>
           )}
+          </div>
 
           {/* Security indicators */}
           <div className="af-sec-bar" aria-label="Security features">
@@ -1449,6 +1457,18 @@ const AF_STYLES = `
 .af-field-anim {
   opacity: 0; transform: translateY(12px);
   animation: af-field-in 0.45s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* Mode panel — slide + fade transition on login/signup/forgot/reset switch */
+.af-mode-panel {
+  animation: af-mode-in 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes af-mode-in {
+  from { opacity: 0; transform: translateX(calc(var(--af-dir, 1) * 22px)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .af-mode-panel, .af-card, .af-field-anim, .af-feature-item, .af-chart-card { animation: none !important; }
 }
 
 /* ══════════════════════════════════════
