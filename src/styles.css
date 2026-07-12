@@ -1721,30 +1721,30 @@ input[type="date"].form-input {
   border-radius: 6px;
 }
 .icon-btn:hover {
-  background: var(--t-accent) 0f !important;
+  background: color-mix(in srgb, var(--t-accent) 8%, transparent) !important;
   color: var(--t-accent) !important;
 }
 .icon-btn.danger:hover {
-  background: var(--t-rust) 0f !important;
+  background: color-mix(in srgb, var(--t-rust) 8%, transparent) !important;
   color: var(--t-rust) !important;
 }
 
 /* ── Button variant hover states ──────────────────────────────── */
 .btn-primary:not(:disabled):hover {
   filter: brightness(1.08);
-  box-shadow: 0 6px 20px var(--t-accent) 59;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--t-accent) 35%, transparent);
 }
 .btn-accent:not(:disabled):hover {
   filter: brightness(1.07);
-  box-shadow: 0 8px 24px var(--t-accent) 66;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--t-accent) 40%, transparent);
 }
 .btn-secondary:not(:disabled):hover {
-  background: var(--t-accent) 0f !important;
+  background: color-mix(in srgb, var(--t-accent) 8%, transparent) !important;
   border-color: var(--t-accent) !important;
   color: var(--t-accent) !important;
 }
 .btn-ghost:not(:disabled):hover {
-  background: var(--t-accent) 0f !important;
+  background: color-mix(in srgb, var(--t-accent) 8%, transparent) !important;
   color: var(--t-accent) !important;
 }
 .btn-danger:not(:disabled):hover {

@@ -859,6 +859,12 @@ function FinanceDashboard() {
                 netWorthHistory: snakeToCamel(nwh.data).map((r: any) => ({
                   month: r.month,
                   netWorth: r.netWorth,
+                  cash: r.cash ?? 0,
+                  equity: r.equity ?? 0,
+                  debt: r.debt ?? 0,
+                  realEstate: r.realEstate ?? 0,
+                  vehicles: r.vehicles ?? 0,
+                  liabilities: r.liabilities ?? 0,
                 })),
               }
             : {}),
@@ -1248,12 +1254,19 @@ function FinanceDashboard() {
         (sum: number, f: any) => sum + (Number(f.principal) || 0),
         0
       );
+      const realEstateVal = (s.realEstateProperties || [])
+        .filter((p: any) => p.status !== "sold")
+        .reduce((sum: number, p: any) => sum + Number(p.currentValuation || p.valuation || 0), 0);
+      const vehiclesVal = (s.vehicles || []).reduce(
+        (sum: number, v: any) => sum + Number(v.currentValue || v.value || 0),
+        0
+      );
       const breakdown = {
         cash: cashVal,
         equity: stockVal + mfVal,
         debt: fdVal,
-        realEstate: 0,
-        vehicles: 0,
+        realEstate: realEstateVal,
+        vehicles: vehiclesVal,
         liabilities: 0,
       };
       const newHistory = [...history, { month: ym, netWorth: nw, ...breakdown }].slice(-36);
@@ -2642,6 +2655,12 @@ function FinanceDashboard() {
             user_id: userId,
             month: entry.month,
             net_worth: entry.netWorth ?? entry.net_worth ?? 0,
+            cash: entry.cash ?? 0,
+            equity: entry.equity ?? 0,
+            debt: entry.debt ?? 0,
+            real_estate: entry.realEstate ?? 0,
+            vehicles: entry.vehicles ?? 0,
+            liabilities: entry.liabilities ?? 0,
           },
           { onConflict: "user_id,month" }
         )
