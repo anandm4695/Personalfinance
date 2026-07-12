@@ -505,7 +505,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         width: 36,
                         height: 36,
                         borderRadius: 10,
-                        background: `${color}1f`,
+                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -586,8 +586,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         height: 44,
                         borderRadius: 12,
                         flexShrink: 0,
-                        background: `${THEME.accent}15`,
-                        border: `1px solid ${THEME.accent}33`,
+                        background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -639,7 +639,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       fontSize: 10,
                                       fontWeight: 700,
                                       color: THEME.rust,
-                                      background: `${THEME.rust}15`,
+                                      background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                                       padding: "2px 7px",
                                       borderRadius: 99,
                                       display: "flex",
@@ -658,7 +658,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         fontSize: 10,
                                         fontWeight: 700,
                                         color: THEME.gold,
-                                        background: `${THEME.gold}15`,
+                                        background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                                         padding: "2px 7px",
                                         borderRadius: 99,
                                         display: "flex",
@@ -675,7 +675,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       fontSize: 10,
                                       fontWeight: 700,
                                       color: THEME.muted,
-                                      background: `${THEME.line}40`,
+                                      background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                       padding: "2px 7px",
                                       borderRadius: 99,
                                     }}
@@ -709,7 +709,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 style={{
                                   fontSize: 9,
                                   color: THEME.accent,
-                                  background: `${THEME.accent}15`,
+                                  background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                                   padding: "1px 6px",
                                   borderRadius: 4,
                                   fontWeight: 700,
@@ -748,9 +748,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       padding: "2px 7px",
                                       borderRadius: 5,
                                       fontWeight: 700,
-                                      background: isCurrent ? col + "22" : `${THEME.line}40`,
+                                      background: isCurrent
+                                        ? `color-mix(in srgb, ${col} 13%, transparent)`
+                                        : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                       color: isCurrent ? col : THEME.muted,
-                                      border: isCurrent ? `1px solid ${col}44` : "none",
+                                      border: isCurrent
+                                        ? `1px solid color-mix(in srgb, ${col} 27%, transparent)`
+                                        : "none",
                                     }}
                                   >
                                     Y{ti + 1}: {fmtINRExact(tier.amount)}
@@ -787,7 +791,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       gap: 4,
                                       padding: "3px 8px",
                                       borderRadius: 99,
-                                      background: col + "14",
+                                      background: `color-mix(in srgb, ${col} 8%, transparent)`,
                                       color: col,
                                       fontSize: 11,
                                       fontWeight: 700,
@@ -841,8 +845,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           style={{
                             padding: "9px 12px",
                             borderRadius: 10,
-                            background: "#A78BFA12",
-                            border: "1px solid #A78BFA38",
+                            background: "color-mix(in srgb, #A78BFA 7%, transparent)",
+                            border: "1px solid color-mix(in srgb, #A78BFA 22%, transparent)",
                           }}
                         >
                           <div
@@ -1028,8 +1032,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               fontSize: 11,
                               padding: "4px 10px",
                               borderRadius: 6,
-                              border: `1px solid ${THEME.gold}44`,
-                              background: `${THEME.gold}10`,
+                              border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
+                              background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
                               color: THEME.gold,
                               fontWeight: 700,
                               cursor: "pointer",
@@ -1054,8 +1058,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   fontSize: 11,
                                   padding: "4px 10px",
                                   borderRadius: 6,
-                                  border: `1px solid ${THEME.accent}44`,
-                                  background: `${THEME.accent}10`,
+                                  border: `1px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
+                                  background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
                                   color: THEME.accent,
                                   fontWeight: 700,
                                   cursor: "pointer",
@@ -1116,7 +1120,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   padding: "4px 10px",
                                   fontSize: 11,
                                   color: THEME.accent,
-                                  border: `1px solid ${THEME.accent}44`,
+                                  border: `1px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
                                 }}
                                 onClick={() => {
                                   if (showCsvImport === p.id) {
@@ -1149,8 +1153,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 padding: 18,
                                 borderRadius: 12,
                                 marginBottom: 16,
-                                background: `${THEME.accent}09`,
-                                border: `1px solid ${THEME.accent}38`,
+                                background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
                               }}
                             >
                               <div
@@ -1189,7 +1193,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     fontSize: 11,
                                     padding: "4px 12px",
                                     borderRadius: 6,
-                                    border: `1px solid ${THEME.accent}4d`,
+                                    border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
                                     background: "transparent",
                                     color: THEME.accent,
                                     cursor: "pointer",
@@ -1215,7 +1219,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 <b style={{ color: THEME.ink }}>Format:</b>{" "}
                                 <code
                                   style={{
-                                    background: `${THEME.line}40`,
+                                    background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                     padding: "1px 5px",
                                     borderRadius: 4,
                                   }}
@@ -1226,7 +1230,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 Example:{" "}
                                 <code
                                   style={{
-                                    background: `${THEME.line}40`,
+                                    background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                     padding: "1px 5px",
                                     borderRadius: 4,
                                   }}
@@ -1243,11 +1247,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   justifyContent: "center",
                                   gap: 8,
                                   padding: "20px 0",
-                                  border: `1.5px dashed ${THEME.accent}66`,
+                                  border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
                                   borderRadius: 10,
                                   cursor: "pointer",
                                   marginBottom: 12,
-                                  background: `${THEME.accent}08`,
+                                  background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                                 }}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => {
@@ -1331,7 +1335,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   style={{
                                     padding: "8px 18px",
                                     borderRadius: 8,
-                                    border: `1px solid ${THEME.accent}66`,
+                                    border: `1px solid color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
                                     background: "transparent",
                                     color: THEME.accent,
                                     fontWeight: 700,
@@ -1382,7 +1386,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     color: THEME.rust,
                                     fontSize: 12,
                                     padding: "8px 12px",
-                                    background: `${THEME.rust}0f`,
+                                    background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
                                     borderRadius: 8,
                                   }}
                                 >
@@ -1403,7 +1407,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   <div
                                     style={{
                                       padding: "8px 12px",
-                                      background: `${THEME.accent}12`,
+                                      background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
                                       fontSize: 11,
                                       fontWeight: 700,
                                       color: THEME.accent,
@@ -1494,7 +1498,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       alignItems: "center",
                                       padding: "8px 12px",
                                       borderRadius: 8,
-                                      background: `${THEME.accent}08`,
+                                      background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                                       border: `1px solid ${THEME.line}`,
                                     }}
                                   >
@@ -1587,8 +1591,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   marginTop: 10,
                                   padding: "10px 12px",
                                   borderRadius: 8,
-                                  background: `${THEME.gold}0f`,
-                                  border: `1px dashed ${THEME.gold}44`,
+                                  background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+                                  border: `1px dashed color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
                                 }}
                               >
                                 <div
@@ -1609,7 +1613,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       style={{
                                         padding: "2px 8px",
                                         borderRadius: 6,
-                                        background: `${THEME.gold}18`,
+                                        background: `color-mix(in srgb, ${THEME.gold} 9%, transparent)`,
                                         color: THEME.gold,
                                         fontSize: 10,
                                         fontWeight: 700,
@@ -1671,7 +1675,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     alignItems: "center",
                                     padding: "8px 12px",
                                     borderRadius: 8,
-                                    background: `${THEME.accent}08`,
+                                    background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                                     border: `1px solid ${THEME.line}`,
                                   }}
                                 >
@@ -1764,7 +1768,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     alignItems: "center",
                                     padding: "8px 12px",
                                     borderRadius: 8,
-                                    background: `${THEME.accent}08`,
+                                    background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                                     border: `1px solid ${THEME.line}`,
                                   }}
                                 >
@@ -1894,7 +1898,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         width: 36,
                         height: 36,
                         borderRadius: 10,
-                        background: `${color}1f`,
+                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1975,8 +1979,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         height: 44,
                         borderRadius: 12,
                         flexShrink: 0,
-                        background: `${THEME.rust}15`,
-                        border: `1px solid ${THEME.rust}33`,
+                        background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2028,7 +2032,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       fontSize: 10,
                                       fontWeight: 700,
                                       color: THEME.rust,
-                                      background: `${THEME.rust}15`,
+                                      background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                                       padding: "2px 7px",
                                       borderRadius: 99,
                                       display: "flex",
@@ -2047,7 +2051,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         fontSize: 10,
                                         fontWeight: 700,
                                         color: THEME.gold,
-                                        background: `${THEME.gold}15`,
+                                        background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                                         padding: "2px 7px",
                                         borderRadius: 99,
                                         display: "flex",
@@ -2064,7 +2068,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       fontSize: 10,
                                       fontWeight: 700,
                                       color: THEME.muted,
-                                      background: `${THEME.line}40`,
+                                      background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                       padding: "2px 7px",
                                       borderRadius: 99,
                                     }}
@@ -2100,7 +2104,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 style={{
                                   fontSize: 9,
                                   color: THEME.rust,
-                                  background: `${THEME.rust}15`,
+                                  background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                                   padding: "1px 6px",
                                   borderRadius: 4,
                                   fontWeight: 700,
@@ -2143,9 +2147,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       padding: "2px 7px",
                                       borderRadius: 5,
                                       fontWeight: 700,
-                                      background: isCurrent ? col + "22" : `${THEME.line}40`,
+                                      background: isCurrent
+                                        ? `color-mix(in srgb, ${col} 13%, transparent)`
+                                        : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                       color: isCurrent ? col : THEME.muted,
-                                      border: isCurrent ? `1px solid ${col}44` : "none",
+                                      border: isCurrent
+                                        ? `1px solid color-mix(in srgb, ${col} 27%, transparent)`
+                                        : "none",
                                     }}
                                   >
                                     Y{ti + 1}: {fmtINRExact(tier.amount)}
@@ -2185,7 +2193,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       gap: 4,
                                       padding: "3px 8px",
                                       borderRadius: 99,
-                                      background: col + "14",
+                                      background: `color-mix(in srgb, ${col} 8%, transparent)`,
                                       color: col,
                                       fontSize: 11,
                                       fontWeight: 700,
@@ -2395,8 +2403,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               fontSize: 11,
                               padding: "4px 10px",
                               borderRadius: 6,
-                              border: `1px solid ${THEME.sage}44`,
-                              background: `${THEME.sage}10`,
+                              border: `1px solid color-mix(in srgb, ${THEME.sage} 27%, transparent)`,
+                              background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
                               color: THEME.sage,
                               fontWeight: 700,
                               cursor: "pointer",
@@ -2421,8 +2429,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   fontSize: 11,
                                   padding: "4px 10px",
                                   borderRadius: 6,
-                                  border: `1px solid ${THEME.rust}44`,
-                                  background: `${THEME.rust}10`,
+                                  border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
+                                  background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
                                   color: THEME.rust,
                                   fontWeight: 700,
                                   cursor: "pointer",
@@ -2483,7 +2491,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   padding: "4px 10px",
                                   fontSize: 11,
                                   color: THEME.rust,
-                                  border: `1px solid ${THEME.rust}4d`,
+                                  border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
                                 }}
                                 onClick={() => {
                                   if (showCsvImport === p.id) {
@@ -2520,8 +2528,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 padding: 18,
                                 borderRadius: 12,
                                 marginBottom: 16,
-                                background: `${THEME.rust}09`,
-                                border: `1px solid ${THEME.rust}38`,
+                                background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${THEME.rust} 22%, transparent)`,
                               }}
                             >
                               <div
@@ -2560,7 +2568,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     fontSize: 11,
                                     padding: "4px 12px",
                                     borderRadius: 6,
-                                    border: `1px solid ${THEME.rust}4d`,
+                                    border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
                                     background: "transparent",
                                     color: THEME.rust,
                                     cursor: "pointer",
@@ -2586,7 +2594,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 <b style={{ color: THEME.ink }}>Format:</b>{" "}
                                 <code
                                   style={{
-                                    background: `${THEME.line}40`,
+                                    background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                     padding: "1px 5px",
                                     borderRadius: 4,
                                   }}
@@ -2597,7 +2605,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 Example:{" "}
                                 <code
                                   style={{
-                                    background: `${THEME.line}40`,
+                                    background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                     padding: "1px 5px",
                                     borderRadius: 4,
                                   }}
@@ -2614,11 +2622,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   justifyContent: "center",
                                   gap: 8,
                                   padding: "20px 0",
-                                  border: `1.5px dashed ${THEME.rust}66`,
+                                  border: `1.5px dashed color-mix(in srgb, ${THEME.rust} 40%, transparent)`,
                                   borderRadius: 10,
                                   cursor: "pointer",
                                   marginBottom: 12,
-                                  background: `${THEME.rust}08`,
+                                  background: `color-mix(in srgb, ${THEME.rust} 3%, transparent)`,
                                 }}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => {
@@ -2702,7 +2710,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   style={{
                                     padding: "8px 18px",
                                     borderRadius: 8,
-                                    border: `1px solid ${THEME.rust}66`,
+                                    border: `1px solid color-mix(in srgb, ${THEME.rust} 40%, transparent)`,
                                     background: "transparent",
                                     color: THEME.rust,
                                     fontWeight: 700,
@@ -2753,7 +2761,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     color: THEME.rust,
                                     fontSize: 12,
                                     padding: "8px 12px",
-                                    background: `${THEME.rust}0f`,
+                                    background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
                                     borderRadius: 8,
                                   }}
                                 >
@@ -2774,7 +2782,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   <div
                                     style={{
                                       padding: "8px 12px",
-                                      background: `${THEME.rust}12`,
+                                      background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
                                       fontSize: 11,
                                       fontWeight: 700,
                                       color: THEME.rust,
@@ -2865,7 +2873,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       alignItems: "center",
                                       padding: "8px 12px",
                                       borderRadius: 8,
-                                      background: `${THEME.accent}08`,
+                                      background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                                       border: `1px solid ${THEME.line}`,
                                     }}
                                   >
@@ -2958,8 +2966,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   marginTop: 10,
                                   padding: "10px 12px",
                                   borderRadius: 8,
-                                  background: `${THEME.rust}0f`,
-                                  border: `1px dashed ${THEME.rust}44`,
+                                  background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                                  border: `1px dashed color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
                                 }}
                               >
                                 <div
@@ -2980,7 +2988,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       style={{
                                         padding: "2px 8px",
                                         borderRadius: 6,
-                                        background: `${THEME.rust}18`,
+                                        background: `color-mix(in srgb, ${THEME.rust} 9%, transparent)`,
                                         color: THEME.rust,
                                         fontSize: 10,
                                         fontWeight: 700,
@@ -3042,7 +3050,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     alignItems: "center",
                                     padding: "8px 12px",
                                     borderRadius: 8,
-                                    background: `${THEME.accent}08`,
+                                    background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                                     border: `1px solid ${THEME.line}`,
                                   }}
                                 >
@@ -3157,8 +3165,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 style={{
                   padding: "14px 16px",
                   borderRadius: 12,
-                  background: `${color}09`,
-                  border: `1px solid ${color}22`,
+                  background: `color-mix(in srgb, ${color} 4%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${color} 13%, transparent)`,
                 }}
               >
                 <div

@@ -533,7 +533,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       borderBottom: `1px solid ${THEME.line}`,
                       transition: "background 0.2s",
                     }}
-                    className="table-row-hover"
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "color-mix(in srgb, var(--accent) 4%, transparent)")
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <td style={{ ...td, paddingLeft: 16 }}>
                       <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -1059,7 +1063,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                             borderBottom: `1px solid ${THEME.line}`,
                             transition: "background 0.2s",
                           }}
-                          className="table-row-hover"
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background =
+                              "color-mix(in srgb, var(--accent) 4%, transparent)")
+                          }
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ ...td, paddingLeft: 16 }}>
                             <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -1295,7 +1303,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                             borderBottom: `1px solid ${THEME.line}`,
                             transition: "background 0.2s",
                           }}
-                          className="table-row-hover"
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background =
+                              "color-mix(in srgb, var(--accent) 4%, transparent)")
+                          }
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ ...td, paddingLeft: 16 }}>
                             <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -1516,7 +1528,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                             borderBottom: `1px solid ${THEME.line}`,
                             transition: "background 0.2s",
                           }}
-                          className="table-row-hover"
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background =
+                              "color-mix(in srgb, var(--accent) 4%, transparent)")
+                          }
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ ...td, paddingLeft: 16 }}>
                             <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -1550,7 +1566,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                                 fontWeight: 800,
                                 textTransform: "uppercase",
                                 letterSpacing: "0.04em",
-                                background: isCredit ? `${THEME.sage}1a` : `${THEME.rust}1a`,
+                                background: isCredit
+                                  ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
+                                  : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
                                 color: isCredit ? THEME.sage : THEME.rust,
                                 whiteSpace: "nowrap",
                               }}

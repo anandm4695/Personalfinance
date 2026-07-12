@@ -367,17 +367,17 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
           label="Trending Up"
           value={`${trendingUp} categories`}
           icon={ArrowUp}
-          color="#EF4444"
+          color={THEME.rust}
           sub="Rising spending velocity"
-          subColor="#EF4444"
+          subColor={THEME.rust}
         />
         <PremiumStatCard
           label="Trending Down"
           value={`${trendingDown} categories`}
           icon={ArrowDown}
-          color="#10B981"
+          color={THEME.sage}
           sub="Cooling spending velocity"
-          subColor="#10B981"
+          subColor={THEME.sage}
         />
       </div>
 
@@ -615,15 +615,15 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
                         letterSpacing: "0.04em",
                         background:
                           c.trend === "up"
-                            ? "#EF444416"
+                            ? "color-mix(in srgb, var(--t-rust) 16%, transparent)"
                             : c.trend === "down"
-                              ? "#10B98116"
+                              ? "color-mix(in srgb, var(--t-sage) 16%, transparent)"
                               : "var(--surface-2)",
                         color:
                           c.trend === "up"
-                            ? "#EF4444"
+                            ? THEME.rust
                             : c.trend === "down"
-                              ? "#10B981"
+                              ? THEME.sage
                               : THEME.muted,
                       }}
                     >

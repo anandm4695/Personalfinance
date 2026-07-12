@@ -82,7 +82,7 @@ function EscalationTiersSection({
           style={{
             padding: "5px 12px",
             borderRadius: 7,
-            border: `1.5px dashed ${THEME.accent}55`,
+            border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
             background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
             color: THEME.accent,
             fontWeight: 700,
@@ -108,7 +108,7 @@ function EscalationTiersSection({
                 padding: "12px 14px",
                 borderRadius: 10,
                 background: `color-mix(in srgb, ${col} 5%, transparent)`,
-                border: `1px solid ${col}33`,
+                border: `1px solid color-mix(in srgb, ${col} 20%, transparent)`,
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
@@ -250,7 +250,7 @@ function TenantSplitCard({
   return (
     <div
       style={{
-        border: `1.5px solid ${accentColor}33`,
+        border: `1.5px solid color-mix(in srgb, ${accentColor} 20%, transparent)`,
         borderRadius: 14,
         padding: "16px 16px 12px",
         background: `color-mix(in srgb, ${accentColor} 4%, var(--t-paper))`,
@@ -611,7 +611,7 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
             borderRadius: 10,
             marginBottom: 14,
             background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-            border: `1px solid ${THEME.accent}33`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -648,7 +648,7 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
               marginTop: 10,
               width: "100%",
               padding: "10px",
-              border: `1.5px dashed ${THEME.accent}55`,
+              border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
               borderRadius: 10,
               background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
               color: THEME.accent,
@@ -827,7 +827,7 @@ function LandlordSplitCard({
   return (
     <div
       style={{
-        border: `1.5px solid ${accentColor}33`,
+        border: `1.5px solid color-mix(in srgb, ${accentColor} 20%, transparent)`,
         borderRadius: 14,
         padding: "16px 16px 12px",
         background: `color-mix(in srgb, ${accentColor} 4%, var(--t-paper))`,
@@ -1300,7 +1300,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
               background: pctValid
                 ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
                 : `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-              border: `1px solid ${pctValid ? THEME.sage : THEME.rust}33`,
+              border: `1px solid color-mix(in srgb, ${pctValid ? THEME.sage : THEME.rust} 20%, transparent)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -1326,7 +1326,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
               style={{
                 padding: "4px 10px",
                 borderRadius: 6,
-                border: `1px solid ${THEME.accent}44`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
                 background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                 color: THEME.accent,
                 fontSize: 11,
@@ -1425,7 +1425,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
               marginTop: 10,
               width: "100%",
               padding: "10px",
-              border: `1.5px dashed ${THEME.accent}55`,
+              border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
               borderRadius: 10,
               background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
               color: THEME.accent,

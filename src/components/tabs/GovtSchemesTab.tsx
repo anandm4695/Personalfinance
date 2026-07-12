@@ -554,7 +554,9 @@ export function GovtSchemesTab({
                     borderRadius: 20,
                     fontSize: 10,
                     fontWeight: 800,
-                    background: active ? `${s.color}22` : `${THEME.textMuted}22`,
+                    background: active
+                      ? `${s.color}22`
+                      : `color-mix(in srgb, ${THEME.textMuted} 22%, transparent)`,
                     color: active ? s.color : THEME.textMuted,
                     marginLeft: 4,
                   }}

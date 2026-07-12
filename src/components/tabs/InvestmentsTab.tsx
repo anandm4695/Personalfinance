@@ -5671,15 +5671,15 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
               label: "Employee Total",
               value: totalEmployee,
               color: THEME.accent,
-              bg: "rgba(99,102,241,0.07)",
-              border: "rgba(99,102,241,0.22)",
+              bg: `color-mix(in srgb, ${THEME.accent} 10%, var(--t-paper))`,
+              border: `color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
             },
             {
               label: "Employer Total",
               value: totalEmployer,
               color: "#0ea5e9",
-              bg: "rgba(14,165,233,0.07)",
-              border: "rgba(14,165,233,0.22)",
+              bg: "color-mix(in srgb, #0ea5e9 10%, var(--t-paper))",
+              border: "color-mix(in srgb, #0ea5e9 25%, transparent)",
             },
           ].map(({ label, value, color, bg, border }) => (
             <div
@@ -7366,22 +7366,22 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               label: "Employee PF",
               value: closingEmployee,
               color: THEME.accent,
-              bg: "rgba(99,102,241,0.07)",
-              border: "rgba(99,102,241,0.22)",
+              bg: `color-mix(in srgb, ${THEME.accent} 10%, var(--t-paper))`,
+              border: `color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
             },
             {
               label: "Employer PF",
               value: closingEmployer,
               color: "#0ea5e9",
-              bg: "rgba(14,165,233,0.07)",
-              border: "rgba(14,165,233,0.22)",
+              bg: "color-mix(in srgb, #0ea5e9 10%, var(--t-paper))",
+              border: "color-mix(in srgb, #0ea5e9 25%, transparent)",
             },
             {
               label: "EPS (Pension)",
               value: closingPension,
               color: THEME.gold,
-              bg: `rgba(234,179,8,0.07)`,
-              border: `rgba(234,179,8,0.22)`,
+              bg: `color-mix(in srgb, ${THEME.gold} 10%, var(--t-paper))`,
+              border: `color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
             },
           ].map(({ label, value, color, bg, border }) => (
             <div
@@ -7673,22 +7673,22 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                             label: "Emp PF",
                             value: estEmpC + estIntEmp,
                             color: THEME.accent,
-                            bg: "rgba(99,102,241,0.07)",
-                            border: "rgba(99,102,241,0.2)",
+                            bg: `color-mix(in srgb, ${THEME.accent} 10%, var(--t-paper))`,
+                            border: `color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
                           },
                           {
                             label: "Er PF",
                             value: estErC + estIntEr,
                             color: "#0ea5e9",
-                            bg: "rgba(14,165,233,0.07)",
-                            border: "rgba(14,165,233,0.2)",
+                            bg: "color-mix(in srgb, #0ea5e9 10%, var(--t-paper))",
+                            border: "color-mix(in srgb, #0ea5e9 22%, transparent)",
                           },
                           {
                             label: "Pension",
                             value: estPenC + estPenInt,
                             color: THEME.gold,
-                            bg: "rgba(234,179,8,0.07)",
-                            border: "rgba(234,179,8,0.2)",
+                            bg: "color-mix(in srgb, #eab308 10%, var(--t-paper))",
+                            border: "color-mix(in srgb, #eab308 22%, transparent)",
                           },
                         ].map(({ label, value, color, bg, border }) => (
                           <div
@@ -8400,6 +8400,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               <div
                 style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}
               >
+                <div style={{ overflowX: "auto" as const }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
                   <thead>
                     <tr style={{ background: `${THEME.accent}08` }}>
@@ -8490,6 +8491,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -10400,6 +10402,7 @@ function MFSection({
                                               )}
                                             </div>
                                           </div>
+                                          <div style={{ overflowX: "auto" as const }}>
                                           <table
                                             style={{
                                               width: "100%",
@@ -10676,6 +10679,7 @@ function MFSection({
                                                 })}
                                             </tbody>
                                           </table>
+                                          </div>
                                         </div>
                                       </div>
                                     </td>
@@ -11721,6 +11725,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
               marginBottom: 14,
             }}
           >
+            <div style={{ overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "var(--surface-0)" }}>
@@ -11814,6 +11819,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Summary card */}
@@ -12172,6 +12178,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
           </div>
         ) : (
           <div style={{ borderRadius: 12, border: `1px solid ${THEME.line}`, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: `${THEME.muted}09` }}>
@@ -12260,6 +12267,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                   ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 

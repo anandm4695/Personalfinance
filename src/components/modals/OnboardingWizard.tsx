@@ -176,7 +176,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 height: 10,
                 borderRadius: 5,
                 background:
-                  s.id < step ? THEME.sage : s.id === step ? THEME.accent : `${THEME.muted}33`,
+                  s.id < step
+                    ? THEME.sage
+                    : s.id === step
+                      ? THEME.accent
+                      : `color-mix(in srgb, ${THEME.muted} 20%, transparent)`,
                 transition: "all 0.3s",
               }}
             />

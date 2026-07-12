@@ -502,9 +502,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
   const fyStartYear = Number(currentFY.split("-")[0]);
   const fyStartMonth = `${fyStartYear}-04`;
   const fyEndMonth = `${fyStartYear + 1}-03`;
-  const fySlips = slips.filter(
-    (sl) => sl.slipMonth >= fyStartMonth && sl.slipMonth <= fyEndMonth
-  );
+  const fySlips = slips.filter((sl) => sl.slipMonth >= fyStartMonth && sl.slipMonth <= fyEndMonth);
   const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(-2)}`;
 
   const totalTDS = fySlips.reduce((s, sl) => s + Number(sl.tds || 0), 0);
@@ -610,7 +608,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
               label={`Total PF (${fyLabel})`}
               value={<Prv>{fmtINRFull(totalPF)}</Prv>}
               icon={<Briefcase size={16} />}
-              color="#D97706"
+              color={THEME.gold}
             />
           </div>
 
@@ -798,8 +796,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                         }}
                         className="card-lift"
                         style={{
-                          background: `${THEME.rust}09`,
-                          border: `1.5px solid ${THEME.rust}30`,
+                          background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+                          border: `1.5px solid color-mix(in srgb, ${THEME.rust} 19%, transparent)`,
                           borderRadius: 8,
                           cursor: "pointer",
                           color: THEME.rust,

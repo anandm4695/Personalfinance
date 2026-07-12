@@ -157,7 +157,11 @@ const stepBadge = (active: boolean, done: boolean): React.CSSProperties => ({
   justifyContent: "center",
   fontSize: 12,
   fontWeight: 800,
-  background: done ? THEME.sage : active ? THEME.accent : `${THEME.line}60`,
+  background: done
+    ? THEME.sage
+    : active
+      ? THEME.accent
+      : `color-mix(in srgb, ${THEME.line} 38%, transparent)`,
   color: done || active ? "#fff" : THEME.muted,
   flexShrink: 0,
 });
@@ -553,8 +557,8 @@ export function BrokerImportModal({
         <>
           <div
             style={{
-              background: `${THEME.accent}08`,
-              border: `1px solid ${THEME.accent}22`,
+              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               borderRadius: 10,
               padding: "12px 16px",
               marginBottom: 16,
@@ -609,7 +613,7 @@ export function BrokerImportModal({
                 fontSize: 12,
                 marginBottom: 16,
                 padding: 10,
-                background: `${THEME.rust}08`,
+                background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                 borderRadius: 8,
               }}
             >
@@ -703,8 +707,8 @@ export function BrokerImportModal({
           {detectedBroker && (
             <div
               style={{
-                background: `${THEME.sage}0d`,
-                border: `1px solid ${THEME.sage}22`,
+                background: `color-mix(in srgb, ${THEME.sage} 5%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                 borderRadius: 10,
                 padding: "10px 16px",
                 marginBottom: 16,
@@ -720,8 +724,8 @@ export function BrokerImportModal({
           {!detectedBroker && (
             <div
               style={{
-                background: `${THEME.gold}0d`,
-                border: `1px solid ${THEME.gold}22`,
+                background: `color-mix(in srgb, ${THEME.gold} 5%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
                 borderRadius: 10,
                 padding: "10px 16px",
                 marginBottom: 16,
@@ -790,7 +794,7 @@ export function BrokerImportModal({
                 gap: 8,
                 padding: "10px 12px",
                 borderRadius: 10,
-                background: `${THEME.rust}14`,
+                background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                 color: THEME.rust,
                 fontSize: 12,
                 fontWeight: 600,
@@ -926,9 +930,9 @@ export function BrokerImportModal({
                     style={{
                       borderBottom: `1px solid ${THEME.line}`,
                       background: t.isDuplicate
-                        ? `${THEME.gold}0a`
+                        ? `color-mix(in srgb, ${THEME.gold} 4%, transparent)`
                         : !t.selected
-                          ? `${THEME.muted}08`
+                          ? `color-mix(in srgb, ${THEME.muted} 8%, transparent)`
                           : "transparent",
                       opacity: t.selected ? 1 : 0.5,
                     }}
@@ -951,7 +955,7 @@ export function BrokerImportModal({
                       <span
                         style={{
                           fontSize: 9,
-                          background: `${THEME.line}40`,
+                          background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                           color: THEME.muted,
                           padding: "1px 5px",
                           borderRadius: 4,
@@ -971,7 +975,10 @@ export function BrokerImportModal({
                           fontWeight: 800,
                           padding: "2px 8px",
                           borderRadius: 4,
-                          background: t.tradeType === "BUY" ? `${THEME.sage}15` : `${THEME.rust}15`,
+                          background:
+                            t.tradeType === "BUY"
+                              ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
+                              : `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                           color: t.tradeType === "BUY" ? THEME.sage : THEME.rust,
                         }}
                       >

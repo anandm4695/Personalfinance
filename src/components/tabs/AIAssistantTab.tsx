@@ -103,7 +103,7 @@ const parseInline = (text: string): React.ReactNode => {
           <code
             key={k++}
             style={{
-              background: "rgba(99,102,241,0.12)",
+              background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
               padding: "2px 6px",
               borderRadius: 4,
               fontFamily: "ui-monospace, monospace",
@@ -1817,13 +1817,14 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               width: 72,
               height: 72,
               borderRadius: 20,
-              background: "linear-gradient(135deg, rgba(14,165,233,0.1), rgba(99,102,241,0.1))",
-              border: `1.5px solid rgba(14,165,233,0.2)`,
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 10%, transparent), color-mix(in srgb, var(--t-accent) 10%, transparent))",
+              border: `1.5px solid color-mix(in srgb, var(--t-accent) 20%, transparent)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              color: "#0ea5e9",
+              color: THEME.accent,
             }}
           >
             <Sparkles size={32} />
@@ -1859,7 +1860,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                 fontSize: 14,
                 fontWeight: 700,
                 textDecoration: "none",
-                boxShadow: "0 4px 16px rgba(14,165,233,0.25)",
+                boxShadow: "0 4px 16px color-mix(in srgb, var(--t-accent) 25%, transparent)",
               }}
             >
               Get Free Gemini API Key <ArrowRight size={16} />
@@ -1873,8 +1874,8 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               marginTop: 28,
               padding: "12px 18px",
               borderRadius: 12,
-              background: "rgba(14,165,233,0.06)",
-              border: `1px solid rgba(14,165,233,0.15)`,
+              background: "color-mix(in srgb, var(--t-accent) 6%, transparent)",
+              border: `1px solid color-mix(in srgb, var(--t-accent) 15%, transparent)`,
               display: "inline-flex",
               gap: 8,
               alignItems: "center",
@@ -1882,7 +1883,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               color: THEME.muted,
             }}
           >
-            <ShieldCheck size={15} style={{ color: "#0ea5e9", flexShrink: 0 }} />
+            <ShieldCheck size={15} style={{ color: THEME.accent, flexShrink: 0 }} />
             Context is anonymised before each request · API key stored only on this device
           </div>
         </Card>
@@ -1986,6 +1987,18 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                 fontWeight: 600,
                 transition: "all 0.15s",
               }}
+              onMouseEnter={(e) => {
+                if (!showSavedNotes) {
+                  e.currentTarget.style.borderColor = THEME.accent;
+                  e.currentTarget.style.color = THEME.accent;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showSavedNotes) {
+                  e.currentTarget.style.borderColor = THEME.line;
+                  e.currentTarget.style.color = THEME.muted;
+                }
+              }}
             >
               <Bookmark size={13} /> Notes{savedNotes.length > 0 ? ` (${savedNotes.length})` : ""}
             </button>
@@ -2006,6 +2019,14 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                   fontSize: 12,
                   fontWeight: 600,
                   transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = THEME.rust;
+                  e.currentTarget.style.color = THEME.rust;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = THEME.line;
+                  e.currentTarget.style.color = THEME.muted;
                 }}
               >
                 <Trash2 size={13} /> Clear
@@ -2092,6 +2113,18 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
+                              transition: "all 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = THEME.rust;
+                              e.currentTarget.style.color = THEME.rust;
+                              e.currentTarget.style.background =
+                                "color-mix(in srgb, var(--t-rust) 8%, transparent)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = THEME.line;
+                              e.currentTarget.style.color = THEME.muted;
+                              e.currentTarget.style.background = "transparent";
                             }}
                           >
                             <Trash2 size={12} />
@@ -2115,7 +2148,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                <Lightbulb size={14} style={{ color: "#f59e0b" }} />
+                <Lightbulb size={14} style={{ color: THEME.gold }} />
                 <span
                   style={{
                     fontSize: 12,
@@ -2139,16 +2172,16 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                   const Icon = insight.icon;
                   const borderColor =
                     insight.severity === "critical"
-                      ? "#ef4444"
+                      ? THEME.rust
                       : insight.severity === "warning"
-                        ? "#f59e0b"
-                        : "#22c55e";
+                        ? THEME.gold
+                        : THEME.sage;
                   const bgColor =
                     insight.severity === "critical"
-                      ? "rgba(239,68,68,0.05)"
+                      ? "color-mix(in srgb, var(--t-rust) 5%, transparent)"
                       : insight.severity === "warning"
-                        ? "rgba(245,158,11,0.05)"
-                        : "rgba(34,197,94,0.05)";
+                        ? "color-mix(in srgb, var(--t-gold) 5%, transparent)"
+                        : "color-mix(in srgb, var(--t-sage) 5%, transparent)";
                   return (
                     <button
                       key={idx}
@@ -2163,10 +2196,21 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                         border: `1px solid ${THEME.line}`,
                         borderLeft: `3px solid ${borderColor}`,
                         background: bgColor,
-                        cursor: "pointer",
+                        cursor: loading ? "not-allowed" : "pointer",
+                        opacity: loading ? 0.6 : 1,
                         textAlign: "left",
                         transition: "all 0.15s",
                         width: "100%",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!loading) {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                          e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
                       <div style={{ flexShrink: 0, marginTop: 1 }}>
@@ -2302,6 +2346,14 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             fontWeight: 600,
                             transition: "all 0.15s",
                           }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = THEME.accent;
+                            e.currentTarget.style.color = THEME.accent;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = THEME.line;
+                            e.currentTarget.style.color = copiedIdx === i ? THEME.sage : THEME.muted;
+                          }}
                         >
                           {copiedIdx === i ? <Check size={11} /> : <Copy size={11} />}
                           {copiedIdx === i ? "Copied!" : "Copy"}
@@ -2321,6 +2373,14 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             fontSize: 11,
                             fontWeight: 600,
                             transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = THEME.accent;
+                            e.currentTarget.style.color = THEME.accent;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = THEME.line;
+                            e.currentTarget.style.color = savedNoteIdx === i ? THEME.sage : THEME.muted;
                           }}
                         >
                           {savedNoteIdx === i ? <Check size={11} /> : <Bookmark size={11} />}
@@ -2344,6 +2404,14 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             fontSize: 11,
                             fontWeight: 600,
                             transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = THEME.accent;
+                            e.currentTarget.style.color = THEME.accent;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = THEME.line;
+                            e.currentTarget.style.color = THEME.muted;
                           }}
                         >
                           <MessageSquare size={11} />
@@ -2397,9 +2465,9 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                   display: "flex",
                   gap: 10,
                   padding: "13px 16px",
-                  background: "rgba(220,38,38,0.07)",
+                  background: "color-mix(in srgb, var(--t-rust) 7%, transparent)",
                   borderRadius: 12,
-                  border: `1px solid rgba(220,38,38,0.18)`,
+                  border: `1px solid color-mix(in srgb, var(--t-rust) 18%, transparent)`,
                   color: THEME.rust,
                   fontSize: 13,
                   alignItems: "flex-start",
@@ -2415,7 +2483,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                       marginTop: 8,
                       padding: "4px 10px",
                       borderRadius: 6,
-                      border: `1px solid rgba(220,38,38,0.25)`,
+                      border: `1px solid color-mix(in srgb, var(--t-rust) 25%, transparent)`,
                       background: "transparent",
                       color: THEME.rust,
                       fontSize: 12,
@@ -2478,6 +2546,19 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                           alignItems: "center",
                           gap: 5,
                         }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.borderColor = THEME.accent;
+                            e.currentTarget.style.background =
+                              "color-mix(in srgb, var(--t-accent) 8%, transparent)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.borderColor = THEME.line;
+                            e.currentTarget.style.background = "var(--surface-0)";
+                          }
+                        }}
                       >
                         {CatIcon && <CatIcon size={12} />}
                         {cat}
@@ -2506,11 +2587,22 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                         color: THEME.ink,
                         fontSize: 12,
                         fontWeight: 500,
-                        cursor: "pointer",
+                        cursor: loading ? "not-allowed" : "pointer",
+                        opacity: loading ? 0.6 : 1,
                         whiteSpace: "nowrap",
                         flexShrink: 0,
                         transition: "all 0.15s",
                         lineHeight: 1.4,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!loading) {
+                          e.currentTarget.style.borderColor = THEME.accent;
+                          e.currentTarget.style.color = THEME.accent;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = THEME.line;
+                        e.currentTarget.style.color = THEME.ink;
                       }}
                     >
                       {prompt}
@@ -2566,7 +2658,24 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                   justifyContent: "center",
                   cursor: input.trim() && !loading ? "pointer" : "not-allowed",
                   transition: "all 0.2s",
-                  boxShadow: input.trim() && !loading ? "0 4px 12px rgba(14,165,233,0.28)" : "none",
+                  boxShadow:
+                    input.trim() && !loading
+                      ? "0 4px 12px color-mix(in srgb, var(--t-accent) 28%, transparent)"
+                      : "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (input.trim() && !loading) {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 6px 16px color-mix(in srgb, var(--t-accent) 38%, transparent)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow =
+                    input.trim() && !loading
+                      ? "0 4px 12px color-mix(in srgb, var(--t-accent) 28%, transparent)"
+                      : "none";
                 }}
               >
                 <Send size={17} />

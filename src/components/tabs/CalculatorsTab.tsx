@@ -1357,7 +1357,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${color}1f`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1465,7 +1465,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <div
                       style={{
                         padding: 18,
-                        background: `${THEME.muted}09`,
+                        background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                         borderRadius: 12,
                         border: `1px solid ${THEME.line}`,
                       }}
@@ -1550,7 +1550,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <div
                       style={{
                         padding: 18,
-                        background: `${THEME.muted}09`,
+                        background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                         borderRadius: 12,
                         border: `1px solid ${THEME.line}`,
                       }}
@@ -1637,8 +1637,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   style={{
                     padding: "16px 18px",
                     borderRadius: 14,
-                    background: `${THEME.accent}15`,
-                    border: `1.5px solid ${THEME.accent}33`,
+                    background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                    border: `1.5px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
                   }}
                 >
                   <div
@@ -1661,7 +1661,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   style={{
                     padding: "16px 18px",
                     borderRadius: 14,
-                    background: `${THEME.muted}09`,
+                    background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                     border: `1.5px solid ${THEME.line}`,
                   }}
                 >
@@ -1685,8 +1685,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   style={{
                     padding: "16px 18px",
                     borderRadius: 14,
-                    background: `${THEME.sage}15`,
-                    border: `1.5px solid ${THEME.sage}33`,
+                    background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                    border: `1.5px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                   }}
                 >
                   <div
@@ -1726,8 +1726,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       padding: "14px 16px",
                       borderRadius: 12,
-                      background: `${THEME.gold}09`,
-                      border: `1.5px solid ${THEME.gold}33`,
+                      background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
+                      border: `1.5px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
                     }}
                   >
                     <div
@@ -1746,7 +1746,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       padding: "14px 16px",
                       borderRadius: 12,
-                      background: `${THEME.muted}09`,
+                      background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                       border: `1.5px solid ${THEME.line}`,
                     }}
                   >
@@ -1769,8 +1769,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       marginTop: 12,
                       padding: "10px 14px",
                       borderRadius: 10,
-                      background: `${THEME.sage}09`,
-                      border: `1px solid ${THEME.sage}22`,
+                      background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                       fontSize: 12.5,
                       fontWeight: 700,
                       color: THEME.sage,
@@ -2251,18 +2251,18 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         <linearGradient id="gSwpBalance" x1="0" y1="0" x2="0" y2="1">
                           <stop
                             offset="0%"
-                            stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent}
+                            stopColor={swpResult.isSustainable ? THEME.sage : THEME.accent}
                             stopOpacity={0.35}
                           />
                           <stop
                             offset="100%"
-                            stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent}
+                            stopColor={swpResult.isSustainable ? THEME.sage : THEME.accent}
                             stopOpacity={0}
                           />
                         </linearGradient>
                         <linearGradient id="gSwpWithdrawn" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.2} />
-                          <stop offset="100%" stopColor="#94a3b8" stopOpacity={0} />
+                          <stop offset="0%" stopColor={THEME.muted} stopOpacity={0.2} />
+                          <stop offset="100%" stopColor={THEME.muted} stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
@@ -2291,7 +2291,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         type="monotone"
                         dataKey="balance"
                         name="Corpus Balance"
-                        stroke={swpResult.isSustainable ? "#22c55e" : THEME.accent}
+                        stroke={swpResult.isSustainable ? THEME.sage : THEME.accent}
                         strokeWidth={2.5}
                         fill="url(#gSwpBalance)"
                       />
@@ -2299,7 +2299,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         type="monotone"
                         dataKey="withdrawn"
                         name="Total Withdrawn"
-                        stroke="#94a3b8"
+                        stroke={THEME.muted}
                         strokeWidth={1.5}
                         fill="url(#gSwpWithdrawn)"
                         strokeDasharray="4 2"
@@ -2344,7 +2344,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div
                   style={{
                     padding: 24,
-                    background: `${THEME.muted}09`,
+                    background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                     borderRadius: 12,
                     border: `1px solid ${THEME.line}`,
                   }}
@@ -2459,8 +2459,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   style={{
                     padding: "12px 16px",
                     borderRadius: 10,
-                    background: `${THEME.gold}15`,
-                    border: `1.5px solid ${THEME.gold}33`,
+                    background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                    border: `1.5px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
                     display: "flex",
                     gap: 10,
                     alignItems: "flex-start",
@@ -2548,12 +2548,20 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   }}
                 >
                   <span
-                    style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}
+                    style={{
+                      background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                    }}
                   >
                     ⏱️ Years to Retire: {fireResult.yrsToRet}
                   </span>
                   <span
-                    style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}
+                    style={{
+                      background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                    }}
                   >
                     🗓️ Years in Retirement: {fireResult.yrsInRet}
                   </span>
@@ -2577,7 +2585,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div
                   style={{
                     padding: 18,
-                    background: `${THEME.muted}09`,
+                    background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                     borderRadius: 12,
                     border: `1px solid ${THEME.line}`,
                   }}
@@ -2626,8 +2634,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     marginTop: 18,
                     padding: "12px 14px",
                     borderRadius: 10,
-                    background: fireResult.gap <= 0 ? `${THEME.sage}09` : `${THEME.rust}09`,
-                    border: `1.5px solid ${fireResult.gap <= 0 ? THEME.sage : THEME.rust}22`,
+                    background:
+                      fireResult.gap <= 0
+                        ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
+                        : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+                    border: `1.5px solid color-mix(in srgb, ${fireResult.gap <= 0 ? THEME.sage : THEME.rust} 13%, transparent)`,
                     fontSize: 12.5,
                     lineHeight: 1.5,
                     fontWeight: 600,
@@ -2683,8 +2694,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       padding: "14px 16px",
                       borderRadius: 12,
-                      background: `${THEME.accent}08`,
-                      border: `1px solid ${THEME.accent}22`,
+                      background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
                     }}
                   >
                     <div
@@ -2707,8 +2718,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       padding: "14px 16px",
                       borderRadius: 12,
-                      background: `${THEME.sage}08`,
-                      border: `1px solid ${THEME.sage}22`,
+                      background: `color-mix(in srgb, ${THEME.sage} 3%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                     }}
                   >
                     <div
@@ -2729,8 +2740,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       padding: "14px 16px",
                       borderRadius: 12,
-                      background: `${THEME.gold}08`,
-                      border: `1px solid ${THEME.gold}22`,
+                      background: `color-mix(in srgb, ${THEME.gold} 3%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
                     }}
                   >
                     <div
@@ -2753,8 +2764,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       padding: "14px 16px",
                       borderRadius: 12,
-                      background: `${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}08`,
-                      border: `1px solid ${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}22`,
+                      background: `color-mix(in srgb, ${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust} 3%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust} 13%, transparent)`,
                     }}
                   >
                     <div
@@ -2778,7 +2789,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       style={{
                         height: 4,
                         borderRadius: 2,
-                        background: `${THEME.muted}22`,
+                        background: `color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
                         marginTop: 6,
                       }}
                     >
@@ -2814,7 +2825,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     display: "flex",
                     gap: 8,
                     marginBottom: 20,
-                    background: `${THEME.muted}09`,
+                    background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                     padding: 4,
                     borderRadius: 10,
                   }}
@@ -2917,7 +2928,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <div
                       style={{
                         padding: 18,
-                        background: `${THEME.muted}09`,
+                        background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                         borderRadius: 12,
                         border: `1px solid ${THEME.line}`,
                       }}
@@ -2997,7 +3008,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     display: "flex",
                     gap: 8,
                     marginBottom: 16,
-                    background: `${THEME.muted}09`,
+                    background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                     padding: 4,
                     borderRadius: 10,
                   }}
@@ -3083,7 +3094,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       width: 44,
                       height: 44,
                       borderRadius: 12,
-                      background: lviResult.isInvestBetter ? `${THEME.sage}15` : `${THEME.gold}15`,
+                      background: lviResult.isInvestBetter
+                        ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
+                        : `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -3151,9 +3164,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <div
                       style={{
                         padding: 16,
-                        background: `${THEME.muted}05`,
+                        background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
                         borderRadius: 12,
-                        border: `1.5px solid ${lviResult.isInvestBetter ? THEME.line : THEME.gold}44`,
+                        border: `1.5px solid color-mix(in srgb, ${lviResult.isInvestBetter ? THEME.line : THEME.gold} 27%, transparent)`,
                       }}
                     >
                       <div
@@ -3188,9 +3201,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <div
                       style={{
                         padding: 16,
-                        background: `${THEME.muted}05`,
+                        background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
                         borderRadius: 12,
-                        border: `1.5px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.line}44`,
+                        border: `1.5px solid color-mix(in srgb, ${lviResult.isInvestBetter ? THEME.sage : THEME.line} 27%, transparent)`,
                       }}
                     >
                       <div
@@ -3227,7 +3240,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    background: `${THEME.muted}09`,
+                    background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                     padding: "14px 18px",
                     borderRadius: 12,
                     border: `1px solid ${THEME.line}`,
@@ -3316,7 +3329,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <div
                     style={{
                       padding: 16,
-                      background: `${THEME.muted}09`,
+                      background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                       borderRadius: 12,
                       border: `1px solid ${THEME.line}`,
                     }}
@@ -3333,9 +3346,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <div
                     style={{
                       padding: 16,
-                      background: `${THEME.sage}09`,
+                      background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
                       borderRadius: 12,
-                      border: `1px solid ${THEME.sage}22`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                     }}
                   >
                     <div
@@ -3404,7 +3417,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         padding: "8px 12px",
                         borderRadius: 8,
                         border: `1.5px solid ${THEME.line}`,
-                        background: `${THEME.muted}09`,
+                        background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                         color: THEME.ink,
                         fontSize: 12.5,
                         fontWeight: 600,
@@ -3432,7 +3445,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         padding: "8px 12px",
                         borderRadius: 8,
                         border: `1.5px solid ${THEME.line}`,
-                        background: `${THEME.muted}09`,
+                        background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                         color: THEME.ink,
                         fontSize: 12.5,
                         fontWeight: 600,
@@ -3462,7 +3475,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         padding: "8px 12px",
                         borderRadius: 8,
                         border: `1.5px solid ${THEME.line}`,
-                        background: `${THEME.muted}09`,
+                        background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                         color: THEME.ink,
                         fontSize: 12.5,
                         fontWeight: 600,
@@ -3626,7 +3639,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           : stressResult.safetyLevel === "caution"
                             ? THEME.gold
                             : stressResult.safetyLevel === "elite"
-                              ? "#D97706"
+                              ? THEME.gold
                               : THEME.sage,
                     }}
                   >
@@ -3657,28 +3670,28 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     fontWeight: 700,
                     background:
                       stressResult.safetyLevel === "critical"
-                        ? `${THEME.rust}15`
+                        ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)`
                         : stressResult.safetyLevel === "caution"
-                          ? `${THEME.gold}15`
+                          ? `color-mix(in srgb, ${THEME.gold} 8%, transparent)`
                           : stressResult.safetyLevel === "elite"
-                            ? `${THEME.gold}22`
-                            : `${THEME.sage}15`,
+                            ? `color-mix(in srgb, ${THEME.gold} 13%, transparent)`
+                            : `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
                     color:
                       stressResult.safetyLevel === "critical"
                         ? THEME.rust
                         : stressResult.safetyLevel === "caution"
                           ? THEME.gold
                           : stressResult.safetyLevel === "elite"
-                            ? "#D97706"
+                            ? THEME.gold
                             : THEME.sage,
                     border: `1.5px solid ${
                       stressResult.safetyLevel === "critical"
-                        ? `${THEME.rust}33`
+                        ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)`
                         : stressResult.safetyLevel === "caution"
-                          ? `${THEME.gold}33`
+                          ? `color-mix(in srgb, ${THEME.gold} 20%, transparent)`
                           : stressResult.safetyLevel === "elite"
-                            ? `${THEME.gold}44`
-                            : `${THEME.sage}33`
+                            ? `color-mix(in srgb, ${THEME.gold} 27%, transparent)`
+                            : `color-mix(in srgb, ${THEME.sage} 20%, transparent)`
                     }`,
                   }}
                 >
@@ -3732,7 +3745,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       label: "Stress-Adjusted Cash (Liquid Banks)",
                       base: stressResult.baseCash,
                       stressed: stressResult.stressCash,
-                      color: "#22c55e",
+                      color: THEME.sage,
                       hint: "No haircut",
                     },
                     {
@@ -4078,7 +4091,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${THEME.accent}15`,
+                      background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -4157,7 +4170,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 {/* Preset 1: Career Gap / Sabbatical Accordion Card */}
                 <div
                   style={{
-                    background: `${THEME.muted}05`,
+                    background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
                     border: `1.5px solid ${sabActive ? THEME.accent : THEME.line}`,
                     borderRadius: 12,
                     padding: 16,
@@ -4203,7 +4216,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          backgroundColor: sabActive ? THEME.accent : "#ccc",
+                          backgroundColor: sabActive ? THEME.accent : THEME.line,
                           borderRadius: 34,
                           transition: "0.3s",
                         }}
@@ -4247,7 +4260,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 {/* Preset 2: Startup Venture Accordion Card */}
                 <div
                   style={{
-                    background: `${THEME.muted}05`,
+                    background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
                     border: `1.5px solid ${startupActive ? THEME.gold : THEME.line}`,
                     borderRadius: 12,
                     padding: 16,
@@ -4293,7 +4306,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          backgroundColor: startupActive ? THEME.gold : "#ccc",
+                          backgroundColor: startupActive ? THEME.gold : THEME.line,
                           borderRadius: 34,
                           transition: "0.3s",
                         }}
@@ -4340,7 +4353,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 {/* Preset 3: Real Estate Purchase Accordion Card */}
                 <div
                   style={{
-                    background: `${THEME.muted}05`,
+                    background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
                     border: `1.5px solid ${propActive ? THEME.rust : THEME.line}`,
                     borderRadius: 12,
                     padding: 16,
@@ -4385,7 +4398,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          backgroundColor: propActive ? THEME.rust : "#ccc",
+                          backgroundColor: propActive ? THEME.rust : THEME.line,
                           borderRadius: 34,
                           transition: "0.3s",
                         }}
@@ -4640,7 +4653,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${THEME.gold}15`,
+                      background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -4791,8 +4804,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   style={{
                     marginTop: 8,
                     padding: "10px 12px",
-                    background: `${THEME.gold}12`,
-                    border: `1px solid ${THEME.gold}40`,
+                    background: `color-mix(in srgb, ${THEME.gold} 7%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
                     borderRadius: 10,
                     display: "flex",
                     gap: 8,
@@ -4825,9 +4838,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       flex: "1 1 200px",
                       padding: 20,
-                      background: `${THEME.rust}08`,
+                      background: `color-mix(in srgb, ${THEME.rust} 3%, transparent)`,
                       borderRadius: 12,
-                      border: `1px solid ${THEME.rust}25`,
+                      border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
                     }}
                   >
                     <div
@@ -4869,9 +4882,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     style={{
                       flex: "1 1 200px",
                       padding: 20,
-                      background: `${THEME.sage}08`,
+                      background: `color-mix(in srgb, ${THEME.sage} 3%, transparent)`,
                       borderRadius: 12,
-                      border: `1px solid ${THEME.sage}25`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
                     }}
                   >
                     <div
@@ -4953,9 +4966,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div
                   style={{
                     padding: 20,
-                    background: `${THEME.sage}10`,
+                    background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
                     borderRadius: 12,
-                    border: `1px solid ${THEME.sage}30`,
+                    border: `1px solid color-mix(in srgb, ${THEME.sage} 19%, transparent)`,
                     marginBottom: 24,
                     display: "flex",
                     justifyContent: "space-between",
@@ -5059,10 +5072,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     borderRadius: 12,
                     background:
                       riResult.adequacy === "green"
-                        ? `${THEME.sage}18`
+                        ? `color-mix(in srgb, ${THEME.sage} 9%, transparent)`
                         : riResult.adequacy === "yellow"
-                          ? `${THEME.gold}18`
-                          : `${THEME.rust}18`,
+                          ? `color-mix(in srgb, ${THEME.gold} 9%, transparent)`
+                          : `color-mix(in srgb, ${THEME.rust} 9%, transparent)`,
                     border: `1.5px solid ${
                       riResult.adequacy === "green"
                         ? THEME.sage
@@ -5123,7 +5136,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <div
                       style={{
                         padding: 18,
-                        background: `${THEME.muted}09`,
+                        background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                         borderRadius: 12,
                         border: `1px solid ${THEME.line}`,
                       }}
@@ -5194,9 +5207,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <div
                         style={{
                           padding: 18,
-                          background: `${THEME.rust}0c`,
+                          background: `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
                           borderRadius: 12,
-                          border: `1.5px solid ${THEME.rust}40`,
+                          border: `1.5px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
                           height: "100%",
                         }}
                       >
@@ -5236,9 +5249,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <div
                         style={{
                           padding: 18,
-                          background: `${THEME.sage}0c`,
+                          background: `color-mix(in srgb, ${THEME.sage} 5%, transparent)`,
                           borderRadius: 12,
-                          border: `1.5px solid ${THEME.sage}40`,
+                          border: `1.5px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
                           height: "100%",
                           display: "flex",
                           flexDirection: "column",

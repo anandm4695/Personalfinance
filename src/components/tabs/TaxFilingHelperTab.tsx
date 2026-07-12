@@ -453,8 +453,8 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             marginTop: 16,
             padding: "12px 16px",
             borderRadius: 12,
-            background: "#10B98110",
-            border: "1px solid #10B98130",
+            background: "color-mix(in srgb, var(--t-sage) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-sage) 30%, transparent)",
           }}
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Total Deductions</div>
@@ -465,7 +465,13 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       </Card>
 
       {/* Tax Paid & Advance Tax */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 16,
+        }}
+      >
         <Card style={{ padding: 24 }}>
           <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
             Tax Already Paid

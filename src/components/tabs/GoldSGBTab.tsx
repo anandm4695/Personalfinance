@@ -273,7 +273,13 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
 
       {/* Type Breakdown */}
       {stats.byType.length > 1 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 16,
+          }}
+        >
           <Card style={{ padding: 24 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
               By Type
@@ -370,7 +376,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                       width: 40,
                       height: 40,
                       borderRadius: 12,
-                      background: `${h.typeInfo.color}20`,
+                      background: `color-mix(in srgb, ${h.typeInfo.color} 20%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",

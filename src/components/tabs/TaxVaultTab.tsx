@@ -310,8 +310,8 @@ const Reconciler26AS = ({
         style={{
           padding: "10px 16px",
           borderRadius: 10,
-          background: `${THEME.accent}09`,
-          border: `1px solid ${THEME.accent}22`,
+          background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
           display: "flex",
           alignItems: "flex-start",
           gap: 8,
@@ -381,7 +381,7 @@ const Reconciler26AS = ({
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: `${THEME.rust}12`,
+            background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
             color: THEME.rust,
             fontSize: 12,
             marginBottom: 16,
@@ -462,7 +462,7 @@ const Reconciler26AS = ({
               <div
                 style={{
                   padding: "10px 16px",
-                  background: `${THEME.sage}10`,
+                  background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
                   borderBottom: `1px solid ${THEME.line}`,
                   display: "flex",
                   alignItems: "center",
@@ -517,7 +517,7 @@ const Reconciler26AS = ({
               <div
                 style={{
                   padding: "10px 16px",
-                  background: `${THEME.gold}10`,
+                  background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
                   borderBottom: `1px solid ${THEME.line}`,
                   display: "flex",
                   alignItems: "center",
@@ -575,7 +575,7 @@ const Reconciler26AS = ({
               <div
                 style={{
                   padding: "10px 16px",
-                  background: `${THEME.rust}10`,
+                  background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
                   borderBottom: `1px solid ${THEME.line}`,
                   display: "flex",
                   alignItems: "center",
@@ -629,8 +629,8 @@ const Reconciler26AS = ({
                 style={{
                   padding: "14px 16px",
                   borderRadius: 10,
-                  background: `${THEME.sage}10`,
-                  border: `1px solid ${THEME.sage}22`,
+                  background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -716,8 +716,11 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
                 alignItems: "center",
                 padding: "8px 10px",
                 borderRadius: 8,
-                background: slab.rate === 0 ? `${THEME.sage}09` : `${accentColor}08`,
-                border: `1px solid ${slab.rate === 0 ? THEME.sage : accentColor}18`,
+                background:
+                  slab.rate === 0
+                    ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
+                    : `color-mix(in srgb, ${accentColor} 3%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${slab.rate === 0 ? THEME.sage : accentColor} 9%, transparent)`,
               }}
             >
               <div>
@@ -937,8 +940,8 @@ const HRACalculator = () => {
         {salary > 0 && received > 0 && (
           <div
             style={{
-              background: `${THEME.accent}06`,
-              border: `1px solid ${THEME.accent}22`,
+              background: `color-mix(in srgb, ${THEME.accent} 2%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               borderRadius: 12,
               padding: 16,
             }}
@@ -1907,7 +1910,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${color}1f`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1979,7 +1982,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   padding: 0,
                   overflow: "hidden",
                   borderRadius: 16,
-                  border: `1.5px solid ${regimeVerdict.better === "new" ? THEME.accent : regimeVerdict.better === "old" ? THEME.gold : THEME.line}22`,
+                  border: `1.5px solid ${
+                    regimeVerdict.better === "new"
+                      ? `color-mix(in srgb, ${THEME.accent} 13%, transparent)`
+                      : regimeVerdict.better === "old"
+                        ? `color-mix(in srgb, ${THEME.gold} 13%, transparent)`
+                        : THEME.line
+                  }`,
                 }}
               >
                 <div
@@ -1989,7 +1998,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       regimeVerdict.better === "new"
                         ? `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`
                         : regimeVerdict.better === "old"
-                          ? `linear-gradient(90deg, ${THEME.gold}, #FBBF24)`
+                          ? `linear-gradient(90deg, ${THEME.gold}, color-mix(in srgb, var(--t-gold) 65%, white))`
                           : THEME.line,
                   }}
                 />
@@ -2001,7 +2010,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         width: 36,
                         height: 36,
                         borderRadius: 10,
-                        background: `${THEME.accent}15`,
+                        background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2025,8 +2034,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           borderRadius: 99,
                           background:
                             regimeVerdict.better === "new"
-                              ? `${THEME.accent}15`
-                              : `${THEME.gold}15`,
+                              ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                              : `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                           color: regimeVerdict.better === "new" ? THEME.accent : THEME.gold,
                           fontSize: 12,
                           fontWeight: 800,
@@ -2053,9 +2062,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         borderRadius: 12,
                         background:
                           regimeVerdict.better === "new"
-                            ? `${THEME.accent}10`
+                            ? `color-mix(in srgb, ${THEME.accent} 6%, transparent)`
                             : "rgba(128,128,128,0.03)",
-                        border: `1.5px solid ${regimeVerdict.better === "new" ? THEME.accent : THEME.line}${regimeVerdict.better === "new" ? "33" : ""}`,
+                        border: `1.5px solid ${
+                          regimeVerdict.better === "new"
+                            ? `color-mix(in srgb, ${THEME.accent} 20%, transparent)`
+                            : THEME.line
+                        }`,
                       }}
                     >
                       <div
@@ -2134,9 +2147,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         borderRadius: 12,
                         background:
                           regimeVerdict.better === "old"
-                            ? `${THEME.gold}10`
+                            ? `color-mix(in srgb, ${THEME.gold} 6%, transparent)`
                             : "rgba(128,128,128,0.03)",
-                        border: `1.5px solid ${regimeVerdict.better === "old" ? THEME.gold : THEME.line}${regimeVerdict.better === "old" ? "33" : ""}`,
+                        border: `1.5px solid ${
+                          regimeVerdict.better === "old"
+                            ? `color-mix(in srgb, ${THEME.gold} 20%, transparent)`
+                            : THEME.line
+                        }`,
                       }}
                     >
                       <div
@@ -2191,8 +2208,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         padding: "12px 16px",
                         borderRadius: 10,
                         background:
-                          regimeVerdict.better === "new" ? `${THEME.accent}0f` : `${THEME.gold}0f`,
-                        border: `1px solid ${regimeVerdict.better === "new" ? THEME.accent : THEME.gold}22`,
+                          regimeVerdict.better === "new"
+                            ? `color-mix(in srgb, ${THEME.accent} 6%, transparent)`
+                            : `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${regimeVerdict.better === "new" ? THEME.accent : THEME.gold} 13%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
@@ -2250,7 +2269,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         marginTop: 16,
                         padding: "10px 14px",
                         borderRadius: 10,
-                        background: `${THEME.accent}08`,
+                        background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                         border: `1px solid ${THEME.line}`,
                         fontSize: 13,
                         color: THEME.muted,
@@ -2367,7 +2386,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             style={{
                               height: 6,
                               borderRadius: 3,
-                              background: `${THEME.muted}18`,
+                              background: `color-mix(in srgb, ${THEME.muted} 9%, transparent)`,
                               overflow: "hidden",
                             }}
                           >
@@ -2569,7 +2588,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           width: 36,
                           height: 36,
                           borderRadius: 10,
-                          background: isPaid ? `${THEME.sage}1f` : `${THEME.gold}1f`,
+                          background: isPaid
+                            ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                            : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -2610,8 +2631,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     marginTop: 16,
                     padding: "10px 12px",
                     borderRadius: 10,
-                    background: `${THEME.sage}15`,
-                    border: `1px solid ${THEME.sage}33`,
+                    background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
@@ -2668,8 +2689,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     style={{
                       padding: 20,
                       marginBottom: 24,
-                      background: `${THEME.sage}09`,
-                      border: `1px solid ${THEME.sage}33`,
+                      background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       gap: 16,
@@ -2697,7 +2718,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               const daysLeft = Math.ceil((target.dueDate.getTime() - now.getTime()) / 86400000);
               const isOverdue = daysLeft < 0;
               const isUrgent = daysLeft >= 0 && daysLeft <= 15;
-              const countColor = isOverdue ? THEME.rust : isUrgent ? "#f59e0b" : THEME.sage;
+              const countColor = isOverdue ? THEME.rust : isUrgent ? THEME.gold : THEME.sage;
               const dueDateStr = target.dueDate.toLocaleDateString("en-IN", {
                 day: "numeric",
                 month: "short",
@@ -2705,7 +2726,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               });
               return (
                 <Card
-                  style={{ padding: 24, marginBottom: 24, border: `1.5px solid ${countColor}30` }}
+                  style={{
+                    padding: 24,
+                    marginBottom: 24,
+                    border: `1.5px solid color-mix(in srgb, ${countColor} 19%, transparent)`,
+                  }}
                 >
                   <div
                     style={{
@@ -2845,8 +2870,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         marginTop: 14,
                         padding: "10px 14px",
                         borderRadius: 8,
-                        background: `${THEME.rust}0f`,
-                        border: `1px solid ${THEME.rust}26`,
+                        background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
                         fontSize: 12,
                         color: THEME.rust,
                         fontWeight: 600,
@@ -2923,8 +2948,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         style={{
                           padding: 14,
                           borderRadius: 10,
-                          background: `${THEME.accent}08`,
-                          border: `1px solid ${THEME.accent}22`,
+                          background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
                         }}
                       >
                         <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
@@ -2938,8 +2963,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         style={{
                           padding: 14,
                           borderRadius: 10,
-                          background: `${THEME.sage}08`,
-                          border: `1px solid ${THEME.sage}22`,
+                          background: `color-mix(in srgb, ${THEME.sage} 3%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                         }}
                       >
                         <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
@@ -2953,8 +2978,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         style={{
                           padding: 14,
                           borderRadius: 10,
-                          background: `${THEME.gold}08`,
-                          border: `1px solid ${THEME.gold}22`,
+                          background: `color-mix(in srgb, ${THEME.gold} 3%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
                         }}
                       >
                         <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
@@ -2969,8 +2994,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           style={{
                             padding: 14,
                             borderRadius: 10,
-                            background: `${THEME.rust}08`,
-                            border: `1px solid ${THEME.rust}22`,
+                            background: `color-mix(in srgb, ${THEME.rust} 3%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${THEME.rust} 13%, transparent)`,
                           }}
                         >
                           <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
@@ -2985,7 +3010,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         </div>
                       )}
                     </div>
-                    <div style={{ background: `${THEME.muted}06`, borderRadius: 10, padding: 14 }}>
+                    <div
+                      style={{
+                        background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
+                        borderRadius: 10,
+                        padding: 14,
+                      }}
+                    >
                       <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
                         Recommended Quarterly Payments
                       </div>
@@ -3044,18 +3075,18 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             if (daysToITR < -30) return null;
             const isOverdue = daysToITR < 0;
             const isUrgent = daysToITR >= 0 && daysToITR <= 30;
-            const bannerColor = isOverdue ? THEME.rust : isUrgent ? "#f59e0b" : THEME.sage;
+            const bannerColor = isOverdue ? THEME.rust : isUrgent ? THEME.gold : THEME.sage;
             return (
               <div
                 style={{
                   padding: "14px 20px",
                   borderRadius: 12,
                   background: isOverdue
-                    ? `${THEME.rust}09`
+                    ? `color-mix(in srgb, ${THEME.rust} 4%, transparent)`
                     : isUrgent
-                      ? `${THEME.gold}09`
-                      : `${THEME.sage}09`,
-                  border: `1.5px solid ${bannerColor}30`,
+                      ? `color-mix(in srgb, ${THEME.gold} 4%, transparent)`
+                      : `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+                  border: `1.5px solid color-mix(in srgb, ${bannerColor} 19%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   gap: 16,
@@ -3067,7 +3098,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     width: 48,
                     height: 48,
                     borderRadius: 12,
-                    background: `${bannerColor}15`,
+                    background: `color-mix(in srgb, ${bannerColor} 8%, transparent)`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -3244,8 +3275,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       marginTop: 16,
                       padding: "8px 12px",
                       borderRadius: 8,
-                      background: `${THEME.sage}0a`,
-                      border: `1px solid ${THEME.sage}22`,
+                      background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                       fontSize: 11,
                       color: THEME.muted,
                     }}
@@ -3717,7 +3748,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       style={{
                         borderRadius: 14,
                         background: "var(--surface-0)",
-                        border: `1.5px solid ${isExpanded ? priorityColor : THEME.line}22`,
+                        border: `1.5px solid color-mix(in srgb, ${isExpanded ? priorityColor : THEME.line} 13%, transparent)`,
                         overflow: "hidden",
                         transition: "border-color 0.2s",
                       }}
@@ -3801,8 +3832,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                               marginTop: 12,
                               padding: "14px 16px",
                               borderRadius: 10,
-                              background: `${priorityColor}08`,
-                              border: `1px solid ${priorityColor}18`,
+                              background: `color-mix(in srgb, ${priorityColor} 3%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${priorityColor} 9%, transparent)`,
                             }}
                           >
                             <div
@@ -3997,8 +4028,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             style={{
               padding: "10px 16px",
               borderRadius: 10,
-              background: `${THEME.accent}09`,
-              border: `1px solid ${THEME.accent}22`,
+              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               display: "flex",
               alignItems: "flex-start",
               gap: 8,
@@ -4190,7 +4221,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         fontSize: 11,
                         padding: "2px 8px",
                         color: THEME.rust,
-                        background: `${THEME.rust}15`,
+                        background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                       }}
                     >
                       Reset
@@ -4258,8 +4289,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     marginTop: 16,
                     padding: "10px 12px",
                     borderRadius: 10,
-                    background: `${THEME.accent}0f`,
-                    border: `1px solid ${THEME.accent}26`,
+                    background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
                     fontSize: 11,
                     fontWeight: 600,
                     color: THEME.accent,
@@ -4335,7 +4366,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       gap: 16,
                       padding: "16px 20px",
                       borderRadius: 14,
-                      background: isSelected ? `${THEME.sage}09` : "var(--surface-0)",
+                      background: isSelected
+                        ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
+                        : "var(--surface-0)",
                       border: `1.5px solid ${isSelected ? THEME.sage : THEME.line}`,
                       cursor: "pointer",
                       transition: "all 0.2s",
@@ -4420,8 +4453,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           <Card
             style={{
               padding: 24,
-              background: `${THEME.accent}09`,
-              border: `1.5px solid ${THEME.accent}22`,
+              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               marginBottom: 24,
             }}
           >
@@ -4519,7 +4552,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       gap: 6,
                       padding: "6px 14px",
                       borderRadius: 8,
-                      border: `1px solid ${THEME.sage}55`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 33%, transparent)`,
                       background: "transparent",
                       color: THEME.sage,
                       fontSize: 12,
@@ -4594,7 +4627,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       gap: 6,
                       padding: "6px 14px",
                       borderRadius: 8,
-                      border: `1px solid ${THEME.accent}55`,
+                      border: `1px solid color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
                       background: "transparent",
                       color: THEME.accent,
                       fontSize: 12,

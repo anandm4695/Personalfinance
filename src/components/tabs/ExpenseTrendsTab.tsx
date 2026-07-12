@@ -1122,7 +1122,11 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                       onClick={() =>
                         setExpandedCat(expandedCat === row.category ? null : row.category)
                       }
-                      className="table-row-hover"
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                          "color-mix(in srgb, var(--t-accent) 4%, transparent)")
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

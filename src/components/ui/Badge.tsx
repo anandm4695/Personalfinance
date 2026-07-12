@@ -29,7 +29,7 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={`badge ${variantClass} ${className}`}
-      style={style}
+      style={{ ...(onClick ? { cursor: "pointer" } : {}), ...style }}
       onClick={onClick}
       {...(onClick ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown } : {})}
     >

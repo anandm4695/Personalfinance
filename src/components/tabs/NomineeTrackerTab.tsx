@@ -240,7 +240,8 @@ function flattenAssets(state: any): FlatAsset[] {
   for (const d of state.demat || []) {
     const linkedStocks = stocks.filter((s: any) => s.dematId === d.id);
     const val = linkedStocks.reduce(
-      (s: number, st: any) => s + (Number(st.qty) || 0) * (Number(st.currentPrice || st.avgPrice) || 0),
+      (s: number, st: any) =>
+        s + (Number(st.qty) || 0) * (Number(st.currentPrice || st.avgPrice) || 0),
       0
     );
     result.push({
@@ -898,7 +899,12 @@ export const NomineeTrackerTab = ({
                         {/* Asset info */}
                         <div style={{ flex: "1 1 200px", minWidth: 0 }}>
                           <div
-                            style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              flexWrap: "wrap",
+                            }}
                           >
                             <span style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
                               {asset.name}
@@ -1122,7 +1128,11 @@ export const NomineeTrackerTab = ({
                     size="sm"
                     icon={<Trash2 size={12} />}
                     onClick={() => {
-                      if (window.confirm(`Delete Will Document dated ${doc.date || "not specified"}? This cannot be undone.`)) {
+                      if (
+                        window.confirm(
+                          `Delete Will Document dated ${doc.date || "not specified"}? This cannot be undone.`
+                        )
+                      ) {
                         removeItem("documents", doc.id);
                       }
                     }}
@@ -1337,8 +1347,8 @@ export const NomineeTrackerTab = ({
                     }}
                     className="card-lift"
                     style={{
-                      background: `${THEME.rust}09`,
-                      border: `1.5px solid ${THEME.rust}30`,
+                      background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+                      border: `1.5px solid color-mix(in srgb, ${THEME.rust} 19%, transparent)`,
                       borderRadius: 8,
                       cursor: "pointer",
                       width: 28,

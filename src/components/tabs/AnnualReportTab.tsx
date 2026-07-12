@@ -2392,7 +2392,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                       <span
                         style={{
                           fontSize: 12.5,
-                          fontWeight: 550,
+                          fontWeight: 600,
                           color: THEME.ink,
                           lineHeight: 1.6,
                           marginTop: 2,

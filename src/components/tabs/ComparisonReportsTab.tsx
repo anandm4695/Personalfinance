@@ -572,7 +572,9 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
     }
     const isUp = value > 0;
     const color = isUp ? THEME.rust : THEME.sage;
-    const bg = isUp ? `${THEME.rust}16` : `${THEME.sage}16`;
+    const bg = isUp
+      ? `color-mix(in srgb, ${THEME.rust} 16%, transparent)`
+      : `color-mix(in srgb, ${THEME.sage} 16%, transparent)`;
     return (
       <span
         style={{

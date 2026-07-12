@@ -429,7 +429,9 @@ export function PaymentCalendarTab({ state }: any) {
                       width: "100%",
                       height: barH,
                       borderRadius: "4px 4px 0 0",
-                      background: isSelected ? THEME.accent : `${THEME.accent}44`,
+                      background: isSelected
+                        ? THEME.accent
+                        : `color-mix(in srgb, ${THEME.accent} 44%, transparent)`,
                       transition: "all 0.2s",
                     }}
                   />
@@ -578,9 +580,9 @@ export function PaymentCalendarTab({ state }: any) {
                       isToday ? THEME.accent : hasPmts ? THEME.line : "transparent"
                     }`,
                     background: isToday
-                      ? `${THEME.accent}08`
+                      ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
                       : hasPmts
-                        ? "rgba(99,102,241,0.03)"
+                        ? "color-mix(in srgb, var(--t-accent) 3%, transparent)"
                         : "transparent",
                     padding: "5px 4px",
                   }}
@@ -604,7 +606,7 @@ export function PaymentCalendarTab({ state }: any) {
                         style={{
                           fontSize: 9,
                           color: cfg.color,
-                          background: `${cfg.color}14`,
+                          background: `color-mix(in srgb, ${cfg.color} 14%, transparent)`,
                           borderRadius: 3,
                           padding: "1px 3px",
                           marginBottom: 2,
@@ -661,7 +663,7 @@ export function PaymentCalendarTab({ state }: any) {
                 marginTop: 14,
                 padding: "10px 14px",
                 borderRadius: 8,
-                background: "rgba(99,102,241,0.05)",
+                background: "color-mix(in srgb, var(--t-accent) 5%, transparent)",
                 border: `1px solid ${THEME.line}`,
               }}
             >
@@ -691,7 +693,7 @@ export function PaymentCalendarTab({ state }: any) {
                         style={{
                           fontSize: 11,
                           color: cfg.color,
-                          background: `${cfg.color}14`,
+                          background: `color-mix(in srgb, ${cfg.color} 14%, transparent)`,
                           borderRadius: 6,
                           padding: "3px 8px",
                           fontWeight: 600,
@@ -767,7 +769,7 @@ export function PaymentCalendarTab({ state }: any) {
                         alignItems: "center",
                         padding: "8px 12px",
                         borderRadius: 8,
-                        background: `${cfg.color}08`,
+                        background: `color-mix(in srgb, ${cfg.color} 8%, transparent)`,
                         marginBottom: 4,
                         fontSize: 13,
                       }}

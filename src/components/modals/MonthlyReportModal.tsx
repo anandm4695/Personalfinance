@@ -1183,8 +1183,8 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                 alignItems: "center",
                 gap: 8,
                 padding: "8px 12px",
-                background: "rgba(52,211,153,0.08)",
-                border: `1px solid rgba(52,211,153,0.25)`,
+                background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
                 borderRadius: 8,
                 fontSize: 12,
                 color: THEME.sage,
@@ -1201,8 +1201,8 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                 alignItems: "center",
                 gap: 8,
                 padding: "8px 12px",
-                background: "rgba(239,68,68,0.07)",
-                border: `1px solid rgba(239,68,68,0.2)`,
+                background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
                 borderRadius: 8,
                 fontSize: 12,
                 color: THEME.rust,
@@ -1219,8 +1219,8 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                 alignItems: "center",
                 gap: 8,
                 padding: "8px 12px",
-                background: "rgba(251,191,36,0.07)",
-                border: `1px solid rgba(251,191,36,0.25)`,
+                background: `color-mix(in srgb, ${THEME.gold} 7%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
                 borderRadius: 8,
                 fontSize: 12,
                 color: THEME.gold,
@@ -1238,7 +1238,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
               style={{
                 ...btnGhost,
                 color: emailSending ? THEME.muted : THEME.accent,
-                borderColor: THEME.accent + "55",
+                borderColor: `color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
                 opacity: emailSending ? 0.7 : 1,
               }}
               onClick={handleEmailReport}
@@ -1251,7 +1251,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
               style={{
                 ...btnGhost,
                 color: THEME.accent,
-                borderColor: THEME.accent + "55",
+                borderColor: `color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
               }}
               onClick={handleDownloadPDF}
               title="Download as PDF via browser print dialog"

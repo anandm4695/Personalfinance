@@ -2972,6 +2972,7 @@ function FinanceDashboard() {
                 setSidebarHovered(false);
               }}
               title={sidebarMinimized ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={sidebarMinimized ? "Expand sidebar" : "Collapse sidebar"}
               style={{
                 position: "absolute",
                 top: 16,
@@ -3025,12 +3026,25 @@ function FinanceDashboard() {
                   {/* Group label — hidden in compact mode */}
                   {!isSidebarCompact && (
                     <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={!isCollapsed}
+                      aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${group.title} section`}
                       onClick={() =>
                         setCollapsedGroups((prev) => ({
                           ...prev,
                           [group.title]: !prev[group.title],
                         }))
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setCollapsedGroups((prev) => ({
+                            ...prev,
+                            [group.title]: !prev[group.title],
+                          }));
+                        }
+                      }}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -3087,11 +3101,15 @@ function FinanceDashboard() {
                               }
                             }}
                             title={isSidebarCompact ? t.label : undefined}
+                            aria-label={t.label}
+                            aria-current={active ? "page" : undefined}
                             className={`nav-item ${active ? "active" : ""}`}
                             style={{
                               width: "100%",
                               textAlign: "left",
-                              background: active ? `${THEME.accent}1a` : "transparent",
+                              background: active
+                                ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
+                                : "transparent",
                               border: "none",
                               cursor: "pointer",
                               padding: isSidebarCompact ? "10px 0" : "10px 16px",
@@ -3157,7 +3175,7 @@ function FinanceDashboard() {
                               style={{
                                 marginLeft: 18,
                                 paddingLeft: 14,
-                                borderLeft: `2px solid ${THEME.accent}38`,
+                                borderLeft: `2px solid color-mix(in srgb, var(--t-accent) 22%, transparent)`,
                                 marginBottom: 6,
                                 display: "flex",
                                 flexDirection: "column",
@@ -3181,6 +3199,8 @@ function FinanceDashboard() {
                                         setSubTab(child.id);
                                       }
                                     }}
+                                    aria-label={child.label}
+                                    aria-current={childActive ? "page" : undefined}
                                     style={{
                                       display: "flex",
                                       alignItems: "center",
@@ -3188,7 +3208,9 @@ function FinanceDashboard() {
                                       padding: "7px 10px",
                                       borderRadius: 8,
                                       border: "none",
-                                      background: childActive ? `${THEME.accent}15` : "transparent",
+                                      background: childActive
+                                        ? `color-mix(in srgb, var(--t-accent) 8%, transparent)`
+                                        : "transparent",
                                       color: childActive ? THEME.accent : THEME.muted,
                                       fontWeight: childActive ? 700 : 500,
                                       cursor: "pointer",
@@ -3308,7 +3330,7 @@ function FinanceDashboard() {
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    background: `${THEME.line}66`,
+                    background: `color-mix(in srgb, var(--t-line) 40%, transparent)`,
                     border: `1px solid ${THEME.line}`,
                     borderRadius: 10,
                     padding: "8px 12px",
@@ -3318,6 +3340,7 @@ function FinanceDashboard() {
                   <input
                     type="text"
                     placeholder="Search…"
+                    aria-label="Search"
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
@@ -3342,6 +3365,8 @@ function FinanceDashboard() {
                         setSearch("");
                         setShowSearch(false);
                       }}
+                      aria-label="Clear search"
+                      title="Clear search"
                       style={{
                         background: "none",
                         border: "none",
@@ -3434,6 +3459,7 @@ function FinanceDashboard() {
                   value={activeProfile}
                   onChange={(e) => setActiveProfile(e.target.value)}
                   title="Switch profile"
+                  aria-label="Switch profile"
                 >
                   <option value="all">All</option>
                   {familyProfiles.map((p) => (
@@ -3499,12 +3525,15 @@ function FinanceDashboard() {
                                 fontWeight: 600,
                               }}
                               title="Clear All"
+                              aria-label="Clear all alerts"
                             >
                               <CheckCheck size={14} /> Clear All
                             </button>
                           )}
                           <button
                             onClick={() => setShowAlerts(false)}
+                            aria-label="Close alerts"
+                            title="Close alerts"
                             style={{
                               background: "none",
                               border: "none",
@@ -3606,6 +3635,7 @@ function FinanceDashboard() {
                                     alignItems: "center",
                                   }}
                                   title={`Go to ${a.tab}`}
+                                  aria-label={`Go to ${a.tab}`}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 10%, transparent)`;
                                     e.currentTarget.style.color = THEME.accent;
@@ -3636,6 +3666,7 @@ function FinanceDashboard() {
                                     alignItems: "center",
                                   }}
                                   title="Snooze 24h"
+                                  aria-label="Snooze alert for 24 hours"
                                   onMouseEnter={(e) =>
                                     (e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 15%, transparent)`)
                                   }
@@ -3665,6 +3696,7 @@ function FinanceDashboard() {
                                     alignItems: "center",
                                   }}
                                   title="Snooze 7 days"
+                                  aria-label="Snooze alert for 7 days"
                                   onMouseEnter={(e) =>
                                     (e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 15%, transparent)`)
                                   }
@@ -3691,6 +3723,7 @@ function FinanceDashboard() {
                                     alignItems: "center",
                                   }}
                                   title="Dismiss permanently"
+                                  aria-label="Dismiss alert permanently"
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.background = `color-mix(in srgb, var(--t-rust) 15%, transparent)`;
                                     e.currentTarget.style.color = THEME.rust;
@@ -3797,7 +3830,7 @@ function FinanceDashboard() {
                             width: 32,
                             height: 32,
                             borderRadius: "50%",
-                            background: `${THEME.accent}26`,
+                            background: `color-mix(in srgb, var(--t-accent) 15%, transparent)`,
                             border: `2px solid ${showProfileMenu ? THEME.accent : THEME.line}`,
                             display: "flex",
                             alignItems: "center",
@@ -3881,7 +3914,7 @@ function FinanceDashboard() {
                                     width: 44,
                                     height: 44,
                                     borderRadius: "50%",
-                                    background: `${THEME.accent}26`,
+                                    background: `color-mix(in srgb, var(--t-accent) 15%, transparent)`,
                                     border: `2px solid ${THEME.line}`,
                                     display: "flex",
                                     alignItems: "center",
@@ -3949,7 +3982,9 @@ function FinanceDashboard() {
                               alignItems: "center",
                               gap: 10,
                               padding: "9px 16px",
-                              background: item.active ? `${THEME.accent}15` : "none",
+                              background: item.active
+                                ? `color-mix(in srgb, var(--t-accent) 8%, transparent)`
+                                : "none",
                               border: "none",
                               cursor: "pointer",
                               color: item.active ? THEME.accent : THEME.ink,
@@ -4052,8 +4087,8 @@ function FinanceDashboard() {
                 style={{
                   marginBottom: 24,
                   padding: "12px 18px",
-                  background: "rgba(234,179,8,0.08)",
-                  border: "1px solid rgba(234,179,8,0.3)",
+                  background: `color-mix(in srgb, var(--t-gold) 8%, transparent)`,
+                  border: `1px solid color-mix(in srgb, var(--t-gold) 30%, transparent)`,
                   borderRadius: 12,
                   display: "flex",
                   alignItems: "center",
@@ -4069,7 +4104,7 @@ function FinanceDashboard() {
                   <code
                     style={{
                       fontFamily: "monospace",
-                      background: "rgba(234,179,8,0.12)",
+                      background: `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
                       padding: "1px 6px",
                       borderRadius: 4,
                     }}
@@ -4622,7 +4657,7 @@ function FinanceDashboard() {
                             padding: "2px 8px",
                             borderRadius: 6,
                             border: `1.5px solid ${THEME.line}`,
-                            background: "rgba(99,102,241,0.06)",
+                            background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`,
                             fontWeight: 700,
                             fontSize: 12,
                             textAlign: "center",

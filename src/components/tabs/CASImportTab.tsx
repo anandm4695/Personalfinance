@@ -265,10 +265,16 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
       </SectionTitle>
 
       {imported > 0 && (
-        <Card style={{ padding: 16, background: "#10B98115", border: "1px solid #10B98140" }}>
+        <Card
+          style={{
+            padding: 16,
+            background: "color-mix(in srgb, var(--t-sage) 15%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-sage) 40%, transparent)",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <CheckCircle size={20} color="#10B981" />
-            <span style={{ color: "#10B981", fontWeight: 600 }}>
+            <CheckCircle size={20} color="var(--t-sage)" />
+            <span style={{ color: "var(--t-sage)", fontWeight: 600 }}>
               Successfully imported/updated {imported} mutual fund holdings!
             </span>
           </div>

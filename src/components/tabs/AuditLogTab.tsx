@@ -220,7 +220,7 @@ const renderMetadataDetails = (metadata: any, actionType: string) => {
         <div
           style={{
             padding: "6px 14px",
-            background: `${THEME.accent}10`,
+            background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
             borderBottom: `1px solid ${THEME.border}`,
             fontSize: 11,
             fontWeight: 700,
@@ -256,7 +256,6 @@ const renderMetadataDetails = (metadata: any, actionType: string) => {
               style={{
                 flex: 1,
                 fontSize: 12,
-                color: THEME.text,
                 wordBreak: "break-word",
                 fontStyle: Array.isArray(v) && typeof v[0] === "object" ? "italic" : "normal",
                 color:
@@ -515,7 +514,10 @@ export const AuditLogTab = ({ session }) => {
                     padding: "8px 16px",
                     borderRadius: 10,
                     textAlign: "center",
-                    background: day === today ? `${THEME.accent}15` : THEME.bg,
+                    background:
+                      day === today
+                        ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                        : THEME.bg,
                     border: `1px solid ${day === today ? THEME.accent : THEME.border}`,
                   }}
                 >
@@ -669,7 +671,7 @@ export const AuditLogTab = ({ session }) => {
                       fontWeight: 600,
                       padding: "1px 7px",
                       borderRadius: 10,
-                      background: `${THEME.accent}15`,
+                      background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                       color: THEME.accent,
                     }}
                   >
@@ -696,7 +698,10 @@ export const AuditLogTab = ({ session }) => {
                       style={{
                         borderBottom: `1px solid ${THEME.border}`,
                         cursor: hasMetadata ? "pointer" : "default",
-                        background: isHovered || isExpanded ? `${color}06` : "transparent",
+                        background:
+                          isHovered || isExpanded
+                            ? `color-mix(in srgb, ${color} 2%, transparent)`
+                            : "transparent",
                         transition: "background 0.15s",
                       }}
                       onClick={() => hasMetadata && setExpandedId(isExpanded ? null : logKey)}
@@ -717,13 +722,13 @@ export const AuditLogTab = ({ session }) => {
                             width: 34,
                             height: 34,
                             borderRadius: 9,
-                            background: `${color}18`,
+                            background: `color-mix(in srgb, ${color} 9%, transparent)`,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             flexShrink: 0,
                             marginTop: 1,
-                            border: `1px solid ${color}25`,
+                            border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`,
                           }}
                         >
                           <Icon size={14} color={color} />
@@ -777,10 +782,10 @@ export const AuditLogTab = ({ session }) => {
                                 borderRadius: 5,
                                 fontSize: 10,
                                 fontWeight: 700,
-                                background: `${color}18`,
+                                background: `color-mix(in srgb, ${color} 9%, transparent)`,
                                 color,
                                 letterSpacing: "0.3px",
-                                border: `1px solid ${color}30`,
+                                border: `1px solid color-mix(in srgb, ${color} 19%, transparent)`,
                               }}
                             >
                               {getActionLabel(log.action_type)}

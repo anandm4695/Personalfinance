@@ -379,13 +379,14 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
             <div
               key={b.id}
               style={{
-                background: `${b.color}12`,
-                border: `1px solid ${b.color}40`,
+                background: `color-mix(in srgb, ${b.color} 12%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${b.color} 40%, transparent)`,
                 borderRadius: 10,
                 padding: "10px 14px",
                 marginBottom: 6,
                 display: "flex",
                 alignItems: "center",
+                flexWrap: "wrap",
                 gap: 10,
               }}
             >

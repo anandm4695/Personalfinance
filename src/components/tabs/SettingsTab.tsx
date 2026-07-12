@@ -168,7 +168,9 @@ function OptionRow({
                 padding: "8px 16px",
                 borderRadius: 10,
                 border: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
-                background: active ? `${THEME.accent}15` : "var(--surface-0)",
+                background: active
+                  ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                  : "var(--surface-0)",
                 color: active ? THEME.accent : THEME.muted,
                 fontWeight: active ? 700 : 500,
                 fontSize: 13,
@@ -216,6 +218,9 @@ function EditableList({ listKey, items, onUpdate }: any) {
     if (!v || items.includes(v)) return;
     onUpdate(listKey, [...items, v]);
     setVal("");
+    // New item is appended, not inserted in sorted position — the A→Z/Z→A
+    // active indicator would otherwise stay lit while the list is no longer sorted.
+    setSortDir("");
   };
 
   const remove = (item: string) =>
@@ -242,7 +247,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
           gap: 8,
           padding: "12px 16px",
           borderBottom: `1px solid ${THEME.line}`,
-          background: `${THEME.accent}09`,
+          background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
           flexWrap: "wrap",
         }}
       >
@@ -257,7 +262,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
               fontWeight: 800,
               padding: "2px 8px",
               borderRadius: 20,
-              background: `${THEME.accent}22`,
+              background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               color: THEME.accent,
             }}
           >
@@ -364,8 +369,8 @@ function EditableList({ listKey, items, onUpdate }: any) {
               borderRadius: 20,
               fontSize: 13,
               fontWeight: 500,
-              background: `${THEME.accent}15`,
-              border: `1px solid ${THEME.accent}33`,
+              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
               color: THEME.ink,
             }}
           >
@@ -373,7 +378,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
             <button
               onClick={() => remove(item)}
               style={{
-                background: `${THEME.muted}14`,
+                background: `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
                 border: "none",
                 cursor: "pointer",
                 color: THEME.muted,
@@ -399,7 +404,9 @@ function EditableList({ listKey, items, onUpdate }: any) {
           alignItems: "center",
           gap: 0,
           borderTop: `1px solid ${THEME.line}`,
-          background: focused ? `${THEME.accent}05` : "var(--t-paper)",
+          background: focused
+            ? `color-mix(in srgb, ${THEME.accent} 2%, transparent)`
+            : "var(--t-paper)",
           transition: "background 0.15s",
         }}
       >
@@ -614,7 +621,9 @@ function AppearanceSection({
                       overflow: "hidden",
                       cursor: "pointer",
                       background: "var(--t-paper)",
-                      boxShadow: isActive ? `0 0 0 3px ${pal?.light || THEME.accent}33` : "none",
+                      boxShadow: isActive
+                        ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)`
+                        : "none",
                       transition: "all 0.18s",
                       padding: 0,
                       textAlign: "left",
@@ -671,7 +680,7 @@ function AppearanceSection({
                           height: 16,
                           borderRadius: "50%",
                           background: pal?.light || "#4F46E5",
-                          boxShadow: `0 2px 5px ${pal?.light || "#4F46E5"}66`,
+                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || "#4F46E5"} 40%, transparent)`,
                         }}
                       />
                       {isActive && (
@@ -772,7 +781,9 @@ function AppearanceSection({
                       overflow: "hidden",
                       cursor: "pointer",
                       background: "var(--t-paper)",
-                      boxShadow: isActive ? `0 0 0 3px ${pal?.light || THEME.accent}33` : "none",
+                      boxShadow: isActive
+                        ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)`
+                        : "none",
                       transition: "all 0.18s",
                       padding: 0,
                       textAlign: "left",
@@ -829,7 +840,7 @@ function AppearanceSection({
                           height: 16,
                           borderRadius: "50%",
                           background: pal?.light || "#4F46E5",
-                          boxShadow: `0 2px 5px ${pal?.light || "#4F46E5"}66`,
+                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || "#4F46E5"} 40%, transparent)`,
                         }}
                       />
                       {isActive && (
@@ -1033,8 +1044,8 @@ function ProfileSection({ state, updateProfile }: any) {
             width: 64,
             height: 64,
             borderRadius: "50%",
-            background: `${THEME.accent}22`,
-            border: `2px solid ${THEME.accent}44`,
+            background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
+            border: `2px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1227,8 +1238,8 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                   width: 44,
                   height: 44,
                   borderRadius: "50%",
-                  background: `${THEME.accent}22`,
-                  border: `2px solid ${THEME.accent}44`,
+                  background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
+                  border: `2px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1327,8 +1338,8 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
         style={{
           padding: "12px 16px",
           borderRadius: 10,
-          background: `${THEME.accent}09`,
-          border: `1px solid ${THEME.accent}22`,
+          background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
           fontSize: 13,
           color: THEME.ink,
           lineHeight: 1.6,
@@ -1703,7 +1714,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                   fontSize: 10,
                   padding: "2px 8px",
                   borderRadius: 10,
-                  background: `${getCategoryColor(c.id)}15`,
+                  background: `color-mix(in srgb, ${getCategoryColor(c.id)} 8%, transparent)`,
                   color: getCategoryColor(c.id),
                   fontWeight: 700,
                 }}
@@ -1760,7 +1771,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                     borderRadius: 20,
                     background: isActive
                       ? `color-mix(in srgb, var(--t-accent) 16%, transparent)`
-                      : `${THEME.muted}15`,
+                      : `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
                     color: isActive ? "var(--t-accent)" : THEME.muted,
                   }}
                 >
@@ -2097,7 +2108,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                         width: 36,
                         height: 36,
                         borderRadius: 10,
-                        background: `${catColor}12`,
+                        background: `color-mix(in srgb, ${catColor} 7%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2125,7 +2136,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                             fontSize: 10,
                             padding: "2px 8px",
                             borderRadius: 10,
-                            background: `${catColor}15`,
+                            background: `color-mix(in srgb, ${catColor} 8%, transparent)`,
                             color: catColor,
                             fontWeight: 700,
                             textTransform: "uppercase",
@@ -2139,7 +2150,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                               fontSize: 10,
                               padding: "2px 8px",
                               borderRadius: 10,
-                              background: `${THEME.accent}12`,
+                              background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
                               color: THEME.accent,
                               fontWeight: 600,
                             }}
@@ -2192,7 +2203,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                           fontSize: 9,
                           padding: "1px 7px",
                           borderRadius: 8,
-                          background: `${THEME.muted}12`,
+                          background: `color-mix(in srgb, ${THEME.muted} 7%, transparent)`,
                           color: THEME.muted,
                           fontWeight: 600,
                         }}
@@ -2214,7 +2225,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                     style={{
                       padding: "14px 18px",
                       borderTop: `1px solid ${THEME.line}`,
-                      background: `${THEME.muted}06`,
+                      background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
                     }}
                   >
                     <div style={{ display: "grid", gap: 8, fontSize: 12 }}>
@@ -2267,7 +2278,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
                                   fontSize: 10,
                                   padding: "2px 8px",
                                   borderRadius: 8,
-                                  background: `${catColor}12`,
+                                  background: `color-mix(in srgb, ${catColor} 7%, transparent)`,
                                   color: catColor,
                                   fontWeight: 600,
                                 }}
@@ -2615,8 +2626,8 @@ function DataSection({
             style={{
               padding: "16px",
               borderRadius: 10,
-              background: `${THEME.rust}15`,
-              border: `1px solid ${THEME.rust}44`,
+              background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
             }}
           >
             <div style={{ fontSize: 14, fontWeight: 600, color: THEME.rust, marginBottom: 12 }}>
@@ -2869,9 +2880,9 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             style={{
               marginTop: 20,
               padding: "16px 20px",
-              background: `${THEME.accent}09`,
+              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
               borderRadius: 12,
-              border: `1px solid ${THEME.accent}22`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               fontSize: 12,
               color: THEME.muted,
               lineHeight: 1.7,
@@ -2880,7 +2891,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             <strong style={{ color: THEME.accent }}>Setup required:</strong> Add{" "}
             <code
               style={{
-                background: `${THEME.accent}15`,
+                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                 padding: "1px 5px",
                 borderRadius: 4,
                 fontSize: 11,
@@ -2891,7 +2902,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             and{" "}
             <code
               style={{
-                background: `${THEME.accent}15`,
+                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                 padding: "1px 5px",
                 borderRadius: 4,
                 fontSize: 11,
@@ -2944,8 +2955,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   style={{
                     padding: "10px 14px",
                     borderRadius: 8,
-                    background: `${THEME.sage}09`,
-                    border: `1px solid ${THEME.sage}33`,
+                    background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                     fontSize: 12,
                     color: THEME.ink,
                     lineHeight: 1.6,
@@ -2961,8 +2972,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   style={{
                     padding: "10px 14px",
                     borderRadius: 8,
-                    background: `${THEME.gold}15`,
-                    border: `1px solid ${THEME.gold}44`,
+                    background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
                     fontSize: 12,
                     color: THEME.ink,
                     lineHeight: 1.6,
@@ -3018,7 +3029,10 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                         frequency === f.value
                           ? `2px solid ${THEME.accent}`
                           : `1.5px solid ${THEME.line}`,
-                      background: frequency === f.value ? `${THEME.accent}15` : "var(--surface-0)",
+                      background:
+                        frequency === f.value
+                          ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                          : "var(--surface-0)",
                       cursor: "pointer",
                       textAlign: "left" as const,
                       fontFamily: "inherit",
@@ -3063,7 +3077,10 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                         fontFamily: "inherit",
                         fontSize: 13,
                         fontWeight: 600,
-                        background: day === d.value ? `${THEME.accent}15` : "var(--surface-0)",
+                        background:
+                          day === d.value
+                            ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                            : "var(--surface-0)",
                         color: day === d.value ? THEME.accent : THEME.muted,
                         transition: "all 0.15s ease",
                       }}
@@ -3111,8 +3128,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               >
                 <span>⏰</span>
                 <span>
-                  Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong> on
-                  your chosen day.
+                  Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong>{" "}
+                  on your chosen day.
                 </span>
               </div>
             </div>
@@ -3216,7 +3233,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     background: "var(--surface-0)",
                     borderRadius: 10,
                     border: `1px solid ${THEME.line}`,
-                    borderTop: `3px solid ${item.color}44`,
+                    borderTop: `3px solid color-mix(in srgb, ${item.color} 27%, transparent)`,
                   }}
                 >
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
@@ -3378,8 +3395,12 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                       alignItems: "flex-start",
                       padding: "10px 12px",
                       borderRadius: 8,
-                      background: row.ok ? `${THEME.sage}09` : `${THEME.rust}09`,
-                      border: row.ok ? `1px solid ${THEME.sage}33` : `1px solid ${THEME.rust}33`,
+                      background: row.ok
+                        ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
+                        : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+                      border: row.ok
+                        ? `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`
+                        : `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
                     }}
                   >
                     <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>
@@ -3534,8 +3555,8 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
               marginTop: 16,
               padding: "10px 14px",
               borderRadius: 8,
-              background: `${THEME.sage}09`,
-              border: `1px solid ${THEME.sage}33`,
+              background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
               display: "flex",
               alignItems: "center",
               gap: 8,
@@ -3552,8 +3573,8 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
               marginTop: 16,
               padding: "10px 14px",
               borderRadius: 8,
-              background: `${THEME.gold}09`,
-              border: `1px solid ${THEME.gold}33`,
+              background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
               display: "flex",
               alignItems: "center",
               gap: 8,
@@ -3706,7 +3727,7 @@ export function SettingsTab({
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${color}1f`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",

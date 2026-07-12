@@ -76,7 +76,11 @@ const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: str
   salary: { color: "#7c3aed", bg: "#7c3aed15", icon: "💎" },
   joint: { color: "#d97706", bg: "#d9770615", icon: "🤝" },
   fd: { color: "#ea580c", bg: "#ea580c15", icon: "🔒" },
-  other: { color: THEME.muted, bg: `${THEME.line}40`, icon: "🏦" },
+  other: {
+    color: THEME.muted,
+    bg: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+    icon: "🏦",
+  },
 };
 
 const CHART_PALETTE = [
@@ -171,7 +175,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         width: size,
         height: size,
         borderRadius: 10,
-        background: `${THEME.line}40`,
+        background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
         border: `1px solid ${THEME.line}`,
         display: "flex",
         alignItems: "center",
@@ -252,10 +256,10 @@ const BankEmptyState = ({ onAdd }: any) => (
             fontSize: 11,
             padding: "5px 12px",
             borderRadius: 20,
-            background: `${THEME.accent}15`,
+            background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
             color: THEME.accent,
             fontWeight: 600,
-            border: `1px solid ${THEME.accent}26`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
           }}
         >
           ● {f}
@@ -307,10 +311,10 @@ const TxnEmptyState = ({ onAdd }: any) => (
             fontSize: 11,
             padding: "5px 12px",
             borderRadius: 20,
-            background: `${THEME.accent}15`,
+            background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
             color: THEME.accent,
             fontWeight: 600,
-            border: `1px solid ${THEME.accent}26`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
           }}
         >
           ● {f}
@@ -418,7 +422,10 @@ const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
   medical: { color: "#dc2626", bg: "#dc26261a" },
   insurance: { color: "#ea580c", bg: "#ea580c1a" },
   investment: { color: "#7c3aed", bg: "#7c3aed1a" },
-  subscription: { color: THEME.accent as string, bg: `${THEME.accent}1a` },
+  subscription: {
+    color: THEME.accent as string,
+    bg: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+  },
 };
 function getCategoryStyle(cat: string) {
   const key = (cat || "").toLowerCase().trim();
@@ -1237,7 +1244,7 @@ export function BanksTab({
                       justifyContent: "space-between",
                       fontSize: 12,
                       padding: "4px 0",
-                      borderBottom: `1.5px dashed ${THEME.line}50`,
+                      borderBottom: `1.5px dashed color-mix(in srgb, ${THEME.line} 31%, transparent)`,
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1933,7 +1940,7 @@ export function BanksTab({
                                     ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
                                     : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                                 color: inlineEdit.type === "credit" ? THEME.sage : THEME.rust,
-                                border: `1.5px solid ${inlineEdit.type === "credit" ? THEME.sage : THEME.rust}44`,
+                                border: `1.5px solid color-mix(in srgb, ${inlineEdit.type === "credit" ? THEME.sage : THEME.rust} 27%, transparent)`,
                                 borderRadius: 6,
                                 fontSize: 11,
                                 fontWeight: 800,
@@ -2564,8 +2571,8 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
           alignItems: "center",
           justifyContent: "space-between",
           padding: "7px 12px",
-          background: color + "14",
-          border: `1px solid ${color}33`,
+          background: `color-mix(in srgb, ${color} 8%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
           borderRadius: 10,
         }}
       >
@@ -2627,8 +2634,8 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "8px 14px",
-                background: color + "14",
-                border: `1px solid ${color}33`,
+                background: `color-mix(in srgb, ${color} 8%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
                 borderRadius: 10,
                 marginTop: -4,
               }}
@@ -2728,7 +2735,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
                     marginTop: 6,
                     fontWeight: 600,
                     padding: "5px 10px",
-                    background: `${THEME.sage}12`,
+                    background: `color-mix(in srgb, ${THEME.sage} 7%, transparent)`,
                     borderRadius: 8,
                   }}
                 >
@@ -2850,8 +2857,8 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
               alignItems: "center",
               justifyContent: "space-between",
               padding: "8px 14px",
-              background: color + "14",
-              border: `1px solid ${color}33`,
+              background: `color-mix(in srgb, ${color} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
               borderRadius: 10,
               marginTop: -4,
             }}

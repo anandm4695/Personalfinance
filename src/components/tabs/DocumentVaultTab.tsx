@@ -900,7 +900,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 position: "absolute",
                 top: 4,
                 right: 8,
-                color: days < 0 ? "#EF4444" : "#D97706",
+                color: days < 0 ? THEME.rust : THEME.gold,
                 transform: "scale(0.8)",
               }}
             />
@@ -1094,6 +1094,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 color: THEME.accent,
                 transition: "background 0.15s",
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               <ExternalLink size={11} />
               Open
@@ -1117,6 +1123,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               color: THEME.muted,
               transition: "background 0.15s",
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 50%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
           >
             <Pencil size={11} />
             Edit
@@ -1138,6 +1150,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               fontWeight: 700,
               color: THEME.rust,
               transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
             }}
           >
             <Trash2 size={11} />
@@ -1243,6 +1261,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             <button
               onClick={() => window.open(doc.url, "_blank")}
               style={{ ...actionBtnBase, color: THEME.accent }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               <ExternalLink size={13} />
             </button>
@@ -1250,12 +1274,24 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           <button
             onClick={() => openEditModal(doc)}
             style={{ ...actionBtnBase, color: THEME.muted }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 60%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
           >
             <Pencil size={13} />
           </button>
           <button
             onClick={() => handleDelete(doc.id)}
             style={{ ...actionBtnBase, color: THEME.rust }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
           >
             <Trash2 size={13} />
           </button>
@@ -2033,30 +2069,30 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           label="Total Documents"
           value={String(stats.total)}
           icon={<FileText />}
-          color="#6366F1"
+          color={THEME.accent}
         />
         <StatCard
           label="Expiring Soon"
           value={String(stats.expiringSoon)}
           sub="within 30 days"
-          subColor={stats.expiringSoon > 0 ? "#D97706" : undefined}
+          subColor={stats.expiringSoon > 0 ? THEME.gold : undefined}
           icon={<Clock />}
-          color="#D97706"
+          color={THEME.gold}
         />
         <StatCard
           label="Expired"
           value={String(stats.expired)}
           sub={stats.expired > 0 ? "needs attention" : "all clear"}
-          subColor={stats.expired > 0 ? "#EF4444" : "#059669"}
+          subColor={stats.expired > 0 ? THEME.rust : THEME.sage}
           icon={<AlertTriangle />}
-          color="#EF4444"
+          color={THEME.rust}
         />
         <StatCard
           label="Categories"
           value={String(Object.keys(stats.catCounts).length)}
           sub={`of ${CATEGORY_KEYS.length} used`}
           icon={<FolderOpen />}
-          color="#059669"
+          color={THEME.sage}
         />
       </div>
 
@@ -2185,7 +2221,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 fontWeight: 700,
                 padding: "2px 6px",
                 borderRadius: 10,
-                boxShadow: `0 2px 8px ${THEME.accent}40`,
+                boxShadow: `0 2px 8px color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
               }}
             >
               {stats.total}
@@ -2260,13 +2296,13 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               justifyContent: "space-between",
               padding: "14px 20px",
               border: "none",
-              background: "color-mix(in srgb, #EF4444 6%, transparent)",
+              background: "color-mix(in srgb, var(--t-rust) 6%, transparent)",
               cursor: "pointer",
               borderBottom: expandedAlerts ? `1px solid ${THEME.line}` : "none",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <AlertTriangle size={16} color="#EF4444" />
+              <AlertTriangle size={16} color={THEME.rust} />
               <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Expiry Alerts</span>
               <Badge variant="rust" style={{ fontSize: 10 }}>
                 {expiryAlerts.length}
@@ -2344,7 +2380,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                             style={{
                               marginLeft: 8,
                               fontWeight: 700,
-                              color: isExpired ? "#EF4444" : days <= 30 ? "#D97706" : THEME.muted,
+                              color: isExpired ? THEME.rust : days <= 30 ? THEME.gold : THEME.muted,
                             }}
                           >
                             {isExpired
@@ -2365,7 +2401,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                         size="sm"
                         icon={<RefreshCw size={12} />}
                         onClick={() => openRenewModal(doc)}
-                        style={{ color: "#059669", borderColor: "#059669" }}
+                        style={{ color: THEME.sage, borderColor: THEME.sage }}
                       >
                         Renew
                       </Button>

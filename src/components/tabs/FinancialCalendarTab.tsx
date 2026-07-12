@@ -527,7 +527,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: `repeat(${Math.min(Object.keys(stats.monthlyMap).length, 6)}, 1fr)`,
+                gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
                 gap: 12,
               }}
             >
@@ -543,7 +543,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                         textAlign: "center",
                         padding: 12,
                         borderRadius: 10,
-                        background: "rgba(99,102,241,0.06)",
+                        background: "color-mix(in srgb, var(--t-accent) 6%, transparent)",
                       }}
                     >
                       <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
@@ -643,11 +643,11 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                             borderRadius: 10,
                             background:
                               event.days < 0
-                                ? "rgba(239,68,68,0.06)"
+                                ? "color-mix(in srgb, var(--t-rust) 6%, transparent)"
                                 : event.days <= 7
-                                  ? "rgba(249,115,22,0.06)"
-                                  : "rgba(99,102,241,0.04)",
-                            border: `1px solid ${event.days < 0 ? "rgba(239,68,68,0.15)" : THEME.line}`,
+                                  ? "color-mix(in srgb, var(--t-gold) 6%, transparent)"
+                                  : "color-mix(in srgb, var(--t-accent) 4%, transparent)",
+                            border: `1px solid ${event.days < 0 ? "color-mix(in srgb, var(--t-rust) 15%, transparent)" : THEME.line}`,
                           }}
                         >
                           <div
@@ -655,7 +655,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                               width: 40,
                               height: 40,
                               borderRadius: 10,
-                              background: `${event.color}15`,
+                              background: `color-mix(in srgb, ${event.color} 15%, transparent)`,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -705,7 +705,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                             style={{
                               padding: "4px 10px",
                               borderRadius: 6,
-                              background: `${urgencyColor}18`,
+                              background: `color-mix(in srgb, ${urgencyColor} 18%, transparent)`,
                               color: urgencyColor,
                               fontSize: 11,
                               fontWeight: 700,

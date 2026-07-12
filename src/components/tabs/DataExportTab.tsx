@@ -399,14 +399,14 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
           style={{
             padding: 16,
             borderRadius: 12,
-            background: "#F59E0B10",
-            border: "1px solid #F59E0B30",
+            background: "color-mix(in srgb, var(--t-gold) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-gold) 30%, transparent)",
             marginBottom: 16,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <AlertTriangle size={16} color={THEME.gold} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#F59E0B" }}>Warning</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: THEME.gold }}>Warning</span>
           </div>
           <span style={{ fontSize: 13, color: THEME.textSecondary }}>
             Restoring a backup will overwrite your current data. Make sure to export a backup first.

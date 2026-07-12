@@ -631,7 +631,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
     const color = TYPE_COLORS[r.type] || THEME.accent;
     const urgencyCol = days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
     const urgencyBg =
-      days <= 7 ? `${THEME.rust}15` : days <= 30 ? `${THEME.gold}15` : `${THEME.sage}15`;
+      days <= 7
+        ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)`
+        : days <= 30
+          ? `color-mix(in srgb, ${THEME.gold} 8%, transparent)`
+          : `color-mix(in srgb, ${THEME.sage} 8%, transparent)`;
     const Icon = TYPE_ICONS[r.type] || Bell;
     const daysLabel = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`;
 
@@ -647,8 +651,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               height: compact ? 36 : 42,
               borderRadius: 12,
               flexShrink: 0,
-              background: `${color}15`,
-              border: `1px solid ${color}33`,
+              background: `color-mix(in srgb, ${color} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -683,11 +687,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   fontWeight: 800,
                   padding: "2px 8px",
                   borderRadius: 6,
-                  background: `${color}15`,
+                  background: `color-mix(in srgb, ${color} 8%, transparent)`,
                   color,
                   textTransform: "uppercase",
                   letterSpacing: "0.06em",
-                  border: `1px solid ${color}22`,
+                  border: `1px solid color-mix(in srgb, ${color} 13%, transparent)`,
                 }}
               >
                 {r.type}
@@ -707,7 +711,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   padding: "4px 14px",
                   borderRadius: 8,
                   background: urgencyBg,
-                  border: `1px solid ${urgencyCol}33`,
+                  border: `1px solid color-mix(in srgb, ${urgencyCol} 20%, transparent)`,
                 }}
               >
                 <span
@@ -747,7 +751,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                 width: 34,
                 height: 34,
                 borderRadius: "50%",
-                border: `1px dashed ${THEME.sage}66`,
+                border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
                 background: "transparent",
                 display: "flex",
                 alignItems: "center",
@@ -764,7 +768,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderStyle = "dashed";
-                e.currentTarget.style.borderColor = `${THEME.sage}66`;
+                e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
                 e.currentTarget.style.color = THEME.sage;
                 e.currentTarget.style.background = "transparent";
               }}
@@ -943,7 +947,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${color}1f`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -990,7 +994,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           style={{
             padding: 20,
             marginBottom: 24,
-            border: `1px solid ${notifPerm === "granted" ? `${THEME.sage}33` : THEME.line}`,
+            border: `1px solid ${notifPerm === "granted" ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : THEME.line}`,
           }}
         >
           <div
@@ -1006,7 +1010,10 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                background: notifPerm === "granted" ? `${THEME.sage}15` : `${THEME.muted}09`,
+                background:
+                  notifPerm === "granted"
+                    ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
+                    : `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1076,7 +1083,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                           border: active
                             ? `2px solid ${THEME.accent}`
                             : `1.5px solid ${THEME.line}`,
-                          background: active ? `${THEME.accent}15` : "var(--t-paper)",
+                          background: active
+                            ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                            : "var(--t-paper)",
                           color: active ? THEME.accent : THEME.muted,
                           fontWeight: 700,
                           fontSize: 13,
@@ -1219,8 +1228,12 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                           gap: 8,
                           padding: "8px 12px",
                           borderRadius: 8,
-                          border: on ? `1.5px solid ${THEME.sage}44` : `1px solid ${THEME.line}`,
-                          background: on ? `${THEME.sage}09` : "var(--t-paper)",
+                          border: on
+                            ? `1.5px solid color-mix(in srgb, ${THEME.sage} 27%, transparent)`
+                            : `1px solid ${THEME.line}`,
+                          background: on
+                            ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
+                            : "var(--t-paper)",
                           cursor: "pointer",
                           fontFamily: "inherit",
                           textAlign: "left",
@@ -1235,7 +1248,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: on ? `${THEME.sage}22` : `${THEME.muted}15`,
+                            background: on
+                              ? `color-mix(in srgb, ${THEME.sage} 13%, transparent)`
+                              : `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
                             flexShrink: 0,
                           }}
                         >
@@ -1300,8 +1315,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               style={{
                 padding: "40px 24px",
                 textAlign: "center",
-                background: `${THEME.sage}09`,
-                border: `1.5px dashed ${THEME.sage}33`,
+                background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+                border: `1.5px dashed color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                 borderRadius: 16,
                 marginBottom: 24,
               }}
@@ -1311,7 +1326,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   width: 54,
                   height: 54,
                   borderRadius: "50%",
-                  background: `${THEME.sage}15`,
+                  background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1382,13 +1397,25 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                       padding: "5px 14px",
                       borderRadius: 99,
                       border: active ? `1.5px solid ${col}` : `1px solid ${THEME.line}`,
-                      background: active ? `${col}15` : "transparent",
+                      background: active ? `color-mix(in srgb, ${col} 8%, transparent)` : "transparent",
                       color: active ? col : THEME.muted,
                       fontSize: 11,
                       fontWeight: 700,
                       cursor: "pointer",
                       transition: "all 0.18s",
                       letterSpacing: "0.03em",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.borderColor = col;
+                        e.currentTarget.style.color = col;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.borderColor = THEME.line;
+                        e.currentTarget.style.color = THEME.muted;
+                      }
                     }}
                   >
                     {t}
@@ -1490,7 +1517,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             width: 32,
                             height: 32,
                             borderRadius: 8,
-                            background: `${THEME.muted}09`,
+                            background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1519,8 +1546,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                               color: THEME.rust,
                               padding: "2px 8px",
                               borderRadius: 6,
-                              background: `${THEME.rust}12`,
-                              border: `1px solid ${THEME.rust}22`,
+                              background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${THEME.rust} 13%, transparent)`,
                             }}
                           >
                             {days}d ago
@@ -1533,7 +1560,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                               width: 28,
                               height: 28,
                               borderRadius: "50%",
-                              border: `1px dashed ${THEME.sage}66`,
+                              border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
                               background: "transparent",
                               display: "flex",
                               alignItems: "center",
@@ -1550,7 +1577,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.borderStyle = "dashed";
-                              e.currentTarget.style.borderColor = `${THEME.sage}66`;
+                              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
                               e.currentTarget.style.color = THEME.sage;
                               e.currentTarget.style.background = "transparent";
                             }}
@@ -1656,7 +1683,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                         style={{
                           padding: "12px 20px",
                           opacity: 0.55,
-                          background: `${THEME.muted}05`,
+                          background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
                           borderTop: `3px solid ${THEME.sage}`,
                         }}
                       >
@@ -1711,7 +1738,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             onMouseEnter={(e) => {
                               e.currentTarget.style.borderColor = THEME.accent;
                               e.currentTarget.style.color = THEME.accent;
-                              e.currentTarget.style.background = `${THEME.accent}15`;
+                              e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 8%, transparent)`;
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.borderColor = THEME.line;

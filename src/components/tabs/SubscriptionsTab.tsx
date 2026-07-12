@@ -148,7 +148,7 @@ const ServiceLogo = ({
         width: size,
         height: size,
         borderRadius: 10,
-        background: `${THEME.muted}15`,
+        background: `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
         border: `1px solid ${THEME.line}`,
         display: "flex",
         alignItems: "center",
@@ -392,7 +392,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${color}1f`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -439,8 +439,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           style={{
             marginBottom: 24,
             padding: "14px 18px",
-            border: `1px solid ${THEME.gold}44`,
-            background: `${THEME.gold}09`,
+            border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
+            background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -469,7 +469,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                     padding: "8px 12px",
                     borderRadius: 10,
                     background: "var(--t-paper)",
-                    border: `1px solid ${color}33`,
+                    border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
                     minWidth: 160,
                   }}
                 >

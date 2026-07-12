@@ -131,9 +131,9 @@ const GoalEmptyState = ({ onAdd }: any) => (
 
 const PRIORITY_ORDER: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
 const PRIORITY_COLOR: Record<string, string> = {
-  High: "#ef4444",
-  Medium: "#f59e0b",
-  Low: "#22c55e",
+  High: THEME.rust,
+  Medium: THEME.gold,
+  Low: THEME.sage,
 };
 
 export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
@@ -158,9 +158,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   const totalMonthlyRequired = state.goals.reduce((s: number, g: any) => {
     const nominalTarget = Number(g.targetAmount) || 0;
     const inflRate = (Number(inflationRate) || 6) / 100;
-    const yearsToTarget = g.targetDate
-      ? Math.max(0, monthsBetween(today(), g.targetDate) / 12)
-      : 0;
+    const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
     const inflatedTarget =
       showInflation && yearsToTarget > 0
         ? nominalTarget * Math.pow(1 + inflRate, yearsToTarget)
@@ -386,7 +384,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 style={{
                   height: "100%",
                   width: `${Math.min(overallPct, 100)}%`,
-                  background: `linear-gradient(90deg, ${ringColor(overallPct)}, ${ringColor(overallPct)}cc)`,
+                  background: `linear-gradient(90deg, ${ringColor(overallPct)}, color-mix(in srgb, ${ringColor(overallPct)} 80%, transparent))`,
                   borderRadius: 6,
                   transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)",
                 }}
@@ -427,7 +425,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                       style={{
                         padding: "18px 20px",
                         borderRadius: 16,
-                        border: `1.5px solid ${color}20`,
+                        border: `1.5px solid color-mix(in srgb, ${color} 13%, transparent)`,
                         background: `linear-gradient(135deg, color-mix(in srgb, ${color} 4%, var(--surface-0)) 0%, var(--surface-0) 100%)`,
                         boxShadow: "0 2px 12px -2px rgba(0, 0, 0, 0.01)",
                       }}
@@ -512,7 +510,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                   padding: "4px 14px",
                   height: 32,
                   ...(filterPriority !== p && p !== "all"
-                    ? { color: PRIORITY_COLOR[p], borderColor: `${PRIORITY_COLOR[p]}33` }
+                    ? {
+                        color: PRIORITY_COLOR[p],
+                        borderColor: `color-mix(in srgb, ${PRIORITY_COLOR[p]} 20%, transparent)`,
+                      }
                     : {}),
                   ...(filterPriority === p && p !== "all"
                     ? { background: PRIORITY_COLOR[p], borderColor: PRIORITY_COLOR[p] }
@@ -660,9 +661,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          background: `${THEME.sage}22`,
+                          background: `color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                           color: THEME.sage,
-                          border: `1px solid ${THEME.sage}55`,
+                          border: `1px solid color-mix(in srgb, ${THEME.sage} 33%, transparent)`,
                           borderRadius: 6,
                           padding: "2px 8px",
                           letterSpacing: "0.1em",
@@ -676,9 +677,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          background: `${THEME.rust}15`,
+                          background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                           color: THEME.rust,
-                          border: `1px solid ${THEME.rust}44`,
+                          border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
                           borderRadius: 6,
                           padding: "2px 8px",
                           letterSpacing: "0.1em",
@@ -876,8 +877,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                             gap: 2,
                             padding: "7px 12px",
                             borderRadius: 8,
-                            background: `${color}09`,
-                            border: `1px solid ${color}22`,
+                            background: `color-mix(in srgb, ${color} 4%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${color} 13%, transparent)`,
                             flex: "1 1 80px",
                           }}
                         >
@@ -970,8 +971,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                               color: sipExpanded.has(g.id) ? "#fff" : THEME.accent,
                               background: sipExpanded.has(g.id)
                                 ? THEME.accent
-                                : `${THEME.accent}15`,
-                              border: `1px solid ${THEME.accent}33`,
+                                : `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
                               borderRadius: 20,
                               padding: "3px 10px",
                               cursor: "pointer",
@@ -986,9 +987,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                             style={{
                               marginTop: 12,
                               padding: 16,
-                              background: `${THEME.accent}09`,
+                              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
                               borderRadius: 12,
-                              border: `1px solid ${THEME.accent}1f`,
+                              border: `1px solid color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
                             }}
                           >
                             <div
@@ -1122,11 +1123,11 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                                       borderRadius: 8,
                                       background:
                                         onTime === true
-                                          ? `${THEME.sage}0f`
+                                          ? `color-mix(in srgb, ${THEME.sage} 6%, transparent)`
                                           : onTime === false
-                                            ? `${THEME.rust}0f`
-                                            : `${THEME.muted}09`,
-                                      border: `1px solid ${onTime === true ? `${THEME.sage}26` : onTime === false ? `${THEME.rust}1f` : THEME.line}`,
+                                            ? `color-mix(in srgb, ${THEME.rust} 6%, transparent)`
+                                            : `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
+                                      border: `1px solid ${onTime === true ? `color-mix(in srgb, ${THEME.sage} 15%, transparent)` : onTime === false ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)` : THEME.line}`,
                                     }}
                                   >
                                     <div

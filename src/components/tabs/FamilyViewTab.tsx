@@ -44,6 +44,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
+import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 const MEMBER_COLORS_LIGHT = ["#4F46E5", "#059669", "#D97706", "#7C3AED"];
@@ -600,69 +601,22 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
   if (activeMembers.length === 0) {
     return (
       <div className="tab-content-enter">
-        <Card
-          style={{
-            padding: "60px 40px",
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 20,
-          }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Users size={28} color="#fff" />
-          </div>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
-              Family View
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: THEME.muted,
-                maxWidth: 380,
-                lineHeight: 1.6,
-              }}
-            >
-              Add assets with owners assigned to see a consolidated family financial dashboard. Each
-              asset needs an owner (Self, Wife, Daughter, or HUF) to appear here.
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-            {[
-              "Net Worth Breakdown",
-              "Asset Comparison",
-              "Insurance Coverage",
-              "Contribution Split",
-            ].map((t) => (
-              <span
-                key={t}
-                style={{
-                  fontSize: 11,
-                  padding: "5px 12px",
-                  borderRadius: 20,
-                  background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
-                  color: THEME.accent,
-                  fontWeight: 600,
-                  border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        </Card>
+        <SectionTitle sub="Consolidated financial overview across all family members">
+          Family View
+        </SectionTitle>
+        <EmptyState
+          icon={Users}
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
+          dotColor={THEME.accent}
+          title="No Family Data Yet"
+          description="Add assets with owners assigned to see a consolidated family financial dashboard. Each asset needs an owner (Self, Wife, Daughter, or HUF) to appear here."
+          pills={[
+            "Net Worth Breakdown",
+            "Asset Comparison",
+            "Insurance Coverage",
+            "Contribution Split",
+          ]}
+        />
       </div>
     );
   }

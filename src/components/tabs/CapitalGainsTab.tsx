@@ -213,7 +213,7 @@ const TransactionTable = ({
         onClick={() => setExpanded(!expanded)}
         style={{
           padding: "10px 16px",
-          background: `${color}10`,
+          background: `color-mix(in srgb, ${color} 6%, transparent)`,
           borderBottom: expanded ? `1px solid ${THEME.line}` : "none",
           display: "flex",
           justifyContent: "space-between",
@@ -275,7 +275,9 @@ const TransactionTable = ({
               {rows.map((r, i) => (
                 <tr
                   key={i}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = `${THEME.accent}06`)}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 2%, transparent)`)
+                  }
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
                   <td
@@ -658,7 +660,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
               height: 48,
               borderRadius: 14,
               background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-              border: `1px solid ${THEME.accent}26`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -945,8 +947,10 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                   key={t.key}
                   onClick={() => setActiveDetailTab(t.key)}
                   style={{
-                    background: active ? `${t.color}15` : "transparent",
-                    border: `1.5px solid ${active ? `${t.color}30` : THEME.line}`,
+                    background: active
+                      ? `color-mix(in srgb, ${t.color} 8%, transparent)`
+                      : "transparent",
+                    border: `1.5px solid ${active ? `color-mix(in srgb, ${t.color} 19%, transparent)` : THEME.line}`,
                     color: active ? t.color : THEME.muted,
                     padding: "6px 14px",
                     borderRadius: 20,
@@ -1001,8 +1005,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  background: `${THEME.accent}12`,
-                  border: `1px solid ${THEME.accent}26`,
+                  background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1066,7 +1070,9 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                   {unrealized.map((h, i) => (
                     <tr
                       key={i}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = `${THEME.accent}06`)}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 2%, transparent)`)
+                      }
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td
@@ -1177,8 +1183,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                 style={{
                   padding: "10px 16px",
                   borderRadius: 10,
-                  background: `${THEME.gold}09`,
-                  border: `1px solid ${THEME.gold}22`,
+                  background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
                   display: "flex",
                   alignItems: "flex-start",
                   gap: 8,
@@ -1227,7 +1233,9 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                     {harvestingSuggestions.map((h, i) => (
                       <tr
                         key={i}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = `${THEME.gold}06`)}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = `color-mix(in srgb, ${THEME.gold} 2%, transparent)`)
+                        }
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <td
@@ -1289,8 +1297,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         style={{
           padding: "10px 16px",
           borderRadius: 10,
-          background: `${THEME.muted}09`,
-          border: `1px solid ${THEME.muted}22`,
+          background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
           display: "flex",
           alignItems: "flex-start",
           gap: 8,

@@ -503,7 +503,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: `${THEME.rust}12`,
+            background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
             color: THEME.rust,
             fontSize: 12,
             marginBottom: 16,
@@ -583,8 +583,14 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                     cursor: "pointer",
                     padding: "4px 10px",
                     borderRadius: 6,
-                    background: mergeMode ? `${THEME.accent}10` : "transparent",
-                    border: `1px solid ${mergeMode ? THEME.accent + "40" : THEME.line}`,
+                    background: mergeMode
+                      ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
+                      : "transparent",
+                    border: `1px solid ${
+                      mergeMode
+                        ? `color-mix(in srgb, ${THEME.accent} 40%, transparent)`
+                        : THEME.line
+                    }`,
                   }}
                 >
                   <GitMerge size={12} />
@@ -611,8 +617,8 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
               style={{
                 padding: "6px 12px",
                 borderRadius: 6,
-                background: `${THEME.accent}08`,
-                border: `1px solid ${THEME.accent}18`,
+                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
                 fontSize: 11,
                 color: THEME.muted,
                 marginBottom: 8,
@@ -690,7 +696,10 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                       key={idx}
                       style={{
                         borderBottom: `1px solid ${THEME.line}`,
-                        background: isExisting && mergeMode ? `${THEME.sage}06` : undefined,
+                        background:
+                          isExisting && mergeMode
+                            ? `color-mix(in srgb, ${THEME.sage} 6%, transparent)`
+                            : undefined,
                       }}
                     >
                       <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{r.buyDate}</td>
@@ -729,7 +738,9 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                             borderRadius: 4,
                             fontSize: 9,
                             fontWeight: 700,
-                            background: isExisting ? `${THEME.sage}16` : `${THEME.accent}16`,
+                            background: isExisting
+                              ? `color-mix(in srgb, ${THEME.sage} 16%, transparent)`
+                              : `color-mix(in srgb, ${THEME.accent} 16%, transparent)`,
                             color: isExisting ? THEME.sage : THEME.accent,
                           }}
                         >
@@ -744,7 +755,9 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                             fontSize: 9,
                             fontWeight: 700,
                             background:
-                              r.type === "Redemption" ? `${THEME.rust}12` : `${THEME.sage}12`,
+                              r.type === "Redemption"
+                                ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)`
+                                : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                             color: r.type === "Redemption" ? THEME.rust : THEME.sage,
                           }}
                         >
@@ -770,7 +783,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: `${THEME.sage}12`,
+            background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
             color: THEME.sage,
             fontSize: 12,
             fontWeight: 600,

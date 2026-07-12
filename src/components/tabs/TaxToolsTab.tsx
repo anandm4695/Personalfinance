@@ -248,13 +248,13 @@ const AdvanceTaxSection = ({ state, metrics }) => {
       >
         {[
           { label: "Estimated Tax", value: fmtINRFull(taxLiability), color: THEME.accent },
-          { label: "TDS Already Paid", value: fmtINRFull(tdsPaid), color: "#10B981" },
-          { label: "Net Tax Due", value: fmtINRFull(netTaxDue), color: "#F97316" },
+          { label: "TDS Already Paid", value: fmtINRFull(tdsPaid), color: THEME.sage },
+          { label: "Net Tax Due", value: fmtINRFull(netTaxDue), color: THEME.gold },
           { label: "Advance Tax Paid", value: fmtINRFull(totalPaid), color: THEME.accent },
           {
             label: "Remaining to Pay",
             value: fmtINRFull(remaining),
-            color: remaining > 0 ? "#EF4444" : "#10B981",
+            color: remaining > 0 ? THEME.rust : THEME.sage,
           },
         ].map((s, i) => (
           <Card key={i}>
@@ -303,9 +303,9 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                     padding: "12px 16px",
                     borderRadius: 10,
                     background: isCurrent
-                      ? "rgba(99,102,241,0.08)"
+                      ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
                       : isPast
-                        ? "rgba(16,185,129,0.05)"
+                        ? `color-mix(in srgb, ${THEME.sage} 5%, transparent)`
                         : "transparent",
                     border: `1.5px solid ${isCurrent ? THEME.accent : THEME.line}`,
                   }}
@@ -316,17 +316,17 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                       height: 32,
                       borderRadius: 8,
                       background: isPast
-                        ? "#10B98120"
+                        ? `color-mix(in srgb, ${THEME.sage} 13%, transparent)`
                         : isCurrent
-                          ? `${THEME.accent}20`
-                          : `${THEME.line}50`,
+                          ? `color-mix(in srgb, ${THEME.accent} 13%, transparent)`
+                          : `color-mix(in srgb, ${THEME.line} 31%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
                     {isPast ? (
-                      <CheckCircle2 size={16} style={{ color: "#10B981" }} />
+                      <CheckCircle2 size={16} style={{ color: THEME.sage }} />
                     ) : (
                       <Calendar
                         size={16}
@@ -343,12 +343,12 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                       <Prv>{fmtINRFull(installment)}</Prv>
                     </div>
                     {isCurrent && daysLeft > 0 && (
-                      <div style={{ fontSize: 11, color: "#F97316", fontWeight: 600 }}>
+                      <div style={{ fontSize: 11, color: THEME.gold, fontWeight: 600 }}>
                         {daysLeft} days left
                       </div>
                     )}
                     {isCurrent && daysLeft <= 0 && (
-                      <div style={{ fontSize: 11, color: "#EF4444", fontWeight: 600 }}>
+                      <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 600 }}>
                         Overdue!
                       </div>
                     )}
@@ -364,14 +364,14 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                 marginTop: 16,
                 padding: "12px 16px",
                 borderRadius: 10,
-                background: "rgba(234,179,8,0.08)",
-                border: "1.5px solid rgba(234,179,8,0.2)",
+                background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                border: `1.5px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
               }}
             >
-              <AlertTriangle size={16} style={{ color: "#EAB308", flexShrink: 0 }} />
+              <AlertTriangle size={16} style={{ color: THEME.gold, flexShrink: 0 }} />
               <div style={{ fontSize: 13, color: THEME.ink }}>
                 <strong>Interest Alert:</strong> Under Sec 234B/234C, interest @ 1%/month is charged
                 on shortfall in advance tax payment. Pay on time to avoid penalties.
@@ -747,7 +747,9 @@ const HraReceiptSection = ({ state }) => {
                         padding: "10px 8px",
                         borderRadius: 8,
                         border: `1.5px solid ${isSelected ? THEME.accent : THEME.line}`,
-                        background: isSelected ? `${THEME.accent}15` : "transparent",
+                        background: isSelected
+                          ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                          : "transparent",
                         color: isSelected ? THEME.accent : THEME.ink,
                         cursor: "pointer",
                         textAlign: "center",
@@ -817,7 +819,7 @@ const HraReceiptSection = ({ state }) => {
                         padding: 16,
                         borderRadius: 10,
                         border: `1.5px solid ${THEME.line}`,
-                        background: "rgba(99,102,241,0.03)",
+                        background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                       }}
                     >
                       <div
@@ -852,14 +854,14 @@ const HraReceiptSection = ({ state }) => {
                       marginTop: 12,
                       padding: "10px 14px",
                       borderRadius: 8,
-                      background: "rgba(234,179,8,0.08)",
-                      border: "1px solid rgba(234,179,8,0.2)",
+                      background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
                     }}
                   >
-                    <AlertTriangle size={14} style={{ color: "#EAB308" }} />
+                    <AlertTriangle size={14} style={{ color: THEME.gold }} />
                     <span style={{ fontSize: 12, color: THEME.ink }}>
                       Total rent exceeds ₹1L — Landlord PAN is mandatory for HRA exemption claim.
                     </span>
@@ -1011,7 +1013,9 @@ const Form26ASSection = ({ state }) => {
         <Card>
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Mismatch</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: isMatch ? "#10B981" : "#EF4444" }}>
+            <div
+              style={{ fontSize: 20, fontWeight: 800, color: isMatch ? THEME.sage : THEME.rust }}
+            >
               {isMatch ? (
                 <span
                   style={{
@@ -1055,7 +1059,7 @@ const Form26ASSection = ({ state }) => {
               style={{
                 padding: 16,
                 borderRadius: 10,
-                background: "rgba(99,102,241,0.04)",
+                background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
                 marginBottom: 14,
                 border: `1px solid ${THEME.line}`,
               }}
@@ -1239,7 +1243,7 @@ const Form26ASSection = ({ state }) => {
                           style={{
                             background: "none",
                             border: "none",
-                            color: "#EF4444",
+                            color: THEME.rust,
                             cursor: "pointer",
                             fontSize: 12,
                           }}

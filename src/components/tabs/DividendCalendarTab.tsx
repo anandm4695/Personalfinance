@@ -461,10 +461,14 @@ export function DividendCalendarTab({ state, marketData }: any) {
                     background: isPast
                       ? "transparent"
                       : r.daysToEx <= 3
-                        ? "rgba(239, 68, 68, 0.03)"
+                        ? "color-mix(in srgb, var(--t-rust) 5%, transparent)"
                         : "var(--surface-0)",
                     border: `1.5px solid ${
-                      isPast ? THEME.line : r.daysToEx <= 3 ? "rgba(239, 68, 68, 0.25)" : THEME.line
+                      isPast
+                        ? THEME.line
+                        : r.daysToEx <= 3
+                          ? "color-mix(in srgb, var(--t-rust) 25%, transparent)"
+                          : THEME.line
                     }`,
                     opacity: isPast ? 0.65 : 1,
                     transition: "all 0.2s ease",

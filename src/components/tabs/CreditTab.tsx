@@ -1159,7 +1159,7 @@ function CreditScoreTracker() {
                     alignItems: "flex-start",
                     gap: 10,
                     fontSize: 13,
-                    color: THEME.sub,
+                    color: THEME.muted,
                     lineHeight: 1.5,
                   }}
                 >

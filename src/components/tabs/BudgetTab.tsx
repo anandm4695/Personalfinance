@@ -572,9 +572,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               style={{
                 border:
                   activeSubTab === tab
-                    ? `1.5px solid ${THEME.accent}33`
+                    ? `1.5px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`
                     : "1.5px solid transparent",
-                background: activeSubTab === tab ? `${THEME.accent}15` : "transparent",
+                background:
+                  activeSubTab === tab
+                    ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                    : "transparent",
                 color: activeSubTab === tab ? THEME.accent : THEME.muted,
                 padding: "6px 16px",
                 borderRadius: 8,
@@ -604,8 +607,11 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
             <Card
               onClick={scrollToAlertCategories}
               style={{
-                background: overBudgetCount > 0 ? `${THEME.rust}09` : `${THEME.gold}09`,
-                border: `1px solid ${overBudgetCount > 0 ? THEME.rust : THEME.gold}44`,
+                background:
+                  overBudgetCount > 0
+                    ? `color-mix(in srgb, ${THEME.rust} 4%, transparent)`
+                    : `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${overBudgetCount > 0 ? THEME.rust : THEME.gold} 27%, transparent)`,
                 padding: "14px 20px",
                 marginBottom: 24,
                 display: "flex",
@@ -806,8 +812,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
           {isInherited && budgetsToUse.length > 0 && (
             <Card
               style={{
-                background: `${THEME.accent}08`,
-                border: `1px dashed ${THEME.accent}55`,
+                background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+                border: `1px dashed color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
                 padding: "14px 20px",
                 marginBottom: 24,
                 display: "flex",
@@ -1166,7 +1172,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           fontSize: 13,
                           padding: "12px 16px",
                           borderRadius: 10,
-                          background: onTrack ? `${THEME.sage}0f` : `${THEME.rust}0f`,
+                          background: onTrack
+                            ? `color-mix(in srgb, ${THEME.sage} 6%, transparent)`
+                            : `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
                           color: onTrack ? THEME.sage : THEME.rust,
                           fontWeight: 700,
                           display: "flex",
@@ -1431,8 +1439,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           marginTop: 8,
                           padding: "8px 12px",
                           borderRadius: 8,
-                          background: `${THEME.rust}08`,
-                          border: `1px solid ${THEME.rust}22`,
+                          background: `color-mix(in srgb, ${THEME.rust} 3%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.rust} 13%, transparent)`,
                           color: THEME.rust,
                           fontWeight: 600,
                         }}
@@ -1486,8 +1494,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               style={{
                 marginTop: 24,
                 padding: "18px 24px",
-                border: `1px dashed ${THEME.gold}55`,
-                background: `${THEME.gold}08`,
+                border: `1px dashed color-mix(in srgb, ${THEME.gold} 33%, transparent)`,
+                background: `color-mix(in srgb, ${THEME.gold} 3%, transparent)`,
               }}
             >
               <div
@@ -1707,27 +1715,27 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 
                 let statusText = "Upcoming";
                 let statusColor = THEME.gold;
-                let statusBg = `${THEME.gold}15`;
+                let statusBg = `color-mix(in srgb, ${THEME.gold} 8%, transparent)`;
 
                 if (hasPaid) {
                   statusText = "Paid";
                   statusColor = THEME.sage;
-                  statusBg = `${THEME.sage}15`;
+                  statusBg = `color-mix(in srgb, ${THEME.sage} 8%, transparent)`;
                 } else if (!re.isActive) {
                   statusText = "Paused";
                   statusColor = THEME.muted;
-                  statusBg = "rgba(128,128,128,0.08)";
+                  statusBg = `color-mix(in srgb, ${THEME.muted} 8%, transparent)`;
                 } else {
                   // Active and Unpaid
                   if (selectedMonth < curMonthStr) {
                     statusText = "Unpaid";
                     statusColor = THEME.rust;
-                    statusBg = `${THEME.rust}15`;
+                    statusBg = `color-mix(in srgb, ${THEME.rust} 8%, transparent)`;
                   } else if (selectedMonth === curMonthStr) {
                     if (todayDay > Number(re.dueDay)) {
                       statusText = "Overdue";
                       statusColor = THEME.rust;
-                      statusBg = `${THEME.rust}15`;
+                      statusBg = `color-mix(in srgb, ${THEME.rust} 8%, transparent)`;
                     } else {
                       const daysLeft = Number(re.dueDay) - todayDay;
                       statusText =
@@ -1737,13 +1745,13 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             ? "Due Tomorrow"
                             : `Due in ${daysLeft} days`;
                       statusColor = THEME.gold;
-                      statusBg = `${THEME.gold}15`;
+                      statusBg = `color-mix(in srgb, ${THEME.gold} 8%, transparent)`;
                     }
                   } else {
                     // Future month
                     statusText = "Scheduled";
                     statusColor = THEME.accent;
-                    statusBg = `${THEME.accent}15`;
+                    statusBg = `color-mix(in srgb, ${THEME.accent} 8%, transparent)`;
                   }
                 }
 
@@ -1878,8 +1886,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                               fontSize: 11,
                               padding: "6px 10px",
                               borderRadius: 6,
-                              background: `${THEME.sage}06`,
-                              border: `1px solid ${THEME.sage}22`,
+                              background: `color-mix(in srgb, ${THEME.sage} 2%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                               color: THEME.sage,
                               fontWeight: 600,
                               display: "flex",

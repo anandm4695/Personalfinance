@@ -193,12 +193,12 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
           height: size,
           borderRadius: br,
           background: "var(--surface-0)",
-          border: `1.5px solid ${theme.color}30`,
+          border: `1.5px solid color-mix(in srgb, ${theme.color} 30%, transparent)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          boxShadow: `0 4px 14px ${theme.color}28`,
+          boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 16%, transparent)`,
           overflow: "hidden",
         }}
       >
@@ -223,7 +223,7 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        boxShadow: `0 4px 14px ${theme.color}40`,
+        boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 25%, transparent)`,
       }}
     >
       <span
@@ -466,10 +466,10 @@ const complianceStatus = (expiry: string): ComplianceStatus => {
   const expiryTime = new Date(expiry + "T00:00:00").getTime();
   const todayTime = new Date(todayStr + "T00:00:00").getTime();
   const daysLeft = Math.ceil((expiryTime - todayTime) / 86400000);
-  if (daysLeft < 0) return { label: "Expired", color: "#ef4444", icon: "alert" };
-  if (daysLeft === 0) return { label: "Expires today", color: "#ef4444", icon: "alert" };
-  if (daysLeft <= 30) return { label: `Expiring in ${daysLeft}d`, color: "#f59e0b", icon: "warn" };
-  return { label: "Valid", color: "#10b981", icon: "ok" };
+  if (daysLeft < 0) return { label: "Expired", color: THEME.rust, icon: "alert" };
+  if (daysLeft === 0) return { label: "Expires today", color: THEME.rust, icon: "alert" };
+  if (daysLeft <= 30) return { label: `Expiring in ${daysLeft}d`, color: THEME.gold, icon: "warn" };
+  return { label: "Valid", color: THEME.sage, icon: "ok" };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -772,7 +772,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
               padding: "9px 14px",
               borderRadius: 8,
               border: "none",
-              background: rcStatus === "loading" ? "#6b7280" : THEME.accent,
+              background: rcStatus === "loading" ? THEME.muted : THEME.accent,
               color: "#fff",
               fontSize: 13,
               fontWeight: 700,
@@ -781,6 +781,14 @@ function VehicleModal({ existing, onClose, onSave }: any) {
               alignItems: "center",
               gap: 6,
               whiteSpace: "nowrap",
+              opacity: rcStatus === "loading" ? 0.75 : 1,
+              transition: "opacity 0.15s ease, transform 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              if (rcStatus !== "loading") e.currentTarget.style.opacity = "0.85";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = rcStatus === "loading" ? "0.75" : "1";
             }}
           >
             {rcStatus === "loading" ? (
@@ -809,8 +817,8 @@ function VehicleModal({ existing, onClose, onSave }: any) {
               borderRadius: 8,
               fontSize: 12,
               fontWeight: 500,
-              background: `${THEME.sage}15`,
-              border: `1px solid ${THEME.sage}30`,
+              background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.sage} 19%, transparent)`,
               color: THEME.sage,
             }}
           >
@@ -822,7 +830,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                   fontSize: 11,
                   color: THEME.sage,
                   fontWeight: 400,
-                  borderTop: `1px solid ${THEME.sage}25`,
+                  borderTop: `1px solid color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
                   paddingTop: 4,
                 }}
               >
@@ -849,8 +857,8 @@ function VehicleModal({ existing, onClose, onSave }: any) {
               borderRadius: 8,
               fontSize: 12,
               fontWeight: 500,
-              background: `${THEME.rust}14`,
-              border: `1px solid ${THEME.rust}30`,
+              background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.rust} 19%, transparent)`,
               color: THEME.rust,
             }}
           >
@@ -863,13 +871,13 @@ function VehicleModal({ existing, onClose, onSave }: any) {
               marginTop: 8,
               borderRadius: 10,
               overflow: "hidden",
-              border: `1px solid ${THEME.gold}40`,
+              border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
               fontSize: 12,
             }}
           >
             <div
               style={{
-                background: `${THEME.gold}14`,
+                background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                 padding: "8px 12px",
                 fontWeight: 700,
                 color: THEME.gold,
@@ -920,7 +928,10 @@ function VehicleModal({ existing, onClose, onSave }: any) {
             ].map((p) => (
               <div
                 key={p.num}
-                style={{ borderTop: `1px solid ${THEME.gold}20`, padding: "10px 12px" }}
+                style={{
+                  borderTop: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
+                  padding: "10px 12px",
+                }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <span
@@ -1649,7 +1660,7 @@ function VehicleCard({
               <div
                 style={{
                   fontSize: 11,
-                  color: "#ef4444",
+                  color: THEME.rust,
                   marginTop: 2,
                   display: "flex",
                   alignItems: "center",
@@ -1664,7 +1675,7 @@ function VehicleCard({
               <div
                 style={{
                   fontSize: 11,
-                  color: "#10b981",
+                  color: THEME.sage,
                   marginTop: 2,
                   display: "flex",
                   alignItems: "center",
@@ -2102,8 +2113,8 @@ function VehicleCard({
                           >
                             <defs>
                               <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                                <stop offset="100%" stopColor="#d97706" stopOpacity={0.5} />
+                                <stop offset="0%" stopColor={THEME.gold} stopOpacity={1} />
+                                <stop offset="100%" stopColor={THEME.gold} stopOpacity={0.5} />
                               </linearGradient>
                             </defs>
                             <XAxis
@@ -2522,6 +2533,8 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           alignItems: "center",
           justifyContent: "space-between",
           marginBottom: 20,
+          flexWrap: "wrap",
+          gap: 12,
         }}
       >
         <div>
@@ -2548,9 +2561,9 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
       {alerts.length > 0 && (
         <div
           style={{
-            background: "#f59e0b14",
-            border: "1px solid #f59e0b40",
-            borderLeft: "3px solid #f59e0b",
+            background: "color-mix(in srgb, var(--t-gold) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-gold) 40%, transparent)",
+            borderLeft: `3px solid ${THEME.gold}`,
             borderRadius: 10,
             padding: "12px 16px",
             marginBottom: 16,
@@ -2567,11 +2580,11 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
                 alignItems: "center",
                 gap: 8,
                 fontSize: 13,
-                color: "#92400e",
+                color: "var(--t-ink)",
                 fontWeight: 500,
               }}
             >
-              <AlertTriangle size={14} style={{ color: "#f59e0b", flexShrink: 0 }} />
+              <AlertTriangle size={14} style={{ color: THEME.gold, flexShrink: 0 }} />
               {a}
             </div>
           ))}
@@ -2604,17 +2617,19 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
               ) : undefined
             }
             subColor={
-              totalPurchasePrice && totalCurrentValue < totalPurchasePrice ? "#ef4444" : undefined
+              totalPurchasePrice && totalCurrentValue < totalPurchasePrice
+                ? THEME.rust
+                : undefined
             }
             icon={<IndianRupee />}
-            color="#10b981"
+            color={THEME.sage}
           />
           <StatCard
             label="Total Service Spend"
             value={<Prv>{fmtINRFull(totalServiceSpend)}</Prv>}
             sub="across all vehicles"
             icon={<Wrench />}
-            color="#f59e0b"
+            color={THEME.gold}
           />
         </div>
       )}

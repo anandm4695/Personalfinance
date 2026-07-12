@@ -1976,7 +1976,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   onEdit={() => setEditDematId(d.id)}
                   style={{
                     borderTop: `4px solid ${theme.color}`,
-                    padding: "20px 24px 20px 24px",
+                    padding: "44px 24px 20px 24px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",

@@ -427,8 +427,8 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
       {renewingSoon.length > 0 && (
         <div
           style={{
-            background: `${THEME.warning}18`,
-            border: `1px solid ${THEME.warning}40`,
+            background: `color-mix(in srgb, ${THEME.warning} 18%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.warning} 40%, transparent)`,
             borderRadius: 10,
             padding: "12px 16px",
             marginBottom: 16,
@@ -482,7 +482,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                       width: 44,
                       height: 44,
                       borderRadius: 10,
-                      background: `${typeColor}18`,
+                      background: `color-mix(in srgb, ${typeColor} 18%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",

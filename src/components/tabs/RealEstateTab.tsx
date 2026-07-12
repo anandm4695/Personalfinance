@@ -166,12 +166,12 @@ const BuilderLogo = ({
           height: size,
           borderRadius,
           background: "var(--surface-0)",
-          border: `1.5px solid ${theme.color}30`,
+          border: `1.5px solid color-mix(in srgb, ${theme.color} 30%, transparent)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          boxShadow: `0 4px 14px ${theme.color}30`,
+          boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 30%, transparent)`,
           overflow: "hidden",
         }}
       >
@@ -200,7 +200,7 @@ const BuilderLogo = ({
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        boxShadow: `0 4px 14px ${theme.color}40`,
+        boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 40%, transparent)`,
       }}
     >
       <span
@@ -952,8 +952,8 @@ function PropertyCard({
           <button
             onClick={() => onDeleteProperty(property.id)}
             style={{
-              background: "color-mix(in srgb, #ef4444 8%, transparent)",
-              border: "1.5px solid #ef444428",
+              background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, ${THEME.rust} 16%, transparent)`,
               cursor: "pointer",
               color: THEME.rust,
               padding: "6px 8px",
@@ -1032,8 +1032,8 @@ function PropertyCard({
               borderBottom: divider,
               background:
                 gain >= 0
-                  ? "linear-gradient(90deg, rgba(34,197,94,0.07) 0%, transparent 100%)"
-                  : "linear-gradient(90deg, rgba(239,68,68,0.07) 0%, transparent 100%)",
+                  ? `linear-gradient(90deg, color-mix(in srgb, ${THEME.sage} 7%, transparent) 0%, transparent 100%)`
+                  : `linear-gradient(90deg, color-mix(in srgb, ${THEME.rust} 7%, transparent) 0%, transparent 100%)`,
               display: "flex",
               alignItems: "center",
               gap: 10,
@@ -1043,9 +1043,12 @@ function PropertyCard({
               style={{
                 fontSize: 12,
                 fontWeight: 800,
-                color: gain >= 0 ? "#22c55e" : "#ef4444",
-                background: gain >= 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-                border: `1.5px solid ${gain >= 0 ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                color: gain >= 0 ? THEME.sage : THEME.rust,
+                background:
+                  gain >= 0
+                    ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                    : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                border: `1.5px solid ${gain >= 0 ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `color-mix(in srgb, ${THEME.rust} 25%, transparent)`}`,
                 padding: "3px 10px",
                 borderRadius: 20,
                 letterSpacing: "0.04em",
@@ -1091,7 +1094,7 @@ function PropertyCard({
               Payment Progress — {demands.length} demand{demands.length !== 1 ? "s" : ""}
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#22c55e" }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: THEME.sage }}>
                 <Prv>{fmtINRFull(totalPaid)}</Prv>
               </span>
               <span style={{ fontSize: 11, color: THEME.muted }}>
@@ -1101,8 +1104,11 @@ function PropertyCard({
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
-                  color: paidPct >= 100 ? "#22c55e" : THEME.accent,
-                  background: paidPct >= 100 ? "rgba(34,197,94,0.12)" : `${THEME.accent}15`,
+                  color: paidPct >= 100 ? THEME.sage : THEME.accent,
+                  background:
+                    paidPct >= 100
+                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                      : `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                   padding: "2px 8px",
                   borderRadius: 12,
                 }}
@@ -1126,7 +1132,7 @@ function PropertyCard({
                 width: `${paidPct}%`,
                 background:
                   paidPct >= 100
-                    ? "linear-gradient(90deg, #22c55e, #4ade80)"
+                    ? `linear-gradient(90deg, ${THEME.sage}, color-mix(in srgb, ${THEME.sage} 70%, white))`
                     : `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #60a5fa))`,
                 borderRadius: 4,
                 transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
@@ -1138,7 +1144,7 @@ function PropertyCard({
               style={{
                 marginTop: 6,
                 fontSize: 11,
-                color: "#ef4444",
+                color: THEME.rust,
                 fontWeight: 700,
                 display: "flex",
                 alignItems: "center",
@@ -1151,7 +1157,7 @@ function PropertyCard({
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  background: "#ef4444",
+                  background: THEME.rust,
                   flexShrink: 0,
                 }}
               />
@@ -1167,7 +1173,7 @@ function PropertyCard({
         style={{
           width: "100%",
           padding: "12px 24px",
-          background: expanded ? `${THEME.accent}06` : "transparent",
+          background: expanded ? `color-mix(in srgb, ${THEME.accent} 2%, transparent)` : "transparent",
           border: "none",
           borderBottom: expanded ? divider : "none",
           cursor: "pointer",
@@ -1199,7 +1205,7 @@ function PropertyCard({
             width: 22,
             height: 22,
             borderRadius: 6,
-            background: `${THEME.accent}12`,
+            background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1351,7 +1357,7 @@ function PropertyCard({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <Receipt size={13} color="#22c55e" />
+                <Receipt size={13} color={THEME.sage} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Payments</span>
               </div>
               <Button
@@ -1396,7 +1402,7 @@ function PropertyCard({
                                 ...td,
                                 textAlign: "right",
                                 fontWeight: 800,
-                                color: "#22c55e",
+                                color: THEME.sage,
                               }}
                             >
                               <Prv>+{fmtINRFull(Number(p.amount))}</Prv>
@@ -1407,7 +1413,7 @@ function PropertyCard({
                                   fontSize: 11,
                                   fontWeight: 700,
                                   color: THEME.accent,
-                                  background: "rgba(99,102,241,0.1)",
+                                  background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
                                   padding: "2px 8px",
                                   borderRadius: 20,
                                 }}
@@ -1453,7 +1459,7 @@ function PropertyCard({
                       })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: "rgba(34,197,94,0.06)" }}>
+                    <tr style={{ background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)` }}>
                       <td
                         style={{
                           ...td,
@@ -1465,7 +1471,7 @@ function PropertyCard({
                       >
                         Total
                       </td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 900, color: "#22c55e" }}>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 900, color: THEME.sage }}>
                         <Prv>{fmtINRFull(totalPaid)}</Prv>
                       </td>
                       <td colSpan={5} style={{ borderBottom: divider }} />
@@ -1585,7 +1591,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
                 width: 36,
                 height: 36,
                 borderRadius: 11,
-                background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 70%, #22c55e) 100%)`,
+                background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 70%, ${THEME.sage}) 100%)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1625,7 +1631,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
             label="Portfolio Value"
             value={<Prv>{fmtINRFull(stats.portfolioValue)}</Prv>}
             icon={<TrendingUp />}
-            color="#22c55e"
+            color={THEME.sage}
           />
           <StatCard
             label="Total Invested"
@@ -1646,7 +1652,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
             value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>}
             sub="Demands pending"
             icon={<Clock />}
-            color={stats.outstanding > 0 ? "#ef4444" : THEME.muted}
+            color={stats.outstanding > 0 ? THEME.rust : THEME.muted}
           />
         </div>
       )}
@@ -1655,7 +1661,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
       {properties.length === 0 ? (
         <EmptyState
           icon={Home}
-          gradient={`linear-gradient(135deg, ${THEME.accent}, #22c55e)`}
+          gradient={`linear-gradient(135deg, ${THEME.accent}, ${THEME.sage})`}
           dotColor={THEME.accent}
           title="No Properties Yet"
           description="Track all your real estate investments — purchases, demand letters, and payments in one place."

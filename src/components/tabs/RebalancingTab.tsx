@@ -386,7 +386,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
   }
 
   const scoreColor =
-    deviationScore > 80 ? THEME.sage : deviationScore > 50 ? "#D97706" : THEME.rust;
+    deviationScore > 80 ? THEME.sage : deviationScore > 50 ? THEME.gold : THEME.rust;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -511,7 +511,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     ? "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)"
                     : "var(--surface-0)",
                   cursor: "pointer",
-                  boxShadow: active ? "0 4px 15px rgba(99, 102, 241, 0.08)" : "var(--shadow-sm)",
+                  boxShadow: active
+                    ? "0 4px 15px color-mix(in srgb, var(--accent) 8%, transparent)"
+                    : "var(--shadow-sm)",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                   display: "flex",
                   flexDirection: "column",
@@ -997,7 +999,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
             letterSpacing: "-0.015em",
           }}
         >
-          <Zap size={16} style={{ color: "#D97706" }} /> Actionable Suggestions
+          <Zap size={16} style={{ color: THEME.gold }} /> Actionable Suggestions
         </div>
         {suggestions.length === 0 ? (
           <div
@@ -1007,8 +1009,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               gap: 12,
               padding: "16px 20px",
               borderRadius: 14,
-              background: "rgba(5, 150, 105, 0.05)",
-              border: `1.5px solid rgba(5, 150, 105, 0.15)`,
+              background: `color-mix(in srgb, ${THEME.sage} 5%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
             }}
           >
             <CheckCircle2 size={18} style={{ color: THEME.sage }} />
@@ -1040,7 +1042,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     width: 38,
                     height: 38,
                     borderRadius: 10,
-                    background: s.overweight ? `${THEME.rust}16` : `${THEME.sage}16`,
+                    background: s.overweight
+                      ? `color-mix(in srgb, ${THEME.rust} 9%, transparent)`
+                      : `color-mix(in srgb, ${THEME.sage} 9%, transparent)`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1165,7 +1169,11 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   <tr
                     key={i}
                     style={{ borderBottom: `1px solid ${THEME.line}` }}
-                    className="table-row-hover"
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "color-mix(in srgb, var(--accent) 4%, transparent)")
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <td style={{ ...td, paddingLeft: 16, color: THEME.ink, fontWeight: 700 }}>
                       {row.label}

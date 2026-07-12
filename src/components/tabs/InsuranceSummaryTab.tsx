@@ -688,7 +688,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                         alignItems: "center",
                         fontSize: 12,
                         paddingBottom: 6,
-                        borderBottom: `1px solid ${THEME.line}40`,
+                        borderBottom: `1px solid color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                       }}
                     >
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
@@ -1009,7 +1009,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                         alignItems: "center",
                         fontSize: 12,
                         paddingBottom: 6,
-                        borderBottom: `1px solid ${THEME.line}40`,
+                        borderBottom: `1px solid color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                       }}
                     >
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
@@ -1313,7 +1313,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                         alignItems: "center",
                         fontSize: 12,
                         paddingBottom: 6,
-                        borderBottom: `1px solid ${THEME.line}40`,
+                        borderBottom: `1px solid color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                       }}
                     >
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
@@ -2001,7 +2001,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             fontWeight: 700,
                             padding: "2px 7px",
                             borderRadius: 10,
-                            background: `${status.color}18`,
+                            background: `color-mix(in srgb, ${status.color} 9%, transparent)`,
                             color: status.color,
                           }}
                         >
@@ -2087,8 +2087,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         gap: 6,
                         padding: "6px 10px",
                         borderRadius: 8,
-                        background: `${alertColor}10`,
-                        border: `1px solid ${alertColor}35`,
+                        background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
                         color: alertColor,
                         fontSize: 11,
                         fontWeight: 700,
@@ -2202,8 +2202,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           alignItems: "center",
                           gap: 5,
                           fontSize: 11,
-                          background: `${THEME.muted}10`,
-                          border: `1px solid ${THEME.muted}22`,
+                          background: `color-mix(in srgb, ${THEME.muted} 6%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
                           borderRadius: 20,
                           padding: "3px 9px",
                           color: THEME.muted,
@@ -2316,7 +2316,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             fontWeight: 700,
                             padding: "2px 7px",
                             borderRadius: 10,
-                            background: `${status.color}18`,
+                            background: `color-mix(in srgb, ${status.color} 9%, transparent)`,
                             color: status.color,
                           }}
                         >
@@ -2402,8 +2402,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         gap: 6,
                         padding: "6px 10px",
                         borderRadius: 8,
-                        background: `${alertColor}10`,
-                        border: `1px solid ${alertColor}35`,
+                        background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
                         color: alertColor,
                         fontSize: 11,
                         fontWeight: 700,
@@ -2524,8 +2524,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           alignItems: "center",
                           gap: 5,
                           fontSize: 11,
-                          background: `${THEME.muted}10`,
-                          border: `1px solid ${THEME.muted}22`,
+                          background: `color-mix(in srgb, ${THEME.muted} 6%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
                           borderRadius: 20,
                           padding: "3px 9px",
                           color: THEME.muted,
@@ -2637,7 +2637,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             fontWeight: 700,
                             padding: "2px 7px",
                             borderRadius: 10,
-                            background: `${status.color}18`,
+                            background: `color-mix(in srgb, ${status.color} 9%, transparent)`,
                             color: status.color,
                           }}
                         >
@@ -2723,8 +2723,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         gap: 6,
                         padding: "6px 10px",
                         borderRadius: 8,
-                        background: `${alertColor}10`,
-                        border: `1px solid ${alertColor}35`,
+                        background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
                         color: alertColor,
                         fontSize: 11,
                         fontWeight: 700,
@@ -2923,8 +2923,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           alignItems: "center",
                           gap: 5,
                           fontSize: 11,
-                          background: `${THEME.muted}10`,
-                          border: `1px solid ${THEME.muted}22`,
+                          background: `color-mix(in srgb, ${THEME.muted} 6%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
                           borderRadius: 20,
                           padding: "3px 9px",
                           color: THEME.muted,

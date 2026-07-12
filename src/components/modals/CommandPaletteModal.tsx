@@ -387,7 +387,10 @@ export const CommandPaletteModal = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "ArrowDown") {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIdx((prev) => (prev + 1) % filtered.length);
       } else if (e.key === "ArrowUp") {
@@ -398,7 +401,7 @@ export const CommandPaletteModal = ({
         execute(filtered[activeIdx]);
       }
     },
-    [filtered, activeIdx, execute]
+    [filtered, activeIdx, execute, onClose]
   );
 
   useEffect(() => {

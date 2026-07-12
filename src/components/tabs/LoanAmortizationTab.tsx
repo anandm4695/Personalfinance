@@ -908,7 +908,18 @@ export const LoanAmortizationTab = ({ state }) => {
                   </thead>
                   <tbody>
                     {baseAmort.schedule.map((row) => (
-                      <tr key={row.month} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                      <tr
+                        key={row.month}
+                        style={{
+                          borderBottom: `1px solid ${THEME.line}`,
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background =
+                            "color-mix(in srgb, var(--accent) 4%, transparent)")
+                        }
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
                         <td style={tdCenter}>{row.month}</td>
                         <td style={td}>{fmtINRExact(row.emi)}</td>
                         <td style={{ ...td, color: THEME.sage, fontWeight: 600 }}>

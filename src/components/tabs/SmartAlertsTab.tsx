@@ -337,7 +337,11 @@ export const SmartAlertsTab = ({ state, metrics }) => {
   const warnCount = smartAlerts.filter((a) => a.level === "warn").length;
 
   const levelColors = { error: THEME.rust, warn: THEME.gold, info: THEME.accent };
-  const levelBg = { error: `${THEME.rust}15`, warn: `${THEME.gold}15`, info: `${THEME.accent}15` };
+  const levelBg = {
+    error: `color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
+    warn: `color-mix(in srgb, ${THEME.gold} 15%, transparent)`,
+    info: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+  };
   const levelLabels = { error: "Critical", warn: "Warning", info: "Info" };
 
   return (
@@ -413,7 +417,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                 style={{
                   padding: 16,
                   background: levelBg[alert.level],
-                  border: `1px solid ${levelColors[alert.level]}30`,
+                  border: `1px solid color-mix(in srgb, ${levelColors[alert.level]} 30%, transparent)`,
                 }}
               >
                 <div
@@ -429,7 +433,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                         width: 36,
                         height: 36,
                         borderRadius: 10,
-                        background: `${levelColors[alert.level]}20`,
+                        background: `color-mix(in srgb, ${levelColors[alert.level]} 20%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -449,7 +453,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                             fontSize: 10,
                             fontWeight: 700,
                             textTransform: "uppercase",
-                            background: `${levelColors[alert.level]}20`,
+                            background: `color-mix(in srgb, ${levelColors[alert.level]} 20%, transparent)`,
                             color: levelColors[alert.level],
                           }}
                         >

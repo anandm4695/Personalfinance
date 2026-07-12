@@ -704,6 +704,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 boxShadow: forecastMonths === 3 ? "var(--shadow-sm)" : "none",
                 transition: "all 0.2s var(--ease-premium)",
               }}
+              onMouseEnter={(e) => {
+                if (forecastMonths !== 3) e.currentTarget.style.color = "var(--t-ink)";
+              }}
+              onMouseLeave={(e) => {
+                if (forecastMonths !== 3) e.currentTarget.style.color = "var(--t-muted)";
+              }}
             >
               3 Months
             </button>
@@ -720,6 +726,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 cursor: "pointer",
                 boxShadow: forecastMonths === 6 ? "var(--shadow-sm)" : "none",
                 transition: "all 0.2s var(--ease-premium)",
+              }}
+              onMouseEnter={(e) => {
+                if (forecastMonths !== 6) e.currentTarget.style.color = "var(--t-ink)";
+              }}
+              onMouseLeave={(e) => {
+                if (forecastMonths !== 6) e.currentTarget.style.color = "var(--t-muted)";
               }}
             >
               6 Months

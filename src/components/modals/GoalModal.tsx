@@ -125,10 +125,10 @@ export function GoalModal({ initial, onClose, onSave }: any) {
                 onClick={() => setF({ ...f, targetDate: "" })}
                 style={{
                   padding: "10px 12px",
-                  border: "1.5px solid #ef4444",
+                  border: `1.5px solid ${THEME.rust}`,
                   borderRadius: 10,
                   background: "transparent",
-                  color: "#ef4444",
+                  color: THEME.rust,
                   cursor: "pointer",
                   fontSize: 12,
                   fontWeight: 600,

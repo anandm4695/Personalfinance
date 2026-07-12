@@ -923,8 +923,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           {/* Smart Import instructions */}
           <div
             style={{
-              background: `${THEME.accent}08`,
-              border: `1px solid ${THEME.accent}22`,
+              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               borderRadius: 10,
               padding: "12px 16px",
               marginBottom: 16,
@@ -993,8 +993,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 style={{
                   padding: "6px 12px",
                   borderRadius: 6,
-                  background: `${THEME.sage}10`,
-                  border: `1px solid ${THEME.sage}22`,
+                  background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                   fontSize: 11,
                   fontWeight: 600,
                   color: THEME.sage,
@@ -1008,11 +1008,11 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                   style={{
                     padding: "6px 12px",
                     borderRadius: 6,
-                    background: "rgba(245,158,11,0.06)",
-                    border: "1px solid rgba(245,158,11,0.15)",
+                    background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.gold} 15%, transparent)`,
                     fontSize: 11,
                     fontWeight: 600,
-                    color: "#F59E0B",
+                    color: THEME.gold,
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
@@ -1244,8 +1244,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                                 borderRadius: 6,
                                 fontSize: 10,
                                 fontWeight: 600,
-                                background: "rgba(245,158,11,0.1)",
-                                color: "#F59E0B",
+                                background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+                                color: THEME.gold,
                               }}
                             >
                               Duplicate
@@ -1257,8 +1257,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                                 borderRadius: 6,
                                 fontSize: 10,
                                 fontWeight: 600,
-                                background: "rgba(16,185,129,0.1)",
-                                color: "#10B981",
+                                background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
+                                color: THEME.sage,
                               }}
                             >
                               CR
@@ -1270,8 +1270,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                                 borderRadius: 6,
                                 fontSize: 10,
                                 fontWeight: 600,
-                                background: "rgba(239,68,68,0.1)",
-                                color: "#EF4444",
+                                background: `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
+                                color: THEME.rust,
                               }}
                             >
                               DR
@@ -1303,7 +1303,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 {duplicateCount > 0 && (
                   <span>
                     Skipping:{" "}
-                    <b style={{ color: "#F59E0B" }}>
+                    <b style={{ color: THEME.gold }}>
                       {duplicateCount} duplicate{duplicateCount !== 1 ? "s" : ""}
                     </b>
                   </span>
