@@ -88,7 +88,9 @@ export const ModalActions: React.FC<{
         fontWeight: 700,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.45 : 1,
-        boxShadow: disabled ? "none" : `0 4px 14px ${THEME.accent}66`,
+        boxShadow: disabled
+          ? "none"
+          : `0 4px 14px color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
         transition: "opacity 0.2s, background 0.2s",
       }}
     >

@@ -112,7 +112,7 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
             key={t.id}
             style={{
               background: "var(--surface-0)",
-              border: `1px solid ${cfg.accent}4d`,
+              border: `1px solid color-mix(in srgb, ${cfg.accent} 30%, transparent)`,
               color: "var(--t-ink)",
               padding: "12px 16px",
               borderRadius: 12,
@@ -132,8 +132,8 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
                 width: 20,
                 height: 20,
                 borderRadius: "50%",
-                background: `${cfg.accent}26`,
-                border: `1.5px solid ${cfg.accent}66`,
+                background: `color-mix(in srgb, ${cfg.accent} 15%, transparent)`,
+                border: `1.5px solid color-mix(in srgb, ${cfg.accent} 40%, transparent)`,
                 color: cfg.accent,
                 display: "inline-flex",
                 alignItems: "center",

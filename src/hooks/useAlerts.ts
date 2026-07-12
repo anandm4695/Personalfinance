@@ -261,7 +261,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     }
     // Tax regime switch alert — if switching saves >₹5,000 suggest it
     if (metrics.annualIncome > 0) {
-      // calcTaxNew already applies stdDed internally — pass gross income
+      // calcTaxNew applies the FY 2025-26 standard deduction internally — pass gross income
       const taxNewAmt = calcTaxNew(metrics.annualIncome).total;
       const taxOldAmt = calcTaxOld(metrics.annualIncome, 50000).total;
       const saving = Math.abs(taxNewAmt - taxOldAmt);
@@ -479,6 +479,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     state.goals,
     state.subscriptions,
     state.loansTaken,
+    state.rentedProperties,
     state.netWorthHistory,
     state.termPlans,
     state.lic,

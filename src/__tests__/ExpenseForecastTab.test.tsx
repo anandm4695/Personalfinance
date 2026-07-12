@@ -44,7 +44,9 @@ describe("ExpenseForecastTab Premium UI Statically", () => {
   };
 
   it("should render forecast cards, charts, and trends table", () => {
-    const html = renderToString(<ExpenseForecastTab state={mockState} metrics={{}} />);
+    const html = renderToString(
+      <ExpenseForecastTab state={mockState} metrics={{}} setTab={() => {}} />
+    );
 
     // Verify key titles and stats render
     expect(html).toContain("Expense Forecast");

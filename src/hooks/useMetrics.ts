@@ -783,7 +783,42 @@ export function useMetrics(
         };
       }),
     };
-  }, [filteredState, marketData, state]);
+    // Note: `state` itself is only used here to build `familyBreakdown` (via
+    // getFilteredStateForProfile / calculateProfileNWAndCover). Narrowed to the
+    // specific collections those two functions actually read, instead of the
+    // whole `state` object, so this ~30-field memo doesn't re-run on every
+    // unrelated state mutation elsewhere in the app.
+  }, [
+    filteredState,
+    marketData,
+    familyProfiles,
+    state.bankAccounts,
+    state.fixedDeposits,
+    state.govtSchemes,
+    state.recurringDeposits,
+    state.bonds,
+    state.ppf,
+    state.nps,
+    state.epf,
+    state.lic,
+    state.investmentPlans,
+    state.mutualFunds,
+    state.stocks,
+    state.loansGiven,
+    state.prepaidCards,
+    state.rentedProperties,
+    state.informalLent,
+    state.rentalProperties,
+    state.realEstateProperties,
+    state.vehicles,
+    state.goldHoldings,
+    state.creditCards,
+    state.loansTaken,
+    state.informalBorrowed,
+    state.realEstateDemands,
+    state.realEstatePayments,
+    state.termPlans,
+  ]);
 
   const assetBreakdown = useMemo(
     () =>

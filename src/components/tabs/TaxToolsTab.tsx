@@ -121,8 +121,10 @@ const AdvanceTaxSection = ({ state, metrics }) => {
   const taxLiability = useMemo(() => {
     if (!income) return 0;
     if (regime === "new") return calcTaxNew ? calcTaxNew(income).total : 0;
-    return calcTaxOld ? calcTaxOld(income, 0).total : 0;
-  }, [income, regime]);
+    // Old regime always gets at least the standard deduction (₹50k from FY 2020-21, ₹40k before)
+    const stdDedOld = fyStart >= 2020 ? 50000 : 40000;
+    return calcTaxOld ? calcTaxOld(income, stdDedOld).total : 0;
+  }, [income, regime, fyStart]);
 
   const tdsPaid = useMemo(() => {
     return (state.taxPayments || [])

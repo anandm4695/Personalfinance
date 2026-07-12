@@ -185,7 +185,7 @@ const PremiumStatCard = ({ label, value, color, icon: Icon, sub, subColor }: any
   </div>
 );
 
-export const ExpenseForecastTab = ({ state, metrics }) => {
+export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   const [forecastMonths, setForecastMonths] = useState(6);
 
   // Historical monthly expenses by category
@@ -332,7 +332,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
         description="Add at least 3 months of transactions to see expense forecasts and patterns."
         pills={["Track spending", "Predict trends", "Seasonal patterns"]}
         buttonLabel="Add Transaction"
-        onAdd={() => {}}
+        onAdd={() => setTab?.("banks")}
       />
     );
   }

@@ -236,9 +236,9 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
           category: f.category,
           folioNumber: f.folio,
           units: f.units,
-          buyNav: f.costValue && f.units ? f.costValue / f.units : "",
+          buyNav: f.value && f.units ? f.value / f.units : "",
           currentNav: f.nav,
-          invested: f.costValue || "",
+          invested: f.value || "",
         });
       }
     }

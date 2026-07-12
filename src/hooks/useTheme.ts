@@ -65,17 +65,7 @@ export function useTheme(settings: {
     // Drive the CSS class-based dark theme so styles.css vars activate
     document.documentElement.classList.toggle("dark-theme", darkMode);
     document.body.classList.toggle("dark-theme", darkMode);
-  }, [
-    darkMode,
-    accentKey,
-    density,
-    sidebarNav,
-    radiusKey,
-    fontKey,
-    bgStyle,
-    animSpeed,
-    chartStyle,
-  ]);
+  }, [darkMode, accentKey, density, radiusKey, fontKey, animSpeed]);
 
   // Background style (dots / mesh) injected dynamically since it depends on user setting
   useEffect(() => {

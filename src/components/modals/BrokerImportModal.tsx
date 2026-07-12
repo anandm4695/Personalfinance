@@ -211,6 +211,9 @@ export function BrokerImportModal({
     setUploadError("");
     setFileName(file.name);
     const reader = new FileReader();
+    reader.onerror = () => {
+      setUploadError("Could not read the file. Please try again.");
+    };
     reader.onload = (e) => {
       const text = e.target?.result as string;
       if (!text) {
@@ -297,6 +300,10 @@ export function BrokerImportModal({
     );
   }, [columnMap]);
 
+  // A demat account must exist and be selected — otherwise imported stocks
+  // would be saved with an empty dematId and become orphaned records.
+  const dematSelected = demats.length > 0 && !!dematId;
+
   /* ── Step 2 -> 3: Parse trades from mapped columns ───────────────── */
   const parseTrades = () => {
     const parsed: ParsedTrade[] = [];
@@ -380,6 +387,7 @@ export function BrokerImportModal({
      realized P&L is computed against the actual buy price instead of
      defaulting to zero. */
   const handleImport = () => {
+    if (!dematId) return; // safety net — UI already blocks reaching this state
     const broker = demats.find((d: any) => d.id === dematId)?.broker || "";
 
     type Lot = {
@@ -774,11 +782,33 @@ export function BrokerImportModal({
             </select>
           </Field>
 
+          {!dematSelected && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 12px",
+                borderRadius: 10,
+                background: `${THEME.rust}14`,
+                color: THEME.rust,
+                fontSize: 12,
+                fontWeight: 600,
+                marginTop: 10,
+              }}
+            >
+              <AlertTriangle size={14} />
+              {demats.length === 0
+                ? "You need to add a demat account before importing trades."
+                : "Select a demat account to import into."}
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
             <Button variant="ghost" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button variant="accent" onClick={parseTrades} disabled={!mappingValid}>
+            <Button variant="accent" onClick={parseTrades} disabled={!mappingValid || !dematSelected}>
               Next: Review Trades
             </Button>
           </div>
@@ -1005,7 +1035,7 @@ export function BrokerImportModal({
             <Button
               variant="accent"
               onClick={handleImport}
-              disabled={selectedTrades.length === 0}
+              disabled={selectedTrades.length === 0 || !dematSelected}
               icon={<Upload size={13} />}
             >
               Import {selectedTrades.length} Trade{selectedTrades.length !== 1 ? "s" : ""}

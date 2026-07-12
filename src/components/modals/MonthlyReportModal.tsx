@@ -18,6 +18,7 @@ import { THEME, PIE_COLORS } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, getCCDueDate } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { Modal } from "../ui/Modal";
+import { supabase } from "../../supabaseClient";
 
 const btnGhost = {
   background: "transparent",
@@ -289,9 +290,15 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
     setEmailSending(true);
     setEmailStatus("");
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const res = await fetch("/api/send-summary", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           state,
           emailTo,

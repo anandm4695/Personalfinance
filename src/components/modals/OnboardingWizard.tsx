@@ -15,6 +15,18 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
 import { uid, today } from "../../utils/finance";
+import { getCurrentFY } from "../../utils/appConstants";
+
+/* Build [currentFY, prev, prev-1] so the dropdown stays correct as time
+   passes instead of a hardcoded, eventually-stale list of years. */
+const FY_OPTIONS = (() => {
+  const [startYear] = getCurrentFY().split("-").map((s) => parseInt(s, 10));
+  return Array.from({ length: 3 }, (_, i) => {
+    const start = startYear - i;
+    const endShort = String(start + 1).slice(-2);
+    return `${start}-${endShort}`;
+  });
+})();
 
 const STEPS = [
   { id: 0, icon: User, label: "Profile", desc: "Set up your financial profile" },
@@ -40,7 +52,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   onComplete,
 }) => {
   const [step, setStep] = useState(0);
-  const [profile, setProfile] = useState({ name: "", fy: "2025-26", regime: "new" });
+  const [profile, setProfile] = useState({ name: "", fy: getCurrentFY(), regime: "new" });
   const [bank, setBank] = useState({ bankName: "", accountNumber: "", balance: "" });
   const [investment, setInvestment] = useState({ type: "fd", name: "", amount: "", rate: "" });
   const [goal, setGoal] = useState({ name: "", targetAmount: "", targetDate: "" });
@@ -77,6 +89,29 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           rate: Number(investment.rate) || 7,
           years: 1,
           startDate: today(),
+          owner: "self",
+        });
+      } else if (investment.type === "mf") {
+        addItem("mutualFunds", {
+          id: uid(),
+          name: investment.name,
+          category: "Equity",
+          invested: Number(investment.amount) || 0,
+          units: "",
+          buyNav: "",
+          currentNav: "",
+          owner: "self",
+        });
+      } else if (investment.type === "stock") {
+        addItem("stocks", {
+          id: uid(),
+          symbol: investment.name,
+          exchange: "NSE",
+          dematId: "",
+          qty: 1,
+          avgPrice: Number(investment.amount) || 0,
+          currentPrice: Number(investment.amount) || 0,
+          buyDate: today(),
           owner: "self",
         });
       }
@@ -176,9 +211,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     value={profile.fy}
                     onChange={(e) => setProfile({ ...profile, fy: e.target.value })}
                   >
-                    <option>2025-26</option>
-                    <option>2024-25</option>
-                    <option>2023-24</option>
+                    {FY_OPTIONS.map((fy) => (
+                      <option key={fy}>{fy}</option>
+                    ))}
                   </select>
                 </Field>
                 <Field label="Tax Regime">

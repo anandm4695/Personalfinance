@@ -1025,17 +1025,44 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
   const pctValid = totalPct === 100;
   const isMulti = landlordCount > 1;
 
-  // When landlord count changes, rebuild the array with equal splits
+  // When landlord count changes, only auto-rebuild equal splits while the
+  // splits are still untouched (fresh/default). Once the user has manually
+  // customised splitPct values, adding/removing landlords must be additive —
+  // it should never clobber a split they already dialled in.
   useEffect(() => {
     setLandlords((prev) => {
-      const next = buildEqualSplits(landlordCount);
-      // Preserve existing data for indices that already existed
-      return next.map((n, i) => ({
-        ...n,
-        name: prev[i]?.name || "",
-        phone: prev[i]?.phone || "",
-        pan: prev[i]?.pan || "",
-      }));
+      if (landlordCount === prev.length) return prev;
+
+      const equalForPrevCount = buildEqualSplits(prev.length);
+      const stillDefault = prev.every(
+        (l, i) => Number(l.splitPct || 0) === equalForPrevCount[i].splitPct
+      );
+
+      if (stillDefault) {
+        // No manual edits yet — safe to fully recompute equal splits,
+        // preserving any names/phone/pan already entered.
+        const next = buildEqualSplits(landlordCount);
+        return next.map((n, i) => ({
+          ...n,
+          name: prev[i]?.name || "",
+          phone: prev[i]?.phone || "",
+          pan: prev[i]?.pan || "",
+        }));
+      }
+
+      if (landlordCount > prev.length) {
+        // Adding landlord(s) on top of a custom split: append blank entries
+        // without touching the existing, manually-edited splits.
+        const added = landlordCount - prev.length;
+        const newEntries = Array.from({ length: added }, (_, i) => blankLandlord(prev.length + i));
+        return [...prev, ...newEntries];
+      }
+
+      // Removing landlord(s) directly via the count buttons (the per-row
+      // delete button already rebalances splits and syncs landlordCount
+      // itself, so this only fires from the count-selector): truncate,
+      // preserving whatever custom splits remain.
+      return prev.slice(0, landlordCount);
     });
   }, [landlordCount]);
 

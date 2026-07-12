@@ -521,6 +521,7 @@ interface AnalyticsTabProps {
   updateMasterData?: any;
   updateItem?: any;
   setTab?: any;
+  showToast?: (msg: string, type?: string) => void;
   dashboardWidgets?: Record<string, boolean>;
   onUpdateWidgets?: (widgets: Record<string, boolean>) => void;
   activeProfile?: string;
@@ -592,6 +593,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   updateMasterData,
   updateItem,
   setTab,
+  showToast,
   dashboardWidgets,
   onUpdateWidgets,
   activeProfile = "all",
@@ -788,6 +790,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   } | null>(null);
   const [nomineeName, setNomineeName] = useState("");
   const [nomineeRelation, setNomineeRelation] = useState("Spouse");
+  const [nomineeSaving, setNomineeSaving] = useState(false);
   const NOMINEE_RELATION_OPTIONS = ["Spouse", "Child", "Parent", "Sibling", "Other"];
 
   const openNomineeModal = (acc: { key: string; ids: string[]; type: string; name: string }) => {
@@ -798,17 +801,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   const handleAssignNominee = async () => {
     if (!nomineeModal || !nomineeName.trim() || !updateItem) return;
-    await Promise.all(
-      nomineeModal.ids.map((itemId) =>
-        updateItem(nomineeModal.key, itemId, {
-          nominee: nomineeName.trim(),
-          nomineeRelation,
-        })
-      )
-    );
-    setNomineeModal(null);
-    setNomineeName("");
-    setNomineeRelation("Spouse");
+    setNomineeSaving(true);
+    try {
+      await Promise.all(
+        nomineeModal.ids.map((itemId) =>
+          updateItem(nomineeModal.key, itemId, {
+            nominee: nomineeName.trim(),
+            nomineeRelation,
+          })
+        )
+      );
+      setNomineeModal(null);
+      setNomineeName("");
+      setNomineeRelation("Spouse");
+    } catch (e: any) {
+      showToast?.(`Failed to save nominee: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setNomineeSaving(false);
+    }
   };
   const [nwPercentileAge, setNwPercentileAge] = useState(35);
   const [estateChecklist, setEstateChecklist] = useState<Record<string, boolean>>(() => {
@@ -14853,8 +14863,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <ModalActions
             onSave={handleAssignNominee}
             onClose={() => setNomineeModal(null)}
-            saveLabel="Assign Nominee"
-            disabled={!nomineeName.trim()}
+            saveLabel={nomineeSaving ? "Saving…" : "Assign Nominee"}
+            disabled={!nomineeName.trim() || nomineeSaving}
           />
         </Modal>
       )}

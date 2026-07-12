@@ -814,6 +814,7 @@ export function DematTab({
   wishlists = [],
   wishlistItems = [],
   activeProfile = "all",
+  showToast,
 }: any) {
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
@@ -932,6 +933,7 @@ export function DematTab({
       await fetchLivePrices();
     } catch (e: any) {
       console.error(`Failed to fetch: ${e.message}`);
+      showToast?.(`Failed to refresh live prices: ${e?.message || "Unknown error"}`, "error");
     }
   };
 

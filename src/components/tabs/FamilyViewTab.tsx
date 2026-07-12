@@ -196,7 +196,7 @@ const memberAssets = (state, owner, marketData) => {
     return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
   }, 0);
   const stocks = filter(state.stocks).reduce((s, st) => {
-    const yfSym = `${st.symbol.replace(/\.(NS|BO)$/i, "")}.${(st.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+    const yfSym = `${(st.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(st.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
     const md = (marketData || {})[yfSym];
     const livePrice = md?.price ?? Number(st.currentPrice || 0);
     const fallbackPrice = livePrice || Number(st.avgPrice || 0);

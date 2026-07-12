@@ -316,13 +316,26 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         const note = parts[4];
         const narration = parts[5];
         let referenceNumber = "";
-        let accountId = "";
+        let explicitAccountId = "";
 
         if (parts.length >= 8) {
           referenceNumber = parts[6] || "";
-          accountId = parts[7] || firstAccountId;
+          explicitAccountId = parts[7] || "";
         } else {
-          accountId = parts[6] || firstAccountId;
+          explicitAccountId = parts[6] || "";
+        }
+
+        const accountId = explicitAccountId || firstAccountId;
+
+        // Guard against the "account-id-here" placeholder — it's only ever
+        // used when no real bank account exists (see firstAccountId above,
+        // and the downloaded template which embeds it the same way), so a
+        // row that resolves to it would import a transaction tagged with a
+        // non-existent account.
+        if (accountId === "account-id-here") {
+          throw new Error(
+            `Row ${i + 1}: no bank account found — add a bank account first, or include a valid accountId column.`
+          );
         }
 
         if (!date.match(/^\d{4}-\d{2}-\d{2}$/))
@@ -612,6 +625,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const handleSmartFileUpload = (file: File) => {
     setSmartFile(file);
     const reader = new FileReader();
+    reader.onerror = () => {
+      setSmartError("Could not read the file. Please try again.");
+    };
     reader.onload = (e) => {
       const text = e.target?.result as string;
       if (text) parseSmartCSV(text);
@@ -702,6 +718,13 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         .map(({ selected, isDuplicate, ...rest }) => rest);
       if (rows.length > 0) onImport(rows);
     } else {
+      // Safety net: parseCSV already rejects rows that resolve to the
+      // "account-id-here" placeholder, but never write it even if preview
+      // was somehow populated without going through that validation.
+      if (preview.some((r) => r.accountId === "account-id-here")) {
+        setError("No bank account found — add a bank account first, then re-import.");
+        return;
+      }
       if (preview.length > 0) onImport(preview);
     }
   };

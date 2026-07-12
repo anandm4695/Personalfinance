@@ -84,8 +84,22 @@ export const Card: React.FC<CardProps> = ({
   if (columnGap !== undefined)
     contentStyle.columnGap = typeof columnGap === "number" ? `${columnGap}px` : columnGap;
 
+  const handleKeyDown = onClick
+    ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }
+    : undefined;
+
   return (
-    <div className={fullClassName} style={outerStyle} onClick={onClick}>
+    <div
+      className={fullClassName}
+      style={outerStyle}
+      onClick={onClick}
+      {...(onClick ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown } : {})}
+    >
       {variant === "hero" && <div className="hero-card-mesh" />}
       <div className="spotlight-content" style={contentStyle}>
         {children}

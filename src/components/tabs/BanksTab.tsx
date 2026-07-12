@@ -562,23 +562,27 @@ export function BanksTab({
     return new Set(Object.keys(freq).filter((k) => freq[k] >= 2));
   }, [state.transactions]);
 
-  const filteredTxns = state.transactions
-    .filter((t: any) => filterAcc === "all" || t.accountId === filterAcc)
-    .filter(
-      (t: any) =>
-        filterType === "all" ||
-        (filterType === "transfer" ? t.category === "Transfer" : t.type === filterType)
-    )
-    .filter((t: any) => !dateFrom || t.date >= dateFrom)
-    .filter((t: any) => !dateTo || t.date <= dateTo)
-    .filter(
-      (t: any) =>
-        !search ||
-        (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
-        (t.category || "").toLowerCase().includes(search.toLowerCase()) ||
-        (t.narration || "").toLowerCase().includes(search.toLowerCase()) ||
-        (t.referenceNumber || "").toLowerCase().includes(search.toLowerCase())
-    );
+  const filteredTxns = useMemo(
+    () =>
+      state.transactions
+        .filter((t: any) => filterAcc === "all" || t.accountId === filterAcc)
+        .filter(
+          (t: any) =>
+            filterType === "all" ||
+            (filterType === "transfer" ? t.category === "Transfer" : t.type === filterType)
+        )
+        .filter((t: any) => !dateFrom || t.date >= dateFrom)
+        .filter((t: any) => !dateTo || t.date <= dateTo)
+        .filter(
+          (t: any) =>
+            !search ||
+            (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
+            (t.category || "").toLowerCase().includes(search.toLowerCase()) ||
+            (t.narration || "").toLowerCase().includes(search.toLowerCase()) ||
+            (t.referenceNumber || "").toLowerCase().includes(search.toLowerCase())
+        ),
+    [state.transactions, filterAcc, filterType, dateFrom, dateTo, search]
+  );
 
   // Sorting Logic
   const sortedTxns = useMemo(() => {

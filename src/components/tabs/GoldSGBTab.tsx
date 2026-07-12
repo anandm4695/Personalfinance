@@ -167,7 +167,10 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
     if (session?.user?.id) {
       supabase
         .from("user_settings")
-        .upsert({ user_id: session.user.id, gold_price_per_gram: price });
+        .upsert({ user_id: session.user.id, gold_price_per_gram: price })
+        .then(({ error }) => {
+          if (error) console.error("[updateGoldPrice] DB upsert failed:", error.message);
+        });
     }
   };
 

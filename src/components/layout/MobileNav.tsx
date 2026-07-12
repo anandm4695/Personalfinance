@@ -142,7 +142,9 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
                   alignItems: "center",
                   justifyContent: "center",
                   borderRadius: 10,
-                  background: active ? `${THEME.accent}1f` : "transparent",
+                  background: active
+                    ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                    : "transparent",
                   transition: "background 0.2s ease",
                 }}
               >
@@ -190,7 +192,9 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
               alignItems: "center",
               justifyContent: "center",
               borderRadius: 10,
-              background: !isPrimaryActive ? `${THEME.accent}1f` : "transparent",
+              background: !isPrimaryActive
+                ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                : "transparent",
               transition: "background 0.2s ease",
             }}
           >
@@ -305,13 +309,17 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
                 {drawerSearch && (
                   <button
                     onClick={() => setDrawerSearch("")}
+                    aria-label="Clear search"
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
                       color: THEME.muted,
                       display: "flex",
-                      padding: 0,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 12,
+                      margin: -12,
                       flexShrink: 0,
                     }}
                   >
@@ -321,6 +329,7 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
               </div>
               <button
                 onClick={() => setDrawerOpen(false)}
+                aria-label="Close menu"
                 style={{
                   width: 36,
                   height: 36,
@@ -425,7 +434,7 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
                                 height: 34,
                                 borderRadius: 10,
                                 background: isActive
-                                  ? `${THEME.accent}1a`
+                                  ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
                                   : "color-mix(in srgb, var(--t-muted) 8%, transparent)",
                                 display: "flex",
                                 alignItems: "center",

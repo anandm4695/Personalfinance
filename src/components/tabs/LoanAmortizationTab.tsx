@@ -51,6 +51,10 @@ const tdCenter: React.CSSProperties = {
 };
 
 const generateAmortization = (principal, annualRate, tenureMonths, extraMonthly = 0) => {
+  if (!tenureMonths || tenureMonths <= 0) {
+    return { emi: 0, schedule: [], totalInterest: 0, totalMonths: 0 };
+  }
+
   const monthlyRate = annualRate / 100 / 12;
   const emi =
     monthlyRate > 0

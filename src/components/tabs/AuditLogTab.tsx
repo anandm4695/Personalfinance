@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Calendar,
   ArrowRight,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { THEME } from "../../utils/constants";
@@ -294,6 +295,7 @@ const getMetadataSummary = (metadata: any, actionType: string): string | null =>
 export const AuditLogTab = ({ session }) => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAction, setFilterAction] = useState("all");
   const [dateRange, setDateRange] = useState("30");
@@ -308,6 +310,7 @@ export const AuditLogTab = ({ session }) => {
       return;
     }
     setLoading(true);
+    setFetchError("");
     try {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - Number(dateRange));
@@ -318,9 +321,15 @@ export const AuditLogTab = ({ session }) => {
         .gte("created_at", cutoff.toISOString())
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      if (!error && data) setLogs(data);
+      if (!error && data) {
+        setLogs(data);
+      } else if (error) {
+        console.error("Failed to fetch logs:", error.message);
+        setFetchError(`Failed to load audit log: ${error.message}`);
+      }
     } catch (e) {
       console.error("Failed to fetch logs", e);
+      setFetchError(`Failed to load audit log: ${e?.message || "Unknown error"}`);
     }
     setLoading(false);
   }, [session, dateRange, page]);
@@ -428,6 +437,26 @@ export const AuditLogTab = ({ session }) => {
           <RefreshCw size={14} /> Refresh
         </Button>
       </div>
+
+      {fetchError && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "color-mix(in srgb, var(--danger, #ef4444) 10%, transparent)",
+            border: `1px solid ${THEME.rust}`,
+            color: THEME.rust,
+            fontSize: 12.5,
+            fontWeight: 600,
+          }}
+        >
+          <AlertTriangle size={14} />
+          {fetchError}
+        </div>
+      )}
 
       {/* Stats */}
       <div

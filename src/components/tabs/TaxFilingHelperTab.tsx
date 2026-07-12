@@ -49,7 +49,7 @@ const ITR_CHECKLIST = [
   { id: "itr_form", label: "Correct ITR form selected", category: "Filing" },
 ];
 
-export const TaxFilingHelperTab = ({ state, metrics }) => {
+export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
   const [checkedItems, setCheckedItems] = useState(() => {
     const saved = state.masterData?._taxChecklist || {};
     return saved;
@@ -77,7 +77,13 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
   const [selectedFY, setSelectedFY] = useState(state.profile?.fy || availableFYs[0] || "2025-26");
 
   const toggleCheck = (id) => {
-    setCheckedItems((prev) => ({ ...prev, [id]: !prev[id] }));
+    setCheckedItems((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      if (typeof updateMasterData === "function") {
+        updateMasterData("_taxChecklist", next);
+      }
+      return next;
+    });
   };
 
   const incomeSummary = useMemo(() => {

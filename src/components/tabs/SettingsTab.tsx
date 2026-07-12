@@ -37,6 +37,7 @@ import {
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { exportArrayToCSV } from "../../utils/finance";
+import { supabase } from "../../supabaseClient";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
@@ -2740,9 +2741,15 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     setSendStatus("");
     setErrMsg("");
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const res = await fetch("/api/send-summary", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           state,
           emailTo: address,

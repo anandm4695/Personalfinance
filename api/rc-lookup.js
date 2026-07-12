@@ -25,7 +25,9 @@ module.exports = async function handler(req, res) {
     try {
       const data = await trySurepass(reg, process.env.SUREPASS_TOKEN);
       if (data) return res.json(data);
-    } catch (_) {}
+    } catch (err) {
+      console.error(`[rc-lookup] Surepass lookup failed for ${reg}:`, err?.message || err);
+    }
   }
 
   // ── SOURCE 2: Attestr ────────────────────────────────────────────────────
@@ -33,7 +35,9 @@ module.exports = async function handler(req, res) {
     try {
       const data = await tryAttestr(reg, process.env.ATTESTR_TOKEN);
       if (data) return res.json(data);
-    } catch (_) {}
+    } catch (err) {
+      console.error(`[rc-lookup] Attestr lookup failed for ${reg}:`, err?.message || err);
+    }
   }
 
   // ── SOURCE 3: RapidAPI ───────────────────────────────────────────────────
@@ -41,7 +45,9 @@ module.exports = async function handler(req, res) {
     try {
       const data = await tryRapidApi(reg, process.env.RAPIDAPI_KEY);
       if (data) return res.json(data);
-    } catch (_) {}
+    } catch (err) {
+      console.error(`[rc-lookup] RapidAPI lookup failed for ${reg}:`, err?.message || err);
+    }
   }
 
   // ── Fallback to deterministic mock database (if no live data was found) ────

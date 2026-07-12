@@ -70,7 +70,7 @@ const EMPTY: any = {
   notes: "",
 };
 
-function autoCompute(form: any) {
+function autoCompute(form: any, netSalaryTouched?: boolean) {
   const earn = ["basic", "hra", "da", "specialAllowance", "lta", "bonus", "otherEarnings"];
   const deduct = ["pfEmployee", "esiEmployee", "professionalTax", "tds", "otherDeductions"];
   const gross = earn.reduce((s, k) => s + Number(form[k] || 0), 0);
@@ -80,7 +80,7 @@ function autoCompute(form: any) {
     ...form,
     grossSalary: gross || form.grossSalary,
     totalDeductions: totalD || form.totalDeductions,
-    netSalary: net || form.netSalary,
+    netSalary: netSalaryTouched ? form.netSalary : net || form.netSalary,
   };
 }
 
@@ -196,6 +196,7 @@ function SlipForm({ initial, onSave, onClose, apiKey }: any) {
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
+  const [netSalaryTouched, setNetSalaryTouched] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   const parseWithAI = useCallback(async () => {
@@ -239,7 +240,7 @@ Return only the JSON, no explanation.`;
     }
   }, [form.rawText, apiKey]);
 
-  const computed = autoCompute(form);
+  const computed = autoCompute(form, netSalaryTouched);
 
   const save = () => {
     if (!form.slipMonth) return;
@@ -457,7 +458,10 @@ Return only the JSON, no explanation.`;
           className="form-input"
           type="number"
           value={form.netSalary}
-          onChange={(e) => set("netSalary", e.target.value)}
+          onChange={(e) => {
+            setNetSalaryTouched(true);
+            set("netSalary", e.target.value);
+          }}
           placeholder="Take-home amount"
         />
       </Field>

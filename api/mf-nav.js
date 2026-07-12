@@ -25,7 +25,7 @@ function downsample(points, maxPoints) {
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
-    https
+    const req = https
       .get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
         let data = "";
         res.on("data", (chunk) => {
@@ -40,6 +40,9 @@ function fetchJson(url) {
         });
       })
       .on("error", reject);
+    // Without a timeout, a hung upstream connection can block until Vercel's
+    // maxDuration kills the whole function instead of failing this one call fast.
+    req.setTimeout(8000, () => req.destroy(new Error("Request to mfapi.in timed out")));
   });
 }
 

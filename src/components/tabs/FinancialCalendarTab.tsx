@@ -107,13 +107,19 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       if (!fd.maturityDate) return;
       const days = getDaysUntil(fd.maturityDate);
       if (days <= horizon * 31 + 10) {
-        const maturityAmt = fdMaturity
-          ? fdMaturity(
-              Number(fd.principal || 0),
-              Number(fd.rate || 0),
-              Math.max(1, Math.round((getDaysUntil(fd.startDate || todayStr) * -1) / 30))
-            )
-          : Number(fd.principal || 0) * (1 + Number(fd.rate || 0) / 100);
+        const tenureYears =
+          Number(fd.years || 0) ||
+          (fd.startDate && fd.maturityDate
+            ? Math.max(
+                0,
+                (new Date(fd.maturityDate).getTime() - new Date(fd.startDate).getTime()) /
+                  (365.25 * 24 * 3600 * 1000)
+              )
+            : 0);
+        const maturityAmt =
+          fdMaturity && tenureYears > 0
+            ? fdMaturity(Number(fd.principal || 0), Number(fd.rate || 0), tenureYears)
+            : Number(fd.principal || 0) * (1 + Number(fd.rate || 0) / 100);
         items.push({
           type: "fd_maturity",
           category: "Fixed Deposit",

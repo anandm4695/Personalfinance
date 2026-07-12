@@ -208,6 +208,10 @@ export const rdMaturity = (monthly: number, rate: number, months: number) => {
 };
 
 export const calcTaxNew = (income: number) => {
+  // FY 2025-26 new-regime standard deduction — must be subtracted before slabbing
+  // (previously omitted here, causing tax to be overstated by ~3x for a ₹13L income).
+  const stdDed = 75_000;
+  const taxable = Math.max(0, income - stdDed);
   let tax = 0;
   const slabs = [
     [400000, 0],
@@ -220,15 +224,15 @@ export const calcTaxNew = (income: number) => {
   ];
   let prev = 0;
   for (const [limit, rate] of slabs) {
-    if (income > prev) {
-      tax += (Math.min(income, limit) - prev) * rate;
+    if (taxable > prev) {
+      tax += (Math.min(taxable, limit) - prev) * rate;
       prev = limit;
     } else break;
   }
   // Section 87A rebate: zero tax if taxable income ≤ ₹12L
-  if (income <= 1200000) tax = 0;
-  // Marginal relief (FY 2025-26): for income 12L–~13.1L, cap tax at (income − 12L)
-  else if (income < 1500000) tax = Math.min(tax, income - 1200000);
+  if (taxable <= 1200000) tax = 0;
+  // Marginal relief (FY 2025-26): for taxable income 12L–~13.1L, cap tax at (taxable − 12L)
+  else if (taxable < 1310000) tax = Math.min(tax, taxable - 1200000);
   const cess = tax * 0.04;
   return { tax, cess, total: tax + cess };
 };

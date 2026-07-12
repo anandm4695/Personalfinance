@@ -680,7 +680,15 @@ function FinanceDashboard() {
         documentsQ,
         goldQ,
         lifeEventsQ,
-      ].some((r) => r.data && r.data.length > 0);
+        recExp,
+        nwh,
+        healthInsuranceQ,
+        creditScoresQ,
+        billPaymentsQ,
+        billPaymentHistoryQ,
+        govtSchemesQ,
+        salarySlipsQ,
+      ].some((r) => r?.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
       setState((currentState) => {
@@ -2145,13 +2153,15 @@ function FinanceDashboard() {
           }
           // Save updated masterData (remove txn from both tracking arrays)
           if (key === "transactions") {
-            const reconIds: string[] = state.masterData?.reconciledTxnIds || [];
-            const appliedIds: string[] = state.masterData?.balanceAppliedTxnIds || [];
+            const latestMaster = masterDataRef.current || state.masterData || DEFAULT_MASTER_DATA;
+            const reconIds: string[] = latestMaster.reconciledTxnIds || [];
+            const appliedIds: string[] = latestMaster.balanceAppliedTxnIds || [];
             const newMaster = {
-              ...(state.masterData || DEFAULT_MASTER_DATA),
+              ...latestMaster,
               reconciledTxnIds: reconIds.filter((rid) => rid !== id),
               balanceAppliedTxnIds: appliedIds.filter((rid) => rid !== id),
             };
+            masterDataRef.current = newMaster;
             supabase
               .from("user_settings")
               .upsert({ user_id: userId, master_data: newMaster })
@@ -2609,6 +2619,18 @@ function FinanceDashboard() {
       ...push("real_estate_demands", data.realEstateDemands),
       ...push("real_estate_payments", data.realEstatePayments),
       ...push("vehicles", data.vehicles),
+      ...push("dividends", data.dividends),
+      ...push("documents", data.documents),
+      ...push("gold_holdings", data.goldHoldings),
+      ...push("life_events", data.lifeEvents),
+      ...push("watchlists", data.wishlists),
+      ...push("watchlist_items", data.wishlistItems),
+      ...push("health_insurance", data.healthInsurance),
+      ...push("credit_scores", data.creditScores),
+      ...push("bill_payments", data.billPayments),
+      ...push("bill_payment_history", data.billPaymentHistory),
+      ...push("govt_schemes", data.govtSchemes),
+      ...push("salary_slips", data.salarySlips),
       ...(data.netWorthHistory || []).map((entry) =>
         supabase.from("net_worth_history").upsert(
           {
@@ -3940,6 +3962,7 @@ function FinanceDashboard() {
                                 }
                                 setDemoMode(false);
                                 setSession(null);
+                                setState(DEFAULT_STATE);
                               }}
                               style={{
                                 width: "100%",
@@ -4047,6 +4070,7 @@ function FinanceDashboard() {
                   updateMasterData={updateMasterData}
                   updateItem={updateItem}
                   setTab={setTab}
+                  showToast={showToast}
                   dashboardWidgets={state.masterData?.dashboardWidgets}
                   onUpdateWidgets={(widgets) => updateMasterData("dashboardWidgets", widgets)}
                   activeProfile={activeProfile}
@@ -4123,6 +4147,7 @@ function FinanceDashboard() {
                   wishlists={state.wishlists || []}
                   wishlistItems={state.wishlistItems || []}
                   activeProfile={activeProfile}
+                  showToast={showToast}
                 />
               )}
               {tab === "txnhistory" && (
@@ -4235,6 +4260,8 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  showToast={showToast}
+                  setTab={setTab}
                 />
               )}
               {tab === "docvault" && (
@@ -4267,11 +4294,15 @@ function FinanceDashboard() {
                 />
               )}
               {tab === "taxfiling" && (
-                <TaxFilingHelperTab state={filteredState} metrics={metrics} />
+                <TaxFilingHelperTab
+                  state={filteredState}
+                  metrics={metrics}
+                  updateMasterData={updateMasterData}
+                />
               )}
               {tab === "smartalerts" && <SmartAlertsTab state={filteredState} metrics={metrics} />}
               {tab === "expenseforecast" && (
-                <ExpenseForecastTab state={filteredState} metrics={metrics} />
+                <ExpenseForecastTab state={filteredState} metrics={metrics} setTab={setTab} />
               )}
               {tab === "dataexport" && (
                 <DataExportTab
@@ -4362,10 +4393,11 @@ function FinanceDashboard() {
                     if (getIsDemoMode()) {
                       await signOutOfDemo().catch(() => {});
                     } else {
-                      await supabase.auth.signOut();
+                      await supabase.auth.signOut().catch(() => {});
                     }
                     setDemoMode(false);
                     setSession(null);
+                    setState(DEFAULT_STATE);
                   }}
                   cleanupOrphaned={cleanupOrphanedCorporateActions}
                   updateProfile={updateProfile}

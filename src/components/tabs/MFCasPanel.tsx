@@ -359,21 +359,30 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
     const mfHoldings: any[] = [];
     parsedRows.forEach((r, idx) => {
       const match = matchMap.get(idx);
+      const isRedemption = r.type === "Redemption";
+      const signedUnits = isRedemption ? -Math.abs(parseFloat(r.units || "0")) : parseFloat(r.units || "0");
+      const signedInvested = isRedemption
+        ? -Math.abs(parseFloat(r.invested || "0"))
+        : parseFloat(r.invested || "0");
+
       if (mergeMode && match) {
         // Merge: update existing fund's units/NAV instead of creating a new entry
         const existing = match.fund;
         mfHoldings.push({
           ...existing,
           units: String(
-            (parseFloat(existing.units || "0") + parseFloat(r.units || "0")).toFixed(3)
+            Math.max(0, parseFloat(existing.units || "0") + signedUnits).toFixed(3)
           ),
           currentNav: r.currentNav,
           invested: String(
-            (parseFloat(existing.invested || "0") + parseFloat(r.invested || "0")).toFixed(2)
+            Math.max(0, parseFloat(existing.invested || "0") + signedInvested).toFixed(2)
           ),
           mfCode: existing.mfCode || r.mfCode,
           _merge: true, // signal to parent that this is an update
         });
+      } else if (isRedemption) {
+        // Redemption row with no matching existing holding — nothing to subtract from, skip creating a new holding
+        return;
       } else {
         mfHoldings.push({
           name: r.name,

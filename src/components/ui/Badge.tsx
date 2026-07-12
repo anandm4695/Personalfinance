@@ -17,8 +17,22 @@ export const Badge: React.FC<BadgeProps> = ({
   onClick,
 }) => {
   const variantClass = `badge-${variant}`;
+  const handleKeyDown = onClick
+    ? (e: React.KeyboardEvent<HTMLSpanElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick(e as unknown as React.MouseEvent);
+        }
+      }
+    : undefined;
+
   return (
-    <span className={`badge ${variantClass} ${className}`} style={style} onClick={onClick}>
+    <span
+      className={`badge ${variantClass} ${className}`}
+      style={style}
+      onClick={onClick}
+      {...(onClick ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown } : {})}
+    >
       {children}
     </span>
   );

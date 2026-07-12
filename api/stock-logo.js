@@ -605,6 +605,8 @@ module.exports = async function handler(req, res) {
 
   const { symbol } = req.query;
   if (!symbol) return res.status(400).json({ error: "symbol required" });
+  if (!/^[A-Z0-9.\-&]+$/i.test(String(symbol)))
+    return res.status(400).json({ error: "invalid symbol" });
 
   const sym = String(symbol);
   const base = sym.replace(/\.(NS|BO)$/i, "");

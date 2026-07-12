@@ -268,12 +268,22 @@ function VehiclePhotoThumb({
       setSrc(_vpCache[cacheKey]);
       return;
     }
-    // wait for VehicleHeroBanner (shared cache) — poll briefly
-    const t = setTimeout(() => {
-      if (_vpCache[cacheKey] !== undefined) setSrc(_vpCache[cacheKey]);
-    }, 2000);
-    return () => clearTimeout(t);
-  }, [make, model, photoUrl]);
+    // wait for VehicleHeroBanner (shared cache) — poll a few times with backoff,
+    // since a slow Wikipedia fetch may resolve well after a single 2s check.
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    [2000, 4000, 8000].forEach((delay) => {
+      const t = setTimeout(() => {
+        if (cancelled) return;
+        if (cacheKey in _vpCache) setSrc(_vpCache[cacheKey]);
+      }, delay);
+      timers.push(t);
+    });
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
+  }, [make, model, photoUrl, cacheKey]);
 
   if (!src || failed) return null;
 
@@ -345,7 +355,8 @@ function VehicleHeroBanner({
         });
       })
       .catch(() => {
-        _vpCache[cacheKey] = null;
+        // Transient network failure — don't permanently blacklist this make/model.
+        // Leaving the cache unset lets a future mount retry the fetch.
       });
   }, [make, model, photoUrl]);
 

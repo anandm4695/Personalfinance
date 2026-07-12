@@ -457,7 +457,7 @@ export const InvestmentStatementTab = ({
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
       );
-      return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0)); // Note: variable named incorrectly in old code, let's keep it safe
+      return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
     }, 0);
     const investValue = investmentPlans.reduce(
       (s: number, x: any) => s + (Number(x.expectedMaturityAmount || x.sumAssured) || 0),

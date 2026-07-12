@@ -50,6 +50,32 @@ function getSupabase() {
   return createClient(url, key);
 }
 
+// ── Manual-send auth check ────────────────────────────────────────────────────
+// The manual POST path (used by the Settings "Send Test" button and the Monthly
+// Report modal) used to have NO auth check at all: anyone who found this URL
+// could POST { state, emailTo, ... } and have an email sent to any address using
+// data they supplied themselves. This app has exactly one real user, and the
+// frontend already holds a live Supabase session (see src/supabaseClient.ts),
+// so we require the caller to prove they hold a valid Supabase access token for
+// that account — the same JWT the browser already has from signing in. This is
+// stronger than a shared secret (which would need to be embedded in client JS,
+// where anyone can read it) and doesn't require introducing a brand-new secret.
+async function verifyManualAuth(req) {
+  const authHeader = req.headers["authorization"] || "";
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader);
+  if (!match) return { ok: false, reason: "Missing Authorization header" };
+  const token = match[1].trim();
+  if (!token) return { ok: false, reason: "Empty bearer token" };
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) return { ok: false, reason: "Invalid or expired session" };
+    return { ok: true, user: data.user };
+  } catch (err) {
+    return { ok: false, reason: err.message || "Auth check failed" };
+  }
+}
+
 // ── IST offset helpers ─────────────────────────────────────────────────────────
 function nowIST() {
   const d = new Date();
@@ -116,6 +142,21 @@ function fmtINRFull(n) {
 }
 function sign(n) {
   return n >= 0 ? "+" : "-";
+}
+
+// ── HTML escaping ──────────────────────────────────────────────────────────────
+// Every user-entered string (issuer names, goal names, category labels, alert
+// text, recipient name, subscription/lender/property labels, etc.) is inserted
+// into the email HTML template below. Without escaping, a caller of the manual
+// POST endpoint could inject arbitrary HTML/script into the generated email.
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -865,7 +906,7 @@ function generateHTML(summary, frequency, recipientName) {
       <tr>
         <td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
           <table width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${icon} ${d.label}</td>
+            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${icon} ${escapeHtml(d.label)}</td>
             <td style="font-size:13px;color:${textMuted};font-weight:600;text-align:center;">${d.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
             <td style="font-size:16px;font-weight:900;color:${isPast ? negColor : textPrimary};text-align:right;">${d.amount > 0 ? fmtINRFull(d.amount) : "—"}</td>
           </tr></table>
@@ -883,7 +924,7 @@ function generateHTML(summary, frequency, recipientName) {
       <tr><td style="padding:14px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:15px;font-weight:700;color:${textPrimary};">${g.name}</td>
+            <td style="font-size:15px;font-weight:700;color:${textPrimary};">${escapeHtml(g.name)}</td>
             <td style="font-size:15px;font-weight:900;color:${barColor};text-align:right;">${g.pct}%</td>
           </tr>
         </table>
@@ -903,7 +944,7 @@ function generateHTML(summary, frequency, recipientName) {
       <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${cat}</td>
+            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${escapeHtml(cat)}</td>
             <td style="font-size:15px;font-weight:800;color:${textPrimary};text-align:right;">${fmtINRFull(amt)} <span style="color:${textMuted};font-weight:500;font-size:12px;">(${p}%)</span></td>
           </tr>
         </table>
@@ -921,7 +962,7 @@ function generateHTML(summary, frequency, recipientName) {
       return `
       <tr><td style="padding:6px 28px;">
         <div style="background:${bg};border-left:4px solid ${border};border-radius:0 8px 8px 0;padding:12px 16px;font-size:14px;color:${textPrimary};font-weight:500;line-height:1.5;">
-          ${icon} ${a.msg}
+          ${icon} ${escapeHtml(a.msg)}
         </div>
       </td></tr>`;
     })
@@ -940,7 +981,7 @@ function generateHTML(summary, frequency, recipientName) {
       <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:14px;font-weight:700;color:${textPrimary};">${c.issuer} <span style="color:${textMuted};font-weight:400;font-size:12px;">··${c.last4 || "**"}</span></td>
+            <td style="font-size:14px;font-weight:700;color:${textPrimary};">${escapeHtml(c.issuer)} <span style="color:${textMuted};font-weight:400;font-size:12px;">··${escapeHtml(c.last4) || "**"}</span></td>
             <td style="text-align:right;">
               <span style="font-size:15px;font-weight:800;color:${textPrimary};">${fmtINR(out)}</span>
               <span style="font-size:12px;color:${uColor};font-weight:700;margin-left:8px;">${u}% used</span>
@@ -1065,7 +1106,7 @@ function generateHTML(summary, frequency, recipientName) {
     <tr><td style="padding:14px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
-          <td style="font-size:14px;font-weight:700;color:${textPrimary};">${b.category}</td>
+          <td style="font-size:14px;font-weight:700;color:${textPrimary};">${escapeHtml(b.category)}</td>
           <td style="font-size:14px;font-weight:800;color:${barColor};text-align:right;">${fmtINR(b.spent)} / ${fmtINR(b.limit)} (${b.pct}%)</td>
         </tr>
       </table>
@@ -1672,6 +1713,13 @@ module.exports = async function handler(req, res) {
   try {
     if (isManual) {
       // ── Manual "Send Test" from Settings UI ─────────────────────────────
+      // Auth check FIRST, before touching the request body or sending anything.
+      const auth = await verifyManualAuth(req);
+      if (!auth.ok) {
+        console.error(`[send-summary] Manual send rejected: ${auth.reason}`);
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
       const { state, emailTo, frequency, recipientName, fromEmail } = req.body || {};
       if (!state || !emailTo) return res.status(400).json({ error: "state and emailTo required" });
       if (!RESEND_KEY)

@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   IndianRupee,
+  ClipboardList,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -620,10 +621,6 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
       )}
     </div>
   );
-}
-
-function ClipboardList(props: any) {
-  return <IndianRupee {...props} />;
 }
 
 function ordinal(n: number): string {

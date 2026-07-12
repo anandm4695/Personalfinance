@@ -369,7 +369,14 @@ const NomineeStatCard = ({ label, value, sub, subColor, icon: Icon, color }: any
   );
 };
 
-export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: any) => {
+export const NomineeTrackerTab = ({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  showToast,
+  setTab,
+}: any) => {
   const [filter, setFilter] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
   const [assignModal, setAssignModal] = useState<FlatAsset | null>(null);
@@ -459,17 +466,21 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
 
   const handleAssign = async () => {
     if (!assignModal || !assignName.trim()) return;
-    await Promise.all(
-      assignModal.ids.map((itemId) =>
-        updateItem(assignModal.key, itemId, {
-          nominee: assignName.trim(),
-          nomineeRelation: assignRelation,
-        })
-      )
-    );
-    setAssignModal(null);
-    setAssignName("");
-    setAssignRelation("Spouse");
+    try {
+      await Promise.all(
+        assignModal.ids.map((itemId) =>
+          updateItem(assignModal.key, itemId, {
+            nominee: assignName.trim(),
+            nomineeRelation: assignRelation,
+          })
+        )
+      );
+      setAssignModal(null);
+      setAssignName("");
+      setAssignRelation("Spouse");
+    } catch (e: any) {
+      showToast?.(`Failed to save nominee: ${e?.message || "Unknown error"}`, "error");
+    }
   };
 
   const resetWillForm = () => {
@@ -498,15 +509,18 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
     setShowWillForm(true);
   };
 
-  const handleSaveWill = () => {
+  const handleSaveWill = async () => {
     const payload = { type: "will", ...willForm };
-    if (editWill) {
-      removeItem("documents", editWill.id);
-      addItem("documents", { ...payload, id: editWill.id });
-    } else {
-      addItem("documents", payload);
+    try {
+      if (editWill) {
+        await updateItem("documents", editWill.id, payload);
+      } else {
+        await addItem("documents", payload);
+      }
+      resetWillForm();
+    } catch (e: any) {
+      showToast?.(`Failed to save will details: ${e?.message || "Unknown error"}`, "error");
     }
-    resetWillForm();
   };
 
   const resetContactForm = () => {
@@ -527,16 +541,19 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
     setShowContactForm(true);
   };
 
-  const handleSaveContact = () => {
+  const handleSaveContact = async () => {
     if (!contactForm.name.trim()) return;
     const payload = { type: "key_contact", ...contactForm };
-    if (editContact) {
-      removeItem("documents", editContact.id);
-      addItem("documents", { ...payload, id: editContact.id });
-    } else {
-      addItem("documents", payload);
+    try {
+      if (editContact) {
+        await updateItem("documents", editContact.id, payload);
+      } else {
+        await addItem("documents", payload);
+      }
+      resetContactForm();
+    } catch (e: any) {
+      showToast?.(`Failed to save contact: ${e?.message || "Unknown error"}`, "error");
     }
-    resetContactForm();
   };
 
   if (totalAssets === 0) {
@@ -553,7 +570,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           description="Add bank accounts, investments, insurance policies and other assets first, then come back to track nominee assignments."
           pills={["Bank Accounts", "Investments", "Insurance", "Real Estate"]}
           buttonLabel="Go to Dashboard"
-          onAdd={() => {}}
+          onAdd={() => setTab?.("analytics")}
         />
       </div>
     );
