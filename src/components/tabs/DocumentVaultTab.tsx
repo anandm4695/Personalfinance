@@ -302,6 +302,41 @@ function getLinkedAssets(state: any, assetType: string): { id: string; label: st
   }
 }
 
+function getAssetListByType(state: any, assetType: string): any[] {
+  switch (assetType) {
+    case "bankAccount":
+      return state.bankAccounts || [];
+    case "fd":
+      return state.fixedDeposits || [];
+    case "insurance":
+      return [
+        ...(state.lic || []),
+        ...(state.termPlans || []),
+        ...(state.investmentPlans || []),
+      ];
+    case "property":
+      return state.realEstateProperties || [];
+    case "vehicle":
+      return state.vehicles || [];
+    case "loan":
+      return state.loansTaken || [];
+    case "creditCard":
+      return state.creditCards || [];
+    case "demat":
+      return state.demat || [];
+    case "mutualFund":
+      return state.mutualFunds || [];
+    case "ppf":
+      return state.ppf || [];
+    case "nps":
+      return state.nps || [];
+    case "epf":
+      return state.epf || [];
+    default:
+      return [];
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Empty form
 // ─────────────────────────────────────────────────────────────────────────────
@@ -531,8 +566,64 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const openAddModal = (defaultAssetType = "", defaultAssetId = "") => {
+    let defaultOwner = "self";
+    let defaultCategory: CategoryKey = "Identity";
+    let defaultName = "";
+
+    if (defaultAssetType && defaultAssetId) {
+      const assetList = getAssetListByType(state, defaultAssetType);
+      const asset = assetList.find((a: any) => a.id === defaultAssetId);
+      if (asset) {
+        if (asset.owner) {
+          defaultOwner = asset.owner;
+        } else if (asset.profileId) {
+          defaultOwner = asset.profileId;
+        }
+
+        const assetName = asset.name || asset.bankName || asset.policyName || asset.make || "";
+        let details = "";
+        if (defaultAssetType === "bankAccount" && asset.bankName) {
+          details = `${asset.bankName} Account`;
+        } else if (defaultAssetType === "insurance") {
+          details = `${asset.policyName || asset.insurer || "Policy"}`;
+        } else if (defaultAssetType === "vehicle") {
+          details = `${asset.make} ${asset.model || ""}`.trim();
+        } else if (defaultAssetType === "property") {
+          details = assetName;
+        } else if (defaultAssetType === "creditCard") {
+          details = `${asset.bank || ""} ${asset.name || "Credit Card"}`.trim();
+        } else {
+          details = assetName;
+        }
+        defaultName = details ? `${details} Document` : "";
+      }
+
+      if (
+        defaultAssetType === "bankAccount" ||
+        defaultAssetType === "fd" ||
+        defaultAssetType === "loan" ||
+        defaultAssetType === "creditCard" ||
+        defaultAssetType === "demat" ||
+        defaultAssetType === "mutualFund" ||
+        defaultAssetType === "ppf" ||
+        defaultAssetType === "nps" ||
+        defaultAssetType === "epf"
+      ) {
+        defaultCategory = "Financial";
+      } else if (defaultAssetType === "insurance") {
+        defaultCategory = "Insurance";
+      } else if (defaultAssetType === "property") {
+        defaultCategory = "Property";
+      } else if (defaultAssetType === "vehicle") {
+        defaultCategory = "Vehicle";
+      }
+    }
+
     setForm({
       ...EMPTY_DOC,
+      name: defaultName,
+      category: defaultCategory,
+      owner: defaultOwner,
       linkedAssetType: defaultAssetType,
       linkedAsset: defaultAssetId,
     });
@@ -611,16 +702,72 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     setForm((prev) => {
       const next = { ...prev, [key]: val };
       if (key === "category") next.subcategory = "";
-      if (key === "linkedAssetType") next.linkedAsset = "";
+      if (key === "linkedAssetType") {
+        next.linkedAsset = "";
+        // Auto-update category based on linked asset type
+        if (
+          val === "bankAccount" ||
+          val === "fd" ||
+          val === "loan" ||
+          val === "creditCard" ||
+          val === "demat" ||
+          val === "mutualFund" ||
+          val === "ppf" ||
+          val === "nps" ||
+          val === "epf"
+        ) {
+          next.category = "Financial";
+        } else if (val === "insurance") {
+          next.category = "Insurance";
+        } else if (val === "property") {
+          next.category = "Property";
+        } else if (val === "vehicle") {
+          next.category = "Vehicle";
+        }
+      }
+      if (key === "linkedAsset" && val) {
+        // If document name is empty, suggest one based on the selected asset
+        if (!next.name.trim()) {
+          const assets = getLinkedAssets(state, next.linkedAssetType);
+          const matched = assets.find((a) => a.id === val);
+          if (matched) {
+            next.name = `${matched.label} Document`;
+          }
+        }
+        // Auto-resolve owner from the actual asset
+        const assetList = getAssetListByType(state, next.linkedAssetType);
+        const actualAsset = assetList.find((a) => a.id === val);
+        if (actualAsset && (actualAsset.owner || actualAsset.profileId)) {
+          next.owner = actualAsset.owner || actualAsset.profileId;
+        }
+      }
       return next;
     });
   };
 
   const handleCopy = (id: string, text: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 1500);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 1500);
+      } else {
+        // Fallback for older browsers / non-secure contexts
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 1500);
+      }
+    } catch (err) {
+      console.error("Failed to copy text:", err);
+    }
   };
 
   const linkedAssetOptions = useMemo(
@@ -1949,7 +2096,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             </span>
           </div>
           
-          <div style={{ maxHeight: 100, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
+          <div style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
             {missingAssets.length === 0 ? (
               <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, padding: "16px 0", textAlign: "center" }}>
                 All clear! No missing documents detected.
