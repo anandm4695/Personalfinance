@@ -1643,8 +1643,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     else if (metrics.totalLiabilities > 0) debtScore = 4;
     else debtScore = 0;
 
+    // Liquid reserve = bank cash + FDs maturing within 90 days (matches Emergency Fund Health card)
+    const nearTermFDsForScore = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
+      if (!fd.maturityDate) return sum;
+      const matMs = new Date(fd.maturityDate).getTime();
+      const nowMs = Date.now();
+      if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
+      return sum;
+    }, 0);
     const emergencyMonths =
-      metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
+      metrics.monthExpense > 0
+        ? (metrics.cashInBanks + nearTermFDsForScore) / metrics.monthExpense
+        : 0;
     if (emergencyMonths > 6) emergencyScore = 25;
     else if (emergencyMonths >= 3) emergencyScore = 18;
     else if (emergencyMonths >= 1) emergencyScore = 10;
@@ -1947,6 +1957,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     state.subscriptions,
     state.transactions,
     state.rentedProperties,
+    state.income,
   ]);
 
   const momNetWorthDelta = useMemo(() => {
@@ -2107,9 +2118,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     state.rentalProperties,
     state.fixedDeposits,
     state.recurringDeposits,
+    state.govtSchemes,
     metrics.cashInBanks,
     metrics.stockValue,
     metrics.mfValue,
+    metrics.bondValue,
     metrics.monthIncome,
   ]);
 
@@ -2245,8 +2258,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         label: `${Math.max(0, sr).toFixed(0)}% of ${nextSR[1]}%`,
       };
 
-    // Safety Net
-    const efM = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
+    // Safety Net (liquid reserve = bank cash + FDs maturing within 90 days)
+    const nearTermFDsForBadge = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
+      if (!fd.maturityDate) return sum;
+      const matMs = new Date(fd.maturityDate).getTime();
+      const nowMs = Date.now();
+      if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
+      return sum;
+    }, 0);
+    const efM =
+      metrics.monthExpense > 0
+        ? (metrics.cashInBanks + nearTermFDsForBadge) / metrics.monthExpense
+        : 0;
     const efMiles = [
       ["ef1", 1],
       ["ef3", 3],
@@ -2458,6 +2481,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       0
     );
     const bondPassive = ((metrics.bondValue || 0) * 0.07) / 12;
+    const rdPassive = (state.recurringDeposits || []).reduce((sum: number, r: any) => {
+      const start = r.startDate ? new Date(r.startDate) : new Date();
+      const now = new Date();
+      const m =
+        (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+      const months = Math.max(0, Math.min(m, Number(r.tenureMonths || 0)));
+      const currentVal =
+        months > 0 ? rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), months) : 0;
+      return sum + (currentVal * Number(r.rate || 6)) / 100 / 12;
+    }, 0);
     const savPassive = (metrics.cashInBanks * 0.03) / 12;
     const divPassive =
       ((metrics.stockValue || 0) * 0.012) / 12 + ((metrics.mfValue || 0) * 0.01) / 12;
@@ -2476,7 +2509,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       return sum + (balance * rate) / 100 / 12;
     }, 0);
     const totalPassiveMonthly =
-      rentalPassive + fdPassive + bondPassive + savPassive + divPassive + govtSchemesPassive;
+      rentalPassive +
+      fdPassive +
+      rdPassive +
+      bondPassive +
+      savPassive +
+      divPassive +
+      govtSchemesPassive;
     const piMiles = [
       ["pi5k", 5000],
       ["pi25k", 25000],
@@ -2781,8 +2820,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       0
     );
     const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;
+    // Liquid reserve = bank cash + FDs maturing within 90 days (matches Emergency Fund Health card)
+    const nearTermFDsForInsight = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
+      if (!fd.maturityDate) return sum;
+      const matMs = new Date(fd.maturityDate).getTime();
+      const nowMs = Date.now();
+      if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
+      return sum;
+    }, 0);
     const emergencyMonths =
-      metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
+      metrics.monthExpense > 0
+        ? (metrics.cashInBanks + nearTermFDsForInsight) / metrics.monthExpense
+        : 0;
 
     if (metrics.monthIncome > 0 && metrics.savingsRate < 10)
       insights.push({
@@ -3063,6 +3112,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     state.loansTaken,
     dashboardData,
     state.creditCards,
+    state.fixedDeposits,
   ]);
 
   const ytdData = useMemo(() => {
@@ -3471,7 +3521,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       borderRadius: 8,
                       textAlign: "left",
                       border: `1.5px solid ${isVisible ? THEME.accent : THEME.line}`,
-                      background: isVisible ? `${THEME.accent}10` : "transparent",
+                      background: isVisible
+                        ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
+                        : "transparent",
                       cursor: "pointer",
                     }}
                   >
@@ -4608,7 +4660,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         flexDirection: "column",
                         gap: 8,
                         padding: 10,
-                        background: "rgba(128,128,128,0.03)",
+                        background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                         borderRadius: 10,
                         marginBottom: 16,
                       }}
@@ -4747,7 +4799,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             ? `color-mix(in srgb, var(--t-sage) 4%, transparent)`
                             : d.daysLeft <= 5
                               ? `color-mix(in srgb, var(--t-rust) 3%, transparent)`
-                              : "rgba(128,128,128,0.03)",
+                              : `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                           border: `1px solid ${borderColor}22`,
                           overflow: "hidden",
                           position: "relative",
@@ -5355,7 +5407,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   alignItems: "center",
                                   padding: "8px 12px",
                                   borderRadius: 8,
-                                  background: "rgba(128,128,128,0.03)",
+                                  background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                                   border: `1px solid ${THEME.line}`,
                                 }}
                               >
@@ -5813,8 +5865,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         gap: 10,
                         padding: "12px 16px",
                         borderRadius: 10,
-                        background: "rgba(234,179,8,0.08)",
-                        border: "1px solid rgba(234,179,8,0.25)",
+                        background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
                         marginBottom: 10,
                         fontSize: 13,
                         color: THEME.ink,
@@ -5823,7 +5875,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     >
                       <AlertTriangle
                         size={16}
-                        style={{ color: "#eab308", marginTop: 2, flexShrink: 0 }}
+                        style={{ color: THEME.gold, marginTop: 2, flexShrink: 0 }}
                       />
                       <span>
                         <strong>
@@ -6009,7 +6061,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               style={{
                                 borderTop: `1px solid ${THEME.line}`,
                                 background:
-                                  idx % 2 === 0 ? "transparent" : "rgba(128,128,128,0.02)",
+                                  idx % 2 === 0 ? "transparent" : `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                               }}
                             >
                               <td
@@ -6109,7 +6161,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       padding: "20px 20px 16px",
                       borderRadius: 14,
                       border: `1px solid ${THEME.line}`,
-                      background: "rgba(128,128,128,0.02)",
+                      background: `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                     }}
                   >
                     <div
@@ -6281,7 +6333,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           alignItems: "center",
                           padding: "12px 16px",
                           borderRadius: 12,
-                          background: "rgba(128,128,128,0.03)",
+                          background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                           border: `1px solid ${THEME.line}`,
                         }}
                       >
@@ -6688,7 +6740,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         justifyContent: "center",
                         color: THEME.muted,
                         fontSize: 13,
-                        background: "rgba(128,128,128,0.03)",
+                        background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                         borderRadius: 12,
                       }}
                     >
@@ -6791,7 +6843,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       justifyContent: "center",
                       color: THEME.muted,
                       fontSize: 13,
-                      background: "rgba(128,128,128,0.03)",
+                      background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                       borderRadius: 12,
                     }}
                   >
@@ -7023,6 +7075,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
                     Current value vs. amount invested (MF & Stocks)
                   </div>
+                  {!metrics.mfInvested && !metrics.stockInvested ? (
+                    <div
+                      style={{
+                        height: 250,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: THEME.muted,
+                        fontSize: 13,
+                        background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
+                        borderRadius: 12,
+                      }}
+                    >
+                      Add mutual funds or stocks to see portfolio returns
+                    </div>
+                  ) : (
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart
                       data={[
@@ -7102,6 +7170,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       />
                     </BarChart>
                   </ResponsiveContainer>
+                  )}
                 </Card>
               </div>
             </div>
@@ -7598,7 +7667,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   display: "flex",
                                   justifyContent: "space-between",
                                   padding: "6px 10px",
-                                  background: "rgba(128,128,128,0.04)",
+                                  background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                                   borderRadius: 8,
                                   fontSize: 12,
                                 }}
@@ -7684,7 +7753,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 )}
               </div>
 
-              {assetBreakdown?.length === 0 ? (
+              {!assetBreakdown?.length ? (
                 <div
                   style={{
                     height: 300,
@@ -7693,7 +7762,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     justifyContent: "center",
                     color: THEME.muted,
                     fontSize: 13,
-                    background: "rgba(128,128,128,0.03)",
+                    background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                     borderRadius: 12,
                     textAlign: "center",
                     padding: 24,
@@ -7899,7 +7968,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 alignItems: "center",
                                 padding: "8px 10px",
                                 borderRadius: 8,
-                                background: "rgba(128,128,128,0.03)",
+                                background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                                 border: `1px solid ${THEME.line}`,
                               }}
                             >
@@ -7949,8 +8018,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 padding: "8px 10px",
                                 borderRadius: 8,
                                 background: isHovered
-                                  ? "rgba(128,128,128,0.05)"
-                                  : "rgba(128,128,128,0.02)",
+                                  ? `color-mix(in srgb, ${THEME.ink} 5%, transparent)`
+                                  : `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                                 border: isHovered
                                   ? `1px solid ${color}`
                                   : `1px solid ${THEME.line}`,
@@ -8232,7 +8301,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <Badge variant="muted">Live Data</Badge>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: 32,
+              }}
+            >
               {/* Sector Breakdown */}
               <div>
                 <div
@@ -8248,14 +8323,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 >
                   <Building2 size={16} /> Top 10 Sectors
                 </div>
-                {metrics.stockSectorBreakdown?.length === 0 ? (
+                {!metrics.stockSectorBreakdown?.length ? (
                   <div
                     style={{
                       padding: "40px 0",
                       textAlign: "center",
                       color: THEME.muted,
                       fontSize: 13,
-                      background: "rgba(128,128,128,0.03)",
+                      background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                       borderRadius: 12,
                     }}
                   >
@@ -8366,14 +8441,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </Button>
                   )}
                 </div>
-                {metrics.stockCapBreakdown?.length === 0 ? (
+                {!metrics.stockCapBreakdown?.length ? (
                   <div
                     style={{
                       padding: "40px 0",
                       textAlign: "center",
                       color: THEME.muted,
                       fontSize: 13,
-                      background: "rgba(128,128,128,0.03)",
+                      background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                       borderRadius: 12,
                     }}
                   >
@@ -8581,7 +8656,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   alignItems: "center",
                                   padding: "6px 8px",
                                   borderRadius: 6,
-                                  background: "rgba(128,128,128,0.03)",
+                                  background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                                   border: `1px solid ${THEME.line}`,
                                 }}
                               >
@@ -8631,8 +8706,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   padding: "6px 8px",
                                   borderRadius: 6,
                                   background: isHovered
-                                    ? "rgba(128,128,128,0.05)"
-                                    : "rgba(128,128,128,0.02)",
+                                    ? `color-mix(in srgb, ${THEME.ink} 5%, transparent)`
+                                    : `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                                   border: isHovered
                                     ? `1px solid ${color}`
                                     : `1px solid ${THEME.line}`,
@@ -8725,7 +8800,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   padding: "40px 0",
                   color: THEME.muted,
                   fontSize: 13,
-                  background: "rgba(128,128,128,0.03)",
+                  background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                   borderRadius: 12,
                 }}
               >
@@ -8748,7 +8823,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       gap: 14,
                       padding: "12px 16px",
                       borderRadius: 12,
-                      background: "rgba(128,128,128,0.03)",
+                      background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                       border: `1px solid ${THEME.line}`,
                     }}
                   >
@@ -8951,7 +9026,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div
               style={{
                 padding: "14px 16px",
-                background: "rgba(128,128,128,0.04)",
+                background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                 borderRadius: 12,
                 display: "flex",
                 justifyContent: "space-between",
@@ -9692,7 +9767,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             if (mfs.length === 0 && uniqueStockNames.length === 0) return null;
 
             return (
-              <Card style={{ padding: 24, marginTop: 28 }}>
+              <Card
+                style={{
+                  padding: 24,
+                  marginTop: 28,
+                  borderTop: `3px solid ${concentrationRisks.length > 0 ? THEME.rust : THEME.sage}`,
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
@@ -9709,6 +9790,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted }}>
                       Detect dual exposure between your direct stock holdings and mutual funds
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4, fontStyle: "italic" }}>
+                      Index constituent weights are static estimates, not live data — treat as directional
                     </div>
                   </div>
                   {overlappingStockCount > 0 && (
@@ -9758,7 +9842,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 alignItems: "center",
                                 padding: "10px 14px",
                                 borderRadius: 10,
-                                background: "rgba(128,128,128,0.03)",
+                                background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                                 border: `1px solid ${THEME.line}`,
                               }}
                             >
@@ -9898,7 +9982,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   borderRadius: 10,
                                   background: isConcentration
                                     ? `color-mix(in srgb, ${THEME.rust} 5%, transparent)`
-                                    : "rgba(128,128,128,0.02)",
+                                    : `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                                   border: `1px solid ${isConcentration ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` : THEME.line}`,
                                   borderLeft: isConcentration
                                     ? `3px solid ${THEME.rust}`
@@ -10041,7 +10125,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           padding: "30px 20px",
                           color: THEME.muted,
                           fontSize: 12,
-                          background: "rgba(128,128,128,0.02)",
+                          background: `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                           borderRadius: 12,
                           border: `1px dashed ${THEME.line}`,
                         }}
@@ -10176,7 +10260,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             const nextMilestone = milestones.find((m) => nw < m.value);
 
             return (
-              <Card style={{ padding: 24, marginTop: 24 }}>
+              <Card style={{ padding: 24, marginTop: 24, borderTop: `3px solid ${THEME.accent}` }}>
                 <div
                   style={{
                     display: "flex",
@@ -10201,7 +10285,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       display: "flex",
                       alignItems: "center",
                       gap: 12,
-                      background: "rgba(128,128,128,0.04)",
+                      background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                       padding: "6px 14px",
                       borderRadius: 20,
                       border: `1px solid ${THEME.line}`,
@@ -10431,7 +10515,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div className="sub-tab-hero-badge">🚀 FIRE &amp; Goals</div>
           </div>
           {/* FIRE Progress */}
-          <Card style={{ padding: 24, marginBottom: 28 }}>
+          <Card style={{ padding: 24, marginBottom: 28, borderTop: `3px solid ${THEME.accent}` }}>
             <div
               style={{
                 display: "flex",
@@ -10541,7 +10625,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       key={label}
                       style={{
                         padding: "14px 16px",
-                        background: "rgba(128,128,128,0.04)",
+                        background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                         borderRadius: 12,
                       }}
                     >
@@ -10681,11 +10765,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
                       );
                     const r = 0.12 / 12;
-                    const months = Math.log(1 + (gap * r) / totalSavings) / Math.log(1 + r);
+                    // Annuity-due (SIP debited at start of month) — matches SIP vs Lump Sum planner below
+                    const months =
+                      Math.log(1 + (gap * r) / (totalSavings * (1 + r))) / Math.log(1 + r);
                     const years = months / 12;
                     const baseYrs =
                       currentSavings > 0
-                        ? Math.log(1 + (gap * r) / currentSavings) / Math.log(1 + r) / 12
+                        ? Math.log(1 + (gap * r) / (currentSavings * (1 + r))) /
+                          Math.log(1 + r) /
+                          12
                         : null;
                     const saved = baseYrs !== null && isFinite(baseYrs) ? baseYrs - years : null;
                     return isFinite(years) && years > 0 ? (
@@ -10822,7 +10910,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     flexDirection: "column",
                     gap: 18,
                     padding: "16px 20px",
-                    background: "rgba(128,128,128,0.02)",
+                    background: `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                     border: `1px solid ${THEME.line}`,
                     borderRadius: 16,
                   }}
@@ -11169,7 +11257,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       flex: 1,
                       width: "100%",
                       height: "100%",
-                      background: "rgba(128,128,128,0.01)",
+                      background: `color-mix(in srgb, ${THEME.ink} 1%, transparent)`,
                       border: `1px solid ${THEME.line}`,
                       borderRadius: 16,
                       padding: "16px 12px 6px",
@@ -11321,7 +11409,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           </Card>
 
           {/* 80C Tax Deduction */}
-          <Card style={{ padding: 24, marginBottom: 28 }}>
+          <Card style={{ padding: 24, marginBottom: 28, borderTop: `3px solid ${THEME.gold}` }}>
             <div
               style={{
                 display: "flex",
@@ -11731,7 +11819,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         gap: 16,
                         padding: "14px 16px",
                         borderRadius: 12,
-                        background: "rgba(128,128,128,0.04)",
+                        background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                         border: `1px solid ${g.achieved ? "rgba(52,211,153,0.2)" : g.onTrack || !g.targetDate ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.2)"}`,
                       }}
                     >
@@ -11874,7 +11962,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             const allLosses = [...losingStocks, ...losingMFs].sort((a, b) => b.loss - a.loss);
 
             return (
-              <Card style={{ padding: 24, marginTop: 24 }}>
+              <Card style={{ padding: 24, marginTop: 24, borderTop: `3px solid ${THEME.gold}` }}>
                 <div
                   style={{
                     display: "flex",
@@ -12008,9 +12096,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     padding: "12px 14px",
                                     borderRadius: 10,
                                     background: isChecked
-                                      ? "rgba(128,128,128,0.03)"
-                                      : "rgba(128,128,128,0.01)",
-                                    border: `1px solid ${isChecked ? THEME.line : "rgba(128,128,128,0.08)"}`,
+                                      ? `color-mix(in srgb, ${THEME.ink} 3%, transparent)`
+                                      : `color-mix(in srgb, ${THEME.ink} 1%, transparent)`,
+                                    border: `1px solid ${isChecked ? THEME.line : `color-mix(in srgb, ${THEME.ink} 8%, transparent)`}`,
                                     transition: "all 0.2s ease",
                                   }}
                                 >
@@ -12037,7 +12125,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                       borderRadius: 10,
                                       background: isChecked
                                         ? "rgba(239,68,68,0.08)"
-                                        : "rgba(128,128,128,0.06)",
+                                        : `color-mix(in srgb, ${THEME.ink} 6%, transparent)`,
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
@@ -12133,7 +12221,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         marginTop: 16,
                         padding: "10px 14px",
                         borderRadius: 10,
-                        background: "rgba(128,128,128,0.04)",
+                        background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                         borderTop: `1px solid ${THEME.line}`,
                         fontSize: 11,
                         color: THEME.muted,
@@ -12365,7 +12453,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         padding: "20px 24px",
                         borderRadius: 14,
-                        background: "rgba(128,128,128,0.04)",
+                        background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                         border: `1.5px solid ${THEME.line}`,
                       }}
                     >
@@ -12751,7 +12839,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </Button>
                     )}
                   </div>
-                  {spendingData.breakdown?.length === 0 ? (
+                  {!spendingData.breakdown?.length ? (
                     <div
                       style={{
                         height: 300,
@@ -12760,7 +12848,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         justifyContent: "center",
                         color: THEME.muted,
                         fontSize: 13,
-                        background: "rgba(128,128,128,0.03)",
+                        background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                         borderRadius: 12,
                         textAlign: "center",
                         padding: 24,
@@ -12979,7 +13067,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     alignItems: "center",
                                     padding: "8px 10px",
                                     borderRadius: 8,
-                                    background: "rgba(128,128,128,0.03)",
+                                    background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                                     border: `1px solid ${THEME.line}`,
                                   }}
                                 >
@@ -13033,8 +13121,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     padding: "8px 10px",
                                     borderRadius: 8,
                                     background: isHovered
-                                      ? "rgba(128,128,128,0.05)"
-                                      : "rgba(128,128,128,0.02)",
+                                      ? `color-mix(in srgb, ${THEME.ink} 5%, transparent)`
+                                      : `color-mix(in srgb, ${THEME.ink} 2%, transparent)`,
                                     border: isHovered
                                       ? `1px solid ${color}`
                                       : `1px solid ${THEME.line}`,
@@ -13100,7 +13188,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                 <Card style={{ padding: 24 }}>
                   <div className="section-label">Top Expenses</div>
-                  {spendingData.breakdown?.length === 0 ? (
+                  {!spendingData.breakdown?.length ? (
                     <div
                       style={{
                         height: 300,
@@ -13109,7 +13197,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         justifyContent: "center",
                         color: THEME.muted,
                         fontSize: 13,
-                        background: "rgba(128,128,128,0.03)",
+                        background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                         borderRadius: 12,
                         textAlign: "center",
                         padding: 24,
@@ -13190,7 +13278,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             gap: 14,
                             padding: "12px 16px",
                             borderRadius: 12,
-                            background: "rgba(128,128,128,0.03)",
+                            background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                             border: `1px solid ${THEME.line}`,
                           }}
                         >
@@ -13416,15 +13504,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   }
                 });
 
-              // 3. ADVANCE TAX (dynamic based on month number)
-              [15].forEach((day) => {
-                if (month === 5)
-                  dueDays[day] = (dueDays[day] || []).concat({
-                    label: "Adv. Tax",
-                    color: THEME.accent,
-                  });
-              });
-              if (month === 8 || month === 11 || month === 2)
+              // 3. ADVANCE TAX (15th of Jun, Sep, Dec, Mar)
+              if (month === 5 || month === 8 || month === 11 || month === 2)
                 dueDays[15] = (dueDays[15] || []).concat({
                   label: "Adv. Tax",
                   color: THEME.accent,
@@ -14941,6 +15022,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           let targetTab = "analytics";
                           if (lbl.includes("cc:") || lbl.includes("card") || lbl.includes("bill"))
                             targetTab = "credit";
+                          else if (lbl.includes("emi") || lbl.includes("loan"))
+                            targetTab = "amortization";
                           else if (lbl.includes("sip") || lbl.includes("mutual"))
                             targetTab = "investments";
                           else if (
