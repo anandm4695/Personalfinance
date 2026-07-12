@@ -12,6 +12,9 @@ interface ModalProps {
   maxWidth?: number;
 }
 
+const FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export const Modal: React.FC<ModalProps> = ({
   title,
   onClose,
@@ -19,10 +22,59 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   maxWidth = 560,
 }) => {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Escape-to-close, body scroll lock, and initial focus.
+  React.useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // Focus the panel (or its first focusable element) once mounted.
+    const panel = panelRef.current;
+    if (panel) {
+      const firstFocusable = panel.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      (firstFocusable || panel).focus();
+    }
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === "Tab" && panelRef.current) {
+        const focusable = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+        ).filter((el) => !el.hasAttribute("disabled"));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const content = (
     <div className="modal-backdrop" onClick={onClose}>
       <div
+        ref={panelRef}
         className="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: `min(${maxWidth}px, 95vw)` }}
       >

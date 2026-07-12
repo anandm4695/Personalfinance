@@ -125,7 +125,10 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     const homeLoanInterest = (state.loansTaken || [])
       .filter((l) => (l.type || "").toLowerCase().includes("home"))
       .reduce(
-        (s, l) => s + Number(l.outstanding || l.principal || 0) * (Number(l.rate || 0) / 100),
+        (s, l) =>
+          s +
+          Number(l.outstanding != null ? l.outstanding : l.principal || 0) *
+            (Number(l.rate || 0) / 100),
         0
       );
     const sec24_limit = 200000;
@@ -256,7 +259,13 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       </div>
 
       {/* Pie Chart + Details */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 16,
+        }}
+      >
         {pieData.length > 0 && (
           <Card style={{ padding: 24 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>

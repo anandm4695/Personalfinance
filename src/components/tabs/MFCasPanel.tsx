@@ -66,6 +66,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
   const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [importDone, setImportDone] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
   const [mergeMode, setMergeMode] = useState(true);
   const [owner, setOwner] = useState(activeProfile !== "all" ? activeProfile : "self");
 
@@ -400,7 +401,11 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
         });
       }
     });
+    // Capture the count before clearing parsedRows below — otherwise the
+    // success banner (which reads parsedRows.length) always renders "0".
+    const importedCountValue = mfHoldings.length;
     onImport(mfHoldings);
+    setImportedCount(importedCountValue);
     setImportDone(true);
     setParsedRows([]);
     setInputText("");
@@ -777,7 +782,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           }}
         >
           <CheckCircle size={15} />
-          <span>Import completed successfully! {parsedRows.length} holdings created.</span>
+          <span>Import completed successfully! {importedCount} holdings created.</span>
         </div>
       )}
     </Card>

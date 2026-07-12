@@ -36,7 +36,8 @@ export const StatCard = ({
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+      boxShadow:
+        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
     }}
   >

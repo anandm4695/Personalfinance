@@ -301,7 +301,11 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                       <Edit2 size={14} />
                     </button>
                     <button
-                      onClick={() => removeItem("lifeEvents", e.id)}
+                      onClick={() => {
+                        if (window.confirm(`Delete "${e.name}" event? This cannot be undone.`)) {
+                          removeItem("lifeEvents", e.id);
+                        }
+                      }}
                       style={{
                         background: "none",
                         border: "none",

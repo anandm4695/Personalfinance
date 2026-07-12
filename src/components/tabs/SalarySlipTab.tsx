@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
+import { getCurrentFY } from "../../utils/appConstants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -495,8 +496,19 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
       PF: Number(s.pfEmployee || 0),
     }));
 
-  const totalTDS = slips.reduce((s, sl) => s + Number(sl.tds || 0), 0);
-  const totalPF = slips.reduce((s, sl) => s + Number(sl.pfEmployee || 0), 0);
+  // Current financial year (Apr–Mar) window, used to scope the "(FY)" stat cards
+  // below so they don't silently aggregate every slip ever added.
+  const currentFY = getCurrentFY();
+  const fyStartYear = Number(currentFY.split("-")[0]);
+  const fyStartMonth = `${fyStartYear}-04`;
+  const fyEndMonth = `${fyStartYear + 1}-03`;
+  const fySlips = slips.filter(
+    (sl) => sl.slipMonth >= fyStartMonth && sl.slipMonth <= fyEndMonth
+  );
+  const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(-2)}`;
+
+  const totalTDS = fySlips.reduce((s, sl) => s + Number(sl.tds || 0), 0);
+  const totalPF = fySlips.reduce((s, sl) => s + Number(sl.pfEmployee || 0), 0);
   const avgNet = slips.length
     ? slips.reduce((s, sl) => s + Number(sl.netSalary || 0), 0) / slips.length
     : 0;
@@ -589,13 +601,13 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
               color="var(--accent)"
             />
             <SalaryStatCard
-              label="Total TDS (FY)"
+              label={`Total TDS (${fyLabel})`}
               value={<Prv>{fmtINRFull(totalTDS)}</Prv>}
               icon={<TrendingDown size={16} />}
               color={THEME.rust}
             />
             <SalaryStatCard
-              label="Total PF (Employee)"
+              label={`Total PF (${fyLabel})`}
               value={<Prv>{fmtINRFull(totalPF)}</Prv>}
               icon={<Briefcase size={16} />}
               color="#D97706"

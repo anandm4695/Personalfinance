@@ -88,9 +88,14 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       const r = annualRate / (isQuarterly ? 4 : 12) / 100;
       const monthsElapsed = Math.max(0, monthsBetween(sip.startDate, todayStr));
       const totalInst = Number(sip.totalInstallments || 0);
-      const paid = Math.min(Math.floor(monthsElapsed / periodMonths), totalInst);
+      // Open-ended SIPs (no fixed tenure) accrue installments indefinitely;
+      // only cap "paid" when a real totalInstallments target is set.
+      const paid =
+        totalInst > 0
+          ? Math.min(Math.floor(monthsElapsed / periodMonths), totalInst)
+          : Math.floor(monthsElapsed / periodMonths);
       const totalInvested = paid * Number(sip.amount || 0);
-      const remaining = Math.max(0, totalInst - paid);
+      const remaining = totalInst > 0 ? Math.max(0, totalInst - paid) : 0;
       const m = Number(sip.amount || 0);
 
       const currentCorpus =
@@ -111,7 +116,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       const estimatedGains = Math.max(0, currentCorpus - totalInvested);
       const gainPct = totalInvested > 0 ? (estimatedGains / totalInvested) * 100 : 0;
       const progress = totalInst > 0 ? (paid / totalInst) * 100 : 0;
-      const isCompleted = remaining === 0 && paid > 0;
+      const isCompleted = totalInst > 0 && remaining === 0 && paid > 0;
       const monthlyEquivalent = isQuarterly ? m / 3 : m;
 
       let nextDueDateStr: string | null = null;
@@ -203,12 +208,12 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 
           if (isQuarterly) {
             const instNum = Math.floor(totalMonthsAtPoint / 3);
-            if (instNum < totalInst && totalMonthsAtPoint % 3 === 0) {
+            if ((totalInst === 0 || instNum < totalInst) && totalMonthsAtPoint % 3 === 0) {
               currentInvested += Number(sip.amount || 0);
               currentWealth += Number(sip.amount || 0);
             }
           } else {
-            if (totalMonthsAtPoint <= totalInst) {
+            if (totalInst === 0 || totalMonthsAtPoint <= totalInst) {
               currentInvested += Number(sip.amount || 0);
               currentWealth += Number(sip.amount || 0);
             }
@@ -911,7 +916,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-            {sip.paid} / {sip.totalInstallments}
+            {sip.paid} / {Number(sip.totalInstallments || 0) > 0 ? sip.totalInstallments : "∞"}
           </div>
           <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>installments paid</div>
         </div>

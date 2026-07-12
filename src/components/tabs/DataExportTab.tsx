@@ -102,6 +102,17 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
   };
 
   const handleExportJSON = useCallback(() => {
+    // "JSON (Full Backup)" must mean *everything* — DATA_SECTIONS above only
+    // lists a subset of collections (kept for the selective-CSV export below),
+    // so route this through the app-level exportJSON(), which stringifies the
+    // complete `state` object with every category. Only fall back to the
+    // selective builder if exportJSON wasn't passed in for some reason.
+    if (exportJSON) {
+      exportJSON();
+      setLastExport(new Date().toLocaleString());
+      if (showToast) showToast("Full backup exported successfully!", "success");
+      return;
+    }
     const exportData = { _exportDate: today(), _version: "2.0" };
     DATA_SECTIONS.forEach((s) => {
       if (selectedSections.has(s.key) && state[s.key]) {
@@ -120,7 +131,7 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
     URL.revokeObjectURL(url);
     setLastExport(new Date().toLocaleString());
     if (showToast) showToast("Data exported successfully!", "success");
-  }, [state, selectedSections, showToast]);
+  }, [state, selectedSections, showToast, exportJSON]);
 
   const handleExportCSV = useCallback(() => {
     const csvFiles = [];
@@ -260,9 +271,19 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
             </div>
           </div>
           <Button variant="primary" onClick={handleExport}>
-            <Download size={16} /> Export {selectedSections.size} Sections
+            <Download size={16} />
+            {exportFormat === "json"
+              ? "Export Full Backup"
+              : `Export ${selectedSections.size} Sections`}
           </Button>
         </div>
+
+        {exportFormat === "json" && (
+          <p style={{ fontSize: 12, color: THEME.textSecondary, marginTop: -12, marginBottom: 16 }}>
+            JSON Full Backup always includes every data category, regardless of the section
+            checkboxes below. Use CSV format to export only selected sections.
+          </p>
+        )}
 
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <button
@@ -328,8 +349,14 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
                 padding: "8px 12px",
                 borderRadius: 8,
                 cursor: "pointer",
-                background: selectedSections.has(d.key) ? "var(--accent)08" : THEME.bg,
-                border: `1px solid ${selectedSections.has(d.key) ? "var(--accent)40" : THEME.border}`,
+                background: selectedSections.has(d.key)
+                  ? "color-mix(in srgb, var(--t-accent) 8%, transparent)"
+                  : THEME.bg,
+                border: `1px solid ${
+                  selectedSections.has(d.key)
+                    ? "color-mix(in srgb, var(--t-accent) 40%, transparent)"
+                    : THEME.border
+                }`,
               }}
             >
               <input

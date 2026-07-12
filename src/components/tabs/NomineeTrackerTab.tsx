@@ -1121,7 +1121,11 @@ export const NomineeTrackerTab = ({
                     variant="danger"
                     size="sm"
                     icon={<Trash2 size={12} />}
-                    onClick={() => removeItem("documents", doc.id)}
+                    onClick={() => {
+                      if (window.confirm(`Delete Will Document dated ${doc.date || "not specified"}? This cannot be undone.`)) {
+                        removeItem("documents", doc.id);
+                      }
+                    }}
                   >
                     Delete
                   </Button>
@@ -1326,7 +1330,11 @@ export const NomineeTrackerTab = ({
                     <Edit2 size={13} />
                   </button>
                   <button
-                    onClick={() => removeItem("documents", c.id)}
+                    onClick={() => {
+                      if (window.confirm(`Delete contact "${c.name}"? This cannot be undone.`)) {
+                        removeItem("documents", c.id);
+                      }
+                    }}
                     className="card-lift"
                     style={{
                       background: `${THEME.rust}09`,

@@ -6,6 +6,12 @@ const https = require("https");
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
+// yahoo-finance2 ships with no request timeout by default — a hung upstream
+// response can otherwise block until Vercel's maxDuration kills the whole
+// function. Follows the same 8s-timeout philosophy as the mfapi.in calls below.
+const YF_TIMEOUT_MS = 8000;
+const yfFetchOptions = () => ({ fetchOptions: { signal: AbortSignal.timeout(YF_TIMEOUT_MS) } });
+
 function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY;
@@ -93,7 +99,7 @@ module.exports = async function handler(req, res) {
     await Promise.allSettled(
       uniqueSymbols.map(async (sym) => {
         try {
-          const quote = await yf.quote(sym, {}, { validateResult: false });
+          const quote = await yf.quote(sym, {}, { validateResult: false, ...yfFetchOptions() });
           const price =
             quote?.regularMarketPrice ?? quote?.postMarketPrice ?? quote?.preMarketPrice;
 

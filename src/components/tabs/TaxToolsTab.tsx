@@ -31,6 +31,19 @@ import { EmptyState } from "../ui/EmptyState";
 import { FormField } from "../ui/Form";
 import { Prv } from "../../context/PrivacyContext";
 
+// Escapes user-controlled free-text before it's interpolated into an HTML
+// string handed to document.write() (used by printReceipts below) — without
+// this, a field containing e.g. <script> or <img onerror=...> would execute
+// in the popup window.
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const MONTH_NAMES = [
   "Jan",
   "Feb",
@@ -464,12 +477,12 @@ const HraReceiptSection = ({ state }) => {
             <div class="receipt-row"><label>Receipt No:</label><span>${r.receiptNo}</span></div>
             <div class="receipt-row"><label>Date:</label><span>${r.date}</span></div>
             <div class="receipt-row"><label>For the month of:</label><span>${r.month}</span></div>
-            <div class="receipt-row"><label>Received from:</label><span>${tenantName}</span></div>
+            <div class="receipt-row"><label>Received from:</label><span>${escapeHtml(tenantName)}</span></div>
             <div class="amount">Amount: ₹${Number(r.amount).toLocaleString("en-IN")}</div>
-            <div class="receipt-row"><label>Property Address:</label><span>${selectedProp?.address || selectedProp?.name || "—"}</span></div>
-            <div class="receipt-row"><label>Landlord Name:</label><span>${landlordName}</span></div>
-            ${landlordPan ? `<div class="receipt-row"><label>Landlord PAN:</label><span>${landlordPan}</span></div>` : ""}
-            ${landlordAddress ? `<div class="receipt-row"><label>Landlord Address:</label><span>${landlordAddress}</span></div>` : ""}
+            <div class="receipt-row"><label>Property Address:</label><span>${escapeHtml(selectedProp?.address || selectedProp?.name || "—")}</span></div>
+            <div class="receipt-row"><label>Landlord Name:</label><span>${escapeHtml(landlordName)}</span></div>
+            ${landlordPan ? `<div class="receipt-row"><label>Landlord PAN:</label><span>${escapeHtml(landlordPan)}</span></div>` : ""}
+            ${landlordAddress ? `<div class="receipt-row"><label>Landlord Address:</label><span>${escapeHtml(landlordAddress)}</span></div>` : ""}
             <div class="signature">
               <div><div class="line">Tenant Signature</div></div>
               <div>Revenue<br>Stamp</div>
@@ -483,9 +496,9 @@ const HraReceiptSection = ({ state }) => {
           <div class="receipt-header">RENT SUMMARY — FY ${fy}</div>
           <div class="receipt-row"><label>Total Months:</label><span>${receipts.length}</span></div>
           <div class="receipt-row"><label>Total Rent Paid:</label><span>₹${totalRent.toLocaleString("en-IN")}</span></div>
-          <div class="receipt-row"><label>Tenant:</label><span>${tenantName}</span></div>
-          <div class="receipt-row"><label>Landlord:</label><span>${landlordName}</span></div>
-          ${landlordPan ? `<div class="receipt-row"><label>Landlord PAN:</label><span>${landlordPan}</span></div>` : ""}
+          <div class="receipt-row"><label>Tenant:</label><span>${escapeHtml(tenantName)}</span></div>
+          <div class="receipt-row"><label>Landlord:</label><span>${escapeHtml(landlordName)}</span></div>
+          ${landlordPan ? `<div class="receipt-row"><label>Landlord PAN:</label><span>${escapeHtml(landlordPan)}</span></div>` : ""}
         </div>
       </body></html>
     `;
@@ -863,8 +876,31 @@ const HraReceiptSection = ({ state }) => {
 
 // ── Form 26AS Reconciliation (B2) ───────────────────────────────────────────
 
+// Form 26AS entries aren't part of the central Supabase-synced state shape
+// (that would need a new DB table + migration). Persist them to a dedicated
+// localStorage key instead, so they survive a tab switch/reload — matching
+// the pattern used for credit scores in CreditTab.tsx.
+const FORM26AS_STORAGE_KEY = "finance_form26as";
+
+function loadForm26ASEntries() {
+  try {
+    const raw = localStorage.getItem(FORM26AS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveForm26ASEntries(entries) {
+  try {
+    localStorage.setItem(FORM26AS_STORAGE_KEY, JSON.stringify(entries));
+  } catch {
+    // ignore quota/serialization errors — best-effort persistence
+  }
+}
+
 const Form26ASSection = ({ state }) => {
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState(() => loadForm26ASEntries());
   const [showAdd, setShowAdd] = useState(false);
   const [newEntry, setNewEntry] = useState({
     deductor: "",
@@ -885,12 +921,20 @@ const Form26ASSection = ({ state }) => {
 
   const addEntry = () => {
     if (!newEntry.deductor || !newEntry.amount) return;
-    setEntries((p) => [
-      ...p,
+    const updated = [
+      ...entries,
       { ...newEntry, id: Date.now().toString(), amount: Number(newEntry.amount) },
-    ]);
+    ];
+    setEntries(updated);
+    saveForm26ASEntries(updated);
     setNewEntry({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
     setShowAdd(false);
+  };
+
+  const deleteEntry = (id) => {
+    const updated = entries.filter((x) => x.id !== id);
+    setEntries(updated);
+    saveForm26ASEntries(updated);
   };
 
   const total26AS = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
@@ -1191,7 +1235,7 @@ const Form26ASSection = ({ state }) => {
                       </td>
                       <td style={{ padding: "8px 10px" }}>
                         <button
-                          onClick={() => setEntries((p) => p.filter((x) => x.id !== e.id))}
+                          onClick={() => deleteEntry(e.id)}
                           style={{
                             background: "none",
                             border: "none",

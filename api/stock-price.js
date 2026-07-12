@@ -4,6 +4,13 @@ const { default: YahooFinance } = require("yahoo-finance2");
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
+// yahoo-finance2 ships with no request timeout by default — a hung upstream
+// response can otherwise block until Vercel's maxDuration kills the whole
+// function. Follows the same 8s-timeout philosophy as the mfapi.in calls in
+// api/mf-nav.js / api/cron-update-prices.js.
+const YF_TIMEOUT_MS = 8000;
+const yfFetchOptions = () => ({ fetchOptions: { signal: AbortSignal.timeout(YF_TIMEOUT_MS) } });
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -26,9 +33,13 @@ module.exports = async function handler(req, res) {
       try {
         // Fetch both quote and quoteSummary to get price, sector, and marketCap
         const [quote, summary] = await Promise.all([
-          yf.quote(sym, {}, { validateResult: false }),
+          yf.quote(sym, {}, { validateResult: false, ...yfFetchOptions() }),
           yf
-            .quoteSummary(sym, { modules: ["assetProfile", "summaryDetail", "price"] })
+            .quoteSummary(
+              sym,
+              { modules: ["assetProfile", "summaryDetail", "price"] },
+              yfFetchOptions()
+            )
             .catch(() => null),
         ]);
 

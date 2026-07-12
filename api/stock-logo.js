@@ -7,6 +7,13 @@
 const { default: YahooFinance } = require("yahoo-finance2");
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
+// Neither yahoo-finance2 nor a raw fetch() has a timeout by default — a hung
+// upstream response can otherwise block until Vercel's maxDuration kills the
+// whole function. Follows the same 8s-timeout philosophy as the mfapi.in
+// calls in api/mf-nav.js / api/cron-update-prices.js.
+const YF_TIMEOUT_MS = 8000;
+const yfFetchOptions = () => ({ fetchOptions: { signal: AbortSignal.timeout(YF_TIMEOUT_MS) } });
+
 // High-density domain mapping covering ~450+ top NSE/BSE stocks
 const STOCK_DOMAINS = {
   // ── Nifty 50 / Large Caps ──────────────────────────────────────────────────
@@ -566,7 +573,7 @@ const STOCK_DOMAINS = {
 async function resolveWithTwelveData(base, exchange, apiKey) {
   const exch = /BO/i.test(exchange) ? "BSE" : "NSE";
   const url = `https://api.twelvedata.com/logo?symbol=${encodeURIComponent(base)}&exchange=${exch}&apikey=${apiKey}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(YF_TIMEOUT_MS) });
   if (!res.ok) return null;
   const data = await res.json();
   return data?.url || null;
@@ -585,7 +592,7 @@ async function resolveWithYahoo(symbol) {
     const summary = await yf.quoteSummary(
       symbol,
       { modules: ["assetProfile"] },
-      { validateResult: false }
+      { validateResult: false, ...yfFetchOptions() }
     );
     const website = summary?.assetProfile?.website;
     if (website) {
@@ -630,7 +637,13 @@ module.exports = async function handler(req, res) {
   if (!logoUrl) {
     const tdKey = process.env.TWELVE_DATA_KEY;
     if (tdKey) {
-      logoUrl = await resolveWithTwelveData(base, exchange, tdKey);
+      try {
+        logoUrl = await resolveWithTwelveData(base, exchange, tdKey);
+      } catch (err) {
+        // Timeout (AbortSignal) or network failure — fall through to EODHD (Priority 3)
+        // instead of crashing the whole logo lookup.
+        console.error(`[stock-logo] Twelve Data lookup failed for ${sym}:`, err?.message || err);
+      }
     }
   }
 

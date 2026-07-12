@@ -1380,7 +1380,11 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveBudget(b)}
+                          onClick={() => {
+                            if (window.confirm(`Delete "${b.category}" budget? This cannot be undone.`)) {
+                              handleRemoveBudget(b);
+                            }
+                          }}
                           style={{ padding: 6, color: THEME.rust }}
                         >
                           <Trash2 size={14} />

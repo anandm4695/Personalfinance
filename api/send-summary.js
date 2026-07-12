@@ -6,6 +6,13 @@ const { default: YahooFinance } = require("yahoo-finance2");
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
+// yahoo-finance2 ships with no request timeout by default — a hung upstream
+// response can otherwise block until Vercel's maxDuration kills the whole
+// function. Follows the same 8s-timeout philosophy as the mfapi.in calls in
+// api/mf-nav.js / api/cron-update-prices.js.
+const YF_TIMEOUT_MS = 8000;
+const yfFetchOptions = () => ({ fetchOptions: { signal: AbortSignal.timeout(YF_TIMEOUT_MS) } });
+
 const RESEND_KEY = process.env.Resend_Email_API || process.env.RESEND_API_KEY;
 const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
 
@@ -1605,7 +1612,7 @@ async function withLiveStockPrices(state) {
   await Promise.allSettled(
     uniqueSymbols.map(async (sym) => {
       try {
-        const quote = await yf.quote(sym, {}, { validateResult: false });
+        const quote = await yf.quote(sym, {}, { validateResult: false, ...yfFetchOptions() });
         const price = quote?.regularMarketPrice ?? quote?.postMarketPrice ?? quote?.preMarketPrice;
         if (price != null && !isNaN(price)) priceMap[sym] = price;
       } catch (err) {
@@ -1720,13 +1727,38 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { state, emailTo, frequency, recipientName, fromEmail } = req.body || {};
-      if (!state || !emailTo) return res.status(400).json({ error: "state and emailTo required" });
+      const { state, emailTo: requestedEmailTo, frequency, recipientName, fromEmail } = req.body || {};
+      if (!state) return res.status(400).json({ error: "state required" });
       if (!RESEND_KEY)
         return res.status(500).json({
           error:
             "Resend API key not configured. Add Resend_Email_API to Vercel environment variables.",
         });
+
+      // ── Resolve destination email server-side ───────────────────────────
+      // NEVER trust the client-supplied emailTo: signup is open (src/Auth.tsx),
+      // so anyone can register an account and POST an arbitrary emailTo to make
+      // this endpoint's Resend account relay branded email to any address. Look
+      // up the caller's OWN notification email from user_settings (set only via
+      // their own authenticated session in SettingsTab.tsx) instead, falling
+      // back to their verified Supabase Auth account email if unset.
+      const supabase = getSupabase();
+      const { data: settingsRow } = await supabase
+        .from("user_settings")
+        .select("email_address")
+        .eq("user_id", auth.user.id)
+        .maybeSingle();
+      const emailTo = (settingsRow?.email_address || "").trim() || auth.user.email;
+      if (!emailTo) {
+        return res.status(400).json({
+          error: "No email address on file. Set one in Settings before sending a test email.",
+        });
+      }
+      if (requestedEmailTo && requestedEmailTo !== emailTo) {
+        console.warn(
+          `[send-summary] Manual send: ignoring client-supplied emailTo (${requestedEmailTo}); using account email instead`
+        );
+      }
 
       // Use fromEmail from the request body if provided (user configured it in Settings UI),
       // otherwise fall back to the RESEND_FROM_EMAIL env var or the test sender.

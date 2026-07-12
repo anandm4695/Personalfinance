@@ -1339,7 +1339,15 @@ export function BanksTab({
                   <Edit3 size={12} />
                 </button>
                 <button
-                  onClick={() => removeItem("bankAccounts", a.id)}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Delete "${a.bankName}" account? Transactions linked to it will lose their account label. This cannot be undone.`
+                      )
+                    ) {
+                      removeItem("bankAccounts", a.id);
+                    }
+                  }}
                   className="icon-btn danger"
                   style={{
                     ...iconBtn,

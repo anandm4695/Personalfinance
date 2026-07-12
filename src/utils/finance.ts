@@ -262,12 +262,46 @@ export const calcTaxOld = (income: number, deductions = 0) => {
 // Applies only when gross income > ₹50L. New regime capped at 25%.
 const calcSurcharge = (grossIncome: number, baseTax: number, regime: "new" | "old"): number => {
   if (grossIncome <= 5_000_000) return 0;
+
+  // `threshold` is the surcharge slab boundary just crossed; `prevRate` is the
+  // rate that applied at/below that threshold (used for marginal relief below).
+  let threshold: number;
+  let prevRate: number;
   let rate: number;
-  if (grossIncome <= 10_000_000) rate = 0.1;
-  else if (grossIncome <= 20_000_000) rate = 0.15;
-  else if (grossIncome <= 50_000_000) rate = 0.25;
-  else rate = regime === "new" ? 0.25 : 0.37; // new regime surcharge capped at 25%
-  return Math.round(baseTax * rate);
+  if (grossIncome <= 10_000_000) {
+    threshold = 5_000_000;
+    prevRate = 0;
+    rate = 0.1;
+  } else if (grossIncome <= 20_000_000) {
+    threshold = 10_000_000;
+    prevRate = 0.1;
+    rate = 0.15;
+  } else if (grossIncome <= 50_000_000) {
+    threshold = 20_000_000;
+    prevRate = 0.15;
+    rate = 0.25;
+  } else {
+    threshold = 50_000_000;
+    prevRate = 0.25;
+    rate = regime === "new" ? 0.25 : 0.37; // new regime surcharge capped at 25%
+  }
+
+  const uncappedTotal = baseTax * (1 + rate);
+
+  // Statutory marginal relief: total tax+surcharge just above a threshold can
+  // never exceed (tax+surcharge at the threshold) + (income beyond the
+  // threshold) — i.e. crossing ₹50L/1Cr/2Cr/5Cr can never leave you worse off
+  // than someone who earned exactly the threshold amount. All these
+  // thresholds sit well past each regime's highest slab breakpoint (₹24L new
+  // / ₹10L old), so the marginal slab rate is a flat 30% throughout this
+  // range and baseTax scales linearly with income — letting us derive
+  // "tax at the threshold" directly instead of re-running the slab calc.
+  const MARGINAL_SLAB_RATE = 0.3;
+  const baseTaxAtThreshold = baseTax - MARGINAL_SLAB_RATE * (grossIncome - threshold);
+  const cappedTotal = baseTaxAtThreshold * (1 + prevRate) + (grossIncome - threshold);
+
+  const total = Math.min(uncappedTotal, cappedTotal);
+  return Math.max(0, Math.round(total - baseTax));
 };
 
 export interface SlabItem {

@@ -17,6 +17,14 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
   if (profileId === "all") return state;
   const filterByOwner = (arr: any[]) =>
     (Array.isArray(arr) ? arr : []).filter((item) => item.owner === profileId);
+  // billPaymentHistory rows don't carry their own `owner` — they reference a bill
+  // via `billId`. Cross-reference against the (already owner-filtered) bills so
+  // payment history for another family member's bills doesn't leak through.
+  const ownedBillIds = new Set(
+    (Array.isArray(state.billPayments) ? state.billPayments : [])
+      .filter((b: any) => b.owner === profileId)
+      .map((b: any) => b.id)
+  );
   return {
     ...state,
     bankAccounts: filterByOwner(state.bankAccounts),
@@ -60,6 +68,19 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
     goldHoldings: filterByOwner(state.goldHoldings || []),
     lifeEvents: filterByOwner(state.lifeEvents || []),
     govtSchemes: filterByOwner(state.govtSchemes || []),
+    reminders: filterByOwner(state.reminders || []),
+    healthInsurance: filterByOwner(state.healthInsurance || []),
+    creditScores: filterByOwner(state.creditScores || []),
+    billPayments: filterByOwner(state.billPayments || []),
+    billPaymentHistory: (Array.isArray(state.billPaymentHistory) ? state.billPaymentHistory : []).filter(
+      (h: any) => ownedBillIds.has(h.billId)
+    ),
+    salarySlips: filterByOwner(state.salarySlips || []),
+    // wishlists / wishlistItems are intentionally NOT owner-filtered here: they are
+    // account-wide stock watchlists (no `owner` field exists anywhere in their
+    // schema — see WishlistModal/WishlistItemModal in DematTab.tsx and migration
+    // 49_rename_wishlists_to_watchlists.sql), not per-family-member financial
+    // records, so there is nothing to cross-reference and no leak to fix.
     netWorthHistory: [],
   };
 }

@@ -60,8 +60,10 @@ describe("SalarySlipTab Premium UI Statically", () => {
     expect(html).toContain("Salary Slip Tracker");
     expect(html).toContain("Last Net Salary");
     expect(html).toContain("Avg Monthly Net");
-    expect(html).toContain("Total TDS (FY)");
-    expect(html).toContain("Total PF (Employee)");
+    // Labels now include the actual financial year (e.g. "FY 2026-27") so the
+    // "(FY)" stats visibly match the period they're scoped to.
+    expect(html).toMatch(/Total TDS \(FY \d{4}-\d{2}\)/);
+    expect(html).toMatch(/Total PF \(FY \d{4}-\d{2}\)/);
     expect(html).toContain("Salary Trend");
     expect(html).toContain("Google");
   });

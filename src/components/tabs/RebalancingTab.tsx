@@ -142,6 +142,13 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
 
   const target = useCustom ? customTarget : PRESETS[selectedPreset];
 
+  const customTargetSum =
+    Number(customTarget.equity || 0) +
+    Number(customTarget.debt || 0) +
+    Number(customTarget.gold || 0) +
+    Number(customTarget.cash || 0);
+  const customTargetInvalid = useCustom && Math.abs(customTargetSum - 100) > 0.5;
+
   const allocation = useMemo(() => {
     const equityStocks = (state.stocks || []).reduce((s, st) => {
       const price = (() => {
@@ -608,6 +615,24 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>%</span>
                 </div>
               ))}
+            </div>
+          )}
+          {customTargetInvalid && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 12px",
+                borderRadius: 10,
+                background: "color-mix(in srgb, var(--t-rust) 10%, transparent)",
+                border: `1px solid color-mix(in srgb, var(--t-rust) 35%, transparent)`,
+              }}
+            >
+              <AlertTriangle size={14} color={THEME.rust} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: THEME.rust }}>
+                Targets sum to {customTargetSum.toFixed(1)}% — should total 100%.
+              </span>
             </div>
           )}
         </div>

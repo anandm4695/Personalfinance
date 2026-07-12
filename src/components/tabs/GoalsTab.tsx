@@ -150,14 +150,27 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   const totalSaved = state.goals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
   const totalRemaining = Math.max(0, totalTarget - totalSaved);
 
-  // Total monthly savings needed across all incomplete, time-bound goals
+  // Total monthly savings needed across all incomplete, time-bound goals.
+  // Mirrors the per-goal card calc below: uses the inflation-adjusted
+  // effectiveTarget when "Show Inflation-Adjusted" is on, so this summary
+  // reconciles with the individual goal cards instead of always using the
+  // nominal target.
   const totalMonthlyRequired = state.goals.reduce((s: number, g: any) => {
-    const isComplete =
-      Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount);
+    const nominalTarget = Number(g.targetAmount) || 0;
+    const inflRate = (Number(inflationRate) || 6) / 100;
+    const yearsToTarget = g.targetDate
+      ? Math.max(0, monthsBetween(today(), g.targetDate) / 12)
+      : 0;
+    const inflatedTarget =
+      showInflation && yearsToTarget > 0
+        ? nominalTarget * Math.pow(1 + inflRate, yearsToTarget)
+        : nominalTarget;
+    const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
+    const isComplete = effectiveTarget > 0 && Number(g.currentAmount) >= effectiveTarget;
     if (isComplete || !g.targetDate) return s;
     const rawML = monthsBetween(today(), g.targetDate);
     const ml = Math.max(0, rawML);
-    const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
+    const remaining = Math.max(0, effectiveTarget - Number(g.currentAmount));
     const effM = ml > 0 ? ml : rawML === 0 ? 1 : 0;
     return s + (effM > 0 ? remaining / effM : 0);
   }, 0);
@@ -691,7 +704,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => removeItem("goals", g.id)}
+                      onClick={() => {
+                        if (window.confirm(`Delete goal "${g.name}"?`)) removeItem("goals", g.id);
+                      }}
                       style={{
                         background: "transparent",
                         border: "none",

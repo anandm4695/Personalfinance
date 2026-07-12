@@ -386,6 +386,15 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
       alert("Please select a Commencement Date and enter an Annual Premium first.");
       return;
     }
+    const existingCount = (lic.transactions || []).length;
+    if (
+      existingCount > 0 &&
+      !window.confirm(
+        `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`
+      )
+    ) {
+      return;
+    }
     const commDate = new Date(lic.commencementDate);
     const premium = Number(lic.annualPremium);
     const todayDate = new Date();
@@ -413,6 +422,15 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
   const handleTermAutoGenerateTransactions = () => {
     if (!term.startDate || !term.annualPremium) {
       alert("Please select a Commencement Date and enter an Annual Premium first.");
+      return;
+    }
+    const existingCount = (term.transactions || []).length;
+    if (
+      existingCount > 0 &&
+      !window.confirm(
+        `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`
+      )
+    ) {
       return;
     }
     const commDate = new Date(term.startDate);
@@ -448,6 +466,15 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
   const handleInvestAutoGenerateTransactions = () => {
     if (!invest.commencementDate || !invest.annualPremium) {
       alert("Please select a Commencement Date and enter an Annual Premium first.");
+      return;
+    }
+    const existingCount = (invest.transactions || []).length;
+    if (
+      existingCount > 0 &&
+      !window.confirm(
+        `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`
+      )
+    ) {
       return;
     }
     const commDate = new Date(invest.commencementDate);
@@ -2033,7 +2060,10 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => removeItem("lic", l.id)}
+                          onClick={() => {
+                            if (window.confirm(`Delete "${l.planName}" policy?`))
+                              removeItem("lic", l.id);
+                          }}
                           style={{
                             background: "none",
                             border: "none",
@@ -2345,7 +2375,10 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => removeItem("termPlans", t.id)}
+                          onClick={() => {
+                            if (window.confirm(`Delete "${t.planName || "Term Plan"}"?`))
+                              removeItem("termPlans", t.id);
+                          }}
                           style={{
                             background: "none",
                             border: "none",
@@ -2663,7 +2696,10 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => removeItem("investmentPlans", ip.id)}
+                          onClick={() => {
+                            if (window.confirm(`Delete "${ip.planName || "Investment Plan"}"?`))
+                              removeItem("investmentPlans", ip.id);
+                          }}
                           style={{
                             background: "none",
                             border: "none",

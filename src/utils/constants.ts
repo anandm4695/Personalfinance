@@ -13,6 +13,14 @@ export const THEME = {
   card: "var(--t-card-bg)",
   border: "var(--t-line)",
   bg: "var(--t-paper)",
+  // Aliases used across several tabs (Govt Schemes, Health Insurance, Bill
+  // Payment) that don't have a dedicated semantic-color palette — map them
+  // onto the existing brand tokens so they stay theme-aware in light/dark.
+  danger: "var(--t-rust)",
+  warning: "var(--t-gold)",
+  success: "var(--t-sage)",
+  primary: "var(--t-accent)",
+  textMuted: "var(--t-muted)",
 };
 
 // 10 corporate accent colors — one per theme preset (perfect 1:1 mapping).

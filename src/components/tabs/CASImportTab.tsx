@@ -476,7 +476,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                             padding: "2px 8px",
                             borderRadius: 6,
                             fontSize: 11,
-                            background: "var(--accent)15",
+                            background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
                             color: "var(--accent)",
                           }}
                         >

@@ -427,18 +427,24 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
   }, [expenses, monthlyData]);
 
   const categoryTableData = useMemo(() => {
+    // "This month" / "Last month" must be relative to the latest month
+    // actually present in the already period-filtered `expenses`, not the
+    // real today's date — otherwise viewing a past period shows ₹0 for
+    // both columns while "Period Total" is correct.
+    const presentMonthKeys = Array.from(
+      new Set(expenses.map((t: any) => getMonthKey(t.date)))
+    ).sort();
+    const shiftMonthKey = (key: string, delta: number) => {
+      const [y, m] = key.split("-").map(Number);
+      const d = new Date(y, m - 1 + delta, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    };
     const now = new Date();
-    const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const lastMonth = new Date(now);
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
-
-    const avg3Keys: string[] = [];
-    for (let i = 1; i <= 3; i++) {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - i);
-      avg3Keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-    }
+    const thisMonthKey =
+      presentMonthKeys[presentMonthKeys.length - 1] ||
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const lastMonthKey = shiftMonthKey(thisMonthKey, -1);
+    const avg3Keys: string[] = [1, 2, 3].map((i) => shiftMonthKey(thisMonthKey, -i));
 
     const catMonthMap: Record<string, Record<string, number>> = {};
     const catPeriodTotal: Record<string, number> = {};

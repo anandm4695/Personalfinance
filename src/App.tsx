@@ -1112,7 +1112,12 @@ function FinanceDashboard() {
         return;
       }
 
-      if (isInput) return;
+      // Skip single-letter/number shortcuts while any modal dialog is open, so
+      // typing inside a modal (e.g. a text field without focus yet, or clicking
+      // a button) can't accidentally trigger app-wide tab navigation underneath.
+      const isModalOpen = document.querySelector('[role="dialog"]') !== null;
+
+      if (isInput || isModalOpen) return;
 
       // Quick navigation shortcuts (no modifier keys)
       const shortcuts: Record<string, string> = {
@@ -2690,6 +2695,7 @@ function FinanceDashboard() {
             localStorage.clear();
             sessionStorage.clear();
             setState(DEFAULT_STATE);
+            setActiveProfile("all");
             setIsResetting(false);
             showToast("Local data reset successfully.", "success");
             return;
@@ -2736,6 +2742,7 @@ function FinanceDashboard() {
           localStorage.clear();
           sessionStorage.clear();
           setState(DEFAULT_STATE);
+          setActiveProfile("all");
 
           showToast("Cloud and local data wiped successfully.", "success");
 
@@ -3963,6 +3970,10 @@ function FinanceDashboard() {
                                 setDemoMode(false);
                                 setSession(null);
                                 setState(DEFAULT_STATE);
+                                setActiveProfile("all");
+                                try {
+                                  localStorage.removeItem("finance_credit_scores");
+                                } catch {}
                               }}
                               style={{
                                 width: "100%",
@@ -4398,6 +4409,10 @@ function FinanceDashboard() {
                     setDemoMode(false);
                     setSession(null);
                     setState(DEFAULT_STATE);
+                    setActiveProfile("all");
+                    try {
+                      localStorage.removeItem("finance_credit_scores");
+                    } catch {}
                   }}
                   cleanupOrphaned={cleanupOrphanedCorporateActions}
                   updateProfile={updateProfile}

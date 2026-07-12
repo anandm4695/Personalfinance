@@ -1429,6 +1429,9 @@ function VehicleCard({
   onEditService,
   onDeleteService,
 }: any) {
+  const { familyProfiles } = useMasterData();
+  const ownerProfile = familyProfiles.find((p) => p.id === (vehicle.owner || "self"));
+  const ownerName = ownerProfile ? formatProfileOption(ownerProfile) : vehicle.owner || "Self";
   const sh: any[] = vehicle.serviceHistory || [];
   const totalServiceCost = sh.reduce((s: number, r: any) => s + Number(r.cost || 0), 0);
   const lastService = sh.length
@@ -1486,7 +1489,7 @@ function VehicleCard({
       : null;
 
   const SPEC_FIELDS = [
-    { key: "Owner", label: "Owner", val: vehicle.owner || "self", icon: User, color: "#3b82f6" },
+    { key: "Owner", label: "Owner", val: ownerName, icon: User, color: "#3b82f6" },
     {
       key: "Purchase Date",
       label: "Purchase Date",

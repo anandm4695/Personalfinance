@@ -393,6 +393,15 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [savedNoteIdx, setSavedNoteIdx] = useState<number | null>(null);
   const [activePromptCategory, setActivePromptCategory] = useState("Portfolio");
+  const [showSavedNotes, setShowSavedNotes] = useState(false);
+  const [savedNotes, setSavedNotes] = useState<{ text: string; savedAt: string }[]>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("finance_ai_notes") || "[]");
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  });
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
@@ -453,11 +462,37 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
   const saveAsNote = (text: string, idx: number) => {
     try {
       const existing = JSON.parse(localStorage.getItem("finance_ai_notes") || "[]");
-      existing.push({ text, savedAt: new Date().toISOString() });
-      localStorage.setItem("finance_ai_notes", JSON.stringify(existing));
+      const next = Array.isArray(existing) ? existing : [];
+      next.push({ text, savedAt: new Date().toISOString() });
+      localStorage.setItem("finance_ai_notes", JSON.stringify(next));
+      setSavedNotes(next);
       setSavedNoteIdx(idx);
       setTimeout(() => setSavedNoteIdx(null), 2000);
     } catch {}
+  };
+
+  // ── Delete a saved note ──
+  const deleteNote = (idx: number) => {
+    setSavedNotes((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      try {
+        localStorage.setItem("finance_ai_notes", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // ── Relative time for saved notes (e.g. "3h ago") ──
+  const timeAgo = (iso: string) => {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
   // ── Proactive insights ──
@@ -1932,6 +1967,28 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                 Privacy preserved · multi-turn conversation
               </div>
             </div>
+            <button
+              onClick={() => setShowSavedNotes((p) => !p)}
+              title="Saved notes"
+              style={{
+                padding: "5px 10px",
+                borderRadius: 8,
+                border: `1px solid ${showSavedNotes ? THEME.accent : THEME.line}`,
+                background: showSavedNotes
+                  ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
+                  : "transparent",
+                color: showSavedNotes ? THEME.accent : THEME.muted,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                fontSize: 12,
+                fontWeight: 600,
+                transition: "all 0.15s",
+              }}
+            >
+              <Bookmark size={13} /> Notes{savedNotes.length > 0 ? ` (${savedNotes.length})` : ""}
+            </button>
             {hasUserMessages && (
               <button
                 onClick={clearChat}
@@ -1955,6 +2012,97 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               </button>
             )}
           </div>
+
+          {/* ── Saved Notes Panel ── */}
+          {showSavedNotes && (
+            <div
+              style={{
+                padding: "12px 18px",
+                borderBottom: `1px solid ${THEME.line}`,
+                background: "var(--t-paper)",
+                flexShrink: 0,
+                maxHeight: 240,
+                overflowY: "auto",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <Bookmark size={14} style={{ color: THEME.accent }} />
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    letterSpacing: 0.3,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Saved Notes
+                </span>
+              </div>
+              {savedNotes.length === 0 ? (
+                <div style={{ fontSize: 13, color: THEME.muted, padding: "8px 0" }}>
+                  No saved notes yet. Use "Save as Note" on any AI response to keep it here.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {savedNotes
+                    .slice()
+                    .reverse()
+                    .map((note, revIdx) => {
+                      const idx = savedNotes.length - 1 - revIdx;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 10,
+                            padding: "10px 12px",
+                            borderRadius: 10,
+                            border: `1px solid ${THEME.line}`,
+                            background: "var(--surface-0)",
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontSize: 12.5,
+                                color: THEME.ink,
+                                lineHeight: 1.5,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {note.text}
+                            </div>
+                            <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
+                              {timeAgo(note.savedAt)}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => deleteNote(idx)}
+                            title="Delete note"
+                            style={{
+                              flexShrink: 0,
+                              padding: 6,
+                              borderRadius: 8,
+                              border: `1px solid ${THEME.line}`,
+                              background: "transparent",
+                              color: THEME.muted,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Proactive Insights Panel ── */}
           {proactiveInsights.length > 0 && !hasUserMessages && (

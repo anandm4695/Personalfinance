@@ -401,7 +401,11 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                     <Edit2 size={14} />
                   </button>
                   <button
-                    onClick={() => removeItem("goldHoldings", h.id)}
+                    onClick={() => {
+                      if (window.confirm(`Delete "${h.name || h.typeInfo.label}" holding? This cannot be undone.`)) {
+                        removeItem("goldHoldings", h.id);
+                      }
+                    }}
                     style={{
                       background: "none",
                       border: "none",

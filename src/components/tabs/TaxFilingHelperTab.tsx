@@ -191,7 +191,10 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
           (l.type || "").toLowerCase().includes("housing")
       )
       .reduce(
-        (s, l) => s + Number(l.outstanding || l.principal || 0) * (Number(l.rate || 0) / 100),
+        (s, l) =>
+          s +
+          Number(l.outstanding != null ? l.outstanding : l.principal || 0) *
+            (Number(l.rate || 0) / 100),
         0
       );
     const sec24 = Math.min(200000, homeLoanInterest);
@@ -325,8 +328,8 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             marginTop: 16,
             padding: "12px 16px",
             borderRadius: 12,
-            background: "var(--accent)10",
-            border: "1px solid var(--accent)30",
+            background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
           }}
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Gross Total Income</div>
@@ -510,8 +513,12 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
                   alignItems: "center",
                   padding: "8px 12px",
                   borderRadius: 8,
-                  background: d.isPast ? THEME.bg : "var(--accent)08",
-                  border: `1px solid ${d.isPast ? THEME.border : "var(--accent)30"}`,
+                  background: d.isPast
+                    ? THEME.bg
+                    : "color-mix(in srgb, var(--accent) 8%, transparent)",
+                  border: `1px solid ${
+                    d.isPast ? THEME.border : "color-mix(in srgb, var(--accent) 30%, transparent)"
+                  }`,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

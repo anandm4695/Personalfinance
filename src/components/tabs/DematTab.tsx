@@ -1964,7 +1964,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               return (
                 <InvestCard
                   key={d.id}
-                  onRemove={() => removeItem("demat", d.id)}
+                  onRemove={() => {
+                    if (
+                      window.confirm(
+                        `Delete "${d.broker || "this"}" demat account? Stock lots linked to it will lose their account association. This cannot be undone.`
+                      )
+                    ) {
+                      removeItem("demat", d.id);
+                    }
+                  }}
                   onEdit={() => setEditDematId(d.id)}
                   style={{
                     borderTop: `4px solid ${theme.color}`,
