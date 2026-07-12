@@ -16,6 +16,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+import { StockLogo } from "./DematTab";
 
 const MONTH_NAMES = [
   "Jan",
@@ -262,6 +263,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
 
       return {
         symbol: g.symbol,
+        yfSym: g.yfSym,
         exchange: g.exchange,
         qty: g.qty,
         currentPrice,
@@ -475,26 +477,8 @@ export function DividendCalendarTab({ state, marketData }: any) {
                     boxShadow: "var(--shadow-sm)",
                   }}
                 >
-                  {/* Symbol badge */}
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      fontWeight: 800,
-                      fontSize: 10,
-                      color: THEME.sage,
-                      textAlign: "center",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {r.symbol.replace(".NS", "").replace(".BO", "").slice(0, 6)}
-                  </div>
+                  {/* Symbol logo */}
+                  <StockLogo yfSym={r.yfSym} size={44} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
@@ -636,19 +620,24 @@ export function DividendCalendarTab({ state, marketData }: any) {
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={{ padding: "12px 16px" }}>
-                        <div style={{ fontWeight: 800, color: THEME.ink }}>{r.symbol}</div>
-                        {r.exchange && (
-                          <div
-                            style={{
-                              fontSize: 10,
-                              color: THEME.muted,
-                              fontWeight: 600,
-                              marginTop: 2,
-                            }}
-                          >
-                            {r.exchange}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <StockLogo yfSym={r.yfSym} size={28} />
+                          <div>
+                            <div style={{ fontWeight: 800, color: THEME.ink }}>{r.symbol}</div>
+                            {r.exchange && (
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: THEME.muted,
+                                  fontWeight: 600,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {r.exchange}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </td>
                       <td style={td}>{r.qty.toLocaleString("en-IN")}</td>
                       <td style={{ ...td, fontWeight: 700 }}>
