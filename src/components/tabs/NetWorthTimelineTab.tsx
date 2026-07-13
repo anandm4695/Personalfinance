@@ -918,6 +918,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
+                domain={[(dataMin: number) => Math.min(0, dataMin), (dataMax: number) => Math.max(0, dataMax)]}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar
