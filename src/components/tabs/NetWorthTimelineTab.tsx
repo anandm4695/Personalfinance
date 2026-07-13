@@ -839,7 +839,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 stroke="var(--t-gold)"
                 fill="url(#debtGrad)"
                 strokeWidth={1.5}
-                name="Debt Liabilities"
+                name="Fixed Deposits"
               />
               <Area
                 type="monotone"
@@ -929,12 +929,18 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                   const { x, y, width, height, value } = props;
                   const isPositive = value >= 0;
                   const fill = isPositive ? "var(--t-sage)" : "var(--t-rust)";
+                  // Recharts reports a negative `height` for bars below the zero
+                  // baseline, with `y` anchored at the value (the bar's bottom edge).
+                  // A plain SVG <rect> needs a non-negative height and `y` at the top
+                  // edge, so for negative bars the top is y + height, not y.
+                  const barY = height >= 0 ? y : y + height;
+                  const barHeight = Math.max(4, Math.abs(height));
                   return (
                     <rect
                       x={x}
-                      y={y}
+                      y={barY}
                       width={width}
-                      height={Math.max(4, Math.abs(height))}
+                      height={barHeight}
                       rx={4}
                       ry={4}
                       style={{
