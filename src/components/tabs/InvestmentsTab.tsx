@@ -9114,6 +9114,46 @@ function MFSection({
     });
   };
 
+  // Bulk-fetch prevNav/navChange for every fund on load (mirrors Demat's bulk marketData
+  // fetch) so Day's P&L is available on the collapsed table without requiring each row
+  // to be expanded or "Refresh All" clicked first. Deduped by mfCode since multiple lots
+  // of the same fund share one NAV.
+  const mfMetaFetchInFlight = React.useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const byCode: Record<string, any[]> = {};
+    items.forEach((m: any) => {
+      if (!m?.mfCode || !m?.id || mfMeta[m.id]) return;
+      (byCode[m.mfCode] = byCode[m.mfCode] || []).push(m);
+    });
+    Object.entries(byCode).forEach(([code, group]) => {
+      if (mfMetaFetchInFlight.current.has(code)) return;
+      mfMetaFetchInFlight.current.add(code);
+      fetch(`/api/mf-nav?code=${encodeURIComponent(code)}&range=1m`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data) return;
+          const metaEntry = {
+            prevNav: data.prevNav,
+            navChange: data.navChange,
+            navChangePct: data.navChangePct,
+            high52: data.high52,
+            low52: data.low52,
+            navDate: data.date,
+          };
+          setMfMeta((prev) => {
+            const next = { ...prev };
+            group.forEach((m: any) => {
+              next[m.id] = metaEntry;
+            });
+            return next;
+          });
+        })
+        .catch(() => {})
+        .finally(() => mfMetaFetchInFlight.current.delete(code));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   const mfFetchInFlight = React.useRef<Set<string>>(new Set());
   const fetchMFData = async (id: string, mfCode: string, period: string = "3m") => {
     const cacheKey = `${id}__${period}`;
@@ -9258,6 +9298,15 @@ function MFSection({
   const totalPnl = totalCurrent - totalInvested;
   const totalPnlPct = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
 
+  const totalDaysPnL = items.reduce((s: number, m: any) => {
+    const meta = mfMeta[m.id];
+    if (!meta || meta.navChange == null) return s;
+    return s + Number(m.units || 0) * meta.navChange;
+  }, 0);
+  const prevCloseValue = totalCurrent - totalDaysPnL;
+  const totalDaysPnLPct = prevCloseValue > 0 ? (totalDaysPnL / prevCloseValue) * 100 : 0;
+  const hasDaysPnLData = items.some((m: any) => m?.mfCode && mfMeta[m.id]?.navChange != null);
+
   return (
     <div className="animate-fade-in-up">
       {items.length === 0 ? (
@@ -9294,6 +9343,14 @@ function MFSection({
                 value: fmtINRFull(totalCurrent),
                 color: THEME.sage,
                 Icon: TrendingUp,
+              },
+              {
+                label: "Day's P&L",
+                value: hasDaysPnLData
+                  ? `${totalDaysPnL >= 0 ? "+" : ""}${fmtINRFull(totalDaysPnL)} (${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}%)`
+                  : "—",
+                color: !hasDaysPnLData ? THEME.muted : totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
+                Icon: Activity,
               },
               {
                 label: "Overall P&L",
@@ -9679,6 +9736,8 @@ function MFSection({
                       <th style={{ ...mfTh, textAlign: "right" }}>Current NAV</th>
                       <th style={{ ...mfTh, textAlign: "right" }}>Invested</th>
                       <th style={{ ...mfTh, textAlign: "right" }}>Current Value</th>
+                      <th style={{ ...mfTh, textAlign: "right" }}>Weight</th>
+                      <th style={{ ...mfTh, textAlign: "right" }}>Day's P&L</th>
                       <th style={{ ...mfTh, textAlign: "right", paddingRight: 20 }}>
                         Total Return
                       </th>
@@ -9703,7 +9762,7 @@ function MFSection({
                           {section.label && (
                             <tr style={{ background: `${dotColor}08` }}>
                               <td
-                                colSpan={7}
+                                colSpan={9}
                                 style={{
                                   padding: "10px 20px",
                                   borderBottom: `2px solid ${dotColor}30`,
@@ -9983,6 +10042,80 @@ function MFSection({
                                   <td style={{ ...mfTd, textAlign: "right", fontWeight: 800 }}>
                                     <Prv>{fmtINRFull(grpCurrent || grpInvested)}</Prv>
                                   </td>
+
+                                  {/* Portfolio Weight column with allocation bar */}
+                                  <td style={{ ...mfTd, textAlign: "right", minWidth: 90 }}>
+                                    {totalCurrent > 0 ? (
+                                      (() => {
+                                        const weight = (grpCurrent / totalCurrent) * 100;
+                                        return (
+                                          <div
+                                            className="demat-allocation-bar-wrap"
+                                            style={{ justifyContent: "flex-end" }}
+                                          >
+                                            <span
+                                              style={{
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                color: THEME.muted,
+                                                minWidth: 36,
+                                                textAlign: "right",
+                                              }}
+                                            >
+                                              {weight.toFixed(1)}%
+                                            </span>
+                                            <div
+                                              className="demat-allocation-bar-track"
+                                              style={{ width: 52 }}
+                                            >
+                                              <div
+                                                className="demat-allocation-bar-fill"
+                                                style={{ width: `${Math.min(100, weight)}%` }}
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })()
+                                    ) : (
+                                      <span style={{ color: THEME.muted }}>—</span>
+                                    )}
+                                  </td>
+
+                                  {/* Day's P&L column */}
+                                  <td style={{ ...mfTd, textAlign: "right" }}>
+                                    {(() => {
+                                      const groupMeta = groupItems
+                                        .map((m: any) => mfMeta[m.id])
+                                        .find((meta: any) => meta?.navChange != null);
+                                      if (!groupMeta) return <span style={{ color: THEME.muted }}>—</span>;
+                                      const dayPnl = totalUnits * groupMeta.navChange;
+                                      return (
+                                        <>
+                                          <div
+                                            style={{
+                                              fontWeight: 800,
+                                              color: dayPnl >= 0 ? THEME.sage : THEME.rust,
+                                            }}
+                                          >
+                                            {dayPnl >= 0 ? "+" : ""}
+                                            {fmtINRFull(dayPnl)}
+                                          </div>
+                                          <div
+                                            style={{
+                                              fontSize: 11,
+                                              fontWeight: 700,
+                                              color: groupMeta.navChangePct >= 0 ? THEME.sage : THEME.rust,
+                                              marginTop: 1,
+                                            }}
+                                          >
+                                            {groupMeta.navChangePct >= 0 ? "▲" : "▼"}
+                                            {Math.abs(groupMeta.navChangePct ?? 0).toFixed(2)}%
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
+                                  </td>
+
                                   <td style={{ ...mfTd, textAlign: "right", paddingRight: 20 }}>
                                     {grpCurrent > 0 ? (
                                       <>
@@ -10030,7 +10163,7 @@ function MFSection({
                                 {isExpanded && (
                                   <tr style={{ background: `${THEME.accent}08` }}>
                                     <td
-                                      colSpan={7}
+                                      colSpan={9}
                                       style={{
                                         padding: "20px 24px",
                                         borderBottom: `1px solid ${THEME.line}`,
