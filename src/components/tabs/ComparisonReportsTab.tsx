@@ -667,21 +667,27 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>Compare</span>
           <select value={periodA} onChange={(e) => setPeriodA(e.target.value)} style={selectStyle}>
-            {periodOptions.map((key) => (
-              <option key={key} value={key}>
-                {getPeriodLabel(compMode, key)}
-              </option>
-            ))}
+            {periodOptions
+              .filter((key) => key !== periodB)
+              .map((key) => (
+                <option key={key} value={key}>
+                  {getPeriodLabel(compMode, key)}
+                </option>
+              ))}
           </select>
         </div>
         <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>with</span>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Same period can't appear in both sides — it collapses the two
+              comparison series into one under identical chart data keys. */}
           <select value={periodB} onChange={(e) => setPeriodB(e.target.value)} style={selectStyle}>
-            {periodOptions.map((key) => (
-              <option key={key} value={key}>
-                {getPeriodLabel(compMode, key)}
-              </option>
-            ))}
+            {periodOptions
+              .filter((key) => key !== periodA)
+              .map((key) => (
+                <option key={key} value={key}>
+                  {getPeriodLabel(compMode, key)}
+                </option>
+              ))}
           </select>
         </div>
       </div>

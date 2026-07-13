@@ -256,6 +256,24 @@ export const InvestmentStatementTab = ({
 
   const rdPrincipal = (x: any) => (Number(x.monthly) || 0) * rdElapsed(x);
 
+  /* ── Helper: Bond accrued current value ──────────────────────────── */
+  // Bonds have no live market feed (unlike stocks/MFs), so approximate accrued
+  // value via YTM/coupon compounding since purchase, matching the FD/RD
+  // accrual approach above. Capped at the bond's own tenure so a matured bond
+  // doesn't keep compounding past its maturity date.
+  const bondCurrentValue = (x: any) => {
+    const principal = Number(x.totalInvestmentAmount || x.faceValue) || 0;
+    const rate = Number(x.ytmRate || x.coupon) || 0;
+    if (!principal) return 0;
+    if (!rate || !x.orderDate) return principal;
+    let elapsedYears = Math.max(0, monthsBetween(x.orderDate, today()) / 12);
+    if (x.maturityDate) {
+      const totalYears = monthsBetween(x.orderDate, x.maturityDate) / 12;
+      elapsedYears = Math.min(elapsedYears, Math.max(0, totalYears));
+    }
+    return principal * Math.pow(1 + rate / 100, elapsedYears);
+  };
+
   /* ── Helper: Days to maturity ────────────────────────────────────── */
   const daysToMaturity = (matDate: string) => {
     if (!matDate) return null;
@@ -366,10 +384,7 @@ export const InvestmentStatementTab = ({
       (s: number, x: any) => s + (Number(x.totalInvestmentAmount || x.faceValue) || 0),
       0
     );
-    const bondCurrent = bonds.reduce(
-      (s: number, x: any) => s + (Number(x.totalInvestmentAmount || x.faceValue) || 0),
-      0
-    );
+    const bondCurrent = bonds.reduce((s: number, x: any) => s + bondCurrentValue(x), 0);
     const bondAvgYTM = bonds.length
       ? bonds.reduce((s: number, x: any) => s + (Number(x.ytmRate || x.coupon) || 0), 0) /
         bonds.length

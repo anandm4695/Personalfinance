@@ -367,14 +367,17 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
         : parseFloat(r.invested || "0");
 
       if (mergeMode && match) {
-        // Merge: update existing fund's units/NAV instead of creating a new entry
+        // Merge: update existing fund's units/invested amount from the
+        // transaction, but keep the existing currentNav — r.currentNav is
+        // just the historical buy-time NAV of this one transaction, not a
+        // live price, and would silently regress an already-current value.
         const existing = match.fund;
         mfHoldings.push({
           ...existing,
           units: String(
             Math.max(0, parseFloat(existing.units || "0") + signedUnits).toFixed(3)
           ),
-          currentNav: r.currentNav,
+          currentNav: existing.currentNav || r.currentNav,
           invested: String(
             Math.max(0, parseFloat(existing.invested || "0") + signedInvested).toFixed(2)
           ),

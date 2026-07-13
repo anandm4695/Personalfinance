@@ -10061,13 +10061,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     </div>
                                   </div>
                                 </div>
-                                <div style={{ fontSize: 10, color: THEME.muted }}>
-                                  Appears in:{" "}
+                                <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 4 }}>
+                                  Appears in:
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                   {data.funds.map((f: any, fi: number) => (
-                                    <span key={fi}>
-                                      {fi > 0 ? " | " : ""}
+                                    <span
+                                      key={fi}
+                                      style={{
+                                        fontSize: 10,
+                                        color: THEME.muted,
+                                        background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
+                                        borderRadius: 6,
+                                        padding: "3px 7px",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
                                       <span style={{ fontWeight: 600, color: THEME.ink }}>
-                                        {f.name.length > 25 ? f.name.slice(0, 25) + "..." : f.name}
+                                        {f.name.length > 22 ? f.name.slice(0, 22) + "..." : f.name}
                                       </span>{" "}
                                       (Est: {fmtINRFull(f.estimatedValue)})
                                     </span>

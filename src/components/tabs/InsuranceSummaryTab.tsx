@@ -397,11 +397,16 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
     }
     const commDate = new Date(lic.commencementDate);
     const premium = Number(lic.annualPremium);
+    const payTerm = lic.premiumPayingTerm ? parseInt(lic.premiumPayingTerm, 10) : null;
     const todayDate = new Date();
     const generated: any[] = [];
 
     let current = new Date(commDate);
+    let count = 0;
     while (current <= todayDate) {
+      if (payTerm !== null && !isNaN(payTerm) && count >= payTerm) {
+        break;
+      }
       const yearStr = current.getFullYear();
       const monthStr = String(current.getMonth() + 1).padStart(2, "0");
       const dayStr = String(current.getDate()).padStart(2, "0");
@@ -414,6 +419,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
       });
 
       current.setFullYear(current.getFullYear() + 1);
+      count++;
     }
 
     setLic({ ...lic, transactions: generated });

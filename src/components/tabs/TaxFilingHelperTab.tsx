@@ -224,10 +224,20 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
   }, [state]);
 
   const taxPaid = useMemo(() => {
-    const tds = (state.income || []).reduce((s, i) => s + Number(i.tds || 0), 0);
-    const advanceTax = (state.taxPayments || []).reduce((s, t) => s + Number(t.amount || 0), 0);
+    const fy = selectedFY;
+    const [startYear] = fy.split("-").map(Number);
+    const fyStart = `${startYear}-04-01`;
+    const fyEnd = `${startYear + 1}-03-31`;
+    const inFY = (date) => date && date >= fyStart && date <= fyEnd;
+
+    const tds = (state.income || [])
+      .filter((i) => inFY(i.date))
+      .reduce((s, i) => s + Number(i.tds || 0), 0);
+    const advanceTax = (state.taxPayments || [])
+      .filter((t) => t.fy === fy)
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
     return { tds, advanceTax, total: tds + advanceTax };
-  }, [state]);
+  }, [state, selectedFY]);
 
   // Advance tax schedule
   const advanceTaxSchedule = useMemo(() => {

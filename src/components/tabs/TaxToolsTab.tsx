@@ -925,7 +925,7 @@ const Form26ASSection = ({ state }) => {
     if (!newEntry.deductor || !newEntry.amount) return;
     const updated = [
       ...entries,
-      { ...newEntry, id: Date.now().toString(), amount: Number(newEntry.amount) },
+      { ...newEntry, id: Date.now().toString(), fy, amount: Number(newEntry.amount) },
     ];
     setEntries(updated);
     saveForm26ASEntries(updated);
@@ -939,7 +939,18 @@ const Form26ASSection = ({ state }) => {
     saveForm26ASEntries(updated);
   };
 
-  const total26AS = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
+  // Entries created before this fix have no `fy` field — fall back to
+  // deriving FY from dateOfPayment so old entries still scope correctly.
+  const entryFY = (e: any): string | null => {
+    if (e.fy) return e.fy;
+    if (!e.dateOfPayment) return null;
+    const dt = new Date(e.dateOfPayment + "T00:00:00");
+    if (isNaN(dt.getTime())) return null;
+    const y = dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1;
+    return `${y}-${String(y + 1).slice(-2)}`;
+  };
+  const entriesForFY = entries.filter((e) => entryFY(e) === fy);
+  const total26AS = entriesForFY.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalApp = taxPayments
     .filter((t) => t.taxType === "TDS" || t.type === "TDS")
     .reduce((s, t) => s + Number(t.amount || 0), 0);
@@ -1194,9 +1205,10 @@ const Form26ASSection = ({ state }) => {
             </div>
           )}
 
-          {entries.length === 0 ? (
+          {entriesForFY.length === 0 ? (
             <div style={{ textAlign: "center", padding: 24, color: THEME.muted, fontSize: 13 }}>
-              No 26AS entries added yet. Add entries manually from your Form 26AS / AIS statement.
+              No 26AS entries added yet for FY {fy}. Add entries manually from your Form 26AS / AIS
+              statement.
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
@@ -1221,7 +1233,7 @@ const Form26ASSection = ({ state }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {entries.map((e) => (
+                  {entriesForFY.map((e) => (
                     <tr key={e.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                       <td style={{ padding: "8px 10px", color: THEME.ink, fontWeight: 500 }}>
                         {e.deductor}

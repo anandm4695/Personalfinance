@@ -513,6 +513,7 @@ function FinanceDashboard() {
   }, []);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
@@ -3468,6 +3469,15 @@ function FinanceDashboard() {
                     </option>
                   ))}
                 </select>
+                {/* Mobile search toggle — .header-search is hidden below 768px */}
+                <button
+                  onClick={() => setShowMobileSearch((v) => !v)}
+                  className="header-icon-btn mobile-only"
+                  aria-label="Search"
+                  title="Search"
+                >
+                  <Search size={15} />
+                </button>
                 {/* Bell / Alerts */}
                 <div style={{ position: "relative" }}>
                   <button
@@ -4062,6 +4072,123 @@ function FinanceDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Mobile search bar — expands below header when toggled */}
+            {showMobileSearch && (
+              <div
+                className="mobile-only"
+                style={{
+                  padding: "0 16px 14px",
+                  borderTop: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: `color-mix(in srgb, var(--t-line) 40%, transparent)`,
+                    border: `1px solid ${THEME.line}`,
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    marginTop: 12,
+                  }}
+                >
+                  <Search size={13} style={{ color: THEME.muted, flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    placeholder="Search…"
+                    aria-label="Search"
+                    autoFocus
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      fontSize: 14,
+                      color: THEME.ink,
+                      fontFamily: "inherit",
+                      width: "100%",
+                      minWidth: 0,
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      setSearch("");
+                      setShowMobileSearch(false);
+                    }}
+                    aria-label="Close search"
+                    title="Close search"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: THEME.muted,
+                      display: "flex",
+                      padding: 0,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                {search && searchResults.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      border: `1px solid ${THEME.line}`,
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      background: "var(--surface-0)",
+                    }}
+                  >
+                    {searchResults.map((r, i) => (
+                      <div
+                        key={`${r.tab}-${r.name}-${i}-mobile`}
+                        onClick={() => {
+                          setTab(r.tab);
+                          setSearch("");
+                          setShowMobileSearch(false);
+                        }}
+                        style={{
+                          padding: "12px 14px",
+                          cursor: "pointer",
+                          borderBottom:
+                            i < searchResults.length - 1 ? `1px solid ${THEME.line}` : "none",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                            {r.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: THEME.muted }}>{r.type}</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: THEME.accent, flexShrink: 0 }}>
+                          {r.detail}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {search && searchResults.length === 0 && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 13,
+                      color: THEME.muted,
+                      textAlign: "center",
+                      padding: "16px 0",
+                    }}
+                  >
+                    No results for "{search}"
+                  </div>
+                )}
+              </div>
+            )}
           </header>
 
           {/* Sync status pill in header area handled by header logic */}

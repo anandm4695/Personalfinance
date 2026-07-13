@@ -228,24 +228,19 @@ export const LoanAmortizationTab = ({ state }) => {
         name: "Custom Loan",
       };
     }
-    if (!selectedLoan && loans.length > 0) {
-      const l = loans[0];
+    // Fall back to the first loan whenever `selectedLoan` doesn't resolve —
+    // including a stale id left over after the loan was deleted elsewhere —
+    // so a fabricated "Sample Loan" only ever appears when there are truly
+    // no real loans to show.
+    const matched = selectedLoan ? loans.find((lo) => lo.id === selectedLoan) : null;
+    const l = matched || loans[0];
+    if (l) {
       return {
         principal: Number(l.outstanding || l.principal || 0),
         rate: Number(l.rate || 0),
         tenure: Number(l.monthsRemaining || l.tenureMonths || 240),
         name: l.type || l.lender || "Loan",
       };
-    }
-    if (selectedLoan) {
-      const l = loans.find((lo) => lo.id === selectedLoan);
-      if (l)
-        return {
-          principal: Number(l.outstanding || l.principal || 0),
-          rate: Number(l.rate || 0),
-          tenure: Number(l.monthsRemaining || l.tenureMonths || 240),
-          name: l.type || l.lender || "Loan",
-        };
     }
     return { principal: 5000000, rate: 8.5, tenure: 240, name: "Sample Loan" };
   }, [selectedLoan, loans, useCustom, customPrincipal, customRate, customTenure]);

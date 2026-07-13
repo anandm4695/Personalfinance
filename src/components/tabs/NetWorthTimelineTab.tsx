@@ -299,10 +299,13 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
     const totalGrowth = last.netWorth - first.netWorth;
     const months = history.length - 1;
     const avgMonthly = months > 0 ? totalGrowth / months : 0;
+    // CAGR is only meaningful starting from a positive net worth — a negative
+    // or zero starting point (more debt than assets) makes the compounding
+    // ratio undefined, not just numerically large.
     const cagr =
-      months > 0
-        ? (Math.pow(last.netWorth / Math.max(first.netWorth, 1), 12 / months) - 1) * 100
-        : 0;
+      months > 0 && first.netWorth > 0
+        ? (Math.pow(last.netWorth / first.netWorth, 12 / months) - 1) * 100
+        : null;
     const best = momDeltas.reduce((a, b) => (b.delta > a.delta ? b : a), momDeltas[0]);
     const worst = momDeltas.reduce((a, b) => (b.delta < a.delta ? b : a), momDeltas[0]);
     return { totalGrowth, avgMonthly, cagr, best, worst, months };
@@ -475,89 +478,102 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
           </Card>
 
           {/* Card 3: CAGR */}
-          <Card
-            hover
-            style={{
-              padding: "18px 20px",
-              borderTop: `4px solid ${stats.cagr >= 0 ? THEME.sage : THEME.rust}`,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
+          {(() => {
+            const cagrKnown = stats.cagr !== null;
+            const cagrPositive = cagrKnown && stats.cagr >= 0;
+            const accentColor = !cagrKnown ? THEME.muted : cagrPositive ? THEME.sage : THEME.rust;
+            return (
+              <Card
+                hover
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background:
-                    stats.cagr >= 0
-                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                      : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  padding: "18px 20px",
+                  borderTop: `4px solid ${accentColor}`,
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: stats.cagr >= 0 ? THEME.sage : THEME.rust,
-                  flexShrink: 0,
+                  flexDirection: "column",
+                  gap: 12,
                 }}
               >
-                <Zap size={18} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  Compounded CAGR
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: `color-mix(in srgb, ${accentColor} 12%, transparent)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: accentColor,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Zap size={18} />
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: THEME.muted,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      Compounded CAGR
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                      Annualized Growth Rate
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                  Annualized Growth Rate
+                <div>
+                  <div
+                    style={{
+                      fontSize: 24,
+                      fontWeight: 900,
+                      color: THEME.ink,
+                      letterSpacing: "-0.04em",
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {cagrKnown ? `${stats.cagr.toFixed(1)}%` : "N/A"}
+                  </div>
+                  <div style={{ marginTop: 4 }}>
+                    {cagrKnown ? (
+                      <Badge
+                        variant={
+                          stats.cagr >= 15
+                            ? "sage"
+                            : stats.cagr >= 10
+                              ? "accent"
+                              : stats.cagr >= 5
+                                ? "gold"
+                                : "muted"
+                        }
+                        style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
+                      >
+                        {stats.cagr >= 15
+                          ? "Aggressive Build"
+                          : stats.cagr >= 10
+                            ? "Steady Growth"
+                            : stats.cagr >= 5
+                              ? "Conservative"
+                              : "Flat Growth"}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="muted"
+                        style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
+                      >
+                        Needs positive start
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: THEME.ink,
-                  letterSpacing: "-0.04em",
-                  fontVariantNumeric: "tabular-nums",
-                  lineHeight: 1,
-                }}
-              >
-                {stats.cagr.toFixed(1)}%
-              </div>
-              <div style={{ marginTop: 4 }}>
-                <Badge
-                  variant={
-                    stats.cagr >= 15
-                      ? "sage"
-                      : stats.cagr >= 10
-                        ? "accent"
-                        : stats.cagr >= 5
-                          ? "gold"
-                          : "muted"
-                  }
-                  style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
-                >
-                  {stats.cagr >= 15
-                    ? "Aggressive Build"
-                    : stats.cagr >= 10
-                      ? "Steady Growth"
-                      : stats.cagr >= 5
-                        ? "Conservative"
-                        : "Flat Growth"}
-                </Badge>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            );
+          })()}
 
           {/* Card 4: Best Month */}
           <Card

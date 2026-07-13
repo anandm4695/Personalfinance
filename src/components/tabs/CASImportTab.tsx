@@ -215,12 +215,18 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
     const existingMFs = state.mutualFunds || [];
 
     for (const f of toImport) {
-      // Check if scheme already exists by folio
-      const existing = existingMFs.find(
-        (m) =>
-          (m.folioNumber && f.folio && m.folioNumber === f.folio) ||
+      // Match by folio when both sides have one recorded — the same scheme name
+      // can legitimately exist under multiple folios, so name must never override
+      // a folio mismatch. Only fall back to name matching when neither side has
+      // folio info to compare.
+      const existing = existingMFs.find((m) => {
+        if (m.folioNumber && f.folio) return m.folioNumber === f.folio;
+        return (
+          !m.folioNumber &&
+          !f.folio &&
           (m.name || m.scheme || "").toLowerCase() === f.scheme.toLowerCase()
-      );
+        );
+      });
 
       if (existing) {
         await updateItem("mutualFunds", existing.id, {

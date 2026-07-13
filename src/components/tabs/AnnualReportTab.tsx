@@ -704,18 +704,20 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     }));
 
     const rentalIncome = (state.rentalProperties || []).reduce((sum: number, p: any) => {
-      const payments = (p.payments || []).filter(
-        (pay: any) => pay.date && pay.date >= fyStart && pay.date <= fyEnd
+      const receipts = (p.receipts || []).filter(
+        (r: any) => r.date && r.date >= fyStart && r.date <= fyEnd
       );
-      return sum + payments.reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+      return sum + receipts.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
     }, 0);
-    if (rentalIncome > 0 && !catMap["Rental"]) {
+    const hasRentalCategory = Object.keys(catMap).some((k) => /rental/i.test(k));
+    if (rentalIncome > 0 && !hasRentalCategory) {
       catMap["Rental Income"] = rentalIncome;
       breakdown.push({ name: "Rental Income", value: rentalIncome });
       breakdown.sort((a, b) => b.value - a.value);
     }
 
-    return { totalIncome: totalIncome + rentalIncome, breakdown, monthlyChart };
+    const addedRentalIncome = hasRentalCategory ? 0 : rentalIncome;
+    return { totalIncome: totalIncome + addedRentalIncome, breakdown, monthlyChart };
   }, [
     state.income,
     state.transactions,

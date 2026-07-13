@@ -586,16 +586,34 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
   /* ── Tax-Loss Harvesting Suggestions ─────────────────────────── */
   const harvestingSuggestions = useMemo(() => {
     const losses = unrealized.filter((h) => h.unrealizedPL < 0);
-    const realizedSTCG = Math.max(0, byType.totals.EQUITY_STCG);
-    const realizedLTCG = Math.max(0, byType.totals.EQUITY_LTCG - ltcgExemptionLimit);
+    let remainingSTCG = Math.max(0, byType.totals.EQUITY_STCG);
+    let remainingLTCG = Math.max(0, byType.totals.EQUITY_LTCG - ltcgExemptionLimit);
 
-    return losses
+    // Harvest largest losses first so the shared, finite realized-gains pool
+    // is depleted across suggestions rather than reused by each independently
+    // (which previously overstated the combined "potential savings" total).
+    const sorted = [...losses].sort(
+      (a, b) => Math.abs(b.unrealizedPL) - Math.abs(a.unrealizedPL)
+    );
+
+    return sorted
       .map((h) => {
         const absLoss = Math.abs(h.unrealizedPL);
         const isSTCG = h.wouldBeType === "EQUITY_STCG" || h.wouldBeType === "DEBT_STCG";
-        const canOffset = isSTCG ? realizedSTCG + realizedLTCG : realizedLTCG;
-        const usableLoss = Math.min(absLoss, canOffset);
         const rate = isSTCG ? stcgRate : ltcgRate;
+        let usableLoss: number;
+        if (isSTCG) {
+          // STCG losses can offset either realized STCG or LTCG gains.
+          const fromSTCG = Math.min(absLoss, remainingSTCG);
+          remainingSTCG -= fromSTCG;
+          const fromLTCG = Math.min(absLoss - fromSTCG, remainingLTCG);
+          remainingLTCG -= fromLTCG;
+          usableLoss = fromSTCG + fromLTCG;
+        } else {
+          // LTCG losses can only offset realized LTCG gains.
+          usableLoss = Math.min(absLoss, remainingLTCG);
+          remainingLTCG -= usableLoss;
+        }
         const potentialSaving = Math.round(usableLoss * rate);
         return { ...h, usableLoss, potentialSaving };
       })

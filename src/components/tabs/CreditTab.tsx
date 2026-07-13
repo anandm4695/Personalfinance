@@ -7937,13 +7937,15 @@ function DebtPayoffOptimizer({ state }: any) {
         }
       }
 
-      // Step 2: Allocate surplus roll-overs to the first active target in sorted list
+      // Step 2: Allocate surplus roll-overs to active targets in sorted-priority
+      // order, cascading any leftover to the next target once one clears mid-month.
       if (strategy !== "standard") {
         let surplus = totalBudget - actualBasePaid;
-        const target = active.find((l) => l.outstanding > 0);
-        if (target && surplus > 0) {
-          rollOvers[target.id] = (rollOvers[target.id] || 0) + surplus;
+        for (const target of active) {
+          if (surplus <= 0) break;
+          if (target.outstanding <= 0) continue;
           const extraPay = Math.min(target.outstanding, surplus);
+          rollOvers[target.id] = (rollOvers[target.id] || 0) + extraPay;
           target.outstanding -= extraPay;
           surplus -= extraPay;
 

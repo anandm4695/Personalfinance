@@ -95,9 +95,17 @@ describe("DividendCalendarTab data-fetch correctness", () => {
 
     const container = await mount(<DividendCalendarTab state={stateMultiLot} />);
 
-    // Only one fetch should be issued for the combined TCS.NS position
+    // Only one ex-date fetch should be issued for the combined TCS.NS position.
+    // (Scoped to /api/stock-exdate specifically — the holdings table also
+    // renders a StockLogo per row, which independently hits /api/stock-logo
+    // for the same symbol; that's a separate, correctly-single fetch and
+    // shouldn't be conflated with the ex-date consolidation this test covers.)
     const requestedUrls = fetchMock.mock.calls.map((c: any[]) => decodeURIComponent(c[0]));
-    expect(requestedUrls.filter((u: string) => u.includes("symbol=TCS.NS")).length).toBe(1);
+    expect(
+      requestedUrls.filter(
+        (u: string) => u.includes("/api/stock-exdate") && u.includes("symbol=TCS.NS")
+      ).length
+    ).toBe(1);
 
     // Only one row should exist for TCS in the holdings table, with combined 30-share qty
     const symbolCells = Array.from(container.querySelectorAll("td")).filter((td) =>
