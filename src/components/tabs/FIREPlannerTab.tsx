@@ -498,7 +498,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
           Accumulation Path
         </h3>
-        <ResponsiveContainer width="100%" height={350}>
+        <div style={{ width: "100%", height: 350, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <AreaChart data={fireCalc.accumulation}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
@@ -544,7 +544,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               }}
             />
           </AreaChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </Card>
 
       {/* Drawdown Simulation */}
@@ -553,7 +553,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
           <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
             Post-Retirement Drawdown ({fireCalc.retirementYears} years)
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <div style={{ width: "100%", height: 300, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <AreaChart data={fireCalc.drawdown}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
@@ -584,7 +584,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               />
               <ReferenceLine y={0} stroke={THEME.rust} />
             </AreaChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
           <div style={{ marginTop: 12, fontSize: 13, color: THEME.textSecondary }}>
             {fireCalc.drawdown[fireCalc.drawdown.length - 1]?.corpus > 0
               ? `Your corpus lasts through age ${lifeExpectancy} with ${fmtINRFull(fireCalc.drawdown[fireCalc.drawdown.length - 1].corpus)} remaining.`

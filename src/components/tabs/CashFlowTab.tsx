@@ -1181,7 +1181,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             Monthly Cash Flow Projection
           </span>
         </div>
-        <ResponsiveContainer width="100%" height={320}>
+        <div style={{ width: "100%", height: 320, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <ComposedChart
             data={chartData}
             margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
@@ -1247,7 +1247,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               name="Cumulative Surplus"
             />
           </ComposedChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </Card>
 
       {/* ── Inflows & Outflows Tables ──────────────────────────────────────── */}

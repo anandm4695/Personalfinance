@@ -2874,7 +2874,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     >
                                       {charts && charts.length > 2 ? (
                                         <>
-                                          <ResponsiveContainer width="100%" height={150}>
+                                          <div style={{ width: "100%", height: 150, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                             <AreaChart
                                               data={charts}
                                               margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
@@ -2946,7 +2946,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 dot={false}
                                               />
                                             </AreaChart>
-                                          </ResponsiveContainer>
+                                          </ResponsiveContainer></div>
                                           <div
                                             style={{
                                               display: "flex",
@@ -4326,7 +4326,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   </div>
 
                   <div style={{ width: "100%", height: 220, position: "relative" }}>
-                    <ResponsiveContainer width="100%" height={220}>
+                    <div style={{ width: "100%", height: 220, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={portfolioScoreData.stockWeights.slice(0, 7)}
@@ -4361,7 +4361,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           itemStyle={{ color: THEME.ink }}
                         />
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
 
                   {/* Legend list of top stocks */}
@@ -4722,7 +4722,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             padding: "16px 12px",
                           }}
                         >
-                          <ResponsiveContainer width="100%" height={200}>
+                          <div style={{ width: "100%", height: 200, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart
                               data={barChartData}
                               layout="vertical"
@@ -4763,7 +4763,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 ))}
                               </Bar>
                             </BarChart>
-                          </ResponsiveContainer>
+                          </ResponsiveContainer></div>
                         </div>
                       </div>
                     </div>
@@ -5658,10 +5658,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 >
                                                   {charts && charts.length > 2 ? (
                                                     <>
-                                                      <ResponsiveContainer
-                                                        width="100%"
-                                                        height={150}
-                                                      >
+                                                      <div style={{ width: "100%", height: 150, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                         <AreaChart
                                                           data={charts}
                                                           margin={{
@@ -5739,7 +5736,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                             dot={false}
                                                           />
                                                         </AreaChart>
-                                                      </ResponsiveContainer>
+                                                      </ResponsiveContainer></div>
                                                       <div
                                                         style={{
                                                           display: "flex",

@@ -672,7 +672,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     Score Trend History — {bureau}
                   </div>
-                  <ResponsiveContainer width="100%" height={220}>
+                  <div style={{ width: "100%", height: 220, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
@@ -706,7 +706,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                         activeDot={{ r: 7 }}
                       />
                     </LineChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </Card>
               )}
 

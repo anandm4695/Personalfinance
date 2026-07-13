@@ -578,7 +578,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
               </div>
             </div>
             <div style={{ height: 260 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <AreaChart
                   data={projectionChartData}
                   margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
@@ -640,7 +640,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                     fill="url(#sipColorWealth)"
                   />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
           </Card>
         </>

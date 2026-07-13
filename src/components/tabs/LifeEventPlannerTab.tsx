@@ -220,7 +220,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
           <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>
             Timeline View
           </h3>
-          <ResponsiveContainer width="100%" height={280}>
+          <div style={{ width: "100%", height: 280, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart data={timeline}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: THEME.muted }} />
@@ -242,7 +242,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                 radius={[8, 8, 0, 0]}
               />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </Card>
       )}
 

@@ -1487,7 +1487,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       alignItems: "center",
                     }}
                   >
-                    <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={emiPieData}
@@ -1515,7 +1515,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
                 </div>
               </Card>
@@ -1571,7 +1571,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       alignItems: "center",
                     }}
                   >
-                    <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={sipPieData}
@@ -1599,7 +1599,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
                 </div>
               </Card>
@@ -1803,7 +1803,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   Year-by-Year Growth
                 </div>
                 <div style={{ height: 200 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <AreaChart
                       data={stepSipResult.yearlyData}
                       margin={{ top: 5, right: 5, left: -10, bottom: 0 }}
@@ -1858,7 +1858,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         strokeDasharray="4 2"
                       />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </div>
               </Card>
             </div>
@@ -2244,7 +2244,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   Year-by-Year Corpus Balance
                 </div>
                 <div style={{ height: 200 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <AreaChart
                       data={swpResult.yearlyData}
                       margin={{ top: 5, right: 5, left: -10, bottom: 0 }}
@@ -2307,7 +2307,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         strokeDasharray="4 2"
                       />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </div>
               </Card>
             </div>
@@ -2959,7 +2959,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       alignItems: "center",
                     }}
                   >
-                    <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={fdrdPieData}
@@ -2987,7 +2987,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
                 </div>
               </Card>
@@ -3284,7 +3284,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
               <div className="bento-grid" style={{ gap: 32 }}>
                 <div className="bento-col-8" style={{ height: 320 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <AreaChart data={nwpData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                       <defs>
                         <linearGradient id="gNwp" x1="0" y1="0" x2="0" y2="1">
@@ -3317,7 +3317,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         fill="url(#gNwp)"
                       />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </div>
                 <div
                   className="bento-col-4"
@@ -4010,7 +4010,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </div>
 
                 <div style={{ height: 260 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <AreaChart
                       data={monteCarloResult.chartData}
                       margin={{ top: 10, right: 10, left: 15, bottom: 0 }}
@@ -4081,7 +4081,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         strokeDasharray="4 4"
                       />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </div>
               </Card>
 
@@ -4576,7 +4576,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </div>
 
                 <div style={{ height: 260 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <AreaChart
                       data={sandboxResult.chartData}
                       margin={{ top: 10, right: 10, left: 15, bottom: 0 }}
@@ -4643,7 +4643,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         strokeDasharray="4 4"
                       />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </div>
               </Card>
 
@@ -5010,7 +5010,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 >
                   Cost Comparison
                 </div>
-                <ResponsiveContainer width="100%" height={220}>
+                <div style={{ width: "100%", height: 220, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <BarChart data={idxBarData} barSize={48}>
                     <CartesianGrid strokeDasharray="3 3" stroke={`${THEME.line}`} />
                     <XAxis
@@ -5044,7 +5044,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer></div>
               </Card>
             </div>
           </>
@@ -5297,7 +5297,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 >
                   Income vs Expenses Timeline
                 </div>
-                <ResponsiveContainer width="100%" height={340}>
+                <div style={{ width: "100%", height: 340, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <AreaChart data={riResult.timeline}>
                     <CartesianGrid strokeDasharray="3 3" stroke={`${THEME.line}`} />
                     <XAxis
@@ -5358,7 +5358,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       strokeDasharray="8 4"
                     />
                   </AreaChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer></div>
               </Card>
 
               {/* Income Sources Table */}

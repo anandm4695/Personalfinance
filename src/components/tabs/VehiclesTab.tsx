@@ -2106,7 +2106,7 @@ function VehicleCard({
                         Annual Service Spend
                       </div>
                       <div style={{ height: 160 }}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <BarChart
                             data={spendByYear}
                             margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
@@ -2146,7 +2146,7 @@ function VehicleCard({
                               radius={[4, 4, 0, 0]}
                             />
                           </BarChart>
-                        </ResponsiveContainer>
+                        </ResponsiveContainer></div>
                       </div>
                     </div>
                   )}
@@ -2165,7 +2165,7 @@ function VehicleCard({
                         Odometer History (Usage)
                       </div>
                       <div style={{ height: 160 }}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <AreaChart
                             data={odoTrend}
                             margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
@@ -2211,7 +2211,7 @@ function VehicleCard({
                               dot={{ r: 3, fill: THEME.accent }}
                             />
                           </AreaChart>
-                        </ResponsiveContainer>
+                        </ResponsiveContainer></div>
                       </div>
                     </div>
                   )}

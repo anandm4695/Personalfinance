@@ -1569,7 +1569,7 @@ export const InvestmentStatementTab = ({
             }}
           >
             <div style={{ width: 280, height: 280, position: "relative" }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
                   <Pie
                     data={summary.pieData}
@@ -1670,7 +1670,7 @@ export const InvestmentStatementTab = ({
                     </>
                   )}
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
             <div
               style={{

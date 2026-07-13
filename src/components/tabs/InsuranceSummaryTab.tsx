@@ -1824,7 +1824,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                   alignItems: "center",
                 }}
               >
-                <ResponsiveContainer width="100%" height="100%">
+                <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <PieChart>
                     <Pie
                       data={premiumData}
@@ -1852,7 +1852,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     />
                     <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer></div>
               </div>
             </div>
             <div className="bento-col-6">
@@ -1877,7 +1877,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                   alignItems: "center",
                 }}
               >
-                <ResponsiveContainer width="100%" height="100%">
+                <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <PieChart>
                     <Pie
                       data={coverageData}
@@ -1905,7 +1905,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     />
                     <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer></div>
               </div>
             </div>
           </div>

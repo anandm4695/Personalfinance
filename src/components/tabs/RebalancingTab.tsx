@@ -663,7 +663,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               Current Allocation
             </div>
             <div style={{ width: "100%", height: 180, position: "relative" }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
                   <Pie
                     data={pieData}
@@ -762,7 +762,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     </>
                   )}
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
             <div
               style={{
@@ -808,7 +808,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               Current vs Target
             </div>
             <div style={{ width: "100%", height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={comparisonData}>
                   <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
                   <XAxis
@@ -837,7 +837,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     )}
                   />
                 </BarChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
           </div>
         </Card>
@@ -857,7 +857,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               Target Allocation
             </div>
             <div style={{ width: "100%", height: 180, position: "relative" }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
                   <Pie
                     data={targetPieData}
@@ -953,7 +953,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     </>
                   )}
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
             <div
               style={{

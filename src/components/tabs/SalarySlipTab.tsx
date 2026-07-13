@@ -631,7 +631,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                   Visual comparison of gross incomes, take-homes, TDS, and PF
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={260}>
+              <div style={{ width: "100%", height: 260, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={chartData} barGap={4}>
                   <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
                   <XAxis
@@ -664,7 +664,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                   <Bar dataKey="Net" fill={THEME.sage} radius={[6, 6, 0, 0]} />
                   <Bar dataKey="TDS" fill={THEME.rust} radius={[6, 6, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </Card>
           )}
 

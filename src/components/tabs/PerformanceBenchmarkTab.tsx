@@ -447,7 +447,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={300}>
+        <div style={{ width: "100%", height: 300, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart data={comparisonData} layout="vertical">
             <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} horizontal={false} />
             <XAxis
@@ -493,7 +493,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
               }}
             />
           </BarChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </Card>
 
       {/* Asset-wise comparison */}
@@ -515,7 +515,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
               Side-by-side returns breakdown by asset class
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <div style={{ width: "100%", height: 300, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart data={assetComparison}>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
               <XAxis
@@ -549,7 +549,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
                 radius={[6, 6, 0, 0]}
               />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </Card>
       )}
 
@@ -578,7 +578,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
               Visual index alignment score matching primary targets
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <div style={{ width: "100%", height: 300, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <RadarChart data={healthScore} cx="50%" cy="50%" outerRadius="80%">
               <PolarGrid stroke={THEME.line} strokeOpacity={0.7} />
               <PolarAngleAxis
@@ -600,7 +600,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
                 strokeWidth={2.5}
               />
             </RadarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </Card>
 
         {/* Detailed Scores */}

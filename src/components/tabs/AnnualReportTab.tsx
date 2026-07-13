@@ -1610,7 +1610,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             <Card style={{ padding: 24, marginBottom: 24 }}>
               <CardHeading icon={TrendingUp} title="Net Worth Trend" id="nw" />
               <div style={{ height: 260 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <AreaChart data={netWorthData.chartData}>
                     <defs>
                       <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1645,7 +1645,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                       activeDot={{ r: 5, stroke: "#fff", strokeWidth: 2 }}
                     />
                   </AreaChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer></div>
               </div>
             </Card>
           )}
@@ -1731,7 +1731,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
               )}
               {incomeData.monthlyChart.some((d) => d.income > 0) && (
                 <div style={{ height: 160 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={incomeData.monthlyChart} barSize={32}>
                       <defs>
                         <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1762,7 +1762,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                         radius={[6, 6, 0, 0]}
                       />
                     </BarChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </div>
               )}
             </Card>
@@ -1823,7 +1823,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                 </div>
                 {expenseData.top5.length > 0 && (
                   <div style={{ width: 170, height: 170, flexShrink: 0, position: "relative" }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={expenseData.top5}
@@ -1875,7 +1875,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                           )}
                         </text>
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
                 )}
               </div>
@@ -1980,7 +1980,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
               <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
                 {assetAllocation.alloc.length > 0 && (
                   <div style={{ width: 180, height: 180, flexShrink: 0, position: "relative" }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={assetAllocation.alloc}
@@ -2030,7 +2030,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                           {fmtINRFull(hoveredAsset ? hoveredAsset.value : assetAllocation.total)}
                         </text>
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 160 }}>

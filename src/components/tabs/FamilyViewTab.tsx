@@ -1154,7 +1154,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             >
               {/* Pie/Donut Container */}
               <div style={{ width: 220, height: 220, flexShrink: 0, margin: "0 auto" }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <PieChart>
                     <Pie
                       data={contributionData}
@@ -1177,7 +1177,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
                   </PieChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer></div>
               </div>
 
               {/* Legend List on Right */}
@@ -1416,7 +1416,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   }}
                 >
                   <div style={{ width: 100, height: 100, flexShrink: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={m.allocation}
@@ -1438,7 +1438,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
                     {m.allocation.slice(0, 5).map((d, i) => {
@@ -1589,7 +1589,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           </SectionTitle>
           <Card style={{ padding: 24 }}>
             <div style={{ width: "100%", height: 380 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
                   data={comparisonData}
                   margin={{ top: 10, right: 16, left: 0, bottom: 20 }}
@@ -1645,7 +1645,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     />
                   ))}
                 </BarChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
           </Card>
         </>

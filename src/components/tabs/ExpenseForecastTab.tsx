@@ -457,7 +457,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={350}>
+        <div style={{ width: "100%", height: 350, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <AreaChart data={chartData}>
             <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
             <XAxis
@@ -513,7 +513,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
               name="Actual"
             />
           </AreaChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </Card>
 
       {/* Seasonal Patterns */}
@@ -534,7 +534,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
             Average monthly expenditure levels mapped across the calendar year
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={250}>
+        <div style={{ width: "100%", height: 250, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart data={seasonalPatterns}>
             <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
             <XAxis
@@ -552,7 +552,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
             <Tooltip content={<ChartTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
             <Bar dataKey="avg" name="Average Spend" fill="var(--accent)" radius={[6, 6, 0, 0]} />
           </BarChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </Card>
 
       {/* Category Trends Table */}

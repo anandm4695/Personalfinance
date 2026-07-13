@@ -290,7 +290,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
               By Type
             </h3>
-            <ResponsiveContainer width="100%" height={250}>
+            <div style={{ width: "100%", height: 250, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Pie
                   data={stats.byType}
@@ -318,7 +318,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                   itemStyle={{ color: THEME.ink }}
                 />
               </PieChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></div>
           </Card>
           <Card style={{ padding: 24 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>

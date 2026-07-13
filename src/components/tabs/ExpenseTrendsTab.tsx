@@ -751,7 +751,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
           Expense area with income overlay and average reference line
         </div>
-        <ResponsiveContainer width="100%" height={320}>
+        <div style={{ width: "100%", height: 320, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <ComposedChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
@@ -811,7 +811,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               dot={{ r: 3, fill: PIE_COLORS[1] }}
             />
           </ComposedChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </Card>
 
       {/* Category Breakdown (Donut + Stacked Bar) */}
@@ -840,7 +840,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           </div>
           {categoryData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={280}>
+              <div style={{ width: "100%", height: 280, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
                   <Pie
                     data={categoryData}
@@ -966,7 +966,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     </>
                   )}
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
               {/* Legend */}
               <div
                 style={{
@@ -1022,7 +1022,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
             Month-by-month category-wise breakdown
           </div>
           {categoryStackedData.categories.length > 0 ? (
-            <ResponsiveContainer width="100%" height={320}>
+            <div style={{ width: "100%", height: 320, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart
                 data={categoryStackedData.data}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -1060,7 +1060,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   />
                 ))}
               </BarChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></div>
           ) : (
             <div style={{ textAlign: "center", padding: 40, color: THEME.muted, fontSize: 13 }}>
               No expense data for this period
@@ -1318,7 +1318,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           Top 10 by total spend, extracted from transaction narrations
         </div>
         {topMerchants.length > 0 ? (
-          <ResponsiveContainer width="100%" height={Math.max(topMerchants.length * 40 + 40, 200)}>
+          <div style={{ width: "100%", height: Math.max(topMerchants.length * 40 + 40, 200), position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart
               data={topMerchants}
               layout="vertical"
@@ -1379,7 +1379,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         ) : (
           <div style={{ textAlign: "center", padding: 40, color: THEME.muted, fontSize: 13 }}>
             No merchant data available
@@ -1504,7 +1504,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
           Side-by-side comparison with net savings overlay and savings rate
         </div>
-        <ResponsiveContainer width="100%" height={340}>
+        <div style={{ width: "100%", height: 340, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <ComposedChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
             <XAxis
@@ -1564,7 +1564,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               dot={{ r: 4, fill: PIE_COLORS[0], strokeWidth: 1.5, stroke: "#fff" }}
             />
           </ComposedChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
 
         {/* Savings rate row */}
         <div

@@ -10167,7 +10167,7 @@ function MFSection({
                                                   }}
                                                 >
                                                   {chart?.length ? (
-                                                    <ResponsiveContainer width="100%" height={150}>
+                                                    <div style={{ width: "100%", height: 150, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                       <AreaChart
                                                         data={chart}
                                                         margin={{
@@ -10237,7 +10237,7 @@ function MFSection({
                                                           dot={false}
                                                         />
                                                       </AreaChart>
-                                                    </ResponsiveContainer>
+                                                    </ResponsiveContainer></div>
                                                   ) : (
                                                     <div
                                                       style={{

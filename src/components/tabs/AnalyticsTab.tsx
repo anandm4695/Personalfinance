@@ -3790,7 +3790,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     zIndex: 1,
                   }}
                 >
-                  <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <AreaChart
                       data={netWorthTrend.slice(-6)}
                       margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
@@ -3810,7 +3810,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         dot={false}
                       />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </div>
               )}
 
@@ -5756,7 +5756,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         No data available for the selected fiscal years
                       </div>
                     ) : (
-                      <ResponsiveContainer width="100%" height={280}>
+                      <div style={{ width: "100%", height: 280, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <BarChart
                           data={yoyComparison.chartData}
                           margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
@@ -5806,7 +5806,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             maxBarSize={48}
                           />
                         </BarChart>
-                      </ResponsiveContainer>
+                      </ResponsiveContainer></div>
                     )}
                   </div>
                 </div>
@@ -6747,7 +6747,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       Not enough history to show net worth trend
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height={280}>
+                    <div style={{ width: "100%", height: 280, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <AreaChart data={filteredNetWorthTrend}>
                         <defs>
                           <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
@@ -6799,7 +6799,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           style={{ filter: "url(#glow)" }}
                         />
                       </AreaChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   )}
                 </div>
               </Card>
@@ -6850,7 +6850,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     Add transactions to see your P&L trend
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <div style={{ width: "100%", height: 250, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={trendData.slice(-6)}>
                       <defs>
                         <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
@@ -6930,7 +6930,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{ filter: "url(#glow-rust)" }}
                       />
                     </BarChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 )}
               </Card>
 
@@ -6972,7 +6972,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
                     Green = surplus, red = deficit
                   </div>
-                  <ResponsiveContainer width="100%" height={250}>
+                  <div style={{ width: "100%", height: 250, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={trendData.slice(-6)}>
                       <defs>
                         <linearGradient id="gNetPos" x1="0" y1="0" x2="0" y2="1">
@@ -7042,7 +7042,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         ))}
                       </Bar>
                     </BarChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                 </Card>
 
                 {/* Portfolio Return */}
@@ -7091,7 +7091,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       Add mutual funds or stocks to see portfolio returns
                     </div>
                   ) : (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <div style={{ width: "100%", height: 250, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart
                       data={[
                         {
@@ -7169,7 +7169,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
-                  </ResponsiveContainer>
+                  </ResponsiveContainer></div>
                   )}
                 </Card>
               </div>
@@ -7792,7 +7792,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       alignItems: "center",
                     }}
                   >
-                    <ResponsiveContainer width="100%" height={260}>
+                    <div style={{ width: "100%", height: 260, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={assetBreakdown}
@@ -7841,7 +7841,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           })}
                         </Pie>
                       </PieChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
 
                     {/* Central display inside the donut hole */}
                     <div
@@ -8475,7 +8475,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         alignItems: "center",
                       }}
                     >
-                      <ResponsiveContainer width="100%" height={180}>
+                      <div style={{ width: "100%", height: 180, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <PieChart>
                           <Pie
                             data={metrics.stockCapBreakdown}
@@ -8524,7 +8524,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             })}
                           </Pie>
                         </PieChart>
-                      </ResponsiveContainer>
+                      </ResponsiveContainer></div>
 
                       {/* HUD overlay inside the donut hole */}
                       <div
@@ -11274,7 +11274,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       padding: "16px 12px 6px",
                     }}
                   >
-                    <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <AreaChart
                         data={projectionData}
                         margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
@@ -11369,7 +11369,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           fill="none"
                         />
                       </AreaChart>
-                    </ResponsiveContainer>
+                    </ResponsiveContainer></div>
                   </div>
                 </div>
               </div>
@@ -12890,7 +12890,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           alignItems: "center",
                         }}
                       >
-                        <ResponsiveContainer width="100%" height={260}>
+                        <div style={{ width: "100%", height: 260, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <PieChart>
                             <Pie
                               data={spendingData.breakdown}
@@ -12940,7 +12940,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               })}
                             </Pie>
                           </PieChart>
-                        </ResponsiveContainer>
+                        </ResponsiveContainer></div>
 
                         {/* Central display inside the donut hole */}
                         <div
@@ -14820,7 +14820,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
             </div>
             <div style={{ height: 310 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
                   data={[
                     {
@@ -14894,7 +14894,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <Bar dataKey="Average" fill="#94a3b8" radius={[5, 5, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="Top10" fill="#10b981" radius={[5, 5, 0, 0]} maxBarSize={36} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 8 }}>
               {[

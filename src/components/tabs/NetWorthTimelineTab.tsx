@@ -768,7 +768,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={350}>
+        <div style={{ width: "100%", height: 350, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           {showBreakdown ? (
             <AreaChart data={history} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <defs>
@@ -892,7 +892,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               />
             </AreaChart>
           )}
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </Card>
 
       {/* ── Month-over-Month Delta ─────────────────────────────────────────── */}
@@ -904,7 +904,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               Monthly Change
             </h3>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
+          <div style={{ width: "100%", height: 250, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart data={momDeltas}>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
               <XAxis
@@ -948,7 +948,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 }}
               />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </Card>
       )}
 
@@ -1096,7 +1096,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
         </div>
 
         {/* Projection Chart */}
-        <ResponsiveContainer width="100%" height={320}>
+        <div style={{ width: "100%", height: 320, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
           {(() => {
             const step = projectionYears <= 3 ? 3 : projectionYears <= 10 ? 6 : 12;
             const chartData = projection.filter(
@@ -1157,7 +1157,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               </AreaChart>
             );
           })()}
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
 
         {/* Projection Outputs summary panels */}
         <div style={{ marginTop: 20, display: "flex", gap: 16, flexWrap: "wrap" }}>

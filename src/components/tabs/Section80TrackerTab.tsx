@@ -293,7 +293,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
               Deduction Mix
             </h3>
-            <ResponsiveContainer width="100%" height={280}>
+            <div style={{ width: "100%", height: 280, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Pie
                   data={pieData}
@@ -319,7 +319,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                   itemStyle={{ color: THEME.ink }}
                 />
               </PieChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></div>
           </Card>
         )}
 

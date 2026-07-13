@@ -776,7 +776,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               Distribution comparison across selected periods
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={350}>
+          <div style={{ width: "100%", height: 350, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart data={chartData} layout="vertical">
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} horizontal={false} />
               <XAxis
@@ -808,7 +808,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
                 radius={[0, 6, 6, 0]}
               />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </Card>
       )}
 
