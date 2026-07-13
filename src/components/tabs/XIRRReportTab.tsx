@@ -22,6 +22,7 @@ import {
   today,
   fdMaturity,
   rdMaturity,
+  getLocalDateString,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -153,7 +154,7 @@ export function XIRRReportTab({ state }: any) {
         (() => {
           const d = new Date(fd.startDate + "T00:00:00");
           d.setFullYear(d.getFullYear() + years);
-          return d.toISOString().slice(0, 10);
+          return getLocalDateString(d);
         })();
 
       const isMature = matDate <= todayStr;
@@ -162,9 +163,13 @@ export function XIRRReportTab({ state }: any) {
         (new Date(endDate + "T00:00:00").getTime() -
           new Date(fd.startDate + "T00:00:00").getTime()) /
         (365.25 * 24 * 3600 * 1000);
+      // Use the same quarterly-compounding formula (fdMaturity) for both branches —
+      // previously the active branch used simple annual compounding while the matured
+      // branch used fdMaturity's quarterly compounding, causing a valuation
+      // discontinuity right at the maturity boundary.
       const currentVal = isMature
         ? fdMaturity(Number(fd.principal), Number(fd.rate), years)
-        : Number(fd.principal) * Math.pow(1 + Number(fd.rate) / 100, Math.max(0, elapsed));
+        : fdMaturity(Number(fd.principal), Number(fd.rate), Math.max(0, elapsed));
 
       const cashFlows = [
         { date: fd.startDate, amount: -Number(fd.principal) },
@@ -197,7 +202,7 @@ export function XIRRReportTab({ state }: any) {
       for (let i = 0; i < months; i++) {
         const d = new Date(rd.startDate + "T00:00:00");
         d.setMonth(d.getMonth() + i);
-        const ds = d.toISOString().slice(0, 10);
+        const ds = getLocalDateString(d);
         if (ds <= todayStr) cashFlows.push({ date: ds, amount: -monthly });
       }
       if (cashFlows.length === 0) return;
@@ -207,7 +212,7 @@ export function XIRRReportTab({ state }: any) {
         (() => {
           const d = new Date(rd.startDate + "T00:00:00");
           d.setMonth(d.getMonth() + months);
-          return d.toISOString().slice(0, 10);
+          return getLocalDateString(d);
         })();
 
       const isMature = matDate <= todayStr;
@@ -398,9 +403,9 @@ export function XIRRReportTab({ state }: any) {
         const couponEnd = b.maturityDate < todayStr ? b.maturityDate : todayStr;
         const d = new Date(purchaseDate + "T00:00:00");
         d.setFullYear(d.getFullYear() + 1);
-        while (d.toISOString().slice(0, 10) <= couponEnd) {
+        while (getLocalDateString(d) <= couponEnd) {
           cashFlows.push({
-            date: d.toISOString().slice(0, 10),
+            date: getLocalDateString(d),
             amount: annualCoupon,
           });
           d.setFullYear(d.getFullYear() + 1);

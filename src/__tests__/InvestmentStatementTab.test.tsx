@@ -71,4 +71,46 @@ describe("InvestmentStatementTab Premium UI Statically", () => {
     expect(html).toContain("Fixed Deposits");
     expect(html).toContain("Asset Allocation");
   });
+
+  it("computes Days to Maturity as an exact calendar-day count, independent of current time-of-day", () => {
+    // Bug: `new Date(matDate).getTime() - Date.now()` compared a UTC-midnight timestamp
+    // against the current instant (with time-of-day), so the displayed day count could
+    // be off by one depending on what time of day the page was viewed (and for IST,
+    // matDate's UTC-midnight parse itself doesn't line up with local midnight either).
+    // Both sides must now be parsed at local midnight so the diff is an exact day count.
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    const maturityDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+
+    const state = {
+      stocks: [],
+      mutualFunds: [],
+      fixedDeposits: [
+        {
+          id: "f1",
+          bank: "Test Bank",
+          principal: 100000,
+          rate: 7,
+          years: 1,
+          startDate: "2026-01-01",
+          maturityDate,
+        },
+      ],
+      recurringDeposits: [],
+      bonds: [],
+      ppf: [],
+      nps: [],
+      epf: [],
+      lic: [],
+      investmentPlans: [],
+    };
+
+    const html = renderToString(
+      <InvestmentStatementTab state={state} metrics={{ netWorth: 100000 }} marketData={{}} />
+    );
+
+    expect(html).toContain(">10d<");
+  });
 });

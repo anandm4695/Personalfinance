@@ -631,9 +631,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     let tempCorpus = curPort;
     for (let y = 1; y <= 60; y++) {
       tempCorpus = tempCorpus * (1 + preRet) + mSavings * 12;
+      const yrsRemainingAtY = Math.max(0, lifeExp - curAge - y);
       const inflAdjReq =
-        retAnnualExp *
-        ((1 - Math.pow(1 + realPostReturn, -(lifeExp - curAge - y))) / (realPostReturn || 1));
+        realPostReturn === 0
+          ? retAnnualExp * yrsRemainingAtY
+          : retAnnualExp * ((1 - Math.pow(1 + realPostReturn, -yrsRemainingAtY)) / realPostReturn);
       if (tempCorpus >= inflAdjReq && inflAdjReq > 0) {
         projectedFireYear = new Date().getFullYear() + y;
         break;

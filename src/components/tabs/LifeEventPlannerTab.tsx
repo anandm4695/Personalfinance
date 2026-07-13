@@ -95,7 +95,10 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
       const gap = Math.max(0, inflatedCost - saved);
       const r = 0.1 / 12; // assume 10% p.a. return
       const n = Math.round(yearsAway * 12);
-      const monthlySIP = yearsAway > 0 && r > 0 ? (gap * r) / (Math.pow(1 + r, n) - 1) : gap;
+      // Guard on `n` (not `yearsAway`): an event under ~15 days away has yearsAway > 0 but
+      // rounds to 0 months, which previously divided by (1+r)^0 - 1 === 0 and produced
+      // Infinity/NaN for "Monthly SIP Needed". With <1 month left, the whole gap is due now.
+      const monthlySIP = n > 0 && r > 0 ? (gap * r) / (Math.pow(1 + r, n) - 1) : gap;
       const progress = inflatedCost > 0 ? (saved / inflatedCost) * 100 : 0;
       const isPast = targetDate < now;
 

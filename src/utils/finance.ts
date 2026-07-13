@@ -127,8 +127,18 @@ export const getCCDueDate = (c: any, referenceDate?: Date) => {
   if (c.dueDay) {
     const day = parseInt(c.dueDay, 10);
     if (!isNaN(day) && day >= 1 && day <= 31) {
-      let d = new Date(now.getFullYear(), now.getMonth(), day);
-      if (d <= now) d = new Date(now.getFullYear(), now.getMonth() + 1, day);
+      // Clamp to the last day of the target month so a dueDay of 29/30/31 doesn't
+      // overflow into the following month (e.g. Feb 31 -> Mar 3) when the target
+      // month is shorter (Feb, or any 30-day month).
+      const clampedDate = (year: number, month: number) => {
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return new Date(year, month, Math.min(day, lastDay));
+      };
+      let d = clampedDate(now.getFullYear(), now.getMonth());
+      if (d <= now) {
+        const nextMonth = now.getMonth() + 1;
+        d = clampedDate(now.getFullYear() + Math.floor(nextMonth / 12), nextMonth % 12);
+      }
       return getLocalDateString(d);
     }
   }
@@ -464,9 +474,19 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
     // Marginal relief: tax capped at (taxable - rebateThreshold)
     const capped = taxable - rebateThreshold;
     if (tax > capped) {
+      // Bug fix: rebateAmount was previously hardcoded to 0 here even though
+      // real relief is being granted (tax is being reduced from the raw slab
+      // total down to `capped`). Callers that reconstruct the pre-relief tax
+      // as `tax + rebateAmount` (e.g. TaxVaultTab's slab breakdown display)
+      // silently showed the already-capped tax as if it were the raw amount,
+      // and then displayed a "-₹0 rebate" — or worse, TaxVaultTab.tsx's
+      // `rebateAmount || tax` fallback then showed the entire post-relief
+      // tax figure a second time as the "rebate", making the on-screen
+      // Tax − Rebate + Cess arithmetic undercount the real total by the
+      // full capped tax amount. Report the actual relief granted instead.
+      rebateAmount = tax - capped;
       tax = capped;
       rebateApplied = true;
-      rebateAmount = 0;
     }
   }
 
@@ -615,13 +635,24 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
   const lic = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
 
   // 80C — EPF employee contributions in FY
+  // Bug fix: this previously filtered on t.type === "employee", but no EPF
+  // transaction is ever created with that type string — calculateEpfBalance()
+  // (this same file) and every EPF-writing tab (InvestmentsTab, etc.) use
+  // "employee_contribution" for simple entries or "monthly_contribution"
+  // with an employeeShare field for passbook entries. As a result EPF
+  // contributions were silently never counted toward the 80C auto-detection
+  // (and thus never fed into getTaxDueForDashboard's old-regime estimate).
   const epf = (state.epf || []).reduce((s: number, e: any) => {
-    return (
-      s +
-      (e.transactions || [])
-        .filter((t: any) => t.type === "employee" && t.date >= fyStartStr && t.date <= fyEndStr)
-        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
+    const txs = (e.transactions || []).filter(
+      (t: any) => t.date >= fyStartStr && t.date <= fyEndStr
     );
+    const simple = txs
+      .filter((t: any) => t.type === "employee_contribution")
+      .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const passbook = txs
+      .filter((t: any) => t.type === "monthly_contribution")
+      .reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
+    return s + simple + passbook;
   }, 0);
 
   const d80C_raw = elss + ppf + lic + epf;

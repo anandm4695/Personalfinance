@@ -2187,7 +2187,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       limit,
       progress: total > 0 ? (total / limit) * 100 : 0,
     };
-  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.epf, getCurrentFY()]);
+  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.epf, state.nps, getCurrentFY()]);
 
   // ── Habits & Rewards: badge evaluation ───────────────────────────────────
   const habitsBadges = useMemo(() => {

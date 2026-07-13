@@ -105,6 +105,22 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     return Number(p.securityDeposit || 0);
   };
 
+  // Sum the escalation-aware effective rent across every month of the given
+  // FY (Apr–Mar) instead of multiplying today's effective rent by 12 — the
+  // latter silently mis-states the year's expected total whenever an
+  // escalation tier boundary falls inside the FY (e.g. rent steps up in
+  // August: months before the step were at the old, lower rate).
+  const getExpectedFYRent = (p: any, fyStartStr: string) => {
+    const [fyStartYear, fyStartMonth] = fyStartStr.slice(0, 7).split("-").map(Number);
+    let total = 0;
+    for (let i = 0; i < 12; i++) {
+      const y = fyStartYear + Math.floor((fyStartMonth - 1 + i) / 12);
+      const m = ((fyStartMonth - 1 + i) % 12) + 1;
+      total += getEffectiveRent(p, `${y}-${String(m).padStart(2, "0")}`);
+    }
+    return total;
+  };
+
   const parseCsvText = (text: string, _type: "payment" | "receipt") => {
     setCsvError("");
     setCsvPreview([]);
@@ -960,7 +976,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                       {/* FY collection progress bar */}
                       {(() => {
-                        const expected = getEffectiveRent(p) * 12;
+                        const expected = getExpectedFYRent(p, fyStart);
                         const received = (p.receipts || [])
                           .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
                           .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
@@ -2331,7 +2347,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                       {/* FY payment progress bar */}
                       {(() => {
-                        const expected = getEffectiveRent(p) * 12;
+                        const expected = getExpectedFYRent(p, fyStart);
                         const paid = (p.payments || [])
                           .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
                           .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);

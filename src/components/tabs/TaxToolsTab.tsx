@@ -19,8 +19,9 @@ import {
   fmtINR,
   fmtINRFull,
   today,
-  calcTaxNew,
-  calcTaxOld,
+  calcTaxNewByFY,
+  calcTaxOldByFY,
+  getAutoDetectedDeductions,
   getEffectiveRent,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
@@ -133,11 +134,42 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 
   const taxLiability = useMemo(() => {
     if (!income) return 0;
-    if (regime === "new") return calcTaxNew ? calcTaxNew(income).total : 0;
-    // Old regime always gets at least the standard deduction (₹50k from FY 2020-21, ₹40k before)
+    // Bug fix: this previously called the legacy calcTaxNew()/calcTaxOld()
+    // helpers, which are hardcoded to FY 2025-26 slab rates and (for the old
+    // regime) only ever subtract the standard deduction — ignoring 80C, 80D,
+    // HRA, home loan interest etc. that the rest of the app auto-detects.
+    // That made the FY selector above a no-op for the actual tax figure, and
+    // silently overstated old-regime liability. Use the same FY-aware,
+    // deduction-aware calculation as the dashboard (getTaxDueForDashboard)
+    // instead, but honoring this section's own `fy` selection.
+    if (regime === "new") {
+      return calcTaxNewByFY(income, fy).total;
+    }
+    const auto = getAutoDetectedDeductions(state, fy);
+    const overrides = state.masterData?.taxDeductions?.[fy] || {};
+    const d80C = overrides.d80C !== undefined ? overrides.d80C : auto.d80C;
+    const d80D = overrides.d80D !== undefined ? overrides.d80D : 0;
+    const hra = overrides.hra !== undefined ? overrides.hra : auto.hra;
+    const homeLoan = overrides.homeLoan !== undefined ? overrides.homeLoan : auto.homeLoan;
+    const nps = overrides.nps !== undefined ? overrides.nps : 0;
+    const d80CCD2 = overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : 0;
+    const d80G = overrides.d80G !== undefined ? overrides.d80G : 0;
+    const d80E = overrides.d80E !== undefined ? overrides.d80E : 0;
+    const d80TTA = overrides.d80TTA !== undefined ? overrides.d80TTA : 0;
     const stdDedOld = fyStart >= 2020 ? 50000 : 40000;
-    return calcTaxOld ? calcTaxOld(income, stdDedOld).total : 0;
-  }, [income, regime, fyStart]);
+    const totalOldDeductions =
+      stdDedOld +
+      Math.min(d80C, 150000) +
+      Math.min(d80D, 25000) +
+      hra +
+      Math.min(homeLoan, 200000) +
+      Math.min(nps, 50000) +
+      (d80CCD2 || 0) +
+      (d80G || 0) +
+      (d80E || 0) +
+      Math.min(d80TTA || 0, 10000);
+    return calcTaxOldByFY(income, totalOldDeductions, fy).total;
+  }, [income, regime, fy, fyStart, state]);
 
   const tdsPaid = useMemo(() => {
     return (state.taxPayments || [])

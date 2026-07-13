@@ -215,13 +215,18 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const [txnDematId, setTxnDematId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fyStart = (fy: number) => new Date(`${fy}-04-01`);
-  const fyEnd = (fy: number) => new Date(`${fy + 1}-03-31T23:59:59`);
+  // Plain "YYYY-MM-DD" string bounds — comparing ISO date strings lexicographically avoids the
+  // Date-object timezone trap where a date-only string ("2026-04-01") parses as UTC midnight
+  // while a date+time string ("...T23:59:59", no "Z") parses in the browser's local timezone.
+  // Mixing those two parsing rules can shift the FY boundary by hours depending on the user's
+  // timezone, occasionally letting a transaction slip into the wrong FY near midnight.
+  const fyStart = (fy: number) => `${fy}-04-01`;
+  const fyEnd = (fy: number) => `${fy + 1}-03-31`;
 
   const inFY = useCallback(
     (dateStr: string) => {
       if (!dateStr) return false;
-      const d = new Date(dateStr);
+      const d = dateStr.slice(0, 10);
       return d >= fyStart(selectedFY) && d <= fyEnd(selectedFY);
     },
     [selectedFY]

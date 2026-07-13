@@ -67,6 +67,94 @@ const oldMarginalRate = (taxable: number) => {
   return 0.3;
 };
 
+/**
+ * Section 234C advance-tax shortfall interest. Interest on a quarter's
+ * shortfall is a STATUTORILY FIXED period — 3 months for Q1/Q2/Q3, 1 month
+ * for Q4 — not a function of how long it's been since the due date. An
+ * earlier version of this derived "months late" from (now - dueDate) and
+ * capped it at 3 for every quarter, which (a) undercharged Q1-Q3 shortfalls
+ * checked soon after their due date (e.g. only 1 month instead of the fixed
+ * 3) and (b) overcharged Q4 by up to 3x, since Q4's fixed period is 1 month,
+ * not 3.
+ */
+export const calcSection234CPenalty = (
+  fyStartYear: number,
+  netLiability: number,
+  totalAdvancePaid: number,
+  now: Date
+): number => {
+  const quarters = [
+    { due: new Date(fyStartYear, 5, 15), pct: 15, months: 3 },
+    { due: new Date(fyStartYear, 8, 15), pct: 45, months: 3 },
+    { due: new Date(fyStartYear, 11, 15), pct: 75, months: 3 },
+    { due: new Date(fyStartYear + 1, 2, 15), pct: 100, months: 1 },
+  ];
+  let total = 0;
+  quarters.forEach((q) => {
+    if (now > q.due) {
+      const required = netLiability * (q.pct / 100);
+      const shortfall = Math.max(0, required - totalAdvancePaid);
+      if (shortfall > 0) {
+        total += Math.round(shortfall * 0.01 * q.months);
+      }
+    }
+  });
+  return total;
+};
+
+// Equity-oriented fund detection (mirrors CapitalGainsTab.tsx's isEquityMF) —
+// a fund without any of these keywords is treated as debt/non-equity, which
+// carries a different (36-month, not 12-month) LTCG holding threshold and,
+// for purchases on/after 1 Apr 2023, is always taxed as short-term at slab
+// rate regardless of holding period (Finance Act 2023).
+const EQUITY_MF_KEYWORDS = [
+  "equity",
+  "elss",
+  "flexi",
+  "large cap",
+  "mid cap",
+  "small cap",
+  "multi cap",
+  "focused",
+  "sectoral",
+  "thematic",
+  "index",
+  "hybrid",
+  "balanced advantage",
+  "aggressive hybrid",
+  "nifty",
+  "sensex",
+];
+const isEquityMF = (m: any): boolean => {
+  const cat = (m.category || m.type || m.scheme || m.name || "").toLowerCase();
+  return EQUITY_MF_KEYWORDS.some((k) => cat.includes(k));
+};
+
+/**
+ * Classify a mutual fund sale/holding's capital-gains bucket for a given
+ * holding-period length in days. Single source of truth for the two call
+ * sites below (realizedGainsData and harvestCandidates) that both used to
+ * duplicate — and had each independently gotten wrong — this logic:
+ *   - Equity-oriented funds: LTCG threshold is 12 months (~365 days).
+ *   - Debt funds bought on/after 1 Apr 2023 (Finance Act 2023): ALWAYS
+ *     short-term, taxed at slab rate, regardless of holding period.
+ *   - Debt funds bought before 1 Apr 2023: LTCG threshold is 36 months
+ *     (~1095 days), not 12 — using the equity threshold here silently
+ *     reclassified 12-36 month debt-fund STCG (slab-taxed) as LTCG
+ *     (exemption-eligible, 10-12.5% rate).
+ */
+export const classifyMFHolding = (
+  m: any,
+  days: number
+): { isEquity: boolean; isSlabTaxed: boolean; isLtcg: boolean } => {
+  const isEquity = isEquityMF(m);
+  const isPostApr2023 = !!m.buyDate && m.buyDate >= "2023-04-01";
+  const isSlabTaxed = !isEquity && isPostApr2023;
+  const ltcgDayThreshold = isEquity ? 365 : 1095; // ~12mo equity vs ~36mo debt
+  const isLtcg = isSlabTaxed ? false : days > ltcgDayThreshold;
+  return { isEquity, isSlabTaxed, isLtcg };
+};
+
 /* ══════════════════════════════════════════════════════════════════
    ADD PAYMENT MODAL
    ══════════════════════════════════════════════════════════════════ */
@@ -1530,17 +1618,24 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               Math.ceil((new Date(m.sellDate).getTime() - new Date(m.buyDate).getTime()) / 86400000)
             )
           : 0;
+      // Bug fix: this previously used the equity 12-month/365-day LTCG
+      // threshold for every MF sale regardless of asset class. A debt fund
+      // held e.g. 20 months was being misclassified as LTCG (exemption-
+      // eligible, 12.5%/10% rate) when it's actually STCG. classifyMFHolding
+      // applies the correct 36-month debt threshold and the Finance Act 2023
+      // always-slab-taxed rule for debt funds bought on/after 1 Apr 2023.
+      const { isSlabTaxed, isLtcg } = classifyMFHolding(m, days);
       allSells.push({
         id: m.id,
         name: m.scheme || m.name || m.symbol,
-        type: "Mutual Fund",
+        type: isSlabTaxed ? "Debt Fund (Slab)" : "Mutual Fund",
         qty,
         buyPrice: buyNav,
         sellPrice: sellNav,
         buyDate: m.buyDate,
         sellDate: m.sellDate,
         profit,
-        isLtcg: days > 365,
+        isLtcg,
         days,
       });
     });
@@ -1599,9 +1694,14 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         const days = m.buyDate
           ? Math.max(0, Math.ceil((Date.now() - new Date(m.buyDate).getTime()) / 86400000))
           : 0;
-        const isDebt = (m.category || m.type || "").toLowerCase().includes("debt");
-        const isPostApril23 = m.buyDate && m.buyDate >= "2023-04-01";
-        const isSlabTaxed = isDebt && isPostApril23;
+        // Bug fix: `isDebt` previously matched only funds with "debt" literally
+        // in their category/type string, missing common debt categories like
+        // "Liquid", "Corporate Bond", "Gilt", "Money Market" (they'd fall
+        // through to the equity 12-month LTCG threshold below). classifyMFHolding
+        // uses the same positive equity-keyword match as realizedGainsData
+        // above, and applies the correct 36-month (not 12-month) LTCG
+        // threshold for debt funds bought before 1 Apr 2023.
+        const { isSlabTaxed, isLtcg } = classifyMFHolding(m, days);
 
         candidates.push({
           id: m.id,
@@ -1614,7 +1714,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           currentVal,
           loss,
           buyDate: m.buyDate,
-          isLtcg: isSlabTaxed ? false : days > 365,
+          isLtcg,
           isSlabTaxed,
           days,
         });
@@ -2912,28 +3012,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     : calcTaxOldByFY(projectedAnnualIncome, totalOldDeductions, fy);
                 const projectedTax = projectedTaxResult.total || 0;
 
-                const quarters = [
-                  { q: "Q1", due: new Date(fyStartYear, 5, 15), pct: 15 },
-                  { q: "Q2", due: new Date(fyStartYear, 8, 15), pct: 45 },
-                  { q: "Q3", due: new Date(fyStartYear, 11, 15), pct: 75 },
-                  { q: "Q4", due: new Date(fyStartYear + 1, 2, 15), pct: 100 },
-                ];
-
-                // Sec 234C penalty: 1% per month on shortfall for each quarter
-                let totalPenalty234C = 0;
-                quarters.forEach((q) => {
-                  if (now > q.due) {
-                    const required = netLiability * (q.pct / 100);
-                    const shortfall = Math.max(0, required - totalAdvancePaid);
-                    if (shortfall > 0) {
-                      const monthsLate = Math.max(
-                        1,
-                        Math.ceil((now.getTime() - q.due.getTime()) / (30.44 * 86400000))
-                      );
-                      totalPenalty234C += Math.round(shortfall * 0.01 * Math.min(monthsLate, 3));
-                    }
-                  }
-                });
+                const totalPenalty234C = calcSection234CPenalty(
+                  fyStartYear,
+                  netLiability,
+                  totalAdvancePaid,
+                  now
+                );
 
                 return (
                   <div style={{ display: "grid", gap: 16 }}>

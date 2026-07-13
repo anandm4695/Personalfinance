@@ -51,12 +51,17 @@ function catIcon(cat: string, size = 18) {
   return <Icon size={size} color={color} />;
 }
 
-function dueStatus(dueDayOfMonth: number): { label: string; color: string; daysLeft: number } {
+export function dueStatus(dueDayOfMonth: number): { label: string; color: string; daysLeft: number } {
   const now = new Date();
-  const thisMonthDue = new Date(now.getFullYear(), now.getMonth(), dueDayOfMonth);
+  // Clamp to the last day of the target month so a dueDay of 29/30/31 doesn't
+  // overflow into the following month (e.g. Feb 31 -> Mar 3) when the target
+  // month is shorter (Feb, or any 30-day month).
+  const clampedDue = (year: number, month: number) =>
+    new Date(year, month, Math.min(dueDayOfMonth, new Date(year, month + 1, 0).getDate()));
+  const thisMonthDue = clampedDue(now.getFullYear(), now.getMonth());
   let target = thisMonthDue;
   if (target.getTime() < now.getTime()) {
-    target = new Date(now.getFullYear(), now.getMonth() + 1, dueDayOfMonth);
+    target = clampedDue(now.getFullYear(), now.getMonth() + 1);
   }
   const days = Math.ceil((target.getTime() - now.getTime()) / 86400000);
   if (days <= 0) return { label: "Due Today", color: THEME.danger, daysLeft: 0 };

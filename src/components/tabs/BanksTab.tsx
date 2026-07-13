@@ -517,8 +517,11 @@ export function BanksTab({
     } else if (lt === "creditCards") {
       const card = (state.creditCards || []).find((c: any) => c.id === lid);
       if (!card) return;
+      // Don't clamp to 0: paying more than the outstanding balance leaves a
+      // legitimate negative (credit) balance owed back to the cardholder — the
+      // credit-card ledger (CreditTab) treats this the same way.
       updateItem("creditCards", lid, {
-        outstanding: Math.max(0, Number(card.outstanding || 0) - amt),
+        outstanding: Number(card.outstanding || 0) - amt,
       });
     } else if (lt === "subscriptions") {
       const sub = (state.subscriptions || []).find((s: any) => s.id === lid);

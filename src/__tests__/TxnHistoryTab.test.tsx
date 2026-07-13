@@ -58,4 +58,50 @@ describe("TxnHistoryTab Premium UI Statically", () => {
     expect(html).toContain("RELIANCE");
     expect(html).toContain("Salary Credit");
   });
+
+  it("buckets FY boundary transactions correctly regardless of the browser's timezone", () => {
+    // Regression test for a timezone bug: the old FY boundary check built `fyEnd` from a
+    // date+time string ("...T23:59:59", no "Z", parsed in LOCAL time) while transaction dates
+    // and `fyStart` were plain "YYYY-MM-DD" strings (parsed as UTC midnight). In a negative-UTC-offset
+    // timezone that mismatch pushed the fyEnd cutoff hours into the next day, so an April 1st
+    // transaction (first day of the NEXT financial year) could incorrectly land in the previous FY.
+    const originalTZ = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles"; // UTC-7/-8, the timezone that exposed the bug
+    try {
+      const now = new Date();
+      const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const state = {
+        stocks: [],
+        stockSells: [],
+        mutualFunds: [],
+        mfSells: [],
+        demat: [],
+        transactions: [
+          {
+            id: "t-last-day",
+            date: `${fyStartYear + 1}-03-31`,
+            note: "Last Day Of FY Txn",
+            category: "Test",
+            type: "credit",
+            amount: 111,
+          },
+          {
+            id: "t-next-fy",
+            date: `${fyStartYear + 1}-04-01`,
+            note: "Next FY Txn",
+            category: "Test",
+            type: "credit",
+            amount: 222,
+          },
+        ],
+      };
+
+      const html = renderToString(<TxnHistoryTab state={state} removeItem={vi.fn()} />);
+
+      expect(html).toContain("Last Day Of FY Txn");
+      expect(html).not.toContain("Next FY Txn");
+    } finally {
+      process.env.TZ = originalTZ;
+    }
+  });
 });

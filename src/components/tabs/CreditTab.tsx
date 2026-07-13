@@ -1912,19 +1912,22 @@ const MONTH_NAMES = [
   "Dec",
 ];
 
-function getNextFeeDate(c: any): { dateStr: string; daysLeft: number } | null {
+export function getNextFeeDate(c: any): { dateStr: string; daysLeft: number } | null {
   if (!Number(c.annualFee) || !c.feeMonth) return null;
   const now = new Date();
   const month = Number(c.feeMonth) - 1;
   const day = Number(c.feeDay) || 1;
-  let candidate = new Date(now.getFullYear(), month, day);
+  // Clamp to the last day of the fee month so a feeDay of 29/30/31 doesn't overflow
+  // into the next month (e.g. Feb 31 -> Mar 3) when the fee month is shorter.
+  const clampedDay = (year: number) => Math.min(day, new Date(year, month + 1, 0).getDate());
+  let candidate = new Date(now.getFullYear(), month, clampedDay(now.getFullYear()));
   if (candidate.getTime() < new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) {
-    candidate = new Date(now.getFullYear() + 1, month, day);
+    candidate = new Date(now.getFullYear() + 1, month, clampedDay(now.getFullYear() + 1));
   }
   const daysLeft = Math.ceil(
     (candidate.getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000
   );
-  const dateStr = `${day} ${MONTH_NAMES[month]}`;
+  const dateStr = `${candidate.getDate()} ${MONTH_NAMES[month]}`;
   return { dateStr, daysLeft };
 }
 
@@ -2353,10 +2356,14 @@ function CCList({
           (() => {
             const now = new Date();
             const dd = Number(c.dueDay);
+            // Clamp to the last day of the target month so a dueDay of 29/30/31
+            // doesn't overflow into the following month (e.g. Feb 31 -> Mar 3).
+            const clampedDue = (year: number, month: number) =>
+              new Date(year, month, Math.min(dd, new Date(year, month + 1, 0).getDate()));
             const dueDate =
               now.getDate() < dd
-                ? new Date(now.getFullYear(), now.getMonth(), dd)
-                : new Date(now.getFullYear(), now.getMonth() + 1, dd);
+                ? clampedDue(now.getFullYear(), now.getMonth())
+                : clampedDue(now.getFullYear(), now.getMonth() + 1);
             const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const daysLeft = Math.ceil(
               (dueDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24)
@@ -2802,9 +2809,12 @@ function CCList({
           card={selectedCard}
           onClose={() => setSelectedLedger(null)}
           onUpdate={(newTransactions: any) => {
-            const newOutstanding = Math.max(
-              0,
-              newTransactions.reduce((acc: number, t: any) => acc + Number(t.amount), 0)
+            // Don't clamp to 0: a negative net (payments/refunds exceeding charges)
+            // is a legitimate credit balance owed back to the cardholder and must
+            // be preserved, not hidden as 0 outstanding.
+            const newOutstanding = newTransactions.reduce(
+              (acc: number, t: any) => acc + Number(t.amount),
+              0
             );
             onUpdateCard(selectedLedger, {
               transactions: newTransactions,

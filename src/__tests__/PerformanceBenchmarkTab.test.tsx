@@ -72,4 +72,39 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
     expect(html).toContain("Financial Health Radar");
     expect(html).toContain("Score Breakdown");
   });
+
+  it("applies the purity discount to physical gold value, matching the calc used in GoldSGBTab/RebalancingTab/useMetrics", () => {
+    // Bug: goldValue was computed as grams * pricePerGram with no purity adjustment,
+    // overstating the value (and return %) of sub-24K physical holdings.
+    const goldOnlyState = {
+      stocks: [],
+      mutualFunds: [],
+      fixedDeposits: [],
+      recurringDeposits: [],
+      bonds: [],
+      ppf: [],
+      nps: [],
+      epf: [],
+      lic: [],
+      investmentPlans: [],
+      bankAccounts: [],
+      goldHoldings: [
+        { id: "g1", type: "physical", purity: "22K", grams: 100, purchasePrice: 500000 },
+      ],
+    };
+
+    const html = renderToString(
+      <PerformanceBenchmarkTab
+        state={goldOnlyState}
+        metrics={{ monthIncome: 0, monthExpense: 0, debtToAssetRatio: 0, overallGoalPct: 0 }}
+        marketData={{}}
+      />
+    );
+
+    // goldPricePerGram defaults to 7200 (no localStorage override in tests).
+    // Fixed: goldValue = 100 * 7200 * (22/24) = 660000 → return = (660000-500000)/500000*100 = 32.0%
+    // Buggy: goldValue = 100 * 7200 = 720000 → return = 44.0%
+    expect(html).toContain("32.0%");
+    expect(html).not.toContain("44.0%");
+  });
 });

@@ -275,10 +275,15 @@ export const InvestmentStatementTab = ({
   };
 
   /* ── Helper: Days to maturity ────────────────────────────────────── */
+  // Parse both dates at local midnight (matching the "+T00:00:00" convention used
+  // elsewhere in this file) rather than comparing a bare `new Date(matDate)` (parsed
+  // as UTC midnight) against `Date.now()` — for IST (+5:30) that mismatch could
+  // flip a same-day maturity to "1d" or an already-matured date to still show days.
   const daysToMaturity = (matDate: string) => {
     if (!matDate) return null;
-    const ms = new Date(matDate).getTime() - Date.now();
-    return ms > 0 ? Math.ceil(ms / 86400000) : 0;
+    const ms =
+      new Date(matDate + "T00:00:00").getTime() - new Date(today() + "T00:00:00").getTime();
+    return ms > 0 ? Math.round(ms / 86400000) : 0;
   };
 
   /* ── Helper: Stock live price ────────────────────────────────────── */

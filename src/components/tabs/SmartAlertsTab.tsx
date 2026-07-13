@@ -33,6 +33,17 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     const alerts = [];
     const now = new Date();
     const todayStr = today();
+    // Day-count helper: diffs two LOCAL midnights instead of `dateStr`'s UTC midnight vs the
+    // real current instant `now` (which carries today's time-of-day). Mixing those made the
+    // displayed "days until" for FD/bond maturities and goal deadlines drift by up to a day
+    // depending on what time of day the alert was computed, and could show a same-day event as
+    // 2 days away when checked before ~5:30am IST.
+    const daysUntil = (dateStr) => {
+      if (!dateStr) return Infinity;
+      const target = new Date(dateStr + "T00:00:00");
+      const nowMidnight = new Date(todayStr + "T00:00:00");
+      return Math.round((target.getTime() - nowMidnight.getTime()) / 86400000);
+    };
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const lastMonth = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, "0")}`;
 
@@ -110,7 +121,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // 3. FD maturing soon
     (state.fixedDeposits || []).forEach((fd) => {
       if (fd.maturityDate) {
-        const days = Math.ceil((new Date(fd.maturityDate).getTime() - now.getTime()) / 86400000);
+        const days = daysUntil(fd.maturityDate);
         if (days >= 0 && days <= 30) {
           alerts.push({
             id: `fd_mature_${fd.id}`,
@@ -128,7 +139,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // 3b. Bond maturing soon
     (state.bonds || []).forEach((b) => {
       if (b.maturityDate) {
-        const days = Math.ceil((new Date(b.maturityDate).getTime() - now.getTime()) / 86400000);
+        const days = daysUntil(b.maturityDate);
         if (days >= 0 && days <= 30) {
           alerts.push({
             id: `bond_mature_${b.id}`,
@@ -183,7 +194,11 @@ export const SmartAlertsTab = ({ state, metrics }) => {
         if (anniversary.getFullYear() - comm.getFullYear() >= payTerm) isExpired = true;
       }
       if (isExpired) return;
-      const days = Math.ceil((anniversary.getTime() - now.getTime()) / 86400000);
+      // `anniversary` is already LOCAL midnight (multi-arg Date constructor) — diff it against
+      // today's local midnight, not the real "now" instant, for the same reason as daysUntil().
+      const days = Math.round(
+        (anniversary.getTime() - new Date(todayStr + "T00:00:00").getTime()) / 86400000
+      );
       if (days >= 0 && days <= 30) {
         alerts.push({
           id: `insurance_due_${p.id}`,
@@ -239,7 +254,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // 7. Goal deadlines approaching
     (state.goals || []).forEach((g) => {
       if (!g.targetDate) return;
-      const days = Math.ceil((new Date(g.targetDate).getTime() - now.getTime()) / 86400000);
+      const days = daysUntil(g.targetDate);
       const progress = Number(g.targetAmount)
         ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
         : 0;

@@ -289,10 +289,19 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       if (!feeAmt) return;
       const feeMonth = cc.feeMonth || 1;
       const feeDay = cc.feeDay || 1;
-      const now = new Date(todayStr);
+      // `now` must be constructed the same way as `feeDate` (both LOCAL midnight). Parsing
+      // todayStr ("YYYY-MM-DD") alone makes it UTC midnight, which in a positive-UTC-offset
+      // timezone (e.g. IST, +5:30) is actually today ~5:30am local — LATER than feeDate's local
+      // 00:00. That mismatch made a fee due exactly "today" look already past, silently pushing
+      // it a year forward and hiding it from the calendar.
+      const now = new Date(todayStr + "T00:00:00");
       let feeDate = new Date(now.getFullYear(), feeMonth - 1, feeDay);
       if (feeDate < now) feeDate = new Date(now.getFullYear() + 1, feeMonth - 1, feeDay);
-      const feeDateStr = feeDate.toISOString().slice(0, 10);
+      // feeDate is LOCAL midnight (multi-arg constructor). Serializing it with .toISOString()
+      // (UTC) would shift the date a day EARLIER for positive-UTC-offset timezones like IST,
+      // since local midnight is still the previous evening in UTC. Format from local fields
+      // instead, the same way the rest of this file's dates round-trip safely.
+      const feeDateStr = `${feeDate.getFullYear()}-${String(feeDate.getMonth() + 1).padStart(2, "0")}-${String(feeDate.getDate()).padStart(2, "0")}`;
       const days = getDaysUntil(feeDateStr);
 
       if (days <= horizon * 31 + 10) {

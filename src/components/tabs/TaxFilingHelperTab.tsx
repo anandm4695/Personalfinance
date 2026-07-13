@@ -150,20 +150,51 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
   }, [state, selectedFY]);
 
   const deductions = useMemo(() => {
-    // 80C
-    const ppfContrib = (state.ppf || []).reduce(
-      (s, p) =>
-        s + Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0),
-      0
-    );
+    // Bug fix: this block previously had NO financial-year scoping at all —
+    // it summed ELSS "invested" and EPF employee contributions across ALL
+    // TIME, not just the selected FY, even though this tab has an FY
+    // selector and the sibling incomeSummary/taxPaid blocks above are
+    // correctly FY-scoped. That overstated 80C usage (and thus understated
+    // remaining deduction room, and skewed the advance-tax estimate further
+    // below which is derived from totalDeductions) for any user with
+    // ELSS/EPF history from a prior year. Scope to the selected FY, matching
+    // the pattern used in incomeSummary and in finance.ts's
+    // getAutoDetectedDeductions.
+    const fy = selectedFY;
+    const [startYear] = fy.split("-").map(Number);
+    const fyStart = `${startYear}-04-01`;
+    const fyEnd = `${startYear + 1}-03-31`;
+    const inFY = (date) => date && date >= fyStart && date <= fyEnd;
+
+    // 80C — PPF ledger (FY-scoped) takes priority over the legacy
+    // thisYearContribution field, same fallback pattern as
+    // getAutoDetectedDeductions in utils/finance.ts.
+    const ppfLedgerThisYear = (state.ppfLedger || [])
+      .filter((t) => inFY(t.date) && t.type !== "withdrawal")
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const ppfContrib =
+      ppfLedgerThisYear > 0
+        ? ppfLedgerThisYear
+        : (state.ppf || []).reduce(
+            (s, p) =>
+              s +
+              Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0),
+            0
+          );
     const elss = (state.mutualFunds || [])
-      .filter((m) => (m.category || m.type || "").toLowerCase().includes("elss"))
+      .filter(
+        (m) => (m.category || m.type || "").toLowerCase().includes("elss") && inFY(m.buyDate)
+      )
       .reduce((s, m) => s + Number(m.invested || 0), 0);
     const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
     const epfContrib = (state.epf || []).reduce((s, e) => {
       const txns = e.transactions || [];
       const empContrib = txns
-        .filter((t) => t.type === "employee_contribution" || t.type === "monthly_contribution")
+        .filter(
+          (t) =>
+            (t.type === "employee_contribution" || t.type === "monthly_contribution") &&
+            inFY(t.date)
+        )
         .reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0);
       return s + empContrib;
     }, 0);
@@ -176,12 +207,20 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     );
     const sec80CCD1B = Math.min(50000, npsContrib);
 
-    // 80D — Health insurance (estimated)
-    const healthInsurance = (state.termPlans || []).reduce(
-      (s, t) => s + Number(t.annualPremium || t.premium || 0),
-      0
-    );
-    const sec80D = Math.min(75000, healthInsurance);
+    // 80D — Health insurance. Self/family and parents carry SEPARATE
+    // ₹25,000 caps each (parents' cap only rises to ₹50,000 if they're
+    // senior citizens, which isn't tracked in this app — see
+    // Section80TrackerTab.tsx for the same reasoning) — they don't share one
+    // combined ₹75,000 pool the way the previous code assumed, which let a
+    // large self-only premium (with no parents plan at all) claim up to
+    // 3x its real ₹25,000 entitlement.
+    const selfHealthPremium = (state.termPlans || [])
+      .filter((t) => (t.type || "").toLowerCase() !== "parents")
+      .reduce((s, t) => s + Number(t.annualPremium || t.premium || 0), 0);
+    const parentsHealthPremium = (state.termPlans || [])
+      .filter((t) => (t.type || "").toLowerCase() === "parents")
+      .reduce((s, t) => s + Number(t.annualPremium || t.premium || 0), 0);
+    const sec80D = Math.min(25000, selfHealthPremium) + Math.min(25000, parentsHealthPremium);
 
     // Home loan interest
     const homeLoanInterest = (state.loansTaken || [])
@@ -221,7 +260,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       sec80TTA,
       totalDeductions,
     };
-  }, [state]);
+  }, [state, selectedFY]);
 
   const taxPaid = useMemo(() => {
     const fy = selectedFY;

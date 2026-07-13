@@ -331,6 +331,26 @@ describe("FY-aware Tax Calculations", () => {
       expect(res.tax).toBe(42500);
       expect(res.total).toBe(44200);
     });
+
+    it("reports the real relief amount (not 0) in the marginal-relief band for FY 2025-26", () => {
+      // Bug: the marginal-relief branch previously hardcoded rebateAmount to 0
+      // even though real relief was being granted (tax capped from the raw
+      // slab total down to taxable - 12L). Callers that reconstruct the
+      // pre-relief tax as `tax + rebateAmount` (e.g. TaxVaultTab's slab
+      // breakdown UI) silently showed 0 relief and double-subtracted the
+      // capped tax, undercounting the displayed total by the full tax amount.
+      // Gross 13,25,000 - std ded 75,000 = taxable 12,50,000 (in the 12L-13.1L
+      // marginal-relief band). Raw slab tax = 67,500; capped at
+      // (taxable - 12L) = 50,000 since 67,500 > 50,000.
+      const res = calcTaxNewByFY(1325000, "2025-26");
+      expect(res.taxable).toBe(1250000);
+      expect(res.tax).toBe(50000); // capped tax, not the raw 67,500 slab tax
+      expect(res.rebateApplied).toBe(true);
+      expect(res.rebateAmount).toBe(17500); // 67,500 raw - 50,000 capped
+      expect(res.tax + res.rebateAmount).toBe(67500); // reconstructs the raw slab tax
+      expect(res.cess).toBe(2000); // round(50,000 * 0.04)
+      expect(res.total).toBe(52000); // 50,000 + 0 surcharge + 2,000 cess
+    });
   });
 
   describe("getAutoDetectedDeductions", () => {
@@ -344,7 +364,9 @@ describe("FY-aware Tax Calculations", () => {
         lic: [{ annualPremium: 20000 }],
         epf: [
           {
-            transactions: [{ type: "employee", amount: 15000, date: "2025-08-01" }],
+            transactions: [
+              { type: "employee_contribution", amount: 15000, date: "2025-08-01" },
+            ],
           },
         ],
         rentedProperties: [
@@ -360,6 +382,32 @@ describe("FY-aware Tax Calculations", () => {
       expect(auto.d80C).toBe(150000);
       expect(auto.hra).toBe(120000);
       expect(auto.homeLoan).toBe(85000);
+    });
+
+    it("counts EPF employee contributions toward 80C — both simple and passbook transaction shapes", () => {
+      // Bug: getAutoDetectedDeductions used to filter EPF transactions on
+      // type === "employee", a string no EPF transaction ever actually has
+      // (real data uses "employee_contribution" or "monthly_contribution"
+      // with an employeeShare field) — so EPF never contributed to 80C.
+      // Keep the other 80C sources below the ₹1.5L cap so a regression here
+      // (EPF silently contributing ₹0) is actually visible in the total.
+      const state = {
+        epf: [
+          {
+            transactions: [
+              { type: "employee_contribution", amount: 20000, date: "2025-05-01" },
+              { type: "monthly_contribution", employeeShare: 5000, date: "2025-06-01" },
+              // employer share must NOT be counted toward 80C (employee only)
+              { type: "monthly_contribution", employerShare: 5000, date: "2025-07-01" },
+              // outside the FY — must be excluded
+              { type: "employee_contribution", amount: 99999, date: "2024-05-01" },
+            ],
+          },
+        ],
+      };
+
+      const auto = getAutoDetectedDeductions(state, "2025-26");
+      expect(auto.d80C).toBe(25000); // 20,000 + 5,000
     });
   });
 
@@ -484,6 +532,32 @@ describe("getCCDueDate", () => {
   it("returns null for dueDay > 31", () => {
     const ref = new Date(2025, 0, 5);
     expect(getCCDueDate({ dueDay: 32 }, ref)).toBeNull();
+  });
+
+  it("clamps dueDay 31 to Feb 28 in a non-leap year instead of overflowing into March", () => {
+    // Reference: Feb 10, 2025 (not a leap year), dueDay: 31 -> should clamp to Feb 28, not Mar 3
+    const ref = new Date(2025, 1, 10); // Feb 10, 2025
+    const result = getCCDueDate({ dueDay: 31 }, ref);
+    expect(result).toBe("2025-02-28");
+  });
+
+  it("clamps dueDay 31 to Feb 29 in a leap year", () => {
+    const ref = new Date(2024, 1, 10); // Feb 10, 2024 (leap year)
+    const result = getCCDueDate({ dueDay: 31 }, ref);
+    expect(result).toBe("2024-02-29");
+  });
+
+  it("clamps dueDay 31 to Apr 30 (30-day month) instead of overflowing into May", () => {
+    const ref = new Date(2025, 3, 5); // Apr 5, 2025
+    const result = getCCDueDate({ dueDay: 31 }, ref);
+    expect(result).toBe("2025-04-30");
+  });
+
+  it("rolls a clamped month-end due date into the next month/year correctly", () => {
+    // Reference: Dec 31, dueDay: 31 -> already past this month's clamped date, rolls to Jan 31 next year
+    const ref = new Date(2025, 11, 31); // Dec 31, 2025
+    const result = getCCDueDate({ dueDay: 31 }, ref);
+    expect(result).toBe("2026-01-31");
   });
 });
 

@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { getCurrentFY } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -43,11 +44,26 @@ const COLORS = [
 
 export const Section80TrackerTab = ({ state, metrics }) => {
   const data = useMemo(() => {
-    // 80C components
-    const ppfContrib = (state.ppf || []).reduce(
-      (s, p) => s + Number(p.thisYearContribution || 0),
-      0
-    );
+    // Bug fix: PPF contributions were only read from the (older)
+    // ppf[].thisYearContribution field. The app moved to a dedicated
+    // ppfLedger for deposit/withdrawal tracking (see finance.ts's
+    // getAutoDetectedDeductions and AnalyticsTab), which is now the primary
+    // source — so any user logging PPF deposits via the ledger showed ₹0
+    // PPF contribution here, understating 80C usage and remaining room.
+    // Mirror the same ledger-first-else-fallback pattern used elsewhere.
+    const currentFY = getCurrentFY();
+    const fyStartYear = Number(currentFY.split("-")[0]) || new Date().getFullYear();
+    const fyStartStr = `${fyStartYear}-04-01`;
+    const fyEndStr = `${fyStartYear + 1}-03-31`;
+    const ppfLedgerThisYear = (state.ppfLedger || [])
+      .filter(
+        (t) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
+      )
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const ppfContrib =
+      ppfLedgerThisYear > 0
+        ? ppfLedgerThisYear
+        : (state.ppf || []).reduce((s, p) => s + Number(p.thisYearContribution || 0), 0);
     const elss = (state.mutualFunds || [])
       .filter((m) => (m.category || m.type || "").toLowerCase().includes("elss"))
       .reduce((s, m) => s + Number(m.invested || 0), 0);
@@ -109,7 +125,13 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       .filter((t) => (t.type || "").toLowerCase() === "parents")
       .reduce((s, t) => s + Number(t.annualPremium || t.premium || 0), 0);
     const sec80D_self_limit = 25000;
-    const sec80D_parents_limit = 50000; // 50k if parents are senior citizens
+    // Sec 80D parents' cap is ₹50,000 only if the parents are senior citizens
+    // (60+), else ₹25,000. There's no senior-citizen flag tracked anywhere in
+    // the data model (termPlans has no age/DOB field), so defaulting to the
+    // higher ₹50,000 cap would silently overstate the deduction — and thus
+    // "Total Deductions" / "Estimated Tax Saved" — for anyone whose parents
+    // aren't senior citizens. Default to the safe, non-senior-citizen cap.
+    const sec80D_parents_limit = 25000;
     const sec80D_self_used = Math.min(selfHealthPremium, sec80D_self_limit);
     const sec80D_parents_used = Math.min(parentsHealthPremium, sec80D_parents_limit);
     const sec80D_total = sec80D_self_used + sec80D_parents_used;

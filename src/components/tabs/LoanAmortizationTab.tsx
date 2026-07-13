@@ -50,7 +50,7 @@ const tdCenter: React.CSSProperties = {
   fontWeight: 700,
 };
 
-const generateAmortization = (principal, annualRate, tenureMonths, extraMonthly = 0) => {
+export const generateAmortization = (principal, annualRate, tenureMonths, extraMonthly = 0) => {
   if (!tenureMonths || tenureMonths <= 0) {
     return { emi: 0, schedule: [], totalInterest: 0, totalMonths: 0 };
   }
@@ -79,7 +79,10 @@ const generateAmortization = (principal, annualRate, tenureMonths, extraMonthly 
 
     schedule.push({
       month,
-      emi: Math.round(emi + (balance > 0 ? extraMonthly : 0)),
+      // Actual cash paid this month = interest + principal portion. Using this
+      // directly (rather than a reconstructed emi+extra formula) keeps the final,
+      // capped installment (where principalPart < emi - interest + extra) correct too.
+      emi: Math.round(interestPart + principalPart),
       principal: Math.round(principalPart),
       interest: Math.round(interestPart),
       balance: Math.max(0, Math.round(balance)),

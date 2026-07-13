@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
+import { getLocalDateString } from "../../utils/finance";
 import { THEME } from "../../utils/constants";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -363,10 +364,15 @@ export const AuditLogTab = ({ session }) => {
     return stats;
   }, [logs]);
 
+  // created_at is a UTC timestamptz from Supabase — bucket by the LOCAL calendar day, not the
+  // UTC day, so an action taken late at night in IST doesn't get filed under "yesterday" (UTC
+  // is 5.5h behind IST, so anything before ~5:30am IST is still "yesterday" in raw UTC terms).
+  const localDay = (iso: string) => (iso ? getLocalDateString(new Date(iso)) : "unknown");
+
   const dayStats = useMemo(() => {
     const byDay: Record<string, number> = {};
     logs.forEach((l) => {
-      const day = l.created_at?.slice(0, 10) || "unknown";
+      const day = localDay(l.created_at);
       byDay[day] = (byDay[day] || 0) + 1;
     });
     return Object.entries(byDay)
@@ -379,12 +385,12 @@ export const AuditLogTab = ({ session }) => {
     const groups: { date: string; label: string; items: typeof filteredLogs }[] = [];
     const seen: Record<string, number> = {};
     filteredLogs.forEach((log) => {
-      const day = log.created_at?.slice(0, 10) || "unknown";
+      const day = localDay(log.created_at);
       if (seen[day] === undefined) {
         seen[day] = groups.length;
-        const d = new Date(day);
-        const today = new Date().toISOString().slice(0, 10);
-        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        const d = new Date(day + "T00:00:00");
+        const today = getLocalDateString(new Date());
+        const yesterday = getLocalDateString(new Date(Date.now() - 86400000));
         const label =
           day === today
             ? "Today"
@@ -504,8 +510,8 @@ export const AuditLogTab = ({ session }) => {
           </h3>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {dayStats.map(([day, count]) => {
-              const today = new Date().toISOString().slice(0, 10);
-              const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+              const today = getLocalDateString(new Date());
+              const yesterday = getLocalDateString(new Date(Date.now() - 86400000));
               const label = day === today ? "Today" : day === yesterday ? "Yesterday" : day;
               return (
                 <div

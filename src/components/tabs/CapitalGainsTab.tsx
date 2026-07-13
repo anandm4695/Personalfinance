@@ -19,7 +19,7 @@ import {
   Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, monthsBetween, today, exportArrayToCSV } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -55,9 +55,53 @@ const isEquityMF = (mf: any): boolean => {
   return EQUITY_CATEGORIES.some((k) => cat.includes(k));
 };
 
-const getHoldingMonths = (buyDate: string, sellDate: string): number => {
+// Parse a "YYYY-MM-DD" string as a local-midnight Date instead of letting the
+// Date constructor treat it as UTC (per the ISO-8601 spec, a date-only string
+// parses as UTC). Reading local getters (getMonth/getDate) off a UTC-parsed
+// date can silently shift the date by a day depending on the runtime's
+// timezone — the same footgun already documented and worked around in
+// calcXIRR() in utils/finance.ts. Matters here because getHoldingMonths/
+// isLongTerm below do exact day-of-month arithmetic.
+const parseLocalDate = (dateStr: string): Date => {
+  const clean = String(dateStr || "").trim();
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    if (!isNaN(y) && !isNaN(m) && !isNaN(day)) return new Date(y, m, day);
+  }
+  return new Date(clean);
+};
+
+// Complete months elapsed between two dates, honoring day-of-month.
+// The shared monthsBetween() helper only diffs calendar (year, month) pairs
+// and ignores the day component entirely — e.g. monthsBetween('2023-02-15',
+// '2024-02-10') returns 12 even though only ~11mo 26d actually elapsed. That
+// coarse approximation is fine for its other callers (SIP/loan tenure
+// displays) but is not acceptable here: it can flip a transaction's STCG/LTCG
+// classification (and thus its tax rate) near a month boundary.
+export const getHoldingMonths = (buyDate: string, sellDate: string): number => {
   if (!buyDate || !sellDate) return 0;
-  return monthsBetween(buyDate, sellDate);
+  const a = parseLocalDate(buyDate);
+  const b = parseLocalDate(sellDate);
+  let months = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (b.getDate() < a.getDate()) months -= 1;
+  return Math.max(0, months);
+};
+
+// Section 2(42A): a capital asset qualifies for LTCG only when held for MORE
+// than `monthsThreshold` months — i.e. the sale date must be strictly after
+// the N-month anniversary of the purchase date, not on it. Selling exactly on
+// the anniversary (e.g. bought 15-Jan-2023, sold 15-Jan-2024) is still
+// short-term. Comparing calendar-month counts with >= (the previous approach)
+// incorrectly treated the exact-anniversary sale as long-term.
+export const isLongTerm = (buyDate: string, sellDate: string, monthsThreshold: number): boolean => {
+  if (!buyDate || !sellDate) return false;
+  const buy = parseLocalDate(buyDate);
+  const sell = parseLocalDate(sellDate);
+  const anniversary = new Date(buy.getFullYear(), buy.getMonth() + monthsThreshold, buy.getDate());
+  return sell > anniversary;
 };
 
 const fmtDate = (d: string) => {
@@ -391,7 +435,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       const buyTotal = (Number(s.buyPrice) || 0) * qty;
       const sellTotal = (Number(s.sellPrice) || 0) * qty;
       const profit = s.profit != null ? Number(s.profit) : sellTotal - buyTotal;
-      const isLTCG = months >= 12;
+      const isLTCG = isLongTerm(s.buyDate, s.sellDate, 12);
       const gainType: GainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
       const taxRate = isLTCG ? getEquityLTCGRate(fyStartYear) : getEquitySTCGRate(fyStartYear);
 
@@ -425,7 +469,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       let taxRate: number;
 
       if (equity) {
-        const isLTCG = months >= 12;
+        const isLTCG = isLongTerm(m.buyDate, m.sellDate, 12);
         gainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
         taxRate = isLTCG ? getEquityLTCGRate(fyStartYear) : getEquitySTCGRate(fyStartYear);
       } else {
@@ -435,7 +479,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           gainType = "DEBT_STCG";
           taxRate = DEBT_STCG_SLAB_RATE;
         } else {
-          const isLTCG = months >= 36;
+          const isLTCG = isLongTerm(m.buyDate, m.sellDate, 36);
           gainType = isLTCG ? "DEBT_LTCG" : "DEBT_STCG";
           taxRate = isLTCG ? DEBT_LTCG_RATE : DEBT_STCG_SLAB_RATE;
         }
@@ -530,7 +574,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       const currentPrice = Number(s.currentPrice || s.ltp || s.price) || 0;
       const months = getHoldingMonths(s.buyDate, todayStr);
       const unrealizedPL = (currentPrice - buyPrice) * qty;
-      const isLTCG = months >= 12;
+      const isLTCG = isLongTerm(s.buyDate, todayStr, 12);
       result.push({
         name: s.symbol || s.name || "Unknown",
         buyDate: s.buyDate,
@@ -556,7 +600,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       const unrealizedPL = (currentNav - buyNav) * units;
       const equity = isEquityMF(m);
       const ltcgThreshold = equity ? 12 : 36;
-      const isLTCG = months >= ltcgThreshold;
+      const isLTCG = isLongTerm(bd, todayStr, ltcgThreshold);
 
       let wouldBeType: GainType;
       if (equity) {

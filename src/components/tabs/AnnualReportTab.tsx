@@ -624,11 +624,16 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
 
     const aprilKey = `${fyStartYear}-04`;
     const marchKey = `${fyStartYear + 1}-03`;
+    const openingMarchKey = `${fyStartYear}-03`; // last month of the PREVIOUS FY = opening balance of this FY
     const todayYM = today().slice(0, 7);
 
+    // Prefer the prior FY's March closing snapshot (true opening balance as of Apr 1).
+    // Only fall back to this FY's own April entry if no prior snapshot exists at all —
+    // using April's entry as "opening" would double-count April's own movement.
     const openingEntry =
-      history.find((h: any) => h.month === aprilKey) ||
-      [...history].reverse().find((h: any) => h.month < aprilKey);
+      history.find((h: any) => h.month === openingMarchKey) ||
+      [...history].reverse().find((h: any) => h.month < aprilKey) ||
+      history.find((h: any) => h.month === aprilKey);
     const openingNW = openingEntry ? Number(openingEntry.netWorth || 0) : 0;
 
     const closingEntry =

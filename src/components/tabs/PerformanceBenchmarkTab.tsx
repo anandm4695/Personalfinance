@@ -219,7 +219,14 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
         return 7200;
       }
     })();
-    const goldValue = goldHoldings.reduce((s, g) => s + Number(g.grams || 0) * goldPricePerGram, 0);
+    // Physical gold purity (e.g. 22K jewellery) is worth less than 24K bullion —
+    // apply the same purity discount used everywhere else (GoldSGBTab, useMetrics,
+    // RebalancingTab); omitting it overstated goldValue/goldReturn for non-24K holdings.
+    const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+    const goldValue = goldHoldings.reduce((s, g) => {
+      const purityMul = g.type === "physical" ? PURITY_FACTOR[g.purity] || 1 : 1;
+      return s + Number(g.grams || 0) * goldPricePerGram * purityMul;
+    }, 0);
     const goldInvested = goldHoldings.reduce((s, g) => s + Number(g.purchasePrice || 0), 0);
 
     const equityReturn =

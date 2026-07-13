@@ -372,15 +372,23 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
         // just the historical buy-time NAV of this one transaction, not a
         // live price, and would silently regress an already-current value.
         const existing = match.fund;
+        const existingUnits = parseFloat(existing.units || "0");
+        const existingInvested = parseFloat(existing.invested || "0");
+        // For a redemption, r.invested is the SALE PROCEEDS of the redeemed
+        // units (units * sell NAV), not their cost basis — subtracting it
+        // directly would understate/overstate the remaining cost basis.
+        // Reduce cost basis proportionally to the units redeemed instead
+        // (units_redeemed × existing avg cost per unit), same rule as the
+        // in-app FIFO/partial-sell flows.
+        const avgCostPerUnit = existingUnits > 0 ? existingInvested / existingUnits : 0;
+        const investedDelta = isRedemption
+          ? -Math.min(existingInvested, avgCostPerUnit * Math.abs(signedUnits))
+          : signedInvested;
         mfHoldings.push({
           ...existing,
-          units: String(
-            Math.max(0, parseFloat(existing.units || "0") + signedUnits).toFixed(3)
-          ),
+          units: String(Math.max(0, existingUnits + signedUnits).toFixed(3)),
           currentNav: existing.currentNav || r.currentNav,
-          invested: String(
-            Math.max(0, parseFloat(existing.invested || "0") + signedInvested).toFixed(2)
-          ),
+          invested: String(Math.max(0, existingInvested + investedDelta).toFixed(2)),
           mfCode: existing.mfCode || r.mfCode,
           _merge: true, // signal to parent that this is an update
         });

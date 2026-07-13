@@ -94,11 +94,17 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
       const pnl = currentValue - invested;
       const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
 
-      // SGB interest
+      // SGB interest — accrues only up to maturity/redemption; SGBs stop paying
+      // interest once matured, so accrual must not run past maturityDate.
       let interest = 0;
       if (h.type === "sgb" && h.purchaseDate) {
-        const years =
-          (new Date().getTime() - new Date(h.purchaseDate).getTime()) / (365.25 * 86400000);
+        const accrualEndTime = h.maturityDate
+          ? Math.min(new Date().getTime(), new Date(h.maturityDate).getTime())
+          : new Date().getTime();
+        const years = Math.max(
+          0,
+          (accrualEndTime - new Date(h.purchaseDate).getTime()) / (365.25 * 86400000)
+        );
         interest = invested * (Number(h.interestRate || 2.5) / 100) * years;
       }
 
