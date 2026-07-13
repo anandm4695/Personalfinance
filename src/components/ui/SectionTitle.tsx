@@ -10,11 +10,19 @@ interface SectionTitleProps {
 export const SectionTitle: React.FC<SectionTitleProps> = ({ children, sub, rightElement }) => {
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <div>
           <h2
             style={{
-              fontSize: 28,
+              fontSize: "clamp(22px, 4vw, 28px)",
               fontWeight: 800,
               letterSpacing: "-0.04em",
               margin: 0,
@@ -38,7 +46,9 @@ export const SectionTitle: React.FC<SectionTitleProps> = ({ children, sub, right
             </p>
           )}
         </div>
-        {rightElement && <div style={{ display: "flex", gap: 12 }}>{rightElement}</div>}
+        {rightElement && (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{rightElement}</div>
+        )}
       </div>
     </div>
   );
