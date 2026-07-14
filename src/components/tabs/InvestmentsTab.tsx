@@ -29,7 +29,7 @@ import {
   RefreshCw,
   ArrowDownRight,
 } from "lucide-react";
-import { THEME } from "../../utils/constants";
+import { THEME, PIE_COLORS } from "../../utils/constants";
 import {
   fmtINRFull,
   fdMaturity,
@@ -71,6 +71,60 @@ interface InvestmentsTabProps {
 const liveMfNav = (m: any, mfMarketData?: Record<string, any>): number => {
   const live = mfMarketData?.[m?.mfCode]?.nav;
   return live !== undefined && live !== null && live !== "" ? Number(live) : Number(m?.currentNav) || 0;
+};
+
+// AMC / fund-house names, longest-first so multi-word brands (e.g. "ICICI Prudential")
+// match before their shorter substrings (e.g. "ICICI") would.
+const MF_AMC_LIST = [
+  "Aditya Birla Sun Life", "Bank of India", "Baroda BNP Paribas", "Canara Robeco",
+  "Franklin Templeton", "ICICI Prudential", "Mahindra Manulife", "Motilal Oswal",
+  "Old Bridge", "WhiteOak Capital", "JM Financial", "Bajaj Finserv", "360 ONE",
+  "Nippon India", "Mirae Asset", "Quantum", "Sundaram", "Shriram", "Bandhan",
+  "Invesco", "Edelweiss", "PPFAS", "Parag Parikh", "Groww", "Zerodha", "Samco",
+  "Union", "Taurus", "Navi", "Trust", "PGIM", "HSBC", "Kotak", "Axis", "HDFC",
+  "SBI", "UTI", "DSP", "LIC", "Tata", "ITI", "NJ",
+].sort((a, b) => b.length - a.length);
+
+const inferMFAmc = (name: string): string => {
+  const n = (name || "").toLowerCase();
+  const hit = MF_AMC_LIST.find((amc) => n.includes(amc.toLowerCase()));
+  if (hit === "Parag Parikh") return "PPFAS";
+  if (hit) return hit;
+  const firstWord = (name || "").trim().split(/\s+/)[0];
+  return firstWord || "Other";
+};
+
+// Market-cap style, inferred from scheme name text (AMFI doesn't expose this via
+// mfapi.in — no live look-through data is available, so this is a best-effort label
+// only, editable nowhere yet; treat as approximate).
+const MF_CAP_PATTERNS: Array<[RegExp, string]> = [
+  [/large\s*&?\s*mid\s*cap|large\s*and\s*mid\s*cap/i, "Large & Mid Cap"],
+  [/large\s*cap|blue\s*chip|bluechip/i, "Large Cap"],
+  [/mid\s*cap|midcap/i, "Mid Cap"],
+  [/small\s*cap|smallcap/i, "Small Cap"],
+  [/multi\s*cap|multicap/i, "Multi Cap"],
+  [/flexi\s*cap|flexicap/i, "Flexi Cap"],
+  [/focused/i, "Focused"],
+  [/\bvalue\b|\bcontra\b/i, "Value/Contra"],
+  [/dividend\s*yield/i, "Dividend Yield"],
+  [/elss|tax\s*saver/i, "ELSS (Tax Saver)"],
+  [/index|nifty|sensex|\betf\b/i, "Index/ETF"],
+  [
+    /banking|psu|infrastructure|infra\b|pharma|technology|\btech\b|consumption|energy|manufactur|international|global|\bus\b|nasdaq|china|commodit|reit|gold|silver/i,
+    "Sectoral/Thematic",
+  ],
+];
+const MF_DEBT_LIKE = /debt|liquid|gilt|overnight|money\s*market|corporate\s*bond|banking\s*&?\s*psu|credit\s*risk|short\s*duration|ultra\s*short|low\s*duration|floater|hybrid|balanced|arbitrage|conservative/i;
+
+const inferMFCapType = (name: string, category: string): string | null => {
+  const n = name || "";
+  for (const [re, label] of MF_CAP_PATTERNS) {
+    if (re.test(n)) return label;
+  }
+  const cat = (category || "").toLowerCase();
+  if (MF_DEBT_LIKE.test(n) || MF_DEBT_LIKE.test(cat)) return null;
+  if (cat.includes("equity")) return "Diversified/Other";
+  return null;
 };
 
 /* ── shared input style (matches GoalModal) ─────────────────────────── */
@@ -9037,6 +9091,440 @@ function calcMfPeriodChange(points: Array<{ p: number }> | null | undefined) {
   return { amount, pct };
 }
 
+/* ── MF Insights ────────────────────────────────────────────────────── */
+const MFInsightsEmptyNote = ({ text }: { text: string }) => (
+  <div
+    style={{
+      padding: "40px 0",
+      textAlign: "center",
+      color: THEME.muted,
+      fontSize: 13,
+      background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
+      borderRadius: 12,
+    }}
+  >
+    {text}
+  </div>
+);
+
+const MFInsightsBarList = ({ rows }: { rows: Array<{ name: string; value: number; pct: number }> }) => (
+  <div style={{ display: "grid", gap: 14 }}>
+    {rows.map((r, i) => {
+      const color = PIE_COLORS[i % PIE_COLORS.length];
+      return (
+        <div key={r.name}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: 12,
+              marginBottom: 6,
+              gap: 8,
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>{r.name}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color,
+                  background: `${color}18`,
+                  padding: "1px 6px",
+                  borderRadius: 4,
+                }}
+              >
+                {r.pct.toFixed(1)}%
+              </span>
+              <span style={{ fontWeight: 700, color: THEME.muted }}>{fmtINRFull(r.value)}</span>
+            </div>
+          </div>
+          <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${Math.min(100, r.pct)}%`,
+                background: color,
+                borderRadius: 3,
+              }}
+            />
+          </div>
+        </div>
+      );
+    })}
+  </div>
+);
+
+function MFInsights({ items, getLiveNav }: any) {
+  const data = useMemo(() => {
+    const funds = (items || [])
+      .map((m: any) => {
+        const units = Number(m.units) || 0;
+        const nav = getLiveNav(m);
+        const value = units * nav || Number(m.invested || m.investedValue) || 0;
+        const name = (m.name || m.scheme || "Unnamed Fund").trim();
+        const category = (m.category || m.type || "Equity").trim();
+        const mfType = (m.mfType || "Direct Growth").trim();
+        return {
+          name,
+          category,
+          isDirect: /direct/i.test(mfType) || /direct/i.test(name),
+          amc: inferMFAmc(name),
+          capType: inferMFCapType(name, category),
+          value,
+        };
+      })
+      .filter((f: any) => f.value > 0);
+
+    const totalValue = funds.reduce((s: number, f: any) => s + f.value, 0);
+
+    const aggregate = (list: any[], keyFn: (f: any) => string | null, base: number) => {
+      const map: Record<string, number> = {};
+      list.forEach((f) => {
+        const k = keyFn(f);
+        if (!k) return;
+        map[k] = (map[k] || 0) + f.value;
+      });
+      return Object.entries(map)
+        .map(([name, value]) => ({ name, value, pct: base > 0 ? (value / base) * 100 : 0 }))
+        .sort((a, b) => b.value - a.value);
+    };
+
+    const schemeMap: Record<string, number> = {};
+    funds.forEach((f: any) => {
+      schemeMap[f.name] = (schemeMap[f.name] || 0) + f.value;
+    });
+    const schemeWeights = Object.entries(schemeMap)
+      .map(([name, value]) => ({
+        name,
+        value,
+        weight: totalValue > 0 ? value / totalValue : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    const categoryBreakdown = aggregate(funds, (f) => f.category, totalValue);
+    const amcBreakdown = aggregate(funds, (f) => f.amc, totalValue);
+    const equityFunds = funds.filter((f: any) => f.capType);
+    const equityValue = equityFunds.reduce((s: number, f: any) => s + f.value, 0);
+    const capBreakdown = aggregate(equityFunds, (f) => f.capType, equityValue);
+
+    const distinctAmcs = new Set(funds.map((f: any) => f.amc)).size;
+    const distinctCategories = new Set(funds.map((f: any) => f.category)).size;
+    const diversificationScore =
+      funds.length === 0
+        ? 0
+        : (Math.min(distinctAmcs, 5) / 5) * 12.5 + (Math.min(distinctCategories, 4) / 4) * 12.5;
+
+    const hhi = schemeWeights.reduce((s, w) => s + w.weight * w.weight, 0);
+    const concentrationScore = 25 * Math.max(0, 1 - Math.min(1, hhi / 0.35));
+    const topWeight = schemeWeights[0]?.weight || 0;
+
+    const directValue = funds.filter((f: any) => f.isDirect).reduce((s: number, f: any) => s + f.value, 0);
+    const directWeight = totalValue > 0 ? directValue / totalValue : 0;
+    const costScore = 25 * directWeight;
+
+    const distinctCapTypes = new Set(equityFunds.map((f: any) => f.capType)).size;
+    const overlapScore = equityFunds.length > 0 ? 25 * (distinctCapTypes / equityFunds.length) : 20;
+
+    const healthScore = Math.round(
+      Math.max(0, Math.min(100, diversificationScore + concentrationScore + costScore + overlapScore))
+    );
+
+    return {
+      totalValue,
+      schemeWeights,
+      categoryBreakdown,
+      amcBreakdown,
+      capBreakdown,
+      distinctAmcs,
+      distinctCategories,
+      diversificationScore,
+      concentrationScore,
+      topWeight,
+      costScore,
+      directWeight,
+      overlapScore,
+      equityFundsCount: equityFunds.length,
+      distinctCapTypes,
+      healthScore,
+    };
+  }, [items, getLiveNav]);
+
+  if (!items?.length) return null;
+
+  const {
+    totalValue,
+    schemeWeights,
+    categoryBreakdown,
+    amcBreakdown,
+    capBreakdown,
+    distinctAmcs,
+    distinctCategories,
+    diversificationScore,
+    concentrationScore,
+    topWeight,
+    costScore,
+    directWeight,
+    overlapScore,
+    equityFundsCount,
+    distinctCapTypes,
+    healthScore,
+  } = data;
+
+  const band =
+    healthScore >= 80
+      ? { label: "Excellent", color: THEME.sage }
+      : healthScore >= 60
+        ? { label: "Good", color: THEME.accent }
+        : healthScore >= 40
+          ? { label: "Fair", color: THEME.gold }
+          : { label: "Needs Attention", color: THEME.rust };
+
+  const pillars = [
+    {
+      label: "Diversification",
+      score: diversificationScore,
+      note: `${distinctAmcs} fund house${distinctAmcs === 1 ? "" : "s"}, ${distinctCategories} categor${distinctCategories === 1 ? "y" : "ies"}. ${
+        diversificationScore >= 20
+          ? "Well spread out."
+          : "Add more fund houses or categories to reduce concentration."
+      }`,
+    },
+    {
+      label: "Concentration Risk",
+      score: concentrationScore,
+      note: `Largest fund is ${(topWeight * 100).toFixed(1)}% of your MF corpus. ${
+        topWeight <= 0.25 ? "Healthy spread." : "Consider trimming your biggest position."
+      }`,
+    },
+    {
+      label: "Cost Efficiency",
+      score: costScore,
+      note: `${(directWeight * 100).toFixed(0)}% is in Direct plans. ${
+        directWeight >= 0.8
+          ? "Great — you're minimizing expense ratio drag."
+          : "Switching Regular funds to Direct could cut costs — see Expense Analyzer below."
+      }`,
+    },
+    {
+      label: "Style Overlap",
+      score: overlapScore,
+      note:
+        equityFundsCount > 0
+          ? `${distinctCapTypes} market-cap style${distinctCapTypes === 1 ? "" : "s"} across ${equityFundsCount} equity fund${equityFundsCount === 1 ? "" : "s"}. ${
+              overlapScore >= 18 ? "Low overlap." : "You may hold multiple funds with a similar mandate."
+            }`
+          : "No equity-style funds detected.",
+    },
+  ];
+
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      <Card style={{ padding: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 20,
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div>
+            <div className="section-label" style={{ marginBottom: 4 }}>
+              Portfolio Health Score
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted }}>
+              Based on diversification, concentration, cost efficiency &amp; style overlap
+            </div>
+          </div>
+          <Badge variant="muted" title="Category/AMC/market-cap are inferred from scheme names — mfapi.in doesn't expose true look-through holdings, so treat these as approximate">
+            Estimated
+          </Badge>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", marginBottom: 24 }}>
+          <div
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: "50%",
+              background: `conic-gradient(${band.color} ${healthScore * 3.6}deg, ${THEME.line} 0deg)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                width: 78,
+                height: 78,
+                borderRadius: "50%",
+                background: "var(--surface-0)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, lineHeight: 1 }}>
+                {healthScore}
+              </div>
+              <div
+                style={{
+                  fontSize: 9,
+                  color: THEME.muted,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                / 100
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: band.color, marginBottom: 4 }}>
+              {band.label}
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 340 }}>
+              Across {schemeWeights.length} fund{schemeWeights.length === 1 ? "" : "s"} worth{" "}
+              {fmtINRFull(totalValue)}.
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {pillars.map((p) => (
+            <div key={p.label}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 12,
+                  marginBottom: 6,
+                }}
+              >
+                <span style={{ fontWeight: 700 }}>{p.label}</span>
+                <span style={{ fontWeight: 800, color: THEME.ink }}>{Math.round(p.score)}/25</span>
+              </div>
+              <div
+                style={{
+                  height: 6,
+                  background: THEME.line,
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${Math.max(0, Math.min(100, (p.score / 25) * 100))}%`,
+                    background: band.color,
+                    borderRadius: 3,
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>{p.note}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+        <Card style={{ padding: 24 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <List size={16} /> Category Mix
+          </div>
+          {categoryBreakdown.length === 0 ? (
+            <MFInsightsEmptyNote text="No category data available" />
+          ) : (
+            <MFInsightsBarList rows={categoryBreakdown} />
+          )}
+        </Card>
+        <Card style={{ padding: 24 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 4,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Activity size={16} /> Market Cap Allocation
+          </div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>
+            Inferred from scheme names · Debt/Hybrid/Liquid funds excluded
+          </div>
+          {capBreakdown.length === 0 ? (
+            <MFInsightsEmptyNote text="No equity-style funds detected" />
+          ) : (
+            <MFInsightsBarList rows={capBreakdown} />
+          )}
+        </Card>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+        <Card style={{ padding: 24 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Briefcase size={16} /> Fund House (AMC) Spread
+          </div>
+          <MFInsightsBarList rows={amcBreakdown.slice(0, 8)} />
+        </Card>
+        <Card style={{ padding: 24 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Target size={16} /> Top Holdings
+          </div>
+          <MFInsightsBarList
+            rows={schemeWeights.slice(0, 8).map((w) => ({ name: w.name, value: w.value, pct: w.weight * 100 }))}
+          />
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 /* ── MF Section ─────────────────────────────────────────────────────── */
 function MFSection({
   items,
@@ -9075,6 +9563,12 @@ function MFSection({
   useEffect(() => {
     localStorage.setItem("finance_mf_group", mfGroupBy);
   }, [mfGroupBy]);
+  const [mfView, setMfView] = useState<"holdings" | "insights">(() => {
+    return (localStorage.getItem("finance_mf_view") as any) || "holdings";
+  });
+  useEffect(() => {
+    localStorage.setItem("finance_mf_view", mfView);
+  }, [mfView]);
   const [lotExpandedGroups, setLotExpandedGroups] = useState<Set<string>>(new Set());
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showCasImport, setShowCasImport] = useState(false);
@@ -9353,6 +9847,27 @@ function MFSection({
         />
       ) : (
         <>
+          {/* View switcher: Holdings | Insights */}
+          <div className="demat-portfolio-bar no-scrollbar">
+            {[
+              { id: "holdings" as const, label: "Holdings", Icon: BarChart3 },
+              { id: "insights" as const, label: "Insights", Icon: Activity },
+            ].map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setMfView(id)}
+                className={`demat-portfolio-pill ${mfView === id ? "active" : ""}`}
+              >
+                <Icon size={14} />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {mfView === "insights" && <MFInsights items={items} getLiveNav={getLiveNav} />}
+
+          {mfView === "holdings" && (
+            <>
           {/* Summary strip */}
           <div
             style={{
@@ -11313,6 +11828,8 @@ function MFSection({
                   );
                 })()}
             </Card>
+          )}
+            </>
           )}
         </>
       )}
