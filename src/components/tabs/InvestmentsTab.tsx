@@ -60,7 +60,18 @@ interface InvestmentsTabProps {
   subTab?: string;
   onSubTabChange?: (sub: string) => void;
   activeProfile?: string;
+  mfMarketData?: Record<string, any>;
+  fetchMfNavs?: () => void;
+  fetchingMfNavs?: boolean;
+  mfMarketDataTs?: number | null;
 }
+
+// Mirrors Demat's `marketData[yfSym]?.price ?? st.currentPrice` fallback: prefer the
+// live-fetched NAV cached by mfCode, fall back to the manually-refreshed stored field.
+const liveMfNav = (m: any, mfMarketData?: Record<string, any>): number => {
+  const live = mfMarketData?.[m?.mfCode]?.nav;
+  return live !== undefined && live !== null && live !== "" ? Number(live) : Number(m?.currentNav) || 0;
+};
 
 /* ── shared input style (matches GoalModal) ─────────────────────────── */
 const inp = {
@@ -1091,6 +1102,10 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   subTab,
   onSubTabChange,
   activeProfile = "all",
+  mfMarketData,
+  fetchMfNavs,
+  fetchingMfNavs,
+  mfMarketDataTs,
 }) => {
   const [sub, setSub] = useState(subTab || "fd");
   const [showModal, setShowModal] = useState(false);
@@ -1213,7 +1228,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     (state.mutualFunds?.reduce(
       (s: number, x: any) =>
         s +
-        (Number(x.units || 0) * Number(x.currentNav || 0) ||
+        (Number(x.units || 0) * liveMfNav(x, mfMarketData) ||
           Number(x.invested || x.investedValue) ||
           0),
       0
@@ -1296,6 +1311,10 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             updateItem={updateItem}
             onAdd={onAdd}
             activeProfile={activeProfile}
+            mfMarketData={mfMarketData}
+            fetchMfNavs={fetchMfNavs}
+            fetchingMfNavs={fetchingMfNavs}
+            mfMarketDataTs={mfMarketDataTs}
           />
         );
       case "dividends":
@@ -9027,7 +9046,12 @@ function MFSection({
   updateItem,
   onAdd,
   activeProfile = "all",
+  mfMarketData,
+  fetchMfNavs,
+  fetchingMfNavs,
+  mfMarketDataTs,
 }: any) {
+  const getLiveNav = (m: any) => liveMfNav(m, mfMarketData);
   const [editMF, setEditMF] = useState<any>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
@@ -9240,7 +9264,7 @@ function MFSection({
       safeItems.forEach((m: any) => {
         if (!m) return;
         const units = Number(m.units) || 0;
-        const currentNav = Number(m.currentNav) || 0;
+        const currentNav = getLiveNav(m);
         const invested = Number(m.invested || m.investedValue) || Number(m.buyNav || 0) * units;
         if (units > 0 && m.buyDate) {
           cashFlows.push({
@@ -9290,7 +9314,7 @@ function MFSection({
   const totalCurrent = items.reduce(
     (s: number, m: any) =>
       s +
-      (Number(m.units || 0) * Number(m.currentNav || 0) ||
+      (Number(m.units || 0) * getLiveNav(m) ||
         Number(m.invested || m.investedValue) ||
         0),
     0
@@ -9646,7 +9670,7 @@ function MFSection({
             });
             const grpVal = (g: any) =>
               g.items.reduce(
-                (s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0),
+                (s: number, m: any) => s + (Number(m.units || 0) * getLiveNav(m) || 0),
                 0
               );
             const grpInvFn = (g: any) =>
@@ -9856,7 +9880,7 @@ function MFSection({
                             );
                             const grpCurrent = groupItems.reduce(
                               (s: number, m: any) =>
-                                s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0),
+                                s + (Number(m.units || 0) * getLiveNav(m) || 0),
                               0
                             );
                             const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
@@ -9867,7 +9891,7 @@ function MFSection({
                             const isExpanded = lotExpandedGroups.has(gKey);
                             const firstWithCode = groupItems.find((m: any) => m.mfCode);
                             const avgNav = totalUnits > 0 ? grpInvested / totalUnits : 0;
-                            const currentNav = Number(groupItems[0]?.currentNav) || 0;
+                            const currentNav = getLiveNav(groupItems[0]);
 
                             const grpXirr = (() => {
                               try {
@@ -9878,7 +9902,7 @@ function MFSection({
                                 safeGroupItems.forEach((m: any) => {
                                   if (!m) return;
                                   const units = Number(m.units) || 0;
-                                  const currentNavVal = Number(m.currentNav) || 0;
+                                  const currentNavVal = getLiveNav(m);
                                   const invested =
                                     Number(m.invested || m.investedValue) ||
                                     Number(m.buyNav || 0) * units;
@@ -10508,7 +10532,10 @@ function MFSection({
                                                   setAddLotGroup({
                                                     fundName: displayName,
                                                     folio: displayFolio,
-                                                    refLot: groupItems[0],
+                                                    refLot: {
+                                                      ...groupItems[0],
+                                                      currentNav: getLiveNav(groupItems[0]),
+                                                    },
                                                   });
                                                 }}
                                               >
@@ -10525,7 +10552,10 @@ function MFSection({
                                                       schemeName:
                                                         displayName +
                                                         (displayFolio ? ` (${displayFolio})` : ""),
-                                                      lots: groupItems,
+                                                      lots: groupItems.map((m: any) => ({
+                                                        ...m,
+                                                        currentNav: getLiveNav(m),
+                                                      })),
                                                     });
                                                   }}
                                                   style={{ color: THEME.gold }}
@@ -10583,7 +10613,7 @@ function MFSection({
                                                 .map((lot: any) => {
                                                   const lotUnits = Number(lot.units) || 0;
                                                   const lotBuyNav = Number(lot.buyNav) || 0;
-                                                  const lotCurrentNav = Number(lot.currentNav) || 0;
+                                                  const lotCurrentNav = getLiveNav(lot);
                                                   const lotInv =
                                                     Number(lot.invested || lot.investedValue) ||
                                                     lotBuyNav * lotUnits;
@@ -10780,7 +10810,7 @@ function MFSection({
                                                             style={{ color: THEME.gold }}
                                                             onClick={(e: any) => {
                                                               e.stopPropagation();
-                                                              setSellMF(lot);
+                                                              setSellMF({ ...lot, currentNav: getLiveNav(lot) });
                                                             }}
                                                             title="Sell"
                                                           />
@@ -10925,7 +10955,7 @@ function MFSection({
                     .map((m: any) => {
                       const name = m.name || m.scheme || "";
                       const units = Number(m.units) || 0;
-                      const nav = Number(m.currentNav) || 0;
+                      const nav = getLiveNav(m);
                       const currentValue = units * nav;
                       const { planType, assetType, expenseRatio } = getExpenseInfo(
                         name,

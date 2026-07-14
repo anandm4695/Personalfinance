@@ -238,6 +238,24 @@ function FinanceDashboard() {
   // which would cause the callback to be recreated after every metadata sync → extra fetches.
   const stocksRef = useRef<any[]>([]);
   const wishlistItemsRef = useRef<any[]>([]);
+  // Mirrors marketData/fetchLivePrices for mutual funds so Current Value uses a live NAV
+  // the same way Demat uses a live stock price, instead of a manually-refreshed field.
+  const [mfMarketDataTs, setMfMarketDataTs] = useState<number | null>(null);
+  const [mfMarketData, setMfMarketData] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem("finance_mf_market_data");
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      const { _ts, ...data } = parsed;
+      if (_ts && Date.now() - _ts > 8 * 3600 * 1000) return {};
+      return data;
+    } catch {
+      return {};
+    }
+  });
+  const [fetchingMfNavs, setFetchingMfNavs] = useState(false);
+  const fetchingMfNavsRef = useRef(false);
+  const mutualFundsRef = useRef<any[]>([]);
   // Tracks latest masterData synchronously inside setState callbacks, so rapid back-to-back
   // addItem calls (e.g. transfer = debit + credit) don't overwrite each other's DB upsert.
   const masterDataRef = useRef<any>(null);
@@ -301,6 +319,10 @@ function FinanceDashboard() {
   useEffect(() => {
     wishlistItemsRef.current = state.wishlistItems || [];
   }, [state.wishlistItems]);
+
+  useEffect(() => {
+    mutualFundsRef.current = state.mutualFunds || [];
+  }, [state.mutualFunds]);
 
   // Derived settings from state for easier access
   const settings = state.settings || DEFAULT_STATE.settings;
@@ -1049,6 +1071,69 @@ function FinanceDashboard() {
       fetchLivePrices();
     }
   }, [loaded, state.stocks.length, state.wishlistItems.length, fetchLivePrices]);
+
+  // Mirrors fetchLivePrices for mutual funds: one /api/mf-nav call per distinct scheme code,
+  // deduped, cached in mfMarketData keyed by mfCode so Current Value can use a live NAV
+  // the same way Demat uses live stock prices, instead of relying on the manually-refreshed
+  // currentNav field.
+  const fetchMfNavs = useCallback(async () => {
+    const funds = mutualFundsRef.current;
+    const codes = Array.from(
+      new Set(funds.map((m: any) => (m?.mfCode || "").trim()).filter(Boolean))
+    );
+    if (!codes.length || fetchingMfNavsRef.current) return;
+
+    setFetchingMfNavs(true);
+    fetchingMfNavsRef.current = true;
+    try {
+      const results = await Promise.all(
+        codes.map(async (code) => {
+          try {
+            const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(code)}&range=1m`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (!data?.nav) return null;
+            return [
+              code,
+              {
+                nav: data.nav,
+                prevNav: data.prevNav,
+                navChange: data.navChange,
+                navChangePct: data.navChangePct,
+                high52: data.high52,
+                low52: data.low52,
+                navDate: data.date,
+              },
+            ] as const;
+          } catch {
+            return null;
+          }
+        })
+      );
+      const ts = Date.now();
+      setMfMarketDataTs(ts);
+      setMfMarketData((prev: any) => {
+        const next = { ...prev };
+        results.forEach((r) => {
+          if (r) next[r[0]] = r[1];
+        });
+        localStorage.setItem("finance_mf_market_data", JSON.stringify({ ...next, _ts: ts }));
+        return next;
+      });
+    } catch (e) {
+      console.error("Failed to fetch live MF NAVs", e);
+    } finally {
+      setFetchingMfNavs(false);
+      fetchingMfNavsRef.current = false;
+    }
+  }, []);
+
+  // Initial MF NAV fetch
+  useEffect(() => {
+    if (loaded && state.mutualFunds && state.mutualFunds.length > 0) {
+      fetchMfNavs();
+    }
+  }, [loaded, state.mutualFunds?.length, fetchMfNavs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 1. Initial Load & Sync Refinement
   useEffect(() => {
@@ -4277,6 +4362,10 @@ function FinanceDashboard() {
                   subTab={subTab}
                   onSubTabChange={setSubTab}
                   activeProfile={activeProfile}
+                  mfMarketData={mfMarketData}
+                  fetchMfNavs={fetchMfNavs}
+                  fetchingMfNavs={fetchingMfNavs}
+                  mfMarketDataTs={mfMarketDataTs}
                 />
               )}
               {tab === "tax" && (
