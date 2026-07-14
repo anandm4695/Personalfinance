@@ -9248,10 +9248,17 @@ function MFSection({
     const withCode = items.filter((m: any) => m.mfCode);
     if (!withCode.length) return;
     setRefreshingAll(true);
-    for (const m of withCode) {
-      await refreshNav(m);
+    try {
+      // Parallel fetch (was a sequential await loop — N round trips in series).
+      await Promise.all(withCode.map((m: any) => refreshNav(m)));
+      // refreshNav only persists currentNav to the DB, which liveMfNav() treats as a
+      // fallback — display values (Current Value, XIRR, Day's P&L, weight) actually read
+      // mfMarketData first. Without this, the button showed a spinner and changed nothing
+      // on screen until the unrelated 8h mfMarketData cache happened to expire.
+      if (fetchMfNavs) await fetchMfNavs();
+    } finally {
+      setRefreshingAll(false);
     }
-    setRefreshingAll(false);
   };
 
   const overallXirr = useMemo(() => {
@@ -9594,15 +9601,32 @@ function MFSection({
                 Import CAS
               </Button>
               {items.some((m: any) => m.mfCode) && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={<RefreshCw size={13} className={refreshingAll ? "animate-spin" : ""} />}
-                  onClick={refreshAllNavs}
-                  style={{ opacity: refreshingAll ? 0.6 : 1 }}
-                >
-                  {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
-                </Button>
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<RefreshCw size={13} className={refreshingAll ? "animate-spin" : ""} />}
+                    onClick={refreshAllNavs}
+                    style={{ opacity: refreshingAll ? 0.6 : 1 }}
+                  >
+                    {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
+                  </Button>
+                  {!refreshingAll &&
+                    (() => {
+                      const failed = Object.values(navError).filter(Boolean).length;
+                      return failed > 0 ? (
+                        <span
+                          style={{ fontSize: 11, color: THEME.rust, fontWeight: 600 }}
+                          title={Object.entries(navError)
+                            .filter(([, v]) => v)
+                            .map(([id, v]) => `${id}: ${v}`)
+                            .join("\n")}
+                        >
+                          {failed} failed
+                        </span>
+                      ) : null;
+                    })()}
+                </>
               )}
             </div>
           </div>
