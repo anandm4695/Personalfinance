@@ -9687,10 +9687,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 matchedIndex = "Nifty 50";
               } else if (nameUpper.includes("SENSEX")) {
                 matchedIndex = "Sensex";
-              } else if (nameUpper.includes("INDEX")) {
-                if (nameUpper.includes("NEXT")) matchedIndex = "Nifty Next 50";
-                else matchedIndex = "Nifty 50";
               }
+              // Note: funds with "INDEX" in the name but no specific match above
+              // (e.g. Nasdaq 100, Midcap 150, Smallcap 250 index funds) are left
+              // unmatched rather than defaulted to Nifty 50 — they track a different
+              // set of constituents entirely and would produce false overlap results.
 
               const holdings = matchedIndex ? INDEX_HOLDINGS[matchedIndex] || [] : [];
               return { name: mfName, value, matchedIndex, holdings };
@@ -9798,7 +9799,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   {overlappingStockCount > 0 && (
                     <Badge variant={concentrationRisks.length > 0 ? "danger" : "warning"}>
                       {overlappingStockCount} Overlapping Stock
-                      {overlappingStockCount !== 1 ? "" : "s"} Detected
+                      {overlappingStockCount !== 1 ? "s" : ""} Detected
                     </Badge>
                   )}
                 </div>
@@ -9929,7 +9930,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Indirect Overlap Exposure
                           </div>
                           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.accent }}>
-                            {fmtINRFull(totalOverlapValue)}
+                            <Prv>{fmtINRFull(totalOverlapValue)}</Prv>
                           </div>
                         </div>
                         <div>
@@ -9937,7 +9938,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Affected Funds
                           </div>
                           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
-                            {fundsWithOverlap} / {mfs.filter((f) => f.matchedIndex).length} Indices
+                            {fundsWithOverlap} / {mfs.filter((f) => f.matchedIndex).length} Funds
                           </div>
                         </div>
                       </div>
@@ -10033,7 +10034,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <div
                                       style={{ fontSize: 11, fontWeight: 700, color: THEME.ink }}
                                     >
-                                      {fmtINRFull(data.directValue)}
+                                      <Prv>{fmtINRFull(data.directValue)}</Prv>
                                     </div>
                                   </div>
                                   <div>
@@ -10045,7 +10046,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <div
                                       style={{ fontSize: 11, fontWeight: 700, color: THEME.accent }}
                                     >
-                                      {fmtINRFull(data.indirectValue)}
+                                      <Prv>{fmtINRFull(data.indirectValue)}</Prv>
                                     </div>
                                   </div>
                                   <div>
@@ -10057,7 +10058,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <div
                                       style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}
                                     >
-                                      {fmtINRFull(totalExposure)}
+                                      <Prv>{fmtINRFull(totalExposure)}</Prv>
                                     </div>
                                   </div>
                                 </div>
@@ -10080,7 +10081,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                       <span style={{ fontWeight: 600, color: THEME.ink }}>
                                         {f.name.length > 22 ? f.name.slice(0, 22) + "..." : f.name}
                                       </span>{" "}
-                                      (Est: {fmtINRFull(f.estimatedValue)})
+                                      (Est: <Prv>{fmtINRFull(f.estimatedValue)}</Prv>)
                                     </span>
                                   ))}
                                 </div>
