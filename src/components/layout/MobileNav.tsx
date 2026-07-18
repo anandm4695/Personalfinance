@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   PieChart as PieIcon,
   Landmark,
@@ -16,8 +16,6 @@ interface MobileNavProps {
   tab: string;
   setTab: (tab: string) => void;
   setSubTab: (subTab: any) => void;
-  search?: string;
-  setSearch?: (s: string) => void;
 }
 
 const PRIMARY_TABS = [
@@ -27,7 +25,7 @@ const PRIMARY_TABS = [
   { id: "cc", label: "Credit", icon: CreditCard },
 ];
 
-export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileNavProps) {
+export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSearch, setDrawerSearch] = useState("");
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -56,20 +54,6 @@ export function MobileNav({ tab, setTab, setSubTab, search, setSearch }: MobileN
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [drawerOpen]);
-
-  const findActiveGroup = () => {
-    for (const group of NAV_GROUPS) {
-      for (const item of group.items) {
-        if (item.id === tab) return group.title;
-        if (item.children) {
-          for (const child of item.children) {
-            if (child.id === tab) return group.title;
-          }
-        }
-      }
-    }
-    return null;
-  };
 
   const findActiveLabel = () => {
     for (const group of NAV_GROUPS) {

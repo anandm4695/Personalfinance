@@ -979,7 +979,6 @@ export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
       }
       if (valLow * val < 0) {
         high = mid;
-        valHigh = val;
       } else {
         low = mid;
         valLow = val;

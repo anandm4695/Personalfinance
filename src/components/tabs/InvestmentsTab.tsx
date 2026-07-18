@@ -9251,7 +9251,17 @@ function MFInsights({ items, getLiveNav }: any) {
     };
   }, [items, getLiveNav]);
 
-  if (!items?.length) return null;
+  if (!items?.length || data.totalValue === 0) {
+    return (
+      <Card style={{ padding: 24, display: "flex", justifyContent: "center", alignItems: "center", minHeight: 220 }}>
+        <div style={{ textAlign: "center", color: THEME.muted }}>
+          <Activity size={32} style={{ marginBottom: 12, opacity: 0.5, margin: "0 auto", display: "block" }} />
+          <div style={{ fontWeight: 600, fontSize: 14, color: THEME.ink }}>No Mutual Fund holdings value detected.</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>Add transactions or update NAV prices to enable smart insights.</div>
+        </div>
+      </Card>
+    );
+  }
 
   const {
     totalValue,

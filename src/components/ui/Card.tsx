@@ -62,11 +62,9 @@ export const Card: React.FC<CardProps> = ({
 
   if (height !== undefined) {
     outerStyle.height = height;
-    contentStyle.height = height;
   }
   if (maxHeight !== undefined) {
     outerStyle.maxHeight = maxHeight;
-    contentStyle.maxHeight = maxHeight;
   }
 
   if (display !== undefined) contentStyle.display = display;
