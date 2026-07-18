@@ -63,6 +63,21 @@ const xirrLabel = (x: number | null): string => {
   return `${x.toFixed(2)}%`;
 };
 
+// Add `monthsToAdd` calendar months to `date`, clamping the day-of-month so it
+// never overflows into a later month (e.g. Jan 31 + 1 month must land on Feb
+// 28/29, not roll over into March). Plain `Date.setMonth`/`setFullYear` silently
+// overflows for day 29-31 starting dates when the target month is shorter —
+// this bit RD's monthly deposit schedule and FD/Bond maturity/coupon dates,
+// which fed wrong dates into calcXIRR.
+const addMonthsClamped = (date: Date, monthsToAdd: number): Date => {
+  const day = date.getDate();
+  const total = date.getMonth() + monthsToAdd;
+  const y = date.getFullYear() + Math.floor(total / 12);
+  const m = ((total % 12) + 12) % 12;
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  return new Date(y, m, Math.min(day, daysInMonth));
+};
+
 const holdingLabel = (startDate: string, endDate: string): string => {
   if (!startDate || !endDate) return "—";
   const days = Math.ceil(
@@ -153,8 +168,7 @@ export function XIRRReportTab({ state }: any) {
         fd.maturityDate ||
         (() => {
           const d = new Date(fd.startDate + "T00:00:00");
-          d.setFullYear(d.getFullYear() + years);
-          return getLocalDateString(d);
+          return getLocalDateString(addMonthsClamped(d, Math.round(years * 12)));
         })();
 
       const isMature = matDate <= todayStr;
@@ -198,22 +212,15 @@ export function XIRRReportTab({ state }: any) {
       const months = Number(rd.tenureMonths);
       const monthly = Number(rd.monthly);
 
+      const rdStart = new Date(rd.startDate + "T00:00:00");
       const cashFlows: any[] = [];
       for (let i = 0; i < months; i++) {
-        const d = new Date(rd.startDate + "T00:00:00");
-        d.setMonth(d.getMonth() + i);
-        const ds = getLocalDateString(d);
+        const ds = getLocalDateString(addMonthsClamped(rdStart, i));
         if (ds <= todayStr) cashFlows.push({ date: ds, amount: -monthly });
       }
       if (cashFlows.length === 0) return;
 
-      const matDate =
-        rd.maturityDate ||
-        (() => {
-          const d = new Date(rd.startDate + "T00:00:00");
-          d.setMonth(d.getMonth() + months);
-          return getLocalDateString(d);
-        })();
+      const matDate = rd.maturityDate || getLocalDateString(addMonthsClamped(rdStart, months));
 
       const isMature = matDate <= todayStr;
       const paidMonths = cashFlows.length;
@@ -401,14 +408,16 @@ export function XIRRReportTab({ state }: any) {
 
       if (b.maturityDate && annualCoupon > 0) {
         const couponEnd = b.maturityDate < todayStr ? b.maturityDate : todayStr;
-        const d = new Date(purchaseDate + "T00:00:00");
-        d.setFullYear(d.getFullYear() + 1);
-        while (getLocalDateString(d) <= couponEnd) {
+        const purchaseD = new Date(purchaseDate + "T00:00:00");
+        let yearOffset = 1;
+        let ds = getLocalDateString(addMonthsClamped(purchaseD, yearOffset * 12));
+        while (ds <= couponEnd) {
           cashFlows.push({
-            date: getLocalDateString(d),
+            date: ds,
             amount: annualCoupon,
           });
-          d.setFullYear(d.getFullYear() + 1);
+          yearOffset++;
+          ds = getLocalDateString(addMonthsClamped(purchaseD, yearOffset * 12));
         }
       }
 

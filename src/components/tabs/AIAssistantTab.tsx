@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull } from "../../utils/finance";
+import { fmtINRFull, getEffectiveRent } from "../../utils/finance";
 import { getCurrentFY } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -777,9 +777,11 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
       (t: any) => t.type === "credit" && (t.category || "").toLowerCase().includes("dividend")
     );
     const totalDividends = dividendTxs.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const rentalIncome = (state.rentedProperties || [])
-      .filter((p: any) => p.isLandlord || p.type === "owned")
-      .reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
+    // rentalProperties = properties the user owns and rents OUT (income side);
+    // rentedProperties = properties the user rents FROM someone else (expense side, see rentPaid below).
+    const rentalIncome = (state.rentalProperties || [])
+      .filter((p: any) => p.isActive !== false)
+      .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
     const realEstateRental = (state.realEstateProperties || [])
       .filter((p: any) => p.rentalIncome)
       .reduce((s: number, p: any) => s + Number(p.rentalIncome || 0), 0);
@@ -1346,15 +1348,15 @@ You have access to local tools/functions to retrieve real-time and detailed tran
     });
     // Credit utilization spikes
     (state.creditCards || []).forEach((cc: any) => {
-      const util =
-        Number(cc.cardLimit) > 0 ? (Number(cc.outstanding || 0) / Number(cc.cardLimit)) * 100 : 0;
+      const limit = Number(cc.limit || cc.cardLimit || 0);
+      const util = limit > 0 ? (Number(cc.outstanding || 0) / limit) * 100 : 0;
       if (util > 80)
         anomalies.push({
           type: "high_credit_utilization",
           card: cc.issuer,
           utilization: Math.round(util),
           outstanding: Number(cc.outstanding || 0),
-          limit: Number(cc.cardLimit || 0),
+          limit,
         });
     });
     return { anomalies, scannedAt: new Date().toISOString() };
@@ -1696,10 +1698,17 @@ You have access to local tools/functions to retrieve real-time and detailed tran
         tools: [{ functionDeclarations }],
       });
 
-      // First message: create a new chat session and prepend full financial context
+      // First message: create a new chat session and prepend full financial context.
+      // If the tab was remounted (chatRef reset) but a conversation was restored from
+      // sessionStorage, replay that history into the new chat session so the model
+      // isn't amnesic about turns the user can still see on screen (e.g. "Follow Up").
       if (!chatRef.current) {
-        chatRef.current = model.startChat();
-        isFirstRef.current = true;
+        const priorHistory = messages
+          .filter((m, idx) => !(idx === 0 && m.role === "model" && m.text === WELCOME.text))
+          .map((m) => ({ role: m.role, parts: [{ text: m.text }] }));
+        chatRef.current =
+          priorHistory.length > 0 ? model.startChat({ history: priorHistory }) : model.startChat();
+        isFirstRef.current = priorHistory.length === 0;
       }
 
       const payload = isFirstRef.current
@@ -2103,6 +2112,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                           <button
                             onClick={() => deleteNote(idx)}
                             title="Delete note"
+                            aria-label="Delete note"
                             style={{
                               flexShrink: 0,
                               padding: 6,
@@ -2642,6 +2652,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               <button
                 onClick={() => handleSend()}
                 disabled={loading || !input.trim()}
+                aria-label="Send message"
                 style={{
                   width: 46,
                   height: 46,

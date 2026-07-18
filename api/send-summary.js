@@ -98,6 +98,12 @@ function istDate() {
   return nowIST().getUTCDate();
 }
 
+function istDaysInCurrentMonth() {
+  const d = nowIST();
+  // Day 0 of next month == last day of current month
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+}
+
 // ── Camel/Date helpers for calculations alignment ──────────────────────────────
 function snakeToCamel(obj) {
   if (!obj || typeof obj !== "object") return obj;
@@ -518,7 +524,7 @@ function computeSummary(state) {
     .filter((t) => t.type === "debit" && !isTransferCat(t.category) && t.category !== "Investment")
     .forEach((t) => {
       const cat = t.category || "Other";
-      catMap[cat] = (catMap[cat] || 0) + Math.abs(Number(t.amount));
+      catMap[cat] = (catMap[cat] || 0) + Math.abs(Number(t.amount) || 0);
     });
   const topCats = Object.entries(catMap)
     .sort((a, b) => b[1] - a[1])
@@ -1644,7 +1650,11 @@ function shouldSendNow(settings, frequency) {
 
   if (freq === "monthly") {
     const configDate = Number(settings.emailDay ?? settings.email_day ?? 1);
-    return istDate() === configDate;
+    // Clamp to the last day of the current month so a user who picked 29/30/31
+    // still gets their report in shorter months (e.g. Feb) instead of the send
+    // silently never firing that month.
+    const effectiveDate = Math.min(configDate, istDaysInCurrentMonth());
+    return istDate() === effectiveDate;
   }
 
   return false;

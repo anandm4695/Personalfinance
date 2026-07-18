@@ -230,6 +230,17 @@ export function PaymentCalendarTab({ state }: any) {
       return monthsDiff >= 0 && monthsDiff < p.monthsLeft;
     }
 
+    // For SIPs with a fixed installment target: stop showing once the
+    // installment count is exhausted, instead of recurring forever. monthsLeft
+    // is counted in installments, so for quarterly SIPs convert to calendar
+    // months (1 installment = 3 months) before comparing against monthsDiff.
+    if (p.type === "sip" && p.monthsLeft !== undefined && p.monthsLeft < 9999) {
+      const now = todayDate;
+      const monthsDiff = (year - now.getFullYear()) * 12 + month - now.getMonth();
+      const monthsRemaining = p.frequency === "quarterly" ? p.monthsLeft * 3 : p.monthsLeft;
+      if (monthsDiff < 0 || monthsDiff >= monthsRemaining) return false;
+    }
+
     // For SIPs with quarterly frequency: only every 3rd month from start
     if (p.frequency === "quarterly" && p.startDate) {
       const startMonth = new Date(p.startDate + "T00:00:00").getMonth();
