@@ -1631,6 +1631,52 @@ async function withLiveStockPrices(state) {
   };
 }
 
+// ── Live mutual fund NAVs ──────────────────────────────────────────────────────
+// Mirrors withLiveStockPrices above: the dashboard (InvestmentsTab's liveMfNav /
+// getLiveNav, fed by api/mf-nav.js) fetches each fund's NAV from mfapi.in on every
+// load, while the mutual_funds.current_nav column is only refreshed once a day by
+// the weekday-6pm cron-update-prices job. Without this, the email's MF valuation
+// can be up to a day stale relative to what the dashboard shows.
+const MFAPI_TIMEOUT_MS = 8000;
+async function withLiveMFPrices(state) {
+  const funds = state.mutualFunds || [];
+  if (funds.length === 0) return state;
+
+  const uniqueCodes = [
+    ...new Set(
+      funds
+        .map((m) => String(m.mfCode || "").trim())
+        .filter((code) => /^\d+$/.test(code))
+    ),
+  ];
+  if (uniqueCodes.length === 0) return state;
+
+  const navMap = {};
+  await Promise.allSettled(
+    uniqueCodes.map(async (code) => {
+      try {
+        const res = await fetch(`https://api.mfapi.in/mf/${code}`, {
+          signal: AbortSignal.timeout(MFAPI_TIMEOUT_MS),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const latestNav = parseFloat(data?.data?.[0]?.nav);
+        if (!isNaN(latestNav)) navMap[code] = latestNav;
+      } catch (err) {
+        console.error(`[send-summary] Failed to fetch live NAV for ${code}:`, err.message);
+      }
+    })
+  );
+
+  return {
+    ...state,
+    mutualFunds: funds.map((m) => {
+      const live = navMap[String(m.mfCode || "").trim()];
+      return live != null ? { ...m, currentNav: live } : m;
+    }),
+  };
+}
+
 // ── Check if current IST day matches user's schedule ─────────────────────────
 // Cron fires once daily at 8AM IST — only check frequency + day, not hour.
 function shouldSendNow(settings, frequency) {
@@ -1732,8 +1778,8 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { state, emailTo: requestedEmailTo, frequency, recipientName, fromEmail } = req.body || {};
-      if (!state) return res.status(400).json({ error: "state required" });
+      const { emailTo: requestedEmailTo, frequency, recipientName: requestedRecipientName, fromEmail } =
+        req.body || {};
       if (!RESEND_KEY)
         return res.status(500).json({
           error:
@@ -1770,7 +1816,20 @@ module.exports = async function handler(req, res) {
       const effectiveFromEmail = getEffectiveFromEmail(fromEmail);
       const effectiveFromAddr = `Personal Finance <${effectiveFromEmail}>`;
 
-      const summary = computeSummary(await withLiveStockPrices(state));
+      // Fetch state fresh from Supabase — same source of truth the cron uses —
+      // instead of trusting whatever the browser's in-memory state happened to
+      // hold. A tab left open across a data edit made elsewhere (another
+      // device, another tab, a direct DB change) would otherwise silently
+      // email stale numbers with no way to tell they're stale.
+      const state = await fetchStateFromSupabase(supabase, auth.user.id);
+      const { data: profData } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("user_id", auth.user.id)
+        .maybeSingle();
+      const recipientName = profData?.name || requestedRecipientName || "there";
+
+      const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
       const freq = frequency || "weekly";
       const html = generateHTML(summary, freq, recipientName || "there");
       const subject = buildSubject(freq, summary.netWorth);
@@ -1844,7 +1903,7 @@ module.exports = async function handler(req, res) {
             .maybeSingle();
           const recipientName = profData?.name || row.email_address?.split("@")[0] || "there";
 
-          const summary = computeSummary(await withLiveStockPrices(state));
+          const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
           const html = generateHTML(summary, freq, recipientName);
           const subject = buildSubject(freq, summary.netWorth);
 

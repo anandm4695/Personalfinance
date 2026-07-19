@@ -300,7 +300,6 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          state,
           emailTo,
           frequency: "monthly",
           recipientName: state.profile?.name || "there",

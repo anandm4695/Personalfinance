@@ -2763,7 +2763,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          state,
           emailTo: address,
           frequency,
           recipientName: state?.profile?.name || "there",
