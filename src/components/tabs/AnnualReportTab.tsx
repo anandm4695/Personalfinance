@@ -1302,6 +1302,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
               className="form-input"
               value={selectedFY}
               onChange={(e) => setSelectedFY(e.target.value)}
+              aria-label="Select financial year"
               style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130 }}
             >
               {availableFYs.map((fy) => (
@@ -1654,7 +1655,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
               gap: 16,
               marginBottom: 24,
             }}
@@ -1886,7 +1887,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
               gap: 16,
               marginBottom: 24,
             }}
@@ -2105,7 +2106,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
                 gap: 16,
                 marginBottom: 24,
               }}
@@ -2236,7 +2237,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
                 gap: 16,
                 marginBottom: 24,
               }}

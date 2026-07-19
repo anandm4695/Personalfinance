@@ -527,6 +527,15 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                 <div
                   key={b}
                   onClick={() => setBureau(b)}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isActive}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setBureau(b);
+                    }
+                  }}
                   className={`bureau-select-card ${isActive ? "active" : ""}`}
                   style={{ "--b-color": bColor } as React.CSSProperties}
                 >
@@ -781,6 +790,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                           if (window.confirm("Delete this entry?"))
                             removeItem("creditScores", s.id);
                         }}
+                        aria-label="Delete credit score entry"
                         style={{
                           background: "none",
                           border: "none",

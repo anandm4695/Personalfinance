@@ -122,6 +122,18 @@ const PremiumDrillDownCard = ({
 }: any) => (
   <div
     onClick={onClick}
+    role={onClick ? "button" : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onKeyDown={
+      onClick
+        ? (e: React.KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onClick();
+            }
+          }
+        : undefined
+    }
     className="card-lift"
     style={{
       background:
@@ -626,6 +638,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         onClick={() =>
                           removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)
                         }
+                        title="Delete"
+                        aria-label="Delete sale record"
                         style={{
                           width: 28,
                           height: 28,
@@ -742,6 +756,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             Period
           </span>
           <select
+            aria-label="Select period"
             style={{
               background: "transparent",
               border: "none",
@@ -1611,6 +1626,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                               variant="ghost"
                               size="sm"
                               onClick={() => removeItem("transactions", t.id)}
+                              title="Delete"
+                              aria-label="Delete transaction"
                               style={{
                                 width: 28,
                                 height: 28,

@@ -1209,7 +1209,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))",
                 gap: 16,
               }}
             >
@@ -1701,7 +1701,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))",
                 gap: 16,
               }}
             >
@@ -2003,7 +2003,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))",
                   gap: 12,
                 }}
               >

@@ -878,7 +878,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     return (
       <div
         className="doc-vault-card"
+        role="button"
+        tabIndex={0}
+        aria-label={`View document ${doc.name}`}
         onClick={() => setViewDocId(doc.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setViewDocId(doc.id);
+          }
+        }}
         style={{
           "--cat-color": cat.color,
           cursor: "pointer",
@@ -1175,6 +1184,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
 
     return (
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`View document ${doc.name}`}
         style={{
           display: "flex",
           alignItems: "center",
@@ -1185,6 +1197,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           cursor: "pointer",
         }}
         onClick={() => setViewDocId(doc.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setViewDocId(doc.id);
+          }
+        }}
         className="card-lift"
       >
         <div
@@ -1260,6 +1278,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           {doc.url && (
             <button
               onClick={() => window.open(doc.url, "_blank")}
+              aria-label="Open document link"
+              title="Open"
               style={{ ...actionBtnBase, color: THEME.accent }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
@@ -1273,6 +1293,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           )}
           <button
             onClick={() => openEditModal(doc)}
+            aria-label="Edit document"
+            title="Edit"
             style={{ ...actionBtnBase, color: THEME.muted }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 60%, transparent)";
@@ -1285,6 +1307,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           </button>
           <button
             onClick={() => handleDelete(doc.id)}
+            aria-label="Delete document"
+            title="Delete"
             style={{ ...actionBtnBase, color: THEME.rust }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
@@ -2189,7 +2213,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         </div>
         <div className="category-browser-container">
           <div
+            role="button"
+            tabIndex={0}
+            aria-pressed={filterCategory === "all"}
             onClick={() => setFilterCategory("all")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setFilterCategory("all");
+              }
+            }}
             className={`category-browser-card ${filterCategory === "all" ? "active" : ""}`}
             style={{ "--cat-color": THEME.accent } as React.CSSProperties}
           >
@@ -2236,7 +2269,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             return (
               <div
                 key={cat}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isActive}
                 onClick={() => setFilterCategory(isActive ? "all" : cat)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setFilterCategory(isActive ? "all" : cat);
+                  }
+                }}
                 className={`category-browser-card ${isActive ? "active" : ""}`}
                 style={{
                   "--cat-color": catDef.color,
@@ -2287,8 +2329,17 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       {/* ── Expiry Alerts ────────────────────────────────────────────────── */}
       {expiryAlerts.length > 0 && (
         <Card style={{ padding: 0, marginBottom: 24, overflow: "hidden" }}>
-          <button
+          <div
+            role="button"
+            tabIndex={0}
+            aria-expanded={expandedAlerts}
             onClick={() => setExpandedAlerts((e) => !e)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setExpandedAlerts((v) => !v);
+              }
+            }}
             style={{
               width: "100%",
               display: "flex",
@@ -2311,6 +2362,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <select
                 value={expiryFilter}
+                aria-label="Filter expiry alerts by time window"
                 onChange={(e) => {
                   e.stopPropagation();
                   setExpiryFilter(e.target.value as any);
@@ -2338,7 +2390,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 <ChevronDown size={16} color={THEME.muted} />
               )}
             </div>
-          </button>
+          </div>
           {expandedAlerts && (
             <div style={{ maxHeight: 300, overflow: "auto" }}>
               {expiryAlerts.map((doc) => {
@@ -2432,6 +2484,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           <input
             type="text"
             placeholder="Search documents..."
+            aria-label="Search documents"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -2456,6 +2509,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
+              title="Clear search"
               style={{
                 position: "absolute",
                 right: 8,

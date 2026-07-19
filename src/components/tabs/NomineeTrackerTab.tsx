@@ -1323,13 +1323,15 @@ export const NomineeTrackerTab = ({
                   <button
                     onClick={() => openEditContact(c)}
                     className="card-lift"
+                    aria-label={`Edit contact ${c.name}`}
+                    title="Edit"
                     style={{
                       background: "var(--surface-0)",
                       border: `1.5px solid ${THEME.line}`,
                       borderRadius: 8,
                       cursor: "pointer",
-                      width: 28,
-                      height: 28,
+                      width: 32,
+                      height: 32,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1346,13 +1348,15 @@ export const NomineeTrackerTab = ({
                       }
                     }}
                     className="card-lift"
+                    aria-label={`Delete contact ${c.name}`}
+                    title="Delete"
                     style={{
                       background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
                       border: `1.5px solid color-mix(in srgb, ${THEME.rust} 19%, transparent)`,
                       borderRadius: 8,
                       cursor: "pointer",
-                      width: 28,
-                      height: 28,
+                      width: 32,
+                      height: 32,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",

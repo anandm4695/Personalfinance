@@ -547,6 +547,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                   type="number"
                   min="1"
                   max="15"
+                  aria-label="Inflation rate percentage"
                   value={inflationRate}
                   onChange={(e) => setInflationRate(e.target.value)}
                   style={{
@@ -1076,6 +1077,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                               <input
                                 type="number"
                                 placeholder="amount"
+                                aria-label="Monthly SIP amount to test"
                                 value={sipInputs[g.id] || ""}
                                 onChange={(e) =>
                                   setSipInputs((prev) => ({ ...prev, [g.id]: e.target.value }))

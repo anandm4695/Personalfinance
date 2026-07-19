@@ -1897,6 +1897,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               className="form-input"
               value={fy}
               onChange={(e) => setFy(e.target.value)}
+              aria-label="Select financial year"
               style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130 }}
             >
               {availableFYs.map((f) => (
@@ -2888,7 +2889,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
                       gap: 12,
                       marginBottom: 16,
                     }}
@@ -3105,7 +3106,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         Recommended Quarterly Payments
                       </div>
                       <div
-                        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
+                          gap: 8,
+                        }}
                       >
                         {quarters.map((q) => {
                           const required = Math.round(projectedTax * (q.pct / 100));
@@ -3225,6 +3230,14 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           <div style={{ marginBottom: 28 }}>
             <div
               onClick={() => setShowBreakdown((b) => !b)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowBreakdown((b) => !b);
+                }
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -3502,7 +3515,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 16,
+              }}
+            >
               {/* 80C */}
               <div style={{ gridColumn: "1 / -1" }}>
                 <Field
@@ -3839,6 +3858,14 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     >
                       <div
                         onClick={() => setExpandedTipId(isExpanded ? null : tip.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setExpandedTipId(isExpanded ? null : tip.id);
+                          }
+                        }}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -4034,7 +4061,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
                 gap: 14,
                 marginBottom: 40,
               }}
@@ -4091,6 +4118,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       size="sm"
                       onClick={() => removeItem("taxPayments", p.id)}
                       style={{ padding: 6, color: THEME.rust }}
+                      title="Delete"
+                      aria-label="Delete tax payment"
                     >
                       <Trash2 size={14} />
                     </Button>
@@ -4444,6 +4473,19 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           : [...prev, cand.id]
                       )
                     }
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSimulatedHarvestIds((prev) =>
+                          prev.includes(cand.id)
+                            ? prev.filter((x) => x !== cand.id)
+                            : [...prev, cand.id]
+                        );
+                      }
+                    }}
                     style={{
                       display: "flex",
                       alignItems: "center",

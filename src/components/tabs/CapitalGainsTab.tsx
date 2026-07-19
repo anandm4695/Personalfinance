@@ -255,6 +255,15 @@ const TransactionTable = ({
       {/* Section header bar (matching TaxVaultTab section headers) */}
       <div
         onClick={() => setExpanded(!expanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
+        aria-expanded={expanded}
         style={{
           padding: "10px 16px",
           background: `color-mix(in srgb, ${color} 6%, transparent)`,
@@ -765,6 +774,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
               className="form-input"
               value={fyStartYear}
               onChange={(e) => setFyStartYear(Number(e.target.value))}
+              aria-label="Select financial year"
               style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130 }}
             >
               {fyOptions.map((fy) => (
@@ -1090,6 +1100,15 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <Card style={{ padding: 24 }}>
           <div
             onClick={() => setShowUnrealized(!showUnrealized)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowUnrealized(!showUnrealized);
+              }
+            }}
+            aria-expanded={showUnrealized}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1218,6 +1237,15 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <Card style={{ padding: 24 }}>
           <div
             onClick={() => setShowHarvesting(!showHarvesting)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowHarvesting(!showHarvesting);
+              }
+            }}
+            aria-expanded={showHarvesting}
             style={{
               display: "flex",
               alignItems: "center",

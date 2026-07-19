@@ -122,7 +122,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
       maxWidth={640}
     >
       <ModalSection title="Policy Details" first />
-      <div style={g2}>
+      <div className="form-grid-2" style={g2}>
         <Field label="Insurer / Company *">
           <input
             className="form-input"
@@ -176,7 +176,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
       </div>
 
       <ModalSection title="Coverage & Premium" />
-      <div style={g2}>
+      <div className="form-grid-2" style={g2}>
         <Field label="Sum Insured (₹) *">
           <input
             className="form-input"
@@ -227,7 +227,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
       </div>
 
       <ModalSection title="Policy Features" />
-      <div style={g2}>
+      <div className="form-grid-2" style={g2}>
         <Field label="Hospital Network">
           <input
             className="form-input"
@@ -319,12 +319,17 @@ function PolicyForm({ initial, onSave, onClose }: any) {
           <span style={{ fontSize: 13 }}>{m.name}</span>
           <button
             onClick={() => removeMember(i)}
+            aria-label={`Remove ${m.name}`}
+            title={`Remove ${m.name}`}
             style={{
               marginLeft: "auto",
               background: "none",
               border: "none",
               cursor: "pointer",
               color: THEME.danger,
+              padding: 6,
+              display: "flex",
+              alignItems: "center",
             }}
           >
             <X size={14} />
@@ -524,24 +529,32 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                   <div style={{ display: "flex", gap: 6 }}>
                     <button
                       onClick={() => setExpanded(isExpanded ? null : p.id)}
+                      aria-label={isExpanded ? "Collapse policy details" : "Expand policy details"}
+                      title={isExpanded ? "Collapse" : "Expand"}
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.textMuted,
-                        padding: 4,
+                        padding: 6,
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                     <button
                       onClick={() => setModal(p)}
+                      aria-label={`Edit ${p.insurer} policy`}
+                      title="Edit policy"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.textMuted,
-                        padding: 4,
+                        padding: 6,
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
                       <Pencil size={14} />
@@ -551,12 +564,16 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                         if (window.confirm(`Delete "${p.insurer}" policy?`))
                           removeItem("healthInsurance", p.id);
                       }}
+                      aria-label={`Delete ${p.insurer} policy`}
+                      title="Delete policy"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.danger,
-                        padding: 4,
+                        padding: 6,
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
                       <Trash2 size={14} />

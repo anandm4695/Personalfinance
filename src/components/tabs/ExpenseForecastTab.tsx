@@ -436,6 +436,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
             </span>
             <select
               value={forecastMonths}
+              aria-label="Forecast horizon"
               onChange={(e) => setForecastMonths(Number(e.target.value))}
               style={{
                 background: "transparent",

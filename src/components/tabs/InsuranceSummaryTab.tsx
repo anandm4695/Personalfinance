@@ -706,7 +706,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveTransaction(t.id)}
-                          style={{ padding: 2, color: THEME.rust }}
+                          aria-label={`Remove transaction dated ${t.date}`}
+                          title="Remove transaction"
+                          style={{ padding: 6, color: THEME.rust }}
                         >
                           <Trash2 size={11} />
                         </Button>
@@ -1027,7 +1029,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveTransaction(t.id)}
-                          style={{ padding: 2, color: THEME.rust }}
+                          aria-label={`Remove transaction dated ${t.date}`}
+                          title="Remove transaction"
+                          style={{ padding: 6, color: THEME.rust }}
                         >
                           <Trash2 size={11} />
                         </Button>
@@ -1331,7 +1335,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveTransaction(t.id)}
-                          style={{ padding: 2, color: THEME.rust }}
+                          aria-label={`Remove transaction dated ${t.date}`}
+                          title="Remove transaction"
+                          style={{ padding: 6, color: THEME.rust }}
                         >
                           <Trash2 size={11} />
                         </Button>
@@ -2055,11 +2061,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       >
                         <button
                           onClick={() => setEditPolicy(l)}
+                          aria-label={`Edit ${l.planName} policy`}
+                          title="Edit policy"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            padding: 4,
+                            padding: 6,
+                            display: "flex",
+                            alignItems: "center",
                             color: THEME.accent,
                           }}
                         >
@@ -2070,11 +2080,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             if (window.confirm(`Delete "${l.planName}" policy?`))
                               removeItem("lic", l.id);
                           }}
+                          aria-label={`Delete ${l.planName} policy`}
+                          title="Delete policy"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            padding: 4,
+                            padding: 6,
+                            display: "flex",
+                            alignItems: "center",
                             color: THEME.rust,
                           }}
                         >
@@ -2370,11 +2384,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       >
                         <button
                           onClick={() => setEditPolicy(t)}
+                          aria-label={`Edit ${t.planName || "Term Plan"}`}
+                          title="Edit policy"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            padding: 4,
+                            padding: 6,
+                            display: "flex",
+                            alignItems: "center",
                             color: THEME.accent,
                           }}
                         >
@@ -2385,11 +2403,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             if (window.confirm(`Delete "${t.planName || "Term Plan"}"?`))
                               removeItem("termPlans", t.id);
                           }}
+                          aria-label={`Delete ${t.planName || "Term Plan"}`}
+                          title="Delete policy"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            padding: 4,
+                            padding: 6,
+                            display: "flex",
+                            alignItems: "center",
                             color: THEME.rust,
                           }}
                         >
@@ -2691,11 +2713,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       >
                         <button
                           onClick={() => setEditPolicy(ip)}
+                          aria-label={`Edit ${ip.planName || "Investment Plan"}`}
+                          title="Edit policy"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            padding: 4,
+                            padding: 6,
+                            display: "flex",
+                            alignItems: "center",
                             color: THEME.accent,
                           }}
                         >
@@ -2706,11 +2732,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             if (window.confirm(`Delete "${ip.planName || "Investment Plan"}"?`))
                               removeItem("investmentPlans", ip.id);
                           }}
+                          aria-label={`Delete ${ip.planName || "Investment Plan"}`}
+                          title="Delete policy"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            padding: 4,
+                            padding: 6,
+                            display: "flex",
+                            alignItems: "center",
                             color: THEME.rust,
                           }}
                         >

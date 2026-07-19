@@ -551,7 +551,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))",
                       gap: 12,
                     }}
                   >
@@ -722,6 +722,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                 size="sm"
                                 onClick={() => setEditSub(s)}
                                 style={{ padding: 6 }}
+                                title="Edit"
+                                aria-label="Edit subscription"
                               >
                                 <Pencil size={14} />
                               </Button>
@@ -730,6 +732,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                 size="sm"
                                 onClick={() => removeItem("subscriptions", s.id)}
                                 style={{ padding: 6, color: THEME.rust }}
+                                title="Delete"
+                                aria-label="Delete subscription"
                               >
                                 <Trash2 size={14} />
                               </Button>
@@ -792,7 +796,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))",
                   gap: 12,
                 }}
               >
@@ -857,6 +861,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             size="sm"
                             onClick={() => setEditSub(s)}
                             style={{ padding: 6 }}
+                            title="Edit"
+                            aria-label="Edit subscription"
                           >
                             <Pencil size={14} />
                           </Button>
@@ -865,6 +871,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             size="sm"
                             onClick={() => removeItem("subscriptions", s.id)}
                             style={{ padding: 6, color: THEME.rust }}
+                            title="Delete"
+                            aria-label="Delete subscription"
                           >
                             <Trash2 size={14} />
                           </Button>

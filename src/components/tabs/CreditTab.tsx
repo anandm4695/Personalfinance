@@ -579,13 +579,14 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
     <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6, zIndex: 10 }}>
       <button
         onClick={onEdit}
+        aria-label="Edit"
         style={{
           ...iconBtn,
           background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
           border: "1px solid var(--t-line)",
           borderRadius: 8,
-          width: 28,
-          height: 28,
+          width: 32,
+          height: 32,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -603,13 +604,14 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
       </button>
       <button
         onClick={onRemove}
+        aria-label="Remove"
         style={{
           ...iconBtn,
           background: "rgba(239, 68, 68, 0.08)",
           border: "1px solid rgba(239, 68, 68, 0.2)",
           borderRadius: 8,
-          width: 28,
-          height: 28,
+          width: 32,
+          height: 32,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1110,6 +1112,7 @@ function CreditScoreTracker() {
                         >
                           <button
                             onClick={() => openEditModal(entry)}
+                            aria-label="Edit entry"
                             style={{
                               background: "none",
                               border: "none",
@@ -1122,6 +1125,7 @@ function CreditScoreTracker() {
                           </button>
                           <button
                             onClick={() => handleDelete(entry.id)}
+                            aria-label="Delete entry"
                             style={{
                               background: "none",
                               border: "none",
@@ -1606,7 +1610,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
         )}
         {sub === "prepaid" && (
           <PrepaidList
-            items={state.prepaidCards}
+            items={state.prepaidCards || []}
             onRemove={(id: any) => removeItem("prepaidCards", id)}
             onEdit={setEditId}
             onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)}
@@ -1615,7 +1619,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
         )}
         {sub === "taken" && (
           <LoanTakenList
-            items={state.loansTaken}
+            items={state.loansTaken || []}
             onRemove={(id: any) => removeItem("loansTaken", id)}
             onEdit={setEditId}
             onAdd={() => setModal("taken")}
@@ -1623,7 +1627,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
         )}
         {sub === "given" && (
           <LoanGivenList
-            items={state.loansGiven}
+            items={state.loansGiven || []}
             onRemove={(id: any) => removeItem("loansGiven", id)}
             onEdit={setEditId}
             onAdd={() => setModal("given")}
@@ -2052,6 +2056,7 @@ function CCList({
           )}
           <button
             onClick={() => onEdit(c.id)}
+            aria-label="Edit card"
             style={{
               background: "transparent",
               border: "none",
@@ -2063,6 +2068,7 @@ function CCList({
           </button>
           <button
             onClick={() => onRemove(c.id)}
+            aria-label="Remove card"
             style={{
               background: "transparent",
               border: "none",
@@ -2124,6 +2130,7 @@ function CCList({
             </button>
             <button
               onClick={() => setClosingId(null)}
+              aria-label="Close"
               style={{
                 background: "transparent",
                 border: "none",
@@ -3574,6 +3581,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         <button
                           onClick={() => startEdit(t)}
+                          aria-label="Edit transaction"
                           style={{
                             background: "transparent",
                             border: "none",
@@ -3585,6 +3593,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                         </button>
                         <button
                           onClick={() => removeTx(t.id)}
+                          aria-label="Delete transaction"
                           style={{
                             background: "transparent",
                             border: "none",
@@ -3930,6 +3939,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 )}
                 <button
                   onClick={() => onEdit(p.id)}
+                  aria-label="Edit card"
                   style={{
                     background: "transparent",
                     border: "none",
@@ -3941,6 +3951,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 </button>
                 <button
                   onClick={() => onRemove(p.id)}
+                  aria-label="Remove card"
                   style={{
                     background: "transparent",
                     border: "none",
@@ -4002,6 +4013,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   </button>
                   <button
                     onClick={() => setClosingId(null)}
+                    aria-label="Close"
                     style={{
                       background: "transparent",
                       border: "none",
@@ -5112,6 +5124,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                       <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
                         <button
                           onClick={() => editTx(t)}
+                          aria-label="Edit transaction"
                           style={{
                             background: "transparent",
                             border: "none",
@@ -5124,6 +5137,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                         </button>
                         <button
                           onClick={() => removeTx(t.id)}
+                          aria-label="Delete transaction"
                           style={{
                             background: "transparent",
                             border: "none",
@@ -7018,6 +7032,15 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                   borderBottom: isExpanded ? `1px solid var(--t-line)` : "none",
                 }}
                 onClick={() => setExpandedId(isExpanded ? null : person.id)}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpandedId(isExpanded ? null : person.id);
+                  }
+                }}
               >
                 <div
                   style={{
@@ -7290,6 +7313,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                     const updated = tranches.filter((x: any) => x.id !== t.id);
                                     onUpdate(person.id, { tranches: updated });
                                   }}
+                                  aria-label="Delete tranche"
                                 >
                                   <Trash2 size={12} />
                                 </button>
@@ -7426,6 +7450,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                     const updated = payments.filter((x: any) => x.id !== p.id);
                                     onUpdate(person.id, { payments: updated });
                                   }}
+                                  aria-label="Delete payment"
                                 >
                                   <Trash2 size={12} />
                                 </button>
@@ -8055,7 +8080,7 @@ function DebtPayoffOptimizer({ state }: any) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
           gap: 20,
         }}
       >
@@ -8362,7 +8387,7 @@ function DebtPayoffOptimizer({ state }: any) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
           gap: 20,
           alignItems: "start",
         }}

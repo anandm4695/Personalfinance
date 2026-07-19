@@ -240,6 +240,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const [smartFile, setSmartFile] = useState<File | null>(null);
   const [smartPreview, setSmartPreview] = useState<any[]>([]);
   const [smartError, setSmartError] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
   const [detectedBank, setDetectedBank] = useState("");
   const [smartAccountId, setSmartAccountId] = useState(accounts[0]?.id || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -624,13 +625,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
   const handleSmartFileUpload = (file: File) => {
     setSmartFile(file);
+    setIsParsing(true);
     const reader = new FileReader();
     reader.onerror = () => {
       setSmartError("Could not read the file. Please try again.");
+      setIsParsing(false);
     };
     reader.onload = (e) => {
       const text = e.target?.result as string;
       if (text) parseSmartCSV(text);
+      setIsParsing(false);
     };
     reader.readAsText(file);
   };
@@ -972,11 +976,30 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               }}
             />
             <button
-              style={{ ...btnStyle, borderColor: THEME.accent, color: THEME.accent }}
+              style={{
+                ...btnStyle,
+                borderColor: THEME.accent,
+                color: THEME.accent,
+                opacity: isParsing ? 0.7 : 1,
+                cursor: isParsing ? "wait" : "pointer",
+              }}
               onClick={() => fileInputRef.current?.click()}
+              disabled={isParsing}
             >
               <Upload size={13} /> {smartFile ? smartFile.name : "Choose CSV File"}
             </button>
+            {isParsing && (
+              <span
+                style={{
+                  marginLeft: 10,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: THEME.muted,
+                }}
+              >
+                Reading & detecting format…
+              </span>
+            )}
           </div>
 
           {detectedBank && (

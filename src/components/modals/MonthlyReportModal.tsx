@@ -437,11 +437,14 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                 style={{
                   ...btnGhost,
                   padding: "5px 8px",
+                  minWidth: 32,
+                  minHeight: 32,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
                 title="Previous Month"
+                aria-label="Previous month"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -464,6 +467,8 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                 style={{
                   ...btnGhost,
                   padding: "5px 8px",
+                  minWidth: 32,
+                  minHeight: 32,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -471,6 +476,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
                   cursor: isCurrentMonth ? "not-allowed" : "pointer",
                 }}
                 title={isCurrentMonth ? "Already viewing the current month" : "Next Month"}
+                aria-label={isCurrentMonth ? "Already viewing the current month" : "Next month"}
               >
                 <ChevronRight size={16} />
               </button>

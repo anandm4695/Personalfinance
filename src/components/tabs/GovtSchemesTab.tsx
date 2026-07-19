@@ -651,22 +651,31 @@ export function GovtSchemesTab({
                   <div style={{ display: "flex", gap: 4 }}>
                     <button
                       onClick={() => setExpanded(isExpanded ? null : sc.id)}
+                      className="icon-btn"
+                      aria-label={isExpanded ? "Collapse scheme details" : "Expand scheme details"}
+                      aria-expanded={isExpanded}
+                      title={isExpanded ? "Collapse" : "Expand"}
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.textMuted,
+                        padding: 6,
                       }}
                     >
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
                     <button
                       onClick={() => setModal(sc)}
+                      className="icon-btn"
+                      aria-label="Edit scheme"
+                      title="Edit"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.textMuted,
+                        padding: 6,
                       }}
                     >
                       <Pencil size={14} />
@@ -675,11 +684,15 @@ export function GovtSchemesTab({
                       onClick={() => {
                         if (window.confirm(`Delete this scheme?`)) removeItem("govtSchemes", sc.id);
                       }}
+                      className="icon-btn danger"
+                      aria-label="Delete scheme"
+                      title="Delete"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.danger,
+                        padding: 6,
                       }}
                     >
                       <Trash2 size={14} />

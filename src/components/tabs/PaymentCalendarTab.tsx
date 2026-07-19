@@ -414,6 +414,10 @@ export function PaymentCalendarTab({ state }: any) {
               return (
                 <div
                   key={i}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View ${MONTH_NAMES[m.month]} ${m.year}, ${fmtINRFull(m.total)} due`}
+                  aria-pressed={isSelected}
                   style={{
                     flex: "0 0 auto",
                     width: 56,
@@ -424,6 +428,12 @@ export function PaymentCalendarTab({ state }: any) {
                     cursor: "pointer",
                   }}
                   onClick={() => setViewDate({ year: m.year, month: m.month })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setViewDate({ year: m.year, month: m.month });
+                    }
+                  }}
                 >
                   <div
                     style={{
@@ -484,6 +494,8 @@ export function PaymentCalendarTab({ state }: any) {
           >
             <button
               onClick={() => navigateMonth(-1)}
+              aria-label="Previous month"
+              title="Previous month"
               style={{
                 background: "transparent",
                 border: `1.5px solid ${THEME.line}`,
@@ -520,6 +532,8 @@ export function PaymentCalendarTab({ state }: any) {
             </div>
             <button
               onClick={() => navigateMonth(1)}
+              aria-label="Next month"
+              title="Next month"
               style={{
                 background: "transparent",
                 border: `1.5px solid ${THEME.line}`,

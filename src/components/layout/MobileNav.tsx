@@ -102,6 +102,7 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
             <button
               key={t.id}
               onClick={() => navigateTo(t.id)}
+              aria-current={active ? "page" : undefined}
               style={{
                 background: "none",
                 border: "none",
@@ -151,6 +152,7 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
         {/* More / Menu button */}
         <button
           onClick={() => setDrawerOpen(true)}
+          aria-current={!isPrimaryActive ? "page" : undefined}
           style={{
             background: "none",
             border: "none",
@@ -392,6 +394,8 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
                                 navigateTo(item.id);
                               }
                             }}
+                            aria-current={isActive && !hasChildren ? "page" : undefined}
+                            aria-expanded={hasChildren ? isExpanded : undefined}
                             style={{
                               width: "100%",
                               display: "flex",
@@ -493,6 +497,7 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
                                           setDrawerOpen(false);
                                         }
                                       }}
+                                      aria-current={childActive ? "page" : undefined}
                                       style={{
                                         width: "100%",
                                         display: "flex",

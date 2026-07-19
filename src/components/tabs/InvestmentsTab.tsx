@@ -2821,6 +2821,8 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                         size="sm"
                         icon={<Pencil size={12} />}
                         onClick={() => setEditFD(f)}
+                        aria-label={`Edit ${f.bank} fixed deposit`}
+                        title="Edit"
                       />
                       <Button
                         variant="ghost"
@@ -2828,6 +2830,8 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
                         onClick={() => removeItem("fixedDeposits", f.id)}
+                        aria-label={`Delete ${f.bank} fixed deposit`}
+                        title="Delete"
                       />
                     </div>
                   </div>
@@ -3184,6 +3188,8 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                         size="sm"
                         icon={<Pencil size={12} />}
                         onClick={() => setEditRD(r)}
+                        aria-label={`Edit ${r.bank} recurring deposit`}
+                        title="Edit"
                       />
                       <Button
                         variant="ghost"
@@ -3191,6 +3197,8 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
                         onClick={() => removeItem("recurringDeposits", r.id)}
+                        aria-label={`Delete ${r.bank} recurring deposit`}
+                        title="Delete"
                       />
                     </div>
                   </div>
@@ -3472,6 +3480,8 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                         size="sm"
                         icon={<Pencil size={12} />}
                         onClick={() => setEditBond(b)}
+                        aria-label={`Edit ${b.issuer || "bond"}`}
+                        title="Edit"
                       />
                       <Button
                         variant="ghost"
@@ -3479,6 +3489,8 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
                         onClick={() => removeItem("bonds", b.id)}
+                        aria-label={`Delete ${b.issuer || "bond"}`}
+                        title="Delete"
                       />
                     </div>
                   </div>
@@ -4029,6 +4041,15 @@ function MFCsvPanel({ onImport, onClose }: any) {
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         onClick={() => document.getElementById("mf-file-input")?.click()}
+        role="button"
+        tabIndex={0}
+        aria-label="Drop CSV file here or click to browse"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            document.getElementById("mf-file-input")?.click();
+          }
+        }}
       >
         <Upload size={22} color={THEME.accent} style={{ marginBottom: 8 }} />
         <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
@@ -4733,6 +4754,8 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
           icon={<Trash2 size={12} />}
           style={{ color: THEME.rust }}
           onClick={() => removeItem("ppf", p.id)}
+          aria-label={`Delete ${p.institution || p.bank || "PPF"} account`}
+          title="Delete"
         />
       </div>
 
@@ -4908,26 +4931,32 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
                             setEditTx(t);
                             setShowTxModal(true);
                           }}
+                          aria-label={`Edit ${t.type} transaction dated ${t.date}`}
+                          title="Edit"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
                             color: THEME.muted,
-                            padding: 2,
+                            padding: 6,
                             display: "flex",
+                            alignItems: "center",
                           }}
                         >
                           <Pencil size={12} />
                         </button>
                         <button
                           onClick={() => removeTx(t.id)}
+                          aria-label={`Delete ${t.type} transaction dated ${t.date}`}
+                          title="Delete"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
                             color: THEME.rust,
-                            padding: 2,
+                            padding: 6,
                             display: "flex",
+                            alignItems: "center",
                           }}
                         >
                           <Trash2 size={12} />
@@ -5688,6 +5717,8 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
             size="sm"
             icon={<Pencil size={12} />}
             onClick={() => setShowEditAccount(true)}
+            aria-label={`Edit NPS account${n.pran ? ` ${n.pran}` : ""}`}
+            title="Edit"
           />
           <Button
             variant="ghost"
@@ -5695,6 +5726,8 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
             onClick={() => removeItem("nps", n.id)}
+            aria-label={`Delete NPS account${n.pran ? ` ${n.pran}` : ""}`}
+            title="Delete"
           />
         </div>
       </div>
@@ -6008,6 +6041,8 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                                 setEditTx(t);
                                 setShowTxModal(true);
                               }}
+                              aria-label={`Edit transaction dated ${t.date}`}
+                              title="Edit"
                             />
                             <Button
                               variant="ghost"
@@ -6015,6 +6050,8 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                               icon={<Trash2 size={11} />}
                               style={{ color: THEME.rust }}
                               onClick={() => removeTx(t.id)}
+                              aria-label={`Delete transaction dated ${t.date}`}
+                              title="Delete"
                             />
                           </div>
                         </td>
@@ -7394,6 +7431,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             size="sm"
             icon={<Pencil size={12} />}
             onClick={() => setShowEditAccount(true)}
+            aria-label={`Edit EPF account${p.uan || p.accountNumber ? ` ${p.uan || p.accountNumber}` : ""}`}
+            title="Edit"
           />
           <Button
             variant="ghost"
@@ -7401,6 +7440,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
             onClick={() => removeItem("epf", p.id)}
+            aria-label={`Delete EPF account${p.uan || p.accountNumber ? ` ${p.uan || p.accountNumber}` : ""}`}
+            title="Delete"
           />
         </div>
       </div>
@@ -7659,26 +7700,32 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                             setEditEst(est);
                             setShowEstModal(true);
                           }}
+                          aria-label={`Edit ${est.employerName || "employer"} service history`}
+                          title="Edit"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
                             color: THEME.muted,
-                            padding: 4,
+                            padding: 6,
                             display: "flex",
+                            alignItems: "center",
                           }}
                         >
                           <Pencil size={11} />
                         </button>
                         <button
                           onClick={() => removeEst(est.id)}
+                          aria-label={`Delete ${est.employerName || "employer"} service history`}
+                          title="Delete"
                           style={{
                             background: "none",
                             border: "none",
                             cursor: "pointer",
                             color: THEME.rust,
-                            padding: 4,
+                            padding: 6,
                             display: "flex",
+                            alignItems: "center",
                           }}
                         >
                           <Trash2 size={11} />
@@ -8316,26 +8363,32 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                         setTransferPrefill(null);
                                         setShowTxModal(true);
                                       }}
+                                      aria-label={`Edit transaction dated ${t.date}`}
+                                      title="Edit"
                                       style={{
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
                                         color: THEME.muted,
-                                        padding: 2,
+                                        padding: 6,
                                         display: "flex",
+                                        alignItems: "center",
                                       }}
                                     >
                                       <Pencil size={11} />
                                     </button>
                                     <button
                                       onClick={() => removeTx(t.id)}
+                                      aria-label={`Delete transaction dated ${t.date}`}
+                                      title="Delete"
                                       style={{
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
                                         color: THEME.rust,
-                                        padding: 2,
+                                        padding: 6,
                                         display: "flex",
+                                        alignItems: "center",
                                       }}
                                     >
                                       <Trash2 size={11} />
@@ -8533,26 +8586,32 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                   setEditTx(t);
                                   setShowTxModal(true);
                                 }}
+                                aria-label={`Edit transaction dated ${t.date}`}
+                                title="Edit"
                                 style={{
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
                                   color: THEME.muted,
-                                  padding: 2,
+                                  padding: 6,
                                   display: "flex",
+                                  alignItems: "center",
                                 }}
                               >
                                 <Pencil size={12} />
                               </button>
                               <button
                                 onClick={() => removeTx(t.id)}
+                                aria-label={`Delete transaction dated ${t.date}`}
+                                title="Delete"
                                 style={{
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
                                   color: THEME.rust,
-                                  padding: 2,
+                                  padding: 6,
                                   display: "flex",
+                                  alignItems: "center",
                                 }}
                               >
                                 <Trash2 size={12} />
@@ -10493,6 +10552,14 @@ function MFSection({
                                 {/* Main row */}
                                 <tr
                                   onClick={() => toggleLotExpand(gKey)}
+                                  tabIndex={0}
+                                  aria-expanded={isExpanded}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      toggleLotExpand(gKey);
+                                    }
+                                  }}
                                   style={{
                                     cursor: "pointer",
                                     background: isExpanded ? `${THEME.accent}09` : "transparent",
@@ -11361,6 +11428,7 @@ function MFSection({
                                                               e.stopPropagation();
                                                               setSellMF({ ...lot, currentNav: getLiveNav(lot) });
                                                             }}
+                                                            aria-label={`Sell ${lot.fundName || displayName} lot`}
                                                             title="Sell"
                                                           />
                                                           <Button
@@ -11371,6 +11439,7 @@ function MFSection({
                                                               e.stopPropagation();
                                                               setEditMF(lot);
                                                             }}
+                                                            aria-label={`Edit ${lot.fundName || displayName} lot`}
                                                             title="Edit"
                                                           />
                                                           <Button
@@ -11382,6 +11451,7 @@ function MFSection({
                                                               e.stopPropagation();
                                                               removeItem("mutualFunds", lot.id);
                                                             }}
+                                                            aria-label={`Delete ${lot.fundName || displayName} lot`}
                                                             title="Delete"
                                                           />
                                                         </div>
@@ -12965,12 +13035,16 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                         {!d.isAuto && (
                           <button
                             onClick={() => removeItem("dividends", d.id)}
+                            aria-label={`Delete dividend from ${d.symbol || d.fundName || "holding"}`}
+                            title="Delete"
                             style={{
                               background: "transparent",
                               border: "none",
                               cursor: "pointer",
                               color: THEME.muted,
-                              padding: 2,
+                              padding: 6,
+                              display: "flex",
+                              alignItems: "center",
                             }}
                           >
                             <Trash2 size={12} />

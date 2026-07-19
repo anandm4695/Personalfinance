@@ -581,7 +581,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))",
                 gap: 16,
               }}
             >
@@ -835,6 +835,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             size="sm"
                             onClick={() => setModalOut({ open: true, editing: p })}
                             style={{ padding: 6 }}
+                            title="Edit"
+                            aria-label="Edit property"
                           >
                             <Pencil size={14} />
                           </Button>
@@ -843,6 +845,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             size="sm"
                             onClick={() => removeItem("rentalProperties", p.id)}
                             style={{ padding: 6, color: THEME.rust }}
+                            title="Delete"
+                            aria-label="Delete property"
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -1553,12 +1557,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                             editing: r,
                                           })
                                         }
+                                        title="Edit"
+                                        aria-label="Edit receipt"
                                         style={{
                                           background: "none",
                                           border: "none",
                                           cursor: "pointer",
                                           color: THEME.muted,
-                                          padding: 2,
+                                          padding: 6,
                                           display: "flex",
                                         }}
                                       >
@@ -1566,12 +1572,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       </button>
                                       <button
                                         onClick={() => handleRemoveReceipt(p, r.id)}
+                                        title="Delete"
+                                        aria-label="Delete receipt"
                                         style={{
                                           background: "none",
                                           border: "none",
                                           cursor: "pointer",
                                           color: THEME.rust,
-                                          padding: 2,
+                                          padding: 6,
                                           display: "flex",
                                         }}
                                       >
@@ -1720,12 +1728,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     </span>
                                     <button
                                       onClick={() => handleRemoveDepositOut(p, r.id)}
+                                      title="Delete"
+                                      aria-label="Delete deposit receipt"
                                       style={{
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
                                         color: THEME.rust,
-                                        padding: 2,
+                                        padding: 6,
                                         display: "flex",
                                       }}
                                     >
@@ -1814,12 +1824,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                           editing: r,
                                         })
                                       }
+                                      title="Edit"
+                                      aria-label="Edit deduction"
                                       style={{
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
                                         color: THEME.muted,
-                                        padding: 2,
+                                        padding: 6,
                                         display: "flex",
                                       }}
                                     >
@@ -1827,12 +1839,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     </button>
                                     <button
                                       onClick={() => handleRemoveDeduction(p, r.id)}
+                                      title="Delete"
+                                      aria-label="Delete deduction"
                                       style={{
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
                                         color: THEME.rust,
-                                        padding: 2,
+                                        padding: 6,
                                         display: "flex",
                                       }}
                                     >
@@ -1974,7 +1988,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))",
                 gap: 16,
               }}
             >
@@ -2238,6 +2252,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             size="sm"
                             onClick={() => setModalIn({ open: true, editing: p })}
                             style={{ padding: 6 }}
+                            title="Edit"
+                            aria-label="Edit property"
                           >
                             <Pencil size={14} />
                           </Button>
@@ -2246,6 +2262,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             size="sm"
                             onClick={() => removeItem("rentedProperties", p.id)}
                             style={{ padding: 6, color: THEME.rust }}
+                            title="Delete"
+                            aria-label="Delete property"
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -2928,12 +2946,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                             editing: r,
                                           })
                                         }
+                                        title="Edit"
+                                        aria-label="Edit payment"
                                         style={{
                                           background: "none",
                                           border: "none",
                                           cursor: "pointer",
                                           color: THEME.muted,
-                                          padding: 2,
+                                          padding: 6,
                                           display: "flex",
                                         }}
                                       >
@@ -2941,12 +2961,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       </button>
                                       <button
                                         onClick={() => handleRemovePayment(p, r.id)}
+                                        title="Delete"
+                                        aria-label="Delete payment"
                                         style={{
                                           background: "none",
                                           border: "none",
                                           cursor: "pointer",
                                           color: THEME.rust,
-                                          padding: 2,
+                                          padding: 6,
                                           display: "flex",
                                         }}
                                       >
@@ -3101,12 +3123,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                           editing: r,
                                         })
                                       }
+                                      title="Edit"
+                                      aria-label="Edit deposit payment"
                                       style={{
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
                                         color: THEME.muted,
-                                        padding: 2,
+                                        padding: 6,
                                         display: "flex",
                                       }}
                                     >
@@ -3114,12 +3138,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     </button>
                                     <button
                                       onClick={() => handleRemoveDepositIn(p, r.id)}
+                                      title="Delete"
+                                      aria-label="Delete deposit payment"
                                       style={{
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
                                         color: THEME.rust,
-                                        padding: 2,
+                                        padding: 6,
                                         display: "flex",
                                       }}
                                     >

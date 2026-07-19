@@ -305,6 +305,7 @@ export const LoanAmortizationTab = ({ state }) => {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-end" }}>
           <div>
             <label
+              id="loan-source-label"
               style={{
                 fontSize: 11,
                 fontWeight: 800,
@@ -318,6 +319,8 @@ export const LoanAmortizationTab = ({ state }) => {
               Loan Source
             </label>
             <div
+              role="group"
+              aria-labelledby="loan-source-label"
               style={{
                 display: "flex",
                 gap: 6,
@@ -367,6 +370,7 @@ export const LoanAmortizationTab = ({ state }) => {
           {!useCustom && loans.length > 0 && (
             <div style={{ flex: 1, minWidth: 200 }}>
               <label
+                htmlFor="loan-select-active"
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
@@ -380,6 +384,7 @@ export const LoanAmortizationTab = ({ state }) => {
                 Select Active Loan
               </label>
               <select
+                id="loan-select-active"
                 value={selectedLoan || loans[0]?.id || ""}
                 onChange={(e) => setSelectedLoan(e.target.value)}
                 style={{
@@ -407,6 +412,7 @@ export const LoanAmortizationTab = ({ state }) => {
             <>
               <div>
                 <label
+                  htmlFor="loan-custom-principal"
                   style={{
                     fontSize: 11,
                     fontWeight: 800,
@@ -420,6 +426,7 @@ export const LoanAmortizationTab = ({ state }) => {
                   Principal (₹)
                 </label>
                 <input
+                  id="loan-custom-principal"
                   type="number"
                   value={customPrincipal}
                   onChange={(e) => setCustomPrincipal(Number(e.target.value))}
@@ -437,6 +444,7 @@ export const LoanAmortizationTab = ({ state }) => {
               </div>
               <div>
                 <label
+                  htmlFor="loan-custom-rate"
                   style={{
                     fontSize: 11,
                     fontWeight: 800,
@@ -450,6 +458,7 @@ export const LoanAmortizationTab = ({ state }) => {
                   Rate (% p.a.)
                 </label>
                 <input
+                  id="loan-custom-rate"
                   type="number"
                   step="0.1"
                   value={customRate}
@@ -468,6 +477,7 @@ export const LoanAmortizationTab = ({ state }) => {
               </div>
               <div>
                 <label
+                  htmlFor="loan-custom-tenure"
                   style={{
                     fontSize: 11,
                     fontWeight: 800,
@@ -481,6 +491,7 @@ export const LoanAmortizationTab = ({ state }) => {
                   Tenure (months)
                 </label>
                 <input
+                  id="loan-custom-tenure"
                   type="number"
                   value={customTenure}
                   onChange={(e) => setCustomTenure(Number(e.target.value))}
@@ -501,6 +512,7 @@ export const LoanAmortizationTab = ({ state }) => {
 
           <div>
             <label
+              htmlFor="loan-extra-prepayment"
               style={{
                 fontSize: 11,
                 fontWeight: 800,
@@ -514,6 +526,7 @@ export const LoanAmortizationTab = ({ state }) => {
               Extra Prepayment / Month
             </label>
             <input
+              id="loan-extra-prepayment"
               type="number"
               value={extraEMI}
               onChange={(e) => setExtraEMI(Number(e.target.value))}

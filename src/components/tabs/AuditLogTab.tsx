@@ -591,6 +591,7 @@ export const AuditLogTab = ({ session }) => {
           <select
             value={filterAction}
             onChange={(e) => setFilterAction(e.target.value)}
+            aria-label="Filter by action type"
             style={{
               padding: "7px 12px",
               borderRadius: 8,
@@ -614,6 +615,7 @@ export const AuditLogTab = ({ session }) => {
               setDateRange(e.target.value);
               setPage(0);
             }}
+            aria-label="Filter by date range"
             style={{
               padding: "7px 12px",
               borderRadius: 8,
@@ -713,6 +715,15 @@ export const AuditLogTab = ({ session }) => {
                       onClick={() => hasMetadata && setExpandedId(isExpanded ? null : logKey)}
                       onMouseEnter={() => setHoveredId(logKey)}
                       onMouseLeave={() => setHoveredId(null)}
+                      role={hasMetadata ? "button" : undefined}
+                      tabIndex={hasMetadata ? 0 : undefined}
+                      aria-expanded={hasMetadata ? isExpanded : undefined}
+                      onKeyDown={(e) => {
+                        if (hasMetadata && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault();
+                          setExpandedId(isExpanded ? null : logKey);
+                        }
+                      }}
                     >
                       <div
                         style={{

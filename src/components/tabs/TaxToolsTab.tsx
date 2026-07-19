@@ -95,6 +95,7 @@ const FYSelector = ({
     className="form-input"
     value={fy}
     onChange={(e) => setFy(e.target.value)}
+    aria-label="Select financial year"
     style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130, marginBottom: 16 }}
   >
     {fyList.map((f) => (
@@ -603,6 +604,7 @@ const HraReceiptSection = ({ state }) => {
                   <select
                     value={selectedProperty}
                     onChange={(e) => setSelectedProperty(e.target.value)}
+                    aria-label="Select property"
                     style={{
                       width: "100%",
                       padding: "8px 12px",
@@ -767,7 +769,13 @@ const HraReceiptSection = ({ state }) => {
                   {months.length === fyMonths.length ? "Deselect All" : "Select All"}
                 </button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))",
+                  gap: 8,
+                }}
+              >
                 {fyMonths.map((m) => {
                   const isSelected = months.includes(m.key);
                   const rent = selectedProp ? getEffectiveRent(selectedProp, m.key) : 0;
@@ -1213,6 +1221,7 @@ const Form26ASSection = ({ state }) => {
                   <select
                     value={newEntry.section}
                     onChange={(e) => setNewEntry({ ...newEntry, section: e.target.value })}
+                    aria-label="Select section"
                     style={{
                       width: "100%",
                       padding: "7px 10px",

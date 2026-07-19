@@ -204,6 +204,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
               <input
                 type="number"
                 value={goldPrice}
+                aria-label="Gold price per gram override"
                 onChange={(e) => updateGoldPrice(Number(e.target.value))}
                 onBlur={() => setManualPrice(false)}
                 autoFocus
@@ -219,7 +220,16 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
               />
             ) : (
               <span
+                role="button"
+                tabIndex={0}
+                aria-label={`Gold price ${fmtINRFull(goldPrice)} per gram. Click to edit.`}
                 onClick={() => setManualPrice(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setManualPrice(true);
+                  }
+                }}
                 style={{ fontSize: 13, fontWeight: 600, color: "#F59E0B", cursor: "pointer" }}
               >
                 {fmtINRFull(goldPrice)}/g
@@ -402,12 +412,15 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 <div style={{ display: "flex", gap: 4 }}>
                   <button
                     onClick={() => handleEdit(h)}
+                    className="icon-btn"
+                    aria-label="Edit holding"
+                    title="Edit"
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
                       color: THEME.textSecondary,
-                      padding: 4,
+                      padding: 6,
                     }}
                   >
                     <Edit2 size={14} />
@@ -418,12 +431,15 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                         removeItem("goldHoldings", h.id);
                       }
                     }}
+                    className="icon-btn danger"
+                    aria-label="Delete holding"
+                    title="Delete"
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
                       color: "#EF4444",
-                      padding: 4,
+                      padding: 6,
                     }}
                   >
                     <Trash2 size={14} />

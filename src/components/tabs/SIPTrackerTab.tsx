@@ -464,7 +464,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))",
                   gap: 16,
                   marginBottom: sortedCompleted.length > 0 ? 28 : 28,
                 }}
@@ -499,7 +499,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))",
                   gap: 16,
                   marginBottom: 28,
                 }}
@@ -849,6 +849,8 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
             size="sm"
             onClick={onEdit}
             style={{ padding: 6, color: THEME.accent }}
+            title="Edit"
+            aria-label="Edit SIP"
           >
             <Pencil size={13} />
           </Button>
@@ -857,6 +859,8 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
             size="sm"
             onClick={onRemove}
             style={{ padding: 6, color: THEME.rust }}
+            title="Delete"
+            aria-label="Delete SIP"
           >
             <Trash2 size={13} />
           </Button>

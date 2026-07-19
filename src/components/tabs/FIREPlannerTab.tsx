@@ -251,6 +251,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 <input
                   type="number"
                   value={value}
+                  aria-label={label}
                   onChange={(e) => set(Number(e.target.value))}
                   style={{
                     padding: "8px 12px",

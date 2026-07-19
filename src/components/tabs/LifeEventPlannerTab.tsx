@@ -293,12 +293,16 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                   <div style={{ display: "flex", gap: 4 }}>
                     <button
                       onClick={() => handleEdit(e)}
+                      aria-label={`Edit ${e.name}`}
+                      title="Edit"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.muted,
-                        padding: 4,
+                        padding: 6,
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
                       <Edit2 size={14} />
@@ -309,12 +313,16 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                           removeItem("lifeEvents", e.id);
                         }
                       }}
+                      aria-label={`Delete ${e.name}`}
+                      title="Delete"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.rust,
-                        padding: 4,
+                        padding: 6,
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
                       <Trash2 size={14} />
@@ -409,8 +417,17 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
       ) : (
         <EmptyState
           icon={Calendar}
+          gradient="linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)"
+          dotColor="#6366F1"
           title="No Life Events Planned"
           description="Add major financial milestones like child's education, home purchase, wedding, or retirement to see how much you need to save."
+          pills={["Education", "Home Purchase", "Wedding", "Retirement"]}
+          buttonLabel="Add Event"
+          onAdd={() => {
+            setForm({ ...EMPTY_EVENT });
+            setEditingId(null);
+            setShowModal(true);
+          }}
         />
       )}
 

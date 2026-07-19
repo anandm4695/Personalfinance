@@ -489,6 +489,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     </Button>
                     <button
                       onClick={() => setExpanded(isExpanded ? null : b.id)}
+                      aria-label={isExpanded ? "Collapse details" : "Expand details"}
                       style={{
                         background: "none",
                         border: "none",
@@ -500,6 +501,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     </button>
                     <button
                       onClick={() => setModal(b)}
+                      aria-label="Edit bill"
                       style={{
                         background: "none",
                         border: "none",
@@ -514,6 +516,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                         if (window.confirm(`Delete "${b.nickname || b.provider}"?`))
                           removeItem("billPayments", b.id);
                       }}
+                      aria-label="Delete bill"
                       style={{
                         background: "none",
                         border: "none",
@@ -592,6 +595,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                               )}
                               <button
                                 onClick={() => removeItem("billPaymentHistory", h.id)}
+                                aria-label="Delete payment record"
                                 style={{
                                   marginLeft: "auto",
                                   background: "none",

@@ -675,7 +675,7 @@ export function XIRRReportTab({ state }: any) {
                                   width: 32,
                                   height: 32,
                                   borderRadius: 8,
-                                  background: `${row.color}14`,
+                                  background: `color-mix(in srgb, ${row.color} 12%, transparent)`,
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",

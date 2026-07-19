@@ -308,6 +308,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         <select
           value={selectedFY}
           onChange={(e) => setSelectedFY(e.target.value)}
+          aria-label="Select financial year"
           style={{
             padding: "8px 12px",
             borderRadius: 8,

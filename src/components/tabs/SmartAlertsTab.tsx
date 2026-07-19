@@ -511,12 +511,14 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                   </div>
                   <button
                     onClick={() => setDismissed((prev) => new Set([...prev, alert.id]))}
+                    title="Dismiss"
+                    aria-label="Dismiss alert"
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
                       color: THEME.textSecondary,
-                      padding: 4,
+                      padding: 6,
                       flexShrink: 0,
                     }}
                   >

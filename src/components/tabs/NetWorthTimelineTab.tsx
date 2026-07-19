@@ -974,6 +974,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
           {/* Controls: projection Period */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span
+              id="projection-period-label"
               style={{
                 fontSize: 11,
                 fontWeight: 700,
@@ -985,6 +986,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               Projection Period
             </span>
             <select
+              aria-labelledby="projection-period-label"
               value={projectionYears}
               onChange={(e) => setProjectionYears(Number(e.target.value))}
               style={{
@@ -1022,6 +1024,8 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               Growth Scenario
             </span>
             <div
+              role="group"
+              aria-label="Growth Scenario"
               style={{
                 display: "flex",
                 background: "var(--surface-1)",

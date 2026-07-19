@@ -936,6 +936,8 @@ function PropertyCard({
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
           <button
             onClick={() => onEditProperty(property)}
+            aria-label={`Edit ${property.name}`}
+            title="Edit"
             style={{
               background: "color-mix(in srgb, var(--t-muted) 8%, transparent)",
               border: `1.5px solid ${THEME.line}`,
@@ -951,6 +953,8 @@ function PropertyCard({
           </button>
           <button
             onClick={() => onDeleteProperty(property.id)}
+            aria-label={`Delete ${property.name}`}
+            title="Delete"
             style={{
               background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
               border: `1.5px solid color-mix(in srgb, ${THEME.rust} 16%, transparent)`,
@@ -1314,24 +1318,28 @@ function PropertyCard({
                             <td style={{ ...td, whiteSpace: "nowrap" }}>
                               <button
                                 onClick={() => onEditDemand(d)}
+                                aria-label={`Edit demand letter dated ${fmtDate(d.demandDate)}`}
+                                title="Edit"
                                 style={{
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
                                   color: THEME.muted,
-                                  padding: 2,
+                                  padding: 6,
                                 }}
                               >
                                 <Pencil size={12} />
                               </button>
                               <button
                                 onClick={() => onDeleteDemand(d.id)}
+                                aria-label={`Delete demand letter dated ${fmtDate(d.demandDate)}`}
+                                title="Delete"
                                 style={{
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
                                   color: THEME.rust,
-                                  padding: 2,
+                                  padding: 6,
                                 }}
                               >
                                 <Trash2 size={12} />
@@ -1431,24 +1439,28 @@ function PropertyCard({
                             <td style={{ ...td, whiteSpace: "nowrap" }}>
                               <button
                                 onClick={() => onEditPayment(p)}
+                                aria-label={`Edit payment dated ${fmtDate(p.paymentDate)}`}
+                                title="Edit"
                                 style={{
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
                                   color: THEME.muted,
-                                  padding: 2,
+                                  padding: 6,
                                 }}
                               >
                                 <Pencil size={12} />
                               </button>
                               <button
                                 onClick={() => onDeletePayment(p.id)}
+                                aria-label={`Delete payment dated ${fmtDate(p.paymentDate)}`}
+                                title="Delete"
                                 style={{
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
                                   color: THEME.rust,
-                                  padding: 2,
+                                  padding: 6,
                                 }}
                               >
                                 <Trash2 size={12} />

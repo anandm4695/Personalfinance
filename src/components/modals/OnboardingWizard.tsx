@@ -166,11 +166,17 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           </p>
         </div>
 
-        {/* Step indicator */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 32 }}>
+        {/* Step indicator — decorative; the accessible name for progress lives
+            on the wrapper since the dots differ only by size/color. */}
+        <div
+          role="img"
+          aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step].label}`}
+          style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 32 }}
+        >
           {STEPS.map((s) => (
             <div
               key={s.id}
+              aria-hidden="true"
               style={{
                 width: s.id === step ? 32 : 10,
                 height: 10,

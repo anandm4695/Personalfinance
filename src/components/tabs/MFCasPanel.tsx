@@ -644,11 +644,15 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
             style={{
               maxHeight: 250,
               overflowY: "auto",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
               border: `1px solid ${THEME.line}`,
               borderRadius: 8,
             }}
           >
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <table
+              style={{ width: "100%", minWidth: 640, borderCollapse: "collapse", fontSize: 11 }}
+            >
               <thead>
                 <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>

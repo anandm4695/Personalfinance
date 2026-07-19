@@ -584,6 +584,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   }}
                 >
                   <label
+                    htmlFor={`custom-target-${k}`}
                     style={{
                       fontSize: 11.5,
                       color: THEME.muted,
@@ -594,6 +595,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     {k}
                   </label>
                   <input
+                    id={`custom-target-${k}`}
                     type="number"
                     min={0}
                     max={100}

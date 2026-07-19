@@ -1254,7 +1254,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))",
           gap: 20,
           marginBottom: 28,
         }}
@@ -1263,6 +1263,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         <Card style={{ padding: 0, overflow: "hidden" }}>
           <div
             onClick={() => toggleSection("inflows")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleSection("inflows");
+              }
+            }}
+            aria-expanded={expandedSections.inflows}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1465,6 +1474,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         <Card style={{ padding: 0, overflow: "hidden" }}>
           <div
             onClick={() => toggleSection("outflows")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleSection("outflows");
+              }
+            }}
+            aria-expanded={expandedSections.outflows}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1668,6 +1686,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <div
           onClick={() => toggleSection("events")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleSection("events");
+            }
+          }}
+          aria-expanded={expandedSections.events}
           style={{
             display: "flex",
             alignItems: "center",

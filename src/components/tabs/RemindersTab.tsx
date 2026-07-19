@@ -783,6 +783,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                 size="sm"
                 onClick={() => removeItem("reminders", r.id)}
                 style={{ padding: 6, color: THEME.rust }}
+                title="Delete"
+                aria-label="Delete reminder"
               >
                 <Trash2 size={14} />
               </Button>
@@ -1130,6 +1132,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                     onChange={(e) =>
                       updateNotifSettings({ notifStartHour: Number(e.target.value) })
                     }
+                    aria-label="Notification window start hour"
                     style={{
                       padding: "6px 10px",
                       borderRadius: 8,
@@ -1158,6 +1161,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   <select
                     value={notifSettings.notifEndHour ?? 10}
                     onChange={(e) => updateNotifSettings({ notifEndHour: Number(e.target.value) })}
+                    aria-label="Notification window end hour"
                     style={{
                       padding: "6px 10px",
                       borderRadius: 8,
@@ -1603,6 +1607,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                               size="sm"
                               onClick={() => removeItem("reminders", r.id)}
                               style={{ padding: 6, color: THEME.rust }}
+                              title="Delete"
+                              aria-label="Delete reminder"
                             >
                               <Trash2 size={12} />
                             </Button>

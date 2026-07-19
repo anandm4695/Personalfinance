@@ -1812,6 +1812,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
               className="form-input"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
+              aria-label="Sort documents by"
               style={{ width: "auto", minWidth: 130, fontSize: 12 }}
             >
               {DOC_SORT_OPTIONS.map((o) => (

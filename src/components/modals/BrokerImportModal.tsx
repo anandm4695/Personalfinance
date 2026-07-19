@@ -193,6 +193,7 @@ export function BrokerImportModal({
   const [detectedBroker, setDetectedBroker] = useState<string>("");
   const [fileName, setFileName] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
 
   // Step 2 state: column mapping
   const [columnMap, setColumnMap] = useState<Record<MappingKey, number>>({
@@ -214,14 +215,17 @@ export function BrokerImportModal({
   const handleFileUpload = (file: File) => {
     setUploadError("");
     setFileName(file.name);
+    setIsParsing(true);
     const reader = new FileReader();
     reader.onerror = () => {
       setUploadError("Could not read the file. Please try again.");
+      setIsParsing(false);
     };
     reader.onload = (e) => {
       const text = e.target?.result as string;
       if (!text) {
         setUploadError("Could not read file contents.");
+        setIsParsing(false);
         return;
       }
       const lines = text
@@ -230,6 +234,7 @@ export function BrokerImportModal({
         .filter(Boolean);
       if (lines.length < 2) {
         setUploadError("CSV must have a header row and at least one data row.");
+        setIsParsing(false);
         return;
       }
       const headers = parseCSVLine(lines[0]).map((h) => h.replace(/^"|"$/g, ""));
@@ -241,6 +246,7 @@ export function BrokerImportModal({
 
       if (dataRows.length === 0) {
         setUploadError("No valid data rows found in the file.");
+        setIsParsing(false);
         return;
       }
 
@@ -290,6 +296,7 @@ export function BrokerImportModal({
 
       setDetectedBroker(broker);
       setColumnMap(autoMap);
+      setIsParsing(false);
     };
     reader.readAsText(file);
   };
@@ -593,17 +600,31 @@ export function BrokerImportModal({
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 700,
-                cursor: "pointer",
+                cursor: isParsing ? "wait" : "pointer",
+                opacity: isParsing ? 0.7 : 1,
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
                 fontFamily: "inherit",
               }}
               onClick={() => fileInputRef.current?.click()}
+              disabled={isParsing}
             >
               <Upload size={14} />
               {fileName || "Choose CSV File"}
             </button>
+            {isParsing && (
+              <span
+                style={{
+                  marginLeft: 10,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: THEME.muted,
+                }}
+              >
+                Reading file…
+              </span>
+            )}
           </div>
 
           {uploadError && (

@@ -689,9 +689,12 @@ function WishlistModal({
             <button
               key={c}
               onClick={() => setColor(c)}
+              aria-label={`Select color ${c}`}
+              aria-pressed={color === c}
+              title={c}
               style={{
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 borderRadius: "50%",
                 background: c,
                 border: color === c ? `3px solid ${THEME.ink}` : "3px solid transparent",
@@ -2216,6 +2219,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 400 }}>
                   <input
                     placeholder="Search stocks or sectors..."
+                    aria-label="Search stocks or sectors"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     style={{
@@ -2294,6 +2298,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </span>
                 <select
                   value={sortBy}
+                  aria-label="Sort by"
                   onChange={(e) => setSortBy(e.target.value as any)}
                   style={{
                     background: "transparent",
@@ -5098,6 +5103,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 >
                   {/* Watchlist card header */}
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -5107,6 +5115,12 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       userSelect: "none",
                     }}
                     onClick={() => setExpandedWishlistId(isExpanded ? null : wl.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedWishlistId(isExpanded ? null : wl.id);
+                      }
+                    }}
                   >
                     <div
                       style={{
@@ -6955,6 +6969,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
         <input
           style={{ ...input, borderColor: actionDate ? THEME.sage : THEME.rust }}
           type="date"
+          aria-label="Corporate action date"
           value={actionDate}
           onChange={(e) => setActionDate(e.target.value)}
         />

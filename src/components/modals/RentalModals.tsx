@@ -208,14 +208,18 @@ function EscalationTiersSection({
                 <button
                   type="button"
                   onClick={() => setTiers(tiers.filter((_, j) => j !== i))}
+                  aria-label={`Remove Year ${i + 1} tier`}
                   style={{
                     background: "none",
                     border: "none",
                     cursor: "pointer",
                     color: THEME.rust,
-                    padding: 4,
+                    padding: 9,
                     flexShrink: 0,
                     display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 6,
                   }}
                 >
                   <Trash2 size={14} />
@@ -287,14 +291,17 @@ function TenantSplitCard({
         {canDelete && (
           <button
             onClick={onDelete}
+            aria-label={`Remove Tenant ${idx + 1}`}
             style={{
               background: "none",
               border: "none",
               cursor: "pointer",
               color: THEME.rust,
-              padding: 4,
+              padding: 9,
               borderRadius: 6,
               display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <Trash2 size={14} />
@@ -871,7 +878,7 @@ function LandlordSplitCard({
               borderRadius: 99,
               fontSize: 12,
               fontWeight: 700,
-              background: accentColor + "18",
+              background: `color-mix(in srgb, ${accentColor} 15%, transparent)`,
               color: accentColor,
             }}
           >
@@ -880,14 +887,17 @@ function LandlordSplitCard({
           {canDelete && (
             <button
               onClick={onDelete}
+              aria-label={`Remove Landlord ${idx + 1}`}
               style={{
                 background: "none",
                 border: "none",
                 cursor: "pointer",
                 color: THEME.rust,
-                padding: 4,
+                padding: 9,
                 borderRadius: 6,
                 display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <Trash2 size={14} />

@@ -658,6 +658,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
             <input
               type="date"
+              aria-label="Custom range start date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
               style={{
@@ -672,6 +673,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
             <span style={{ color: THEME.muted, fontSize: 12 }}>to</span>
             <input
               type="date"
+              aria-label="Custom range end date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
               style={{

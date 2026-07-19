@@ -415,6 +415,7 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
         <input
           type="file"
           accept=".json"
+          aria-label="Choose backup file to restore"
           onChange={handleImport}
           style={{ fontSize: 14, color: THEME.text }}
         />

@@ -356,7 +356,7 @@ Return only the JSON, no explanation.`;
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
           gap: 12,
           marginBottom: 16,
         }}
@@ -399,7 +399,7 @@ Return only the JSON, no explanation.`;
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
           gap: 12,
           marginBottom: 16,
         }}
@@ -754,6 +754,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                       <button
                         onClick={() => setExpanded(isExpanded ? null : s.id)}
                         className="card-lift"
+                        aria-label={isExpanded ? "Collapse salary slip details" : "Expand salary slip details"}
+                        aria-expanded={isExpanded}
                         style={{
                           background: "var(--surface-0)",
                           border: `1.5px solid ${THEME.line}`,
@@ -773,6 +775,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                       <button
                         onClick={() => setModal(s)}
                         className="card-lift"
+                        title="Edit"
+                        aria-label="Edit salary slip"
                         style={{
                           background: "var(--surface-0)",
                           border: `1.5px solid ${THEME.line}`,
@@ -795,6 +799,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                             removeItem("salarySlips", s.id);
                         }}
                         className="card-lift"
+                        title="Delete"
+                        aria-label="Delete salary slip"
                         style={{
                           background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
                           border: `1.5px solid color-mix(in srgb, ${THEME.rust} 19%, transparent)`,

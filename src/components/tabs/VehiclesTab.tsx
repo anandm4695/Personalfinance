@@ -1369,12 +1369,14 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
         <button
           onClick={onEdit}
           className="card-interactive"
+          title="Edit"
+          aria-label="Edit service record"
           style={{
             background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
             border: "1.5px solid var(--t-line)",
             cursor: "pointer",
             color: "var(--t-muted, var(--text-muted))",
-            padding: 6,
+            padding: 8,
             borderRadius: 8,
             display: "flex",
             alignItems: "center",
@@ -1396,12 +1398,14 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
         <button
           onClick={onDelete}
           className="card-interactive"
+          title="Delete"
+          aria-label="Delete service record"
           style={{
             background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
             border: "1.5px solid var(--t-line)",
             cursor: "pointer",
             color: "var(--t-rust, #ef4444)",
-            padding: 6,
+            padding: 8,
             borderRadius: 8,
             display: "flex",
             alignItems: "center",
@@ -1566,6 +1570,14 @@ function VehicleCard({
       {/* ── Header row ── */}
       <div
         onClick={onToggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
         style={{
           display: "flex",
           alignItems: "center",

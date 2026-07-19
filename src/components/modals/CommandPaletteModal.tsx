@@ -372,6 +372,16 @@ export const CommandPaletteModal = ({
     }
   }, [isOpen]);
 
+  // Body scroll lock while the palette is open — matches the shared Modal's behavior.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     setActiveIdx(0);
   }, [query]);
@@ -390,6 +400,11 @@ export const CommandPaletteModal = ({
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
+      } else if (e.key === "Tab") {
+        // The search input is the only natively focusable element in this
+        // palette (results are click/arrow-key driven), so Tab must not be
+        // allowed to escape to the page behind the overlay.
+        e.preventDefault();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIdx((prev) => (prev + 1) % filtered.length);
@@ -427,6 +442,9 @@ export const CommandPaletteModal = ({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         style={{
           width: "100%",
           maxWidth: 600,
@@ -454,6 +472,11 @@ export const CommandPaletteModal = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="cmd-palette-listbox"
+            aria-autocomplete="list"
+            aria-activedescendant={filtered[activeIdx] ? `cmd-item-${filtered[activeIdx].id}` : undefined}
             style={{
               flex: 1,
               background: "transparent",
@@ -480,7 +503,13 @@ export const CommandPaletteModal = ({
           </div>
         </div>
 
-        <div ref={listRef} style={{ maxHeight: "50vh", overflowY: "auto", padding: 8 }}>
+        <div
+          ref={listRef}
+          id="cmd-palette-listbox"
+          role="listbox"
+          aria-label="Commands"
+          style={{ maxHeight: "50vh", overflowY: "auto", padding: 8 }}
+        >
           {filtered.length === 0 ? (
             <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--t-muted)" }}>
               No commands found for &ldquo;{query}&rdquo;
@@ -489,6 +518,9 @@ export const CommandPaletteModal = ({
             filtered.map((act, idx) => (
               <div
                 key={act.id}
+                id={`cmd-item-${act.id}`}
+                role="option"
+                aria-selected={idx === activeIdx}
                 onClick={() => execute(act)}
                 style={{
                   display: "flex",
