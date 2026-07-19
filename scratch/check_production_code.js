@@ -1,56 +1,46 @@
+const fs = require('fs');
 const https = require('https');
 
 function fetchUrl(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve({ data, headers: res.headers }));
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => resolve(data));
     }).on('error', reject);
   });
 }
 
 async function main() {
   try {
-    const mainPage = await fetchUrl('https://personal-finance-by-anand-mohta.vercel.app/');
-    const html = mainPage.data;
+    const liveUrl = 'https://personal-finance-by-anand-mohta.vercel.app/';
+    console.log(`Fetching index.html from ${liveUrl}...`);
+    const html = await fetchUrl(liveUrl);
     
-    // Find any js links
-    const matches = html.match(/\/assets\/[a-zA-Z0-9_-]+\.js/g);
-    if (!matches) {
-      // Maybe script tag is different? Let's check for any script src.
-      const srcMatches = html.match(/src="([^"]+)"/g);
-      console.log("All script srcs found in HTML:", srcMatches);
-      process.exit(1);
+    // Find JS script assets (Vite compiled builds are usually in /assets/index-*.js)
+    const matches = html.match(/\/assets\/index-[a-zA-Z0-9_-]+\.js/g) || [];
+    console.log("Found JS bundle paths:", matches);
+    
+    if (matches.length === 0) {
+      console.log("No compiled assets found. Trying to parse scripts in HTML...");
+      const inlineScripts = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/gi) || [];
+      console.log(`Found ${inlineScripts.length} inline scripts.`);
+      return;
     }
     
-    console.log("Found JS asset URLs:", matches);
+    const jsUrl = liveUrl + matches[0].substring(1);
+    console.log(`Fetching JS bundle from ${jsUrl}...`);
+    const jsContent = await fetchUrl(jsUrl);
     
-    for (const urlPath of matches) {
-      const jsUrl = 'https://personal-finance-by-anand-mohta.vercel.app' + urlPath;
-      console.log("Fetching JS bundle:", jsUrl);
-      const jsResult = await fetchUrl(jsUrl);
-      const jsCode = jsResult.data;
-      
-      const hasSpotlightContent = jsCode.includes('spotlight-content');
-      console.log(`- file ${urlPath} contains 'spotlight-content':`, hasSpotlightContent);
-      
-      if (hasSpotlightContent) {
-        const hasGridGap = jsCode.includes('gridGap');
-        const hasFlexWrap = jsCode.includes('flexWrap');
-        console.log(`- contains 'gridGap':`, hasGridGap);
-        console.log(`- contains 'flexWrap':`, hasFlexWrap);
-        
-        const index = jsCode.indexOf('spotlight-content');
-        const start = Math.max(0, index - 200);
-        const end = Math.min(jsCode.length, index + 300);
-        console.log("\nJS Snippet:\n", jsCode.substring(start, end));
-        break;
-      }
-    }
+    // Check if the bugfix string is present in the JS bundle
+    const hasAddMonthsClamped = jsContent.includes('addMonthsClamped');
+    console.log("\n--- AUDIT RESULTS ---");
+    console.log("Contains 'addMonthsClamped' (XIRR/RD fix):", hasAddMonthsClamped);
+    console.log("Contains 'rentedProperties' (AI Advisor fix):", jsContent.includes('rentedProperties'));
+    console.log("Contains 'unrecognized \"index\" funds' (Portfolio Overlap fix):", jsContent.includes('unrecognized "index" funds'));
     
-  } catch (e) {
-    console.error("Error:", e);
+  } catch (err) {
+    console.error("Error:", err.message);
   }
 }
 
