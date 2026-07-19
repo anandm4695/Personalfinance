@@ -9008,7 +9008,7 @@ const MF_LOGO_DOMAINS: Record<string, string> = {
   // LIC
   lic: "licmf.com",
   // Navi
-  navi: "navifunds.com",
+  navi: "navi.com",
   // IDFC / Bandhan
   idfc: "bandhanmutual.com",
   bandhan: "bandhanmutual.com",
