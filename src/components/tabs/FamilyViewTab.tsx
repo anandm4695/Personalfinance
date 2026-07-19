@@ -1645,7 +1645,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tickFormatter={(v) => fmtINR(v)}
                     width={64}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                   <Legend
                     wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink, top: 0 }}
                     iconType="circle"
