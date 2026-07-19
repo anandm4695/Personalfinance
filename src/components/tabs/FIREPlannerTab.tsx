@@ -506,6 +506,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             <YAxis
               tickFormatter={(v) => fmtINRFull(v)}
               tick={{ fontSize: 11, fill: THEME.textSecondary }}
+              width={85}
             />
             <Tooltip
               formatter={(v) => fmtINRFull(v)}
@@ -561,6 +562,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               <YAxis
                 tickFormatter={(v) => fmtINRFull(v)}
                 tick={{ fontSize: 11, fill: THEME.textSecondary }}
+                width={85}
               />
               <Tooltip
                 formatter={(v) => fmtINRFull(v)}

@@ -6777,9 +6777,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <YAxis
                           tick={{ fill: THEME.muted, fontSize: 11 }}
                           tickFormatter={fmtINRFull}
+                          width={85}
                         />
                         <Tooltip
                           formatter={(v: any) => fmtINRFull(v)}
+                          cursor={{ stroke: THEME.line }}
                           contentStyle={{
                             background: "var(--surface-0)",
                             border: "1px solid var(--t-line)",
@@ -7140,6 +7142,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         tick={{ fill: THEME.muted, fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
+                        width={85}
                       />
                       <Tooltip
                         formatter={(v: any) => fmtINRFull(v)}
@@ -11324,8 +11327,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           tickLine={false}
                           axisLine={false}
                           tickFormatter={fmtINRFull}
+                          width={85}
                         />
                         <Tooltip
+                          cursor={{ stroke: THEME.line }}
                           contentStyle={{
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,

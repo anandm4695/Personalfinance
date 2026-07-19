@@ -805,8 +805,9 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
+                width={85}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: THEME.line }} />
               <Legend
                 verticalAlign="top"
                 height={36}
@@ -880,8 +881,9 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
+                width={85}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: THEME.line }} />
               <Area
                 type="monotone"
                 dataKey="netWorth"
@@ -918,9 +920,10 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
+                width={70}
                 domain={[(dataMin: number) => Math.min(0, dataMin), (dataMax: number) => Math.max(0, dataMax)]}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
               <Bar
                 dataKey="delta"
                 name="Change"
@@ -1139,8 +1142,9 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
                   tick={{ fontSize: 11, fill: THEME.muted }}
                   axisLine={false}
                   tickLine={false}
+                  width={85}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: THEME.line }} />
                 <Legend
                   verticalAlign="top"
                   height={36}

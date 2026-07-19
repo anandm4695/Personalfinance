@@ -203,6 +203,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) => {
+  const isDark = state.settings?.darkMode ?? false;
   const [forecastMonths, setForecastMonths] = useState<3 | 6>(6);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     inflows: true,
@@ -1190,13 +1191,31 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           >
             <defs>
               <linearGradient id="inflowGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.85} />
-                <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.15} />
+                <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.85} />
+                <stop offset="100%" stopColor={THEME.sage} stopOpacity={isDark ? 0.5 : 0.15} />
               </linearGradient>
               <linearGradient id="outflowGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.85} />
-                <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.15} />
+                <stop offset="0%" stopColor={THEME.rust} stopOpacity={isDark ? 1 : 0.85} />
+                <stop offset="100%" stopColor={THEME.rust} stopOpacity={isDark ? 0.5 : 0.15} />
               </linearGradient>
+              <filter id="cfGlowInflow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow
+                  dx="0"
+                  dy="2"
+                  stdDeviation="4"
+                  floodColor={THEME.sage}
+                  floodOpacity={isDark ? "0.55" : "0.4"}
+                />
+              </filter>
+              <filter id="cfGlowOutflow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow
+                  dx="0"
+                  dy="2"
+                  stdDeviation="4"
+                  floodColor={THEME.rust}
+                  floodOpacity={isDark ? "0.55" : "0.4"}
+                />
+              </filter>
             </defs>
             <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.3} />
             <XAxis
@@ -1210,8 +1229,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) => fmtINRFull(v)}
+              width={70}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
             <Legend
               verticalAlign="top"
               height={36}
@@ -1227,6 +1247,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               strokeWidth={1}
               radius={[4, 4, 0, 0]}
               maxBarSize={40}
+              style={{ filter: "url(#cfGlowInflow)" }}
             />
             <Bar
               dataKey="Outflow"
@@ -1236,6 +1257,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               strokeWidth={1}
               radius={[4, 4, 0, 0]}
               maxBarSize={40}
+              style={{ filter: "url(#cfGlowOutflow)" }}
             />
             <Line
               type="monotone"

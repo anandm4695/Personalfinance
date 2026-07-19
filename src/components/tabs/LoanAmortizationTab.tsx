@@ -745,6 +745,7 @@ export const LoanAmortizationTab = ({ state }) => {
                     tick={{ fontSize: 11, fill: THEME.muted }}
                     axisLine={false}
                     tickLine={false}
+                    width={85}
                   />
                   <Tooltip
                     formatter={(v) => fmtINRFull(v)}
@@ -809,6 +810,7 @@ export const LoanAmortizationTab = ({ state }) => {
                     tick={{ fontSize: 11, fill: THEME.muted }}
                     axisLine={false}
                     tickLine={false}
+                    width={85}
                   />
                   <Tooltip
                     formatter={(v) => fmtINRFull(v)}

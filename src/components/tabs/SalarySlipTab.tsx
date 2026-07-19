@@ -649,6 +649,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                   <Tooltip
                     formatter={(v: number, name: string) => [fmtINRFull(v), name]}
                     content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
+                    cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />
                   <Legend
                     wrapperStyle={{ fontSize: 11, paddingTop: 12 }}

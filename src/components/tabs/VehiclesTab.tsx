@@ -2151,6 +2151,7 @@ function VehicleCard({
                                 borderRadius: 8,
                                 color: "var(--text)",
                               }}
+                              cursor={{ fill: "var(--t-line, var(--border))", opacity: 0.4 }}
                             />
                             <Bar
                               dataKey="amount"
@@ -2213,6 +2214,7 @@ function VehicleCard({
                                 borderRadius: 8,
                                 color: "var(--text)",
                               }}
+                              cursor={{ stroke: "var(--t-line, var(--border))" }}
                             />
                             <Area
                               type="monotone"
