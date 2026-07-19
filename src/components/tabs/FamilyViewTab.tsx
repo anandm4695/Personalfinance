@@ -30,10 +30,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  LabelList,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
 import {
+  fmtINR,
   fmtINRFull,
   rdMaturity,
   calculateEpfBalance,
@@ -1592,7 +1594,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
                   data={comparisonData}
-                  margin={{ top: 10, right: 16, left: 0, bottom: 20 }}
+                  margin={{ top: 28, right: 16, left: 4, bottom: 20 }}
                   barGap={4}
                   barCategoryGap="25%"
                 >
@@ -1623,15 +1625,16 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tick={{ fill: THEME.muted, fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v) => fmtINRFull(v)}
+                    tickFormatter={(v) => fmtINR(v)}
+                    width={64}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend
-                    wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}
+                    wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink, top: 0 }}
                     iconType="circle"
                     iconSize={8}
                     verticalAlign="top"
-                    height={36}
+                    height={24}
                   />
                   {activeMembers.map((m) => (
                     <Bar
@@ -1642,7 +1645,14 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       strokeWidth={1}
                       radius={[4, 4, 0, 0]}
                       maxBarSize={36}
-                    />
+                    >
+                      <LabelList
+                        dataKey={m.name}
+                        position="top"
+                        formatter={(v: number) => (v > 0 ? fmtINR(v) : "")}
+                        style={{ fill: THEME.muted, fontSize: 9, fontWeight: 700 }}
+                      />
+                    </Bar>
                   ))}
                 </BarChart>
               </ResponsiveContainer></div>
