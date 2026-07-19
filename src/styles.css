@@ -2585,6 +2585,11 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
     max-height: 220px;
   }
 
+  /* Asset Class Comparison needs room for rotated labels + bottom legend + value labels */
+  .asset-comparison-chart .recharts-wrapper {
+    max-height: 460px;
+  }
+
   /* ── ALERTS PANEL: position above bottom nav ── */
   .alerts-panel {
     position: fixed !important;
@@ -2787,5 +2792,10 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
   /* ── CHARTS: even shorter ── */
   .recharts-wrapper {
     max-height: 180px;
+  }
+
+  /* Asset Class Comparison needs room for rotated labels + bottom legend + value labels */
+  .asset-comparison-chart .recharts-wrapper {
+    max-height: 460px;
   }
 }

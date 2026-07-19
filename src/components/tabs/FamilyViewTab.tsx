@@ -1590,11 +1590,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             Asset Class Comparison
           </SectionTitle>
           <Card style={{ padding: 24 }}>
-            <div style={{ width: "100%", height: 380 }}>
+            <div className="asset-comparison-chart" style={{ width: "100%", height: 460 }}>
               <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
                   data={comparisonData}
-                  margin={{ top: 28, right: 16, left: 4, bottom: 20 }}
+                  margin={{ top: 16, right: 16, left: 4, bottom: 20 }}
                   barGap={4}
                   barCategoryGap="25%"
                 >
@@ -1636,7 +1636,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tickLine={false}
                     angle={-30}
                     textAnchor="end"
-                    height={50}
+                    height={70}
                   />
                   <YAxis
                     tick={{ fill: THEME.muted, fontSize: 11 }}
@@ -1647,11 +1647,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                   <Legend
-                    wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink, top: 0 }}
+                    wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}
                     iconType="circle"
                     iconSize={8}
-                    verticalAlign="top"
-                    height={24}
                   />
                   {activeMembers.map((m) => (
                     <Bar
