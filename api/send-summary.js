@@ -157,6 +157,22 @@ function sign(n) {
   return n >= 0 ? "+" : "-";
 }
 
+// Rounds each amount's share of `total` to a whole percent using the largest-remainder
+// method, so the results always sum to 100 (unlike rounding each share independently,
+// which can drift to 99 or 101 once there are more than a couple of categories).
+function largestRemainderRound(amounts, total) {
+  if (!(total > 0) || amounts.length === 0) return amounts.map(() => 0);
+  const raw = amounts.map((a) => (a / total) * 100);
+  const floors = raw.map(Math.floor);
+  const remainder = 100 - floors.reduce((s, v) => s + v, 0);
+  const order = raw
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac);
+  const result = [...floors];
+  for (let k = 0; k < remainder && k < order.length; k++) result[order[k].i] += 1;
+  return result;
+}
+
 // ── HTML escaping ──────────────────────────────────────────────────────────────
 // Every user-entered string (issuer names, goal names, category labels, alert
 // text, recipient name, subscription/lender/property labels, etc.) is inserted
@@ -712,6 +728,15 @@ function computeSummary(state) {
   if (savingsPct < 20 && monthIncome > 0)
     alerts.push({ type: "info", msg: `Savings rate this month: ${savingsPct}% — aim for 20%+` });
 
+  // No income/expenses logged this month — surface this explicitly so "no alerts" never
+  // gets read as "verified healthy" when it's really "no data yet" (savings-rate and
+  // emergency-fund checks above are both skipped when monthIncome/monthExpense are 0).
+  if (monthIncome === 0 && monthExpense === 0 && now.getUTCDate() >= 10)
+    alerts.push({
+      type: "info",
+      msg: `No income or expenses logged yet this month (day ${now.getUTCDate()}) — log your transactions to get accurate budget and savings insights.`,
+    });
+
   // Emergency fund check: bank balance < 3 months expenses
   if (monthExpense > 0 && bankTotal < monthExpense * 3)
     alerts.push({
@@ -1023,60 +1048,30 @@ function generateHTML(summary, frequency, recipientName) {
   }
 
   // ── Investment portfolio rows (all types) ─────────────────────────────────
+  // Percentages use largest-remainder rounding so they always sum to 100%
+  // instead of drifting to 99/101 from rounding each category independently.
   rowIdx = 0;
-  const investRows = [
-    mfTotal > 0 &&
-      listRow(
-        "Mutual Funds",
-        `${fmtINR(mfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(mfTotal, investTotal)}%)</span>`
-      ),
-    stockTotal > 0 &&
-      listRow(
-        "Stocks",
-        `${fmtINR(stockTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(stockTotal, investTotal)}%)</span>`
-      ),
-    fdTotal > 0 &&
-      listRow(
-        "Fixed Deposits",
-        `${fmtINR(fdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(fdTotal, investTotal)}%)</span>`
-      ),
-    rdTotal > 0 &&
-      listRow(
-        "Recurring Deposits",
-        `${fmtINR(rdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(rdTotal, investTotal)}%)</span>`
-      ),
-    ppfTotal > 0 &&
-      listRow(
-        "PPF",
-        `${fmtINR(ppfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(ppfTotal, investTotal)}%)</span>`
-      ),
-    npsTotal > 0 &&
-      listRow(
-        "NPS",
-        `${fmtINR(npsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(npsTotal, investTotal)}%)</span>`
-      ),
-    epfTotal > 0 &&
-      listRow(
-        "EPF",
-        `${fmtINR(epfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(epfTotal, investTotal)}%)</span>`
-      ),
-    bondsTotal > 0 &&
-      listRow(
-        "Bonds & Debentures",
-        `${fmtINR(bondsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(bondsTotal, investTotal)}%)</span>`
-      ),
-    licTotal > 0 &&
-      listRow(
-        "LIC / Insurance",
-        `${fmtINR(licTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(licTotal, investTotal)}%)</span>`
-      ),
-    investmentTotalPlans > 0 &&
-      listRow(
-        "Investment Plans",
-        `${fmtINR(investmentTotalPlans)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(investmentTotalPlans, investTotal)}%)</span>`
-      ),
-  ]
-    .filter(Boolean)
+  const investCategories = [
+    { label: "Mutual Funds", amt: mfTotal },
+    { label: "Stocks", amt: stockTotal },
+    { label: "Fixed Deposits", amt: fdTotal },
+    { label: "Recurring Deposits", amt: rdTotal },
+    { label: "PPF", amt: ppfTotal },
+    { label: "NPS", amt: npsTotal },
+    { label: "EPF", amt: epfTotal },
+    { label: "Bonds & Debentures", amt: bondsTotal },
+    { label: "LIC / Insurance", amt: licTotal },
+    { label: "Investment Plans", amt: investmentTotalPlans },
+  ].filter((c) => c.amt > 0);
+  const investPcts = largestRemainderRound(investCategories.map((c) => c.amt), investTotal);
+  const investRows = investCategories
+    .map(
+      (c, i) =>
+        listRow(
+          c.label,
+          `${fmtINR(c.amt)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${investPcts[i]}%)</span>`
+        )
+    )
     .join("");
 
   // ── Other assets rows ─────────────────────────────────────────────────────
@@ -1266,7 +1261,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     activeCardCount > 0
       ? `
-  ${sectionHeader(`Credit Cards (${creditUtil}% utilized)`, "💳")}
+  ${sectionHeader(`Credit Cards (${creditUtil}% of combined limit utilized)`, "💳")}
   <tr><td style="background:${cardBg};">
     ${ccRows}
   </td></tr>`
