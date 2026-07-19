@@ -756,11 +756,15 @@ export const getTaxDueForDashboard = (state: any, annualIncome: number): number 
   }
 };
 
-export const calculateEpfBalance = (e: any): number => {
+export const calculateEpfBalance = (e: any, asOf?: string): number => {
   if (!e) return 0;
   const txs = e.transactions || [];
   const ests = e.establishments || [];
 
+  // hasPassbook is computed from the UNFILTERED transactions — a passbook record must still
+  // resolve via the passbook math (correctly returning 0 for months before its first entry),
+  // rather than falling through to the static e.balance fallback just because every qualifying
+  // transaction happens to be filtered out for an early asOf month.
   const hasPassbook = txs.some(
     (t: any) =>
       t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in"
@@ -770,10 +774,14 @@ export const calculateEpfBalance = (e: any): number => {
     return Number(e.balance || 0);
   }
 
+  const dateFilteredTxs = asOf
+    ? txs.filter((t: any) => !t.date || t.date.slice(0, 7) <= asOf)
+    : txs;
+
   // Establishments whose balance has been transferred out via Form 13 (transfer_in recorded).
   // Their individual transactions must NOT be summed — the transfer_in amount already captures them.
   const transferredOutEstIds = new Set<string>(
-    txs
+    dateFilteredTxs
       .filter((x: any) => x.type === "transfer_in" && x.fromEmployer)
       .map((x: any) => {
         const est = ests.find((estItem: any) => estItem.employerName === x.fromEmployer);
@@ -783,7 +791,9 @@ export const calculateEpfBalance = (e: any): number => {
   );
 
   // activeTxs = everything except transactions explicitly tagged to transferred-out establishments
-  const activeTxs = txs.filter((t: any) => !t.estId || !transferredOutEstIds.has(t.estId));
+  const activeTxs = dateFilteredTxs.filter(
+    (t: any) => !t.estId || !transferredOutEstIds.has(t.estId)
+  );
 
   const byType = (type: string) =>
     activeTxs
@@ -791,7 +801,7 @@ export const calculateEpfBalance = (e: any): number => {
       .reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const monthlyRows = activeTxs.filter((x: any) => x.type === "monthly_contribution");
   const interestRows = activeTxs.filter((x: any) => x.type === "interest_credit");
-  const transferRows = txs.filter((x: any) => x.type === "transfer_in"); // all txs — all transfer_ins count
+  const transferRows = dateFilteredTxs.filter((x: any) => x.type === "transfer_in"); // all date-eligible txs — all transfer_ins count
 
   const totalEmployee =
     byType("employee_contribution") +

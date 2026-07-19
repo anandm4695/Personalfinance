@@ -49,7 +49,9 @@ import {
   rdMaturity,
   getEffectiveRent,
   calculateEpfBalance,
+  today,
 } from "../../utils/finance";
+import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { getCurrentFY } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -1590,32 +1592,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     { id: "habits", label: "Habits & Rewards", icon: Flame },
   ];
 
+  // Reconstructs net worth for each past month from every asset's own dated records
+  // (buy dates, ledger entries, open/start dates, etc.) instead of reading frozen
+  // monthly snapshots — so backdated entries move the correct month on the chart,
+  // not just today's. See computeNetWorthAsOf for the per-category tiering/limitations.
   const netWorthTrend = useMemo(() => {
-    if (activeProfile !== "all") {
-      if (metrics.netWorth <= 0) return [];
-      const now = new Date();
-      const label = now.toLocaleString("en-IN", { month: "short", year: "2-digit" });
-      const todayYM = now.toISOString().slice(0, 7);
-      return [{ month: label, ym: todayYM, value: metrics.netWorth }];
-    }
-    const hist = [...(state.netWorthHistory || [])].sort((a: any, b: any) =>
-      a.month.localeCompare(b.month)
-    );
-    const points = hist.map((h: any) => {
-      const [yr, mo] = h.month.split("-");
+    const todayYm = today().slice(0, 7);
+    const startYm = getEarliestNetWorthMonth(state);
+    const points: { month: string; ym: string; value: number }[] = [];
+    let cursor = startYm;
+    while (cursor <= todayYm) {
+      const [yr, mo] = cursor.split("-");
       const d = new Date(Number(yr), Number(mo) - 1, 1);
       const label = d.toLocaleString("en-IN", { month: "short", year: "2-digit" });
-      return { month: label, ym: h.month, value: h.netWorth };
-    });
-    const todayYM = new Date().toISOString().slice(0, 7);
-    const lastYM = points.length > 0 ? points[points.length - 1].ym : "";
-    if (lastYM !== todayYM && metrics.netWorth > 0) {
-      const now = new Date();
-      const label = now.toLocaleString("en-IN", { month: "short", year: "2-digit" });
-      points.push({ month: label, ym: todayYM, value: metrics.netWorth });
+      const { netWorth } = computeNetWorthAsOf(state, cursor, marketData);
+      points.push({ month: label, ym: cursor, value: netWorth });
+      cursor = nextYm(cursor);
     }
     return points;
-  }, [state.netWorthHistory, metrics.netWorth, activeProfile]);
+  }, [state, marketData]);
 
   const filteredNetWorthTrend = useMemo(() => {
     if (trendPeriod === "All") return netWorthTrend;

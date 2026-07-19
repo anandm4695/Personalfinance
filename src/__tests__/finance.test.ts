@@ -723,6 +723,46 @@ describe("calculateEpfBalance", () => {
     // total = 18200
     expect(calculateEpfBalance(epf)).toBe(18200);
   });
+
+  it("asOf param: no-arg call is unaffected (backward compatible)", () => {
+    const epf = {
+      transactions: [
+        { type: "monthly_contribution", date: "2026-01-15", employeeShare: 5000, employerShare: 3000, pensionShare: 1000 },
+      ],
+      establishments: [],
+    };
+    expect(calculateEpfBalance(epf)).toBe(calculateEpfBalance(epf, undefined));
+    expect(calculateEpfBalance(epf)).toBe(9000);
+  });
+
+  it("asOf param: excludes contributions dated after the cutoff month", () => {
+    const epf = {
+      transactions: [
+        { type: "monthly_contribution", date: "2026-01-15", employeeShare: 5000, employerShare: 3000, pensionShare: 1000 },
+        { type: "monthly_contribution", date: "2026-03-15", employeeShare: 5000, employerShare: 3000, pensionShare: 1000 },
+      ],
+      establishments: [],
+    };
+    expect(calculateEpfBalance(epf, "2026-01")).toBe(9000);
+    expect(calculateEpfBalance(epf, "2026-03")).toBe(18000);
+  });
+
+  it("asOf param: a passbook record correctly returns 0 for months before its first transaction, instead of falling back to e.balance", () => {
+    const epf = {
+      balance: 999999, // must NOT be used — hasPassbook is true, so this is dead weight
+      transactions: [
+        { type: "monthly_contribution", date: "2026-06-15", employeeShare: 5000, employerShare: 3000, pensionShare: 1000 },
+      ],
+      establishments: [],
+    };
+    expect(calculateEpfBalance(epf, "2026-01")).toBe(0);
+  });
+
+  it("asOf param: a no-passbook record ignores asOf and always returns the static balance field", () => {
+    const epf = { balance: 250000, transactions: [] };
+    expect(calculateEpfBalance(epf, "2020-01")).toBe(250000);
+    expect(calculateEpfBalance(epf, "2026-01")).toBe(250000);
+  });
 });
 
 // ---------------------------------------------------------------------------

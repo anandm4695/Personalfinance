@@ -1311,66 +1311,6 @@ function FinanceDashboard() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showProfileMenu]);
 
-  // Auto-snapshot: always refresh the current month's net worth on every load so it stays accurate.
-  // Uses metricsNwRef (which mirrors metrics.netWorth from the dashboard) so the stored snapshot
-  // is ALWAYS identical to what the dashboard headline shows — no separate recomputation that can diverge.
-  useEffect(() => {
-    if (!loaded) return;
-    const nw = metricsNwRef.current;
-    if (!nw) return; // Safety: don't snapshot before metrics have computed
-    const nowSnap = new Date();
-    const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
-    setState((s) => {
-      const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
-      const cashVal = (s.bankAccounts || []).reduce(
-        (sum: number, b: any) => sum + (Number(b.balance) || 0),
-        0
-      );
-      const stockVal = (s.stocks || []).reduce(
-        (sum: number, st: any) =>
-          sum + (Number(st.qty) || 0) * (Number(st.currentPrice) || Number(st.avgPrice) || 0),
-        0
-      );
-      const mfVal = (s.mutualFunds || []).reduce(
-        (sum: number, m: any) =>
-          sum + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0),
-        0
-      );
-      const fdVal = (s.fixedDeposits || []).reduce(
-        (sum: number, f: any) => sum + (Number(f.principal) || 0),
-        0
-      );
-      const realEstateVal = (s.realEstateProperties || [])
-        .filter((p: any) => p.status !== "sold")
-        .reduce((sum: number, p: any) => sum + Number(p.currentValuation || p.valuation || 0), 0);
-      const vehiclesVal = (s.vehicles || []).reduce(
-        (sum: number, v: any) => sum + Number(v.currentValue || v.value || 0),
-        0
-      );
-      const breakdown = {
-        cash: cashVal,
-        equity: stockVal + mfVal,
-        debt: fdVal,
-        realEstate: realEstateVal,
-        vehicles: vehiclesVal,
-        liabilities: 0,
-      };
-      const newHistory = [...history, { month: ym, netWorth: nw, ...breakdown }].slice(-36);
-      const uid2 = session?.user?.id;
-      if (uid2 && uid2 !== "offline-user") {
-        supabase
-          .from("net_worth_history")
-          .upsert(
-            { user_id: uid2, month: ym, net_worth: nw, ...breakdown },
-            { onConflict: "user_id,month" }
-          )
-          .then(() => {});
-      }
-      return { ...s, netWorthHistory: newHistory };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded]); // intentionally omit other deps — runs once after initial load
-
   // One-time backfill: historical netWorthHistory snapshots were saved without
   // investmentPlans (investment schemes). This adds the missing value to every
   // past month using transaction dates where available, persists to Supabase,
@@ -1616,6 +1556,76 @@ function FinanceDashboard() {
   // Ref so the auto-snapshot effect always reads the same net worth the dashboard shows.
   const metricsNwRef = useRef(0);
   metricsNwRef.current = metrics.netWorth;
+
+  // Auto-snapshot: keep the current month's net worth entry live for as long as the session is
+  // open, not just once on page load. Previously this only ran once per full page load, so if you
+  // added/edited an asset mid-session, the Net Worth Growth chart's current-month point stayed
+  // stale until you refreshed the browser tab. Debounced so rapid edits don't spam Supabase.
+  const lastSnapshotNwRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!loaded) return;
+    const nw = metrics.netWorth;
+    if (!nw) return; // Safety: don't snapshot before metrics have computed
+    if (lastSnapshotNwRef.current === nw) return; // no real change since last snapshot
+
+    const timer = setTimeout(() => {
+      lastSnapshotNwRef.current = nw;
+      const nowSnap = new Date();
+      const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
+      setState((s) => {
+        const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
+        const cashVal = (s.bankAccounts || []).reduce(
+          (sum: number, b: any) => sum + (Number(b.balance) || 0),
+          0
+        );
+        const stockVal = (s.stocks || []).reduce(
+          (sum: number, st: any) =>
+            sum + (Number(st.qty) || 0) * (Number(st.currentPrice) || Number(st.avgPrice) || 0),
+          0
+        );
+        const mfVal = (s.mutualFunds || []).reduce(
+          (sum: number, m: any) =>
+            sum + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0),
+          0
+        );
+        const fdVal = (s.fixedDeposits || []).reduce(
+          (sum: number, f: any) => sum + (Number(f.principal) || 0),
+          0
+        );
+        const realEstateVal = (s.realEstateProperties || [])
+          .filter((p: any) => p.status !== "sold")
+          .reduce(
+            (sum: number, p: any) => sum + Number(p.currentValuation || p.valuation || 0),
+            0
+          );
+        const vehiclesVal = (s.vehicles || []).reduce(
+          (sum: number, v: any) => sum + Number(v.currentValue || v.value || 0),
+          0
+        );
+        const breakdown = {
+          cash: cashVal,
+          equity: stockVal + mfVal,
+          debt: fdVal,
+          realEstate: realEstateVal,
+          vehicles: vehiclesVal,
+          liabilities: 0,
+        };
+        const newHistory = [...history, { month: ym, netWorth: nw, ...breakdown }].slice(-36);
+        const uid2 = session?.user?.id;
+        if (uid2 && uid2 !== "offline-user") {
+          supabase
+            .from("net_worth_history")
+            .upsert(
+              { user_id: uid2, month: ym, net_worth: nw, ...breakdown },
+              { onConflict: "user_id,month" }
+            )
+            .then(() => {});
+        }
+        return { ...s, netWorthHistory: newHistory };
+      });
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [loaded, metrics.netWorth, session]);
 
   // ================== ALERTS (extracted to useAlerts) ==================
   const alerts = useAlerts(state, metrics, marketData);

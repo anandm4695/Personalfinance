@@ -124,3 +124,75 @@ describe("AnalyticsTab 80C tracker", () => {
     expect(remainingIdx.parentElement?.textContent).not.toContain("₹1,50,000");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Net Worth Growth chart — backdated entries must move the month they're
+// dated for, not just today's snapshot (previously read from frozen
+// state.netWorthHistory snapshots; now reconstructed via computeNetWorthAsOf).
+// ---------------------------------------------------------------------------
+function ymMonthsAgo(n: number): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function dateMonthsAgo(n: number): string {
+  return `${ymMonthsAgo(n)}-15`;
+}
+
+describe("AnalyticsTab Net Worth Growth chart", () => {
+  it("reflects a backdated Fixed Deposit starting at its own month, not just today", () => {
+    // Flat ₹1,00,000 baseline (bank cash, no date data) for the whole default 12-month
+    // lookback window, plus a ₹50,000 FD dated 3 months ago. Default trend period is "6M",
+    // which spans (today-5) .. today — the FD's start month falls inside that window, so
+    // the growth % over that window should be exactly 50%, not 0% (which is what the old
+    // frozen-snapshot code would have shown, since only today's snapshot would ever move).
+    const state = emptyState({
+      bankAccounts: [{ id: "b1", balance: 100000 }],
+      fixedDeposits: [{ id: "f1", principal: 50000, startDate: dateMonthsAgo(3) }],
+    });
+
+    render(<Harness state={state} />);
+    fireEvent.click(screen.getByText("Trends"));
+
+    // "Net Worth" also labels an always-visible header tile elsewhere on the page —
+    // find the one inside the Trends KPI strip, identified by its delta chip showing a %.
+    const netWorthCard = screen
+      .getAllByText("Net Worth")
+      .map((el) => el.parentElement?.parentElement)
+      .find((card) => card?.textContent?.includes("%"));
+    expect(netWorthCard?.textContent).toContain("50.0%");
+  });
+
+  it("still produces a multi-point trend for a non-'all' profile filter (no collapsed single-point special case)", () => {
+    const state = emptyState({
+      bankAccounts: [{ id: "b1", balance: 100000, owner: "self" }],
+      fixedDeposits: [{ id: "f1", principal: 50000, startDate: dateMonthsAgo(3), owner: "self" }],
+    });
+
+    function ProfileHarness() {
+      const { filteredState, metrics, assetBreakdown, trendData } = useMetrics(state, "self", {});
+      return (
+        <AnalyticsTab
+          state={filteredState}
+          metrics={metrics}
+          assetBreakdown={assetBreakdown}
+          trendData={trendData}
+          setState={() => {}}
+          activeProfile="self"
+        />
+      );
+    }
+
+    render(<ProfileHarness />);
+    fireEvent.click(screen.getByText("Trends"));
+
+    // A real multi-month trend produces a delta %; the old single-point special case for
+    // non-"all" profiles rendered no delta chip at all for this metric.
+    const netWorthCard = screen
+      .getAllByText("Net Worth")
+      .map((el) => el.parentElement?.parentElement)
+      .find((card) => card?.textContent?.includes("50.0%"));
+    expect(netWorthCard).toBeTruthy();
+  });
+});
