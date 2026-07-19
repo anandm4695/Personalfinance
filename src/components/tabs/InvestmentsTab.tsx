@@ -11181,7 +11181,22 @@ function MFSection({
                                               )}
                                             </div>
                                           </div>
-                                          <div style={{ overflowX: "auto" as const }}>
+                                          <div
+                                            style={{
+                                              background: "var(--surface-0)",
+                                              border: `1.5px solid ${THEME.line}`,
+                                              borderRadius: 12,
+                                              overflow: "hidden",
+                                            }}
+                                          >
+                                          <div
+                                            style={{
+                                              maxHeight: 420,
+                                              overflowY: "auto",
+                                              overflowX: "auto" as const,
+                                              padding: "0 10px 10px",
+                                            }}
+                                          >
                                           <table
                                             style={{
                                               width: "100%",
@@ -11204,10 +11219,13 @@ function MFSection({
                                                     key={h || "act"}
                                                     style={{
                                                       ...mfTh,
-                                                      background: "transparent",
+                                                      background: "var(--surface-0)",
                                                       borderBottom: `1.5px solid ${THEME.line}`,
-                                                      padding: "4px 8px",
+                                                      padding: "10px 8px 8px",
                                                       textAlign: i === 0 ? "left" : "right",
+                                                      position: "sticky",
+                                                      top: 0,
+                                                      zIndex: 1,
                                                     }}
                                                   >
                                                     {h}
@@ -11461,6 +11479,7 @@ function MFSection({
                                                 })}
                                             </tbody>
                                           </table>
+                                          </div>
                                           </div>
                                         </div>
                                       </div>
