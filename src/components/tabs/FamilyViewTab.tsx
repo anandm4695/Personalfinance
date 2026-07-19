@@ -1600,10 +1600,27 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 >
                   <defs>
                     {activeMembers.map((m) => (
-                      <linearGradient id={`gBar-${m.id}`} key={m.id} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={m.color} stopOpacity={0.9} />
-                        <stop offset="100%" stopColor={m.color} stopOpacity={0.25} />
-                      </linearGradient>
+                      <React.Fragment key={m.id}>
+                        <linearGradient id={`gBar-${m.id}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={m.color} stopOpacity={dark ? 1 : 0.9} />
+                          <stop offset="100%" stopColor={m.color} stopOpacity={dark ? 0.55 : 0.25} />
+                        </linearGradient>
+                        <filter
+                          id={`glowBar-${m.id}`}
+                          x="-20%"
+                          y="-20%"
+                          width="140%"
+                          height="140%"
+                        >
+                          <feDropShadow
+                            dx="0"
+                            dy="2"
+                            stdDeviation="4"
+                            floodColor={m.color}
+                            floodOpacity={dark ? "0.55" : "0.4"}
+                          />
+                        </filter>
+                      </React.Fragment>
                     ))}
                   </defs>
                   <CartesianGrid
@@ -1645,6 +1662,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       strokeWidth={1}
                       radius={[4, 4, 0, 0]}
                       maxBarSize={36}
+                      style={{ filter: `url(#glowBar-${m.id})` }}
                     >
                       <LabelList
                         dataKey={m.name}
