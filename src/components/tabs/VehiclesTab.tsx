@@ -472,6 +472,40 @@ const complianceStatus = (expiry: string): ComplianceStatus => {
   return { label: "Valid", color: THEME.sage, icon: "ok" };
 };
 
+// Next-service reminder status — considers whichever of date/odometer is set,
+// and whichever is more urgent wins the badge color.
+const serviceDueStatus = (
+  dueDate: string,
+  dueOdo: number,
+  currentOdo: number
+): ComplianceStatus => {
+  let daysLeft: number | null = null;
+  if (dueDate) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const dueTime = new Date(dueDate + "T00:00:00").getTime();
+    const todayTime = new Date(todayStr + "T00:00:00").getTime();
+    daysLeft = Math.ceil((dueTime - todayTime) / 86400000);
+  }
+  let kmLeft: number | null = null;
+  if (dueOdo > 0 && currentOdo > 0) {
+    kmLeft = dueOdo - currentOdo;
+  }
+  if (daysLeft === null && kmLeft === null) return null;
+
+  const parts: string[] = [];
+  if (daysLeft !== null) parts.push(`${Math.abs(daysLeft)}d`);
+  if (kmLeft !== null) parts.push(`${Math.abs(kmLeft).toLocaleString("en-IN")} km`);
+  const joined = parts.join(" / ");
+
+  const overdue = (daysLeft !== null && daysLeft < 0) || (kmLeft !== null && kmLeft < 0);
+  if (overdue) return { label: `Overdue by ${joined}`, color: THEME.rust, icon: "alert" };
+
+  const dueSoon = (daysLeft !== null && daysLeft <= 14) || (kmLeft !== null && kmLeft <= 500);
+  if (dueSoon) return { label: `Due in ${joined}`, color: THEME.gold, icon: "warn" };
+
+  return { label: `${joined} left`, color: THEME.sage, icon: "ok" };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared field input style — matches app's input styling
 // ─────────────────────────────────────────────────────────────────────────────
@@ -493,8 +527,7 @@ const inp: React.CSSProperties = {
 // ComplianceBadge
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ComplianceBadge({ expiry, tag }: { expiry: string; tag: string }) {
-  const s = complianceStatus(expiry);
+function StatusBadge({ status: s, tag }: { status: ComplianceStatus; tag: string }) {
   if (!s) return null;
   const Icon = s.icon === "ok" ? CheckCircle : s.icon === "warn" ? Clock : AlertTriangle;
   return (
@@ -519,6 +552,24 @@ function ComplianceBadge({ expiry, tag }: { expiry: string; tag: string }) {
       <Icon size={11} />
       {tag}: {s.label}
     </span>
+  );
+}
+
+function ComplianceBadge({ expiry, tag }: { expiry: string; tag: string }) {
+  return <StatusBadge status={complianceStatus(expiry)} tag={tag} />;
+}
+
+function ServiceDueBadge({
+  dueDate,
+  dueOdo,
+  currentOdo,
+}: {
+  dueDate: string;
+  dueOdo: number;
+  currentOdo: number;
+}) {
+  return (
+    <StatusBadge status={serviceDueStatus(dueDate, dueOdo, currentOdo)} tag="Next Service" />
   );
 }
 
@@ -565,6 +616,8 @@ const EMPTY_VEHICLE = {
   currentValue: "",
   insuranceExpiry: "",
   pucExpiry: "",
+  nextServiceDueDate: "",
+  nextServiceDueOdometer: "",
   photoUrl: "",
   rcDocumentUrl: "",
   insurancePolicyUrl: "",
@@ -650,6 +703,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
       purchasePrice: Number(f.purchasePrice) || 0,
       currentValue: Number(f.currentValue) || 0,
       year: Number(f.year) || new Date().getFullYear(),
+      nextServiceDueOdometer: Number(f.nextServiceDueOdometer) || 0,
       serviceHistory: existing?.serviceHistory || [],
     });
   };
@@ -1052,6 +1106,29 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         </Field>
       </div>
 
+      {/* Service Reminder */}
+      <ModalSection title="Next Service Reminder" />
+
+      <div style={g2}>
+        <Field label="Next Service Due Date">
+          <input
+            style={inp}
+            type="date"
+            value={f.nextServiceDueDate}
+            onChange={(e) => set("nextServiceDueDate", e.target.value)}
+          />
+        </Field>
+        <Field label="Next Service Due (KM)">
+          <input
+            style={inp}
+            type="number"
+            value={f.nextServiceDueOdometer}
+            onChange={(e) => set("nextServiceDueOdometer", e.target.value)}
+            placeholder="e.g. 15000"
+          />
+        </Field>
+      </div>
+
       {/* Documents */}
       <ModalSection title="Document Links (PDF/Drive URL)" />
 
@@ -1131,7 +1208,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 // ServiceModal — Add / Edit service record
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ServiceModal({ existing, vehicleName, onClose, onSave }: any) {
+function ServiceModal({ existing, vehicleName, currentReminder, onClose, onSave }: any) {
   const isEdit = !!existing;
   const [f, setF] = useState<any>(
     existing
@@ -1146,16 +1223,22 @@ function ServiceModal({ existing, vehicleName, onClose, onSave }: any) {
           notes: "",
         }
   );
+  const [nextDueDate, setNextDueDate] = useState("");
+  const [nextDueOdo, setNextDueOdo] = useState("");
 
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
 
   const handleSave = () => {
     if (!f.date || !f.type) return;
     onSave({
-      ...f,
-      id: existing?.id || uid(),
-      cost: Number(f.cost) || 0,
-      odometer: Number(f.odometer) || 0,
+      rec: {
+        ...f,
+        id: existing?.id || uid(),
+        cost: Number(f.cost) || 0,
+        odometer: Number(f.odometer) || 0,
+      },
+      nextServiceDueDate: nextDueDate || undefined,
+      nextServiceDueOdometer: nextDueOdo ? Number(nextDueOdo) : undefined,
     });
   };
 
@@ -1238,6 +1321,44 @@ function ServiceModal({ existing, vehicleName, onClose, onSave }: any) {
             value={f.odometer}
             onChange={(e) => set("odometer", e.target.value)}
             placeholder="0"
+          />
+        </Field>
+      </div>
+
+      <ModalSection title="Next Service Reminder (optional)" />
+
+      {currentReminder && (currentReminder.date || currentReminder.odometer) && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--t-muted, var(--text-muted))",
+            marginBottom: 10,
+          }}
+        >
+          Current reminder:{" "}
+          {currentReminder.date ? fmtDate(currentReminder.date) : "—"}
+          {currentReminder.odometer
+            ? ` · ${Number(currentReminder.odometer).toLocaleString("en-IN")} km`
+            : ""}
+        </div>
+      )}
+
+      <div style={g2}>
+        <Field label="Next Due Date">
+          <input
+            style={inp}
+            type="date"
+            value={nextDueDate}
+            onChange={(e) => setNextDueDate(e.target.value)}
+          />
+        </Field>
+        <Field label="Next Due (KM)">
+          <input
+            style={inp}
+            type="number"
+            value={nextDueOdo}
+            onChange={(e) => setNextDueOdo(e.target.value)}
+            placeholder="e.g. 20000"
           />
         </Field>
       </div>
@@ -1503,6 +1624,12 @@ function VehicleCard({
       ? Math.round(((vehicle.currentValue - vehicle.purchasePrice) / vehicle.purchasePrice) * 100)
       : null;
 
+  const serviceDueStat = serviceDueStatus(
+    vehicle.nextServiceDueDate,
+    Number(vehicle.nextServiceDueOdometer || 0),
+    latestOdo
+  );
+
   const SPEC_FIELDS = [
     { key: "Owner", label: "Owner", val: ownerName, icon: User, color: "#3b82f6" },
     {
@@ -1541,6 +1668,20 @@ function VehicleCard({
       icon: Activity,
       color: "#06b6d4",
       expiry: vehicle.pucExpiry,
+    },
+    {
+      key: "Next Service Due",
+      label: "Next Service Due",
+      val: (() => {
+        const parts: string[] = [];
+        if (vehicle.nextServiceDueDate) parts.push(fmtDate(vehicle.nextServiceDueDate));
+        if (vehicle.nextServiceDueOdometer)
+          parts.push(`${Number(vehicle.nextServiceDueOdometer).toLocaleString("en-IN")} km`);
+        return parts.length ? parts.join(" · ") : "—";
+      })(),
+      icon: Wrench,
+      color: "#f59e0b",
+      status: serviceDueStat,
     },
     {
       key: "Chassis No.",
@@ -1638,12 +1779,19 @@ function VehicleCard({
           </div>
 
           {/* Compliance badges */}
-          {(vehicle.insuranceExpiry || vehicle.pucExpiry) && (
+          {(vehicle.insuranceExpiry || vehicle.pucExpiry || serviceDueStat) && (
             <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
               {vehicle.insuranceExpiry && (
                 <ComplianceBadge expiry={vehicle.insuranceExpiry} tag="Insurance" />
               )}
               {vehicle.pucExpiry && <ComplianceBadge expiry={vehicle.pucExpiry} tag="PUC" />}
+              {serviceDueStat && (
+                <ServiceDueBadge
+                  dueDate={vehicle.nextServiceDueDate}
+                  dueOdo={Number(vehicle.nextServiceDueOdometer || 0)}
+                  currentOdo={latestOdo}
+                />
+              )}
             </div>
           )}
         </div>
@@ -1780,7 +1928,8 @@ function VehicleCard({
             >
               {SPEC_FIELDS.map((item, idx) => {
                 const Icon = item.icon;
-                const status = item.expiry ? complianceStatus(item.expiry) : null;
+                const status =
+                  "status" in item ? item.status : item.expiry ? complianceStatus(item.expiry) : null;
                 return (
                   <div
                     key={idx}
@@ -2497,6 +2646,16 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
       if (ins && ins.icon !== "ok") list.push(`${v.make} ${v.model}: Insurance ${ins.label}`);
       const puc = complianceStatus(v.pucExpiry);
       if (puc && puc.icon !== "ok") list.push(`${v.make} ${v.model}: PUC ${puc.label}`);
+      const latestOdo = (v.serviceHistory || []).reduce(
+        (max: number, r: any) => Math.max(max, Number(r.odometer || 0)),
+        0
+      );
+      const svc = serviceDueStatus(
+        v.nextServiceDueDate,
+        Number(v.nextServiceDueOdometer || 0),
+        latestOdo
+      );
+      if (svc && svc.icon !== "ok") list.push(`${v.make} ${v.model}: Service ${svc.label}`);
     });
     return list;
   }, [vehicles]);
@@ -2517,14 +2676,17 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
     if (expandedId === id) setExpandedId(null);
   };
 
-  const handleSaveService = (rec: any) => {
+  const handleSaveService = ({ rec, nextServiceDueDate, nextServiceDueOdometer }: any) => {
     const vehicle = vehicles.find((v) => v.id === serviceModal.vehicleId);
     if (!vehicle) return;
     const oldHistory: any[] = vehicle.serviceHistory || [];
     const newHistory = serviceModal.existing
       ? oldHistory.map((r) => (r.id === rec.id ? rec : r))
       : [...oldHistory, rec];
-    updateItem("vehicles", vehicle.id, { ...vehicle, serviceHistory: newHistory });
+    const updates: any = { ...vehicle, serviceHistory: newHistory };
+    if (nextServiceDueDate) updates.nextServiceDueDate = nextServiceDueDate;
+    if (nextServiceDueOdometer) updates.nextServiceDueOdometer = nextServiceDueOdometer;
+    updateItem("vehicles", vehicle.id, updates);
     setServiceModal({ open: false });
   };
 
@@ -2695,6 +2857,12 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           vehicleName={(() => {
             const v = vehicles.find((v) => v.id === serviceModal.vehicleId);
             return v ? `${v.make} ${v.model} (${v.registrationNumber || v.year})` : "";
+          })()}
+          currentReminder={(() => {
+            const v = vehicles.find((v) => v.id === serviceModal.vehicleId);
+            return v
+              ? { date: v.nextServiceDueDate, odometer: v.nextServiceDueOdometer }
+              : null;
           })()}
           onClose={() => setServiceModal({ open: false })}
           onSave={handleSaveService}
