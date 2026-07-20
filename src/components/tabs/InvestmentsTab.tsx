@@ -30,6 +30,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
+import { getCurrentFY } from "../../utils/appConstants";
 import {
   fmtINRFull,
   fdMaturity,
@@ -12750,7 +12751,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
     amount: "",
     tds: "",
     paymentDate: today(),
-    fy: state?.profile?.fy || "2025-26",
+    fy: state?.profile?.fy || getCurrentFY(),
     note: "",
   });
 
@@ -12933,7 +12934,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
               <Field label="FY">
                 <input
                   className="form-input"
-                  placeholder="2025-26"
+                  placeholder={getCurrentFY()}
                   value={form.fy}
                   onChange={(e) => setForm({ ...form, fy: e.target.value })}
                 />
@@ -12963,7 +12964,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                   amount: "",
                   tds: "",
                   paymentDate: today(),
-                  fy: state?.profile?.fy || "2025-26",
+                  fy: state?.profile?.fy || getCurrentFY(),
                   note: "",
                 });
                 setShowForm(false);

@@ -27,7 +27,7 @@ import {
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, getEffectiveRent } from "../../utils/finance";
-import { getCurrentFY } from "../../utils/appConstants";
+import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 
@@ -1135,7 +1135,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
   // ── Feature 22: Tax Optimizer Handler ──
   const handleGetTaxOptimization = () => {
     const fy = state.profile?.fy || getCurrentFY();
-    const fyStart = Number(fy.split("-")[0]) || 2025;
+    const fyStart = Number(fy.split("-")[0]) || getCurrentFYStartYear();
     const fyStartStr = `${fyStart}-04-01`;
     const fyEndStr = `${fyStart + 1}-03-31`;
     const elss = (state.mutualFunds || [])

@@ -15,6 +15,7 @@ import {
   Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { getCurrentFY } from "../../utils/appConstants";
 import {
   fmtINR,
   fmtINRFull,
@@ -120,7 +121,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
     () => buildFYList(state),
     [state.income, state.transactions, state.taxPayments]
   );
-  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
+  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || getCurrentFY());
   const regime = state.profile?.regime || "new";
   const fyStart = parseInt(fy.split("-")[0]);
 
@@ -432,7 +433,7 @@ const HraReceiptSection = ({ state }) => {
     () => buildFYList(state),
     [state.income, state.transactions, state.taxPayments]
   );
-  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
+  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || getCurrentFY());
   const fyStart = parseInt(fy.split("-")[0]);
 
   const rentedProps = state.rentedProperties || [];
@@ -955,7 +956,7 @@ const Form26ASSection = ({ state }) => {
     () => buildFYList(state),
     [state.income, state.transactions, state.taxPayments]
   );
-  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
+  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || getCurrentFY());
 
   const taxPayments = useMemo(() => {
     return (state.taxPayments || []).filter((t) => t.fy === fy);

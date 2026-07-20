@@ -12,6 +12,7 @@ import {
   Shield,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { getCurrentFY } from "../../utils/appConstants";
 import { fmtINRFull, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -74,7 +75,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       .map((y) => `${y}-${String(y + 1).slice(-2)}`);
   }, [state.income, state.transactions, state.stockSells, state.mfSells]);
 
-  const [selectedFY, setSelectedFY] = useState(state.profile?.fy || availableFYs[0] || "2025-26");
+  const [selectedFY, setSelectedFY] = useState(state.profile?.fy || availableFYs[0] || getCurrentFY());
 
   const toggleCheck = (id) => {
     setCheckedItems((prev) => {

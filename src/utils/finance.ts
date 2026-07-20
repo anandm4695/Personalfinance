@@ -1,5 +1,5 @@
 import { STORAGE_KEY } from "./constants";
-import { getCurrentFY } from "./appConstants";
+import { getCurrentFY, getCurrentFYStartYear } from "./appConstants";
 
 export const loadState = () => {
   try {
@@ -338,7 +338,7 @@ export interface TaxResult {
 
 // FY-aware new regime: handles FY 2025-26, 2024-25, 2023-24, 2020-23
 export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
-  const fyStart = Number((fy || "2025-26").split("-")[0]) || 2025;
+  const fyStart = Number((fy || getCurrentFY()).split("-")[0]) || getCurrentFYStartYear();
 
   let stdDed: number;
   let rawSlabs: Array<[number, number]>;
@@ -515,7 +515,7 @@ export const calcTaxOldByFY = (
   totalDeductions: number,
   fy: string
 ): TaxResult => {
-  const fyStart = Number((fy || "2025-26").split("-")[0]) || 2025;
+  const fyStart = Number((fy || getCurrentFY()).split("-")[0]) || getCurrentFYStartYear();
   // Old regime std deduction: ₹40K (FY 2018-19 to 2019-20), ₹50K (FY 2020-21 onwards)
   const stdDed = fyStart >= 2020 ? 50_000 : 40_000;
   // totalDeductions passed in already includes stdDed (callers compute: stdDed + 80C + 80D + …)
@@ -601,8 +601,8 @@ export interface AutoDetectedDeductions {
 }
 
 export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedDeductions => {
-  const fyParts = (fy || "2025-26").split("-");
-  const fyStartYear = Number(fyParts[0]) || 2025;
+  const fyParts = (fy || getCurrentFY()).split("-");
+  const fyStartYear = Number(fyParts[0]) || getCurrentFYStartYear();
   const fyStartStr = `${fyStartYear}-04-01`;
   const fyEndStr = `${fyStartYear + 1}-03-31`;
 
@@ -736,7 +736,7 @@ export const getTaxDueForDashboard = (state: any, annualIncome: number): number 
     const d80TTA = overrides.d80TTA !== undefined ? overrides.d80TTA : 0;
 
     const fyParts = fy.split("-");
-    const fyStartYear = Number(fyParts[0]) || 2025;
+    const fyStartYear = Number(fyParts[0]) || getCurrentFYStartYear();
     const stdDedOld = fyStartYear >= 2020 ? 50_000 : 40_000;
 
     const totalOldDeductions =

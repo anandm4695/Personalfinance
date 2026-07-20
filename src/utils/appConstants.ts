@@ -52,11 +52,13 @@ import {
   FileCheck,
 } from "lucide-react";
 
-export const getCurrentFY = () => {
+export const getCurrentFYStartYear = (): number => {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const fyStart = month >= 3 ? year : year - 1;
+  return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+};
+
+export const getCurrentFY = () => {
+  const fyStart = getCurrentFYStartYear();
   const fyEndShort = String(fyStart + 1).slice(-2);
   return `${fyStart}-${fyEndShort}`;
 };

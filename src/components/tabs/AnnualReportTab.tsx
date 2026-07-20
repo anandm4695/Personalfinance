@@ -33,6 +33,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
+import { getCurrentFY } from "../../utils/appConstants";
 import { fmtINR, fmtINRFull, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -517,7 +518,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       .map((y) => `${y}-${String(y + 1).slice(-2)}`);
   }, [state.income, state.transactions, state.netWorthHistory]);
 
-  const [selectedFY, setSelectedFY] = useState(availableFYs[0] || "2025-26");
+  const [selectedFY, setSelectedFY] = useState(availableFYs[0] || getCurrentFY());
   const { start: fyStart, end: fyEnd } = getFYDates(selectedFY);
   const fyLabel = getFYLabel(selectedFY);
   const fyMonths = getFYMonths(selectedFY);

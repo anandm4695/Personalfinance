@@ -24,6 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
 import {
   fmtINRFull,
   fmtINRExact,
@@ -1128,9 +1129,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
       .map((y) => `${y}-${String(y + 1).slice(-2)}`);
   }, [state.income, state.transactions, state.stockSells, state.mfSells, state.taxPayments]);
 
-  const [fy, setFy] = useState(state.profile?.fy || availableFYs[0] || "2025-26");
+  const [fy, setFy] = useState(state.profile?.fy || availableFYs[0] || getCurrentFY());
   const fyParts = fy.split("-");
-  const fyStartYear = Number(fyParts[0]) || 2025;
+  const fyStartYear = Number(fyParts[0]) || getCurrentFYStartYear();
   const fyStartStr = `${fyStartYear}-04-01`;
   const fyEndStr = `${fyStartYear + 1}-03-31`;
 
