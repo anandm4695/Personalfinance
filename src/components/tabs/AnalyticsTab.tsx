@@ -523,6 +523,7 @@ interface AnalyticsTabProps {
   updateMasterData?: any;
   updateItem?: any;
   setTab?: any;
+  setSubTab?: any;
   showToast?: (msg: string, type?: string) => void;
   dashboardWidgets?: Record<string, boolean>;
   onUpdateWidgets?: (widgets: Record<string, boolean>) => void;
@@ -595,6 +596,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   updateMasterData,
   updateItem,
   setTab,
+  setSubTab,
   showToast,
   dashboardWidgets,
   onUpdateWidgets,
@@ -3996,13 +3998,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       label="Fixed Deposits"
                       value={metrics.fdValue}
                       tabId="investments"
+                      subTabId="fd"
                       setTab={setTab}
+                      setSubTab={setSubTab}
                     />
                     <HeroStat
                       label="Mutual Funds"
                       value={metrics.mfValue}
                       tabId="investments"
+                      subTabId="mf"
                       setTab={setTab}
+                      setSubTab={setSubTab}
                     />
                     <HeroStat
                       label="Stocks"
@@ -4014,7 +4020,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       label="PPF / NPS / EPF"
                       value={metrics.ppfValue + metrics.npsValue + metrics.epfValue}
                       tabId="investments"
+                      subTabId="ppf"
                       setTab={setTab}
+                      setSubTab={setSubTab}
                     />
                     {(metrics.realEstateAsset || 0) > 0 && (
                       <HeroStat
@@ -4045,14 +4053,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       label="Card Dues"
                       value={metrics.ccOutstanding}
                       negative
-                      tabId="credit"
+                      tabId="cc"
                       setTab={setTab}
                     />
                     <HeroStat
                       label="Loans Taken"
                       value={metrics.loansTakenValue}
                       negative
-                      tabId="credit"
+                      tabId="taken"
                       setTab={setTab}
                     />
                     {otherDues > 0 && (
@@ -15075,7 +15083,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   );
 };
 
-const HeroStat = ({ label, value, negative, sage, tabId, setTab }: any) => {
+const HeroStat = ({
+  label,
+  value,
+  negative,
+  sage,
+  tabId,
+  subTabId,
+  setTab,
+  setSubTab,
+}: any) => {
   const color = negative ? "#F87171" : sage ? "#34D399" : "rgba(255,255,255,0.9)";
   // Border uses explicit rgba so appending digits to color string is avoided
   const borderColor = negative
@@ -15086,8 +15103,15 @@ const HeroStat = ({ label, value, negative, sage, tabId, setTab }: any) => {
   const isClickable = !!(tabId && setTab);
   return (
     <div
-      onClick={isClickable ? () => setTab(tabId) : undefined}
-      title={isClickable ? `View in ${tabId}` : undefined}
+      onClick={
+        isClickable
+          ? () => {
+              setTab(tabId);
+              if (subTabId && setSubTab) setSubTab(subTabId);
+            }
+          : undefined
+      }
+      title={isClickable ? `View in ${label}` : undefined}
       style={{
         borderLeft: `2px solid ${borderColor}`,
         paddingLeft: 12,

@@ -4433,6 +4433,7 @@ function FinanceDashboard() {
                   updateMasterData={updateMasterData}
                   updateItem={updateItem}
                   setTab={setTab}
+                  setSubTab={setSubTab}
                   showToast={showToast}
                   dashboardWidgets={state.masterData?.dashboardWidgets}
                   onUpdateWidgets={(widgets) => updateMasterData("dashboardWidgets", widgets)}
