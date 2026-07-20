@@ -416,6 +416,7 @@ const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
   rent: { color: "#dc2626", bg: "#dc26261a" },
   utilities: { color: "#0891b2", bg: "#0891b21a" },
   bills: { color: "#0891b2", bg: "#0891b21a" },
+  "credit card": { color: "#dc2626", bg: "#dc26261a" },
   shopping: { color: "#7c3aed", bg: "#7c3aed1a" },
   travel: { color: "#0284c7", bg: "#0284c71a" },
   health: { color: "#dc2626", bg: "#dc26261a" },
@@ -459,7 +460,7 @@ export function BanksTab({
   const [hoveredTxnId, setHoveredTxnId] = useState<string | null>(null);
   const { transactionCategories: txnCats } = useMasterData();
 
-  const autoPostLinkedTransaction = (linkedKey: string, txn: any) => {
+  const autoPostLinkedTransaction = (linkedKey: string, txn: any, txnId: string) => {
     if (!linkedKey) return;
     const ci = linkedKey.indexOf(":");
     if (ci < 0) return;
@@ -468,7 +469,9 @@ export function BanksTab({
     const amt = Number(txn.amount || 0);
     if (amt <= 0) return;
     const { date, note } = txn;
-    const newId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    // Tag the entry posted into the linked record with the bank transaction's own id,
+    // so deleting the transaction later can find and remove this exact entry again.
+    const newId = `bank-${txnId}`;
 
     if (["lic", "termPlans", "investmentPlans"].includes(lt)) {
       const policy = (state[lt] || []).find((p: any) => p.id === lid);
@@ -520,7 +523,20 @@ export function BanksTab({
       // Don't clamp to 0: paying more than the outstanding balance leaves a
       // legitimate negative (credit) balance owed back to the cardholder — the
       // credit-card ledger (CreditTab) treats this the same way.
+      // Also post a negative entry into the card's own ledger (CCTransactionLedger sums
+      // its entries into `outstanding`) so the two stay consistent when the ledger is
+      // next opened/edited from the Credit tab.
       updateItem("creditCards", lid, {
+        transactions: [
+          ...(card.transactions || []),
+          {
+            id: newId,
+            date,
+            merchant: note || "Payment from Bank Account",
+            amount: String(-amt),
+            category: "Payment",
+          },
+        ],
         outstanding: Number(card.outstanding || 0) - amt,
       });
     } else if (lt === "subscriptions") {
@@ -2365,11 +2381,19 @@ export function BanksTab({
               const ci = linkedKey ? linkedKey.indexOf(":") : -1;
               const linkedType = ci >= 0 ? linkedKey.slice(0, ci) : undefined;
               const linkedId = ci >= 0 ? linkedKey.slice(ci + 1) : undefined;
+              // Pre-generate the id when linked so the ledger entry posted into the
+              // linked record (below) can be tagged with it for later reversal on delete.
+              const txnId = linkedKey
+                ? crypto.randomUUID
+                  ? crypto.randomUUID()
+                  : Math.random().toString(36).slice(2)
+                : undefined;
               addItem("transactions", {
                 ...txnBase,
+                ...(txnId ? { id: txnId } : {}),
                 ...(linkedType ? { linkedType, linkedId } : {}),
               });
-              if (linkedKey) autoPostLinkedTransaction(linkedKey, v);
+              if (linkedKey) autoPostLinkedTransaction(linkedKey, v, txnId as string);
             }
             setShowTxn(false);
           }}
@@ -2453,7 +2477,7 @@ function getLinkConfig(category: string, type: string, state: any) {
         })),
     };
   }
-  if (category === "Bills" && type === "debit") {
+  if ((category === "Credit Card" || category === "Bills") && type === "debit") {
     return {
       label: "Credit Card",
       options: (state.creditCards || [])
@@ -2812,6 +2836,25 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
   });
   return (
     <Modal title="Edit Transaction" onClose={onClose}>
+      {txn?.linkedType && (
+        <div
+          style={{
+            fontSize: 11,
+            color: THEME.gold,
+            marginBottom: 4,
+            fontWeight: 600,
+            padding: "6px 10px",
+            background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+            borderRadius: 8,
+          }}
+        >
+          🔗 This transaction is linked to a{" "}
+          {txn.linkedType === "creditCards" ? "credit card" : "linked"} record. Changing the
+          amount here will not update that record — delete and re-add the transaction instead if
+          the amount was wrong.
+        </div>
+      )}
       <Field label="Owner / Profile">
         <select
           style={input}

@@ -713,6 +713,24 @@ function FinanceDashboard() {
         salarySlipsQ,
       ].some((r) => r?.data && r.data.length > 0);
 
+      // Backfill "Credit Card" into a saved transactionCategories list that predates it (see the
+      // masterData merge below) and persist the fix once so future loads don't need to repeat it.
+      if (sett.data?.master_data) {
+        const savedCats = sett.data.master_data.transactionCategories || [];
+        if (!savedCats.includes("Credit Card")) {
+          const fixedMaster = {
+            ...sett.data.master_data,
+            transactionCategories: [...savedCats, "Credit Card"],
+          };
+          supabase
+            .from("user_settings")
+            .upsert({ user_id: userId, master_data: fixedMaster })
+            .then(({ error: e }) => {
+              if (e) console.error("[masterData categories backfill]", e.message);
+            });
+        }
+      }
+
       // Use functional setState so failed queries fall back to current state instead of wiping data
       setState((currentState) => {
         if (!prof.data && !hasAnyData) {
@@ -740,10 +758,19 @@ function FinanceDashboard() {
                 : null) ||
               currentState.masterData ||
               DEFAULT_MASTER_DATA;
+            // A saved transactionCategories list shallow-overrides DEFAULT_MASTER_DATA above,
+            // so accounts saved before "Credit Card" was added as a default never see it.
+            // Backfill it in-place here (not a separate one-time effect — that races this
+            // same fetch, which lands after and stomps the fix straight back out).
+            const baseCats = base.transactionCategories || [];
+            const patchedCats = baseCats.includes("Credit Card")
+              ? baseCats
+              : [...baseCats, "Credit Card"];
             const allTxnIds =
               !txns.error && txns.data != null ? txns.data.map((t: any) => t.id) : [];
             return {
               ...base,
+              transactionCategories: patchedCats,
               reconciledTxnIds: Array.from(
                 new Set([...(base.reconciledTxnIds || []), ...allTxnIds])
               ),
@@ -2202,6 +2229,55 @@ function FinanceDashboard() {
       key === "transactions" ? state.transactions.find((x: any) => x.id === id) : null;
     const wasBalanceApplied =
       key === "transactions" && (state.masterData?.balanceAppliedTxnIds || []).includes(id);
+
+    // Reverse any side effect this transaction auto-posted into a linked module record
+    // (credit card outstanding, loan balance, insurance premium ledger, rent log) so that
+    // record doesn't stay out of sync after the bank transaction itself is deleted.
+    if (txnToDelete?.linkedType && txnToDelete?.linkedId && Number(txnToDelete.amount || 0) > 0) {
+      const lt = txnToDelete.linkedType;
+      const lid = txnToDelete.linkedId;
+      const amt = Number(txnToDelete.amount || 0);
+      const entryId = `bank-${id}`;
+      if (lt === "creditCards") {
+        const card = (state.creditCards || []).find((c: any) => c.id === lid);
+        if (card) {
+          updateItem("creditCards", lid, {
+            transactions: (card.transactions || []).filter((t: any) => t.id !== entryId),
+            outstanding: Number(card.outstanding || 0) + amt,
+          });
+        }
+      } else if (lt === "loansTaken") {
+        const loan = (state.loansTaken || []).find((l: any) => l.id === lid);
+        if (loan) {
+          updateItem("loansTaken", lid, {
+            outstanding: Number(loan.outstanding || 0) + amt,
+            monthsRemaining: Number(loan.monthsRemaining || 0) + 1,
+          });
+        }
+      } else if (["lic", "termPlans", "investmentPlans"].includes(lt)) {
+        const policy = (state[lt] || []).find((p: any) => p.id === lid);
+        if (policy) {
+          updateItem(lt, lid, {
+            transactions: (policy.transactions || []).filter((t: any) => t.id !== entryId),
+            premiumPaid: Math.max(0, Number(policy.premiumPaid || 0) - amt),
+          });
+        }
+      } else if (lt === "rentedProperties") {
+        const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
+        if (prop) {
+          updateItem("rentedProperties", lid, {
+            payments: (prop.payments || []).filter((p: any) => p.id !== entryId),
+          });
+        }
+      } else if (lt === "rentalProperties") {
+        const prop = (state.rentalProperties || []).find((p: any) => p.id === lid);
+        if (prop) {
+          updateItem("rentalProperties", lid, {
+            receipts: (prop.receipts || []).filter((r: any) => r.id !== entryId),
+          });
+        }
+      }
+    }
 
     setState((s) => {
       const next: any = { ...s, [key]: (s[key] || []).filter((x: any) => x.id !== id) };

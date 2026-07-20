@@ -29,6 +29,7 @@ export const DEFAULT_MASTER_DATA: MasterData = {
     "Transport",
     "Shopping",
     "Bills",
+    "Credit Card",
     "Salary",
     "Investment",
     "Tax",
