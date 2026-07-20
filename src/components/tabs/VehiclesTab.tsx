@@ -441,6 +441,14 @@ const SERVICE_TYPES: Record<string, { label: string; color: string }> = {
   other: { label: "Other", color: "#6b7280" },
 };
 
+const INSURANCE_POLICY_TYPES: Record<string, { label: string; color: string }> = {
+  comprehensive: { label: "Comprehensive", color: "#6366f1" },
+  own_damage: { label: "Own Damage (OD)", color: "#f59e0b" },
+  third_party: { label: "Third Party (TP)", color: "#06b6d4" },
+  zero_dep: { label: "Zero Depreciation", color: "#10b981" },
+  bundled_long_term: { label: "Bundled Long-Term (1yr OD + 3/5yr TP)", color: "#8b5cf6" },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -613,6 +621,11 @@ const EMPTY_VEHICLE = {
   engineNumber: "",
   purchaseDate: "",
   purchasePrice: "",
+  purchaseBasicCost: "",
+  purchaseCgstAmount: "",
+  purchaseSgstAmount: "",
+  rtoCharges: "",
+  accessoriesCharges: "",
   currentValue: "",
   insuranceExpiry: "",
   pucExpiry: "",
@@ -635,6 +648,11 @@ function VehicleModal({ existing, onClose, onSave }: any) {
           ...EMPTY_VEHICLE,
           ...existing,
           purchasePrice: existing.purchasePrice ?? "",
+          purchaseBasicCost: existing.purchaseBasicCost ?? "",
+          purchaseCgstAmount: existing.purchaseCgstAmount ?? "",
+          purchaseSgstAmount: existing.purchaseSgstAmount ?? "",
+          rtoCharges: existing.rtoCharges ?? "",
+          accessoriesCharges: existing.accessoriesCharges ?? "",
           currentValue: existing.currentValue ?? "",
         }
       : { ...EMPTY_VEHICLE }
@@ -701,10 +719,16 @@ function VehicleModal({ existing, onClose, onSave }: any) {
     onSave({
       ...f,
       purchasePrice: Number(f.purchasePrice) || 0,
+      purchaseBasicCost: Number(f.purchaseBasicCost) || 0,
+      purchaseCgstAmount: Number(f.purchaseCgstAmount) || 0,
+      purchaseSgstAmount: Number(f.purchaseSgstAmount) || 0,
+      rtoCharges: Number(f.rtoCharges) || 0,
+      accessoriesCharges: Number(f.accessoriesCharges) || 0,
       currentValue: Number(f.currentValue) || 0,
       year: Number(f.year) || new Date().getFullYear(),
       nextServiceDueOdometer: Number(f.nextServiceDueOdometer) || 0,
       serviceHistory: existing?.serviceHistory || [],
+      insuranceHistory: existing?.insuranceHistory || [],
     });
   };
 
@@ -1073,6 +1097,107 @@ function VehicleModal({ existing, onClose, onSave }: any) {
           />
         </Field>
       </div>
+
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--t-muted, var(--text-muted))",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          margin: "4px 0 8px",
+        }}
+      >
+        Ex-Showroom Cost Breakdown (optional)
+      </div>
+
+      <div style={g3}>
+        <Field label="Basic Cost (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.purchaseBasicCost}
+            onChange={(e) => set("purchaseBasicCost", e.target.value)}
+            placeholder="e.g. 60135.15"
+          />
+        </Field>
+        <Field label="CGST (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.purchaseCgstAmount}
+            onChange={(e) => set("purchaseCgstAmount", e.target.value)}
+            placeholder="e.g. 8418.92"
+          />
+        </Field>
+        <Field label="SGST (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.purchaseSgstAmount}
+            onChange={(e) => set("purchaseSgstAmount", e.target.value)}
+            placeholder="e.g. 8418.92"
+          />
+        </Field>
+      </div>
+
+      <div style={g2}>
+        <Field label="RTO Registration Charges (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.rtoCharges}
+            onChange={(e) => set("rtoCharges", e.target.value)}
+            placeholder="e.g. 9236"
+          />
+        </Field>
+        <Field label="Accessories Charges (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.accessoriesCharges}
+            onChange={(e) => set("accessoriesCharges", e.target.value)}
+            placeholder="e.g. 1200"
+          />
+        </Field>
+      </div>
+
+      {(Number(f.purchaseBasicCost) ||
+        Number(f.purchaseCgstAmount) ||
+        Number(f.purchaseSgstAmount) ||
+        Number(f.rtoCharges) ||
+        Number(f.accessoriesCharges)) > 0 && (
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--t-muted, var(--text-muted))",
+            marginBottom: 16,
+            marginTop: -4,
+          }}
+        >
+          Ex-showroom total:{" "}
+          <strong style={{ color: "var(--text)" }}>
+            ₹
+            {(
+              Number(f.purchaseBasicCost || 0) +
+              Number(f.purchaseCgstAmount || 0) +
+              Number(f.purchaseSgstAmount || 0)
+            ).toLocaleString("en-IN")}
+          </strong>
+          {" · "}Basic + RTO + Accessories:{" "}
+          <strong style={{ color: "var(--text)" }}>
+            ₹
+            {(
+              Number(f.purchaseBasicCost || 0) +
+              Number(f.purchaseCgstAmount || 0) +
+              Number(f.purchaseSgstAmount || 0) +
+              Number(f.rtoCharges || 0) +
+              Number(f.accessoriesCharges || 0)
+            ).toLocaleString("en-IN")}
+          </strong>{" "}
+          (enter into Purchase Price above if this is the on-road price)
+        </div>
+      )}
 
       <Field label="Current Market Value (₹)">
         <input
@@ -1552,6 +1677,357 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// InsuranceModal — Add / Edit insurance policy / renewal record
+// ─────────────────────────────────────────────────────────────────────────────
+
+function InsuranceModal({ existing, vehicleName, onClose, onSave }: any) {
+  const isEdit = !!existing;
+  const [f, setF] = useState<any>(
+    existing
+      ? {
+          ...existing,
+          basicCost: existing.basicCost ?? "",
+          cgstAmount: existing.cgstAmount ?? "",
+          sgstAmount: existing.sgstAmount ?? "",
+        }
+      : {
+          policyType: "comprehensive",
+          insurer: "",
+          policyNumber: "",
+          tenure: "1_year",
+          fromDate: today(),
+          toDate: "",
+          basicCost: "",
+          cgstAmount: "",
+          sgstAmount: "",
+          notes: "",
+        }
+  );
+
+  const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
+  const totalPremium =
+    Number(f.basicCost || 0) + Number(f.cgstAmount || 0) + Number(f.sgstAmount || 0);
+  const canSave = !!(f.fromDate && f.toDate);
+
+  const handleSave = () => {
+    if (!canSave) return;
+    onSave({
+      ...f,
+      id: existing?.id || uid(),
+      basicCost: Number(f.basicCost) || 0,
+      cgstAmount: Number(f.cgstAmount) || 0,
+      sgstAmount: Number(f.sgstAmount) || 0,
+      totalPremium,
+    });
+  };
+
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
+  const g3: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 };
+
+  return (
+    <Modal
+      title={isEdit ? "Edit Insurance Record" : "Add Insurance Record"}
+      onClose={onClose}
+      maxWidth={480}
+      footer={
+        <ModalActions
+          onClose={onClose}
+          onSave={handleSave}
+          saveLabel={isEdit ? "Update" : "Add Record"}
+          disabled={!canSave}
+        />
+      }
+    >
+      {vehicleName && (
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--t-muted, var(--text-muted))",
+            background: "var(--surface)",
+            border: "1px solid var(--t-line, var(--border))",
+            borderRadius: 8,
+            padding: "6px 12px",
+            marginBottom: 16,
+            fontWeight: 600,
+          }}
+        >
+          {vehicleName}
+        </div>
+      )}
+
+      <div style={g2}>
+        <Field label="Policy Type">
+          <select style={inp} value={f.policyType} onChange={(e) => set("policyType", e.target.value)}>
+            {Object.entries(INSURANCE_POLICY_TYPES).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Policy Term">
+          <select style={inp} value={f.tenure} onChange={(e) => set("tenure", e.target.value)}>
+            <option value="1_year">1 Year</option>
+            <option value="3_year">3 Year</option>
+            <option value="5_year">5 Year</option>
+          </select>
+        </Field>
+      </div>
+
+      <div style={g2}>
+        <Field label="Cover From *">
+          <input
+            style={inp}
+            type="date"
+            value={f.fromDate}
+            onChange={(e) => set("fromDate", e.target.value)}
+          />
+        </Field>
+        <Field label="Cover To *">
+          <input
+            style={inp}
+            type="date"
+            value={f.toDate}
+            onChange={(e) => set("toDate", e.target.value)}
+          />
+        </Field>
+      </div>
+
+      <div style={g2}>
+        <Field label="Insurer">
+          <input
+            style={inp}
+            value={f.insurer}
+            onChange={(e) => set("insurer", e.target.value)}
+            placeholder="e.g. ICICI Lombard"
+          />
+        </Field>
+        <Field label="Policy Number">
+          <input
+            style={inp}
+            value={f.policyNumber}
+            onChange={(e) => set("policyNumber", e.target.value)}
+            placeholder="Policy No."
+          />
+        </Field>
+      </div>
+
+      <div style={g3}>
+        <Field label="Basic Cost (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.basicCost}
+            onChange={(e) => set("basicCost", e.target.value)}
+            placeholder="e.g. 8742"
+          />
+        </Field>
+        <Field label="CGST (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.cgstAmount}
+            onChange={(e) => set("cgstAmount", e.target.value)}
+            placeholder="e.g. 786.78"
+          />
+        </Field>
+        <Field label="SGST (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.sgstAmount}
+            onChange={(e) => set("sgstAmount", e.target.value)}
+            placeholder="e.g. 786.78"
+          />
+        </Field>
+      </div>
+
+      {totalPremium > 0 && (
+        <div style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", marginBottom: 16 }}>
+          Total Premium:{" "}
+          <strong style={{ color: "var(--text)" }}>₹{totalPremium.toLocaleString("en-IN")}</strong>
+        </div>
+      )}
+
+      <Field label="Notes">
+        <textarea
+          style={{ ...inp, height: 60, resize: "vertical" }}
+          value={f.notes}
+          onChange={(e) => set("notes", e.target.value)}
+          placeholder="Add-ons, NCB, claim history, etc."
+        />
+      </Field>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// InsuranceRow
+// ─────────────────────────────────────────────────────────────────────────────
+
+function InsuranceRow({ rec, onEdit, onDelete }: any) {
+  const pt = INSURANCE_POLICY_TYPES[rec.policyType] || INSURANCE_POLICY_TYPES.comprehensive;
+  return (
+    <div
+      className="card-lift"
+      style={{
+        display: "flex",
+        gap: 14,
+        alignItems: "flex-start",
+        background: "color-mix(in srgb, var(--surface-0) 65%, transparent)",
+        border: "1px solid var(--t-line, var(--border))",
+        borderLeft: `4px solid ${pt.color}`,
+        borderRadius: 12,
+        padding: "14px 16px",
+        boxShadow: "var(--shadow-xs)",
+        transition: "all 0.2s var(--ease-premium)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-1px)";
+        e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "var(--shadow-xs)";
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              color: pt.color,
+              padding: "3px 8px",
+              borderRadius: 20,
+              background: pt.color + "12",
+              border: `1px solid ${pt.color}25`,
+              textTransform: "uppercase",
+              letterSpacing: "0.02em",
+            }}
+          >
+            {pt.label}
+          </span>
+          {rec.insurer && (
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+              {rec.insurer}
+            </span>
+          )}
+        </div>
+
+        <div
+          style={{ display: "flex", gap: 14, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}
+        >
+          <span
+            style={{
+              fontSize: 12,
+              color: "var(--t-muted, var(--text-muted))",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            📅 {fmtDate(rec.fromDate)} → {fmtDate(rec.toDate)}
+          </span>
+          {rec.totalPremium > 0 && (
+            <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
+              ₹{Number(rec.totalPremium).toLocaleString("en-IN")}
+            </span>
+          )}
+          {rec.policyNumber && (
+            <span
+              style={{
+                fontSize: 12,
+                color: "var(--t-muted, var(--text-muted))",
+                fontFamily: "monospace",
+              }}
+            >
+              {rec.policyNumber}
+            </span>
+          )}
+        </div>
+        {rec.notes && (
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--t-muted, var(--text-muted))",
+              marginTop: 6,
+              fontStyle: "italic",
+              borderLeft: "2px solid var(--t-line)",
+              paddingLeft: 8,
+            }}
+          >
+            {rec.notes}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 6, flexShrink: 0, alignSelf: "center" }}>
+        <button
+          onClick={onEdit}
+          className="card-interactive"
+          title="Edit"
+          aria-label="Edit insurance record"
+          style={{
+            background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+            border: "1.5px solid var(--t-line)",
+            cursor: "pointer",
+            color: "var(--t-muted, var(--text-muted))",
+            padding: 8,
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
+            boxShadow: "var(--shadow-xs)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "var(--t-accent)";
+            e.currentTarget.style.borderColor = "var(--t-accent)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "var(--t-muted)";
+            e.currentTarget.style.borderColor = "var(--t-line)";
+          }}
+        >
+          <Edit2 size={12} />
+        </button>
+        <button
+          onClick={onDelete}
+          className="card-interactive"
+          title="Delete"
+          aria-label="Delete insurance record"
+          style={{
+            background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+            border: "1.5px solid var(--t-line)",
+            cursor: "pointer",
+            color: "var(--t-rust, #ef4444)",
+            padding: 8,
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
+            boxShadow: "var(--shadow-xs)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
+            e.currentTarget.style.borderColor = "var(--t-rust)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background =
+              "color-mix(in srgb, var(--surface-0) 90%, transparent)";
+            e.currentTarget.style.borderColor = "var(--t-line)";
+          }}
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // VehicleCard
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1564,11 +2040,23 @@ function VehicleCard({
   onAddService,
   onEditService,
   onDeleteService,
+  onAddInsurance,
+  onEditInsurance,
+  onDeleteInsurance,
 }: any) {
   const { familyProfiles } = useMasterData();
   const ownerProfile = familyProfiles.find((p) => p.id === (vehicle.owner || "self"));
   const ownerName = ownerProfile ? formatProfileOption(ownerProfile) : vehicle.owner || "Self";
   const sh: any[] = vehicle.serviceHistory || [];
+  const ih: any[] = vehicle.insuranceHistory || [];
+  const totalInsurancePremium = ih.reduce((s: number, r: any) => s + Number(r.totalPremium || 0), 0);
+  const lastInsurance = ih.length
+    ? ih.slice().sort((a: any, b: any) => (b.toDate || "").localeCompare(a.toDate || ""))[0]
+    : null;
+  const exShowroomTotal =
+    Number(vehicle.purchaseBasicCost || 0) +
+    Number(vehicle.purchaseCgstAmount || 0) +
+    Number(vehicle.purchaseSgstAmount || 0);
   const totalServiceCost = sh.reduce((s: number, r: any) => s + Number(r.cost || 0), 0);
   const lastService = sh.length
     ? sh.slice().sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
@@ -1641,11 +2129,44 @@ function VehicleCard({
     },
     {
       key: "Purchase Price",
-      label: "Purchase Price",
+      label: "Purchase Price (On-Road)",
       val: vehicle.purchasePrice ? fmtINRExact(vehicle.purchasePrice) : "—",
       icon: Coins,
       color: "#f59e0b",
     },
+    ...(exShowroomTotal > 0
+      ? [
+          {
+            key: "Ex-Showroom Cost",
+            label: "Ex-Showroom (Basic + GST)",
+            val: fmtINRExact(exShowroomTotal),
+            icon: Coins,
+            color: "#f59e0b",
+          },
+        ]
+      : []),
+    ...(Number(vehicle.rtoCharges || 0) > 0
+      ? [
+          {
+            key: "RTO Charges",
+            label: "RTO Registration Charges",
+            val: fmtINRExact(vehicle.rtoCharges),
+            icon: FileText,
+            color: "#8b5cf6",
+          },
+        ]
+      : []),
+    ...(Number(vehicle.accessoriesCharges || 0) > 0
+      ? [
+          {
+            key: "Accessories Charges",
+            label: "Accessories Charges",
+            val: fmtINRExact(vehicle.accessoriesCharges),
+            icon: Coins,
+            color: "#ec4899",
+          },
+        ]
+      : []),
     {
       key: "Current Value",
       label: "Current Value",
@@ -1888,6 +2409,18 @@ function VehicleCard({
               </Button>
               <Button variant="accent" size="sm" icon={<Plus size={12} />} onClick={onAddService}>
                 Add Service Record
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Shield size={12} />}
+                onClick={onAddInsurance}
+                style={{
+                  boxShadow: "var(--shadow-xs)",
+                  background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+                }}
+              >
+                Add Insurance Record
               </Button>
               <Button
                 variant="danger"
@@ -2594,6 +3127,132 @@ function VehicleCard({
                 </div>
               </div>
             )}
+
+            {/* Insurance history header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: 24,
+                marginBottom: 14,
+              }}
+            >
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                }}
+              >
+                <Shield size={14} style={{ color: THEME.accent }} />
+                Insurance History
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--t-muted, var(--text-muted))",
+                    fontWeight: 400,
+                  }}
+                >
+                  ({ih.length} record{ih.length !== 1 ? "s" : ""} · Total{" "}
+                  {fmtINRFull(totalInsurancePremium)})
+                </span>
+              </h4>
+              {lastInsurance && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "var(--t-muted, var(--text-muted))",
+                    fontWeight: 500,
+                  }}
+                >
+                  Latest cover to: {fmtDate(lastInsurance.toDate)}
+                </span>
+              )}
+            </div>
+
+            {ih.length === 0 ? (
+              <div
+                className="glass"
+                style={{
+                  textAlign: "center",
+                  padding: "36px 20px",
+                  border: "1.5px dashed var(--t-line, var(--border))",
+                  borderRadius: 14,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  background: "color-mix(in srgb, var(--surface-0) 30%, transparent)",
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
+                    color: "var(--t-accent)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.01)",
+                    marginBottom: 4,
+                  }}
+                >
+                  <Shield size={18} />
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                  No Insurance Records Yet
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--t-muted, var(--text-muted))",
+                    maxWidth: 280,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Track every policy renewal — Own Damage, Third Party, or Comprehensive — with
+                  premium breakdown over the years.
+                </div>
+                <button
+                  onClick={onAddInsurance}
+                  className="card-interactive"
+                  style={{
+                    marginTop: 6,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+                    border: `1px solid color-mix(in srgb, var(--t-accent) 15%, transparent)`,
+                    color: "var(--t-accent)",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add First Record
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {ih
+                  .slice()
+                  .sort((a: any, b: any) => (b.toDate || "").localeCompare(a.toDate || ""))
+                  .map((rec: any, idx: number) => (
+                    <InsuranceRow
+                      key={rec.id || idx}
+                      rec={rec}
+                      onEdit={() => onEditInsurance(rec)}
+                      onDelete={() => onDeleteInsurance(rec.id)}
+                    />
+                  ))}
+              </div>
+            )}
           </div>
           {/* end padding wrapper */}
         </div>
@@ -2614,6 +3273,11 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
     open: false,
   });
   const [serviceModal, setServiceModal] = useState<{
+    open: boolean;
+    vehicleId?: string;
+    existing?: any;
+  }>({ open: false });
+  const [insuranceModal, setInsuranceModal] = useState<{
     open: boolean;
     vehicleId?: string;
     existing?: any;
@@ -2697,6 +3361,35 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
     updateItem("vehicles", vehicle.id, {
       ...vehicle,
       serviceHistory: (vehicle.serviceHistory || []).filter((r: any) => r.id !== serviceId),
+    });
+  };
+
+  const handleSaveInsurance = (rec: any) => {
+    const vehicle = vehicles.find((v) => v.id === insuranceModal.vehicleId);
+    if (!vehicle) return;
+    const oldHistory: any[] = vehicle.insuranceHistory || [];
+    const newHistory = insuranceModal.existing
+      ? oldHistory.map((r) => (r.id === rec.id ? rec : r))
+      : [...oldHistory, rec];
+    const latestExpiry = newHistory.reduce(
+      (max: string, r: any) => (r.toDate && r.toDate > max ? r.toDate : max),
+      vehicle.insuranceExpiry || ""
+    );
+    updateItem("vehicles", vehicle.id, {
+      ...vehicle,
+      insuranceHistory: newHistory,
+      insuranceExpiry: latestExpiry || vehicle.insuranceExpiry,
+    });
+    setInsuranceModal({ open: false });
+  };
+
+  const handleDeleteInsurance = (vehicleId: string, insuranceId: string) => {
+    if (!window.confirm("Are you sure you want to delete this insurance record?")) return;
+    const vehicle = vehicles.find((v) => v.id === vehicleId);
+    if (!vehicle) return;
+    updateItem("vehicles", vehicle.id, {
+      ...vehicle,
+      insuranceHistory: (vehicle.insuranceHistory || []).filter((r: any) => r.id !== insuranceId),
     });
   };
 
@@ -2839,6 +3532,11 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
               setServiceModal({ open: true, vehicleId: v.id, existing: rec })
             }
             onDeleteService={(sid: string) => handleDeleteService(v.id, sid)}
+            onAddInsurance={() => setInsuranceModal({ open: true, vehicleId: v.id })}
+            onEditInsurance={(rec: any) =>
+              setInsuranceModal({ open: true, vehicleId: v.id, existing: rec })
+            }
+            onDeleteInsurance={(iid: string) => handleDeleteInsurance(v.id, iid)}
           />
         ))}
       </div>
@@ -2866,6 +3564,17 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           })()}
           onClose={() => setServiceModal({ open: false })}
           onSave={handleSaveService}
+        />
+      )}
+      {insuranceModal.open && (
+        <InsuranceModal
+          existing={insuranceModal.existing}
+          vehicleName={(() => {
+            const v = vehicles.find((v) => v.id === insuranceModal.vehicleId);
+            return v ? `${v.make} ${v.model} (${v.registrationNumber || v.year})` : "";
+          })()}
+          onClose={() => setInsuranceModal({ open: false })}
+          onSave={handleSaveInsurance}
         />
       )}
     </div>
