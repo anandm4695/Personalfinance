@@ -23,7 +23,7 @@ export const THEME = {
   textMuted: "var(--t-muted)",
 };
 
-// 10 corporate accent colors — one per theme preset (perfect 1:1 mapping).
+// 11 corporate accent colors — one per theme preset (perfect 1:1 mapping).
 // Rose removed (not corporate enough per user preference).
 export const ACCENT_PALETTES = {
   blue: { light: "#4F46E5", dark: "#818CF8", label: "Indigo", dot: "#4F46E5" },
@@ -39,11 +39,11 @@ export const ACCENT_PALETTES = {
   mint: { light: "#0D9F7D", dark: "#10D9A0", label: "Mint", dot: "#10D9A0" },
 };
 
-// 20 presets — light & dark for every accent color (perfect 2:1 mapping).
+// 22 presets — light & dark for every accent color (perfect 2:1 mapping).
 // Matching uses darkMode + accentKey only; fontKey excluded so manually
 // changing font does not break the active-preset indicator.
 export const THEME_PRESETS = [
-  // ── Light (10) ──────────────────────────────────────────────────────────────
+  // ── Light (11) ──────────────────────────────────────────────────────────────
   {
     id: "classic",
     label: "Classic",
@@ -134,7 +134,16 @@ export const THEME_PRESETS = [
     fontKey: "inter",
     bgPreview: "#F0F4FF",
   },
-  // ── Dark (10) ───────────────────────────────────────────────────────────────
+  {
+    id: "nova-light",
+    label: "Nova Light",
+    description: "Crisp mint — 2026 fintech, daylight",
+    darkMode: false,
+    accentKey: "mint",
+    fontKey: "inter",
+    bgPreview: "#F0FBF8",
+  },
+  // ── Dark (11) ───────────────────────────────────────────────────────────────
   {
     id: "noir",
     label: "Noir",
