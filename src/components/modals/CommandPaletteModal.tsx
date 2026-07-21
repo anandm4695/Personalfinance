@@ -1,35 +1,6 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import {
-  Search,
-  PieChart,
-  Bot,
-  History,
-  Landmark,
-  BarChart3,
-  TrendingUp,
-  Target,
-  Home,
-  Car,
-  CreditCard,
-  Calculator,
-  Activity,
-  Heart,
-  Wallet,
-  Building2,
-  Repeat,
-  Bell,
-  Hash,
-  Settings,
-  Coins,
-  FileText,
-  Shield,
-  Briefcase,
-  ArrowLeft,
-  ArrowRight,
-  User,
-  IndianRupee,
-  Sparkles,
-} from "lucide-react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { Search } from "lucide-react";
+import { NAV_GROUPS } from "../../utils/appConstants";
 
 interface CmdItem {
   id: string;
@@ -41,6 +12,46 @@ interface CmdItem {
   subTab?: string;
   action?: string;
 }
+
+// Hand-curated search keywords for items that predate the auto-generated list below,
+// keyed by the nav item's own id (stable across sidebar restructuring). Anything not
+// listed here falls back to its label + group title, which is still searchable, just
+// less richly so - add an override here if a destination needs better synonyms.
+const KEYWORD_OVERRIDES: Record<string, string> = {
+  analytics: "dashboard home overview analytics",
+  ai: "ai assistant chatbot advisor",
+  txnhistory: "ledger transactions history all",
+  banks: "banks accounts savings current transactions",
+  demat: "demat stocks shares equity portfolio broker",
+  investments: "investments portfolio fixed income deposits",
+  fd: "fd fixed deposit interest maturity",
+  rd: "rd recurring deposit monthly",
+  bond: "bonds sgb government corporate",
+  ppf: "ppf public provident fund",
+  nps: "nps national pension system",
+  epf: "epf epfo employee provident fund pf",
+  mf: "mutual funds mf sip nav units",
+  income: "yield tracker income interest returns",
+  goals: "goals target planning savings",
+  realestate: "real estate property house flat land",
+  vehicles: "vehicles car bike auto service",
+  cc: "credit cards outstanding due limit",
+  prepaid: "prepaid cards wallet balance",
+  taken: "loans taken emi home car personal",
+  given: "loans given lent",
+  borrowed: "borrowed from people informal debt",
+  lent: "lent to people informal credit",
+  optimizer: "payoff optimizer debt strategy snowball",
+  tax: "tax vault 80c deductions itr filing",
+  sip: "sip tracker systematic investment plan monthly",
+  insurance: "insurance health life term lic premium",
+  budget: "budget budgeting expenses spending",
+  rental: "rental rent tenant property lease",
+  subs: "subscriptions recurring netflix spotify ott",
+  reminders: "reminders alerts notifications due",
+  calculators: "calculators emi sip fd compound interest",
+  settings: "settings preferences theme export import backup",
+};
 
 export const CommandPaletteModal = ({
   isOpen,
@@ -58,304 +69,69 @@ export const CommandPaletteModal = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const actions: CmdItem[] = [
-    // Overview
-    {
-      id: "nav-analytics",
-      type: "nav",
-      icon: <PieChart size={16} />,
-      label: "Executive Dashboard",
-      keywords: "dashboard home overview analytics",
-      tab: "analytics",
-    },
-    {
-      id: "nav-ai",
-      type: "nav",
-      icon: <Bot size={16} />,
-      label: "AI Advisor",
-      keywords: "ai assistant chatbot advisor",
-      tab: "ai",
-    },
-    {
-      id: "nav-ledger",
-      type: "nav",
-      icon: <History size={16} />,
-      label: "Global Ledger",
-      keywords: "ledger transactions history all",
-      tab: "txnhistory",
-    },
+  // Generated from NAV_GROUPS (the sidebar's own source of truth) rather than a
+  // hand-maintained duplicate list, so every destination the sidebar can reach is
+  // reachable here too, and new nav items show up automatically.
+  const actions: CmdItem[] = useMemo(() => {
+    const list: CmdItem[] = [];
+    const keywordsFor = (id: string, label: string, groupTitle: string) =>
+      KEYWORD_OVERRIDES[id] || `${label} ${groupTitle}`.toLowerCase();
 
-    // Wealth & Assets
-    {
-      id: "nav-banks",
-      type: "nav",
-      icon: <Landmark size={16} />,
-      label: "Banks & Transactions",
-      keywords: "banks accounts savings current transactions",
-      tab: "banks",
-    },
-    {
-      id: "nav-demat",
-      type: "nav",
-      icon: <BarChart3 size={16} />,
-      label: "Demat & Stocks",
-      keywords: "demat stocks shares equity portfolio broker",
-      tab: "demat",
-    },
-    {
-      id: "nav-investments",
-      type: "nav",
-      icon: <TrendingUp size={16} />,
-      label: "Investments Portfolio",
-      keywords: "investments portfolio fixed income deposits",
-      tab: "investments",
-    },
-    {
-      id: "nav-fd",
-      type: "nav",
-      icon: <Coins size={16} />,
-      label: "Fixed Deposits",
-      keywords: "fd fixed deposit interest maturity",
-      tab: "investments",
-      subTab: "fd",
-    },
-    {
-      id: "nav-rd",
-      type: "nav",
-      icon: <Repeat size={16} />,
-      label: "Recurring Deposits",
-      keywords: "rd recurring deposit monthly",
-      tab: "investments",
-      subTab: "rd",
-    },
-    {
-      id: "nav-bonds",
-      type: "nav",
-      icon: <FileText size={16} />,
-      label: "Bonds",
-      keywords: "bonds sgb government corporate",
-      tab: "investments",
-      subTab: "bond",
-    },
-    {
-      id: "nav-ppf",
-      type: "nav",
-      icon: <Shield size={16} />,
-      label: "PPF",
-      keywords: "ppf public provident fund",
-      tab: "investments",
-      subTab: "ppf",
-    },
-    {
-      id: "nav-nps",
-      type: "nav",
-      icon: <Briefcase size={16} />,
-      label: "NPS",
-      keywords: "nps national pension system",
-      tab: "investments",
-      subTab: "nps",
-    },
-    {
-      id: "nav-epf",
-      type: "nav",
-      icon: <Shield size={16} />,
-      label: "EPF (EPFO)",
-      keywords: "epf epfo employee provident fund pf",
-      tab: "investments",
-      subTab: "epf",
-    },
-    {
-      id: "nav-mf",
-      type: "nav",
-      icon: <BarChart3 size={16} />,
-      label: "Mutual Funds",
-      keywords: "mutual funds mf sip nav units",
-      tab: "investments",
-      subTab: "mf",
-    },
-    {
-      id: "nav-yield",
-      type: "nav",
-      icon: <Activity size={16} />,
-      label: "Yield Tracker",
-      keywords: "yield tracker income interest returns",
-      tab: "investments",
-      subTab: "income",
-    },
-    {
-      id: "nav-goals",
-      type: "nav",
-      icon: <Target size={16} />,
-      label: "Financial Goals",
-      keywords: "goals target planning savings",
-      tab: "goals",
-    },
-    {
-      id: "nav-realestate",
-      type: "nav",
-      icon: <Home size={16} />,
-      label: "Real Estate",
-      keywords: "real estate property house flat land",
-      tab: "realestate",
-    },
-    {
-      id: "nav-vehicles",
-      type: "nav",
-      icon: <Car size={16} />,
-      label: "Vehicles",
-      keywords: "vehicles car bike auto service",
-      tab: "vehicles",
-    },
-
-    // Liabilities & Credit
-    {
-      id: "nav-credit",
-      type: "nav",
-      icon: <CreditCard size={16} />,
-      label: "Credit & Liabilities",
-      keywords: "credit liabilities loans cards debt",
-      tab: "credit",
-    },
-    {
-      id: "nav-cc",
-      type: "nav",
-      icon: <CreditCard size={16} />,
-      label: "Credit Cards",
-      keywords: "credit cards outstanding due limit",
-      tab: "credit",
-      subTab: "cc",
-    },
-    {
-      id: "nav-prepaid",
-      type: "nav",
-      icon: <Wallet size={16} />,
-      label: "Prepaid Cards",
-      keywords: "prepaid cards wallet balance",
-      tab: "credit",
-      subTab: "prepaid",
-    },
-    {
-      id: "nav-loans-taken",
-      type: "nav",
-      icon: <ArrowLeft size={16} />,
-      label: "Loans Taken",
-      keywords: "loans taken emi home car personal",
-      tab: "credit",
-      subTab: "taken",
-    },
-    {
-      id: "nav-loans-given",
-      type: "nav",
-      icon: <ArrowRight size={16} />,
-      label: "Loans Given",
-      keywords: "loans given lent",
-      tab: "credit",
-      subTab: "given",
-    },
-    {
-      id: "nav-borrowed",
-      type: "nav",
-      icon: <User size={16} />,
-      label: "Borrowed From People",
-      keywords: "borrowed from people informal debt",
-      tab: "credit",
-      subTab: "borrowed",
-    },
-    {
-      id: "nav-lent",
-      type: "nav",
-      icon: <IndianRupee size={16} />,
-      label: "Lent To People",
-      keywords: "lent to people informal credit",
-      tab: "credit",
-      subTab: "lent",
-    },
-    {
-      id: "nav-optimizer",
-      type: "nav",
-      icon: <Sparkles size={16} />,
-      label: "Payoff Optimizer",
-      keywords: "payoff optimizer debt strategy snowball",
-      tab: "credit",
-      subTab: "optimizer",
-    },
-
-    // Planning & Spends
-    {
-      id: "nav-tax",
-      type: "nav",
-      icon: <Calculator size={16} />,
-      label: "Tax Vault",
-      keywords: "tax vault 80c deductions itr filing",
-      tab: "tax",
-    },
-    {
-      id: "nav-sip",
-      type: "nav",
-      icon: <Activity size={16} />,
-      label: "SIP Tracker",
-      keywords: "sip tracker systematic investment plan monthly",
-      tab: "sip",
-    },
-    {
-      id: "nav-insurance",
-      type: "nav",
-      icon: <Heart size={16} />,
-      label: "Insurance",
-      keywords: "insurance health life term lic premium",
-      tab: "insurance",
-    },
-    {
-      id: "nav-budget",
-      type: "nav",
-      icon: <Wallet size={16} />,
-      label: "Budgeting",
-      keywords: "budget budgeting expenses spending",
-      tab: "budget",
-    },
-    {
-      id: "nav-rental",
-      type: "nav",
-      icon: <Building2 size={16} />,
-      label: "Rental Details",
-      keywords: "rental rent tenant property lease",
-      tab: "rental",
-    },
-    {
-      id: "nav-subs",
-      type: "nav",
-      icon: <Repeat size={16} />,
-      label: "Subscriptions",
-      keywords: "subscriptions recurring netflix spotify ott",
-      tab: "subs",
-    },
-
-    // System
-    {
-      id: "nav-reminders",
-      type: "nav",
-      icon: <Bell size={16} />,
-      label: "Reminders & Alerts",
-      keywords: "reminders alerts notifications due",
-      tab: "reminders",
-    },
-    {
-      id: "nav-calculators",
-      type: "nav",
-      icon: <Hash size={16} />,
-      label: "Financial Calculators",
-      keywords: "calculators emi sip fd compound interest",
-      tab: "calculators",
-    },
-    {
-      id: "nav-settings",
-      type: "nav",
-      icon: <Settings size={16} />,
-      label: "Settings",
-      keywords: "settings preferences theme export import backup",
-      tab: "settings",
-    },
-  ];
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        const Icon = item.icon;
+        if (item.children && item.children.length > 0) {
+          if (!item.directChildren) {
+            // Parent itself is a real tab (e.g. Investments Portfolio, Govt Schemes).
+            list.push({
+              id: `nav-${item.id}`,
+              type: "nav",
+              icon: <Icon size={16} />,
+              label: item.label,
+              keywords: keywordsFor(item.id, item.label, group.title),
+              tab: item.id,
+            });
+            for (const child of item.children) {
+              const ChildIcon = child.icon;
+              list.push({
+                id: `nav-${item.id}-${child.id}`,
+                type: "nav",
+                icon: <ChildIcon size={16} />,
+                label: child.label,
+                keywords: keywordsFor(child.id, child.label, group.title),
+                tab: item.id,
+                subTab: child.id,
+              });
+            }
+          } else {
+            // Group header isn't itself a navigable tab - only its children are
+            // (e.g. Tax & Compliance groups Tax Vault/Tax Tools/... as standalone tabs).
+            for (const child of item.children) {
+              const ChildIcon = child.icon;
+              list.push({
+                id: `nav-${child.id}`,
+                type: "nav",
+                icon: <ChildIcon size={16} />,
+                label: child.label,
+                keywords: keywordsFor(child.id, child.label, group.title),
+                tab: child.id,
+              });
+            }
+          }
+        } else {
+          list.push({
+            id: `nav-${item.id}`,
+            type: "nav",
+            icon: <Icon size={16} />,
+            label: item.label,
+            keywords: keywordsFor(item.id, item.label, group.title),
+            tab: item.id,
+          });
+        }
+      }
+    }
+    return list;
+  }, []);
 
   const filtered = query.trim()
     ? actions.filter((a) => {
