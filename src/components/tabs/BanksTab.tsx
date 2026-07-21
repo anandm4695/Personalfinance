@@ -2067,52 +2067,20 @@ export function BanksTab({
                           >
                             {t.note || "—"}
                             {t.category === "Transfer" && (
-                              <span
-                                style={{
-                                  fontSize: 8,
-                                  padding: "1px 5px",
-                                  borderRadius: 4,
-                                  background:
-                                    "color-mix(in srgb, var(--t-accent) 12%, transparent)",
-                                  color: "var(--t-accent)",
-                                  fontWeight: 800,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
+                              <Badge variant="accent" size="xs" style={{ whiteSpace: "nowrap" }}>
                                 ↔ TRANSFER
-                              </span>
+                              </Badge>
                             )}
                             {t.linkedType && (
-                              <span
-                                style={{
-                                  fontSize: 8,
-                                  padding: "1px 5px",
-                                  borderRadius: 4,
-                                  background:
-                                    "color-mix(in srgb, var(--t-accent) 12%, transparent)",
-                                  color: "var(--t-accent)",
-                                  fontWeight: 800,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
+                              <Badge variant="accent" size="xs" style={{ whiteSpace: "nowrap" }}>
                                 🔗 LINKED
-                              </span>
+                              </Badge>
                             )}
                             {t.category !== "Transfer" &&
                               recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
-                                <span
-                                  style={{
-                                    fontSize: 8,
-                                    padding: "1px 5px",
-                                    borderRadius: 4,
-                                    background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                                    color: THEME.gold,
-                                    fontWeight: 800,
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
+                                <Badge variant="gold" size="xs" style={{ whiteSpace: "nowrap" }}>
                                   RECURRING
-                                </span>
+                                </Badge>
                               )}
                           </div>
                           {t.narration && (
