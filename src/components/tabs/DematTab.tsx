@@ -1979,7 +1979,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   onEdit={() => setEditDematId(d.id)}
                   style={{
                     borderTop: `4px solid ${theme.color}`,
-                    padding: "44px 24px 20px 24px",
+                    padding: "52px 24px 20px 24px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -2002,10 +2002,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
+                          gap: 8,
                           marginBottom: 2,
+                          paddingRight: 40,
                         }}
                       >
-                        <span style={{ fontSize: 16, fontWeight: 850, color: THEME.ink }}>
+                        <span
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 850,
+                            color: THEME.ink,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {d.broker || "Broker"}
                         </span>
                         <span
@@ -2015,6 +2026,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             color: THEME.sage,
                             display: "inline-flex",
                             alignItems: "center",
+                            flexShrink: 0,
                             gap: 5,
                             background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                             padding: "2px 8px",
