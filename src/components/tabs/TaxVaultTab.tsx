@@ -41,6 +41,18 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
 
+// The capital-gains report below is built with document.write() from raw HTML strings —
+// without this, a security/fund name containing e.g. <img onerror=...> (typeable directly,
+// or arriving via a CSV/CAS import) would execute in the popup window.
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS
    ══════════════════════════════════════════════════════════════════ */
@@ -4706,7 +4718,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         items
                           .map(
                             (s: any) =>
-                              `<tr><td>${s.name}</td><td>${s.type}</td><td>${s.buyDate || "-"}</td><td>${s.sellDate || "-"}</td><td>${s.days}d</td><td style="text-align:right">${fmtINRFull(s.buyPrice * s.qty)}</td><td style="text-align:right">${fmtINRFull(s.sellPrice * s.qty)}</td><td style="text-align:right;color:${s.profit >= 0 ? "#22c55e" : "#ef4444"}">${fmtINRFull(s.profit)}</td>${s.grandfathered ? '<td style="font-size:10px;color:#f59e0b">GF</td>' : "<td></td>"}</tr>`
+                              `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.type)}</td><td>${s.buyDate || "-"}</td><td>${s.sellDate || "-"}</td><td>${s.days}d</td><td style="text-align:right">${fmtINRFull(s.buyPrice * s.qty)}</td><td style="text-align:right">${fmtINRFull(s.sellPrice * s.qty)}</td><td style="text-align:right;color:${s.profit >= 0 ? "#22c55e" : "#ef4444"}">${fmtINRFull(s.profit)}</td>${s.grandfathered ? '<td style="font-size:10px;color:#f59e0b">GF</td>' : "<td></td>"}</tr>`
                           )
                           .join("");
                       const html = `<html><head><title>Capital Gains Report - FY ${fy}</title>

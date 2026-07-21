@@ -273,9 +273,11 @@ function OnboardingCarousel({ onDone }: { onDone: () => void }) {
 export default function Auth({
   onLogin,
   onOffline,
+  onRecoveryComplete,
 }: {
   onLogin: (session: any) => void;
   onOffline?: () => void;
+  onRecoveryComplete?: () => void;
 }) {
   // Detect password-recovery link in the URL hash (Supabase sends #access_token=...&type=recovery)
   const [mode, setMode] = useState<"login" | "signup" | "forgot" | "reset">(() => {
@@ -398,6 +400,11 @@ export default function Auth({
         if (error) throw error;
         setMsg("Password updated! You can now sign in with your new password.");
         window.history.replaceState({}, document.title, window.location.pathname);
+        // The recovery link already established a live session — sign out so the user
+        // must re-authenticate with their new password, and let App.tsx know it's safe
+        // to stop force-showing this screen (see recoveryMode in App.tsx).
+        await supabase.auth.signOut();
+        onRecoveryComplete?.();
         setTimeout(() => switchMode("login"), 2500);
       } catch (err: any) {
         setError(friendlyError(err.message));

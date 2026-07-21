@@ -2690,6 +2690,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
           <input
             style={input}
             type="number"
+            min="0"
             value={f.amount}
             onChange={(e) => setF({ ...f, amount: e.target.value })}
           />
@@ -2810,7 +2811,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
       </Field>
       <ModalActions
         onSave={() =>
-          f.amount &&
+          Number(f.amount) > 0 &&
           f.accountId &&
           (!isTransfer || (f.toAccountId && f.accountId !== f.toAccountId)) &&
           onSave(f)
@@ -2931,6 +2932,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
           <input
             style={input}
             type="number"
+            min="0"
             value={f.amount}
             onChange={(e) => setF({ ...f, amount: e.target.value })}
           />
@@ -2975,7 +2977,10 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
           placeholder="Cheque or reference number (optional)"
         />
       </Field>
-      <ModalActions onSave={() => f.amount && f.accountId && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() => Number(f.amount) > 0 && f.accountId && onSave(f)}
+        onClose={onClose}
+      />
     </Modal>
   );
 }

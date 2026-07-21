@@ -214,6 +214,17 @@ function FinanceDashboard() {
     return null;
   });
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  // A Supabase password-recovery link establishes a real session before React renders.
+  // We must not let that truthy session skip straight into the dashboard — force the
+  // "set new password" screen until the reset completes (Auth.tsx clears this via
+  // onRecoveryComplete after updateUser succeeds).
+  const [recoveryMode, setRecoveryMode] = useState<boolean>(() => {
+    try {
+      return typeof window !== "undefined" && window.location.hash.includes("type=recovery");
+    } catch {
+      return false;
+    }
+  });
   const [loaded, setLoaded] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
@@ -393,9 +404,13 @@ function FinanceDashboard() {
         if (settErr) console.error("updateSettings DB error:", settErr.message, dbUpdates);
       }
 
-      // Log setting changes
+      // Log setting changes — never persist secret values into the activity log
       const keys = Object.keys(updates).join(", ");
-      logActivity("UPDATE_SETTINGS", `Updated settings: ${keys}`, updates);
+      const loggedUpdates =
+        updates.geminiApiKey !== undefined
+          ? { ...updates, geminiApiKey: updates.geminiApiKey ? "[redacted]" : "" }
+          : updates;
+      logActivity("UPDATE_SETTINGS", `Updated settings: ${keys}`, loggedUpdates);
     },
     [logActivity, session]
   );
@@ -2229,6 +2244,24 @@ function FinanceDashboard() {
       key === "transactions" ? state.transactions.find((x: any) => x.id === id) : null;
     const wasBalanceApplied =
       key === "transactions" && (state.masterData?.balanceAppliedTxnIds || []).includes(id);
+    const orphanedDemandIds =
+      key === "realEstateProperties"
+        ? (state.realEstateDemands || [])
+            .filter((d: any) => d.propertyId === id)
+            .map((d: any) => d.id)
+        : [];
+    const orphanedPaymentIds =
+      key === "realEstateProperties"
+        ? (state.realEstatePayments || [])
+            .filter((p: any) => p.propertyId === id)
+            .map((p: any) => p.id)
+        : [];
+    const orphanedTxnIdsForAccount =
+      key === "bankAccounts"
+        ? (state.transactions || [])
+            .filter((t: any) => t.accountId === id)
+            .map((t: any) => t.id)
+        : [];
 
     // Reverse any side effect this transaction auto-posted into a linked module record
     // (credit card outstanding, loan balance, insurance premium ledger, rent log) so that
@@ -2283,6 +2316,23 @@ function FinanceDashboard() {
       const next: any = { ...s, [key]: (s[key] || []).filter((x: any) => x.id !== id) };
       if (key === "wishlists") {
         next.wishlistItems = (s.wishlistItems || []).filter((x: any) => x.watchlistId !== id);
+      }
+      if (key === "realEstateProperties") {
+        // Otherwise these ledger rows survive with a dangling propertyId and keep
+        // inflating portfolio-wide "Total Paid"/"Outstanding" totals forever.
+        next.realEstateDemands = (s.realEstateDemands || []).filter(
+          (d: any) => d.propertyId !== id
+        );
+        next.realEstatePayments = (s.realEstatePayments || []).filter(
+          (p: any) => p.propertyId !== id
+        );
+      }
+      if (key === "bankAccounts") {
+        // Transactions keep their history but lose the (now-invalid) account reference,
+        // matching the delete-confirmation copy shown to the user.
+        next.transactions = (s.transactions || []).map((t: any) =>
+          t.accountId === id ? { ...t, accountId: null } : t
+        );
       }
       if (key === "transactions") {
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
@@ -2358,6 +2408,20 @@ function FinanceDashboard() {
               .then(({ error: e }) => {
                 if (e) console.error("[masterData sync]", e.message);
               });
+          }
+          if (key === "realEstateProperties") {
+            if (orphanedDemandIds.length) {
+              await supabase.from("real_estate_demands").delete().in("id", orphanedDemandIds);
+            }
+            if (orphanedPaymentIds.length) {
+              await supabase.from("real_estate_payments").delete().in("id", orphanedPaymentIds);
+            }
+          }
+          if (key === "bankAccounts" && orphanedTxnIdsForAccount.length) {
+            await supabase
+              .from("transactions")
+              .update({ account_id: null })
+              .in("id", orphanedTxnIdsForAccount);
           }
           if (key === "stocks" && itemToDelete) {
             // Check if any lots of this stock remain in active portfolio OR if it's in sales history
@@ -2708,7 +2772,13 @@ function FinanceDashboard() {
 
   // ================== EXPORT / IMPORT ==================
   const exportJSON = () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    // Never write the Gemini API key (or other secrets) into a downloadable backup file —
+    // users routinely email/cloud-store these exports.
+    const exportState = {
+      ...state,
+      settings: { ...(state.settings || {}), geminiApiKey: "" },
+    };
+    const blob = new Blob([JSON.stringify(exportState, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -2960,7 +3030,7 @@ function FinanceDashboard() {
     return <LoadingScreen />;
   }
 
-  if (!session) {
+  if (!session || recoveryMode) {
     if (!isSupabaseConfigured) {
       return (
         <div
@@ -3023,6 +3093,7 @@ function FinanceDashboard() {
     return (
       <Auth
         onLogin={setSession}
+        onRecoveryComplete={() => setRecoveryMode(false)}
         onOffline={
           isDemoSite
             ? async () => {
@@ -4752,6 +4823,7 @@ function FinanceDashboard() {
                   setState={setState}
                   addItem={addItem}
                   removeItem={removeItem}
+                  updateItem={updateItem}
                   exportJSON={exportJSON}
                   onRestoreBackup={importJSON}
                   resetAll={resetAll}

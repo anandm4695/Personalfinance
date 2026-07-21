@@ -57,21 +57,22 @@ const DATA_SECTIONS = [
   { key: "documents", label: "Documents" },
 ];
 
+// Always wrap the value in quotes if it needs escaping (comma/quote/newline), doubling any
+// internal quotes — an unquoted stringified object containing a comma otherwise shifts every
+// subsequent CSV column for that row.
+const csvCell = (val) => {
+  if (val === null || val === undefined) return "";
+  const str = typeof val === "object" ? JSON.stringify(val) : String(val);
+  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+};
+
 const toCSV = (data, label) => {
   if (!Array.isArray(data) || data.length === 0) return null;
   const allKeys = new Set();
   data.forEach((row) => Object.keys(row).forEach((k) => allKeys.add(k)));
   const headers = [...allKeys].filter((k) => k !== "id" && k !== "userId" && k !== "user_id");
-  const rows = data.map((row) =>
-    headers
-      .map((h) => {
-        const val = row[h];
-        if (val === null || val === undefined) return "";
-        if (typeof val === "object") return JSON.stringify(val).replace(/"/g, '""');
-        return String(val).includes(",") ? `"${val}"` : val;
-      })
-      .join(",")
-  );
+  const rows = data.map((row) => headers.map((h) => csvCell(row[h])).join(","));
   return [headers.join(","), ...rows].join("\n");
 };
 
@@ -176,22 +177,6 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
   const handleExport = () => {
     if (exportFormat === "json") handleExportJSON();
     else handleExportCSV();
-  };
-
-  const handleImport = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target?.result);
-        if (onRestoreBackup) onRestoreBackup(data);
-        if (showToast) showToast("Backup restored successfully!", "success");
-      } catch {
-        if (showToast) showToast("Invalid backup file", "error");
-      }
-    };
-    reader.readAsText(file);
   };
 
   return (
@@ -416,7 +401,7 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
           type="file"
           accept=".json"
           aria-label="Choose backup file to restore"
-          onChange={handleImport}
+          onChange={onRestoreBackup}
           style={{ fontSize: 14, color: THEME.text }}
         />
       </Card>

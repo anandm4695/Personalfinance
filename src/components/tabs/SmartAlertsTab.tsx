@@ -25,9 +25,30 @@ import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
+const DISMISSED_ALERTS_KEY = "finance-dismissed-alerts";
+
 export const SmartAlertsTab = ({ state, metrics }) => {
   const [filter, setFilter] = useState("all");
-  const [dismissed, setDismissed] = useState(new Set());
+  // Dismissal must survive a tab switch — this tab unmounts every time the user navigates
+  // away, so plain component state made a dismissed alert reappear immediately on return.
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(DISMISSED_ALERTS_KEY);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const dismissAlert = (id: string) => {
+    setDismissed((prev) => {
+      const next = new Set([...prev, id]);
+      try {
+        localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  };
 
   const smartAlerts = useMemo(() => {
     const alerts = [];
@@ -510,7 +531,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setDismissed((prev) => new Set([...prev, alert.id]))}
+                    onClick={() => dismissAlert(alert.id)}
                     title="Dismiss"
                     aria-label="Dismiss alert"
                     style={{

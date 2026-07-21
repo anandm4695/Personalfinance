@@ -1695,13 +1695,26 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
             demands={demands.filter((d) => d.propertyId === property.id)}
             payments={payments.filter((p) => p.propertyId === property.id)}
             onEditProperty={(p: any) => setEditProperty(p)}
-            onDeleteProperty={(id: string) => removeItem("realEstateProperties", id)}
+            onDeleteProperty={(id: string) => {
+              if (
+                window.confirm(
+                  "Delete this property? Its demand letters and payment records will be deleted too. This cannot be undone."
+                )
+              )
+                removeItem("realEstateProperties", id);
+            }}
             onAddDemand={(p: any) => setDemandForProperty(p)}
             onEditDemand={(d: any) => setEditDemand(d)}
-            onDeleteDemand={(id: string) => removeItem("realEstateDemands", id)}
+            onDeleteDemand={(id: string) => {
+              if (window.confirm("Delete this demand letter? This cannot be undone."))
+                removeItem("realEstateDemands", id);
+            }}
             onAddPayment={(p: any) => setPaymentForProperty(p)}
             onEditPayment={(p: any) => setEditPayment(p)}
-            onDeletePayment={(id: string) => removeItem("realEstatePayments", id)}
+            onDeletePayment={(id: string) => {
+              if (window.confirm("Delete this payment record? This cannot be undone."))
+                removeItem("realEstatePayments", id);
+            }}
           />
         ))
       )}

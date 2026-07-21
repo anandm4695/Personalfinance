@@ -843,7 +843,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeItem("rentalProperties", p.id)}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  "Delete this property? Its entire receipt and deposit ledger will be deleted too. This cannot be undone."
+                                )
+                              )
+                                removeItem("rentalProperties", p.id);
+                            }}
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label="Delete property"
@@ -2260,7 +2267,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeItem("rentedProperties", p.id)}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  "Delete this property? Its entire payment/deduction ledger will be deleted too. This cannot be undone."
+                                )
+                              )
+                                removeItem("rentedProperties", p.id);
+                            }}
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label="Delete property"
