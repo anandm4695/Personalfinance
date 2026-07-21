@@ -461,8 +461,12 @@ function AppearanceSection({
   setDensity,
   fontKey,
   setFontKey,
-  bgStyle: _bgStyle,
-  setBgStyle: _setBgStyle,
+  radiusKey,
+  setRadiusKey,
+  bgStyle,
+  setBgStyle,
+  animSpeed,
+  setAnimSpeed,
   darkMode,
   toggleDarkMode,
 }: any) {
@@ -936,6 +940,51 @@ function AppearanceSection({
             { value: "space-grotesk", label: "Space Grotesk" },
             { value: "lato", label: "Lato" },
             { value: "sf-pro", label: "SF Pro (System)" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Corner Radius */}
+        <OptionRow
+          label="Corner Radius"
+          hint="Controls how sharp or rounded cards and buttons look"
+          value={radiusKey || "modern"}
+          onChange={setRadiusKey}
+          options={[
+            { value: "sharp", label: "Sharp" },
+            { value: "modern", label: "Modern" },
+            { value: "round", label: "Round" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Background Style */}
+        <OptionRow
+          label="Background Style"
+          hint="Subtle ambient texture behind the app content"
+          value={bgStyle || "plain"}
+          onChange={setBgStyle}
+          options={[
+            { value: "plain", label: "Plain" },
+            { value: "dots", label: "Dots" },
+            { value: "mesh", label: "Mesh" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Animation Speed */}
+        <OptionRow
+          label="Animation Speed"
+          hint="Controls how fast transitions and hover effects animate"
+          value={animSpeed || "smooth"}
+          onChange={setAnimSpeed}
+          options={[
+            { value: "snappy", label: "Snappy" },
+            { value: "smooth", label: "Smooth" },
+            { value: "relaxed", label: "Relaxed" },
           ]}
         />
       </div>
@@ -2618,16 +2667,14 @@ export function SettingsTab({
   toggleDarkMode,
   density,
   setDensity,
-  sidebarNav: _sidebarNav,
-  setSidebarNav: _setSidebarNav,
-  radiusKey: _radiusKey,
-  setRadiusKey: _setRadiusKey,
+  radiusKey,
+  setRadiusKey,
   fontKey,
   setFontKey,
-  bgStyle: _bgStyle2,
-  setBgStyle: _setBgStyle2,
-  animSpeed: _animSpeed,
-  setAnimSpeed: _setAnimSpeed,
+  bgStyle,
+  setBgStyle,
+  animSpeed,
+  setAnimSpeed,
   chartStyle: _chartStyle,
   setChartStyle: _setChartStyle,
   masterData,
@@ -2777,8 +2824,12 @@ export function SettingsTab({
             setDensity={setDensity}
             fontKey={fontKey}
             setFontKey={setFontKey}
-            bgStyle={_bgStyle2}
-            setBgStyle={_setBgStyle2}
+            radiusKey={radiusKey}
+            setRadiusKey={setRadiusKey}
+            bgStyle={bgStyle}
+            setBgStyle={setBgStyle}
+            animSpeed={animSpeed}
+            setAnimSpeed={setAnimSpeed}
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
           />

@@ -186,7 +186,6 @@ const DEFAULT_STATE = {
     darkMode: false,
     accentKey: "blue",
     density: "normal",
-    sidebarNav: true,
     radiusKey: "modern",
     fontKey: "inter",
     bgStyle: "plain",
@@ -341,7 +340,6 @@ function FinanceDashboard() {
     darkMode,
     accentKey,
     density,
-    sidebarNav,
     radiusKey,
     fontKey,
     bgStyle,
@@ -381,7 +379,6 @@ function FinanceDashboard() {
         if (updates.darkMode !== undefined) dbUpdates.dark_mode = updates.darkMode;
         if (updates.accentKey !== undefined) dbUpdates.accent_key = updates.accentKey;
         if (updates.density !== undefined) dbUpdates.density = updates.density;
-        if (updates.sidebarNav !== undefined) dbUpdates.sidebar_nav = updates.sidebarNav;
         if (updates.radiusKey !== undefined) dbUpdates.radius_key = updates.radiusKey;
         if (updates.fontKey !== undefined) dbUpdates.font_key = updates.fontKey;
         if (updates.bgStyle !== undefined) dbUpdates.bg_style = updates.bgStyle;
@@ -2990,7 +2987,6 @@ function FinanceDashboard() {
               dark_mode: false,
               accent_key: "blue",
               density: "normal",
-              sidebar_nav: true,
               radius_key: "modern",
               font_key: "inter",
               bg_style: "plain",
@@ -4852,8 +4848,6 @@ function FinanceDashboard() {
                   setAccentKey={(v) => updateSettings({ accentKey: v })}
                   density={density}
                   setDensity={(v) => updateSettings({ density: v })}
-                  sidebarNav={sidebarNav}
-                  setSidebarNav={(v) => updateSettings({ sidebarNav: v })}
                   radiusKey={radiusKey}
                   setRadiusKey={(v) => updateSettings({ radiusKey: v })}
                   fontKey={fontKey}

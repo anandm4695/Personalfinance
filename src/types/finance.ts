@@ -17,7 +17,6 @@ export interface Settings {
   darkMode: boolean;
   accentKey: string;
   density: "compact" | "normal" | "comfortable" | string;
-  sidebarNav: boolean;
   radiusKey: string;
   fontKey: string;
   bgStyle: string;
