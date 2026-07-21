@@ -2,6 +2,7 @@
 import React, { useState, useRef } from "react";
 import { Download, Upload, Zap, FileText, CheckCircle, AlertTriangle } from "lucide-react";
 import { Modal, ModalActions } from "../ui/Modal";
+import { SkeletonTableRows } from "../ui/Skeleton";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 
@@ -1001,6 +1002,11 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               </span>
             )}
           </div>
+          {isParsing && (
+            <div style={{ marginTop: 16 }}>
+              <SkeletonTableRows rows={5} columns={5} />
+            </div>
+          )}
 
           {detectedBank && (
             <div
