@@ -271,7 +271,18 @@ function FinanceDashboard() {
   // addItem calls (e.g. transfer = debit + credit) don't overwrite each other's DB upsert.
   const masterDataRef = useRef<any>(null);
   const { privacyMode, setPrivacyMode } = usePrivacy();
-  const [sidebarMinimized, setSidebarMinimized] = useState(false);
+  const [sidebarMinimized, setSidebarMinimized] = useState(() => {
+    try {
+      return localStorage.getItem("pf_sidebar_minimized") === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("pf_sidebar_minimized", String(sidebarMinimized));
+    } catch {}
+  }, [sidebarMinimized]);
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const isSidebarCompact = sidebarMinimized && !sidebarHovered;
 
@@ -554,7 +565,18 @@ function FinanceDashboard() {
   const [showAlerts, setShowAlerts] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("pf_collapsed_nav_groups") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("pf_collapsed_nav_groups", JSON.stringify(collapsedGroups));
+    } catch {}
+  }, [collapsedGroups]);
   const [missingTables, setMissingTables] = useState<string[]>([]);
 
   // Theme CSS vars + background style applied via extracted hook
