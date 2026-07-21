@@ -3499,7 +3499,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(var(--grid-min-md), 1fr))",
                 gap: 8,
               }}
             >
@@ -5120,7 +5120,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-sm), 1fr))",
                       gap: 12,
                       marginBottom: 20,
                     }}
@@ -6459,7 +6459,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-md), 1fr))",
               gap: 16,
               marginBottom: 24,
             }}
@@ -6945,7 +6945,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
                   gap: 24,
                 }}
               >
@@ -8312,7 +8312,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
                 gap: 32,
               }}
             >
@@ -8934,7 +8934,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-sm), 1fr))",
                 gap: 12,
                 marginBottom: 16,
               }}
@@ -10431,7 +10431,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-sm), 1fr))",
                     gap: 10,
                     marginBottom: 20,
                   }}
@@ -10607,7 +10607,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-md), 1fr))",
                     gap: 14,
                   }}
                 >
@@ -10919,7 +10919,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
                   gap: 24,
                 }}
               >
@@ -14316,7 +14316,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(var(--grid-min-sm), 1fr))",
                 gap: 10,
               }}
             >

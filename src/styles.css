@@ -49,6 +49,15 @@
   --space-10: 40px;
   --space-12: 48px;
 
+  /* Stat/card grid minmax breakpoints — shared tokens for `grid-template-columns:
+     repeat(auto-fit/auto-fill, minmax(var(--grid-min-x), 1fr))`. Several screens
+     (esp. AnalyticsTab) hardcoded one-off pixel values for the same "small/medium/
+     large stat card" intent; these tokens let new and migrated grids share intent
+     without changing every existing hardcoded value at once. */
+  --grid-min-sm: 140px;
+  --grid-min-md: 180px;
+  --grid-min-lg: 280px;
+
   /* Typography */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-display: "Outfit", "Inter", sans-serif;
