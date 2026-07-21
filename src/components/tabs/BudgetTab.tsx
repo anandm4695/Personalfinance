@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import {
   AlertCircle,
   Plus,
@@ -246,6 +247,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
     (s: number, b: any) => s + (monthSpending[b.category] || 0),
     0
   );
+
+  const animatedSpentPct = useAnimatedNumber(totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0);
 
   const overBudgetCount = budgetsToUse.filter((b: any) => {
     const spent = monthSpending[b.category] || 0;
@@ -1105,7 +1108,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           fontWeight="900"
                           fill={THEME.ink}
                         >
-                          {spentPct.toFixed(0)}%
+                          {animatedSpentPct.toFixed(0)}%
                         </text>
                         <text
                           x={sz / 2}

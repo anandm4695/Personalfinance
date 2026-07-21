@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import {
   Plus,
   Pencil,
@@ -176,6 +177,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
     ? Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0))
     : 0;
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+  const animatedOverallPct = useAnimatedNumber(overallPct);
 
   const completedCount = state.goals.filter(
     (g: any) => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)
@@ -273,7 +275,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               },
               {
                 label: "Overall Progress",
-                value: `${overallPct.toFixed(1)}%`,
+                value: `${animatedOverallPct.toFixed(1)}%`,
                 color: ringColor(overallPct),
                 Icon: Activity,
               },
@@ -373,7 +375,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 fontWeight: 700,
               }}
             >
-              Portfolio Completion — {overallPct.toFixed(1)}% achieved
+              Portfolio Completion — {animatedOverallPct.toFixed(1)}% achieved
             </div>
             <div
               style={{
