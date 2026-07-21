@@ -2,6 +2,7 @@
 import React from "react";
 import { THEME } from "../../utils/constants";
 import { Prv } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 interface StatCardProps {
   label: string;
@@ -12,6 +13,9 @@ interface StatCardProps {
   color: string;
   borderColor?: string;
   iconBg?: string;
+  /** Optional: pass the raw number + a formatter to animate the value on change (count-up/down). */
+  numericValue?: number;
+  formatValue?: (n: number) => string;
 }
 
 export const StatCard = ({
@@ -23,7 +27,14 @@ export const StatCard = ({
   color,
   borderColor,
   iconBg,
-}: StatCardProps) => (
+  numericValue,
+  formatValue,
+}: StatCardProps) => {
+  const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
+  const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
+  const displayValue = hasAnimation ? formatValue(animated) : value;
+
+  return (
   <div
     className="card-lift"
     style={{
@@ -98,7 +109,8 @@ export const StatCard = ({
         fontVariantNumeric: "tabular-nums",
       }}
     >
-      <Prv>{value}</Prv>
+      <Prv>{displayValue}</Prv>
     </div>
   </div>
-);
+  );
+};

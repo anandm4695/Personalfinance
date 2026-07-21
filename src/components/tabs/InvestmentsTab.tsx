@@ -3389,12 +3389,16 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
             <StatCard
               label="Total Invested"
               value={fmtINRFull(totalInvested)}
+              numericValue={totalInvested}
+              formatValue={fmtINRFull}
               icon={<IndianRupee />}
               color={BOND_AMBER}
             />
             <StatCard
               label="Annual Coupon"
               value={fmtINRFull(annualIncome)}
+              numericValue={annualIncome}
+              formatValue={fmtINRFull}
               icon={<Coins />}
               color="#059669"
             />

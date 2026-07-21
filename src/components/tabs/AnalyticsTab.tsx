@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import {
   TrendingUp,
   CreditCard,
@@ -604,6 +605,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 }) => {
   const { familyProfiles } = useMasterData();
   const isDark = state.settings?.darkMode ?? false;
+  const animatedNetWorth = useAnimatedNumber(metrics.netWorth || 0);
   const [sub, setSub] = useState("dashboard");
   const [showWidgetConfig, setShowWidgetConfig] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -3898,7 +3900,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     color: "#fff",
                   }}
                 >
-                  {fmtINRFull(metrics.netWorth)}
+                  {fmtINRFull(animatedNetWorth)}
                 </div>
                 <div
                   style={{
