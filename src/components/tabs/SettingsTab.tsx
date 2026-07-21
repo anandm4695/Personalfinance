@@ -584,7 +584,7 @@ function AppearanceSection({
             )}
           </div>
           <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>
-            10 accent colors × light & dark — one click sets color, mode & font
+            11 accent colors × light & dark — one click sets color, mode & font
           </div>
 
           {/* Light presets */}
