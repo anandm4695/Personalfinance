@@ -738,8 +738,8 @@ function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any)
               <option value="">— Not linked —</option>
               {demands.map((d: any) => (
                 <option key={d.id} value={d.id}>
-                  {d.milestone || "Demand"} — {fmtDate(d.demandDate)} — ₹
-                  {Number(d.totalAmount || d.amount || 0).toLocaleString("en-IN")}
+                  {d.milestone || "Demand"} — {fmtDate(d.demandDate)} —{" "}
+                  {fmtINRFull(d.totalAmount || d.amount || 0)}
                 </option>
               ))}
             </select>
@@ -1483,7 +1483,15 @@ function PropertyCard({
                       >
                         Total
                       </td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 900, color: THEME.sage }}>
+                      <td
+                        style={{
+                          ...td,
+                          textAlign: "right",
+                          fontWeight: 900,
+                          color: THEME.sage,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
                         <Prv>{fmtINRFull(totalPaid)}</Prv>
                       </td>
                       <td colSpan={5} style={{ borderBottom: divider }} />

@@ -4367,10 +4367,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             })}
                         </Pie>
                         <Tooltip
-                          formatter={(value: any) => [
-                            `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
-                            "Current Value",
-                          ]}
+                          formatter={(value: any) => [fmtINRFull(value || 0), "Current Value"]}
                           contentStyle={{
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,

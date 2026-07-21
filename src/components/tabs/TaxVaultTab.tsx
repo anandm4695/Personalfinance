@@ -1214,10 +1214,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     const d80C_raw = elss + ppf + lic + epf;
     const d80C_sources =
       [
-        elss > 0 ? `ELSS ₹${Math.round(elss).toLocaleString("en-IN")}` : null,
-        ppf > 0 ? `PPF ₹${Math.round(ppf).toLocaleString("en-IN")}` : null,
-        lic > 0 ? `LIC ₹${Math.round(lic).toLocaleString("en-IN")}` : null,
-        epf > 0 ? `EPF ₹${Math.round(epf).toLocaleString("en-IN")}` : null,
+        elss > 0 ? `ELSS ${fmtINRFull(Math.round(elss))}` : null,
+        ppf > 0 ? `PPF ${fmtINRFull(Math.round(ppf))}` : null,
+        lic > 0 ? `LIC ${fmtINRFull(Math.round(lic))}` : null,
+        epf > 0 ? `EPF ${fmtINRFull(Math.round(epf))}` : null,
       ]
         .filter(Boolean)
         .join(" + ") || null;
@@ -1418,7 +1418,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         priority: "high",
         icon: "🏦",
         title: `Top up 80C — ${fmtL(gap80C)} room left`,
-        shortDesc: `Invest ₹${gap80C.toLocaleString("en-IN")} more in PPF, ELSS, or EPF to max the ₹1.5L limit.`,
+        shortDesc: `Invest ${fmtINRFull(gap80C)} more in PPF, ELSS, or EPF to max the ₹1.5L limit.`,
         fullDesc: `Section 80C allows deduction up to ₹1,50,000 per year on investments in PPF, ELSS Mutual Funds, EPF, LIC premiums, NSC, SCSS, tax-saving FDs (5yr), and tuition fees for 2 children. You've used ${fmtL(used80C)} of the ₹1.5L cap. Topping up can save approx. ${fmtINRFull(saving)} in taxes (at your ${(margRate * 100).toFixed(0)}% slab + 4% cess).`,
         saving,
         regime: "old",
@@ -2214,7 +2214,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         {fmtINRFull(taxNewResult.total)}
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-                        ₹{getNewStdDed(fyStartYear).toLocaleString("en-IN")} std ded · No other
+                        {fmtINRFull(getNewStdDed(fyStartYear))} std ded · No other
                         deductions
                         <br />
                         Taxable: {fmtINRFull(taxNewResult.taxable)} ·{" "}
@@ -3425,7 +3425,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   type="number"
                   placeholder={
                     detectedIncome > 0
-                      ? `Auto: ${Math.round(detectedIncome).toLocaleString("en-IN")}`
+                      ? `Auto: ${fmtINRFull(Math.round(detectedIncome))}`
                       : "Enter annual income"
                   }
                   value={incomeOverride}
@@ -3754,7 +3754,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 />
               </Field>
               <Field
-                label={`Standard Deduction (Old Regime — ₹${stdDedOld.toLocaleString("en-IN")})`}
+                label={`Standard Deduction (Old Regime — ${fmtINRFull(stdDedOld)})`}
                 style={{ marginBottom: 0 }}
               >
                 <input className="form-input" type="number" value={stdDedOld} disabled />

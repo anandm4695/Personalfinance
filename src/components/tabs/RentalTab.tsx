@@ -2245,7 +2245,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         flexShrink: 0,
                                       }}
                                     />
-                                    {ll.name || `L${li + 1}`}: ₹{share.toLocaleString("en-IN")}/mo (
+                                    {ll.name || `L${li + 1}`}: {fmtINRFull(share)}/mo (
                                     {ll.splitPct}%)
                                   </span>
                                 );

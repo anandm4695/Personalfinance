@@ -1177,23 +1177,21 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         >
           Ex-showroom total:{" "}
           <strong style={{ color: "var(--text)" }}>
-            ₹
-            {(
+            {fmtINRFull(
               Number(f.purchaseBasicCost || 0) +
-              Number(f.purchaseCgstAmount || 0) +
-              Number(f.purchaseSgstAmount || 0)
-            ).toLocaleString("en-IN")}
+                Number(f.purchaseCgstAmount || 0) +
+                Number(f.purchaseSgstAmount || 0)
+            )}
           </strong>
           {" · "}Basic + RTO + Accessories:{" "}
           <strong style={{ color: "var(--text)" }}>
-            ₹
-            {(
+            {fmtINRFull(
               Number(f.purchaseBasicCost || 0) +
-              Number(f.purchaseCgstAmount || 0) +
-              Number(f.purchaseSgstAmount || 0) +
-              Number(f.rtoCharges || 0) +
-              Number(f.accessoriesCharges || 0)
-            ).toLocaleString("en-IN")}
+                Number(f.purchaseCgstAmount || 0) +
+                Number(f.purchaseSgstAmount || 0) +
+                Number(f.rtoCharges || 0) +
+                Number(f.accessoriesCharges || 0)
+            )}
           </strong>{" "}
           (enter into Purchase Price above if this is the on-road price)
         </div>
@@ -1579,7 +1577,7 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
           </span>
           {rec.cost > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
-              ₹{rec.cost.toLocaleString("en-IN")}
+              {fmtINRFull(rec.cost)}
             </span>
           )}
           {rec.odometer > 0 && (
@@ -1845,7 +1843,7 @@ function InsuranceModal({ existing, vehicleName, onClose, onSave }: any) {
       {totalPremium > 0 && (
         <div style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", marginBottom: 16 }}>
           Total Premium:{" "}
-          <strong style={{ color: "var(--text)" }}>₹{totalPremium.toLocaleString("en-IN")}</strong>
+          <strong style={{ color: "var(--text)" }}>{fmtINRFull(totalPremium)}</strong>
         </div>
       )}
 
@@ -1931,7 +1929,7 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
           </span>
           {rec.totalPremium > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
-              ₹{Number(rec.totalPremium).toLocaleString("en-IN")}
+              {fmtINRFull(rec.totalPremium)}
             </span>
           )}
           {rec.policyNumber && (
@@ -2826,7 +2824,7 @@ function VehicleCard({
                               tickFormatter={(v) => `₹${v}`}
                             />
                             <Tooltip
-                              formatter={(v: any) => [`₹${v.toLocaleString("en-IN")}`, "Spend"]}
+                              formatter={(v: any) => [fmtINRFull(v), "Spend"]}
                               contentStyle={{
                                 background: "var(--surface-0, var(--surface))",
                                 borderColor: "var(--t-line, var(--border))",
@@ -3119,7 +3117,7 @@ function VehicleCard({
                             }}
                           />
                           <span>{st.label}:</span>
-                          <span style={{ fontWeight: 800 }}>₹{cost.toLocaleString("en-IN")}</span>
+                          <span style={{ fontWeight: 800 }}>{fmtINRFull(cost)}</span>
                         </span>
                       );
                     })

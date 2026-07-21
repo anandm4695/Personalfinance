@@ -2048,7 +2048,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       </div>
                       {monthlyPremium > 0 && (
                         <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          ₹{Math.round(monthlyPremium).toLocaleString("en-IN")}/mo
+                          {fmtINRFull(Math.round(monthlyPremium))}/mo
                         </div>
                       )}
                       <div
@@ -2371,7 +2371,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       </div>
                       {monthlyPremium > 0 && (
                         <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          ₹{Math.round(monthlyPremium).toLocaleString("en-IN")}/mo
+                          {fmtINRFull(Math.round(monthlyPremium))}/mo
                         </div>
                       )}
                       <div
@@ -2700,7 +2700,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       </div>
                       {monthlyPremium > 0 && (
                         <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          ₹{Math.round(monthlyPremium).toLocaleString("en-IN")}/mo
+                          {fmtINRFull(Math.round(monthlyPremium))}/mo
                         </div>
                       )}
                       <div

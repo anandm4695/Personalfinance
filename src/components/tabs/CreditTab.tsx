@@ -8185,7 +8185,7 @@ function DebtPayoffOptimizer({ state }: any) {
                       transition: "all 0.2s ease",
                     }}
                   >
-                    +₹{val.toLocaleString("en-IN")}
+                    +{fmtINRFull(val)}
                   </button>
                 ))}
                 {windfall && (

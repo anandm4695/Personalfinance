@@ -512,7 +512,7 @@ const HraReceiptSection = ({ state }) => {
             <div class="receipt-row"><label>Date:</label><span>${r.date}</span></div>
             <div class="receipt-row"><label>For the month of:</label><span>${r.month}</span></div>
             <div class="receipt-row"><label>Received from:</label><span>${escapeHtml(tenantName)}</span></div>
-            <div class="amount">Amount: ₹${Number(r.amount).toLocaleString("en-IN")}</div>
+            <div class="amount">Amount: ${fmtINRFull(r.amount)}</div>
             <div class="receipt-row"><label>Property Address:</label><span>${escapeHtml(selectedProp?.address || selectedProp?.name || "—")}</span></div>
             <div class="receipt-row"><label>Landlord Name:</label><span>${escapeHtml(landlordName)}</span></div>
             ${landlordPan ? `<div class="receipt-row"><label>Landlord PAN:</label><span>${escapeHtml(landlordPan)}</span></div>` : ""}
@@ -529,7 +529,7 @@ const HraReceiptSection = ({ state }) => {
         <div class="summary receipt">
           <div class="receipt-header">RENT SUMMARY — FY ${fy}</div>
           <div class="receipt-row"><label>Total Months:</label><span>${receipts.length}</span></div>
-          <div class="receipt-row"><label>Total Rent Paid:</label><span>₹${totalRent.toLocaleString("en-IN")}</span></div>
+          <div class="receipt-row"><label>Total Rent Paid:</label><span>${fmtINRFull(totalRent)}</span></div>
           <div class="receipt-row"><label>Tenant:</label><span>${escapeHtml(tenantName)}</span></div>
           <div class="receipt-row"><label>Landlord:</label><span>${escapeHtml(landlordName)}</span></div>
           ${landlordPan ? `<div class="receipt-row"><label>Landlord PAN:</label><span>${escapeHtml(landlordPan)}</span></div>` : ""}

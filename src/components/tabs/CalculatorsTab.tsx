@@ -1901,7 +1901,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <span style={{ color: THEME.accent, fontWeight: 700 }}>Perpetuity tip: </span>
-                    To withdraw ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/month{" "}
+                    To withdraw {fmtINRFull(swpWithdrawal)}/month{" "}
                     <strong>forever</strong>, you need{" "}
                     <span style={{ color: THEME.accent, fontWeight: 700 }}>
                       {fmtINRFull(swpResult.perpetuityCorpus)}
@@ -2091,7 +2091,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         </strong>{" "}
                         exceeds your withdrawal of{" "}
                         <strong style={{ color: THEME.ink }}>
-                          ₹{Number(swpWithdrawal).toLocaleString("en-IN")}
+                          {fmtINRFull(swpWithdrawal)}
                         </strong>
                         . The corpus will grow over time even after withdrawals.
                       </div>
@@ -2134,7 +2134,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             : ""}
                         </div>
                         <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
-                          At ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/month, your corpus
+                          At {fmtINRFull(swpWithdrawal)}/month, your corpus
                           runs out before the {swpYears}-year planning period ends.
                         </div>
                       </div>
@@ -2162,7 +2162,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           {fmtINRFull(swpResult.minCorpus)}
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
-                          to sustain ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/mo for{" "}
+                          to sustain {fmtINRFull(swpWithdrawal)}/mo for{" "}
                           {swpYears}y
                         </div>
                       </div>

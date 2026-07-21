@@ -15,7 +15,7 @@ import {
   Shield,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, today } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -640,7 +640,7 @@ export function PaymentCalendarTab({ state }: any) {
                           textOverflow: "ellipsis",
                           fontWeight: 600,
                         }}
-                        title={`${p.name} — ₹${Number(p.amount).toLocaleString("en-IN")}`}
+                        title={`${p.name} — ${fmtINRFull(p.amount)}`}
                       >
                         {p.name.length > 8 ? p.name.slice(0, 7) + "…" : p.name}
                       </div>
@@ -665,14 +665,7 @@ export function PaymentCalendarTab({ state }: any) {
                         marginTop: 1,
                       }}
                     >
-                      <Prv>
-                        ₹
-                        {dayTotal >= 100000
-                          ? `${(dayTotal / 100000).toFixed(1)}L`
-                          : dayTotal >= 1000
-                            ? `${(dayTotal / 1000).toFixed(0)}K`
-                            : dayTotal}
-                      </Prv>
+                      <Prv>{fmtINR(dayTotal)}</Prv>
                     </div>
                   )}
                 </div>
@@ -724,7 +717,7 @@ export function PaymentCalendarTab({ state }: any) {
                           fontWeight: 600,
                         }}
                       >
-                        {p.name} — <Prv>₹{Number(p.amount).toLocaleString("en-IN")}</Prv>
+                        {p.name} — <Prv>{fmtINRFull(p.amount)}</Prv>
                       </div>
                     );
                   }

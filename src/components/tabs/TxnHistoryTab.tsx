@@ -14,6 +14,7 @@ import {
   Package,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { fmtINRFull } from "../../utils/finance";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -1497,7 +1498,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               color="#0891B2"
               subText={
                 cashTransactionsInFY.length > 0
-                  ? `Inflow +₹${totalCredits.toLocaleString("en-IN")} · Outflow -₹${totalDebits.toLocaleString("en-IN")}`
+                  ? `Inflow +${fmtINRFull(totalCredits)} · Outflow -${fmtINRFull(totalDebits)}`
                   : undefined
               }
             />
@@ -1605,7 +1606,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                               fontSize: 14,
                             }}
                           >
-                            {isCredit ? "+" : "-"}₹{amount.toLocaleString("en-IN")}
+                            {isCredit ? "+" : "-"}
+                            {fmtINRFull(amount)}
                           </td>
                           <td
                             style={{

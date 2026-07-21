@@ -1144,7 +1144,7 @@ export function BanksTab({
                               fontWeight: 700,
                             }}
                           >
-                            ₹{c.amount.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)
+                            {fmtINRFull(c.amount)} ({percentage.toFixed(0)}%)
                           </span>
                         </div>
                         <div
