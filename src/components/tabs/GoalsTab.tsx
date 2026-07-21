@@ -214,8 +214,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
       return sortDir === "desc" ? pb - pa : pa - pb;
     });
 
+  // Note: unlike Budget's bar (where a high % is bad - overspending), a high % here is
+  // good - closer to the goal. THEME.rust is reserved for genuinely concerning states
+  // elsewhere (the BEHIND badge), not just "goal recently started" - showing a brand-new
+  // goal in alarming red would read as shaming rather than encouraging progress.
   const ringColor = (pct: number) =>
-    pct >= 100 ? THEME.sage : pct >= 75 ? THEME.gold : pct >= 40 ? THEME.accent : THEME.rust;
+    pct >= 100 ? THEME.sage : pct >= 75 ? THEME.gold : pct >= 40 ? THEME.accent : THEME.muted;
 
   const fmtGoalDate = (d: string) =>
     d
