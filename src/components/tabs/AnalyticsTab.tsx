@@ -4871,8 +4871,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 Savings Streak
               </div>
               <div style={{ textAlign: "center", padding: "10px 0" }}>
-                <div style={{ fontSize: 48, marginBottom: 8 }}>{dashboardData.streakEmoji}</div>
-                <div style={{ fontSize: 52, fontWeight: 900, color: THEME.sage, lineHeight: 1 }}>
+                <div style={{ fontSize: 26, marginBottom: 6, opacity: 0.85 }}>
+                  {dashboardData.streakEmoji}
+                </div>
+                <div
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 900,
+                    color: THEME.sage,
+                    lineHeight: 1,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
                   {dashboardData.streak}
                 </div>
                 <div style={{ fontSize: 13, color: THEME.muted, marginTop: 6, fontWeight: 600 }}>
