@@ -1,11 +1,14 @@
 // @ts-nocheck
 import React from "react";
+import { Loader2 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger" | "accent";
   size?: "sm" | "md" | "lg";
   icon?: React.ReactNode;
+  /** Shows a spinner in place of the icon and disables the button while true. */
+  loading?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -13,6 +16,7 @@ export const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   size = "md",
   icon,
+  loading = false,
   style,
   ...props
 }) => {
@@ -76,7 +80,7 @@ export const Button: React.FC<ButtonProps> = ({
       } as Record<string, string>
     )[variant] || "";
 
-  const isDisabled = !!props.disabled;
+  const isDisabled = !!props.disabled || loading;
 
   const baseStyle: React.CSSProperties = {
     display: "inline-flex",
@@ -96,10 +100,16 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       {...props}
+      disabled={isDisabled}
+      aria-busy={loading || undefined}
       className={[variantClass, props.className].filter(Boolean).join(" ")}
       style={baseStyle}
     >
-      {icon}
+      {loading ? (
+        <Loader2 size={size === "sm" ? 12 : size === "lg" ? 18 : 14} className="animate-spin" />
+      ) : (
+        icon
+      )}
       {children}
     </button>
   );

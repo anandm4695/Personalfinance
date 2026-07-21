@@ -688,6 +688,11 @@ tbody tr:hover td {
     transform: rotate(360deg);
   }
 }
+/* Used by RefreshCw/Loader2 icons across several tabs and Button's loading state.
+   Was referenced in several files but never defined — those icons silently never spun. */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
 @keyframes pulse-ring {
   0% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--t-accent) 40%, transparent);
