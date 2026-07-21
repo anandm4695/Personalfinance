@@ -558,18 +558,19 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
-  <Card style={{ position: "relative", overflow: "hidden", ...extraStyle }}>
-    <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
-      <button onClick={onEdit} className="icon-btn" style={iconBtn} title="Edit account">
-        <Edit3 size={14} />
-      </button>
-      <button onClick={onRemove} className="icon-btn danger" style={iconBtn} title="Delete account">
-        <Trash2 size={14} />
-      </button>
-    </div>
-    {children}
-  </Card>
+const InvestCard = ({ children, style: extraStyle }: any) => (
+  <Card style={{ position: "relative", overflow: "hidden", ...extraStyle }}>{children}</Card>
+);
+
+const CardActions = ({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => void }) => (
+  <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+    <button onClick={onEdit} className="icon-btn" style={iconBtn} title="Edit account">
+      <Edit3 size={14} />
+    </button>
+    <button onClick={onRemove} className="icon-btn danger" style={iconBtn} title="Delete account">
+      <Trash2 size={14} />
+    </button>
+  </div>
 );
 
 const th = {
@@ -1967,19 +1968,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               return (
                 <InvestCard
                   key={d.id}
-                  onRemove={() => {
-                    if (
-                      window.confirm(
-                        `Delete "${d.broker || "this"}" demat account? Stock lots linked to it will lose their account association. This cannot be undone.`
-                      )
-                    ) {
-                      removeItem("demat", d.id);
-                    }
-                  }}
-                  onEdit={() => setEditDematId(d.id)}
                   style={{
                     borderTop: `4px solid ${theme.color}`,
-                    padding: "52px 24px 20px 24px",
+                    padding: "24px 24px 20px 24px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -2004,7 +1995,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           justifyContent: "space-between",
                           gap: 8,
                           marginBottom: 2,
-                          paddingRight: 40,
                         }}
                       >
                         <span
@@ -2015,27 +2005,41 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
+                            minWidth: 0,
                           }}
                         >
                           {d.broker || "Broker"}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 800,
-                            color: THEME.sage,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            flexShrink: 0,
-                            gap: 5,
-                            background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                            padding: "2px 8px",
-                            borderRadius: 20,
-                          }}
-                        >
-                          <span className="broker-live-dot" />
-                          Active
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: THEME.sage,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                              padding: "2px 8px",
+                              borderRadius: 20,
+                            }}
+                          >
+                            <span className="broker-live-dot" />
+                            Active
+                          </span>
+                          <CardActions
+                            onEdit={() => setEditDematId(d.id)}
+                            onRemove={() => {
+                              if (
+                                window.confirm(
+                                  `Delete "${d.broker || "this"}" demat account? Stock lots linked to it will lose their account association. This cannot be undone.`
+                                )
+                              ) {
+                                removeItem("demat", d.id);
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
 
                       <div
