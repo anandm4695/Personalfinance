@@ -1756,15 +1756,17 @@ module.exports = async function handler(req, res) {
     );
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers["authorization"];
-    // Vercel automatically sends Authorization: Bearer <CRON_SECRET> when CRON_SECRET is set
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      console.error("[send-summary] Cron auth failed — Authorization header mismatch");
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    if (!cronSecret) {
-      console.warn(
-        "[send-summary] CRON_SECRET not set — cron endpoint is unauthenticated. Add CRON_SECRET to Vercel env vars."
+    // Vercel automatically sends Authorization: Bearer <CRON_SECRET> when CRON_SECRET is set.
+    // Fail CLOSED: an unset CRON_SECRET must reject the request, not let it through — this
+    // endpoint sends real email to every registered user, so "unauthenticated" is not a safe
+    // default state.
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      console.error(
+        cronSecret
+          ? "[send-summary] Cron auth failed — Authorization header mismatch"
+          : "[send-summary] Cron auth failed — CRON_SECRET not configured in Vercel env vars"
       );
+      return res.status(401).json({ error: "Unauthorized" });
     }
   }
 

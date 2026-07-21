@@ -5,6 +5,7 @@
 // 4. Yahoo Finance website → Google favicon (sz=256 for crispness)
 
 const { default: YahooFinance } = require("yahoo-finance2");
+const { rateLimit } = require("./_lib/rateLimit");
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 // Neither yahoo-finance2 nor a raw fetch() has a timeout by default — a hung
@@ -609,6 +610,7 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (!rateLimit(req, res, { max: 30, windowMs: 60_000 })) return;
 
   const { symbol } = req.query;
   if (!symbol) return res.status(400).json({ error: "symbol required" });

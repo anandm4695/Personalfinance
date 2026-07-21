@@ -2,6 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "functions": {
+    "api/health.js":       { "maxDuration": 10 },
     "api/stock-logo.js":   { "maxDuration": 15 },
     "api/stock-chart.js":  { "maxDuration": 15 },
     "api/stock-price.js":  { "maxDuration": 10 },

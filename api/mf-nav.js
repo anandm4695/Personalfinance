@@ -1,5 +1,6 @@
 // Vercel serverless function — fetches latest NAV + historical chart + 52W H/L from mfapi.in
 const https = require("https");
+const { rateLimit } = require("./_lib/rateLimit");
 
 // Approximate trading-day counts per period (mfapi.in returns ~1 point/day, incl. weekends sometimes skipped)
 const RANGE_DAYS = {
@@ -50,6 +51,7 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (!rateLimit(req, res, { max: 30, windowMs: 60_000 })) return;
 
   const { code, range } = req.query;
   if (!code) return res.status(400).json({ error: "code required" });
@@ -107,6 +109,7 @@ module.exports = async function handler(req, res) {
       schemeName: data.meta?.scheme_name || "",
     });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error(`[mf-nav] ${code}:`, e?.message || e);
+    return res.status(500).json({ error: "Failed to fetch NAV data" });
   }
 };

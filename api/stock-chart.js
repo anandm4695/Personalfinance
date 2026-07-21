@@ -1,4 +1,5 @@
 const { default: YahooFinance } = require("yahoo-finance2");
+const { rateLimit } = require("./_lib/rateLimit");
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
@@ -26,9 +27,12 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (!rateLimit(req, res, { max: 30, windowMs: 60_000 })) return;
 
   const { symbol, range: rangeParam } = req.query;
   if (!symbol) return res.status(400).json({ error: "symbol required" });
+  if (!/^[A-Z0-9.\-&]+$/i.test(String(symbol)))
+    return res.status(400).json({ error: "invalid symbol" });
 
   const range = RANGE_CONFIG[rangeParam] ? rangeParam : "1d";
   const cfg = RANGE_CONFIG[range];
@@ -123,6 +127,7 @@ module.exports = async function handler(req, res) {
     res.setHeader("Cache-Control", `s-maxage=${cacheTtl}, stale-while-revalidate=${cacheTtl * 2}`);
     return res.status(200).json({ date: null, points, range });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error(`[stock-chart] ${symbol}:`, e?.message || e);
+    return res.status(500).json({ error: "Failed to fetch chart data" });
   }
 };

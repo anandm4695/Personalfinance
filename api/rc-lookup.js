@@ -9,16 +9,23 @@
 //
 // Set any ONE of these in Vercel → Settings → Environment Variables → Redeploy.
 
+const { rateLimit } = require("./_lib/rateLimit");
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
+  // Tighter than the other proxies — every live-provider call here costs real
+  // money (Surepass is ~₹2-4/lookup once the free tier is exhausted).
+  if (!rateLimit(req, res, { max: 10, windowMs: 60_000, keyPrefix: "rc:" })) return;
 
   const reg = String(req.query.reg || "")
     .trim()
     .toUpperCase()
     .replace(/[\s\-]/g, "");
   if (!reg) return res.status(400).json({ error: "reg param required" });
+  if (reg.length > 15 || !/^[A-Z0-9]+$/.test(reg))
+    return res.status(400).json({ error: "invalid reg param" });
 
   // ── SOURCE 1: Surepass (recommended — 100 free calls) ───────────────────
   if (process.env.SUREPASS_TOKEN) {

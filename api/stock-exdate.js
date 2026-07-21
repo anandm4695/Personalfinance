@@ -1,6 +1,7 @@
 // Vercel serverless — fetches ex-dividend date & yield from Yahoo Finance
 // Uses the same yahoo-finance2 package as stock-price.js
 const { default: YahooFinance } = require("yahoo-finance2");
+const { rateLimit } = require("./_lib/rateLimit");
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
@@ -16,9 +17,12 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (!rateLimit(req, res, { max: 30, windowMs: 60_000 })) return;
 
   const { symbol } = req.query;
   if (!symbol) return res.status(400).json({ error: "symbol query param required" });
+  if (!/^[A-Z0-9.\-&]+$/i.test(String(symbol)))
+    return res.status(400).json({ error: "invalid symbol" });
 
   try {
     const summary = await yf.quoteSummary(

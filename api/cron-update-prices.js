@@ -55,12 +55,17 @@ module.exports = async function handler(req, res) {
   // Vercel's actual cron header value is "1", not "true"
   const isCron = req.headers["x-vercel-cron"] === "1";
 
-  if (!isCron && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    // If not Vercel Cron and no secret, check a simple query param as fallback for easy manual debugging.
-    // Enforced whenever CRON_SECRET is configured, regardless of NODE_ENV — previously this only
-    // ran in production, so preview/misconfigured deployments could bypass auth entirely.
+  if (!isCron) {
+    // Fail CLOSED: if CRON_SECRET isn't configured, `cronSecret` is falsy and
+    // `authorized` is always false, so every non-Vercel-Cron caller is
+    // rejected. Previously an unset CRON_SECRET made this whole check a
+    // no-op, leaving the endpoint fully public and able to burn Yahoo
+    // Finance/mfapi.in quota on demand.
+    const cronSecret = process.env.CRON_SECRET;
     const { secret } = req.query;
-    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+    const authorized =
+      !!cronSecret && (authHeader === `Bearer ${cronSecret}` || secret === cronSecret);
+    if (!authorized) {
       return res.status(401).json({ error: "Unauthorized access" });
     }
   }
