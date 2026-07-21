@@ -36,6 +36,7 @@ export const ACCENT_PALETTES = {
   sky: { light: "#0284C7", dark: "#38BDF8", label: "Sky Blue", dot: "#0284C7" },
   forest: { light: "#15803D", dark: "#86EFAC", label: "Forest", dot: "#15803D" },
   crimson: { light: "#B91C1C", dark: "#FCA5A5", label: "Crimson", dot: "#B91C1C" },
+  mint: { light: "#0D9F7D", dark: "#10D9A0", label: "Mint", dot: "#10D9A0" },
 };
 
 // 20 presets — light & dark for every accent color (perfect 2:1 mapping).
@@ -223,6 +224,15 @@ export const THEME_PRESETS = [
     accentKey: "indigo",
     fontKey: "roboto",
     bgPreview: "#111318",
+  },
+  {
+    id: "nova",
+    label: "Nova",
+    description: "Charcoal & mint — 2026 fintech",
+    darkMode: true,
+    accentKey: "mint",
+    fontKey: "inter",
+    bgPreview: "#0B0B0F",
   },
 ];
 
