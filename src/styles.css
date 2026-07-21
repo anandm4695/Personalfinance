@@ -945,6 +945,50 @@ tbody tr:hover td {
   color: var(--t-rust);
 }
 
+/* ── Right-side detail drawer ─────────────────────────────────────
+   Shares the modal's backdrop/header/close-button visual language but
+   anchors the panel to the right edge instead of centering it, so a
+   list stays visible behind it (view detail without leaving the list). */
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.15s ease;
+}
+.drawer-panel {
+  background: var(--surface-0);
+  border-left: 1px solid var(--t-line);
+  box-shadow: var(--shadow-2xl);
+  width: min(440px, 100vw);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: drawerSlideIn 0.28s var(--ease-premium);
+}
+.drawer-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+@media (max-width: 640px) {
+  .drawer-panel {
+    width: 100vw;
+  }
+}
+
 /* ── Alerts panel ──────────────────────────────────────────────── */
 .alerts-panel {
   position: absolute;

@@ -21,6 +21,7 @@ import { fmtINRFull, fmtINRExact, today, autoCateg, getLocalDateString } from ".
 import { Prv } from "../../context/PrivacyContext";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
+import { Drawer } from "../ui/Drawer";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
@@ -453,6 +454,7 @@ export function BanksTab({
   const [dateTo, setDateTo] = useState("");
   const [editBankId, setEditBankId] = useState<string | null>(null);
   const [editTxnId, setEditTxnId] = useState<string | null>(null);
+  const [viewTxnId, setViewTxnId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEdit, setInlineEdit] = useState<any>(null);
@@ -2023,6 +2025,7 @@ export function BanksTab({
                       key={t.id}
                       onMouseEnter={() => setHoveredTxnId(t.id)}
                       onMouseLeave={() => setHoveredTxnId(null)}
+                      onClick={() => setViewTxnId(t.id)}
                       onDoubleClick={() => {
                         setInlineEditId(t.id);
                         setInlineEdit({ ...t });
@@ -2033,7 +2036,7 @@ export function BanksTab({
                         transform: isHovered ? "translateX(2px)" : "none",
                         transition: "all 0.2s var(--ease-premium)",
                       }}
-                      title="Double-click to edit inline"
+                      title="Click to view details · double-click to edit inline"
                     >
                       <td
                         style={{
@@ -2159,7 +2162,10 @@ export function BanksTab({
                       <td style={{ ...td, padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: 2 }}>
                           <button
-                            onClick={() => setEditTxnId(t.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditTxnId(t.id);
+                            }}
                             className="icon-btn"
                             style={{
                               ...iconBtn,
@@ -2172,7 +2178,10 @@ export function BanksTab({
                             <Edit3 size={12} />
                           </button>
                           <button
-                            onClick={() => removeItem("transactions", t.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeItem("transactions", t.id);
+                            }}
                             className="icon-btn danger"
                             style={{
                               ...iconBtn,
@@ -2303,6 +2312,142 @@ export function BanksTab({
           }}
         />
       )}
+      {viewTxnId &&
+        (() => {
+          const t = state.transactions.find((tx: any) => tx.id === viewTxnId);
+          if (!t) return null;
+          const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
+          const row = (label: string, value: React.ReactNode) =>
+            value ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 16,
+                  padding: "12px 0",
+                  borderBottom: `1px solid ${THEME.line}`,
+                }}
+              >
+                <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>{label}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, textAlign: "right" }}>
+                  {value}
+                </span>
+              </div>
+            ) : null;
+          return (
+            <Drawer title="Transaction Details" onClose={() => setViewTxnId(null)}>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "8px 0 20px",
+                  borderBottom: `1px solid ${THEME.line}`,
+                  marginBottom: 4,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 30,
+                    fontWeight: 900,
+                    letterSpacing: "-0.03em",
+                    fontVariantNumeric: "tabular-nums",
+                    color: t.type === "credit" ? THEME.sage : THEME.rust,
+                  }}
+                >
+                  {t.type === "credit" ? "+" : "-"}
+                  {fmtINRExact(t.amount)}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    justifyContent: "center",
+                    marginTop: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {t.category === "Transfer" && <Badge variant="accent">↔ Transfer</Badge>}
+                  {t.linkedType && <Badge variant="accent">🔗 Linked</Badge>}
+                  {t.category !== "Transfer" &&
+                    recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
+                      <Badge variant="gold">Recurring</Badge>
+                    )}
+                </div>
+              </div>
+              {row("Note", t.note)}
+              {row(
+                "Date",
+                t.date
+                  ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : null
+              )}
+              {row(
+                "Category",
+                t.category ? (
+                  <span
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: 20,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      background: getCategoryStyle(t.category).bg,
+                      color: getCategoryStyle(t.category).color,
+                    }}
+                  >
+                    {t.category}
+                  </span>
+                ) : null
+              )}
+              {row("Account", bank ? accountLabel(bank) : null)}
+              {row("Narration", t.narration)}
+              {row("Reference", t.referenceNumber)}
+              <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+                <button
+                  onClick={() => {
+                    setViewTxnId(null);
+                    setInlineEditId(t.id);
+                    setInlineEdit({ ...t });
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "10px 16px",
+                    borderRadius: "var(--radius-md)",
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "transparent",
+                    color: THEME.ink,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Quick Edit
+                </button>
+                <button
+                  onClick={() => {
+                    setViewTxnId(null);
+                    setEditTxnId(t.id);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "10px 16px",
+                    borderRadius: "var(--radius-md)",
+                    border: "none",
+                    background: THEME.accent,
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Full Edit
+                </button>
+              </div>
+            </Drawer>
+          );
+        })()}
       {showBank && (
         <BankModal
           onClose={() => setShowBank(false)}
