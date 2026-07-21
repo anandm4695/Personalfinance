@@ -1729,7 +1729,10 @@ export function BanksTab({
             <EmptyHint text="No transactions match your query filters" />
           )
         ) : (
-          <div style={{ overflowX: "auto", borderRadius: 12, border: `1.5px solid ${THEME.line}` }}>
+          <div
+            className="desktop-only"
+            style={{ overflowX: "auto", borderRadius: 12, border: `1.5px solid ${THEME.line}` }}
+          >
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ background: "var(--surface-1)" }}>
@@ -2286,6 +2289,110 @@ export function BanksTab({
                   );
                 })()}
             </table>
+          </div>
+        )}
+        {sortedTxns.length > 0 && (
+          <div className="mobile-only" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {sortedTxns.map((t: any) => {
+              const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => setViewTxnId(t.id)}
+                  style={{
+                    border: `1.5px solid ${THEME.line}`,
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    background: "var(--surface-0)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: THEME.ink,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {t.note || "—"}
+                        {t.category === "Transfer" && (
+                          <Badge variant="accent" size="xs">
+                            ↔
+                          </Badge>
+                        )}
+                        {t.linkedType && (
+                          <Badge variant="accent" size="xs">
+                            🔗
+                          </Badge>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.muted,
+                          marginTop: 3,
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span>
+                          {t.date
+                            ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                              })
+                            : "—"}
+                        </span>
+                        <span>·</span>
+                        <span>{bank ? accountLabel(bank) : "—"}</span>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        fontVariantNumeric: "tabular-nums",
+                        color: t.type === "credit" ? THEME.sage : THEME.rust,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.type === "credit" ? "+" : "-"}
+                      {fmtINRExact(t.amount)}
+                    </div>
+                  </div>
+                  {t.category && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: 8,
+                        padding: "2px 8px",
+                        borderRadius: 20,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        background: getCategoryStyle(t.category).bg,
+                        color: getCategoryStyle(t.category).color,
+                      }}
+                    >
+                      {t.category}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>
