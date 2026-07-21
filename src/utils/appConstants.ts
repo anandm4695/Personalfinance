@@ -398,3 +398,26 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+/**
+ * Resolves the current tab/subTab to a "Group › Item" (or "Group › Item › Child")
+ * breadcrumb string for the header, since the header greeting alone gives no
+ * indication of which of the ~80 nav destinations is active.
+ */
+export const getNavBreadcrumb = (tab: string, subTab?: string): string | null => {
+  for (const group of NAV_GROUPS) {
+    for (const item of group.items) {
+      if (item.id === tab) {
+        const child = subTab ? item.children?.find((c) => c.id === subTab) : undefined;
+        return child
+          ? `${group.title} › ${item.label} › ${child.label}`
+          : `${group.title} › ${item.label}`;
+      }
+      if (item.children) {
+        const child = item.children.find((c) => c.id === tab);
+        if (child) return `${group.title} › ${item.label} › ${child.label}`;
+      }
+    }
+  }
+  return null;
+};

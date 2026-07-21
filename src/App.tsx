@@ -49,6 +49,7 @@ import {
   camelToSnake,
   snakeToCamel as snakeToCamelUtil,
   NAV_GROUPS,
+  getNavBreadcrumb,
 } from "./utils/appConstants";
 
 // Extracted hooks
@@ -3557,6 +3558,23 @@ function FinanceDashboard() {
                     {greeting.subtitle}
                   </div>
                 )}
+                {(() => {
+                  const crumb = getNavBreadcrumb(tab, subTab || undefined);
+                  return crumb ? (
+                    <div
+                      className="desktop-only"
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 600,
+                        letterSpacing: "0.02em",
+                        opacity: 0.75,
+                      }}
+                    >
+                      {crumb}
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               {/* GLOBAL SEARCH */}
