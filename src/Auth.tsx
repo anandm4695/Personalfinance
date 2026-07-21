@@ -446,6 +446,9 @@ export default function Auth({
           },
         });
         if (error) throw error;
+        try {
+          localStorage.setItem("pf_pending_onboarding", cleanEmail);
+        } catch {}
         setMsg("Account created! Please check your inbox to verify your email before signing in.");
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({

@@ -164,6 +164,25 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           <p style={{ color: THEME.muted, fontSize: 14 }}>
             Let's set up your dashboard in 5 quick steps
           </p>
+          <button
+            onClick={() => {
+              updateMasterData("_onboardingComplete", true);
+              onComplete();
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: THEME.muted,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              marginTop: 10,
+              textDecoration: "underline",
+              fontFamily: "inherit",
+            }}
+          >
+            Skip setup for now
+          </button>
         </div>
 
         {/* Step indicator — decorative; the accessible name for progress lives

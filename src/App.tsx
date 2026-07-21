@@ -122,6 +122,7 @@ import { PerformanceBenchmarkTab } from "./components/tabs/PerformanceBenchmarkT
 
 // Modal Imports
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
+import { OnboardingWizard } from "./components/modals/OnboardingWizard";
 
 // UI Imports
 import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
@@ -3141,6 +3142,40 @@ function FinanceDashboard() {
             : undefined
         }
       />
+    );
+  }
+
+  // Show the guided setup wizard exactly once, right after a brand-new signup verifies
+  // and logs in for the first time (flagged by Auth.tsx at signUp() time) - not on every
+  // login, and not for the offline/demo session.
+  if (
+    session?.user?.id !== "offline-user" &&
+    !state.masterData?._onboardingComplete &&
+    (() => {
+      try {
+        return (
+          !!session?.user?.email &&
+          localStorage.getItem("pf_pending_onboarding") === session.user.email
+        );
+      } catch {
+        return false;
+      }
+    })()
+  ) {
+    return (
+      <div className={darkMode ? "dark-theme" : ""} style={{ minHeight: "100vh" }}>
+        <OnboardingWizard
+          updateProfile={updateProfile}
+          addItem={addItem}
+          updateSettings={updateSettings}
+          updateMasterData={updateMasterData}
+          onComplete={() => {
+            try {
+              localStorage.removeItem("pf_pending_onboarding");
+            } catch {}
+          }}
+        />
+      </div>
     );
   }
 
