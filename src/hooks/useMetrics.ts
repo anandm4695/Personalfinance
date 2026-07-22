@@ -17,6 +17,15 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
   if (profileId === "all") return state;
   const filterByOwner = (arr: any[]) =>
     (Array.isArray(arr) ? arr : []).filter((item) => item.owner === profileId);
+  // Real estate properties can be jointly held (see `owners: [{id, sharePct}]`),
+  // so a co-owner must still see the property in their filtered view even when
+  // they aren't the primary `owner`.
+  const filterRealEstateByOwner = (arr: any[]) =>
+    (Array.isArray(arr) ? arr : []).filter(
+      (item) =>
+        item.owner === profileId ||
+        (Array.isArray(item.owners) && item.owners.some((o: any) => o?.id === profileId))
+    );
   // billPaymentHistory rows don't carry their own `owner` — they reference a bill
   // via `billId`. Cross-reference against the (already owner-filtered) bills so
   // payment history for another family member's bills doesn't leak through.
@@ -49,7 +58,7 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
     informalLent: filterByOwner(state.informalLent || []),
     rentalProperties: filterByOwner(state.rentalProperties || []),
     rentedProperties: filterByOwner(state.rentedProperties || []),
-    realEstateProperties: filterByOwner(state.realEstateProperties || []),
+    realEstateProperties: filterRealEstateByOwner(state.realEstateProperties || []),
     realEstateDemands: filterByOwner(state.realEstateDemands || []),
     realEstatePayments: filterByOwner(state.realEstatePayments || []),
     vehicles: filterByOwner(state.vehicles || []),
@@ -85,7 +94,18 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
   };
 }
 
-export function calculateProfileNWAndCover(pState: any, marketData: any) {
+// Fraction of a real estate property's value attributable to a given family
+// profile. Falls back to the legacy single `owner` field (100% share) for
+// properties saved before joint ownership (`owners: [{id, sharePct}]`) existed.
+function realEstateShareForOwner(property: any, profileId: string): number {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    const match = property.owners.find((o: any) => o?.id === profileId);
+    return match ? Number(match.sharePct || 0) / 100 : 0;
+  }
+  return property.owner === profileId ? 1 : 0;
+}
+
+export function calculateProfileNWAndCover(pState: any, marketData: any, profileId?: string) {
   const cashInBanks = (pState.bankAccounts || []).reduce(
     (s: number, a: any) => s + Number(a.balance || 0),
     0
@@ -174,7 +194,11 @@ export function calculateProfileNWAndCover(pState: any, marketData: any) {
   );
   const realEstateAsset = (pState.realEstateProperties || [])
     .filter((p: any) => p.status !== "sold")
-    .reduce((s: number, p: any) => s + Number(p.currentValuation || p.valuation || 0), 0);
+    .reduce((s: number, p: any) => {
+      const value = Number(p.marketValue || p.agreementValue || 0);
+      const share = profileId ? realEstateShareForOwner(p, profileId) : 1;
+      return s + value * share;
+    }, 0);
   const vehicleAsset = (pState.vehicles || []).reduce(
     (s: number, v: any) => s + Number(v.currentValue || v.value || 0),
     0
@@ -473,10 +497,16 @@ export function useMetrics(
       return s + currentValue;
     }, 0);
 
-    // Real estate: owned + under-construction properties counted at market value (or agreement value)
+    // Real estate: owned + under-construction properties counted at market value (or agreement
+    // value). When viewing a single family profile, a jointly-owned property only contributes
+    // that profile's ownership share, not the full value — see realEstateShareForOwner.
     const realEstateAsset = (sState.realEstateProperties || [])
       .filter((p: any) => p.status !== "sold")
-      .reduce((s: number, p: any) => s + Number(p.marketValue || p.agreementValue || 0), 0);
+      .reduce((s: number, p: any) => {
+        const value = Number(p.marketValue || p.agreementValue || 0);
+        const share = activeProfile !== "all" ? realEstateShareForOwner(p, activeProfile) : 1;
+        return s + value * share;
+      }, 0);
 
     // Outstanding builder demands for under-construction properties = contractual cash obligations
     const realEstateOutstanding = (() => {
@@ -796,7 +826,7 @@ export function useMetrics(
       })(),
       familyBreakdown: familyProfiles.map((p) => {
         const pState = getFilteredStateForProfile(state, p.id);
-        const { netWorth, totalCover } = calculateProfileNWAndCover(pState, marketData);
+        const { netWorth, totalCover } = calculateProfileNWAndCover(pState, marketData, p.id);
         return {
           ...p,
           nw: netWorth,

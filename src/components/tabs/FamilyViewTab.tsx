@@ -187,6 +187,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+// Fraction of a real estate property's value attributable to `owner`. Properties
+// can be jointly held (`owners: [{id, sharePct}]`); this falls back to the
+// legacy single `owner` field (100% share) for properties saved before joint
+// ownership existed.
+const realEstateShareFor = (property, owner) => {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    const match = property.owners.find((o) => o?.id === owner);
+    return match ? Number(match.sharePct || 0) / 100 : 0;
+  }
+  return property.owner === owner ? 1 : 0;
+};
+
 const memberAssets = (state, owner, marketData) => {
   const filter = (arr) => (arr || []).filter((a) => a.owner === owner);
 
@@ -238,9 +250,12 @@ const memberAssets = (state, owner, marketData) => {
     const txTotal = (ip.transactions || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
     return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
   }, 0);
-  const re = filter(state.realEstateProperties)
+  const re = (state.realEstateProperties || [])
     .filter((p) => p.status !== "sold")
-    .reduce((s, r) => s + Number(r.marketValue || r.agreementValue || 0), 0);
+    .reduce(
+      (s, r) => s + Number(r.marketValue || r.agreementValue || 0) * realEstateShareFor(r, owner),
+      0
+    );
   const vehicles = filter(state.vehicles).reduce(
     (s, v) => s + Number(v.currentValue || v.purchasePrice || 0),
     0
@@ -309,19 +324,20 @@ const memberAssets = (state, owner, marketData) => {
     return s + Math.max(0, totalT - totalP);
   }, 0);
   const realEstateOutstanding = (() => {
-    const ucIds = new Set(
-      filter(state.realEstateProperties || [])
-        .filter((p) => p.status === "under-construction")
-        .map((p) => p.id)
-    );
-    if (ucIds.size === 0) return 0;
-    const demanded = (state.realEstateDemands || [])
-      .filter((d) => ucIds.has(d.propertyId))
-      .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
-    const paid = (state.realEstatePayments || [])
-      .filter((p) => ucIds.has(p.propertyId))
-      .reduce((s, p) => s + Number(p.amount || 0), 0);
-    return Math.max(0, demanded - paid);
+    const ucShares = (state.realEstateProperties || [])
+      .filter((p) => p.status === "under-construction")
+      .map((p) => ({ p, share: realEstateShareFor(p, owner) }))
+      .filter(({ share }) => share > 0);
+    if (ucShares.length === 0) return 0;
+    return ucShares.reduce((sum, { p, share }) => {
+      const demanded = (state.realEstateDemands || [])
+        .filter((d) => d.propertyId === p.id)
+        .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
+      const paid = (state.realEstatePayments || [])
+        .filter((pay) => pay.propertyId === p.id)
+        .reduce((s, pay) => s + Number(pay.amount || 0), 0);
+      return sum + Math.max(0, demanded - paid) * share;
+    }, 0);
   })();
 
   const totalAssets =
@@ -423,11 +439,16 @@ const getTopHoldings = (state, owner) => {
     });
 
   (state.realEstateProperties || [])
-    .filter((r) => r.owner === owner)
-    .forEach((r) => {
-      const val = Number(r.marketValue || r.agreementValue || 0);
+    .map((r) => ({ r, share: realEstateShareFor(r, owner) }))
+    .filter(({ share }) => share > 0)
+    .forEach(({ r, share }) => {
+      const val = Number(r.marketValue || r.agreementValue || 0) * share;
       if (val > 0)
-        holdings.push({ name: r.name || r.type || "Property", value: val, type: "Real Estate" });
+        holdings.push({
+          name: r.name || r.type || "Property",
+          value: val,
+          type: share < 1 ? `Real Estate (${Math.round(share * 100)}% share)` : "Real Estate",
+        });
     });
 
   (state.fixedDeposits || [])

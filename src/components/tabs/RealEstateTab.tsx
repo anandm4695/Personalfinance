@@ -16,6 +16,8 @@ import {
   Clock,
   IndianRupee,
   Building2,
+  AlertCircle,
+  User,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -26,6 +28,12 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+
+// Sentinel owner id for a co-owner who isn't one of this household's tracked
+// family profiles (e.g. a parent on the property papers who isn't part of
+// this app's net worth tracking). Stored as a free-text `name` instead of a
+// familyProfiles id — see OwnerSplitRow.
+const EXTERNAL_OWNER_ID = "external";
 
 // ─── Builder Logo ─────────────────────────────────────────────────────────────
 
@@ -312,7 +320,78 @@ function PropertyModal({ existing, onClose, onSave }: any) {
     }
   );
 
+  // Buyer-side ownership: a property can be jointly held by more than one
+  // family profile, each with its own percentage share. `owners` is the
+  // source of truth; the flat `owner` field is derived on save (highest
+  // share) so the rest of the app's single-owner filters keep working.
+  const [owners, setOwners] = useState<any[]>(() => {
+    if (existing?.owners?.length > 0) return existing.owners;
+    return [{ id: existing?.owner || "self", sharePct: 100 }];
+  });
+
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
+
+  const totalPct = owners.reduce((s, o) => s + Number(o.sharePct || 0), 0);
+  const isMulti = owners.length > 1;
+  const pctValid = totalPct === 100;
+
+  const updateOwner = (idx: number, updated: any) =>
+    setOwners((prev) => prev.map((o, i) => (i === idx ? updated : o)));
+
+  const addOwner = () => {
+    const used = new Set(owners.map((o) => o.id));
+    const availableProfile = familyProfiles.find((p) => !used.has(p.id));
+    // Once every tracked family profile is already an owner, default new rows to
+    // an "external" owner — someone (e.g. a parent) who co-owns the property but
+    // isn't one of this household's tracked family profiles / net worth.
+    const newOwner = availableProfile
+      ? { id: availableProfile.id, sharePct: 0 }
+      : { id: EXTERNAL_OWNER_ID, name: "", sharePct: 0 };
+    const count = owners.length + 1;
+    const base = Math.floor(100 / count);
+    const rem = 100 - base * count;
+    setOwners([...owners.map((o) => ({ ...o, sharePct: base })), { ...newOwner, sharePct: base + rem }]);
+  };
+
+  const removeOwner = (idx: number) => {
+    const removed = owners[idx];
+    const next = owners.filter((_, i) => i !== idx);
+    if (next.length === 0) return;
+    const perOther = Math.floor(Number(removed.sharePct || 0) / next.length);
+    const rem = Number(removed.sharePct || 0) - perOther * next.length;
+    setOwners(
+      next.map((o, i) => ({
+        ...o,
+        sharePct: Number(o.sharePct || 0) + perOther + (i === 0 ? rem : 0),
+      }))
+    );
+  };
+
+  const equaliseOwners = () => {
+    const base = Math.floor(100 / owners.length);
+    const rem = 100 - base * owners.length;
+    setOwners((prev) => prev.map((o, i) => ({ ...o, sharePct: i === 0 ? base + rem : base })));
+  };
+
+  const externalNamesValid = owners.every(
+    (o) => o.id !== EXTERNAL_OWNER_ID || String(o.name || "").trim()
+  );
+
+  const handleSave = () => {
+    if (!f.name) return;
+    if (!pctValid || !externalNamesValid) return;
+    // The flat `owner` field must stay a valid familyProfiles id (it's used
+    // across the app for single-owner filtering), so the primary owner is
+    // chosen from the highest-share tracked family profile, skipping any
+    // external co-owners. Falls back to "self" if every owner is external.
+    const trackedOwners = owners.filter((o) => o.id !== EXTERNAL_OWNER_ID);
+    const pool = trackedOwners.length > 0 ? trackedOwners : owners;
+    const primary = pool.reduce(
+      (max, o) => (Number(o.sharePct || 0) > Number(max.sharePct || 0) ? o : max),
+      pool[0]
+    );
+    onSave({ ...f, owners, owner: primary.id === EXTERNAL_OWNER_ID ? "self" : primary.id });
+  };
 
   return (
     <Modal title={isEdit ? "Edit Property" : "Add Property"} onClose={onClose} maxWidth={640}>
@@ -340,19 +419,6 @@ function PropertyModal({ existing, onClose, onSave }: any) {
             <option value="owned">Owned</option>
             <option value="under-construction">Under Construction</option>
             <option value="sold">Sold</option>
-          </select>
-        </Field>
-        <Field label="Owner">
-          <select
-            style={input}
-            value={f.owner || "self"}
-            onChange={(e) => set("owner", e.target.value)}
-          >
-            {familyProfiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {formatProfileOption(p)}
-              </option>
-            ))}
           </select>
         </Field>
         <Field label="Location" style={{ gridColumn: "1 / -1" }}>
@@ -393,6 +459,107 @@ function PropertyModal({ existing, onClose, onSave }: any) {
           />
         </Field>
       </div>
+
+      <div style={{ height: 1, background: "var(--t-line)", margin: "16px 0" }} />
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: THEME.muted,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginBottom: 12,
+        }}
+      >
+        Ownership Details (Buyer Side)
+      </div>
+
+      {isMulti && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            marginBottom: 12,
+            background: pctValid
+              ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
+              : `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${pctValid ? THEME.sage : THEME.rust} 20%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {pctValid ? (
+              <CheckCircle size={15} color={THEME.sage} />
+            ) : (
+              <AlertCircle size={15} color={THEME.rust} />
+            )}
+            <span
+              style={{ fontSize: 12, fontWeight: 700, color: pctValid ? THEME.sage : THEME.rust }}
+            >
+              {pctValid
+                ? `Ownership balanced — total ${totalPct}%`
+                : `Ownership % must total 100% (currently ${totalPct}%)`}
+            </span>
+          </div>
+          <button
+            onClick={equaliseOwners}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 6,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
+              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+              color: THEME.accent,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Auto-equalise
+          </button>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gap: 10 }}>
+        {owners.map((o, idx) => (
+          <OwnerSplitRow
+            key={idx}
+            owner={o}
+            idx={idx}
+            familyProfiles={familyProfiles}
+            usedIds={owners.filter((_, i) => i !== idx).map((x) => x.id)}
+            onChange={(updated: any) => updateOwner(idx, updated)}
+            canDelete={owners.length > 1}
+            onDelete={() => removeOwner(idx)}
+          />
+        ))}
+      </div>
+
+      {owners.length < 10 && (
+        <button
+          onClick={addOwner}
+          style={{
+            marginTop: 10,
+            width: "100%",
+            padding: "9px",
+            border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+            color: THEME.accent,
+            fontWeight: 700,
+            fontSize: 12,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
+        >
+          <Plus size={13} /> Add Co-Owner
+        </button>
+      )}
 
       <div style={{ height: 1, background: "var(--t-line)", margin: "16px 0" }} />
       <div
@@ -550,11 +717,124 @@ function PropertyModal({ existing, onClose, onSave }: any) {
       </Field>
 
       <ModalActions
-        onSave={() => f.name && onSave(f)}
+        onSave={handleSave}
         onClose={onClose}
         saveLabel={isEdit ? "Save Changes" : "Add Property"}
+        disabled={!f.name || !pctValid || !externalNamesValid}
       />
     </Modal>
+  );
+}
+
+// ─── Owner Split Row ──────────────────────────────────────────────────────────
+
+function OwnerSplitRow({
+  owner,
+  idx,
+  familyProfiles,
+  usedIds,
+  onChange,
+  canDelete,
+  onDelete,
+}: {
+  owner: any;
+  idx: number;
+  familyProfiles: any[];
+  usedIds: string[];
+  onChange: (updated: any) => void;
+  canDelete: boolean;
+  onDelete: () => void;
+}) {
+  const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][idx % 5];
+  const usedSet = new Set(usedIds);
+  const isExternal = owner.id === EXTERNAL_OWNER_ID;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        padding: "8px 10px",
+        borderRadius: 10,
+        border: `1.5px solid color-mix(in srgb, ${accentColor} 20%, transparent)`,
+        background: `color-mix(in srgb, ${accentColor} 4%, var(--t-paper))`,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 7,
+            background: accentColor,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <User size={13} color="#fff" />
+        </div>
+        <select
+          style={{ ...input, flex: 2 }}
+          value={owner.id}
+          onChange={(e) =>
+            onChange(
+              e.target.value === EXTERNAL_OWNER_ID
+                ? { id: EXTERNAL_OWNER_ID, name: owner.name || "", sharePct: owner.sharePct }
+                : { id: e.target.value, sharePct: owner.sharePct }
+            )
+          }
+        >
+          {familyProfiles
+            .filter((p) => p.id === owner.id || !usedSet.has(p.id))
+            .map((p) => (
+              <option key={p.id} value={p.id}>
+                {formatProfileOption(p)}
+              </option>
+            ))}
+          <option value={EXTERNAL_OWNER_ID}>+ Someone else (not in Family Profiles)</option>
+        </select>
+        <input
+          style={{ ...input, flex: 1, textAlign: "right" }}
+          type="number"
+          min={0}
+          max={100}
+          value={owner.sharePct}
+          onChange={(e) => onChange({ ...owner, sharePct: e.target.value })}
+        />
+        <span style={{ fontSize: 12, fontWeight: 700, color: accentColor, width: 14 }}>%</span>
+        {canDelete && (
+          <button
+            onClick={onDelete}
+            aria-label={`Remove owner ${idx + 1}`}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: THEME.rust,
+              padding: 6,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+      {isExternal && (
+        <input
+          style={{ ...input, marginLeft: 34 }}
+          value={owner.name || ""}
+          onChange={(e) => onChange({ ...owner, name: e.target.value })}
+          placeholder="Name, e.g. Suresh Mohta (Father)"
+        />
+      )}
+    </div>
   );
 }
 
@@ -778,6 +1058,15 @@ function PropertyCard({
   onDeletePayment,
 }: any) {
   const [expanded, setExpanded] = useState(false);
+  const { familyProfiles } = useMasterData();
+
+  const owners: any[] =
+    property.owners?.length > 0 ? property.owners : [{ id: property.owner || "self", sharePct: 100 }];
+  const isJoint = owners.length > 1;
+  const ownerName = (o: any) =>
+    o.id === EXTERNAL_OWNER_ID
+      ? o.name || "Other"
+      : familyProfiles.find((p: any) => p.id === o.id)?.name || o.id;
 
   const totalDemanded = demands.reduce(
     (s: number, d: any) => s + Number(d.totalAmount || d.amount || 0),
@@ -931,6 +1220,34 @@ function PropertyCard({
                 {Number(property.areaSqft).toLocaleString("en-IN")} sq ft
               </span>
             )}
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+            {owners.map((o, i) => {
+              const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][
+                i % 5
+              ];
+              return (
+                <span
+                  key={o.id + i}
+                  title={isJoint ? "Co-owner" : "Owner"}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: accentColor,
+                    background: `color-mix(in srgb, ${accentColor} 12%, transparent)`,
+                    border: `1.5px solid color-mix(in srgb, ${accentColor} 25%, transparent)`,
+                    padding: "3px 9px",
+                    borderRadius: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <User size={11} /> {ownerName(o)}
+                  {isJoint ? ` · ${Number(o.sharePct || 0)}%` : ""}
+                </span>
+              );
+            })}
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
