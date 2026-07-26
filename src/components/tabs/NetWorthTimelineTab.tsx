@@ -25,7 +25,8 @@ import {
   Bar,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull } from "../../utils/finance";
+import { fmtINRFull, today } from "../../utils/finance";
+import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -197,7 +198,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const NetWorthTimelineTab = ({ state, metrics }) => {
+export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
   const [projectionYears, setProjectionYears] = useState(5);
   const [selectedPreset, setSelectedPreset] = useState(1);
   const [monthlySavings, setMonthlySavings] = useState(
@@ -205,19 +206,36 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
   );
   const [showBreakdown, setShowBreakdown] = useState(true);
 
+  // Reconstructed month-by-month from every asset's own dated records (buy dates,
+  // ledger entries, open/start dates, etc.) via computeNetWorthAsOf — the same approach
+  // AnalyticsTab's Trends chart uses. This tab used to read frozen state.netWorthHistory
+  // snapshots, but those are gutted by a one-time cleanup migration (masterData._nwCleanV1)
+  // that permanently deleted any past-month snapshot under 10% of current net worth —
+  // which nuked genuine early history once real estate inflated the current net worth.
+  // Reconstructing from source records sidesteps that entirely and isn't limited by
+  // whatever survived in the snapshot table.
   const history = useMemo(() => {
-    return [...(state.netWorthHistory || [])]
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .map((h) => ({
-        ...h,
-        label: formatMonth(h.month),
-        cash: h.cash || 0,
-        equity: h.equity || 0,
-        debt: h.debt || 0,
-        realEstate: h.realEstate || 0,
-        vehicles: h.vehicles || 0,
-      }));
-  }, [state.netWorthHistory]);
+    const todayYm = today().slice(0, 7);
+    const startYm = getEarliestNetWorthMonth(state);
+    const findVal = (breakdown, name) => breakdown.find((x) => x.name === name)?.value || 0;
+    const points = [];
+    let cursor = startYm;
+    while (cursor <= todayYm) {
+      const { netWorth, assetBreakdown } = computeNetWorthAsOf(state, cursor, marketData);
+      points.push({
+        month: cursor,
+        label: formatMonth(cursor),
+        netWorth,
+        cash: findVal(assetBreakdown, "Bank Cash"),
+        equity: findVal(assetBreakdown, "Stocks") + findVal(assetBreakdown, "Mutual Funds"),
+        debt: findVal(assetBreakdown, "Fixed Deposits"),
+        realEstate: findVal(assetBreakdown, "Real Estate"),
+        vehicles: findVal(assetBreakdown, "Vehicles"),
+      });
+      cursor = nextYm(cursor);
+    }
+    return points;
+  }, [state, marketData]);
 
   const momDeltas = useMemo(() => {
     if (history.length < 2) return [];

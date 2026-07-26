@@ -4812,7 +4812,7 @@ function FinanceDashboard() {
                 <RebalancingTab state={filteredState} metrics={metrics} marketData={marketData} />
               )}
               {tab === "nwtimeline" && (
-                <NetWorthTimelineTab state={filteredState} metrics={metrics} />
+                <NetWorthTimelineTab state={filteredState} metrics={metrics} marketData={marketData} />
               )}
 
               {tab === "casimport" && (
