@@ -3923,6 +3923,10 @@ function FinanceDashboard() {
                               <div
                                 style={{ minWidth: 0, flex: 1, cursor: "pointer" }}
                                 onClick={() => {
+                                  updateDismissedAlerts({
+                                    ...(state.dismissedAlerts || {}),
+                                    [a.title]: Date.now() + 24 * 60 * 60 * 1000,
+                                  });
                                   setTab(a.tab);
                                   setShowAlerts(false);
                                 }}
@@ -3945,6 +3949,10 @@ function FinanceDashboard() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    updateDismissedAlerts({
+                                      ...(state.dismissedAlerts || {}),
+                                      [a.title]: Date.now() + 24 * 60 * 60 * 1000,
+                                    });
                                     setTab(a.tab);
                                     setShowAlerts(false);
                                   }}
