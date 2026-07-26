@@ -105,6 +105,29 @@ function realEstateShareForOwner(property: any, profileId: string): number {
   return property.owner === profileId ? 1 : 0;
 }
 
+// Sentinel owner id for a co-owner who isn't one of this household's tracked
+// family profiles (e.g. a parent on the property papers) — see EXTERNAL_OWNER_ID
+// in RealEstateTab.tsx.
+const EXTERNAL_OWNER_ID = "external";
+
+// Fraction of a property's value attributable to THIS household (i.e. all
+// tracked family profiles combined), excluding any share held by an untracked
+// "external" co-owner. Used for the "all profiles" aggregate view so a
+// property co-owned with, say, a parent doesn't get counted at its full
+// market value when only part of it belongs to this household's net worth.
+// Falls back to 100% for legacy single-owner properties.
+function realEstateTrackedShare(property: any): number {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    return (
+      property.owners.reduce(
+        (s: number, o: any) => (o?.id !== EXTERNAL_OWNER_ID ? s + Number(o.sharePct || 0) : s),
+        0
+      ) / 100
+    );
+  }
+  return 1;
+}
+
 export function calculateProfileNWAndCover(pState: any, marketData: any, profileId?: string) {
   const cashInBanks = (pState.bankAccounts || []).reduce(
     (s: number, a: any) => s + Number(a.balance || 0),
@@ -499,12 +522,17 @@ export function useMetrics(
 
     // Real estate: owned + under-construction properties counted at market value (or agreement
     // value). When viewing a single family profile, a jointly-owned property only contributes
-    // that profile's ownership share, not the full value — see realEstateShareForOwner.
+    // that profile's ownership share, not the full value — see realEstateShareForOwner. When
+    // viewing all profiles combined, a property co-owned with an untracked "external" party
+    // (e.g. a parent) only contributes this household's tracked share, not the full value —
+    // see realEstateTrackedShare — otherwise the externally-owned share would be double-counted
+    // into this household's assets and net worth.
     const realEstateAsset = (sState.realEstateProperties || [])
       .filter((p: any) => p.status !== "sold")
       .reduce((s: number, p: any) => {
         const value = Number(p.marketValue || p.agreementValue || 0);
-        const share = activeProfile !== "all" ? realEstateShareForOwner(p, activeProfile) : 1;
+        const share =
+          activeProfile !== "all" ? realEstateShareForOwner(p, activeProfile) : realEstateTrackedShare(p);
         return s + value * share;
       }, 0);
 
