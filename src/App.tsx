@@ -3563,6 +3563,7 @@ function FinanceDashboard() {
               position: "sticky",
               top: 0,
               zIndex: 40,
+              paddingTop: "env(safe-area-inset-top, 0px)",
               boxShadow: darkMode
                 ? "0 1px 0 rgba(255,255,255,0.03), 0 4px 20px rgba(0,0,0,0.4)"
                 : "0 1px 0 rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.03)",
