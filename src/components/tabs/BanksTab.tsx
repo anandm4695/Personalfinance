@@ -550,6 +550,16 @@ export function BanksTab({
         ],
         outstanding: Number(card.outstanding || 0) - amt,
       });
+    } else if (lt === "realEstateProperties") {
+      // lid is "<propertyId>:<costField>" — see getLinkConfig's "Real Estate" branch above.
+      const sep = lid.indexOf(":");
+      const propId = sep >= 0 ? lid.slice(0, sep) : lid;
+      const costField = sep >= 0 ? lid.slice(sep + 1) : "stampDuty";
+      const prop = (state.realEstateProperties || []).find((p: any) => p.id === propId);
+      if (!prop) return;
+      updateItem("realEstateProperties", propId, {
+        [costField]: Number(prop[costField] || 0) + amt,
+      });
     } else if (lt === "subscriptions") {
       const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
       if (!sub || !sub.renewalDate) return;
@@ -2732,6 +2742,27 @@ function getLinkConfig(category: string, type: string, state: any) {
         })),
     };
   }
+  if (category === "Real Estate" && type === "debit") {
+    // Key encodes both the property AND which cost field the payment applies to
+    // (realEstateProperties:<propertyId>:<costField>), since a property has three
+    // separate cost fields that Total Cost is computed from (see RealEstateTab.tsx).
+    const costFields = [
+      { key: "stampDuty", label: "Stamp Duty" },
+      { key: "tdsValue", label: "TDS" },
+      { key: "agreementValue", label: "Agreement Value / Token" },
+    ];
+    return {
+      label: "Real Estate Cost",
+      options: (state.realEstateProperties || [])
+        .filter((p: any) => p.status !== "sold")
+        .flatMap((p: any) =>
+          costFields.map((cf) => ({
+            key: `realEstateProperties:${p.id}:${cf.key}`,
+            label: `${p.name || "Property"} — ${cf.label} (current ${fmt(p[cf.key])})`,
+          }))
+        ),
+    };
+  }
   if (category === "Subscription" && type === "debit") {
     return {
       label: "Subscription",
@@ -3096,9 +3127,13 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
         >
           <Link2 size={12} style={{ verticalAlign: -2, marginRight: 2 }} /> This transaction is
           linked to a{" "}
-          {txn.linkedType === "creditCards" ? "credit card" : "linked"} record. Changing the
-          amount here will not update that record — delete and re-add the transaction instead if
-          the amount was wrong.
+          {txn.linkedType === "creditCards"
+            ? "credit card"
+            : txn.linkedType === "realEstateProperties"
+              ? "real estate property"
+              : "linked"}{" "}
+          record. Changing the amount here will not update that record — delete and re-add the
+          transaction instead if the amount was wrong.
         </div>
       )}
       <Field label="Owner / Profile">

@@ -749,14 +749,16 @@ function FinanceDashboard() {
         salarySlipsQ,
       ].some((r) => r?.data && r.data.length > 0);
 
-      // Backfill "Credit Card" into a saved transactionCategories list that predates it (see the
-      // masterData merge below) and persist the fix once so future loads don't need to repeat it.
+      // Backfill categories added after initial release ("Credit Card", "Real Estate") into a
+      // saved transactionCategories list that predates them (see the masterData merge below)
+      // and persist the fix once so future loads don't need to repeat it.
       if (sett.data?.master_data) {
         const savedCats = sett.data.master_data.transactionCategories || [];
-        if (!savedCats.includes("Credit Card")) {
+        const missingCats = ["Credit Card", "Real Estate"].filter((c) => !savedCats.includes(c));
+        if (missingCats.length > 0) {
           const fixedMaster = {
             ...sett.data.master_data,
-            transactionCategories: [...savedCats, "Credit Card"],
+            transactionCategories: [...savedCats, ...missingCats],
           };
           supabase
             .from("user_settings")
@@ -795,13 +797,14 @@ function FinanceDashboard() {
               currentState.masterData ||
               DEFAULT_MASTER_DATA;
             // A saved transactionCategories list shallow-overrides DEFAULT_MASTER_DATA above,
-            // so accounts saved before "Credit Card" was added as a default never see it.
-            // Backfill it in-place here (not a separate one-time effect — that races this
+            // so accounts saved before "Credit Card"/"Real Estate" were added as defaults never
+            // see them. Backfill in-place here (not a separate one-time effect — that races this
             // same fetch, which lands after and stomps the fix straight back out).
             const baseCats = base.transactionCategories || [];
-            const patchedCats = baseCats.includes("Credit Card")
-              ? baseCats
-              : [...baseCats, "Credit Card"];
+            const missingCats = ["Credit Card", "Real Estate"].filter(
+              (c) => !baseCats.includes(c)
+            );
+            const patchedCats = missingCats.length > 0 ? [...baseCats, ...missingCats] : baseCats;
             const allTxnIds =
               !txns.error && txns.data != null ? txns.data.map((t: any) => t.id) : [];
             return {
@@ -2328,6 +2331,20 @@ function FinanceDashboard() {
         if (prop) {
           updateItem("rentalProperties", lid, {
             receipts: (prop.receipts || []).filter((r: any) => r.id !== entryId),
+          });
+        }
+      } else if (lt === "realEstateProperties") {
+        // lid is "<propertyId>:<costField>" (stampDuty/tdsValue/agreementValue) — see
+        // getLinkConfig's "Real Estate" branch in BanksTab.tsx. No embedded ledger array
+        // to strip an entryId from here; the cost field is a plain scalar, so reversal is
+        // just subtracting the same amount back out (same pattern as loansTaken above).
+        const sep = lid.indexOf(":");
+        const propId = sep >= 0 ? lid.slice(0, sep) : lid;
+        const costField = sep >= 0 ? lid.slice(sep + 1) : "stampDuty";
+        const prop = (state.realEstateProperties || []).find((p: any) => p.id === propId);
+        if (prop) {
+          updateItem("realEstateProperties", propId, {
+            [costField]: Math.max(0, Number(prop[costField] || 0) - amt),
           });
         }
       }

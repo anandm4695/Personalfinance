@@ -30,6 +30,7 @@ export const DEFAULT_MASTER_DATA: MasterData = {
     "Shopping",
     "Bills",
     "Credit Card",
+    "Real Estate",
     "Salary",
     "Investment",
     "Tax",
