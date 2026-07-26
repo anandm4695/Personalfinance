@@ -371,10 +371,10 @@ describe("getEarliestNetWorthMonth", () => {
     expect(getEarliestNetWorthMonth(state)).toBe(ymMonthsAgo(30));
   });
 
-  it("clamps to 120 months back for an outlier-old date", () => {
+  it("has no upper cap — a genuinely old dated record is honored as-is", () => {
     const state = emptyState({
       fixedDeposits: [{ id: "f1", principal: 1000, startDate: "1990-01-01" }],
     });
-    expect(getEarliestNetWorthMonth(state)).toBe(ymMonthsAgo(120));
+    expect(getEarliestNetWorthMonth(state)).toBe("1990-01");
   });
 });

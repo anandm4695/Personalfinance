@@ -374,12 +374,14 @@ export function computeNetWorthAsOf(
 }
 
 const MIN_LOOKBACK_MONTHS = 12;
-const MAX_LOOKBACK_MONTHS = 120;
 
 /**
- * Earliest month with any dated record this module gates on, clamped to
- * [today - 120mo, today - 12mo]. Falls back to 12 months back if no dated
- * field exists anywhere in the user's data.
+ * Earliest month with any dated record this module gates on, floored at
+ * today - 12mo (so there's always at least a year of history even if every
+ * record is recent). No upper limit on how far back a genuine record can
+ * push this — a user's real PPF/EPF/LIC/real-estate dates can legitimately
+ * predate any fixed cutoff. Falls back to 12 months back if no dated field
+ * exists anywhere in the user's data.
  */
 export function getEarliestNetWorthMonth(filteredState: any): string {
   const s = filteredState;
@@ -431,9 +433,7 @@ export function getEarliestNetWorthMonth(filteredState: any): string {
   if (valid.length === 0) return monthsAgoYm(todayYm, MIN_LOOKBACK_MONTHS);
 
   const earliest = valid.reduce((min, v) => (v < min ? v : min), valid[0]);
-  const floor = monthsAgoYm(todayYm, MAX_LOOKBACK_MONTHS);
   const ceiling = monthsAgoYm(todayYm, MIN_LOOKBACK_MONTHS);
-  if (earliest < floor) return floor;
   if (earliest > ceiling) return ceiling;
   return earliest;
 }
