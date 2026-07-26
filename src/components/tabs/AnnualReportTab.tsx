@@ -17,6 +17,10 @@ import {
   Landmark,
   BarChart2,
   AlertTriangle,
+  Trophy,
+  CheckCircle2,
+  Unlock,
+  Flame,
 } from "lucide-react";
 import {
   AreaChart,
@@ -1149,12 +1153,12 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
      (j) KEY HIGHLIGHTS
      ═══════════════════════════════════════════════════════════════ */
   const highlights = useMemo(() => {
-    const items: { icon: string; text: string; color: string }[] = [];
+    const items: { icon: any; text: string; color: string }[] = [];
 
     if (expenseData.highestExpense) {
       const e = expenseData.highestExpense;
       items.push({
-        icon: "💸",
+        icon: Receipt,
         text: `Highest single expense: ${fmtINRFull(e.amount)} — ${e.note || e.category || "Transaction"} (${e.date || ""})`,
         color: THEME.rust,
       });
@@ -1192,7 +1196,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
         allInvestments[0]
       );
       items.push({
-        icon: "📈",
+        icon: TrendingUp,
         text: `Largest investment: ${fmtINRFull(largest.amount)} in ${largest.name}`,
         color: THEME.sage,
       });
@@ -1216,7 +1220,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     if (allPnL.length > 0) {
       const best = allPnL.reduce((max, p) => (p.gainPct > max.gainPct ? p : max), allPnL[0]);
       items.push({
-        icon: "🏆",
+        icon: Trophy,
         text: `Best performer: ${best.name} (+${best.gainPct.toFixed(1)}%)`,
         color: "#059669",
       });
@@ -1229,7 +1233,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       if (closingNW >= m && openingNW < m) {
         const label = m >= 10000000 ? `${m / 10000000}Cr` : `${m / 100000}L`;
         items.push({
-          icon: "🎯",
+          icon: Target,
           text: `Net worth crossed the ₹${label} milestone this FY`,
           color: THEME.accent,
         });
@@ -1239,7 +1243,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
 
     if (goalsData.completed > 0) {
       items.push({
-        icon: "✅",
+        icon: CheckCircle2,
         text: `${goalsData.completed} goal${goalsData.completed > 1 ? "s" : ""} completed this FY`,
         color: "#059669",
       });
@@ -1250,7 +1254,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     );
     if (closedLoans.length > 0) {
       items.push({
-        icon: "🔓",
+        icon: Unlock,
         text: `${closedLoans.length} loan${closedLoans.length > 1 ? "s" : ""} fully repaid`,
         color: "#059669",
       });
@@ -1258,7 +1262,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
 
     if (savingsData.savingsRate >= 30) {
       items.push({
-        icon: "💪",
+        icon: Flame,
         text: `Excellent savings rate of ${savingsData.savingsRate.toFixed(0)}% achieved`,
         color: "#059669",
       });
@@ -2386,7 +2390,6 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                     >
                       <span
                         style={{
-                          fontSize: 20,
                           lineHeight: 1,
                           background: `color-mix(in srgb, ${h.color} 10%, transparent)`,
                           padding: 6,
@@ -2396,7 +2399,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                           justifyContent: "center",
                         }}
                       >
-                        {h.icon}
+                        <h.icon size={18} color={h.color} />
                       </span>
                       <span
                         style={{

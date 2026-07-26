@@ -26,6 +26,38 @@ import {
   Activity,
   CheckCircle2,
   XCircle,
+  Trophy,
+  Crown,
+  Sprout,
+  Leaf,
+  Coins,
+  Gem,
+  Medal,
+  Award,
+  PiggyBank,
+  Bird,
+  Rocket,
+  Lock,
+  Castle,
+  TreeDeciduous,
+  Settings,
+  RefreshCw,
+  TrendingDown,
+  Lightbulb,
+  Feather,
+  ShieldCheck,
+  Footprints,
+  Flag,
+  LineChart,
+  Microscope,
+  GraduationCap,
+  Wallet,
+  Waves,
+  ClipboardList,
+  IndianRupee,
+  Bell,
+  Clock,
+  Moon,
 } from "lucide-react";
 import {
   AreaChart,
@@ -73,7 +105,7 @@ const BADGE_CATALOG = [
     id: "s1",
     cat: "Savings Streak",
     tier: 1,
-    icon: "✅",
+    icon: CheckCircle2,
     label: "First Win",
     desc: "Save more than you spend for 1 month",
   },
@@ -81,7 +113,7 @@ const BADGE_CATALOG = [
     id: "s3",
     cat: "Savings Streak",
     tier: 2,
-    icon: "⚡",
+    icon: Zap,
     label: "On a Roll",
     desc: "3-month savings streak",
   },
@@ -89,7 +121,7 @@ const BADGE_CATALOG = [
     id: "s6",
     cat: "Savings Streak",
     tier: 3,
-    icon: "🔥",
+    icon: Flame,
     label: "Fire Saver",
     desc: "6 consecutive months of net saving",
   },
@@ -97,7 +129,7 @@ const BADGE_CATALOG = [
     id: "s12",
     cat: "Savings Streak",
     tier: 4,
-    icon: "🏆",
+    icon: Trophy,
     label: "Savings Champion",
     desc: "12-month savings streak",
   },
@@ -105,7 +137,7 @@ const BADGE_CATALOG = [
     id: "s24",
     cat: "Savings Streak",
     tier: 5,
-    icon: "👑",
+    icon: Crown,
     label: "Legendary Saver",
     desc: "24 months of consistent saving",
   },
@@ -114,7 +146,7 @@ const BADGE_CATALOG = [
     id: "w1",
     cat: "Wealth Builder",
     tier: 1,
-    icon: "🌱",
+    icon: Sprout,
     label: "₹1L Club",
     desc: "Net worth crossed ₹1 Lakh",
   },
@@ -122,7 +154,7 @@ const BADGE_CATALOG = [
     id: "w5",
     cat: "Wealth Builder",
     tier: 2,
-    icon: "🌿",
+    icon: Leaf,
     label: "₹5L Club",
     desc: "Net worth crossed ₹5 Lakh",
   },
@@ -130,7 +162,7 @@ const BADGE_CATALOG = [
     id: "w10",
     cat: "Wealth Builder",
     tier: 3,
-    icon: "💰",
+    icon: Coins,
     label: "₹10L Club",
     desc: "Net worth crossed ₹10 Lakh",
   },
@@ -138,7 +170,7 @@ const BADGE_CATALOG = [
     id: "w25",
     cat: "Wealth Builder",
     tier: 4,
-    icon: "💎",
+    icon: Gem,
     label: "₹25L Club",
     desc: "Net worth crossed ₹25 Lakh",
   },
@@ -146,7 +178,7 @@ const BADGE_CATALOG = [
     id: "w50",
     cat: "Wealth Builder",
     tier: 5,
-    icon: "🏅",
+    icon: Medal,
     label: "₹50L Club",
     desc: "Net worth crossed ₹50 Lakh",
   },
@@ -154,7 +186,7 @@ const BADGE_CATALOG = [
     id: "w1c",
     cat: "Wealth Builder",
     tier: 6,
-    icon: "🥇",
+    icon: Award,
     label: "Crorepati",
     desc: "Net worth crossed ₹1 Crore",
   },
@@ -163,7 +195,7 @@ const BADGE_CATALOG = [
     id: "sr10",
     cat: "Smart Saver",
     tier: 1,
-    icon: "🐣",
+    icon: PiggyBank,
     label: "Saver",
     desc: "Savings rate above 10%",
   },
@@ -171,7 +203,7 @@ const BADGE_CATALOG = [
     id: "sr20",
     cat: "Smart Saver",
     tier: 2,
-    icon: "🐥",
+    icon: TrendingUp,
     label: "Smart Saver",
     desc: "Savings rate above 20%",
   },
@@ -179,7 +211,7 @@ const BADGE_CATALOG = [
     id: "sr30",
     cat: "Smart Saver",
     tier: 3,
-    icon: "🦅",
+    icon: Bird,
     label: "Power Saver",
     desc: "Savings rate above 30%",
   },
@@ -187,7 +219,7 @@ const BADGE_CATALOG = [
     id: "sr50",
     cat: "Smart Saver",
     tier: 4,
-    icon: "🚀",
+    icon: Rocket,
     label: "Super Saver",
     desc: "Saving 50%+ of monthly income",
   },
@@ -196,7 +228,7 @@ const BADGE_CATALOG = [
     id: "ef1",
     cat: "Safety Net",
     tier: 1,
-    icon: "🛡️",
+    icon: Shield,
     label: "Buffer Started",
     desc: "1 month of expenses in cash reserves",
   },
@@ -204,7 +236,7 @@ const BADGE_CATALOG = [
     id: "ef3",
     cat: "Safety Net",
     tier: 2,
-    icon: "🔒",
+    icon: Lock,
     label: "Safety Net",
     desc: "3-month emergency fund",
   },
@@ -212,7 +244,7 @@ const BADGE_CATALOG = [
     id: "ef6",
     cat: "Safety Net",
     tier: 3,
-    icon: "🏰",
+    icon: Castle,
     label: "Fortress",
     desc: "6-month emergency fund — fully covered",
   },
@@ -221,7 +253,7 @@ const BADGE_CATALOG = [
     id: "iv1",
     cat: "Investor",
     tier: 1,
-    icon: "🌱",
+    icon: Sprout,
     label: "First Investment",
     desc: "Invested in at least one instrument",
   },
@@ -229,7 +261,7 @@ const BADGE_CATALOG = [
     id: "iv3",
     cat: "Investor",
     tier: 2,
-    icon: "🌿",
+    icon: Leaf,
     label: "Diversified",
     desc: "Spread across 3+ asset types",
   },
@@ -237,7 +269,7 @@ const BADGE_CATALOG = [
     id: "iv5",
     cat: "Investor",
     tier: 3,
-    icon: "🌳",
+    icon: TreeDeciduous,
     label: "Master Investor",
     desc: "Invested in 5+ different asset types",
   },
@@ -246,7 +278,7 @@ const BADGE_CATALOG = [
     id: "sip1",
     cat: "SIP Habit",
     tier: 1,
-    icon: "⚙️",
+    icon: Settings,
     label: "SIP Started",
     desc: "Running at least 1 active SIP",
   },
@@ -254,7 +286,7 @@ const BADGE_CATALOG = [
     id: "sip5",
     cat: "SIP Habit",
     tier: 2,
-    icon: "🔄",
+    icon: RefreshCw,
     label: "SIP Warrior",
     desc: "Total SIP ≥ ₹5,000/month",
   },
@@ -263,7 +295,7 @@ const BADGE_CATALOG = [
     id: "d40",
     cat: "Debt Smart",
     tier: 1,
-    icon: "📉",
+    icon: TrendingDown,
     label: "Light Borrower",
     desc: "Total EMIs below 40% of income (FOIR)",
   },
@@ -271,7 +303,7 @@ const BADGE_CATALOG = [
     id: "d20",
     cat: "Debt Smart",
     tier: 2,
-    icon: "💡",
+    icon: Lightbulb,
     label: "Lean Borrower",
     desc: "Total EMIs below 20% of income",
   },
@@ -279,7 +311,7 @@ const BADGE_CATALOG = [
     id: "df",
     cat: "Debt Smart",
     tier: 3,
-    icon: "🕊️",
+    icon: Feather,
     label: "Debt Free",
     desc: "Zero loans and liabilities",
   },
@@ -288,7 +320,7 @@ const BADGE_CATALOG = [
     id: "cc0",
     cat: "Credit Smart",
     tier: 1,
-    icon: "💳",
+    icon: CreditCard,
     label: "Zero Balance",
     desc: "No outstanding on any credit card",
   },
@@ -296,7 +328,7 @@ const BADGE_CATALOG = [
     id: "cc30",
     cat: "Credit Smart",
     tier: 2,
-    icon: "🎯",
+    icon: Target,
     label: "Credit Ace",
     desc: "Credit utilization below 30%",
   },
@@ -305,7 +337,7 @@ const BADGE_CATALOG = [
     id: "p1",
     cat: "Protected",
     tier: 1,
-    icon: "🛡️",
+    icon: ShieldCheck,
     label: "Insured",
     desc: "Has at least one term plan or LIC",
   },
@@ -313,7 +345,7 @@ const BADGE_CATALOG = [
     id: "p2",
     cat: "Protected",
     tier: 2,
-    icon: "🏛️",
+    icon: Landmark,
     label: "Well Protected",
     desc: "Insurance cover ≥ 10× annual income",
   },
@@ -322,7 +354,7 @@ const BADGE_CATALOG = [
     id: "g1",
     cat: "Goal Setter",
     tier: 1,
-    icon: "🎯",
+    icon: Target,
     label: "Goal Setter",
     desc: "Created your first financial goal",
   },
@@ -330,7 +362,7 @@ const BADGE_CATALOG = [
     id: "g2",
     cat: "Goal Setter",
     tier: 2,
-    icon: "🏃",
+    icon: Footprints,
     label: "Goal Chaser",
     desc: "One goal is 50%+ funded",
   },
@@ -338,7 +370,7 @@ const BADGE_CATALOG = [
     id: "g3",
     cat: "Goal Setter",
     tier: 3,
-    icon: "🏁",
+    icon: Flag,
     label: "Goal Crusher",
     desc: "Fully achieved at least one goal",
   },
@@ -347,7 +379,7 @@ const BADGE_CATALOG = [
     id: "fn1",
     cat: "Finance Nerd",
     tier: 1,
-    icon: "📊",
+    icon: BarChart2,
     label: "Tracker",
     desc: "1+ months of transactions logged",
   },
@@ -355,7 +387,7 @@ const BADGE_CATALOG = [
     id: "fn3",
     cat: "Finance Nerd",
     tier: 2,
-    icon: "📈",
+    icon: LineChart,
     label: "Consistent",
     desc: "3+ months of financial data",
   },
@@ -363,7 +395,7 @@ const BADGE_CATALOG = [
     id: "fn6",
     cat: "Finance Nerd",
     tier: 3,
-    icon: "🔬",
+    icon: Microscope,
     label: "Data Driven",
     desc: "6+ months of financial history",
   },
@@ -371,7 +403,7 @@ const BADGE_CATALOG = [
     id: "fn12",
     cat: "Finance Nerd",
     tier: 4,
-    icon: "🎓",
+    icon: GraduationCap,
     label: "Finance Nerd",
     desc: "12+ months of full tracking",
   },
@@ -380,7 +412,7 @@ const BADGE_CATALOG = [
     id: "tax1",
     cat: "Tax Saver",
     tier: 1,
-    icon: "🧾",
+    icon: Receipt,
     label: "80C Investor",
     desc: "Invested in at least one 80C instrument (PPF, ELSS, NPS, LIC, EPF)",
   },
@@ -388,7 +420,7 @@ const BADGE_CATALOG = [
     id: "tax2",
     cat: "Tax Saver",
     tier: 2,
-    icon: "🏆",
+    icon: Trophy,
     label: "80C Maxed",
     desc: "Utilized the full ₹1.5L 80C tax deduction limit for the year",
   },
@@ -397,7 +429,7 @@ const BADGE_CATALOG = [
     id: "pi5k",
     cat: "Passive Income",
     tier: 1,
-    icon: "💸",
+    icon: Wallet,
     label: "Passive Earner",
     desc: "Monthly passive income ≥ ₹5,000 (rent, dividends, interest)",
   },
@@ -405,7 +437,7 @@ const BADGE_CATALOG = [
     id: "pi25k",
     cat: "Passive Income",
     tier: 2,
-    icon: "🌊",
+    icon: Waves,
     label: "Income Builder",
     desc: "Monthly passive income ≥ ₹25,000",
   },
@@ -413,7 +445,7 @@ const BADGE_CATALOG = [
     id: "pi1L",
     cat: "Passive Income",
     tier: 3,
-    icon: "🕊️",
+    icon: Feather,
     label: "Freedom Income",
     desc: "Monthly passive income ≥ ₹1 Lakh — a true financial independence milestone",
   },
@@ -422,7 +454,7 @@ const BADGE_CATALOG = [
     id: "b1",
     cat: "Budget Pro",
     tier: 1,
-    icon: "📋",
+    icon: ClipboardList,
     label: "Budget Starter",
     desc: "Set up at least one spending budget category",
   },
@@ -430,7 +462,7 @@ const BADGE_CATALOG = [
     id: "b3",
     cat: "Budget Pro",
     tier: 2,
-    icon: "🎯",
+    icon: Target,
     label: "Budget Pro",
     desc: "Actively managing 3+ spending categories with budgets",
   },
@@ -1920,7 +1952,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       else break;
     }
     const streakEmoji =
-      streak >= 12 ? "🏆" : streak >= 6 ? "🔥" : streak >= 3 ? "⚡" : streak >= 1 ? "✅" : "💤";
+      streak >= 12 ? Trophy : streak >= 6 ? Flame : streak >= 3 ? Zap : streak >= 1 ? CheckCircle2 : Moon;
     const streakMsg =
       streak >= 12
         ? "Incredible!"
@@ -3399,7 +3431,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               }
             }}
           >
-            <span style={{ fontSize: 13 }}>⚙️</span> Widgets
+            <Settings size={13} /> Widgets
           </button>
           <button
             onClick={() => setShowReport(true)}
@@ -4871,8 +4903,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 Savings Streak
               </div>
               <div style={{ textAlign: "center", padding: "10px 0" }}>
-                <div style={{ fontSize: 26, marginBottom: 6, opacity: 0.85 }}>
-                  {dashboardData.streakEmoji}
+                <div
+                  style={{
+                    marginBottom: 6,
+                    opacity: 0.85,
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <dashboardData.streakEmoji size={26} color={THEME.sage} />
                 </div>
                 <div
                   style={{
@@ -6452,7 +6491,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div key="trends" className="tab-content-enter">
           {/* Hero Header */}
           <div className="sub-tab-hero animate-fade-in">
-            <span className="sub-tab-hero-icon">📈</span>
+            <span className="sub-tab-hero-icon">
+              <TrendingUp size={28} />
+            </span>
             <div className="sub-tab-hero-body">
               <div className="sub-tab-hero-title">Trends &amp; History</div>
               <div className="sub-tab-hero-desc">
@@ -6461,7 +6502,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
             </div>
             <div className="sub-tab-hero-badge">
-              🕒 {trendPeriod === "All" ? "All time" : `Last ${trendPeriod}`}
+              <Clock size={12} /> {trendPeriod === "All" ? "All time" : `Last ${trendPeriod}`}
             </div>
           </div>
 
@@ -6493,21 +6534,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       ? filteredNetWorthTrend[filteredNetWorthTrend.length - 1].value >=
                         filteredNetWorthTrend[0].value
                       : metrics.netWorth >= 0,
-                  icon: "📈",
+                  icon: TrendingUp,
                 },
                 {
                   label: "YTD Income",
                   value: fmtINRFull(ytdData.ytdIncome),
                   delta: null,
                   positive: ytdData.ytdIncome >= 0,
-                  icon: "💰",
+                  icon: IndianRupee,
                 },
                 {
                   label: "YTD Savings Rate",
                   value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
                   delta: null,
                   positive: ytdData.ytdSavingsRate >= 20,
-                  icon: "🏦",
+                  icon: Landmark,
                 },
                 {
                   label: "Portfolio Return",
@@ -6525,16 +6566,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   positive:
                     metrics.mfValue + metrics.stockValue >=
                     metrics.mfInvested + metrics.stockInvested,
-                  icon: "📊",
+                  icon: BarChart2,
                 },
               ] as {
                 label: string;
                 value: string;
                 delta: string | null;
                 positive: boolean;
-                icon: string;
+                icon: any;
               }[]
-            ).map(({ label, value, delta, positive, icon }) => (
+            ).map(({ label, value, delta, positive, icon: Icon }) => (
               <div
                 key={label}
                 style={{
@@ -6580,7 +6621,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   >
                     {label}
                   </span>
-                  <span style={{ fontSize: 16 }}>{icon}</span>
+                  <Icon size={16} color={THEME.muted} />
                 </div>
                 <div
                   style={{
@@ -6635,11 +6676,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               >
                 <span
                   style={{
-                    fontSize: 18,
                     lineHeight: 1,
+                    display: "flex",
                   }}
                 >
-                  📉
+                  <BarChart2 size={16} color={THEME.ink} />
                 </span>
                 <span
                   style={{
@@ -6697,7 +6738,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           marginBottom: 4,
                         }}
                       >
-                        <span style={{ fontSize: 16 }}>📈</span>
+                        <TrendingUp size={16} color={THEME.ink} />
                         <span
                           style={{
                             fontSize: 14,
@@ -6836,7 +6877,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     marginBottom: 4,
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>💹</span>
+                  <Activity size={16} color={THEME.ink} />
                   <span
                     style={{
                       fontSize: 14,
@@ -6974,7 +7015,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       marginBottom: 4,
                     }}
                   >
-                    <span style={{ fontSize: 16 }}>💵</span>
+                    <Wallet size={16} color={THEME.ink} />
                     <span
                       style={{
                         fontSize: 14,
@@ -7077,7 +7118,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       marginBottom: 4,
                     }}
                   >
-                    <span style={{ fontSize: 16 }}>📊</span>
+                    <BarChart2 size={16} color={THEME.ink} />
                     <span
                       style={{
                         fontSize: 14,
@@ -7210,11 +7251,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               >
                 <span
                   style={{
-                    fontSize: 18,
                     lineHeight: 1,
+                    display: "flex",
                   }}
                 >
-                  🎯
+                  <Target size={16} color={THEME.ink} />
                 </span>
                 <span
                   style={{
@@ -7263,7 +7304,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         marginBottom: 4,
                       }}
                     >
-                      <span style={{ fontSize: 16 }}>📅</span>
+                      <Calendar size={16} color={THEME.ink} />
                       <span
                         style={{
                           fontSize: 14,
@@ -7712,7 +7753,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div key="allocation" className="tab-content-enter">
           {/* Hero Header */}
           <div className="sub-tab-hero animate-fade-in">
-            <span className="sub-tab-hero-icon">🎯</span>
+            <span className="sub-tab-hero-icon">
+              <Target size={28} />
+            </span>
             <div className="sub-tab-hero-body">
               <div className="sub-tab-hero-title">Portfolio Allocation</div>
               <div className="sub-tab-hero-desc">
@@ -7720,7 +7763,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 concentration risk
               </div>
             </div>
-            <div className="sub-tab-hero-badge">💰 {fmtINRFull(metrics.totalAssets)} assets</div>
+            <div className="sub-tab-hero-badge">
+              <IndianRupee size={12} /> {fmtINRFull(metrics.totalAssets)} assets
+            </div>
           </div>
           <div
             style={{
@@ -10535,14 +10580,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div key="planning" className="tab-content-enter">
           {/* Hero Header */}
           <div className="sub-tab-hero animate-fade-in">
-            <span className="sub-tab-hero-icon">🎯</span>
+            <span className="sub-tab-hero-icon">
+              <Target size={28} />
+            </span>
             <div className="sub-tab-hero-body">
               <div className="sub-tab-hero-title">Financial Planning</div>
               <div className="sub-tab-hero-desc">
                 FIRE progress, SIP planner, loan EMI tracker, retirement corpus and goal milestones
               </div>
             </div>
-            <div className="sub-tab-hero-badge">🚀 FIRE &amp; Goals</div>
+            <div className="sub-tab-hero-badge">
+              <Rocket size={12} /> FIRE &amp; Goals
+            </div>
           </div>
           {/* FIRE Progress */}
           <Card style={{ padding: 24, marginBottom: 28, borderTop: `3px solid ${THEME.accent}` }}>
@@ -10886,9 +10935,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       fontWeight: 900,
                       color: THEME.sage,
                       letterSpacing: "-0.02em",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      justifyContent: "flex-end",
                     }}
                   >
-                    🎯 {crossoverYear}
+                    <Target size={20} /> {crossoverYear}
                   </div>
                   <div
                     style={{
@@ -11409,7 +11462,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   borderRadius: 12,
                 }}
               >
-                <span style={{ fontSize: 24 }}>{crossoverYear ? "🚀" : "💡"}</span>
+                {crossoverYear ? (
+                  <Rocket size={24} color={THEME.sage} style={{ flexShrink: 0 }} />
+                ) : (
+                  <Lightbulb size={24} color={THEME.gold} style={{ flexShrink: 0 }} />
+                )}
                 <div style={{ flex: 1 }}>
                   <div
                     style={{
@@ -11801,8 +11858,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         }}
                       >
                         {isOverBudget
-                          ? "⚠️ Your spending has eaten into your savings target. Consider deferring non-essential purchases."
-                          : "✨ You're pacing well! Staying disciplined now will help you reach your financial milestones faster."}
+                          ? "Your spending has eaten into your savings target. Consider deferring non-essential purchases."
+                          : "You're pacing well! Staying disciplined now will help you reach your financial milestones faster."}
                       </div>
                     </>
                   );
@@ -12570,7 +12627,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div key="spending" className="tab-content-enter">
               {/* Hero Header */}
               <div className="sub-tab-hero animate-fade-in">
-                <span className="sub-tab-hero-icon">💳</span>
+                <span className="sub-tab-hero-icon">
+                  <CreditCard size={28} />
+                </span>
                 <div className="sub-tab-hero-body">
                   <div className="sub-tab-hero-title">Spending Analysis</div>
                   <div className="sub-tab-hero-desc">
@@ -12580,7 +12639,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 {spendingData.total > 0 && (
                   <div className="sub-tab-hero-badge">
-                    💸 {fmtINRFull(spendingData.total)} spent
+                    <ArrowDownRight size={12} /> {fmtINRFull(spendingData.total)} spent
                   </div>
                 )}
               </div>
@@ -13371,14 +13430,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div key="calendar" className="tab-content-enter">
           {/* Hero Header */}
           <div className="sub-tab-hero animate-fade-in">
-            <span className="sub-tab-hero-icon">📅</span>
+            <span className="sub-tab-hero-icon">
+              <Calendar size={28} />
+            </span>
             <div className="sub-tab-hero-body">
               <div className="sub-tab-hero-title">Financial Calendar</div>
               <div className="sub-tab-hero-desc">
                 Upcoming EMIs, insurance renewals, SIP dates and scheduled financial commitments
               </div>
             </div>
-            <div className="sub-tab-hero-badge">🔔 Upcoming dues</div>
+            <div className="sub-tab-hero-badge">
+              <Bell size={12} /> Upcoming dues
+            </div>
           </div>
           <Card style={{ padding: 24, marginBottom: 32 }}>
             <div
@@ -14078,7 +14141,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
                       {habitsBadges.xpToNext > 0
                         ? `${habitsBadges.xpToNext} XP → ${habitsBadges.nextLevelLabel}`
-                        : "🎉 Max level reached!"}
+                        : "Max level reached!"}
                     </div>
                   </div>
                 </div>
@@ -14139,7 +14202,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       justifyContent: "flex-end",
                     }}
                   >
-                    <span style={{ fontSize: 28 }}>{dashboardData.streakEmoji}</span>
+                    <dashboardData.streakEmoji size={28} color="#fff" />
                     <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: "#fff" }}>
                       {dashboardData.streak}
                     </span>
@@ -14202,15 +14265,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {
                   label: "Badges",
                   value: `${habitsBadges.totalEarned}/${habitsBadges.totalBadges}`,
-                  icon: "🏅",
+                  icon: Medal,
                 },
                 {
                   label: "Categories",
                   value: `${Object.values(habitsBadges.cats).filter((c: any) => c.earnedCount === c.total).length}/${Object.keys(habitsBadges.cats).length}`,
-                  icon: "✅",
+                  icon: CheckCircle2,
                 },
-                { label: "Month Streak", value: `${dashboardData.streak}mo`, icon: "🔥" },
-                { label: "XP Points", value: habitsBadges.totalXP.toLocaleString(), icon: "⚡" },
+                { label: "Month Streak", value: `${dashboardData.streak}mo`, icon: Flame },
+                { label: "XP Points", value: habitsBadges.totalXP.toLocaleString(), icon: Zap },
               ].map((s, i) => (
                 <div
                   key={i}
@@ -14221,7 +14284,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     borderTop: `1px solid ${THEME.line}`,
                   }}
                 >
-                  <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
+                  <div
+                    style={{
+                      marginBottom: 4,
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <s.icon size={20} color={THEME.ink} />
+                  </div>
                   <div
                     style={{
                       fontSize: 15,
@@ -14438,7 +14509,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       alignItems: "flex-start",
                     }}
                   >
-                    <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>{tip.icon}</div>
+                    <tip.icon
+                      size={20}
+                      color={THEME.accent}
+                      style={{ flexShrink: 0, marginTop: 1 }}
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}
@@ -14651,12 +14726,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                         <div
                           style={{
-                            fontSize: 28,
                             lineHeight: 1,
                             filter: b.status === "locked" ? "grayscale(1) opacity(0.4)" : "none",
+                            color: isEarned ? THEME.sage : isActive ? THEME.accent : THEME.muted,
                           }}
                         >
-                          {b.icon}
+                          <b.icon size={26} />
                         </div>
                         <div
                           style={{
@@ -14739,7 +14814,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         )}
                         {b.status === "locked" && (
                           <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 600 }}>
-                            🔒 Locked
+                            Locked
                           </div>
                         )}
                       </div>
@@ -14762,7 +14837,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       lineHeight: 1.5,
                     }}
                   >
-                    🎉 {unlock}
+                    {unlock}
                   </div>
                 )}
               </div>

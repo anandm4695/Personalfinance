@@ -10,6 +10,12 @@ import {
   Info,
   IndianRupee,
   Target,
+  PieChart,
+  CreditCard,
+  Home,
+  RefreshCw,
+  ClipboardList,
+  HeartPulse,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
@@ -111,15 +117,15 @@ export const EmergencyFundTab = ({ state, metrics }) => {
     // Expense breakdown for table
     const expenseBreakdown = [];
     const emis = (state.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
-    if (emis > 0) expenseBreakdown.push({ label: "EMIs", amount: emis, icon: "💳" });
+    if (emis > 0) expenseBreakdown.push({ label: "EMIs", amount: emis, icon: CreditCard });
 
     const rent = (state.rentedProperties || []).reduce((s, p) => s + Number(p.monthlyRent || 0), 0);
-    if (rent > 0) expenseBreakdown.push({ label: "Rent", amount: rent, icon: "🏠" });
+    if (rent > 0) expenseBreakdown.push({ label: "Rent", amount: rent, icon: Home });
 
     const sipTotal = (state.sips || [])
       .filter((s) => s.status !== "stopped")
       .reduce((s, si) => s + Number(si.amount || 0), 0);
-    if (sipTotal > 0) expenseBreakdown.push({ label: "SIPs", amount: sipTotal, icon: "📈" });
+    if (sipTotal > 0) expenseBreakdown.push({ label: "SIPs", amount: sipTotal, icon: TrendingUp });
 
     const subTotal = (state.subscriptions || [])
       .filter((s) => !s.paused)
@@ -130,11 +136,11 @@ export const EmergencyFundTab = ({ state, metrics }) => {
         return s + amt;
       }, 0);
     if (subTotal > 0)
-      expenseBreakdown.push({ label: "Subscriptions", amount: subTotal, icon: "🔄" });
+      expenseBreakdown.push({ label: "Subscriptions", amount: subTotal, icon: RefreshCw });
 
     const recTotal = (state.recurringExpenses || []).reduce((s, r) => s + Number(r.amount || 0), 0);
     if (recTotal > 0)
-      expenseBreakdown.push({ label: "Recurring Expenses", amount: recTotal, icon: "📋" });
+      expenseBreakdown.push({ label: "Recurring Expenses", amount: recTotal, icon: ClipboardList });
 
     const insTotal = [
       ...(state.lic || []),
@@ -142,7 +148,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       ...(state.investmentPlans || []),
     ].reduce((s, p) => s + Number(p.annualPremium || p.premium || 0) / 12, 0);
     if (insTotal > 0)
-      expenseBreakdown.push({ label: "Insurance Premiums", amount: insTotal, icon: "❤️" });
+      expenseBreakdown.push({ label: "Insurance Premiums", amount: insTotal, icon: HeartPulse });
 
     return {
       bankBalance,
@@ -464,7 +470,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 letterSpacing: "0.04em",
               }}
             >
-              📊 Monthly Expense Allocation
+              <PieChart size={14} /> Monthly Expense Allocation
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {data.expenseBreakdown
@@ -500,7 +506,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                       <div
                         style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}
                       >
-                        <span style={{ fontSize: 16 }}>{e.icon}</span>
+                        <e.icon size={16} color={THEME.muted} />
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: THEME.ink }}>
                           {e.label}
                         </span>
@@ -556,7 +562,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                   marginTop: 6,
                 }}
               >
-                <span style={{ fontSize: 16 }}>💰</span>
+                <IndianRupee size={16} color={THEME.ink} />
                 <span style={{ flex: 1, fontSize: 13, color: THEME.ink, fontWeight: 800 }}>
                   Total Monthly Expenditures
                 </span>

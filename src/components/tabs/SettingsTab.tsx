@@ -33,6 +33,22 @@ import {
   Edit3,
   Trash2,
   Users,
+  CreditCard,
+  Ticket,
+  Globe,
+  TrendingUp,
+  Target,
+  Lightbulb,
+  Wallet,
+  Banknote,
+  ClipboardList,
+  BarChart3,
+  ShoppingBag,
+  Zap,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  IdCard,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
@@ -80,16 +96,16 @@ const MD_LABELS: Record<string, string> = {
   goalCategories: "Financial Goal Categories",
 };
 
-const MD_ICONS: Record<string, string> = {
-  transactionCategories: "🏷️",
-  ccTransactionCategories: "💳",
-  prepaidCategories: "🎫",
-  ccNetworks: "🌐",
-  prepaidCardTypes: "🃏",
-  bankAccountTypes: "🏦",
-  mfCategories: "📈",
-  loanTypes: "🏠",
-  goalCategories: "🎯",
+const MD_ICONS: Record<string, any> = {
+  transactionCategories: Tags,
+  ccTransactionCategories: CreditCard,
+  prepaidCategories: Ticket,
+  ccNetworks: Globe,
+  prepaidCardTypes: IdCard,
+  bankAccountTypes: Landmark,
+  mfCategories: TrendingUp,
+  loanTypes: Home,
+  goalCategories: Target,
 };
 
 // ─── Primitive components ─────────────────────────────────────────────────────
@@ -253,7 +269,10 @@ function EditableList({ listKey, items, onUpdate }: any) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>{MD_ICONS[listKey]}</span>
+          {(() => {
+            const MdIcon = MD_ICONS[listKey];
+            return <MdIcon size={16} />;
+          })()}
           <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
             {MD_LABELS[listKey]}
           </span>
@@ -1880,7 +1899,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   flexShrink: 0,
                 }}
               >
-                <span style={{ fontSize: 18 }}>✉️</span>
+                <Mail size={18} color="#fff" />
               </div>
               <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>
                 Email Summary Reports
@@ -2008,7 +2027,11 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     lineHeight: 1.6,
                   }}
                 >
-                  <strong style={{ color: THEME.sage }}>💡 Default Mode:</strong> Sending from{" "}
+                  <Lightbulb
+                    size={13}
+                    style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
+                  />{" "}
+                  <strong style={{ color: THEME.sage }}>Default Mode:</strong> Sending from{" "}
                   <strong>onboarding@resend.dev</strong>. Resend restriction: onboarding@resend.dev
                   can <strong>only</strong> deliver to your Resend registration email.
                 </div>
@@ -2025,7 +2048,11 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     lineHeight: 1.6,
                   }}
                 >
-                  <strong style={{ color: THEME.gold }}>⚠ Verification Required:</strong> You must
+                  <AlertTriangle
+                    size={13}
+                    style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
+                  />{" "}
+                  <strong style={{ color: THEME.gold }}>Verification Required:</strong> You must
                   own and verify the domain of <strong>{fromEmail}</strong> in your{" "}
                   <a
                     href="https://resend.com/domains"
@@ -2172,7 +2199,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   gap: 6,
                 }}
               >
-                <span>⏰</span>
+                <Clock size={13} />
                 <span>
                   Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong>{" "}
                   on your chosen day.
@@ -2204,67 +2231,67 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             >
               {[
                 {
-                  icon: "💰",
+                  icon: Wallet,
                   title: "Net Worth Snapshot",
                   desc: "Assets vs liabilities with full breakdown",
                   color: THEME.sage,
                 },
                 {
-                  icon: "💸",
+                  icon: Banknote,
                   title: "Monthly Cash Flow",
                   desc: "Income vs expenses + savings rate",
                   color: THEME.accent,
                 },
                 {
-                  icon: "📈",
+                  icon: TrendingUp,
                   title: "Investment Portfolio",
                   desc: "MF, stocks, FD, RD, PPF, NPS, EPF, bonds, LIC",
                   color: THEME.sage,
                 },
                 {
-                  icon: "🏦",
+                  icon: Landmark,
                   title: "Other Assets",
                   desc: "Real estate, vehicles, loans given, deposits",
                   color: THEME.sage,
                 },
                 {
-                  icon: "📋",
+                  icon: ClipboardList,
                   title: "Liabilities",
                   desc: "Loans, CC dues, borrowings with total",
                   color: THEME.rust,
                 },
                 {
-                  icon: "💳",
+                  icon: CreditCard,
                   title: "Credit Card Status",
                   desc: "Outstanding + utilization % per card",
                   color: THEME.rust,
                 },
                 {
-                  icon: "📊",
+                  icon: BarChart3,
                   title: "Budget Health",
                   desc: "Category budgets with progress bars",
                   color: THEME.gold,
                 },
                 {
-                  icon: "🛍️",
+                  icon: ShoppingBag,
                   title: "Top Spending",
                   desc: "Your biggest expense categories",
                   color: THEME.gold,
                 },
                 {
-                  icon: "🎯",
+                  icon: Target,
                   title: "Goals Progress",
                   desc: "How close you are to each goal",
                   color: THEME.accent,
                 },
                 {
-                  icon: "📅",
+                  icon: Calendar,
                   title: "Upcoming Dues",
                   desc: "Bills, EMIs and subscriptions in 7 days",
                   color: THEME.gold,
                 },
                 {
-                  icon: "⚡",
+                  icon: Zap,
                   title: "Smart Alerts",
                   desc: "FD maturity, emergency fund, debt ratio + more",
                   color: THEME.rust,
@@ -2282,7 +2309,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     borderTop: `3px solid color-mix(in srgb, ${item.color} 27%, transparent)`,
                   }}
                 >
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                  <item.icon size={18} style={{ flexShrink: 0 }} color={item.color} />
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
                       {item.title}
@@ -2339,13 +2366,33 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 {sending ? "Sending…" : "Send Test Email Now"}
               </button>
               {sendStatus === "ok" && (
-                <span style={{ fontSize: 13, color: THEME.sage, fontWeight: 600 }}>
-                  ✓ Email sent to {address}
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 13,
+                    color: THEME.sage,
+                    fontWeight: 600,
+                  }}
+                >
+                  <CheckCircle2 size={14} style={{ flexShrink: 0 }} /> Email sent to {address}
                 </span>
               )}
               {sendStatus === "err" && (
-                <span style={{ fontSize: 13, color: THEME.rust, fontWeight: 600, maxWidth: 480 }}>
-                  ✕ {errMsg || "Failed to send. Check RESEND_API_KEY in Vercel."}
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 13,
+                    color: THEME.rust,
+                    fontWeight: 600,
+                    maxWidth: 480,
+                  }}
+                >
+                  <XCircle size={14} style={{ flexShrink: 0 }} />{" "}
+                  {errMsg || "Failed to send. Check RESEND_API_KEY in Vercel."}
                 </span>
               )}
             </div>
@@ -2449,9 +2496,19 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                         : `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
                     }}
                   >
-                    <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>
-                      {row.ok ? "✅" : "❌"}
-                    </span>
+                    {row.ok ? (
+                      <CheckCircle2
+                        size={15}
+                        color={THEME.sage}
+                        style={{ flexShrink: 0, marginTop: 1 }}
+                      />
+                    ) : (
+                      <XCircle
+                        size={15}
+                        color={THEME.rust}
+                        style={{ flexShrink: 0, marginTop: 1 }}
+                      />
+                    )}
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                         {row.label}
@@ -2524,7 +2581,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 18 }}>🤖</span>
+            <Bot size={18} color="#fff" />
           </div>
           <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>
             AI Financial Advisor

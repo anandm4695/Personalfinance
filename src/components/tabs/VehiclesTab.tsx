@@ -23,6 +23,11 @@ import {
   Hash,
   Gauge,
   Milestone,
+  Search,
+  Settings,
+  Lightbulb,
+  Building2,
+  BarChart3,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -880,7 +885,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 ↻
               </span>
             ) : (
-              <span>🔍</span>
+              <Search size={14} />
             )}
             {rcStatus === "loading" ? "Fetching…" : "Lookup RC"}
           </button>
@@ -912,7 +917,8 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                   paddingTop: 4,
                 }}
               >
-                💡 <strong>Free Offline Mode:</strong> This details preview was generated offline
+                <Lightbulb size={12} style={{ verticalAlign: -2, marginRight: 2 }} />{" "}
+                <strong>Free Offline Mode:</strong> This details preview was generated offline
                 based on the RTO prefix
                 {rcSource.includes("failed") && " (as live lookup was unsuccessful/unconfigured)"}.
                 To setup live RTO verification from government databases,{" "}
@@ -964,13 +970,14 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 gap: 6,
               }}
             >
-              <span>⚙</span> RC lookup needs a one-time API setup — choose the easiest option below:
+              <Settings size={13} /> RC lookup needs a one-time API setup — choose the easiest
+              option below:
             </div>
             {[
               {
                 num: "1",
                 title: "RapidAPI",
-                badge: "⭐ Recommended — Sign in with Google",
+                badge: "Recommended — Sign in with Google",
                 color: "#2563eb",
                 steps: [
                   "Go to rapidapi.com → Sign Up → Continue with Google (easiest login, no approval needed)",
@@ -985,7 +992,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 badge: "Alternative — Account creation restricted for some users",
                 color: "#d97706",
                 steps: [
-                  "⚠️ NOTE: Users have reported issues signing up / creating accounts with Surepass support.",
+                  "NOTE: Users have reported issues signing up / creating accounts with Surepass support.",
                   "Go to surepass.io → click Sign Up (email or Google)",
                   "After login: Dashboard → copy your API Token",
                   "Add SUREPASS_TOKEN = (your token) to your local .env or Vercel Environment Variables",
@@ -1573,7 +1580,7 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
               gap: 4,
             }}
           >
-            📅 {fmtDate(rec.date)}
+            <Calendar size={11} /> {fmtDate(rec.date)}
           </span>
           {rec.cost > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
@@ -1582,14 +1589,29 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
           )}
           {rec.odometer > 0 && (
             <span
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--t-muted, var(--text-muted))" }}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--t-muted, var(--text-muted))",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+              }}
             >
-              ⚡ {rec.odometer.toLocaleString("en-IN")} km
+              <Gauge size={11} /> {rec.odometer.toLocaleString("en-IN")} km
             </span>
           )}
           {rec.serviceCenter && (
-            <span style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))" }}>
-              🏢 {rec.serviceCenter}
+            <span
+              style={{
+                fontSize: 12,
+                color: "var(--t-muted, var(--text-muted))",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Building2 size={11} /> {rec.serviceCenter}
             </span>
           )}
         </div>
@@ -1925,7 +1947,7 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
               gap: 4,
             }}
           >
-            📅 {fmtDate(rec.fromDate)} → {fmtDate(rec.toDate)}
+            <Calendar size={11} /> {fmtDate(rec.fromDate)} → {fmtDate(rec.toDate)}
           </span>
           {rec.totalPremium > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
@@ -2546,7 +2568,7 @@ function VehicleCard({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: 14 }}>📊</span>
+                <BarChart3 size={14} />
                 <div
                   style={{
                     fontSize: 11,

@@ -1782,16 +1782,21 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          fontSize: 20,
                         }}
                       >
-                        {re.category === "Rent"
-                          ? "🏠"
-                          : re.category === "EMI"
-                            ? "💸"
-                            : re.category === "Bills"
-                              ? "⚡"
-                              : "💼"}
+                        {(() => {
+                          const CatIcon =
+                            re.category === "Rent"
+                              ? Home
+                              : re.category === "EMI"
+                                ? CreditCard
+                                : re.category === "Bills"
+                                  ? Zap
+                                  : Wallet;
+                          return (
+                            <CatIcon size={20} color={hasPaid ? THEME.sage : statusColor} />
+                          );
+                        })()}
                       </div>
 
                       {/* Info */}
@@ -1850,7 +1855,16 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           {bank && (
                             <>
                               <span style={{ opacity: 0.4 }}>·</span>
-                              <span style={{ fontSize: 11 }}>🏦 {bank.bankName}</span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
+                                }}
+                              >
+                                <Landmark size={10} /> {bank.bankName}
+                              </span>
                             </>
                           )}
                         </div>
@@ -2075,10 +2089,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             alignItems: "center",
                             justifyContent: "center",
                             flexShrink: 0,
-                            fontSize: 18,
                           }}
                         >
-                          🏠
+                          <Home size={18} color={statusColor} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>

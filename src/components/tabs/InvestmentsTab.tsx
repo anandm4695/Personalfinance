@@ -4016,9 +4016,12 @@ function MFCsvPanel({ onImport, onClose }: any) {
             color: THEME.muted,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
         >
-          📥 Import Mutual Funds via CSV
+          <Upload size={13} /> Import Mutual Funds via CSV
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button

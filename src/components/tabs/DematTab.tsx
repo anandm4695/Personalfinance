@@ -37,6 +37,7 @@ import {
   AlertTriangle,
   Lightbulb,
   CheckCircle2,
+  Target,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -1313,7 +1314,7 @@ export function DematTab({
 
     if (maxWeight > 25) {
       insights.push(
-        `⚠️ High concentration in a single stock: "${stockWeights[0].symbol}" makes up ${maxWeight.toFixed(1)}% of your portfolio. Consider trimming this to below 20% to mitigate single-stock risk.`
+        `[WARN] High concentration in a single stock: "${stockWeights[0].symbol}" makes up ${maxWeight.toFixed(1)}% of your portfolio. Consider trimming this to below 20% to mitigate single-stock risk.`
       );
     }
 
@@ -1323,23 +1324,23 @@ export function DematTab({
     );
     if (speculativeWeight > 20) {
       insights.push(
-        `⚠️ Speculative exposure is high: Penny or highly volatile stocks represent ${speculativeWeight.toFixed(1)}% of holdings. Rotate some capital into stable Nifty 50 companies.`
+        `[WARN] Speculative exposure is high: Penny or highly volatile stocks represent ${speculativeWeight.toFixed(1)}% of holdings. Rotate some capital into stable Nifty 50 companies.`
       );
     }
 
     if (diversificationScore < 50) {
       insights.push(
-        `📉 Highly concentrated portfolio: Your HHI is ${Math.round(hhi)}. Broaden your diversification by spreading capital across 3-4 additional sectors.`
+        `[WARN] Highly concentrated portfolio: Your HHI is ${Math.round(hhi)}. Broaden your diversification by spreading capital across 3-4 additional sectors.`
       );
     } else if (diversificationScore > 90 && filteredStocks.length > 25) {
       insights.push(
-        `ℹ️ Over-diversification alert: You have ${filteredStocks.length} holdings. This may dilute your returns. Consider consolidating into your 12-15 highest conviction stocks.`
+        `[IDEA] Over-diversification alert: You have ${filteredStocks.length} holdings. This may dilute your returns. Consider consolidating into your 12-15 highest conviction stocks.`
       );
     }
 
     if (momentumScore < 50) {
       insights.push(
-        `📉 Weak price momentum: A significant portion of your holdings are underperforming. Review companies with decaying returns and check if their business fundamentals are deteriorating.`
+        `[WARN] Weak price momentum: A significant portion of your holdings are underperforming. Review companies with decaying returns and check if their business fundamentals are deteriorating.`
       );
     }
 
@@ -1355,22 +1356,22 @@ export function DematTab({
       const ratio = totalVal / (totalVal + totalMfVal);
       if (ratio > 0.8) {
         insights.push(
-          `💡 Combined asset check: You are heavily tilted towards direct stocks (${(ratio * 100).toFixed(0)}% vs ${(100 - ratio * 100).toFixed(0)}% Mutual Funds). Consider raising your mutual fund allocation for passive stability.`
+          `[IDEA] Combined asset check: You are heavily tilted towards direct stocks (${(ratio * 100).toFixed(0)}% vs ${(100 - ratio * 100).toFixed(0)}% Mutual Funds). Consider raising your mutual fund allocation for passive stability.`
         );
       } else {
         insights.push(
-          `✓ Combined asset balance: Healthy mix of Direct Stocks (${(ratio * 100).toFixed(0)}%) and Mutual Funds (${(100 - ratio * 100).toFixed(0)}%) provides defensive stability.`
+          `[OK] Combined asset balance: Healthy mix of Direct Stocks (${(ratio * 100).toFixed(0)}%) and Mutual Funds (${(100 - ratio * 100).toFixed(0)}%) provides defensive stability.`
         );
       }
     } else if (filteredStocks.length > 0) {
       insights.push(
-        `💡 Diversification tip: You do not have any Mutual Funds registered. Allocating a portion of your wealth to index or hybrid mutual funds can improve long-term resilience.`
+        `[IDEA] Diversification tip: You do not have any Mutual Funds registered. Allocating a portion of your wealth to index or hybrid mutual funds can improve long-term resilience.`
       );
     }
 
     if (insights.length === 0) {
       insights.push(
-        "✓ No immediate actions needed. Your portfolio looks well-structured and healthy."
+        "[OK] No immediate actions needed. Your portfolio looks well-structured and healthy."
       );
     }
 
@@ -4918,7 +4919,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     gap: 10,
                   }}
                 >
-                  <span style={{ fontSize: 22 }}>💡</span>
+                  <Lightbulb size={22} color={THEME.gold} style={{ flexShrink: 0 }} />
                   <div>
                     <div>Financial Optimization Suggestions</div>
                     <div
@@ -4931,23 +4932,25 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {portfolioScoreData.insights.map((insight: string, idx: number) => {
-                    const isWarn = insight.includes("⚠️") || insight.includes("📉");
-                    const isIdea = insight.includes("💡") || insight.includes("ℹ️");
+                    const isWarn = insight.includes("[WARN]");
+                    const isIdea = insight.includes("[IDEA]");
                     const text = insight
-                      .replace("⚠️ ", "")
-                      .replace("📉 ", "")
-                      .replace("💡 ", "")
-                      .replace("ℹ️ ", "")
-                      .replace("✓ ", "");
+                      .replace("[WARN] ", "")
+                      .replace("[IDEA] ", "")
+                      .replace("[OK] ", "");
+                    const InsightIcon = isWarn ? AlertTriangle : isIdea ? Lightbulb : CheckCircle2;
+                    const insightColor = isWarn ? THEME.rust : isIdea ? THEME.gold : THEME.sage;
 
                     return (
                       <div
                         key={idx}
                         className={`demat-insight-card ${isWarn ? "warn" : isIdea ? "idea" : "ok"}`}
                       >
-                        <div style={{ marginTop: 1, flexShrink: 0, fontSize: 20, lineHeight: 1 }}>
-                          {isWarn ? "⚠️" : isIdea ? "💡" : "✅"}
-                        </div>
+                        <InsightIcon
+                          size={20}
+                          color={insightColor}
+                          style={{ marginTop: 1, flexShrink: 0 }}
+                        />
                         <div style={{ flex: 1, color: THEME.ink }}>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{text}</div>
                         </div>
@@ -4982,7 +4985,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             const totalItems = allWlItems.length;
             return (
               <div className="watchlist-hero">
-                <div style={{ fontSize: 38, lineHeight: 1, flexShrink: 0 }}>⭐</div>
+                <Star size={34} color={THEME.accent} style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div
                     style={{
@@ -5028,6 +5031,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       <span
                         className="watchlist-near-target"
                         style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
                           fontSize: 11,
                           fontWeight: 800,
                           padding: "3px 10px",
@@ -5037,7 +5043,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
                         }}
                       >
-                        🎯 {nearTargetCount} Near Target
+                        <Target size={11} /> {nearTargetCount} Near Target
                       </span>
                     )}
                   </div>
@@ -5192,6 +5198,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           <span
                             className="watchlist-near-target"
                             style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
                               fontSize: 10,
                               fontWeight: 800,
                               padding: "2px 8px",
@@ -5201,7 +5210,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
                             }}
                           >
-                            🎯 {nearCount} near target
+                            <Target size={10} /> {nearCount} near target
                           </span>
                         ) : null;
                       })()}
@@ -5449,7 +5458,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 it.targetPrice &&
                                                 livePrice && (
                                                   <span className="buy-signal-badge">
-                                                    🎯 Buy Signal
+                                                    <Target size={10} /> Buy Signal
                                                   </span>
                                                 )}
                                               <span

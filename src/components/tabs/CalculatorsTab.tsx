@@ -18,6 +18,16 @@ import {
   GitBranch,
   Plus,
   Trash2,
+  CalendarDays,
+  Lightbulb,
+  TrendingDown,
+  Lock,
+  HeartPulse,
+  AlertCircle,
+  Crown,
+  Plane,
+  Rocket,
+  Home,
 } from "lucide-react";
 import {
   AreaChart,
@@ -2551,21 +2561,27 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 >
                   <span
                     style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                       background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                       padding: "4px 8px",
                       borderRadius: 6,
                     }}
                   >
-                    ⏱️ Years to Retire: {fireResult.yrsToRet}
+                    <Clock size={11} /> Years to Retire: {fireResult.yrsToRet}
                   </span>
                   <span
                     style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                       background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
                       padding: "4px 8px",
                       borderRadius: 6,
                     }}
                   >
-                    🗓️ Years in Retirement: {fireResult.yrsInRet}
+                    <CalendarDays size={11} /> Years in Retirement: {fireResult.yrsInRet}
                   </span>
                 </div>
               </Card>
@@ -2754,7 +2770,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold }}>
                       {fireResult.monthlySavingsNeeded > 0
                         ? fmtINRFull(fireResult.monthlySavingsNeeded)
-                        : "On Track ✓"}
+                        : "On Track"}
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted }}>
                       {fireResult.monthlySavingsNeeded > 0
@@ -3141,7 +3157,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         paddingTop: 8,
                       }}
                     >
-                      💡 <b>CTO/CFO Tip:</b> {lviResult.tip}
+                      <Lightbulb
+                        size={12}
+                        style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
+                      />{" "}
+                      <b>CTO/CFO Tip:</b> {lviResult.tip}
                     </div>
                   </div>
                 </div>
@@ -3190,8 +3210,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </div>
 
                       <div className="divider" style={{ margin: "10px 0" }} />
-                      <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 700 }}>
-                        ✓ Paid off in {lviResult.monthsTaken} months
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 12,
+                          color: THEME.sage,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <CheckCircle2 size={12} /> Paid off in {lviResult.monthsTaken} months
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
                         Saved {fmtINRFull(lviResult.interestSaved)} in interest
@@ -3227,8 +3256,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </div>
 
                       <div className="divider" style={{ margin: "10px 0" }} />
-                      <div style={{ fontSize: 12, color: THEME.accent, fontWeight: 700 }}>
-                        ✓ Standard EMI remains
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 12,
+                          color: THEME.accent,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <CheckCircle2 size={12} /> Standard EMI remains
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
                         Compound return at {lviInvestReturn}%
@@ -3433,7 +3471,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.accent)}
                       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--t-line)")}
                     >
-                      <span>🔒 The Great Lockdown (Normal Crisis)</span>
+                      <span
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                      >
+                        <Lock size={12} /> The Great Lockdown (Normal Crisis)
+                      </span>
                       <span style={{ fontSize: 11, color: THEME.muted }}>Inc=0 · Eq -15%</span>
                     </button>
                     <button
@@ -3461,7 +3503,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.accent)}
                       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--t-line)")}
                     >
-                      <span>📉 Global Financial Crisis (Severe)</span>
+                      <span
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                      >
+                        <TrendingDown size={12} /> Global Financial Crisis (Severe)
+                      </span>
                       <span style={{ fontSize: 11, color: THEME.muted }}>
                         Inc=0 · Frugal · Eq -40%
                       </span>
@@ -3491,7 +3537,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.accent)}
                       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--t-line)")}
                     >
-                      <span>🌋 Medical Black Swan (Outflow + Job Loss)</span>
+                      <span
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                      >
+                        <HeartPulse size={12} /> Medical Black Swan (Outflow + Job Loss)
+                      </span>
                       <span style={{ fontSize: 11, color: THEME.muted }}>
                         Inc=0 · ₹5L Outflow · Eq -30%
                       </span>
@@ -3697,13 +3747,29 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }`,
                   }}
                 >
-                  {stressResult.safetyLevel === "critical"
-                    ? "🚨 CRITICAL LIQUIDITY RISK"
-                    : stressResult.safetyLevel === "caution"
-                      ? "⚠️ MODERATE RISK BUFFER"
-                      : stressResult.safetyLevel === "elite"
-                        ? "👑 ELITE FINANCIAL STABILITY"
-                        : "✅ SECURE RUNWAY COVER"}
+                  {(() => {
+                    const SafetyIcon =
+                      stressResult.safetyLevel === "critical"
+                        ? AlertCircle
+                        : stressResult.safetyLevel === "caution"
+                          ? AlertTriangle
+                          : stressResult.safetyLevel === "elite"
+                            ? Crown
+                            : CheckCircle2;
+                    const safetyLabel =
+                      stressResult.safetyLevel === "critical"
+                        ? "CRITICAL LIQUIDITY RISK"
+                        : stressResult.safetyLevel === "caution"
+                          ? "MODERATE RISK BUFFER"
+                          : stressResult.safetyLevel === "elite"
+                            ? "ELITE FINANCIAL STABILITY"
+                            : "SECURE RUNWAY COVER";
+                    return (
+                      <>
+                        <SafetyIcon size={14} style={{ flexShrink: 0 }} /> {safetyLabel}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Dynamic stress description text */}
@@ -3984,7 +4050,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     </div>
 
                     <div style={{ fontSize: 12.5, color: THEME.muted, lineHeight: 1.5 }}>
-                      ⏱️ Out of <b>500 randomized market sequences</b>, your portfolio survived
+                      <Clock
+                        size={12}
+                        style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
+                      />{" "}
+                      Out of <b>500 randomized market sequences</b>, your portfolio survived
                       standard withdrawals in <b>{Math.round(score * 5)}</b> runs. On average, your
                       assets will sustain you for{" "}
                       <b>{monteCarloResult.avgYearsLasted.toFixed(1)} years</b> out of your{" "}
@@ -4189,7 +4259,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>✈️</span>
+                      <Plane size={17} color={THEME.ink} />
                       <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
                         Career Sabbatical
                       </span>
@@ -4279,7 +4349,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>🚀</span>
+                      <Rocket size={17} color={THEME.ink} />
                       <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
                         Startup Venture
                       </span>
@@ -4371,7 +4441,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>🏠</span>
+                      <Home size={17} color={THEME.ink} />
                       <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
                         Real Estate Purchase
                       </span>
@@ -4534,15 +4604,25 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                   <div
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
                       fontSize: 10.5,
                       color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage,
                       fontWeight: 700,
                       marginTop: 4,
                     }}
                   >
-                    {sandboxResult.oppCost > 0
-                      ? `⏱️ Delay: +${sandboxResult.fiAgeGap.toFixed(1)} yrs to FI`
-                      : `🚀 Accelerated by ${Math.abs(sandboxResult.fiAgeGap).toFixed(1)} yrs`}
+                    {sandboxResult.oppCost > 0 ? (
+                      <>
+                        <Clock size={11} /> Delay: +{sandboxResult.fiAgeGap.toFixed(1)} yrs to FI
+                      </>
+                    ) : (
+                      <>
+                        <Rocket size={11} /> Accelerated by{" "}
+                        {Math.abs(sandboxResult.fiAgeGap).toFixed(1)} yrs
+                      </>
+                    )}
                   </div>
                 </Card>
               </div>
@@ -4570,7 +4650,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                   {sandboxResult.liquidityCrisisAge !== -1 && (
                     <Badge variant="rust" style={{ animation: "pulse-ring 2s infinite" }}>
-                      ⚠️ Liquidity Shortfall at age {sandboxResult.liquidityCrisisAge}
+                      <AlertTriangle size={11} /> Liquidity Shortfall at age{" "}
+                      {sandboxResult.liquidityCrisisAge}
                     </Badge>
                   )}
                 </div>

@@ -15,6 +15,15 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  PiggyBank,
+  Briefcase,
+  Banknote,
+  Handshake,
+  Lock,
+  PieChart,
+  Landmark,
+  Search,
+  Link2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today, autoCateg, getLocalDateString } from "../../utils/finance";
@@ -71,16 +80,16 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
 };
 
 // Account type visual themes
-const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: string }> = {
-  savings: { color: "#0284c7", bg: "#0284c715", icon: "💰" },
-  current: { color: "#059669", bg: "#05966915", icon: "💼" },
-  salary: { color: "#7c3aed", bg: "#7c3aed15", icon: "💎" },
-  joint: { color: "#d97706", bg: "#d9770615", icon: "🤝" },
-  fd: { color: "#ea580c", bg: "#ea580c15", icon: "🔒" },
+const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: typeof PiggyBank }> = {
+  savings: { color: "#0284c7", bg: "#0284c715", icon: PiggyBank },
+  current: { color: "#059669", bg: "#05966915", icon: Briefcase },
+  salary: { color: "#7c3aed", bg: "#7c3aed15", icon: Banknote },
+  joint: { color: "#d97706", bg: "#d9770615", icon: Handshake },
+  fd: { color: "#ea580c", bg: "#ea580c15", icon: Lock },
   other: {
     color: THEME.muted,
     bg: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-    icon: "🏦",
+    icon: Building2,
   },
 };
 
@@ -997,7 +1006,7 @@ export function BanksTab({
                   letterSpacing: "0.05em",
                 }}
               >
-                <span>📈 Monthly Savings Rate</span>
+                <TrendingUp size={13} /> <span>Monthly Savings Rate</span>
               </div>
 
               <div
@@ -1098,6 +1107,9 @@ export function BanksTab({
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   fontSize: 11,
                   fontWeight: 700,
                   color: THEME.muted,
@@ -1105,7 +1117,7 @@ export function BanksTab({
                   letterSpacing: "0.05em",
                 }}
               >
-                <span>📊 Monthly Spend Categories</span>
+                <PieChart size={13} /> <span>Monthly Spend Categories</span>
               </div>
 
               {topSpendCategories.length === 0 ? (
@@ -1205,6 +1217,9 @@ export function BanksTab({
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   fontSize: 11,
                   fontWeight: 700,
                   color: THEME.muted,
@@ -1212,7 +1227,7 @@ export function BanksTab({
                   letterSpacing: "0.05em",
                 }}
               >
-                <span>💳 Liquidity Asset Weight</span>
+                <Landmark size={13} /> <span>Liquidity Asset Weight</span>
               </div>
 
               <div
@@ -1423,7 +1438,7 @@ export function BanksTab({
                           gap: 4,
                         }}
                       >
-                        <span>{theme.icon}</span> {a.type || "Savings"}
+                        <theme.icon size={10} /> {a.type || "Savings"}
                       </div>
                       <OwnerBadge owner={a.owner} />
                     </div>
@@ -1639,9 +1654,10 @@ export function BanksTab({
                 color: THEME.muted,
                 fontSize: 13,
                 pointerEvents: "none",
+                display: "flex",
               }}
             >
-              🔍
+              <Search size={14} />
             </span>
             <input
               style={{ ...input, paddingLeft: 34, height: 38, fontSize: 13, fontWeight: 600 }}
@@ -2078,8 +2094,12 @@ export function BanksTab({
                               </Badge>
                             )}
                             {t.linkedType && (
-                              <Badge variant="accent" size="xs" style={{ whiteSpace: "nowrap" }}>
-                                🔗 LINKED
+                              <Badge
+                                variant="accent"
+                                size="xs"
+                                style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 3 }}
+                              >
+                                <Link2 size={9} /> LINKED
                               </Badge>
                             )}
                             {t.category !== "Transfer" &&
@@ -2334,8 +2354,8 @@ export function BanksTab({
                           </Badge>
                         )}
                         {t.linkedType && (
-                          <Badge variant="accent" size="xs">
-                            🔗
+                          <Badge variant="accent" size="xs" style={{ display: "inline-flex", alignItems: "center" }}>
+                            <Link2 size={9} />
                           </Badge>
                         )}
                       </div>
@@ -2473,7 +2493,11 @@ export function BanksTab({
                   }}
                 >
                   {t.category === "Transfer" && <Badge variant="accent">↔ Transfer</Badge>}
-                  {t.linkedType && <Badge variant="accent">🔗 Linked</Badge>}
+                  {t.linkedType && (
+                    <Badge variant="accent" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Link2 size={10} /> Linked
+                    </Badge>
+                  )}
                   {t.category !== "Transfer" &&
                     recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
                       <Badge variant="gold">Recurring</Badge>
@@ -3070,7 +3094,8 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
             borderRadius: 8,
           }}
         >
-          🔗 This transaction is linked to a{" "}
+          <Link2 size={12} style={{ verticalAlign: -2, marginRight: 2 }} /> This transaction is
+          linked to a{" "}
           {txn.linkedType === "creditCards" ? "credit card" : "linked"} record. Changing the
           amount here will not update that record — delete and re-add the transaction instead if
           the amount was wrong.

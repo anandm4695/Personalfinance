@@ -22,6 +22,15 @@ import {
   ChevronDown,
   ChevronUp,
   Zap,
+  PiggyBank,
+  HeartPulse,
+  Briefcase,
+  Home,
+  Building2,
+  Landmark,
+  BarChart3,
+  Pencil,
+  PartyPopper,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
@@ -1416,7 +1425,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "80c",
         section: "Section 80C",
         priority: "high",
-        icon: "🏦",
+        icon: PiggyBank,
         title: `Top up 80C — ${fmtL(gap80C)} room left`,
         shortDesc: `Invest ${fmtINRFull(gap80C)} more in PPF, ELSS, or EPF to max the ₹1.5L limit.`,
         fullDesc: `Section 80C allows deduction up to ₹1,50,000 per year on investments in PPF, ELSS Mutual Funds, EPF, LIC premiums, NSC, SCSS, tax-saving FDs (5yr), and tuition fees for 2 children. You've used ${fmtL(used80C)} of the ₹1.5L cap. Topping up can save approx. ${fmtINRFull(saving)} in taxes (at your ${(margRate * 100).toFixed(0)}% slab + 4% cess).`,
@@ -1436,7 +1445,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "80d",
         section: "Section 80D",
         priority: "high",
-        icon: "🏥",
+        icon: HeartPulse,
         title: `Health Insurance premium deduction`,
         shortDesc: `Claim up to ₹25K for self/family health insurance premiums + ₹25K extra for parents (₹50K if senior citizens).`,
         fullDesc: `Section 80D allows deduction of health insurance premium paid for self, spouse, children (up to ₹25,000) and separately for parents (up to ₹25,000 or ₹50,000 if parents are senior citizens). Even preventive health check-up costs up to ₹5,000 within this limit are deductible. Not available in the new regime.`,
@@ -1456,7 +1465,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "nps",
         section: "Section 80CCD(1B)",
         priority: "medium",
-        icon: "📈",
+        icon: TrendingUp,
         title: `NPS — additional ₹50K deduction beyond 80C`,
         shortDesc: `Invest in NPS for an extra ₹50K deduction that's ABOVE the ₹1.5L 80C ceiling. Exclusively old-regime benefit.`,
         fullDesc: `Section 80CCD(1B) allows an additional deduction of up to ₹50,000 in National Pension System (NPS) contributions, over and above the ₹1.5L ceiling under Section 80C. This is one of the most powerful and under-utilised deductions. For someone in the 30% slab, ₹50,000 in NPS saves ₹15,600 in tax (₹15,000 tax + ₹600 cess). Not available in the new tax regime.`,
@@ -1476,7 +1485,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "ccd2",
         section: "Section 80CCD(2)",
         priority: "medium",
-        icon: "🏢",
+        icon: Briefcase,
         title: `NPS Employer Contribution — available in both regimes`,
         shortDesc: `If your employer routes salary into NPS, deduct up to ${activeRegime === "new" ? "14%" : "10%"} of salary under 80CCD(2). This works in the new regime too.`,
         fullDesc: `Section 80CCD(2) allows deduction on employer's contribution to your NPS account — up to 10% of basic salary + DA in the old regime, and up to 14% in the new regime (enhanced in Budget 2024). This is one of the few deductions available in the new regime. Ask your employer's payroll to route a portion of your CTC into NPS to benefit from this.`,
@@ -1493,7 +1502,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "hra",
         section: "HRA Exemption",
         priority: "medium",
-        icon: "🏠",
+        icon: Home,
         title: `HRA Exemption — potentially large tax-free income`,
         shortDesc: `If you receive HRA and pay rent, you can exempt a portion of HRA from tax. Calculate and claim this u/s 10(13A).`,
         fullDesc: `HRA exemption under Section 10(13A) = Least of: (a) Actual HRA received, (b) 50% of basic salary if metro city / 40% if non-metro, (c) Actual rent paid minus 10% of basic salary. This can result in substantial tax savings. Maintain rent receipts and the landlord's PAN (if rent > ₹1L/year). Applicable only in the old regime.`,
@@ -1510,7 +1519,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "homeloan",
         section: "Section 24(b)",
         priority: "medium",
-        icon: "🏡",
+        icon: Building2,
         title: `Home Loan Interest — up to ₹2L deduction`,
         shortDesc: `Interest on home loan for self-occupied property is deductible up to ₹2 lakh per year under Sec 24(b).`,
         fullDesc: `Section 24(b) allows deduction of interest paid on home loan — up to ₹2,00,000 per year for self-occupied property. For let-out property, the entire interest is deductible (subject to overall house property loss set-off of ₹2L). Principal repayment is also deductible under Section 80C. Keep Form 16 and interest certificate from the bank. Applicable only in the old tax regime.`,
@@ -1527,7 +1536,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "80tta",
         section: "Section 80TTA",
         priority: "low",
-        icon: "🏧",
+        icon: Landmark,
         title: `Savings Account Interest — ₹10K deduction (80TTA)`,
         shortDesc: `Interest earned on savings bank accounts (not FDs) is deductible up to ₹10,000 per year under Section 80TTA.`,
         fullDesc: `Section 80TTA allows deduction of interest income from savings bank accounts with banks, post offices, and cooperative societies — up to ₹10,000 per year. Note: This does not cover FD or RD interest. Senior citizens get ₹50,000 deduction under 80TTB (covering savings, FDs, and RDs). Only in old regime.`,
@@ -1544,7 +1553,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         id: "ltcg",
         section: "LTCG Strategy",
         priority: "low",
-        icon: "📊",
+        icon: BarChart3,
         title: `Book up to ₹1.25L LTCG tax-free every year`,
         shortDesc: `Long-term capital gains from equity up to ₹1.25L per year are completely exempt. Book profits annually to reset cost basis.`,
         fullDesc: `Under Section 112A, Long-Term Capital Gains from listed equity shares and equity MFs exceeding 12 months are exempt up to ₹1,25,000 per year. If your equity portfolio has unrealised gains, consider booking ₹1.25L of LTCG annually (before March 31) and immediately repurchasing — this "grandfathering" resets your cost basis upward without any tax. This strategy works in BOTH old and new regimes.`,
@@ -2991,7 +3000,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         fontWeight: 600,
                       }}
                     >
-                      ⚠️ Overdue by {Math.abs(daysLeft)} days. Interest u/s 234B/234C may apply. Pay
+                      <AlertTriangle
+                        size={13}
+                        style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
+                      />{" "}
+                      Overdue by {Math.abs(daysLeft)} days. Interest u/s 234B/234C may apply. Pay
                       immediately via Challan 280.
                     </div>
                   )}
@@ -3391,7 +3404,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       color: THEME.muted,
                     }}
                   >
-                    ℹ️ Surcharge (10%–37%) applies only for income above ₹50 lakh. Health &
+                    <Info size={12} style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }} />{" "}
+                    Surcharge (10%–37%) applies only for income above ₹50 lakh. Health &
                     Education Cess @ 4% is mandatory on tax + surcharge.
                   </div>
                 )}
@@ -3442,8 +3456,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               >
                 <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
                   {incomeOverride !== "" ? (
-                    <span style={{ color: THEME.gold }}>
-                      ⚡ Using manual override: {fmtINRFull(Number(incomeOverride) || 0)}/yr
+                    <span style={{ color: THEME.gold, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Zap size={12} /> Using manual override: {fmtINRFull(Number(incomeOverride) || 0)}/yr
                     </span>
                   ) : detectedIncome > 0 ? (
                     <span>
@@ -3606,9 +3620,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             fontSize: 10,
                             fontWeight: 700,
                             color: THEME.accent,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          ⚡ Auto-detected: {autoDetected.d80C_sources}
+                          <Zap size={10} /> Auto-detected: {autoDetected.d80C_sources}
                         </div>
                       )}
                     </div>
@@ -3632,8 +3649,18 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     }
                   />
                 </Field>
-                <div style={{ marginTop: 5, fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                  ✏️ Enter manually — health insurance not tracked in app
+                <div
+                  style={{
+                    marginTop: 5,
+                    fontSize: 10,
+                    color: THEME.muted,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <Pencil size={10} /> Enter manually — health insurance not tracked in app
                 </div>
               </div>
               <div>
@@ -3649,12 +3676,34 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   />
                 </Field>
                 {autoDetected.hra_source ? (
-                  <div style={{ marginTop: 5, fontSize: 10, fontWeight: 700, color: THEME.accent }}>
-                    ⚡ Auto-detected: {autoDetected.hra_source} — verify actual HRA exemption
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: THEME.accent,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Zap size={10} /> Auto-detected: {autoDetected.hra_source} — verify actual HRA
+                    exemption
                   </div>
                 ) : (
-                  <div style={{ marginTop: 5, fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                    ✏️ Enter manually — add rent payments in Rental Details to auto-detect
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontSize: 10,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Pencil size={10} /> Enter manually — add rent payments in Rental Details to
+                    auto-detect
                   </div>
                 )}
               </div>
@@ -3675,12 +3724,33 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   />
                 </Field>
                 {autoDetected.homeLoan_source ? (
-                  <div style={{ marginTop: 5, fontSize: 10, fontWeight: 700, color: THEME.accent }}>
-                    ⚡ Auto-detected from: {autoDetected.homeLoan_source}
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: THEME.accent,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Zap size={10} /> Auto-detected from: {autoDetected.homeLoan_source}
                   </div>
                 ) : (
-                  <div style={{ marginTop: 5, fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                    ✏️ Enter manually — add Home loan in Credit & Liabilities to auto-detect
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontSize: 10,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Pencil size={10} /> Enter manually — add Home loan in Credit & Liabilities to
+                    auto-detect
                   </div>
                 )}
               </div>
@@ -3887,7 +3957,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           cursor: "pointer",
                         }}
                       >
-                        <div style={{ fontSize: 24, flexShrink: 0 }}>{tip.icon}</div>
+                        <tip.icon size={22} style={{ flexShrink: 0 }} color={priorityColor} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div
                             style={{
@@ -4464,8 +4534,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 marginBottom: 32,
               }}
             >
-              🎉 None of your current holdings are trading at a loss. No harvesting offset needed
-              this FY!
+              <PartyPopper size={20} style={{ marginBottom: 8, color: THEME.sage }} />
+              <div>
+                None of your current holdings are trading at a loss. No harvesting offset needed
+                this FY!
+              </div>
             </Card>
           ) : (
             <div style={{ display: "grid", gap: 12, marginBottom: 32 }}>

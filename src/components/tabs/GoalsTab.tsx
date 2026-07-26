@@ -11,6 +11,8 @@ import {
   TrendingDown,
   Activity,
   Calendar,
+  AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
@@ -399,7 +401,11 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
               <Badge variant="sage">✓ {completedCount} completed</Badge>
               <Badge variant="accent">↑ {onTrackCount} on track</Badge>
-              {behindCount > 0 && <Badge variant="rust">⚠ {behindCount} behind</Badge>}
+              {behindCount > 0 && (
+                <Badge variant="rust">
+                  <AlertTriangle size={11} /> {behindCount} behind
+                </Badge>
+              )}
             </div>
 
             <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 24 }}>
@@ -544,8 +550,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               variant={showInflation ? "accent" : "ghost"}
               onClick={() => setShowInflation((v) => !v)}
               style={{ height: 32, fontSize: 12 }}
+              icon={<BarChart3 size={13} />}
             >
-              {showInflation ? "📊 Inflation ON" : "📊 Inflation"}
+              {showInflation ? "Inflation ON" : "Inflation"}
             </Button>
             {showInflation && (
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>

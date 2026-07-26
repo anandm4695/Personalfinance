@@ -27,6 +27,9 @@ import {
   ArrowDown,
   Minus,
   Info,
+  AlertTriangle,
+  Calculator,
+  Lightbulb,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { THEME } from "../../utils/constants";
@@ -1539,7 +1542,11 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                         : isWarning
                           ? THEME.gold
                           : THEME.sage;
-                      const icon = isCritical ? "🚨" : isWarning ? "⚠️" : "✨";
+                      const AlertIcon = isCritical
+                        ? AlertCircle
+                        : isWarning
+                          ? AlertTriangle
+                          : CheckCircle2;
                       return (
                         <div
                           style={{
@@ -1558,7 +1565,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                             lineHeight: 1.4,
                           }}
                         >
-                          <span style={{ fontSize: 16 }}>{icon}</span>
+                          <AlertIcon size={17} color={alertColor} style={{ flexShrink: 0 }} />
                           <div>
                             {utilPct > 70 ? (
                               <span>
@@ -2390,10 +2397,10 @@ function CCList({
                 : "rgba(255,255,255,0.85)";
             const label =
               daysLeft <= 0
-                ? "🚨 Due today!"
+                ? "Due today!"
                 : daysLeft === 1
-                  ? "🚨 Due tomorrow!"
-                  : `🕒 Payment due in ${daysLeft} days`;
+                  ? "Due tomorrow!"
+                  : `Payment due in ${daysLeft} days`;
             return (
               <div
                 style={{
@@ -2433,9 +2440,9 @@ function CCList({
                 : "rgba(255,255,255,0.85)";
             const label =
               daysLeft === 0
-                ? `🚨 Annual fee ${fmtINRExact(c.annualFee)} due today!`
+                ? `Annual fee ${fmtINRExact(c.annualFee)} due today!`
                 : daysLeft === 1
-                  ? `🚨 Annual fee ${fmtINRExact(c.annualFee)} due tomorrow!`
+                  ? `Annual fee ${fmtINRExact(c.annualFee)} due tomorrow!`
                   : `Annual fee ${fmtINRExact(c.annualFee)} on ${dateStr} (${daysLeft}d)`;
             return (
               <div
@@ -5577,7 +5584,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                         gap: 6,
                       }}
                     >
-                      ⚡ Prepayment Calculator
+                      <Calculator size={13} /> Prepayment Calculator
                     </div>
                     <button
                       onClick={() =>
@@ -5696,9 +5703,17 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                   fontWeight: 600,
                                   color: "var(--t-ink)",
                                   lineHeight: 1.4,
+                                  display: "flex",
+                                  gap: 8,
+                                  alignItems: "flex-start",
                                 }}
                               >
-                                🎉{" "}
+                                <CheckCircle2
+                                  size={16}
+                                  color="var(--t-sage)"
+                                  style={{ flexShrink: 0, marginTop: 1 }}
+                                />
+                                <span>
                                 <strong
                                   style={{
                                     color: "var(--t-sage)",
@@ -5712,6 +5727,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                 </strong>
                                 You will completely close this loan today, saving **
                                 {fmtINRFull(interestRemaining)}** in estimated remaining interest!
+                                </span>
                               </div>
                             );
                           }
@@ -6291,7 +6307,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                         gap: 6,
                       }}
                     >
-                      📥 Quick Repayment
+                      <IndianRupee size={13} /> Quick Repayment
                     </div>
                     <button
                       onClick={() =>
@@ -8581,7 +8597,11 @@ function DebtPayoffOptimizer({ state }: any) {
                   fontWeight: 500,
                 }}
               >
-                💡 <b>CTO Prepayment Rule:</b> If a loan is paid off, its base EMI is immediately
+                <Lightbulb
+                  size={13}
+                  style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
+                />{" "}
+                <b>CTO Prepayment Rule:</b> If a loan is paid off, its base EMI is immediately
                 rolled over and appended to your surplus prepayments, creating a compounding speed
                 rollover for remaining loans.
               </div>
