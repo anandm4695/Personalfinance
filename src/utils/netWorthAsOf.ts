@@ -38,6 +38,26 @@ function gateInclude(dateStr: string | undefined | null, asOfYm: string): boolea
   return ym(dateStr) <= asOfYm;
 }
 
+// Sentinel owner id for a co-owner who isn't one of this household's tracked
+// family profiles — see EXTERNAL_OWNER_ID in useMetrics.ts / RealEstateTab.tsx.
+const EXTERNAL_OWNER_ID = "external";
+
+/** Fraction of a property's value attributable to this household, excluding
+ * any share held by an untracked "external" co-owner. Mirrors
+ * `realEstateTrackedShare` in useMetrics.ts — kept in sync so this
+ * reconstruction matches the canonical current-month net worth figure. */
+function realEstateTrackedShare(property: any): number {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    return (
+      property.owners.reduce(
+        (s: number, o: any) => (o?.id !== EXTERNAL_OWNER_ID ? s + Number(o.sharePct || 0) : s),
+        0
+      ) / 100
+    );
+  }
+  return 1;
+}
+
 function nextYm(ymStr: string): string {
   const [y, m] = ymStr.split("-").map(Number);
   const d = new Date(y, m, 1); // m is already 1-indexed month -> +1 month
@@ -162,7 +182,11 @@ export function computeNetWorthAsOf(
   const realEstateAsset = (s.realEstateProperties || [])
     .filter((p: any) => p.status !== "sold")
     .filter((p: any) => gateInclude(p.purchaseDate, asOfYm))
-    .reduce((sum: number, p: any) => sum + Number(p.marketValue || p.agreementValue || 0), 0);
+    .reduce(
+      (sum: number, p: any) =>
+        sum + Number(p.marketValue || p.agreementValue || 0) * realEstateTrackedShare(p),
+      0
+    );
 
   // A currently-"closed" card must still count as a liability for months before it
   // closed. Gate by closedDate (not the live status field) whenever we have it; a

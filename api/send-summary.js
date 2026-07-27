@@ -407,9 +407,28 @@ function computeSummary(state) {
     0
   );
 
+  // Sentinel owner id for a co-owner who isn't one of this household's tracked
+  // family profiles (e.g. a parent on the property papers) — see EXTERNAL_OWNER_ID
+  // in RealEstateTab.tsx / useMetrics.ts. Only the tracked share counts toward
+  // this household's net worth.
+  const REALTY_EXTERNAL_OWNER_ID = "external";
+  const realEstateTrackedShare = (property) => {
+    if (Array.isArray(property.owners) && property.owners.length > 0) {
+      return (
+        property.owners.reduce(
+          (s, o) => (o?.id !== REALTY_EXTERNAL_OWNER_ID ? s + Number(o.sharePct || 0) : s),
+          0
+        ) / 100
+      );
+    }
+    return 1;
+  };
   const realEstateAsset = (state.realEstateProperties || [])
     .filter((p) => p.status !== "sold")
-    .reduce((s, p) => s + Number(p.marketValue || p.agreementValue || 0), 0);
+    .reduce(
+      (s, p) => s + Number(p.marketValue || p.agreementValue || 0) * realEstateTrackedShare(p),
+      0
+    );
 
   const govtSchemesTotal = (state.govtSchemes || []).reduce(
     (s, sc) => s + Number(sc.currentBalance || 0),
