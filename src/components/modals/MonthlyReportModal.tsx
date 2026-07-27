@@ -62,7 +62,29 @@ function DeltaBadge({
   prev: number;
   higherIsBetter?: boolean;
 }) {
-  if (prev === 0) return null;
+  if (prev === 0 && current === 0) return null;
+  if (prev === 0) {
+    // Previous month was exactly zero — a percentage change is undefined (division
+    // by zero), but that's not the same as "no change": show a "new" badge instead
+    // of silently hiding a real swing from nothing to something.
+    const increased = current > 0;
+    const good = higherIsBetter ? increased : !increased;
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 2,
+          fontSize: 10,
+          fontWeight: 700,
+          color: good ? THEME.sage : THEME.rust,
+        }}
+      >
+        {increased ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+        new vs prev
+      </span>
+    );
+  }
   // Use abs(prev) as the base so a swing across zero (e.g. overspend narrowing
   // from -1000 to -500) reads as the real-world improvement it is, instead of
   // flipping sign the way (current-prev)/prev would when prev is negative.
@@ -148,40 +170,69 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   const isPastMonth = ym < currentYm;
 
   // Current month transactions
+  // Same exclusion rules as useMetrics.ts / api/send-summary.js so this report's
+  // Income/Expense/Saved figures match the Dashboard, Analytics and emailed report
+  // for the same month, instead of diverging by counting internal transfers as
+  // income/expense and missing rent paid outside the transactions ledger.
+  const isTransferCat = (cat: string) =>
+    ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat || "");
+
+  const computeMonthIncome = (targetYm: string, monthTxns: any[]) => {
+    const explicitIncomeMonth = (state.income || [])
+      .filter((i: any) => i.date && i.date.startsWith(targetYm))
+      .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+    const txnIncomeMonth = monthTxns
+      .filter((t: any) => t.type === "credit" && !isTransferCat(t.category))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    return explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
+  };
+
+  const computeMonthExpense = (targetYm: string, monthTxns: any[]) => {
+    const rentPaidThisMonth = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+      const paymentsThisMonth = (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(targetYm))
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+      return sum + paymentsThisMonth;
+    }, 0);
+    const hasRentTxn = monthTxns.some(
+      (t: any) => t.type === "debit" && (t.category || "").toLowerCase() === "rent"
+    );
+    const txnDebitTotal = monthTxns
+      .filter(
+        (t: any) => t.type === "debit" && !isTransferCat(t.category) && t.category !== "Investment"
+      )
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    return txnDebitTotal + (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
+  };
+
   const txns = (state.transactions || []).filter((t: any) => t.date?.startsWith(ym));
-  const income = txns
-    .filter((t: any) => t.type === "credit")
-    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-  const expense = txns
-    .filter((t: any) => t.type === "debit")
-    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const income = computeMonthIncome(ym, txns);
+  const expense = computeMonthExpense(ym, txns);
   const saving = income - expense;
   const savingRate = income > 0 ? ((saving / income) * 100).toFixed(1) : "0";
 
   // Previous month transactions for MoM comparison
   const txnsPrev = (state.transactions || []).filter((t: any) => t.date?.startsWith(ymPrev));
-  const incomePrev = txnsPrev
-    .filter((t: any) => t.type === "credit")
-    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-  const expensePrev = txnsPrev
-    .filter((t: any) => t.type === "debit")
-    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const incomePrev = computeMonthIncome(ymPrev, txnsPrev);
+  const expensePrev = computeMonthExpense(ymPrev, txnsPrev);
   const savingPrev = incomePrev - expensePrev;
 
-  // Income breakdown by source (credit transactions by category)
+  // Income breakdown by source (credit transactions by category, excluding internal transfers)
   const incomeCatMap: Record<string, number> = {};
   txns
-    .filter((t: any) => t.type === "credit")
+    .filter((t: any) => t.type === "credit" && !isTransferCat(t.category))
     .forEach((t: any) => {
       const c = t.category || "Other Income";
       incomeCatMap[c] = (incomeCatMap[c] || 0) + Number(t.amount || 0);
     });
   const incomeBySource = Object.entries(incomeCatMap).sort(([, a], [, b]) => b - a);
 
-  // Top expense categories
+  // Top expense categories (excluding internal transfers and investment moves)
   const catMap: Record<string, number> = {};
   txns
-    .filter((t: any) => t.type === "debit")
+    .filter(
+      (t: any) => t.type === "debit" && !isTransferCat(t.category) && t.category !== "Investment"
+    )
     .forEach((t: any) => {
       const c = t.category || "Other";
       catMap[c] = (catMap[c] || 0) + Number(t.amount || 0);
@@ -197,8 +248,28 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   );
   const totalInvested = investTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
-  // Budget vs Actual
-  const budgets = (state.budgets || []).filter((b: any) => b.monthly > 0);
+  // Budget vs Actual — match the budget set for this specific month first, falling back
+  // to the baseline (no budgetMonth) budget, then the closest prior month's budget. This
+  // mirrors api/send-summary.js so a past month's report shows the budget that was actually
+  // in force that month rather than whatever budget happens to be active today.
+  const budgetsByCategory: Record<string, any[]> = {};
+  (state.budgets || []).forEach((b: any) => {
+    if (!(b.monthly > 0)) return;
+    (budgetsByCategory[b.category] = budgetsByCategory[b.category] || []).push(b);
+  });
+  const budgets = Object.keys(budgetsByCategory)
+    .map((cat) => {
+      const list = budgetsByCategory[cat];
+      const specific = list.find((b: any) => b.budgetMonth === ym);
+      if (specific) return specific;
+      const baseline = list.find((b: any) => !b.budgetMonth);
+      if (baseline) return baseline;
+      const prior = list
+        .filter((b: any) => b.budgetMonth && b.budgetMonth < ym)
+        .sort((a: any, b: any) => (b.budgetMonth || "").localeCompare(a.budgetMonth || ""));
+      return prior[0] || list[0];
+    })
+    .filter(Boolean);
   const budgetRows = budgets
     .map((b: any) => {
       const spent = catMap[b.category] || 0;
