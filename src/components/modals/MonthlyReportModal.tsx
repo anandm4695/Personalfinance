@@ -150,7 +150,7 @@ function subRenewedInMonth(sub: any, ym: string): boolean {
   return false;
 }
 
-export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: any) {
+export function MonthlyReportModal({ metrics, state, marketData, selectedDate, onClose }: any) {
   const [reportDate, setReportDate] = useState(() => selectedDate || new Date());
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"" | "ok" | "err" | "no-email">("");
@@ -187,7 +187,11 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
     return explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
   };
 
-  const computeMonthExpense = (targetYm: string, monthTxns: any[]) => {
+  // Rent paid via the Rented Properties ledger (not logged as a transaction) — shared by
+  // computeMonthExpense (total) and catMap below (per-category), so both agree on whether
+  // ledger-only rent counts for a given month instead of the total silently including it
+  // while the category breakdown / Budget vs Actual keeps showing ₹0 for Rent.
+  const getRentInfo = (targetYm: string, monthTxns: any[]) => {
     const rentPaidThisMonth = (state.rentedProperties || []).reduce((sum: number, p: any) => {
       const paymentsThisMonth = (p.payments || [])
         .filter((pay: any) => pay.date && pay.date.startsWith(targetYm))
@@ -197,6 +201,11 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
     const hasRentTxn = monthTxns.some(
       (t: any) => t.type === "debit" && (t.category || "").toLowerCase() === "rent"
     );
+    return { rentPaidThisMonth, hasRentTxn };
+  };
+
+  const computeMonthExpense = (targetYm: string, monthTxns: any[]) => {
+    const { rentPaidThisMonth, hasRentTxn } = getRentInfo(targetYm, monthTxns);
     const txnDebitTotal = monthTxns
       .filter(
         (t: any) => t.type === "debit" && !isTransferCat(t.category) && t.category !== "Investment"
@@ -237,6 +246,10 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
       const c = t.category || "Other";
       catMap[c] = (catMap[c] || 0) + Number(t.amount || 0);
     });
+  const { rentPaidThisMonth, hasRentTxn } = getRentInfo(ym, txns);
+  if (rentPaidThisMonth > 0 && !hasRentTxn) {
+    catMap["Rent"] = (catMap["Rent"] || 0) + rentPaidThisMonth;
+  }
   const topCats = Object.entries(catMap)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 6);
@@ -1003,7 +1016,13 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
             (state.stocks || []).forEach((s: any) => {
               const qty = Number(s.qty || 0);
               const avg = Number(s.avgPrice || 0);
-              const cmp = Number(s.currentPrice || avg);
+              // Same live-price lookup as useMetrics.ts/AnalyticsTab — s.currentPrice is a
+              // static field (set once at import time, equal to avgPrice), so without this
+              // a stock's gain/loss here would silently show 0% forever regardless of its
+              // real live price shown elsewhere in this same report.
+              const yfSym = `${(s.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+              const md = marketData?.[yfSym];
+              const cmp = md?.price ?? Number(s.currentPrice || avg);
               if (qty > 0 && avg > 0) {
                 const pct = ((cmp - avg) / avg) * 100;
                 const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
@@ -1132,93 +1151,115 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
             );
           })()}
 
-          {/* Upcoming Renewals — subscriptions & insurance premiums due in next 30 days */}
-          {(() => {
-            const now = new Date();
-            const in30 = new Date(now.getTime() + 30 * 86400000);
-            const renewals: { name: string; amount: number; date: string; type: string }[] = [];
+          {/* Upcoming Renewals — subscriptions & insurance premiums due in next 30 days.
+              Only meaningful for the current month: "next 30 days from today" has no
+              relationship to a past month's report, so it's gated by showDues same as
+              Upcoming Dues below. */}
+          {showDues &&
+            (() => {
+              const now = new Date();
+              const in30 = new Date(now.getTime() + 30 * 86400000);
+              const renewals: { name: string; amount: number; date: string; type: string }[] = [];
 
-            // Subscriptions with upcoming renewals
-            (state.subscriptions || []).forEach((s: any) => {
-              if (s.paused) return;
-              const rd = s.renewalDate ? new Date(s.renewalDate) : null;
-              if (rd && rd >= now && rd <= in30) {
-                renewals.push({
-                  name: s.name || s.serviceName || "Subscription",
-                  amount: Number(s.amount || 0),
-                  date: rd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-                  type: "Subscription",
-                });
-              }
-            });
+              // Subscriptions with upcoming renewals
+              (state.subscriptions || []).forEach((s: any) => {
+                if (s.paused) return;
+                const rd = s.renewalDate ? new Date(s.renewalDate) : null;
+                if (rd && rd >= now && rd <= in30) {
+                  renewals.push({
+                    name: s.name || s.serviceName || "Subscription",
+                    amount: Number(s.amount || 0),
+                    date: rd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                    type: "Subscription",
+                  });
+                }
+              });
 
-            // Insurance premiums due
-            (state.lic || []).forEach((l: any) => {
-              if (!l.premiumDueDate) return;
-              const dd = new Date(l.premiumDueDate);
-              if (dd >= now && dd <= in30) {
-                renewals.push({
-                  name: l.policyName || l.insurer || "LIC Policy",
-                  amount: Number(l.premium || 0),
-                  date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-                  type: "Insurance",
-                });
-              }
-            });
-            (state.termPlans || []).forEach((t: any) => {
-              if (!t.premiumDueDate) return;
-              const dd = new Date(t.premiumDueDate);
-              if (dd >= now && dd <= in30) {
-                renewals.push({
-                  name: t.insurer || "Term Plan",
-                  amount: Number(t.premium || 0),
-                  date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-                  type: "Insurance",
-                });
-              }
-            });
+              // LIC/term plan premiums have no stored due-date field — they're annual,
+              // due on the anniversary of the policy's commencement/start date. Same
+              // anniversary-rollover logic as RemindersTab.tsx's LIC/Term Plan reminders.
+              const nextAnniversary = (fromDate: string) => {
+                const start = new Date(fromDate);
+                if (isNaN(start.getTime())) return null;
+                const todayDate = new Date();
+                todayDate.setHours(0, 0, 0, 0);
+                let anniversary = new Date(
+                  todayDate.getFullYear(),
+                  start.getMonth(),
+                  start.getDate()
+                );
+                if (anniversary < todayDate) {
+                  anniversary = new Date(todayDate.getFullYear() + 1, start.getMonth(), start.getDate());
+                }
+                return anniversary;
+              };
 
-            if (renewals.length === 0) return null;
-            renewals.sort((a, b) => a.amount - b.amount);
-            const totalRenewals = renewals.reduce((s, r) => s + r.amount, 0);
+              (state.lic || []).forEach((l: any) => {
+                if (!l.commencementDate) return;
+                const dd = nextAnniversary(l.commencementDate);
+                if (dd && dd >= now && dd <= in30) {
+                  renewals.push({
+                    name: l.planName || "LIC Policy",
+                    amount: Number(l.annualPremium || 0),
+                    date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                    type: "Insurance",
+                  });
+                }
+              });
+              (state.termPlans || []).forEach((t: any) => {
+                if (!t.startDate) return;
+                const dd = nextAnniversary(t.startDate);
+                if (dd && dd >= now && dd <= in30) {
+                  renewals.push({
+                    name: t.planName || t.insurer || "Term Plan",
+                    amount: Number(t.annualPremium || 0),
+                    date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                    type: "Insurance",
+                  });
+                }
+              });
 
-            return (
-              <div style={{ marginBottom: 16 }}>
-                <SectionLabel>
-                  Upcoming Renewals (30 days) · {fmtINRFull(totalRenewals)}
-                </SectionLabel>
-                {renewals.map((r, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "7px 0",
-                      borderBottom: `1px dashed ${THEME.line}`,
-                      fontSize: 13,
-                    }}
-                  >
-                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <Bell size={12} color={THEME.gold} />
-                      <span>
-                        {r.name}
-                        <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 6 }}>
-                          {r.type}
+              if (renewals.length === 0) return null;
+              renewals.sort((a, b) => a.amount - b.amount);
+              const totalRenewals = renewals.reduce((s, r) => s + r.amount, 0);
+
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  <SectionLabel>
+                    Upcoming Renewals (30 days) · {fmtINRFull(totalRenewals)}
+                  </SectionLabel>
+                  {renewals.map((r, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "7px 0",
+                        borderBottom: `1px dashed ${THEME.line}`,
+                        fontSize: 13,
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Bell size={12} color={THEME.gold} />
+                        <span>
+                          {r.name}
+                          <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 6 }}>
+                            {r.type}
+                          </span>
                         </span>
                       </span>
-                    </span>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 700, color: THEME.gold }}>
-                        {fmtINRFull(r.amount)}
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontWeight: 700, color: THEME.gold }}>
+                          {fmtINRFull(r.amount)}
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>Due {r.date}</div>
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>Due {r.date}</div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
+                  ))}
+                </div>
+              );
+            })()}
 
           {/* Upcoming Dues — only for current/future months */}
           {showDues && upcoming.length > 0 && (

@@ -15016,6 +15016,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <MonthlyReportModal
           metrics={metrics}
           state={state}
+          marketData={marketData}
           selectedDate={calendarDate}
           onClose={() => setShowReport(false)}
         />
