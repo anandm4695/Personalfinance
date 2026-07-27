@@ -2748,7 +2748,7 @@ function getLinkConfig(category: string, type: string, state: any) {
     // separate cost fields that Total Cost is computed from (see RealEstateTab.tsx).
     const costFields = [
       { key: "stampDuty", label: "Stamp Duty" },
-      { key: "tdsValue", label: "TDS" },
+      { key: "tdsValue", label: "TDS Paid" },
       { key: "agreementValue", label: "Agreement Value / Token" },
     ];
     return {
