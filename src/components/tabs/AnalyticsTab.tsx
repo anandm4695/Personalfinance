@@ -2352,9 +2352,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         label: `${fmtINRFull(totalSIPAmt)} of ${fmtINRFull(5000)}/mo`,
       };
 
-    // Debt Smart
+    // Debt Smart — matches metrics.foir's active-loan filter
     const activeLoans = (state.loansTaken || []).filter(
-      (l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0
+      (l: any) => Number(l.monthsRemaining ?? 1) > 0
     );
     const totalEMI = activeLoans.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foirPct = metrics.monthIncome > 0 ? (totalEMI / metrics.monthIncome) * 100 : 0;
@@ -2639,9 +2639,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         };
       });
 
-    // FOIR for peer benchmarking
+    // FOIR for peer benchmarking — matches metrics.foir's active-loan filter
     const activeLoansHB = (state.loansTaken || []).filter(
-      (l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0
+      (l: any) => Number(l.monthsRemaining ?? 1) > 0
     );
     const totalEMIHB = activeLoansHB.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foirPctHB =
@@ -2656,7 +2656,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           )
         : 0;
     const efMonthsHB =
-      metrics.monthExpense > 0 ? Math.min(12, metrics.cashInBanks / metrics.monthExpense) : 0;
+      metrics.monthExpense > 0 ? Math.min(12, (metrics.cashInBanks + nearTermFDsForBadge) / metrics.monthExpense) : 0;
 
     return {
       earned,
@@ -2850,6 +2850,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       (s: number, t: any) => s + Number(t.coverAmount || 0),
       0
     );
+    // 10× annual income — matches "Protected" badge criterion and Family Dashboard
     const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;
     // Liquid reserve = bank cash + FDs maturing within 90 days (matches Emergency Fund Health card)
     const nearTermFDsForInsight = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
@@ -2898,11 +2899,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         bg: `color-mix(in srgb, var(--t-sage) 7%, transparent)`,
       });
 
-    if (annualIncome > 0 && coverRatio < 15)
+    if (annualIncome > 0 && coverRatio < 10)
       insights.push({
         icon: AlertTriangle,
         title: "Insurance Gap",
-        value: `${fmtINRFull(annualIncome * 15 - totalTermCover)} short of 15× cover`,
+        value: `${fmtINRFull(annualIncome * 10 - totalTermCover)} short of 10× cover`,
         color: THEME.gold,
         bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
       });
@@ -5377,7 +5378,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               {/* EMI Summary */}
               {(() => {
                 const activeLoans = (state.loansTaken || []).filter(
-                  (l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0
+                  (l: any) => Number(l.monthsRemaining ?? 1) > 0
                 );
                 const totalEMI = activeLoans.reduce(
                   (s: number, l: any) => s + Number(l.emi || 0),
@@ -7425,20 +7426,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 const familyCover = activeProfiles.reduce((s, p) => s + p.totalCover, 0);
 
                 // Insurance adequacy: 10x annual income
-                const annualIncome = (state.transactions || [])
-                  .filter(
-                    (t: any) =>
-                      t.type === "credit" &&
-                      t.category !== "Transfer" &&
-                      t.category !== "Self Transfer" &&
-                      t.category !== "Self-Transfer"
-                  )
-                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                const incomeTxns = (state.transactions || []).filter(
+                  (t: any) =>
+                    t.type === "credit" &&
+                    t.category !== "Transfer" &&
+                    t.category !== "Self Transfer" &&
+                    t.category !== "Self-Transfer"
+                );
+                const annualIncome = incomeTxns.reduce(
+                  (s: number, t: any) => s + Number(t.amount || 0),
+                  0
+                );
                 // Estimate yearly: if we have at least 1 month of data, annualize
+                // (same filtered set as annualIncome, so a self-transfer-only month
+                // doesn't inflate the divisor without a matching numerator)
                 const txnMonths = new Set(
-                  (state.transactions || [])
-                    .filter((t: any) => t.type === "credit")
-                    .map((t: any) => (t.date || "").slice(0, 7))
+                  incomeTxns.map((t: any) => (t.date || "").slice(0, 7))
                 ).size;
                 const estimatedAnnualIncome = txnMonths > 0 ? (annualIncome / txnMonths) * 12 : 0;
                 const idealCover = estimatedAnnualIncome * 10;
