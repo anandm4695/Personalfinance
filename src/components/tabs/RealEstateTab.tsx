@@ -309,6 +309,7 @@ function PropertyModal({ existing, onClose, onSave }: any) {
       possessionDate: "",
       agreementValue: "",
       stampDuty: "",
+      tdsAmount: "",
       tdsValue: "",
       marketValue: "",
       saleDate: "",
@@ -633,7 +634,16 @@ function PropertyModal({ existing, onClose, onSave }: any) {
             placeholder="0"
           />
         </Field>
-        <Field label="TDS (₹)">
+        <Field label="TDS Amount (₹)">
+          <input
+            style={input}
+            type="number"
+            value={f.tdsAmount}
+            onChange={(e) => set("tdsAmount", e.target.value)}
+            placeholder="Total TDS liability, e.g. 1% under Sec 194-IA"
+          />
+        </Field>
+        <Field label="TDS Paid (₹)">
           <input
             style={input}
             type="number"
@@ -1079,6 +1089,7 @@ function PropertyCard({
     Number(property.agreementValue || 0) +
     Number(property.stampDuty || 0) +
     Number(property.tdsValue || 0);
+  const tdsBalance = Math.max(0, Number(property.tdsAmount || 0) - Number(property.tdsValue || 0));
   const statusHex = STATUS_HEX[property.status] || "#6366f1";
   const isSold = property.status === "sold";
   const saleProceeds = isSold
@@ -1290,19 +1301,22 @@ function PropertyCard({
 
       {/* Financials grid — premium tinted cells */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: divider }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderBottom: divider }}
       >
         {[
           { label: "Agreement Value", value: property.agreementValue, color: THEME.accent },
           { label: "Stamp Duty", value: property.stampDuty, color: "#f59e0b" },
+          { label: "TDS Amount", value: property.tdsAmount, color: "#ec4899" },
           { label: "TDS Paid", value: property.tdsValue, color: "#8b5cf6" },
+          { label: "TDS Balance", value: tdsBalance, color: tdsBalance > 0 ? THEME.rust : "#22c55e" },
           { label: "Market Value", value: property.marketValue, color: "#22c55e" },
         ].map(({ label, value, color }, i) => (
           <div
             key={label}
             style={{
               padding: "14px 18px",
-              borderRight: i < 3 ? divider : "none",
+              borderRight: i % 3 !== 2 ? divider : "none",
+              borderBottom: i < 3 ? divider : "none",
               background: value
                 ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, transparent) 0%, transparent 100%)`
                 : "transparent",
@@ -1686,7 +1700,7 @@ function PropertyCard({
                 <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Payments</span>
               </div>
               <Button
-                variant="ghost"
+                variant="accent"
                 icon={<Plus size={12} />}
                 onClick={() => onAddPayment(property)}
               >
