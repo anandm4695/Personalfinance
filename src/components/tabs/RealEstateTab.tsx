@@ -308,7 +308,9 @@ function PropertyModal({ existing, onClose, onSave }: any) {
       registrationDate: "",
       possessionDate: "",
       agreementValue: "",
+      agreementValuePaid: "",
       stampDuty: "",
+      stampDutyPaid: "",
       tdsAmount: "",
       tdsValue: "",
       marketValue: "",
@@ -625,12 +627,30 @@ function PropertyModal({ existing, onClose, onSave }: any) {
             placeholder="0"
           />
         </Field>
+        <Field label="Agreement Value Paid (₹)">
+          <input
+            style={input}
+            type="number"
+            value={f.agreementValuePaid}
+            onChange={(e) => set("agreementValuePaid", e.target.value)}
+            placeholder="0"
+          />
+        </Field>
         <Field label="Stamp Duty (₹)">
           <input
             style={input}
             type="number"
             value={f.stampDuty}
             onChange={(e) => set("stampDuty", e.target.value)}
+            placeholder="0"
+          />
+        </Field>
+        <Field label="Stamp Duty Paid (₹)">
+          <input
+            style={input}
+            type="number"
+            value={f.stampDutyPaid}
+            onChange={(e) => set("stampDutyPaid", e.target.value)}
             placeholder="0"
           />
         </Field>
@@ -1088,7 +1108,15 @@ function PropertyCard({
   const totalCost =
     Number(property.agreementValue || 0) +
     Number(property.stampDuty || 0) +
-    Number(property.tdsValue || 0);
+    Number(property.tdsAmount || 0);
+  const agreementValueBalance = Math.max(
+    0,
+    Number(property.agreementValue || 0) - Number(property.agreementValuePaid || 0)
+  );
+  const stampDutyBalance = Math.max(
+    0,
+    Number(property.stampDuty || 0) - Number(property.stampDutyPaid || 0)
+  );
   const tdsBalance = Math.max(0, Number(property.tdsAmount || 0) - Number(property.tdsValue || 0));
   const statusHex = STATUS_HEX[property.status] || "#6366f1";
   const isSold = property.status === "sold";
@@ -1303,20 +1331,35 @@ function PropertyCard({
       <div
         style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderBottom: divider }}
       >
-        {[
-          { label: "Agreement Value", value: property.agreementValue, color: THEME.accent },
-          { label: "Stamp Duty", value: property.stampDuty, color: "#f59e0b" },
-          { label: "TDS Amount", value: property.tdsAmount, color: "#ec4899" },
-          { label: "TDS Paid", value: property.tdsValue, color: "#8b5cf6" },
-          { label: "TDS Balance", value: tdsBalance, color: tdsBalance > 0 ? THEME.rust : "#22c55e" },
-          { label: "Market Value", value: property.marketValue, color: "#22c55e" },
-        ].map(({ label, value, color }, i) => (
+        {(() => {
+          const tiles = [
+            { label: "Agreement Value", value: property.agreementValue, color: THEME.accent },
+            { label: "Agreement Value Paid", value: property.agreementValuePaid, color: "#0ea5e9" },
+            {
+              label: "Agreement Value Balance",
+              value: agreementValueBalance,
+              color: agreementValueBalance > 0 ? THEME.rust : "#22c55e",
+            },
+            { label: "Stamp Duty", value: property.stampDuty, color: "#f59e0b" },
+            { label: "Stamp Duty Paid", value: property.stampDutyPaid, color: "#0ea5e9" },
+            {
+              label: "Stamp Duty Balance",
+              value: stampDutyBalance,
+              color: stampDutyBalance > 0 ? THEME.rust : "#22c55e",
+            },
+            { label: "TDS Amount", value: property.tdsAmount, color: "#ec4899" },
+            { label: "TDS Paid", value: property.tdsValue, color: "#8b5cf6" },
+            { label: "TDS Balance", value: tdsBalance, color: tdsBalance > 0 ? THEME.rust : "#22c55e" },
+            { label: "Market Value", value: property.marketValue, color: "#22c55e" },
+          ];
+          const lastRow = Math.floor((tiles.length - 1) / 3);
+          return tiles.map(({ label, value, color }, i) => (
           <div
             key={label}
             style={{
               padding: "14px 18px",
               borderRight: i % 3 !== 2 ? divider : "none",
-              borderBottom: i < 3 ? divider : "none",
+              borderBottom: Math.floor(i / 3) < lastRow ? divider : "none",
               background: value
                 ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, transparent) 0%, transparent 100%)`
                 : "transparent",
@@ -1355,7 +1398,8 @@ function PropertyCard({
               <Prv>{value ? fmtINRFull(Number(value)) : "—"}</Prv>
             </div>
           </div>
-        ))}
+          ));
+        })()}
       </div>
 
       {/* Gain/Loss — premium pill */}
@@ -1867,7 +1911,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
     );
     const totalInvested = activeProperties.reduce(
       (s, p) =>
-        s + Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsValue || 0),
+        s + Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsAmount || 0),
       0
     );
     const ucIds = new Set(

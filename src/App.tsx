@@ -2334,7 +2334,7 @@ function FinanceDashboard() {
           });
         }
       } else if (lt === "realEstateProperties") {
-        // lid is "<propertyId>:<costField>" (stampDuty/tdsValue/agreementValue) — see
+        // lid is "<propertyId>:<costField>" (stampDutyPaid/tdsValue/agreementValuePaid) — see
         // getLinkConfig's "Real Estate" branch in BanksTab.tsx. No embedded ledger array
         // to strip an entryId from here; the cost field is a plain scalar, so reversal is
         // just subtracting the same amount back out (same pattern as loansTaken above).

@@ -2744,22 +2744,27 @@ function getLinkConfig(category: string, type: string, state: any) {
   }
   if (category === "Real Estate" && type === "debit") {
     // Key encodes both the property AND which cost field the payment applies to
-    // (realEstateProperties:<propertyId>:<costField>), since a property has three
-    // separate cost fields that Total Cost is computed from (see RealEstateTab.tsx).
+    // (realEstateProperties:<propertyId>:<costField>). Each cost type has a Total
+    // field and a Paid field (see RealEstateTab.tsx) — linking a bank transaction
+    // here increments the Paid field, never the Total, so the Total stays the
+    // fixed contracted/liability figure and Balance = Total − Paid.
     const costFields = [
-      { key: "stampDuty", label: "Stamp Duty" },
-      { key: "tdsValue", label: "TDS Paid" },
-      { key: "agreementValue", label: "Agreement Value / Token" },
+      { key: "stampDutyPaid", totalKey: "stampDuty", label: "Stamp Duty" },
+      { key: "tdsValue", totalKey: "tdsAmount", label: "TDS" },
+      { key: "agreementValuePaid", totalKey: "agreementValue", label: "Agreement Value / Token" },
     ];
     return {
       label: "Real Estate Cost",
       options: (state.realEstateProperties || [])
         .filter((p: any) => p.status !== "sold")
         .flatMap((p: any) =>
-          costFields.map((cf) => ({
-            key: `realEstateProperties:${p.id}:${cf.key}`,
-            label: `${p.name || "Property"} — ${cf.label} (current ${fmt(p[cf.key])})`,
-          }))
+          costFields.map((cf) => {
+            const balance = Math.max(0, Number(p[cf.totalKey] || 0) - Number(p[cf.key] || 0));
+            return {
+              key: `realEstateProperties:${p.id}:${cf.key}`,
+              label: `${p.name || "Property"} — ${cf.label} (balance ${fmt(balance)})`,
+            };
+          })
         ),
     };
   }
