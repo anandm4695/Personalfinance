@@ -856,10 +856,26 @@ export function DematTab({
     localStorage.setItem("finance_demat_sort", sortBy);
   }, [sortBy]);
 
+  // One-time cleanup of zero/invalid-qty stock rows (e.g. left behind by a fully
+  // consumed reverse split, or a lot deleted on the client before the cloud sync
+  // finished) so ghost holdings with 0 shares don't keep reappearing after every
+  // reload/resync.
+  const cleanedZeroQtyIds = React.useRef(new Set<string>());
+  React.useEffect(() => {
+    (state.stocks || []).forEach((s: any) => {
+      if (Number(s.qty) <= 0 && !cleanedZeroQtyIds.current.has(s.id)) {
+        cleanedZeroQtyIds.current.add(s.id);
+        removeItem("stocks", s.id);
+      }
+    });
+  }, [state.stocks, removeItem]);
+
   const groups: any[] = useMemo(
     () =>
       Object.values(
-        state.stocks.reduce((acc: any, s: any) => {
+        state.stocks
+          .filter((s: any) => Number(s.qty) > 0)
+          .reduce((acc: any, s: any) => {
           const base = s.symbol.replace(/\.(NS|BO)$/i, "");
           const exch = s.exchange || "NSE";
           const key = `${base}|${exch}`;
@@ -6108,10 +6124,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         <SplitBonusModal
           group={splitBonusGroup}
           onClose={() => setSplitBonusGroup(null)}
-          onApply={(updates: any[], actionLog: any) => {
+          onApply={(updates: any[], actionLog: any, removals: string[] = []) => {
             updates.forEach((u: any) =>
               updateItem("stocks", u.id, { qty: u.qty, avgPrice: u.avgPrice })
             );
+            removals.forEach((id: string) => removeItem("stocks", id));
             addItem("corporateActions", actionLog);
             setSplitBonusGroup(null);
           }}
@@ -6926,10 +6943,16 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
       c.floored += 1;
       shortfall -= 1;
     }
-    const updates = lotCalcs.map((c: any) => {
-      const newAvg = c.floored > 0 ? (c.oldQty * c.oldAvg) / c.floored : c.oldAvg;
-      return { id: c.lot.id, qty: String(c.floored), avgPrice: String(Number(newAvg.toFixed(4))) };
-    });
+    // Lots that round down to 0 shares (e.g. a reverse split consolidating a small
+    // odd lot) have nothing left to hold — remove them instead of leaving a
+    // permanent zero-qty "ghost" holding behind.
+    const updates = lotCalcs
+      .filter((c: any) => c.floored > 0)
+      .map((c: any) => {
+        const newAvg = (c.oldQty * c.oldAvg) / c.floored;
+        return { id: c.lot.id, qty: String(c.floored), avgPrice: String(Number(newAvg.toFixed(4))) };
+      });
+    const removals = lotCalcs.filter((c: any) => c.floored <= 0).map((c: any) => c.lot.id);
     const actionLog = {
       symbol: group.base,
       exchange: group.exchange,
@@ -6942,7 +6965,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
       oldAvgPrice: totalQty > 0 ? Number((totalInv / totalQty).toFixed(2)) : 0,
       newAvgPrice: Number(newAvgPreview.toFixed(2)),
     };
-    onApply(updates, actionLog);
+    onApply(updates, actionLog, removals);
   };
   return (
     <Modal title={`Corporate Action — ${group.base} (${group.exchange})`} onClose={onClose}>
