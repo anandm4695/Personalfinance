@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, getCCDueDate } from "../../utils/finance";
+import { computeNetWorthAsOf, getEarliestNetWorthMonth } from "../../utils/netWorthAsOf";
 import { Prv } from "../../context/PrivacyContext";
 import { Modal } from "../ui/Modal";
 import { supabase } from "../../supabaseClient";
@@ -226,14 +227,28 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
   const expensePrev = computeMonthExpense(ymPrev, txnsPrev);
   const savingPrev = incomePrev - expensePrev;
 
-  // Income breakdown by source (credit transactions by category, excluding internal transfers)
+  // Income breakdown by source. Must follow the same explicit-ledger-vs-transactions
+  // preference as computeMonthIncome above — otherwise, for a user who logs income via
+  // the state.income ledger, the "Income" tile would show the ledger total while this
+  // breakdown (built only from credit transactions) shows a smaller, unrelated number,
+  // so the per-source rows never add up to the tile above them. Same pattern already
+  // used by AnnualReportTab's income summary.
+  const incomeLedgerMonth = (state.income || []).filter(
+    (i: any) => i.date && i.date.startsWith(ym)
+  );
+  const explicitIncomeMonth = incomeLedgerMonth.reduce(
+    (s: number, i: any) => s + Number(i.amount || 0),
+    0
+  );
+  const incomeSourceEntries =
+    explicitIncomeMonth > 0
+      ? incomeLedgerMonth
+      : txns.filter((t: any) => t.type === "credit" && !isTransferCat(t.category));
   const incomeCatMap: Record<string, number> = {};
-  txns
-    .filter((t: any) => t.type === "credit" && !isTransferCat(t.category))
-    .forEach((t: any) => {
-      const c = t.category || "Other Income";
-      incomeCatMap[c] = (incomeCatMap[c] || 0) + Number(t.amount || 0);
-    });
+  incomeSourceEntries.forEach((e: any) => {
+    const c = e.source || e.category || "Other Income";
+    incomeCatMap[c] = (incomeCatMap[c] || 0) + Number(e.amount || 0);
+  });
   const incomeBySource = Object.entries(incomeCatMap).sort(([, a], [, b]) => b - a);
 
   // Top expense categories (excluding internal transfers and investment moves)
@@ -328,7 +343,13 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
         (c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.outstanding || 0) > 0
       )
       .forEach((c: any) => {
-        const due = getCCDueDate(c, reportDate);
+        // Always compute against the real "now", not reportDate — reportDate's day gets
+        // reset to 1 by the Prev/Next navigation buttons above, so after navigating away
+        // and back to the current month (without using Reset), a due date that already
+        // passed today could be computed as still upcoming (e.g. dueDay 15 vs real today
+        // the 29th: reportDate day=1 would put "day 1 <= day 15" and miss the rollover
+        // to next month that comparing against today's actual day would catch).
+        const due = getCCDueDate(c, now);
         if (due)
           upcoming.push({ label: `${c.issuer} CC`, amount: Number(c.outstanding || 0), date: due });
       });
@@ -342,25 +363,30 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
   }
 
   // Net worth: for the current month always use live metrics to avoid stale snapshots;
-  // for past/future months use the stored snapshot which reflects that month's closing value.
-  // Snapshots are only written for the month the app happens to be opened in, so a past month
-  // can legitimately have no record — in that case we show "no data" rather than silently
-  // reusing today's live net worth under a different month's label.
-  const historicalNW = !isCurrentMonth
-    ? (state.netWorthHistory || []).find((h: any) => h.month === ym)
-    : null;
-  const hasNWData = isCurrentMonth || !!historicalNW;
-  const displayNetWorth = isCurrentMonth
-    ? metrics.netWorth
-    : historicalNW
-      ? (historicalNW.netWorth ?? historicalNW.net_worth ?? 0)
+  // for past months reconstruct from each asset's own dated records via computeNetWorthAsOf —
+  // same approach AnalyticsTab's Trends chart and NetWorthTimelineTab already use. This report
+  // used to read the frozen state.netWorthHistory snapshot for the month, but snapshots are
+  // only written for whatever month the app happened to be opened in, AND a one-time cleanup
+  // migration (masterData._nwCleanV1) permanently deleted any past-month snapshot under 10% of
+  // current net worth — so that lookup can no longer be trusted to reflect real history and was
+  // showing "no data" for months that are in fact reconstructable. getEarliestNetWorthMonth
+  // still bounds how far back reconstruction is meaningful, so genuinely pre-history months
+  // (before any dated record exists) correctly fall back to "no data" instead of showing
+  // today's account balances as if they applied a decade ago.
+  const earliestNWMonth = getEarliestNetWorthMonth(state);
+  const hasNWData = isCurrentMonth || ym >= earliestNWMonth;
+  const pastNW = !isCurrentMonth && hasNWData ? computeNetWorthAsOf(state, ym, marketData) : null;
+  const displayNetWorth = isCurrentMonth ? metrics.netWorth : pastNW ? pastNW.netWorth : null;
+  const displayAssets = isCurrentMonth ? metrics.totalAssets : pastNW ? pastNW.totalAssets : null;
+  const displayLiabilities = isCurrentMonth
+    ? metrics.totalLiabilities
+    : pastNW
+      ? pastNW.totalLiabilities
       : null;
 
   // Net worth change vs previous month (use null to distinguish "no prior data" from zero/negative NW)
-  const historicalNWPrev = (state.netWorthHistory || []).find((h: any) => h.month === ymPrev);
-  const prevNW = historicalNWPrev
-    ? (historicalNWPrev.netWorth ?? historicalNWPrev.net_worth ?? null)
-    : null;
+  const prevNW =
+    ymPrev >= earliestNWMonth ? computeNetWorthAsOf(state, ymPrev, marketData).netWorth : null;
   const nwDelta = hasNWData && prevNW !== null ? displayNetWorth - prevNW : 0;
 
   // Email report handler
@@ -620,10 +646,10 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                     {prevDate.toLocaleString("en-IN", { month: "short" })}
                   </div>
                 )}
-                {isCurrentMonth && (
+                {displayAssets !== null && (
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
-                    Assets {fmtINRFull(metrics.totalAssets)} · Liabilities{" "}
-                    {fmtINRFull(metrics.totalLiabilities)}
+                    Assets {fmtINRFull(displayAssets)} · Liabilities{" "}
+                    {fmtINRFull(displayLiabilities)}
                   </div>
                 )}
               </>
