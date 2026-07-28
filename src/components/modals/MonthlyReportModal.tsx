@@ -276,6 +276,26 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
   );
   const totalInvested = investTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
+  // Budget vs Actual "spent" must mirror BudgetTab.tsx's own monthSpending exactly — that's
+  // the only place budgets are created/edited, and its category picker isn't limited to
+  // "expense" categories: Investment and Transfer are both valid budget categories there
+  // (e.g. tracking an "Investment: ₹20,000/mo" SIP target). catMap above deliberately
+  // excludes Transfer/Investment debits so they don't double-count as spend in the Expense
+  // tile and Top Expenses breakdown — reusing it here meant any budget set on those two
+  // categories always showed ₹0 spent no matter how much was actually spent, contradicting
+  // what Budget Tab shows for that same category/month. Same "Uncategorized" fallback label
+  // as BudgetTab.tsx too, so a budget literally named "Uncategorized" matches correctly.
+  const budgetSpendMap: Record<string, number> = {};
+  txns
+    .filter((t: any) => t.type === "debit")
+    .forEach((t: any) => {
+      const c = t.category || "Uncategorized";
+      budgetSpendMap[c] = (budgetSpendMap[c] || 0) + Number(t.amount || 0);
+    });
+  if (rentPaidThisMonth > 0 && !budgetSpendMap["Rent"]) {
+    budgetSpendMap["Rent"] = rentPaidThisMonth;
+  }
+
   // Budget vs Actual — match the budget set for this specific month first, falling back
   // to the baseline (no budgetMonth) budget, then the closest prior month's budget. This
   // mirrors api/send-summary.js so a past month's report shows the budget that was actually
@@ -300,7 +320,7 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
     .filter(Boolean);
   const budgetRows = budgets
     .map((b: any) => {
-      const spent = catMap[b.category] || 0;
+      const spent = budgetSpendMap[b.category] || 0;
       const over = spent > b.monthly;
       return { category: b.category, budget: Number(b.monthly), spent, over };
     })
