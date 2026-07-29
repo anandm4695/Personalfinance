@@ -447,11 +447,21 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         category: "Insurance",
       });
 
-    // 8. Budget Spend
-    const budgetTotal = (state.budgets || []).reduce(
-      (sum: number, b: any) => sum + Number(b.monthly || b.monthlyLimit || b.limit || 0),
-      0
-    );
+    // 8. Budget Spend — excludes categories already modeled by a dedicated
+    // outflow source above (EMI, Rent, Insurance, Subscriptions, Credit Card),
+    // otherwise a budget line for e.g. "Rent" would double-count on top of the
+    // Rent Paid figure already derived from rentedProperties, inflating the
+    // projected outflow / net cash flow.
+    const DUPLICATE_BUDGET_CATEGORIES = new Set([
+      "EMI",
+      "Rent",
+      "Insurance",
+      "Subscription",
+      "Credit Card",
+    ]);
+    const budgetTotal = (state.budgets || [])
+      .filter((b: any) => !DUPLICATE_BUDGET_CATEGORIES.has(b.category))
+      .reduce((sum: number, b: any) => sum + Number(b.monthly || b.monthlyLimit || b.limit || 0), 0);
     if (budgetTotal > 0)
       sources.push({
         name: "Budget Spend",

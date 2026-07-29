@@ -252,10 +252,17 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const allFYs = useMemo(() => {
     const fySet = new Set<number>();
     fySet.add(currentFY);
+    // Same string-slice comparison as fyStart/fyEnd above — avoids parsing a
+    // date-only "YYYY-MM-DD" string as UTC midnight and reading it back with
+    // local getMonth()/getFullYear(), which can misclassify a date's FY by a
+    // day near year/month boundaries depending on the user's timezone offset.
     const addFY = (dateStr: string) => {
       if (!dateStr) return;
-      const d = new Date(dateStr);
-      fySet.add(d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1);
+      const d = dateStr.slice(0, 10);
+      const y = Number(d.slice(0, 4));
+      const m = Number(d.slice(5, 7)); // 1-indexed month
+      if (!y || !m) return;
+      fySet.add(m >= 4 ? y : y - 1);
     };
     (state.stocks || []).forEach((s: any) => addFY(s.buyDate));
     (state.stockSells || []).forEach((s: any) => addFY(s.sellDate));

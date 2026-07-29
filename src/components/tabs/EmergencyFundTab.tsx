@@ -70,11 +70,21 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
     // Monthly expenses
     const monthlyExpense = (() => {
-      // Use budget total if available
-      const budgetTotal = (state.budgets || []).reduce(
-        (s, b) => s + Number(b.monthly || b.monthlyLimit || 0),
-        0
-      );
+      // Use budget total if available.
+      // Bug fix: this previously summed EVERY budget category unconditionally,
+      // including "Investment" and "Transfer" — both valid budget categories a
+      // user can set in BudgetTab.tsx (e.g. an "Investment: ₹20,000/mo" SIP
+      // target) but neither is real spend. MonthlyReportModal.tsx already
+      // established the pattern of excluding these two from "expense" totals
+      // app-wide (see its isTransferCat/`category !== "Investment"` filters);
+      // pulling them into this tab's expense base inflated the denominator
+      // used for "months of expenses covered", understating the user's real
+      // emergency-fund runway for anyone with sizeable investment budgets.
+      const isNonExpenseBudgetCat = (cat) =>
+        ["Transfer", "Self Transfer", "Self-Transfer", "Investment"].includes(cat || "");
+      const budgetTotal = (state.budgets || [])
+        .filter((b) => !isNonExpenseBudgetCat(b.category))
+        .reduce((s, b) => s + Number(b.monthly || b.monthlyLimit || 0), 0);
       if (budgetTotal > 0) return budgetTotal;
 
       // Fallback: sum of EMIs + SIPs + subscriptions + recurring expenses + rent

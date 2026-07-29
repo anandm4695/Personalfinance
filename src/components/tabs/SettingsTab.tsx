@@ -1482,7 +1482,7 @@ function DataSection({
       key: "mutualFunds",
       cols: [
         { key: "name", label: "Scheme" },
-        { key: "folio", label: "Folio" },
+        { key: "folioNumber", label: "Folio" },
         { key: "units", label: "Units" },
         { key: "buyNav", label: "Buy NAV" },
         { key: "currentNav", label: "Current NAV" },
@@ -1551,7 +1551,7 @@ function DataSection({
       cols: [
         { key: "issuer", label: "Issuer" },
         { key: "network", label: "Network" },
-        { key: "cardLimit", label: "Limit" },
+        { key: "limit", label: "Limit" },
         { key: "outstanding", label: "Outstanding" },
         { key: "billDate", label: "Bill Date" },
       ],

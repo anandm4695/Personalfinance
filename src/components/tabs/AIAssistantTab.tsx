@@ -509,15 +509,20 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     const monthExpense = metrics.monthExpense || 0;
     const cashInBanks = metrics.cashInBanks || 0;
     const emergencyMonths = monthExpense > 0 ? cashInBanks / monthExpense : 0;
+    // User-configurable target from Settings → Profile ("Monthly Savings Target %"),
+    // defaulting to 20 to match that same field's default. Previously hardcoded to
+    // 20 here regardless of what the user actually set, so this insight could fire
+    // (or stay silent) against the wrong benchmark.
+    const savingsTargetPct = Number(state.profile?.savingsTarget) || 20;
 
     // Savings rate check
-    if (savingsRate < 20 && (metrics.monthIncome || 0) > 0) {
+    if (savingsRate < savingsTargetPct && (metrics.monthIncome || 0) > 0) {
       insights.push({
         icon: TrendingDown,
         title: "Low Savings Rate",
-        detail: `Your savings rate is ${savingsRate.toFixed(0)}% — below the recommended 20%`,
-        severity: savingsRate < 10 ? "critical" : "warning",
-        prompt: `My savings rate is only ${savingsRate.toFixed(0)}%. How can I increase it to at least 20%?`,
+        detail: `Your savings rate is ${savingsRate.toFixed(0)}% — below your ${savingsTargetPct}% target`,
+        severity: savingsRate < savingsTargetPct / 2 ? "critical" : "warning",
+        prompt: `My savings rate is only ${savingsRate.toFixed(0)}%. How can I increase it to at least ${savingsTargetPct}%?`,
       });
     }
 
@@ -1169,10 +1174,18 @@ You have access to local tools/functions to retrieve real-time and detailed tran
     }, 0);
     const used80C = Math.min(elss + ppf + lic + epfContrib, 150000);
     const remaining80C = Math.max(0, 150000 - used80C);
-    const rentPaid = (state.rentedProperties || []).reduce(
-      (s: number, p: any) => s + Number(p.monthlyRent || 0) * 12,
-      0
-    );
+    // Prefer actual rent payments logged in the FY (accounts for escalation and
+    // partial-year tenancies); only fall back to the escalation-aware effective
+    // rent × 12 when no payments have been logged yet. Matches the canonical
+    // logic in finance.ts's getAutoDetectedDeductions — using the flat
+    // p.monthlyRent field here (as before) ignored both the payment ledger and
+    // any escalation tiers, understating/overstating HRA for the tax optimizer.
+    const rentPaid = (state.rentedProperties || []).reduce((s: number, p: any) => {
+      const paymentsInFY = (p.payments || [])
+        .filter((pay: any) => pay.date >= fyStartStr && pay.date <= fyEndStr)
+        .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0);
+      return s + (paymentsInFY > 0 ? paymentsInFY : getEffectiveRent(p) * 12);
+    }, 0);
     const npsContrib = (state.nps || []).reduce(
       (s: number, n: any) => s + Number(n.yearContribution || 0),
       0

@@ -35,6 +35,36 @@ import { Prv } from "../../context/PrivacyContext";
 // familyProfiles id — see OwnerSplitRow.
 const EXTERNAL_OWNER_ID = "external";
 
+// Fraction of a property's value attributable to THIS household (all tracked
+// family profiles combined), excluding any share held by an untracked
+// "external" co-owner. Mirrors `realEstateTrackedShare` in useMetrics.ts /
+// netWorthAsOf.ts — kept in sync so this tab's portfolio totals agree with
+// the canonical net-worth figure for jointly-owned properties instead of
+// showing the full 100% value of a property the household only partly owns.
+function realEstateTrackedShare(property: any): number {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    return (
+      property.owners.reduce(
+        (s: number, o: any) => (o?.id !== EXTERNAL_OWNER_ID ? s + Number(o.sharePct || 0) : s),
+        0
+      ) / 100
+    );
+  }
+  return 1;
+}
+
+// Single family profile's own share, mirroring `realEstateShareForOwner` in
+// useMetrics.ts. Without this, viewing a single family member's profile would
+// fall through to the household-wide share and show a co-owner's ENTIRE joint
+// property value under one member's individual portfolio stats.
+function realEstateShareForOwner(property: any, profileId: string): number {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    const match = property.owners.find((o: any) => o?.id === profileId);
+    return match ? Number(match.sharePct || 0) / 100 : 0;
+  }
+  return property.owner === profileId ? 1 : 0;
+}
+
 // ─── Builder Logo ─────────────────────────────────────────────────────────────
 
 const BUILDER_LOGO_DOMAINS: Record<string, string> = {
@@ -1905,9 +1935,16 @@ interface RealEstateTabProps {
   addItem: (key: string, data: any) => void;
   removeItem: (key: string, id: string) => void;
   updateItem: (key: string, id: string, data: any) => void;
+  activeProfile?: string;
 }
 
-export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEstateTabProps) {
+export function RealEstateTab({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  activeProfile,
+}: RealEstateTabProps) {
   const properties: any[] = state.realEstateProperties || [];
   const demands: any[] = state.realEstateDemands || [];
   const payments: any[] = state.realEstatePayments || [];
@@ -1921,13 +1958,24 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
 
   const stats = useMemo(() => {
     const activeProperties = properties.filter((p) => p.status !== "sold");
+    // Scale each property's contribution by this household's (or this single
+    // profile's) ownership share — a jointly-owned property with an external
+    // co-owner, or one owned 100% by a single family member, must not count
+    // at its full value here when the canonical net-worth calc (useMetrics.ts
+    // / netWorthAsOf.ts) only counts the tracked share. See realEstateTrackedShare.
+    const shareOf = (p: any) =>
+      activeProfile && activeProfile !== "all"
+        ? realEstateShareForOwner(p, activeProfile)
+        : realEstateTrackedShare(p);
     const portfolioValue = activeProperties.reduce(
-      (s, p) => s + Number(p.marketValue || p.agreementValue || 0),
+      (s, p) => s + Number(p.marketValue || p.agreementValue || 0) * shareOf(p),
       0
     );
     const totalInvested = activeProperties.reduce(
       (s, p) =>
-        s + Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsAmount || 0),
+        s +
+        (Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsAmount || 0)) *
+          shareOf(p),
       0
     );
     const ucIds = new Set(
@@ -1942,7 +1990,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
     const outstanding = Math.max(0, totalDemanded - totalPaid);
     const allPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
     return { portfolioValue, totalInvested, totalPaid: allPaid, outstanding };
-  }, [properties, demands, payments]);
+  }, [properties, demands, payments, activeProfile]);
 
   const handleSaveProperty = (data: any) => {
     if (editProperty) {

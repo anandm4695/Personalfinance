@@ -168,6 +168,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const outMonthlyRent = propertiesOut
     .filter((p: any) => p.isActive !== false)
     .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
+  // Escalation-aware annual target — summing each active property's per-month
+  // effective rent across the FY, not today's rent × 12 (see getExpectedFYRent
+  // comment above: a mid-year escalation step otherwise silently understates
+  // or overstates the annual figure shown as the "target"/"commitment").
+  const outExpectedFY = propertiesOut
+    .filter((p: any) => p.isActive !== false)
+    .reduce((s: number, p: any) => s + getExpectedFYRent(p, fyStart), 0);
   const outThisFY = propertiesOut.reduce(
     (s: number, p: any) =>
       s +
@@ -194,6 +201,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const inMonthlyRent = propertiesIn
     .filter((p: any) => p.isActive !== false)
     .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
+  const inExpectedFY = propertiesIn
+    .filter((p: any) => p.isActive !== false)
+    .reduce((s: number, p: any) => s + getExpectedFYRent(p, fyStart), 0);
   const inThisFY = propertiesIn.reduce(
     (s: number, p: any) =>
       s +
@@ -478,7 +488,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 {
                   label: "Received (FY)",
                   value: fmtINRFull(outThisFY),
-                  sub: `of ${fmtINRFull(outMonthlyRent * 12)} annual target`,
+                  sub: `of ${fmtINRFull(outExpectedFY)} annual target`,
                   color: THEME.sage,
                   Icon: TrendingUp,
                 },
@@ -1896,7 +1906,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 {
                   label: "Paid (FY)",
                   value: fmtINRFull(inThisFY),
-                  sub: `of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`,
+                  sub: `of ${fmtINRFull(inExpectedFY)} annual commitment`,
                   color: THEME.rust,
                   Icon: Receipt,
                 },

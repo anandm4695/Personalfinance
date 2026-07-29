@@ -27,7 +27,7 @@ import {
   Radar,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, calcCAGR } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
@@ -191,6 +191,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     // Equity portfolio return
     let equityInvested = 0;
     let equityCurrent = 0;
+    let earliestStockDate: string | null = null;
     stocks.forEach((s) => {
       const qty = Number(s.qty || 0);
       const avg = Number(s.avgPrice || 0);
@@ -200,17 +201,21 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       const curr = md?.price || Number(s.currentPrice || s.avgPrice || 0);
       equityInvested += qty * avg;
       equityCurrent += qty * curr;
+      const bd = s.buyDate || s.purchaseDate;
+      if (bd && (!earliestStockDate || bd < earliestStockDate)) earliestStockDate = bd;
     });
 
     // MF portfolio return
     let mfInvested = 0;
     let mfCurrent = 0;
+    let earliestMFDate: string | null = null;
     mfs.forEach((m) => {
       const units = Number(m.units || 0);
       const buyNav = Number(m.buyNav || 0);
       const currNav = Number(m.currentNav || m.buyNav || 0);
       mfInvested += units * buyNav;
       mfCurrent += units * currNav;
+      if (m.buyDate && (!earliestMFDate || m.buyDate < earliestMFDate)) earliestMFDate = m.buyDate;
     });
 
     // FD returns
@@ -233,21 +238,59 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     // apply the same purity discount used everywhere else (GoldSGBTab, useMetrics,
     // RebalancingTab); omitting it overstated goldValue/goldReturn for non-24K holdings.
     const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+    let earliestGoldDate: string | null = null;
     const goldValue = goldHoldings.reduce((s, g) => {
       const purityMul = g.type === "physical" ? PURITY_FACTOR[g.purity] || 1 : 1;
+      if (g.purchaseDate && (!earliestGoldDate || g.purchaseDate < earliestGoldDate))
+        earliestGoldDate = g.purchaseDate;
       return s + Number(g.grams || 0) * goldPricePerGram * purityMul;
     }, 0);
     const goldInvested = goldHoldings.reduce((s, g) => s + Number(g.purchasePrice || 0), 0);
 
+    // Benchmarks (Nifty/gold/FD/inflation) are annualised (1Y/3Y/5Y) figures, so the
+    // portfolio side of the comparison must also be annualised (CAGR), not a raw
+    // absolute since-inception % — otherwise a stock held 5 years at +80% absolute
+    // (~12.5% CAGR) would appear to crush a 15%-annualised Nifty 50 on the same chart.
+    // Fall back to the absolute return only when there's no buy-date to annualise from
+    // (e.g. legacy holdings without a stored purchase date).
+    const equityCAGR =
+      equityInvested > 0 ? calcCAGR(equityInvested, equityCurrent, earliestStockDate) : null;
     const equityReturn =
-      equityInvested > 0 ? ((equityCurrent - equityInvested) / equityInvested) * 100 : 0;
-    const mfReturn = mfInvested > 0 ? ((mfCurrent - mfInvested) / mfInvested) * 100 : 0;
-    const goldReturn = goldInvested > 0 ? ((goldValue - goldInvested) / goldInvested) * 100 : 0;
+      equityCAGR != null
+        ? equityCAGR
+        : equityInvested > 0
+          ? ((equityCurrent - equityInvested) / equityInvested) * 100
+          : 0;
+
+    const mfCAGR = mfInvested > 0 ? calcCAGR(mfInvested, mfCurrent, earliestMFDate) : null;
+    const mfReturn =
+      mfCAGR != null ? mfCAGR : mfInvested > 0 ? ((mfCurrent - mfInvested) / mfInvested) * 100 : 0;
+
+    const goldCAGR = goldInvested > 0 ? calcCAGR(goldInvested, goldValue, earliestGoldDate) : null;
+    const goldReturn =
+      goldCAGR != null
+        ? goldCAGR
+        : goldInvested > 0
+          ? ((goldValue - goldInvested) / goldInvested) * 100
+          : 0;
 
     const totalInvested = equityInvested + mfInvested + fdValue + ppfValue + goldInvested;
     const totalCurrent = equityCurrent + mfCurrent + fdValue + ppfValue + goldValue;
+    // Blend the overall figure as a current-value-weighted average of each bucket's
+    // own annualised rate (equity/MF/gold CAGR, FD's stated rate, PPF's stated rate)
+    // rather than an absolute % on the combined total — same weighting approach used
+    // by InvestmentStatementTab's portfolio-level weightedCAGR, so the two tabs agree.
+    const weightedParts = [
+      { rate: equityReturn, value: equityCurrent },
+      { rate: mfReturn, value: mfCurrent },
+      { rate: avgFDRate, value: fdValue },
+      { rate: 7.1, value: ppfValue },
+      { rate: goldReturn, value: goldValue },
+    ].filter((p) => p.value > 0);
     const overallReturn =
-      totalInvested > 0 ? ((totalCurrent - totalInvested) / totalInvested) * 100 : 0;
+      totalCurrent > 0 && weightedParts.length > 0
+        ? weightedParts.reduce((s, p) => s + p.rate * (p.value / totalCurrent), 0)
+        : 0;
 
     return {
       equity: { invested: equityInvested, current: equityCurrent, return: equityReturn },

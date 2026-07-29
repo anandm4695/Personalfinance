@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
-import { fmtINRFull, today } from "../../utils/finance";
+import { fmtINRFull, today, calcTaxNewByFY, calcTaxOldByFY } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -284,10 +284,25 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const now = today();
     const fy = selectedFY;
     const [startYear] = fy.split("-").map(Number);
-    const estimatedTax = Math.max(
-      0,
-      (incomeSummary.totalIncome - deductions.totalDeductions) * 0.2
-    ); // rough estimate
+
+    // Bug fix: this previously taxed (income − deductions) at a flat, made-up
+    // 20% regardless of regime, slab, surcharge, cess or the Section 87A
+    // rebate — so e.g. a user below the ₹12L (new regime) / ₹5L (old regime)
+    // rebate threshold, who owes ZERO tax, was shown a non-zero "advance tax
+    // due" schedule here while the sibling Tax Tools > Advance Tax Calculator
+    // (which does use calcTaxNewByFY/calcTaxOldByFY) correctly showed ₹0 for
+    // the same income and FY. Use the same FY-aware, regime-aware calculation
+    // as TaxToolsTab.tsx so both tools agree for the same user/FY.
+    const regime = state.profile?.regime || "new";
+    const grossIncome = incomeSummary.totalIncome;
+    const estimatedTax =
+      regime === "new"
+        ? calcTaxNewByFY(grossIncome, fy).total
+        : calcTaxOldByFY(
+            grossIncome,
+            (startYear >= 2020 ? 50_000 : 40_000) + deductions.totalDeductions,
+            fy
+          ).total;
 
     return ADVANCE_TAX_DATES.map((d) => {
       const fullDate = `${d.date.startsWith("03") ? startYear + 1 : startYear}-${d.date}`;
@@ -295,7 +310,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       const due = Math.round((estimatedTax * d.pct) / 100);
       return { ...d, fullDate, isPast, due };
     });
-  }, [selectedFY, incomeSummary, deductions]);
+  }, [selectedFY, incomeSummary, deductions, state.profile]);
 
   const checklistProgress = ITR_CHECKLIST.filter((item) => checkedItems[item.id]).length;
   const categories = [...new Set(ITR_CHECKLIST.map((i) => i.category))];

@@ -84,6 +84,14 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       corpus = corpus * (1 + monthlyRet) + monthlySavings;
       monthsToFIRE++;
     }
+    // Bug fix: previously the loop's exit condition (reached fireNumber vs.
+    // hit the 50-year safety cap) was thrown away — monthsToFIRE was 600 in
+    // both cases, so a corpus that NEVER reaches the FIRE number at the
+    // current savings rate silently rendered as a specific, confident
+    // "currentAge + 50.0 years" instead of flagging that FIRE is unreachable
+    // within the simulation window. Track whether the cap (not the target)
+    // ended the loop so the UI can show that distinction honestly.
+    const reachedFIRE = corpus >= fireNumber;
     const yearsToFIREActual = monthsToFIRE / 12;
     const fireAge = currentAge + yearsToFIREActual;
 
@@ -147,6 +155,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       yearsToFIREActual,
       fireAge,
       monthsToFIRE,
+      reachedFIRE,
       expenseAtRetirement,
       savingsRate,
       drawdown,
@@ -507,15 +516,21 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               style={{
                 fontSize: 28,
                 fontWeight: 700,
-                color: fireCalc.fireAge <= targetAge ? THEME.sage : THEME.gold,
+                color: !fireCalc.reachedFIRE
+                  ? THEME.rust
+                  : fireCalc.fireAge <= targetAge
+                    ? THEME.sage
+                    : THEME.gold,
               }}
             >
-              {fireCalc.fireAge <= 100 ? `${fireCalc.fireAge.toFixed(1)} years` : "50+ years"}
+              {fireCalc.reachedFIRE ? `${fireCalc.fireAge.toFixed(1)} years` : "50+ years"}
             </div>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              {fireCalc.fireAge <= targetAge
-                ? `${(targetAge - fireCalc.fireAge).toFixed(1)} years ahead of target!`
-                : `${(fireCalc.fireAge - targetAge).toFixed(1)} years behind target`}
+              {!fireCalc.reachedFIRE
+                ? "Not reached within 50 years at current savings rate — increase savings or returns"
+                : fireCalc.fireAge <= targetAge
+                  ? `${(targetAge - fireCalc.fireAge).toFixed(1)} years ahead of target!`
+                  : `${(fireCalc.fireAge - targetAge).toFixed(1)} years behind target`}
             </div>
           </div>
           <div

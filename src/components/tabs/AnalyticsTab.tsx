@@ -1677,7 +1677,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     // Liquid reserve = bank cash + FDs maturing within 90 days (matches Emergency Fund Health card)
     const nearTermFDsForScore = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
       if (!fd.maturityDate) return sum;
-      const matMs = new Date(fd.maturityDate).getTime();
+      // Parse at local midnight, not UTC (bare `new Date("YYYY-MM-DD")` parses as UTC
+      // midnight) — otherwise the 90-day maturity window can shift by hours vs. the
+      // local `Date.now()` comparison, mis-bucketing FDs right at the boundary.
+      const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
       const nowMs = Date.now();
       if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
       return sum;
@@ -1871,7 +1874,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               name: `${p.propertyName || "Rent"} Rent`,
               amount: Number(p.monthlyRent),
               daysLeft,
-              date: curDueDate.toISOString().slice(0, 10),
+              // .toISOString() converts to UTC — for IST that rolls local midnight back
+              // to the previous calendar day. Format from the local fields instead.
+              date: `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`,
               isRent: true,
             });
           }
@@ -1892,7 +1897,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 name: `${p.propertyName || "Rent"} Rent`,
                 amount: Number(p.monthlyRent),
                 daysLeft,
-                date: nextDueDate.toISOString().slice(0, 10),
+                // .toISOString() would convert to UTC and roll local midnight back a day.
+                date: `${nextYear}-${String(nextMonthNorm + 1).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`,
                 isRent: true,
               });
             }
@@ -2292,7 +2298,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     // Safety Net (liquid reserve = bank cash + FDs maturing within 90 days)
     const nearTermFDsForBadge = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
       if (!fd.maturityDate) return sum;
-      const matMs = new Date(fd.maturityDate).getTime();
+      // Local-midnight parse (see nearTermFDsForScore above) to match Date.now().
+      const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
       const nowMs = Date.now();
       if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
       return sum;
@@ -2855,7 +2862,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     // Liquid reserve = bank cash + FDs maturing within 90 days (matches Emergency Fund Health card)
     const nearTermFDsForInsight = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
       if (!fd.maturityDate) return sum;
-      const matMs = new Date(fd.maturityDate).getTime();
+      // Local-midnight parse (see nearTermFDsForScore above) to match Date.now().
+      const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
       const nowMs = Date.now();
       if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
       return sum;
@@ -4987,7 +4995,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               // Liquid assets: bank cash + FDs maturing within 3 months
               const nearTermFDs = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
                 if (!fd.maturityDate) return sum;
-                const matMs = new Date(fd.maturityDate).getTime();
+                // Local-midnight parse (see nearTermFDsForScore above) to match Date.now().
+                const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
                 const nowMs = Date.now();
                 const threeMonthsMs = nowMs + 90 * 86400000;
                 if (matMs >= nowMs && matMs <= threeMonthsMs) {
@@ -12017,7 +12026,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               const qty = Number(s.qty || 0);
               const loss = (avgPrice - currentPrice) * qty;
               const lossPct = ((avgPrice - currentPrice) / avgPrice) * 100;
-              const buyDate = s.buyDate ? new Date(s.buyDate) : null;
+              // Parse at local midnight — bare `new Date(s.buyDate)` parses "YYYY-MM-DD"
+              // as UTC midnight, which under-counts daysHeld and can flip the STCG/LTCG
+              // classification right at the 365-day anniversary boundary.
+              const buyDate = s.buyDate ? new Date(s.buyDate + "T00:00:00") : null;
               const daysHeld = buyDate
                 ? Math.floor((todayMs - buyDate.getTime()) / 86400000)
                 : null;
@@ -12035,7 +12047,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               const units = Number(m.units || 0);
               const loss = (buyNav - currentNav) * units;
               const lossPct = ((buyNav - currentNav) / buyNav) * 100;
-              const buyDate = m.buyDate ? new Date(m.buyDate) : null;
+              // Local-midnight parse (see losingStocks above) so the STCG/LTCG boundary
+              // isn't shifted by the UTC-parse offset.
+              const buyDate = m.buyDate ? new Date(m.buyDate + "T00:00:00") : null;
               const daysHeld = buyDate
                 ? Math.floor((todayMs - buyDate.getTime()) / 86400000)
                 : null;

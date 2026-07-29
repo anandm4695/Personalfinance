@@ -386,16 +386,24 @@ export const InvestmentStatementTab = ({
     /* ── Debt - FDs ───────────────────────────────────────────────── */
     const fdInvested = fds.reduce((s: number, x: any) => s + (Number(x.principal) || 0), 0);
     const fdCurrent = fds.reduce((s: number, x: any) => s + fdCurrentValue(x), 0);
-    const fdAvgRate = fds.length
-      ? fds.reduce((s: number, x: any) => s + (Number(x.rate) || 0), 0) / fds.length
-      : 0;
+    // Weight by principal, not a simple per-account average — a ₹10L FD at 6% and a
+    // ₹10k FD at 9% should read close to 6%, not the 7.5% midpoint. This rate also
+    // feeds into the portfolio-level weightedCAGR below, so an unweighted average
+    // here skewed the overall blended return.
+    const fdAvgRate =
+      fdInvested > 0
+        ? fds.reduce((s: number, x: any) => s + (Number(x.rate) || 0) * (Number(x.principal) || 0), 0) /
+          fdInvested
+        : 0;
 
     /* ── Debt - RDs ───────────────────────────────────────────────── */
     const rdInvested = rds.reduce((s: number, x: any) => s + rdPrincipal(x), 0);
     const rdCurr = rds.reduce((s: number, x: any) => s + rdCurrentValue(x), 0);
-    const rdAvgRate = rds.length
-      ? rds.reduce((s: number, x: any) => s + (Number(x.rate) || 0), 0) / rds.length
-      : 0;
+    const rdAvgRate =
+      rdInvested > 0
+        ? rds.reduce((s: number, x: any) => s + (Number(x.rate) || 0) * rdPrincipal(x), 0) /
+          rdInvested
+        : 0;
 
     /* ── Debt - Bonds ─────────────────────────────────────────────── */
     const bondInvested = bonds.reduce(
@@ -403,10 +411,16 @@ export const InvestmentStatementTab = ({
       0
     );
     const bondCurrent = bonds.reduce((s: number, x: any) => s + bondCurrentValue(x), 0);
-    const bondAvgYTM = bonds.length
-      ? bonds.reduce((s: number, x: any) => s + (Number(x.ytmRate || x.coupon) || 0), 0) /
-        bonds.length
-      : 0;
+    const bondAvgYTM =
+      bondInvested > 0
+        ? bonds.reduce(
+            (s: number, x: any) =>
+              s +
+              (Number(x.ytmRate || x.coupon) || 0) *
+                (Number(x.totalInvestmentAmount || x.faceValue) || 0),
+            0
+          ) / bondInvested
+        : 0;
 
     /* ── PPF ──────────────────────────────────────────────────────── */
     const ppfDeposited = ppfs.reduce((s: number, x: any) => {

@@ -948,6 +948,15 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     const days = daysUntilExpiry(doc.expiryDate);
     const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
     const ownerInfo = getOwnerAvatarInfo(doc.owner);
+    // A stored linkedAsset id can go stale if the underlying asset was edited/deleted
+    // elsewhere (e.g. bank account closed, property sold and removed) — the id then
+    // resolves to nothing. Mirror the Detail modal's resolution here instead of the
+    // old truthy check on doc.linkedAsset alone, so the card doesn't proudly show
+    // "Linked" for a reference that no longer points at a real record.
+    const linkedAssetResolved =
+      !!doc.linkedAssetType &&
+      !!doc.linkedAsset &&
+      getLinkedAssets(state, doc.linkedAssetType).some((a) => a.id === doc.linkedAsset);
 
     return (
       <div
@@ -1129,7 +1138,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               </span>
             </div>
 
-            {doc.linkedAsset && (
+            {linkedAssetResolved && (
               <div
                 title="Linked with financial asset"
                 style={{

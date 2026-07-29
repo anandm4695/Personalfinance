@@ -98,12 +98,15 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
       // interest once matured, so accrual must not run past maturityDate.
       let interest = 0;
       if (h.type === "sgb" && h.purchaseDate) {
+        // Parse at local midnight — bare `new Date("YYYY-MM-DD")` parses as UTC
+        // midnight, which for IST shifts both dates by hours vs. `new Date()` (an
+        // exact local instant), skewing the accrued-years figure.
         const accrualEndTime = h.maturityDate
-          ? Math.min(new Date().getTime(), new Date(h.maturityDate).getTime())
+          ? Math.min(new Date().getTime(), new Date(h.maturityDate + "T00:00:00").getTime())
           : new Date().getTime();
         const years = Math.max(
           0,
-          (accrualEndTime - new Date(h.purchaseDate).getTime()) / (365.25 * 86400000)
+          (accrualEndTime - new Date(h.purchaseDate + "T00:00:00").getTime()) / (365.25 * 86400000)
         );
         interest = invested * (Number(h.interestRate || 2.5) / 100) * years;
       }
