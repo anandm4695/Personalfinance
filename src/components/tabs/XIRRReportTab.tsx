@@ -17,6 +17,7 @@ import {
 import { THEME } from "../../utils/constants";
 import {
   calcXIRR,
+  calculateEpfBalance,
   fmtINRFull,
   fmtINRExact,
   today,
@@ -336,21 +337,19 @@ export function XIRRReportTab({ state }: any) {
       });
 
     // ── EPF ─────────────────────────────────────────────────────────────
-    (state.epf || [])
-      .filter((p: any) => p.type === "EPF")
-      .forEach((p: any) => {
-        const txns = (p.transactions || []).filter(
-          (t: any) => t.date && Number(t.employee || 0) > 0
-        );
-        if (txns.length === 0) return;
+    (state.epf || []).forEach((p: any) => {
+      const getEmpShare = (t: any) => Number(t.employeeShare || t.amount || 0);
+      const txns = (p.transactions || []).filter((t: any) => t.date && getEmpShare(t) > 0);
+      const currentVal = calculateEpfBalance(p);
 
+      if (txns.length > 0) {
         const cashFlows: any[] = txns.map((t: any) => ({
           date: t.date,
-          amount: -Number(t.employee),
+          amount: -getEmpShare(t),
         }));
-        cashFlows.push({ date: todayStr, amount: Number(p.balance || 0) });
+        cashFlows.push({ date: todayStr, amount: currentVal });
         const xirr = calcXIRR(cashFlows);
-        const invested = txns.reduce((s: number, t: any) => s + Number(t.employee), 0);
+        const invested = txns.reduce((s: number, t: any) => s + getEmpShare(t), 0);
 
         results.push({
           name: p.employer || p.institution || "EPF",
@@ -358,29 +357,53 @@ export function XIRRReportTab({ state }: any) {
           icon: Shield,
           color: "#0891B2",
           invested,
-          currentValue: Number(p.balance || 0),
+          currentValue: currentVal,
           startDate: txns[0]?.date,
           endDate: todayStr,
           xirr,
           status: "active",
           owner: p.owner,
         });
-      });
+      } else if (currentVal > 0 && p.startDate) {
+        const invested = Number(p.balance || currentVal);
+        const cashFlows = [
+          { date: p.startDate, amount: -invested },
+          { date: todayStr, amount: currentVal },
+        ];
+        const xirr = calcXIRR(cashFlows);
+        results.push({
+          name: p.employer || p.institution || "EPF",
+          type: "EPF",
+          icon: Shield,
+          color: "#0891B2",
+          invested,
+          currentValue: currentVal,
+          startDate: p.startDate,
+          endDate: todayStr,
+          xirr,
+          status: "active",
+          owner: p.owner,
+        });
+      }
+    });
 
     // ── NPS ─────────────────────────────────────────────────────────────
-    (state.nps || [])
-      .filter((p: any) => p.type === "NPS")
-      .forEach((p: any) => {
-        const txns = (p.transactions || []).filter((t: any) => t.date && Number(t.amount) > 0);
-        if (txns.length === 0) return;
+    (state.nps || []).forEach((p: any) => {
+      const getNpsAmount = (t: any) =>
+        Number(t.employeeAmount || t.amount || 0) + Number(t.employerAmount || 0);
+      const txns = (p.transactions || []).filter((t: any) => t.date && getNpsAmount(t) > 0);
+      const currentVal =
+        Number(p.balance || 0) ||
+        txns.reduce((s: number, t: any) => s + getNpsAmount(t), 0);
 
+      if (txns.length > 0) {
         const cashFlows: any[] = txns.map((t: any) => ({
           date: t.date,
-          amount: -Number(t.amount),
+          amount: -getNpsAmount(t),
         }));
-        cashFlows.push({ date: todayStr, amount: Number(p.balance || 0) });
+        cashFlows.push({ date: todayStr, amount: currentVal });
         const xirr = calcXIRR(cashFlows);
-        const invested = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const invested = txns.reduce((s: number, t: any) => s + getNpsAmount(t), 0);
 
         results.push({
           name: `${p.institution || "NPS"}${p.tier ? ` (Tier ${p.tier})` : ""}`,
@@ -388,25 +411,49 @@ export function XIRRReportTab({ state }: any) {
           icon: Briefcase,
           color: "#7C3AED",
           invested,
-          currentValue: Number(p.balance || 0),
+          currentValue: currentVal,
           startDate: txns[0]?.date,
           endDate: todayStr,
           xirr,
           status: "active",
           owner: p.owner,
         });
-      });
+      } else if (currentVal > 0 && (p.startDate || p.openDate)) {
+        const startDate = p.startDate || p.openDate;
+        const cashFlows = [
+          { date: startDate, amount: -currentVal },
+          { date: todayStr, amount: currentVal },
+        ];
+        const xirr = calcXIRR(cashFlows);
+        results.push({
+          name: `${p.institution || "NPS"}${p.tier ? ` (Tier ${p.tier})` : ""}`,
+          type: "NPS",
+          icon: Briefcase,
+          color: "#7C3AED",
+          invested: currentVal,
+          currentValue: currentVal,
+          startDate,
+          endDate: todayStr,
+          xirr,
+          status: "active",
+          owner: p.owner,
+        });
+      }
+    });
 
     // ── Bonds ───────────────────────────────────────────────────────────
     (state.bonds || []).forEach((b: any) => {
-      const purchaseDate = b.purchaseDate || b.settlementDate;
-      if (!purchaseDate || !b.totalInvestmentAmount) return;
+      const purchaseDate = b.orderDate || b.purchaseDate || b.settlementDate;
+      const invAmount = Number(
+        b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0
+      );
+      if (!purchaseDate || invAmount <= 0) return;
 
-      const faceVal = Number(b.totalPrincipalAmount || b.totalInvestmentAmount);
+      const faceVal = Number(b.totalPrincipalAmount || b.faceValue || invAmount);
       const couponRate = Number(b.coupon || b.ytmRate || 0) / 100;
       const annualCoupon = faceVal * couponRate;
 
-      const cashFlows: any[] = [{ date: purchaseDate, amount: -Number(b.totalInvestmentAmount) }];
+      const cashFlows: any[] = [{ date: purchaseDate, amount: -invAmount }];
 
       if (b.maturityDate && annualCoupon > 0) {
         const couponEnd = b.maturityDate < todayStr ? b.maturityDate : todayStr;
@@ -436,7 +483,7 @@ export function XIRRReportTab({ state }: any) {
         type: "Bonds",
         icon: FileText,
         color: "#0EA5E9",
-        invested: Number(b.totalInvestmentAmount),
+        invested: invAmount,
         currentValue: faceVal,
         startDate: purchaseDate,
         endDate: b.maturityDate || todayStr,

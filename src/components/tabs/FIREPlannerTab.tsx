@@ -80,18 +80,16 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     let corpus = currentNW;
     let monthsToFIRE = 0;
     const maxMonths = 600; // 50 years cap
-    while (corpus < fireNumber && monthsToFIRE < maxMonths) {
+    while (monthsToFIRE < maxMonths) {
+      const dynamicFireTarget =
+        (annualExpense * Math.pow(1 + inflationRate / 100, monthsToFIRE / 12)) / (swr / 100);
+      if (corpus >= dynamicFireTarget) break;
       corpus = corpus * (1 + monthlyRet) + monthlySavings;
       monthsToFIRE++;
     }
-    // Bug fix: previously the loop's exit condition (reached fireNumber vs.
-    // hit the 50-year safety cap) was thrown away — monthsToFIRE was 600 in
-    // both cases, so a corpus that NEVER reaches the FIRE number at the
-    // current savings rate silently rendered as a specific, confident
-    // "currentAge + 50.0 years" instead of flagging that FIRE is unreachable
-    // within the simulation window. Track whether the cap (not the target)
-    // ended the loop so the UI can show that distinction honestly.
-    const reachedFIRE = corpus >= fireNumber;
+    const finalDynamicTarget =
+      (annualExpense * Math.pow(1 + inflationRate / 100, monthsToFIRE / 12)) / (swr / 100);
+    const reachedFIRE = corpus >= finalDynamicTarget;
     const yearsToFIREActual = monthsToFIRE / 12;
     const fireAge = currentAge + yearsToFIREActual;
 

@@ -532,17 +532,45 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       const stcgRate = getEquitySTCGRate(fyStartYear);
       const ltcgRate = getEquityLTCGRate(fyStartYear);
 
-      const netEquityLTCG = Math.max(0, totals.EQUITY_LTCG);
-      const exemptionUsed = Math.min(netEquityLTCG, ltcgExemptionLimit);
-      const taxableEquityLTCG = Math.max(0, netEquityLTCG - exemptionUsed);
+      // Section 70 Loss Set-Off Rules:
+      // 1. STCL (Short Term Loss) can set off STCG and LTCG.
+      // 2. LTCL (Long Term Loss) can only set off LTCG.
+      const rawEqSTCG = totals.EQUITY_STCG;
+      const rawEqLTCG = totals.EQUITY_LTCG;
+      const rawDebtSTCG = totals.DEBT_STCG;
+      const rawDebtLTCG = totals.DEBT_LTCG;
 
-      const ltcgGains = groups.EQUITY_LTCG.filter((r) => r.profit > 0);
-      const totalLTCGProfit = ltcgGains.reduce((s, r) => s + r.profit, 0);
+      // Calculate net STCG after absorbing short-term losses
+      let netSTCG = Math.max(0, rawEqSTCG);
+      let stclRemaining = rawEqSTCG < 0 ? Math.abs(rawEqSTCG) : 0;
+
+      // Calculate net LTCG after absorbing long-term losses
+      let netEqLTCG = Math.max(0, rawEqLTCG);
+
+      // Apply remaining STCL against Equity LTCG (u/s 70)
+      if (stclRemaining > 0 && netEqLTCG > 0) {
+        const offset = Math.min(stclRemaining, netEqLTCG);
+        netEqLTCG -= offset;
+        stclRemaining -= offset;
+      }
+
+      // Apply Section 112A exemption (1.25L / 1L) to net Equity LTCG
+      const exemptionUsed = Math.min(netEqLTCG, ltcgExemptionLimit);
+      const taxableEquityLTCG = Math.max(0, netEqLTCG - exemptionUsed);
+      const taxableEquitySTCG = netSTCG;
+      const taxableDebtSTCG = Math.max(0, rawDebtSTCG);
+      const taxableDebtLTCG = Math.max(0, rawDebtLTCG);
+
+      const totalEqLTCGProfit = groups.EQUITY_LTCG
+        .filter((r) => r.profit > 0)
+        .reduce((s, r) => s + r.profit, 0);
 
       for (const r of classified) {
-        if (r.gainType === "EQUITY_LTCG" && r.profit > 0 && totalLTCGProfit > 0) {
-          const share = r.profit / totalLTCGProfit;
+        if (r.gainType === "EQUITY_LTCG" && r.profit > 0 && totalEqLTCGProfit > 0) {
+          const share = r.profit / totalEqLTCGProfit;
           r.estimatedTax = Math.round(taxableEquityLTCG * share * ltcgRate);
+        } else if (r.gainType === "EQUITY_STCG" && r.profit > 0) {
+          r.estimatedTax = Math.round(r.profit * stcgRate);
         } else if (r.profit > 0) {
           r.estimatedTax = Math.round(r.profit * r.taxRate);
         } else {
@@ -551,10 +579,10 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       }
 
       const total = Math.round(
-        Math.max(0, totals.EQUITY_STCG) * stcgRate +
+        taxableEquitySTCG * stcgRate +
           taxableEquityLTCG * ltcgRate +
-          Math.max(0, totals.DEBT_STCG) * DEBT_STCG_SLAB_RATE +
-          Math.max(0, totals.DEBT_LTCG) * DEBT_LTCG_RATE
+          taxableDebtSTCG * DEBT_STCG_SLAB_RATE +
+          taxableDebtLTCG * DEBT_LTCG_RATE
       );
 
       return {

@@ -171,17 +171,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
     for (let y = 0; y < years; y++) {
       const monthly = m0 * Math.pow(1 + stepPct, y);
-      const monthsRemaining = (years - y) * 12;
-      // FV of this year's SIP tranche (annuity due) at the end of full tenure
-      const trancheFV =
-        r === 0
-          ? monthly * 12 // zero-return: FV = invested amount only
-          : monthly *
-            ((Math.pow(1 + r, 12) - 1) / r) *
-            (1 + r) *
-            Math.pow(1 + r, (years - y - 1) * 12);
-      corpus += trancheFV;
-      invested += monthly * 12;
+      const yearContribution = monthly * 12;
+      const yearSipValue =
+        r === 0 ? yearContribution : monthly * ((Math.pow(1 + r, 12) - 1) / r) * (1 + r);
+      corpus = corpus * Math.pow(1 + r, 12) + yearSipValue;
+      invested += yearContribution;
       yearlyData.push({ year: y + 1, corpus: Math.round(corpus), invested: Math.round(invested) });
     }
 
@@ -636,16 +630,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const currentRunwayMonths = monthlyExp > 0 ? Math.round(curPort / monthlyExp) : Infinity;
     const currentRunwayYears = Math.round((currentRunwayMonths / 12) * 10) / 10;
 
-    // Projected FIRE date: find the year when cumulative corpus >= reqCorpus
+    // Projected FIRE date: find the year when cumulative corpus >= reqCorpus at that year
     let projectedFireYear: number | null = null;
     let tempCorpus = curPort;
     for (let y = 1; y <= 60; y++) {
       tempCorpus = tempCorpus * (1 + preRet) + mSavings * 12;
       const yrsRemainingAtY = Math.max(0, lifeExp - curAge - y);
+      const annualExpAtY = monthlyExp * 12 * Math.pow(1 + infl, y);
       const inflAdjReq =
         realPostReturn === 0
-          ? retAnnualExp * yrsRemainingAtY
-          : retAnnualExp * ((1 - Math.pow(1 + realPostReturn, -yrsRemainingAtY)) / realPostReturn);
+          ? annualExpAtY * yrsRemainingAtY
+          : annualExpAtY * ((1 - Math.pow(1 + realPostReturn, -yrsRemainingAtY)) / realPostReturn);
       if (tempCorpus >= inflAdjReq && inflAdjReq > 0) {
         projectedFireYear = new Date().getFullYear() + y;
         break;

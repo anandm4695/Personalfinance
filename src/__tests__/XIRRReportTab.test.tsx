@@ -123,4 +123,48 @@ describe("XIRRReportTab Premium UI Statically", () => {
     // one RD in state it equals this RD's invested amount exactly.
     expect(html).toContain(fmtINRFull(expectedInvested));
   });
+
+  it("correctly includes EPF, NPS, and Bonds in XIRR report with exact transaction schema", () => {
+    const state = {
+      fixedDeposits: [],
+      recurringDeposits: [],
+      mutualFunds: [],
+      stocks: [],
+      ppf: [],
+      epf: [
+        {
+          id: "epf1",
+          employer: "TechCorp",
+          balance: 150000,
+          transactions: [
+            { date: "2024-01-15", employeeShare: 10000, employerShare: 10000, type: "monthly_contribution" },
+          ],
+        },
+      ],
+      nps: [
+        {
+          id: "nps1",
+          institution: "HDFC Pension",
+          balance: 80000,
+          transactions: [
+            { date: "2024-02-01", employeeAmount: 5000, employerAmount: 5000 },
+          ],
+        },
+      ],
+      bonds: [
+        {
+          id: "bond1",
+          name: "SGB 2028",
+          orderDate: "2024-01-01",
+          totalInvestmentAmount: 50000,
+          coupon: 2.5,
+        },
+      ],
+    };
+
+    const html = renderToString(<XIRRReportTab state={state} />);
+    expect(html).toContain("TechCorp");
+    expect(html).toContain("HDFC Pension");
+    expect(html).toContain("SGB 2028");
+  });
 });
