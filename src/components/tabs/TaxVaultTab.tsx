@@ -49,6 +49,7 @@ import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
+import { EmptyState } from "../ui/EmptyState";
 
 // The capital-gains report below is built with document.write() from raw HTML strings —
 // without this, a security/fund name containing e.g. <img onerror=...> (typeable directly,
@@ -4096,18 +4097,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           </div>
 
           {taxPayments.length === 0 ? (
-            <Card
-              style={{
-                padding: "40px 0",
-                textAlign: "center",
-                color: THEME.muted,
-                fontSize: 13,
-                marginBottom: 40,
-              }}
-            >
-              No tax payments or TDS entries recorded yet. Use 'Record Payment' to track advance tax
-              and TDS credits.
-            </Card>
+            <div style={{ marginBottom: 40 }}>
+              <EmptyState
+                icon={History}
+                title="No Tax Payments Recorded Yet"
+                description="Log advance tax installments and TDS credits here to track what you've paid against what you owe for the year."
+                buttonLabel="Record Payment"
+                onAdd={() => setShowModal(true)}
+              />
+            </div>
           ) : (
             <div
               style={{
@@ -4244,10 +4242,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   style={{
                     fontSize: 52,
                     fontWeight: 900,
-                    color: "#34D399",
+                    color: "color-mix(in srgb, var(--t-sage) 75%, white)",
                     marginBottom: 4,
                     letterSpacing: "-0.03em",
-                    textShadow: "0 0 20px rgba(52,211,153,0.3)",
+                    textShadow: "0 0 20px color-mix(in srgb, var(--t-sage) 40%, transparent)",
                   }}
                 >
                   {fmtINRFull(taxCalculations.totalSaved)}
@@ -4300,8 +4298,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         taxCalculations.actual.totalTax > 0
                           ? `${Math.min(100, (taxCalculations.totalSaved / taxCalculations.actual.totalTax) * 100)}%`
                           : "0%",
-                      background: "#34D399",
-                      boxShadow: "0 0 15px rgba(52,211,153,0.5)",
+                      background: "color-mix(in srgb, var(--t-sage) 75%, white)",
+                      boxShadow: "0 0 15px color-mix(in srgb, var(--t-sage) 55%, transparent)",
                       borderRadius: 10,
                       transition: "width 0.4s",
                     }}
@@ -4823,18 +4821,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           </div>
 
           {realizedGainsData.allSells.length === 0 ? (
-            <Card
-              style={{
-                padding: "40px 0",
-                textAlign: "center",
-                color: THEME.muted,
-                fontSize: 13,
-                marginBottom: 40,
-              }}
-            >
-              No realized stock or mutual fund sales in FY {fy} yet. Add sales in the Demat / Mutual
-              Fund trackers.
-            </Card>
+            <div style={{ marginBottom: 40 }}>
+              <EmptyState
+                icon={BarChart3}
+                title={`No Realized Gains in FY ${fy}`}
+                description="Sell transactions logged in the Demat or Mutual Fund trackers will show up here automatically, classified into STCG/LTCG with tax computed."
+              />
+            </div>
           ) : (
             <div
               style={{

@@ -239,19 +239,21 @@ const input: React.CSSProperties = {
   boxSizing: "border-box" as const,
 };
 
-// Use literal hex strings so appending 2-digit hex alpha (e.g. "18") produces
-// valid 8-character hex colors. Never append alpha to CSS var() strings.
+// Map onto the app-wide semantic tokens (sage/gold/rust/accent) so status
+// colors stay consistent with every other tab and adapt to the active theme.
+// These are CSS var() strings, so always combine with color-mix() — never
+// append a hex-alpha suffix directly onto a var().
 const STATUS_HEX: Record<string, string> = {
-  owned: "#22c55e",
-  sold: "#ef4444",
-  "under-construction": "#f59e0b",
+  owned: THEME.sage,
+  sold: THEME.rust,
+  "under-construction": THEME.gold,
 };
 
 const DEMAND_HEX: Record<string, string> = {
-  pending: "#f59e0b",
-  paid: "#22c55e",
-  partial: "#6366f1",
-  overdue: "#ef4444",
+  pending: THEME.gold,
+  paid: THEME.sage,
+  partial: THEME.accent,
+  overdue: THEME.rust,
 };
 
 const fmtDate = (d: string) => {
@@ -283,7 +285,8 @@ const cardShell: React.CSSProperties = {
     "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 10%, var(--surface-0)) 100%)",
   border: "1.5px solid var(--t-line)",
   borderRadius: 18,
-  boxShadow: "0 4px 24px -4px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
+  boxShadow:
+    "0 4px 24px -4px rgba(15,23,42,0.06), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 5%, transparent)",
   overflow: "hidden",
   marginBottom: 20,
   transition: "box-shadow 0.25s cubic-bezier(0.4,0,0.2,1)",
@@ -1124,7 +1127,7 @@ function PropertyCard({
     Number(property.stampDuty || 0) - Number(property.stampDutyPaid || 0)
   );
   const tdsBalance = Math.max(0, Number(property.tdsAmount || 0) - Number(property.tdsValue || 0));
-  const statusHex = STATUS_HEX[property.status] || "#6366f1";
+  const statusHex = STATUS_HEX[property.status] || THEME.accent;
   const isSold = property.status === "sold";
   const saleProceeds = isSold
     ? Number(property.salePrice || 0) -
@@ -1166,7 +1169,7 @@ function PropertyCard({
           alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 14,
-          background: `linear-gradient(135deg, ${statusHex}06 0%, transparent 60%)`,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${statusHex} 6%, transparent) 0%, transparent 60%)`,
         }}
       >
         {/* Builder logo */}
@@ -1196,8 +1199,8 @@ function PropertyCard({
                 fontSize: 11,
                 fontWeight: 700,
                 color: statusHex,
-                background: statusHex + "18",
-                border: `1.5px solid ${statusHex}30`,
+                background: `color-mix(in srgb, ${statusHex} 18%, transparent)`,
+                border: `1.5px solid color-mix(in srgb, ${statusHex} 30%, transparent)`,
                 padding: "3px 10px",
                 borderRadius: 20,
                 textTransform: "uppercase" as const,
@@ -1666,7 +1669,7 @@ function PropertyCard({
                       .slice()
                       .sort((a: any, b: any) => (a.demandDate > b.demandDate ? -1 : 1))
                       .map((d: any) => {
-                        const dHex = DEMAND_HEX[d.status] || "#94a3b8";
+                        const dHex = DEMAND_HEX[d.status] || THEME.muted;
                         return (
                           <tr key={d.id} style={{ background: "var(--surface-0)" }}>
                             <td style={td}>{fmtDate(d.demandDate)}</td>
@@ -1689,13 +1692,12 @@ function PropertyCard({
                               <Prv>{d.totalAmount ? fmtINRFull(Number(d.totalAmount)) : "—"}</Prv>
                             </td>
                             <td style={td}>
-                              {/* Use literal hex so + "22" gives a valid 8-digit hex color */}
                               <span
                                 style={{
                                   fontSize: 11,
                                   fontWeight: 700,
                                   color: dHex,
-                                  background: dHex + "22",
+                                  background: `color-mix(in srgb, ${dHex} 22%, transparent)`,
                                   padding: "2px 8px",
                                   borderRadius: 20,
                                   textTransform: "capitalize",

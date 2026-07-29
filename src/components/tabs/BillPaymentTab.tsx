@@ -350,18 +350,15 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
             marginBottom: 24,
           }}
         >
-          <StatCard
-            label="Monthly Bills"
-            value={<Prv>{fmtINRFull(totalMonthly)}</Prv>}
-            icon={<IndianRupee size={18} />}
-            color={THEME.primary}
-          />
-          <StatCard
-            label="Annual Total"
-            value={<Prv>{fmtINRFull(totalMonthly * 12)}</Prv>}
-            icon={<IndianRupee size={18} />}
-            color={THEME.gold}
-          />
+          <div style={{ gridColumn: "span 2" }}>
+            <StatCard
+              label="Monthly Bills"
+              value={<Prv>{fmtINRFull(totalMonthly)}</Prv>}
+              sub={`${bills.length} bill${bills.length === 1 ? "" : "s"} tracked · ${fmtINRFull(totalMonthly * 12)}/yr`}
+              icon={<IndianRupee size={18} />}
+              color={THEME.primary}
+            />
+          </div>
           <StatCard
             label="Bills Tracked"
             value={bills.length}
@@ -371,6 +368,8 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
           <StatCard
             label="Due This Week"
             value={upcomingDue.length}
+            sub={upcomingDue.length > 0 ? "Needs attention" : "All clear"}
+            subColor={upcomingDue.length > 0 ? THEME.warning : undefined}
             icon={<Clock size={18} />}
             color={upcomingDue.length > 0 ? THEME.warning : THEME.textMuted}
           />
@@ -486,11 +485,16 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     <button
                       onClick={() => setExpanded(isExpanded ? null : b.id)}
                       aria-label={isExpanded ? "Collapse details" : "Expand details"}
+                      className="icon-btn"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.textMuted,
+                        padding: 8,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -498,11 +502,16 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     <button
                       onClick={() => setModal(b)}
                       aria-label="Edit bill"
+                      className="icon-btn"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.textMuted,
+                        padding: 8,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       <Pencil size={14} />
@@ -513,11 +522,16 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                           removeItem("billPayments", b.id);
                       }}
                       aria-label="Delete bill"
+                      className="icon-btn danger"
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.danger,
+                        padding: 8,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       <Trash2 size={14} />
@@ -594,12 +608,17 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                               <button
                                 onClick={() => removeItem("billPaymentHistory", h.id)}
                                 aria-label="Delete payment record"
+                                className="icon-btn danger"
                                 style={{
                                   marginLeft: "auto",
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
                                   color: THEME.danger,
+                                  padding: 6,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                 }}
                               >
                                 <Trash2 size={12} />

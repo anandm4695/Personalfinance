@@ -222,8 +222,19 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
 
       {/* Export Panel */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-          Export Data
+        <h3
+          style={{
+            margin: "0 0 16px",
+            fontSize: 16,
+            fontWeight: 800,
+            letterSpacing: "-0.01em",
+            color: THEME.text,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Download size={17} style={{ color: THEME.accent }} /> Export Data
         </h3>
         <div style={{ display: "flex", gap: 16, marginBottom: 20, alignItems: "flex-end" }}>
           <div>
@@ -387,14 +398,15 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
           style={{
             margin: "0 0 16px",
             fontSize: 16,
-            fontWeight: 600,
+            fontWeight: 800,
+            letterSpacing: "-0.01em",
             color: THEME.text,
             display: "flex",
             alignItems: "center",
             gap: 8,
           }}
         >
-          <Upload size={18} /> Restore from Backup
+          <Upload size={17} style={{ color: THEME.gold }} /> Restore from Backup
         </h3>
         <div
           style={{
@@ -429,33 +441,45 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
 
       {/* Tips */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-          Backup Tips
+        <h3
+          style={{
+            margin: "0 0 14px",
+            fontSize: 16,
+            fontWeight: 800,
+            letterSpacing: "-0.01em",
+            color: THEME.text,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Shield size={17} style={{ color: THEME.sage }} /> Backup Tips
         </h3>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 8,
+            gap: 10,
             fontSize: 13,
             color: THEME.textSecondary,
+            lineHeight: 1.5,
           }}
         >
-          <div style={{ display: "flex", gap: 8 }}>
-            <Shield size={14} color={THEME.sage} /> Export a JSON backup regularly — it contains all
-            your data
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <CheckCircle size={14} color={THEME.sage} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>Export a JSON backup regularly — it contains all your data</span>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Shield size={14} color={THEME.sage} /> CSV exports are great for sharing with your CA
-            or financial advisor
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <CheckCircle size={14} color={THEME.sage} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>CSV exports are great for sharing with your CA or financial advisor</span>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Shield size={14} color={THEME.sage} /> Store backups in a secure location (Google
-            Drive, encrypted folder)
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <CheckCircle size={14} color={THEME.sage} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>Store backups in a secure location (Google Drive, encrypted folder)</span>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Shield size={14} color={THEME.sage} /> Your data is also synced to Supabase if you're
-            logged in
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <CheckCircle size={14} color={THEME.sage} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>Your data is also synced to Supabase if you're logged in</span>
           </div>
         </div>
       </Card>

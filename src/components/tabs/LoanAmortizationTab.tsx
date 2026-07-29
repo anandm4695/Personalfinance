@@ -512,6 +512,17 @@ export const LoanAmortizationTab = ({ state }) => {
               className="form-input"
               style={{ padding: "9px 12px", fontSize: 13.5, width: 150 }}
             />
+            <input
+              type="range"
+              className="cxo-slider"
+              min={0}
+              max={Math.max(50000, Math.round((baseAmort.emi || 0) * 2))}
+              step={500}
+              value={extraEMI}
+              aria-label="Extra prepayment per month slider"
+              onChange={(e) => setExtraEMI(Number(e.target.value))}
+              style={{ marginTop: 10, width: 150 }}
+            />
           </div>
         </div>
       </Card>

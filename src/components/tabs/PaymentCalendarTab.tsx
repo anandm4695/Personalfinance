@@ -359,8 +359,11 @@ export function PaymentCalendarTab({ state }: any) {
         </SectionTitle>
         <EmptyState
           icon={Calendar}
+          gradient="linear-gradient(135deg, #6366F1 0%, #818CF8 100%)"
+          dotColor="#6366F1"
           title="No Recurring Payments"
-          subtitle="Add loans, SIPs, subscriptions or insurance policies to see your payment calendar"
+          description="This calendar plots every EMI, SIP, RD, subscription and insurance premium you track elsewhere in the app onto a monthly view — add one to see it show up here by due date."
+          pills={["Loan EMIs", "SIPs & RDs", "Subscriptions", "Insurance Premiums"]}
         />
       </div>
     );
@@ -985,6 +988,7 @@ export function PaymentCalendarTab({ state }: any) {
                           fontWeight: 700,
                           color: cfg.color,
                           whiteSpace: "nowrap",
+                          fontVariantNumeric: "tabular-nums",
                         }}
                       >
                         <Prv>{fmtINRExact(p.amount)}</Prv>
@@ -1007,7 +1011,9 @@ export function PaymentCalendarTab({ state }: any) {
             }}
           >
             <span>Total for {MONTH_NAMES[viewDate.month]}</span>
-            <Prv>{fmtINRExact(selectedMonthTotal)}</Prv>
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+              <Prv>{fmtINRExact(selectedMonthTotal)}</Prv>
+            </span>
           </div>
         </div>
       </Card>

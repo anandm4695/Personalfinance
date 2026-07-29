@@ -38,17 +38,18 @@ export const StatCard = ({
   <div
     className="card-lift"
     style={{
-      background:
-        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+      // Flat card-surface fill (not a gradient sheen) — the borderTop accent
+      // carries the semantic color, matching every other stat/summary card
+      // in the app instead of adding its own decorative diagonal blend.
+      background: "var(--t-card-bg)",
       border: `1.5px solid ${THEME.line}`,
-      borderTop: `4px solid ${borderColor || color}`,
+      borderTop: `3px solid ${borderColor || color}`,
       borderRadius: 16,
       padding: "20px 22px",
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      boxShadow:
-        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
+      boxShadow: "var(--shadow-sm)",
       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
     }}
   >

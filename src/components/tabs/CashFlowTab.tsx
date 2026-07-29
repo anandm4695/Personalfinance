@@ -211,10 +211,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     outflows: true,
     events: true,
   });
-  const [hoveredInflow, setHoveredInflow] = useState<number | null>(null);
-  const [hoveredOutflow, setHoveredOutflow] = useState<number | null>(null);
-  const [hoveredEvent, setHoveredEvent] = useState<number | null>(null);
-
   const toggleSection = (key: string) =>
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -646,6 +642,32 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
   return (
     <div>
+      <style>{`
+        .cf-list-row {
+          transition: background 0.2s var(--ease-premium), transform 0.2s var(--ease-premium);
+        }
+        .cf-list-row:hover {
+          background: var(--surface-1);
+          transform: translateX(4px);
+        }
+        .cf-event-row .cf-event-dot,
+        .cf-event-row .cf-event-content {
+          transition: transform 0.2s var(--ease-premium);
+        }
+        .cf-event-row:hover .cf-event-dot {
+          transform: scale(1.25);
+        }
+        .cf-event-row:hover .cf-event-content {
+          transform: translateX(6px);
+        }
+        .cf-segbtn {
+          color: var(--t-muted);
+        }
+        .cf-segbtn:hover,
+        .cf-segbtn.active {
+          color: var(--t-ink);
+        }
+      `}</style>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <SectionTitle
         sub="Forward-looking projection of your income, expenses, and one-time events"
@@ -663,46 +685,34 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           >
             <button
               onClick={() => setForecastMonths(3)}
+              className={`cf-segbtn ${forecastMonths === 3 ? "active" : ""}`}
               style={{
                 padding: "6px 14px",
                 borderRadius: "var(--radius-sm)",
                 border: "none",
                 background: forecastMonths === 3 ? "var(--surface-0)" : "transparent",
-                color: forecastMonths === 3 ? "var(--t-ink)" : "var(--t-muted)",
                 fontWeight: 700,
                 fontSize: "12px",
                 cursor: "pointer",
                 boxShadow: forecastMonths === 3 ? "var(--shadow-sm)" : "none",
                 transition: "all 0.2s var(--ease-premium)",
               }}
-              onMouseEnter={(e) => {
-                if (forecastMonths !== 3) e.currentTarget.style.color = "var(--t-ink)";
-              }}
-              onMouseLeave={(e) => {
-                if (forecastMonths !== 3) e.currentTarget.style.color = "var(--t-muted)";
-              }}
             >
               3 Months
             </button>
             <button
               onClick={() => setForecastMonths(6)}
+              className={`cf-segbtn ${forecastMonths === 6 ? "active" : ""}`}
               style={{
                 padding: "6px 14px",
                 borderRadius: "var(--radius-sm)",
                 border: "none",
                 background: forecastMonths === 6 ? "var(--surface-0)" : "transparent",
-                color: forecastMonths === 6 ? "var(--t-ink)" : "var(--t-muted)",
                 fontWeight: 700,
                 fontSize: "12px",
                 cursor: "pointer",
                 boxShadow: forecastMonths === 6 ? "var(--shadow-sm)" : "none",
                 transition: "all 0.2s var(--ease-premium)",
-              }}
-              onMouseEnter={(e) => {
-                if (forecastMonths !== 6) e.currentTarget.style.color = "var(--t-ink)";
-              }}
-              onMouseLeave={(e) => {
-                if (forecastMonths !== 6) e.currentTarget.style.color = "var(--t-muted)";
               }}
             >
               6 Months
@@ -1320,8 +1330,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                     return (
                       <div
                         key={idx}
-                        onMouseEnter={() => setHoveredInflow(idx)}
-                        onMouseLeave={() => setHoveredInflow(null)}
+                        className="cf-list-row"
                         style={{
                           display: "grid",
                           gridTemplateColumns: "1.5fr 1fr 1fr",
@@ -1329,9 +1338,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           padding: "12px 20px",
                           borderBottom:
                             idx < inflows.length - 1 ? `1px solid ${THEME.line}` : "none",
-                          background: hoveredInflow === idx ? "var(--surface-1)" : "transparent",
-                          transform: hoveredInflow === idx ? "translateX(4px)" : "none",
-                          transition: "all 0.2s var(--ease-premium)",
                           cursor: "pointer",
                         }}
                       >
@@ -1531,8 +1537,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                     return (
                       <div
                         key={idx}
-                        onMouseEnter={() => setHoveredOutflow(idx)}
-                        onMouseLeave={() => setHoveredOutflow(null)}
+                        className="cf-list-row"
                         style={{
                           display: "grid",
                           gridTemplateColumns: "1.5fr 1fr 1fr",
@@ -1540,9 +1545,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           padding: "12px 20px",
                           borderBottom:
                             idx < outflows.length - 1 ? `1px solid ${THEME.line}` : "none",
-                          background: hoveredOutflow === idx ? "var(--surface-1)" : "transparent",
-                          transform: hoveredOutflow === idx ? "translateX(4px)" : "none",
-                          transition: "all 0.2s var(--ease-premium)",
                           cursor: "pointer",
                         }}
                       >
@@ -1731,7 +1733,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {events.map((event, idx) => {
                     const isInflow = event.type === "inflow";
-                    const isHovered = hoveredEvent === idx;
 
                     // Calculate countdown
                     let relativeLabel = "";
@@ -1772,8 +1773,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                     return (
                       <div
                         key={idx}
-                        onMouseEnter={() => setHoveredEvent(idx)}
-                        onMouseLeave={() => setHoveredEvent(null)}
+                        className="cf-event-row"
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -1795,6 +1795,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           }}
                         >
                           <div
+                            className="cf-event-dot"
                             style={{
                               width: 12,
                               height: 12,
@@ -1803,21 +1804,18 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               border: `2.5px solid var(--surface-0)`,
                               boxShadow: `0 0 0 4px color-mix(in srgb, ${isInflow ? THEME.sage : THEME.rust} 20%, transparent)`,
                               zIndex: 3,
-                              transform: isHovered ? "scale(1.25)" : "none",
-                              transition: "all 0.2s var(--ease-premium)",
                             }}
                           />
                         </div>
 
                         {/* Content block */}
                         <div
+                          className="cf-event-content"
                           style={{
                             display: "flex",
                             alignItems: "center",
                             gap: 16,
                             flex: 1,
-                            transform: isHovered ? "translateX(6px)" : "none",
-                            transition: "all 0.2s var(--ease-premium)",
                           }}
                         >
                           {/* Date & Countdown */}

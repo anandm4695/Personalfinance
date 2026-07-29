@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from "react";
-import { Upload, CheckCircle, AlertTriangle, FileText, ChevronRight } from "lucide-react";
+import { Upload, CheckCircle, AlertTriangle, FileText, ChevronRight, Loader2 } from "lucide-react";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -617,11 +617,15 @@ export function BrokerImportModal({
               <span
                 style={{
                   marginLeft: 10,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                   fontSize: 12,
                   fontWeight: 600,
-                  color: THEME.muted,
+                  color: THEME.accent,
                 }}
               >
+                <Loader2 size={13} className="spin" />
                 Reading file…
               </span>
             )}

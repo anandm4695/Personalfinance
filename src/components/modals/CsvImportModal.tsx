@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useRef } from "react";
-import { Download, Upload, Zap, FileText, CheckCircle, AlertTriangle } from "lucide-react";
+import { Download, Upload, Zap, FileText, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { Modal, ModalActions } from "../ui/Modal";
 import { SkeletonTableRows } from "../ui/Skeleton";
 import { THEME } from "../../utils/constants";
@@ -984,11 +984,15 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               <span
                 style={{
                   marginLeft: 10,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                   fontSize: 12,
                   fontWeight: 600,
-                  color: THEME.muted,
+                  color: THEME.accent,
                 }}
               >
+                <Loader2 size={13} className="spin" />
                 Reading & detecting format…
               </span>
             )}

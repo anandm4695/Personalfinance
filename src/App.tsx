@@ -3307,7 +3307,7 @@ function FinanceDashboard() {
                 transition: "all 0.25s ease",
                 flexShrink: 0,
                 zIndex: 10,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                boxShadow: "var(--shadow-sm)",
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background =
@@ -3585,9 +3585,9 @@ function FinanceDashboard() {
               top: 0,
               zIndex: 40,
               paddingTop: "env(safe-area-inset-top, 0px)",
-              boxShadow: darkMode
-                ? "0 1px 0 rgba(255,255,255,0.03), 0 4px 20px rgba(0,0,0,0.4)"
-                : "0 1px 0 rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.03)",
+              // Design tokens already flip their rgba values inside .dark-theme
+              // (see styles.css), so this no longer needs to branch on darkMode itself.
+              boxShadow: "var(--shadow-sm)",
               backdropFilter: "blur(16px) saturate(180%)",
               WebkitBackdropFilter: "blur(16px) saturate(180%)",
             }}
@@ -3787,7 +3787,7 @@ function FinanceDashboard() {
                       border: `1px solid ${THEME.line}`,
                       borderRadius: 12,
                       zIndex: 200,
-                      boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+                      boxShadow: "var(--shadow-xl)",
                       overflow: "hidden",
                     }}
                   >
@@ -4291,7 +4291,7 @@ function FinanceDashboard() {
                         background: "var(--surface-0)",
                         border: `1px solid ${THEME.line}`,
                         borderRadius: 14,
-                        boxShadow: "0 16px 48px rgba(0,0,0,0.14)",
+                        boxShadow: "var(--shadow-xl)",
                         zIndex: 300,
                         overflow: "hidden",
                       }}
@@ -5079,32 +5079,17 @@ function FinanceDashboard() {
 
         {/* ── KEYBOARD SHORTCUTS HELP ── */}
         {showShortcuts && (
-          <div
-            onClick={() => setShowShortcuts(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              background: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(4px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="modal-backdrop" onClick={() => setShowShortcuts(false)}>
             <div
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-labelledby="shortcuts-modal-title"
+              className="modal-panel"
               style={{
-                background: THEME.paper,
-                borderRadius: 16,
                 padding: 28,
                 maxWidth: 520,
                 width: "90%",
-                border: `1px solid ${THEME.line}`,
-                boxShadow: "0 24px 48px rgba(0,0,0,0.3)",
                 maxHeight: "80vh",
                 overflowY: "auto",
               }}
@@ -5132,15 +5117,9 @@ function FinanceDashboard() {
                   onClick={() => setShowShortcuts(false)}
                   aria-label="Close keyboard shortcuts help"
                   title="Close"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: THEME.muted,
-                    fontSize: 20,
-                  }}
+                  className="modal-close-btn"
                 >
-                  ×
+                  <X size={16} />
                 </button>
               </div>
               {[
@@ -5274,7 +5253,7 @@ function FinanceDashboard() {
               position: "fixed",
               inset: 0,
               zIndex: 10000,
-              background: "rgba(0,0,0,0.85)",
+              background: "rgba(15,23,42,0.88)",
               backdropFilter: "blur(8px)",
               display: "flex",
               flexDirection: "column",

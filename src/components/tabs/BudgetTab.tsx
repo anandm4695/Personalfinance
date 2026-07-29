@@ -1195,8 +1195,6 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
           {budgetsToUse.length === 0 ? (
             <EmptyState
               icon={BarChart2}
-              gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
-              dotColor="#db2777"
               title={`No Budgets for ${selectedMonthLabel}`}
               description="Set monthly spending limits per category — Food, Rent, Entertainment, Transport — and get real-time alerts before you overspend."
               pills={["Category Budgets", "Monthly Limits", "Spend vs Budget", "Burn Rate Chart"]}
@@ -1691,8 +1689,6 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
           {activeRecurringExpenses.length === 0 ? (
             <EmptyState
               icon={Repeat}
-              gradient="linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)"
-              dotColor="#0284c7"
               title="No Recurring Expenses Active"
               description="Define regular bills, rent, household wages, gym memberships or custom EMIs and quick-post them directly as ledger transactions."
               pills={["Fixed Expenses", "Custom Ranges", "Quick Record", "Ledger Auto-Match"]}

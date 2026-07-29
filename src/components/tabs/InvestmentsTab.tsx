@@ -1454,7 +1454,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
               flexDirection: "column",
               gap: 12,
               boxShadow:
-                "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
               transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
@@ -1564,7 +1564,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                   fontSize: 13,
                   cursor: "pointer",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                  boxShadow: active ? "0 4px 12px rgba(99, 102, 241, 0.25)" : "none",
+                  boxShadow: active
+                    ? `0 4px 12px color-mix(in srgb, ${THEME.accent} 30%, transparent)`
+                    : "none",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -2075,8 +2077,8 @@ function EditRDModal({ rd: initial, onClose, onSave }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 10,
-            background: "#0ea5e90f",
-            border: "1px solid #0ea5e933",
+            background: "color-mix(in srgb, #0ea5e9 6%, transparent)",
+            border: "1px solid color-mix(in srgb, #0ea5e9 20%, transparent)",
             display: "flex",
             justifyContent: "space-between",
           }}
@@ -2704,7 +2706,7 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                   flexDirection: "column",
                   gap: 10,
                   boxShadow:
-                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
@@ -3083,7 +3085,7 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                       flexDirection: "column",
                       gap: 10,
                       boxShadow:
-                        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
                       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                     }}
                   >
@@ -4630,7 +4632,7 @@ function PPFCsvPanel({ onImport }: any) {
           >
             {csvPreview.length} rows ready — preview:
           </div>
-          <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
+          <div style={{ maxHeight: 160, overflowY: "auto" as const, overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "var(--surface-0)" }}>
@@ -4878,6 +4880,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
             Transaction Ledger
           </div>
           <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)` }}>
@@ -4975,6 +4978,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
           {txs.length === 0 && (
             <div
@@ -5532,7 +5536,7 @@ function NPSCsvPanel({ onImport }: any) {
           >
             {csvPreview.length} rows ready — preview:
           </div>
-          <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
+          <div style={{ maxHeight: 160, overflowY: "auto" as const, overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "var(--surface-0)" }}>
@@ -6941,7 +6945,7 @@ function EPFCsvPanel({ onImport }: any) {
           >
             {csvPreview.length} rows ready — preview:
           </div>
-          <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
+          <div style={{ maxHeight: 160, overflowY: "auto" as const, overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "var(--surface-0)" }}>
@@ -10012,7 +10016,7 @@ function MFSection({
                   flexDirection: "column",
                   gap: 10,
                   boxShadow:
-                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >

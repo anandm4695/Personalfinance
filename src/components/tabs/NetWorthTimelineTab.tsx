@@ -111,8 +111,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           if (entry.dataKey === "cash") color = "var(--t-accent)";
           else if (entry.dataKey === "equity") color = "var(--t-sage)";
           else if (entry.dataKey === "debt") color = "var(--t-gold)";
-          else if (entry.dataKey === "realEstate") color = "#8B5CF6";
-          else if (entry.dataKey === "vehicles") color = "#EC4899";
+          else if (entry.dataKey === "realEstate") color = "var(--t-violet)";
+          else if (entry.dataKey === "vehicles") color = "var(--t-pink)";
           else if (entry.dataKey === "netWorth") color = "var(--t-accent)";
           else if (entry.dataKey === "delta")
             color = entry.value >= 0 ? "var(--t-sage)" : "var(--t-rust)";
@@ -807,12 +807,12 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
                   <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="realEstateGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor="var(--t-violet)" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="var(--t-violet)" stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="vehiclesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#EC4899" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="#EC4899" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor="var(--t-pink)" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="var(--t-pink)" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
@@ -868,7 +868,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
                 type="monotone"
                 dataKey="realEstate"
                 stackId="1"
-                stroke="#8B5CF6"
+                stroke="var(--t-violet)"
                 fill="url(#realEstateGrad)"
                 strokeWidth={1.5}
                 name="Real Estate"
@@ -877,7 +877,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
                 type="monotone"
                 dataKey="vehicles"
                 stackId="1"
-                stroke="#EC4899"
+                stroke="var(--t-pink)"
                 fill="url(#vehiclesGrad)"
                 strokeWidth={1.5}
                 name="Vehicles"

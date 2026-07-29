@@ -653,7 +653,13 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
             }}
           >
             <table
-              style={{ width: "100%", minWidth: 640, borderCollapse: "collapse", fontSize: 11 }}
+              style={{
+                width: "100%",
+                minWidth: 640,
+                borderCollapse: "collapse",
+                fontSize: 11,
+                fontVariantNumeric: "tabular-nums",
+              }}
             >
               <thead>
                 <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>

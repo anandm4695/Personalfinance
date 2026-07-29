@@ -5410,7 +5410,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     />
                     <Legend verticalAlign="top" height={36} />
                     {riSources.map((src, i) => {
-                      const colors = [THEME.accent, THEME.sage, THEME.gold, "#8B5CF6", "#EC4899"];
+                      const colors = [
+                        THEME.accent,
+                        THEME.sage,
+                        THEME.gold,
+                        THEME.violet,
+                        THEME.pink,
+                      ];
                       return (
                         <Area
                           key={src.name}

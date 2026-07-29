@@ -186,6 +186,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               updateMasterData("_onboardingComplete", true);
               onComplete();
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = THEME.ink)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = THEME.muted)}
             style={{
               background: "none",
               border: "none",
@@ -195,7 +197,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               cursor: "pointer",
               marginTop: 10,
               textDecoration: "underline",
+              textUnderlineOffset: 3,
               fontFamily: "inherit",
+              transition: "color 0.15s ease",
             }}
           >
             Skip setup for now
@@ -230,18 +234,46 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         </div>
 
         <Card style={{ padding: "clamp(20px, 5vw, 32px)", borderTop: `4px solid ${THEME.accent}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-            {React.createElement(STEPS[step].icon, { size: 20, color: THEME.accent })}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                color: THEME.accent,
+              }}
+            >
+              {React.createElement(STEPS[step].icon, { size: 19 })}
+            </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800 }}>
-                Step {step + 1}: {STEPS[step].label}
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Step {step + 1} of {STEPS.length}
               </div>
-              <div style={{ fontSize: 12, color: THEME.muted }}>{STEPS[step].desc}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em" }}>
+                {STEPS[step].label}
+              </div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginTop: 1 }}>
+                {STEPS[step].desc}
+              </div>
             </div>
           </div>
 
           {step === 0 && (
-            <div style={{ display: "grid", gap: 14 }}>
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
               <Field label="Your Name">
                 <input
                   style={inputStyle}
@@ -277,7 +309,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 1 && (
-            <div style={{ display: "grid", gap: 14 }}>
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
               <Field label="Bank Name">
                 <input
                   style={inputStyle}
@@ -309,7 +341,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 2 && (
-            <div style={{ display: "grid", gap: 14 }}>
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
               <Field label="Investment Type">
                 <select
                   style={inputStyle}
@@ -369,7 +401,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 3 && (
-            <div style={{ display: "grid", gap: 14 }}>
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
               <Field label="Goal Name">
                 <input
                   style={inputStyle}
@@ -401,7 +433,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 4 && (
-            <div style={{ display: "grid", gap: 14 }}>
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
               <p style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6 }}>
                 Get personalised financial advice powered by Google Gemini AI. Your data stays on
                 your device — only anonymised metrics are shared with the AI.
@@ -421,6 +453,14 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     onClick={() => setShowApiKey((v) => !v)}
                     title={showApiKey ? "Hide key" : "Show key"}
                     aria-label={showApiKey ? "Hide API key" : "Show API key"}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = THEME.accent;
+                      e.currentTarget.style.color = THEME.accent;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = THEME.line;
+                      e.currentTarget.style.color = THEME.muted;
+                    }}
                     style={{
                       padding: "0 14px",
                       borderRadius: 10,
@@ -431,6 +471,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       display: "flex",
                       alignItems: "center",
                       flexShrink: 0,
+                      transition: "color 0.15s ease, border-color 0.15s ease",
                     }}
                   >
                     {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}

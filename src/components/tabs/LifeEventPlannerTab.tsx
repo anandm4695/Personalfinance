@@ -48,9 +48,21 @@ const EVENT_TYPES = [
   { id: "home", label: "Home Purchase", icon: Home, color: "var(--t-sage)", inflationRate: 7 },
   { id: "car", label: "Vehicle Purchase", icon: Car, color: "var(--t-gold)", inflationRate: 5 },
   { id: "wedding", label: "Wedding", icon: Heart, color: "var(--t-rust)", inflationRate: 8 },
-  { id: "vacation", label: "Vacation / Travel", icon: Plane, color: "#8B5CF6", inflationRate: 6 },
-  { id: "baby", label: "New Baby", icon: Baby, color: "#EC4899", inflationRate: 7 },
-  { id: "retirement", label: "Retirement", icon: Briefcase, color: "#6366F1", inflationRate: 6 },
+  {
+    id: "vacation",
+    label: "Vacation / Travel",
+    icon: Plane,
+    color: "var(--t-violet)",
+    inflationRate: 6,
+  },
+  { id: "baby", label: "New Baby", icon: Baby, color: "var(--t-pink)", inflationRate: 7 },
+  {
+    id: "retirement",
+    label: "Retirement",
+    icon: Briefcase,
+    color: "var(--t-muted)",
+    inflationRate: 6,
+  },
   { id: "other", label: "Other", icon: Calendar, color: "var(--t-muted)", inflationRate: 6 },
 ];
 
@@ -349,21 +361,12 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                     <span>Progress</span>
                     <span>{Math.min(100, e.progress).toFixed(0)}%</span>
                   </div>
-                  <div
-                    style={{
-                      height: 8,
-                      borderRadius: 4,
-                      background: THEME.line,
-                      overflow: "hidden",
-                    }}
-                  >
+                  <div className="progress-track">
                     <div
+                      className="progress-fill"
                       style={{
-                        height: "100%",
                         width: `${Math.min(100, e.progress)}%`,
-                        borderRadius: 4,
                         background: e.evType.color,
-                        transition: "width 0.5s",
                       }}
                     />
                   </div>
@@ -423,8 +426,6 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
       ) : (
         <EmptyState
           icon={Calendar}
-          gradient="linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)"
-          dotColor="#6366F1"
           title="No Life Events Planned"
           description="Add major financial milestones like child's education, home purchase, wedding, or retirement to see how much you need to save."
           pills={["Education", "Home Purchase", "Wedding", "Retirement"]}

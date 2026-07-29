@@ -390,12 +390,6 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                       border: "1px solid var(--t-line, var(--border))",
                       transition: "transform 0.2s ease, box-shadow 0.2s ease",
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                    }}
                   >
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}
@@ -504,12 +498,6 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                         background: "color-mix(in srgb, var(--surface-0) 45%, transparent)",
                         border: "1px solid var(--t-line, var(--border))",
                         transition: "transform 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-1px)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
                       }}
                     >
                       <div

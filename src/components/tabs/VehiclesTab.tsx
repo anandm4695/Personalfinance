@@ -1545,14 +1545,6 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
         boxShadow: "var(--shadow-xs)",
         transition: "all 0.2s var(--ease-premium)",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-1px)";
-        e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "var(--shadow-xs)";
-      }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1563,8 +1555,8 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
               color: st.color,
               padding: "3px 8px",
               borderRadius: 20,
-              background: st.color + "12",
-              border: `1px solid ${st.color}25`,
+              background: `color-mix(in srgb, ${st.color} 12%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${st.color} 25%, transparent)`,
               textTransform: "uppercase",
               letterSpacing: "0.02em",
             }}
@@ -1912,14 +1904,6 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
         boxShadow: "var(--shadow-xs)",
         transition: "all 0.2s var(--ease-premium)",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-1px)";
-        e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "var(--shadow-xs)";
-      }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1930,8 +1914,8 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
               color: pt.color,
               padding: "3px 8px",
               borderRadius: 20,
-              background: pt.color + "12",
-              border: `1px solid ${pt.color}25`,
+              background: `color-mix(in srgb, ${pt.color} 12%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${pt.color} 25%, transparent)`,
               textTransform: "uppercase",
               letterSpacing: "0.02em",
             }}
@@ -2574,7 +2558,7 @@ function VehicleCard({
                 borderRadius: 14,
                 padding: "18px 20px",
                 marginBottom: 20,
-                boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+                boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--t-ink) 3%, transparent)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -3133,7 +3117,7 @@ function VehicleCard({
                             fontWeight: 700,
                             padding: "5px 10px",
                             borderRadius: 20,
-                            background: `${st.color}14`,
+                            background: `color-mix(in srgb, ${st.color} 14%, transparent)`,
                             border: `1.5px solid color-mix(in srgb, ${st.color} 20%, transparent)`,
                             color: st.color,
                             boxShadow: `0 2px 6px color-mix(in srgb, ${st.color} 5%, transparent)`,

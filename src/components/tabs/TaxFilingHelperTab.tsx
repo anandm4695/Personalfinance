@@ -360,7 +360,11 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             { label: "Salary Income", value: incomeSummary.salaryIncome, color: THEME.accent },
             { label: "Rental Income", value: incomeSummary.rentalIncome, color: THEME.sage },
             { label: "Bank/FD Interest", value: incomeSummary.bankInterest, color: THEME.gold },
-            { label: "Dividend Income", value: incomeSummary.dividendIncome, color: "#8B5CF6" },
+            {
+              label: "Dividend Income",
+              value: incomeSummary.dividendIncome,
+              color: THEME.violet,
+            },
             {
               label: "Capital Gains (Stocks)",
               value: incomeSummary.stockGains,
@@ -455,7 +459,10 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
               Section 80CCD(1B) — NPS (max ₹50K)
             </div>
-            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6" }}>
+            <div
+              className="tabular-nums"
+              style={{ fontSize: 18, fontWeight: 700, color: THEME.violet }}
+            >
               <Prv>{fmtINRFull(deductions.sec80CCD1B)}</Prv>
             </div>
             <div className="progress-track" style={{ height: 4, marginTop: 8 }}>
@@ -463,7 +470,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
                 className="progress-fill"
                 style={{
                   width: `${Math.min(100, (deductions.sec80CCD1B / 50000) * 100)}%`,
-                  background: "linear-gradient(90deg, #8B5CF6, color-mix(in srgb, #8B5CF6 65%, white))",
+                  background: `linear-gradient(90deg, ${THEME.violet}, color-mix(in srgb, ${THEME.violet} 65%, white))`,
                 }}
               />
             </div>

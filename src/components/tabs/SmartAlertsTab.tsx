@@ -373,11 +373,6 @@ export const SmartAlertsTab = ({ state, metrics }) => {
   const warnCount = smartAlerts.filter((a) => a.level === "warn").length;
 
   const levelColors = { error: THEME.rust, warn: THEME.gold, info: THEME.accent };
-  const levelBg = {
-    error: `color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
-    warn: `color-mix(in srgb, ${THEME.gold} 15%, transparent)`,
-    info: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-  };
   const levelLabels = { error: "Critical", warn: "Warning", info: "Info" };
 
   return (
@@ -470,8 +465,9 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                 key={alert.id}
                 style={{
                   padding: 16,
-                  background: levelBg[alert.level],
-                  border: `1px solid color-mix(in srgb, ${levelColors[alert.level]} 30%, transparent)`,
+                  background: "var(--t-card-bg)",
+                  border: `1px solid ${THEME.line}`,
+                  borderLeft: `3px solid ${levelColors[alert.level]}`,
                 }}
               >
                 <div

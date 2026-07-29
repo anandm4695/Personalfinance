@@ -118,7 +118,7 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
               borderRadius: 12,
               fontSize: 13,
               fontWeight: 600,
-              boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
+              boxShadow: "var(--shadow-xl)",
               display: "flex",
               alignItems: "center",
               gap: 10,

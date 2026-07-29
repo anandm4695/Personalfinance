@@ -1,5 +1,6 @@
 import { Component, ReactNode, ErrorInfo } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "./Button";
 
 interface Props {
   children: ReactNode;
@@ -38,26 +39,42 @@ export class ErrorBoundary extends Component<Props, State> {
               textAlign: "center",
             }}
           >
-            <AlertTriangle size={40} strokeWidth={1.75} style={{ opacity: 0.8 }} />
-            <h2 style={{ margin: 0, fontWeight: 700 }}>Something went wrong</h2>
-            <p style={{ margin: 0, opacity: 0.6, maxWidth: 400 }}>
-              {this.state.error?.message || "An unexpected error occurred. Please reload the page."}
-            </p>
-            <button
-              onClick={() => window.location.reload()}
+            <div
               style={{
-                marginTop: 8,
-                padding: "10px 24px",
-                borderRadius: 8,
-                border: "none",
-                background: "var(--accent)",
-                color: "#fff",
-                cursor: "pointer",
-                fontWeight: 600,
+                width: 64,
+                height: 64,
+                borderRadius: 20,
+                background: "color-mix(in srgb, var(--t-rust) 12%, transparent)",
+                border: "1.5px solid color-mix(in srgb, var(--t-rust) 25%, transparent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
+              <AlertTriangle size={28} strokeWidth={2} style={{ color: "var(--t-rust)" }} />
+            </div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: "-0.02em",
+                color: "var(--t-ink)",
+              }}
+            >
+              Something went wrong
+            </h2>
+            <p style={{ margin: 0, color: "var(--t-muted)", fontSize: 13, lineHeight: 1.6, maxWidth: 400 }}>
+              {this.state.error?.message || "An unexpected error occurred. Please reload the page."}
+            </p>
+            <Button
+              variant="accent"
+              icon={<RefreshCw size={14} />}
+              onClick={() => window.location.reload()}
+              style={{ marginTop: 8 }}
+            >
               Reload App
-            </button>
+            </Button>
           </div>
         )
       );

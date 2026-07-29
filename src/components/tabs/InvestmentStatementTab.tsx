@@ -84,13 +84,17 @@ const tdBold: React.CSSProperties = { ...td, fontWeight: 700 };
 const tdBoldRight: React.CSSProperties = { ...tdRight, fontWeight: 700 };
 
 /* ── Color palette for pie chart ───────────────────────────────────── */
+// First 4 map to the same semantic tokens RebalancingTab's allocation pie
+// uses for the equivalent buckets (accent/sage/gold + a fixed extension hue),
+// so "Equity"/"Debt" read as the same color across both tabs and adapt to
+// the user's selected accent theme instead of being stuck on indigo/purple.
 const PIE_COLORS = [
-  "#4F46E5", // Equity
-  "#059669", // Debt
-  "#D97706", // Retirement
-  "#7C3AED", // Insurance
-  "#DC2626", // Other
-  "#0891B2",
+  THEME.accent, // Equity
+  THEME.sage, // Debt
+  THEME.gold, // Retirement
+  THEME.violet, // Insurance
+  THEME.rust, // Other (unused today — pieData only emits the 4 above)
+  THEME.pink,
   "#2563EB",
   "#B91C1C",
 ];

@@ -29,11 +29,15 @@ export const Button: React.FC<ButtonProps> = ({
           border: "none",
         };
       case "accent":
+        // Flat accent fill, not a gradient — a solid CTA color reads as more
+        // deliberate/premium than a glossy diagonal sheen, and stays legible
+        // across all 10 accent-color presets. The subtle lift (box-shadow)
+        // is what distinguishes this from the plain "primary" variant.
         return {
-          background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
+          background: "var(--t-accent)",
           color: "#fff",
           border: "none",
-          boxShadow: `0 4px 12px color-mix(in srgb, ${THEME.accent} 35%, transparent)`,
+          boxShadow: `0 2px 8px color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
         };
       case "secondary":
         return {

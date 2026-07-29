@@ -22,6 +22,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
 
 // Internal helper components
 
@@ -32,104 +33,14 @@ const EmptyHint = ({ text }: { text: string }) => (
 );
 
 const GoalEmptyState = ({ onAdd }: any) => (
-  <div
-    style={{
-      padding: "54px 36px",
-      textAlign: "center" as const,
-      background:
-        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-      border: `1.5px solid ${THEME.line}`,
-      borderRadius: 20,
-      boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 24,
-    }}
-  >
-    <div
-      style={{
-        width: 68,
-        height: 68,
-        borderRadius: 22,
-        background: `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: `0 8px 24px -4px color-mix(in srgb, ${THEME.gold} 30%, transparent)`,
-        border: "2px solid rgba(255, 255, 255, 0.2)",
-      }}
-    >
-      <Flag size={30} color="#fff" />
-    </div>
-    <div>
-      <h3
-        style={{
-          fontSize: 22,
-          fontWeight: 800,
-          color: THEME.ink,
-          marginBottom: 12,
-          letterSpacing: "-0.02em",
-        }}
-      >
-        No Goals Added Yet
-      </h3>
-      <p
-        style={{
-          fontSize: 14,
-          color: THEME.muted,
-          maxWidth: 420,
-          lineHeight: 1.6,
-          margin: "0 auto",
-        }}
-      >
-        Set financial goals — a house down payment, retirement corpus, car, education, or emergency
-        fund — and watch your progress every day.
-      </p>
-    </div>
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Retirement Planning", "Home Down Payment", "Education Fund", "Emergency Reserve"].map(
-        (f) => (
-          <span
-            key={f}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "4px 10px",
-              borderRadius: 12,
-              background: "var(--surface-1)",
-              border: `1.5px solid ${THEME.line}`,
-              fontWeight: 600,
-              fontSize: 11,
-              color: THEME.muted,
-            }}
-          >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: THEME.gold,
-                display: "inline-block",
-              }}
-            />
-            {f}
-          </span>
-        )
-      )}
-    </div>
-    <Button
-      variant="accent"
-      size="lg"
-      icon={<Plus size={18} />}
-      onClick={onAdd}
-      style={{ marginTop: 8 }}
-    >
-      Set Your First Goal
-    </Button>
-  </div>
+  <EmptyState
+    icon={Flag}
+    title="No Goals Added Yet"
+    description="Set financial goals — a house down payment, retirement corpus, car, education, or emergency fund — and watch your progress every day."
+    pills={["Retirement Planning", "Home Down Payment", "Education Fund", "Emergency Reserve"]}
+    buttonLabel="Set Your First Goal"
+    onAdd={onAdd}
+  />
 );
 
 const PRIORITY_ORDER: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
@@ -379,22 +290,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             >
               Portfolio Completion — {animatedOverallPct.toFixed(1)}% achieved
             </div>
-            <div
-              style={{
-                height: 12,
-                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-                borderRadius: 6,
-                overflow: "hidden",
-                marginBottom: 16,
-              }}
-            >
+            <div className="progress-track" style={{ height: 10, marginBottom: 16 }}>
               <div
+                className="progress-fill"
                 style={{
-                  height: "100%",
                   width: `${Math.min(overallPct, 100)}%`,
                   background: `linear-gradient(90deg, ${ringColor(overallPct)}, color-mix(in srgb, ${ringColor(overallPct)} 80%, transparent))`,
-                  borderRadius: 6,
-                  transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)",
                 }}
               />
             </div>
@@ -465,22 +366,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                           {p.count} goal{p.count !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      <div
-                        style={{
-                          height: 6,
-                          background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-                          borderRadius: 3,
-                          marginBottom: 12,
-                          overflow: "hidden",
-                        }}
-                      >
+                      <div className="progress-track" style={{ marginBottom: 12 }}>
                         <div
+                          className="progress-fill"
                           style={{
-                            height: "100%",
                             width: `${Math.min(pPct, 100)}%`,
                             background: color,
-                            borderRadius: 3,
-                            transition: "width 0.6s ease",
                           }}
                         />
                       </div>

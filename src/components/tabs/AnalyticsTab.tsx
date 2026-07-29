@@ -6010,7 +6010,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               nominationAudit.pct > 80
                                 ? THEME.sage
                                 : nominationAudit.pct >= 50
-                                  ? "#eab308"
+                                  ? THEME.gold
                                   : THEME.rust,
                             transition: "width 0.4s ease",
                           }}
@@ -6025,7 +6025,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           nominationAudit.pct > 80
                             ? THEME.sage
                             : nominationAudit.pct >= 50
-                              ? "#eab308"
+                              ? THEME.gold
                               : THEME.rust,
                         letterSpacing: "-0.02em",
                       }}
@@ -6582,29 +6582,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             ).map(({ label, value, delta, positive, icon: Icon }) => (
               <div
                 key={label}
+                className="card-lift"
                 style={{
                   padding: "18px 20px",
                   borderRadius: 16,
-                  background: isDark ? "var(--surface-1)" : "rgba(255,255,255,0.9)",
+                  background: isDark ? "var(--surface-1)" : "var(--t-paper)",
                   border: `1px solid ${THEME.line}`,
                   display: "flex",
                   flexDirection: "column",
                   gap: 8,
-                  boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(0,0,0,0.06)",
-                  transition: "transform 0.2s, box-shadow 0.2s",
+                  boxShadow: "var(--shadow-card)",
                   cursor: "default",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = isDark
-                    ? "0 6px 24px rgba(0,0,0,0.4)"
-                    : "0 6px 24px rgba(0,0,0,0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.transform = "";
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = isDark
-                    ? "0 2px 12px rgba(0,0,0,0.25)"
-                    : "0 2px 12px rgba(0,0,0,0.06)";
                 }}
               >
                 <div
@@ -8571,7 +8559,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               return (
                                 <Cell
                                   key={i}
-                                  fill={["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4]}
+                                  fill={[THEME.accent, THEME.sage, THEME.gold, THEME.rust][i % 4]}
                                   opacity={
                                     selectedCapClass
                                       ? isSelected
@@ -8760,7 +8748,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <div style={{ display: "grid", gap: 6 }}>
                           {metrics.stockCapBreakdown.map((item: any, i: number) => {
                             const isHovered = activeCapIndex === i;
-                            const color = ["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4];
+                            const color = [THEME.accent, THEME.sage, THEME.gold, THEME.rust][i % 4];
                             const pct = ((item.value / (metrics.stockValue || 1)) * 100).toFixed(1);
                             return (
                               <div
@@ -9019,8 +9007,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "RD Yield / Mo",
                   value: passiveIncomeData.rdMonthly,
                   icon: Activity,
-                  color: "#22D3EE",
-                  bg: "color-mix(in srgb, #22D3EE 8%, transparent)",
+                  color: THEME.cyan,
+                  bg: `color-mix(in srgb, ${THEME.cyan} 8%, transparent)`,
                 },
                 {
                   label: "Savings Int. / Mo",
@@ -9040,8 +9028,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "MF Yield / Mo",
                   value: passiveIncomeData.mfYieldMonthly,
                   icon: Zap,
-                  color: "#a78bfa",
-                  bg: "#a78bfa15",
+                  color: THEME.violet,
+                  bg: `color-mix(in srgb, ${THEME.violet} 8%, transparent)`,
                 },
               ].map(({ label, value, icon: Icon, color, bg }) => (
                 <div
@@ -9197,7 +9185,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Debt",
                   actualPct: actual.debt,
                   actualVal: debt,
-                  color: "#f59e0b",
+                  color: THEME.gold,
                   icon: Landmark,
                 },
                 {
@@ -9205,7 +9193,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Cash",
                   actualPct: actual.cash,
                   actualVal: cash,
-                  color: "#22c55e",
+                  color: THEME.sage,
                   icon: Activity,
                 },
                 {
@@ -9213,7 +9201,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Real Estate",
                   actualPct: actual.realEstate,
                   actualVal: realEstate,
-                  color: "#8b5cf6",
+                  color: THEME.violet,
                   icon: Building2,
                 },
                 {
@@ -9221,7 +9209,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Other",
                   actualPct: actual.other,
                   actualVal: other,
-                  color: "#94a3b8",
+                  color: THEME.muted,
                   icon: Receipt,
                 },
               ] as const;
@@ -11575,7 +11563,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 { label: "PPF Contribution", value: taxData80C.ppfAnnual, color: THEME.sage },
                 { label: "LIC Premium", value: taxData80C.licPremium, color: THEME.gold },
                 ...(taxData80C.epfEmployee > 0
-                  ? [{ label: "EPF (Employee)", value: taxData80C.epfEmployee, color: "#38bdf8" }]
+                  ? [{ label: "EPF (Employee)", value: taxData80C.epfEmployee, color: THEME.violet }]
                   : []),
               ].map(({ label, value, color }) => (
                 <div
@@ -11832,7 +11820,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 : spendingPct > (100 - targetPct) * 0.8
                                   ? THEME.gold
                                   : spendingPct > 50
-                                    ? "#A3E635"
+                                    ? `color-mix(in srgb, ${THEME.gold} 35%, ${THEME.sage})`
                                     : THEME.sage,
                             transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)",
                           }}
@@ -13573,7 +13561,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     const fDay = Math.min(Number(c.feeDay) || 1, daysInMonth);
                     dueDays[fDay] = (dueDays[fDay] || []).concat({
                       label: (c.issuer || "Card") + " Annual Fee",
-                      color: "#fbbf24",
+                      color: THEME.gold,
                     });
                   }
                 });
@@ -14498,7 +14486,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   gap: 8,
                 }}
               >
-                <Zap size={15} color="#d97706" style={{ flexShrink: 0 }} />
+                <Zap size={15} color={THEME.gold} style={{ flexShrink: 0 }} />
                 Smart Action Tips
                 <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
                   — personalized to your next badges
@@ -14840,12 +14828,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     style={{
                       marginTop: 12,
                       padding: "12px 16px",
-                      background: "#10b98110",
-                      border: "1px solid #10b98130",
-                      borderLeft: "3px solid #10b981",
+                      background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
+                      borderLeft: `3px solid ${THEME.sage}`,
                       borderRadius: 12,
                       fontSize: 11,
-                      color: "#059669",
+                      color: THEME.sage,
                       fontWeight: 600,
                       lineHeight: 1.5,
                     }}
@@ -14882,7 +14870,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         fontSize: 11,
                         fontWeight: 800,
                         color:
-                          row.pct === 100 ? "#059669" : row.pct > 0 ? THEME.accent : THEME.muted,
+                          row.pct === 100 ? THEME.sage : row.pct > 0 ? THEME.accent : THEME.muted,
                       }}
                     >
                       {row.earned} / {row.possible} XP
@@ -14902,11 +14890,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         width: `${row.pct}%`,
                         background:
                           row.pct === 100
-                            ? "linear-gradient(90deg, #10b981, #34d399)"
+                            ? `linear-gradient(90deg, ${THEME.sage}, color-mix(in srgb, ${THEME.sage} 65%, white))`
                             : row.pct > 50
                               ? `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`
                               : row.pct > 0
-                                ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+                                ? `linear-gradient(90deg, ${THEME.gold}, color-mix(in srgb, ${THEME.gold} 65%, white))`
                                 : THEME.line,
                         borderRadius: 99,
                         transition: "width 0.6s ease",
@@ -14979,7 +14967,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     tickLine={false}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(99,102,241,0.04)" }}
+                    cursor={{ fill: THEME.line, opacity: 0.4 }}
                     contentStyle={{
                       borderRadius: 12,
                       border: `1px solid ${THEME.line}`,
@@ -15000,8 +14988,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     iconType="circle"
                   />
                   <Bar dataKey="You" fill="var(--t-accent)" radius={[5, 5, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Average" fill="#94a3b8" radius={[5, 5, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Top10" fill="#10b981" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="Average" fill={THEME.muted} radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="Top10" fill={THEME.sage} radius={[5, 5, 0, 0]} maxBarSize={36} />
                 </BarChart>
               </ResponsiveContainer></div>
             </div>

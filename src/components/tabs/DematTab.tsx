@@ -4499,7 +4499,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     "3Y": 18.7,
                     "5Y": 19.2,
                     "10Y": 16.5,
-                    color: "#8b5cf6",
+                    color: THEME.violet,
                   },
                   {
                     name: "Nifty Smallcap",
@@ -4544,7 +4544,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     fill: THEME.accent,
                   },
                   { name: "Nifty 50", return: benchmarks[0][benchmarkPeriod], fill: "#3b82f6" },
-                  { name: "Nifty Midcap", return: benchmarks[2][benchmarkPeriod], fill: "#8b5cf6" },
+                  {
+                    name: "Nifty Midcap",
+                    return: benchmarks[2][benchmarkPeriod],
+                    fill: THEME.violet,
+                  },
                   {
                     name: "Nifty Smallcap",
                     return: benchmarks[3][benchmarkPeriod],

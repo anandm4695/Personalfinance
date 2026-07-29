@@ -436,7 +436,7 @@ export default function Auth({
                               background:
                                 getStrength(newPassword) >= i
                                   ? STRENGTH_COLOR[getStrength(newPassword)]
-                                  : "#E2E8F0",
+                                  : "var(--af-border)",
                               transition: "background 0.25s",
                             }}
                           />
@@ -644,7 +644,7 @@ export default function Auth({
                                   flex: 1,
                                   height: 3,
                                   borderRadius: 99,
-                                  background: strength >= i ? STRENGTH_COLOR[strength] : "#E2E8F0",
+                                  background: strength >= i ? STRENGTH_COLOR[strength] : "var(--af-border)",
                                   transition: "background 0.25s",
                                 }}
                               />
@@ -1022,6 +1022,16 @@ const AF_STYLES = `
 
 /* ══════════════════════════════════════
    DARK MODE
+   Two triggers, same overrides:
+   1) OS-level prefers-color-scheme — for a first-time visitor who has never
+      set an in-app preference (no session yet, nothing in localStorage).
+   2) .dark-theme class on <html>/<body> — driven by useTheme() from the
+      user's saved app setting (see hooks/useTheme.ts), which is applied
+      unconditionally on every render, including this pre-login screen.
+      Without this, a user who chose dark mode in-app but has a light OS
+      theme (or vice versa) sees a login page that contradicts the app
+      they're about to land in. The class selector's higher specificity
+      lets it win over the media query whenever both are present.
 ══════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
   .af-shell {
@@ -1051,6 +1061,35 @@ const AF_STYLES = `
    give it the dark surface treatment there too. */
 @media (prefers-color-scheme: dark) and (max-width: 768px) {
   .af-card {
+    background: #12161F;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  }
+}
+
+.dark-theme .af-shell {
+  --af-accent: #8583E0;
+  --af-accent-hover: #A5A3F0;
+  --af-text: #F9FAFB;
+  --af-text-secondary: #D1D5DB;
+  --af-border: #2A3140;
+  --af-border-hover: #3D4556;
+  --af-page-bg: #0B0E14;
+}
+.dark-theme .af-brand-panel { background: linear-gradient(160deg, #0E0C28 0%, #1C1958 46%, #2E2A7D 100%); }
+.dark-theme .af-card-sub { color: #9CA3AF; }
+.dark-theme .af-inp-wrap { background: #171C27; }
+.dark-theme .af-inp-wrap.af-focused { background: #1A2030; }
+.dark-theme .af-inp::placeholder { color: #4B5563; }
+.dark-theme .af-inp-icon { color: #6B7280; }
+.dark-theme .af-switch-txt { color: #9CA3AF; }
+.dark-theme .af-alert-err { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
+.dark-theme .af-alert-ok  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6EE7B7; }
+.dark-theme .af-info-banner { background: rgba(133,131,224,0.1); border-color: rgba(133,131,224,0.25); }
+.dark-theme .af-demo-btn { color: #6B7280; }
+.dark-theme .af-greeting { color: #6B7280; }
+.dark-theme .af-logo-tagline { color: #6B7280; }
+@media (max-width: 768px) {
+  .dark-theme .af-card {
     background: #12161F;
     box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
   }

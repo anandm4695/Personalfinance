@@ -38,11 +38,11 @@ import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 const GOLD_TYPES = [
-  { id: "physical", label: "Physical Gold", color: "#F59E0B" },
-  { id: "sgb", label: "Sovereign Gold Bond (SGB)", color: "#10B981" },
+  { id: "physical", label: "Physical Gold", color: THEME.gold },
+  { id: "sgb", label: "Sovereign Gold Bond (SGB)", color: THEME.sage },
   { id: "digital", label: "Digital Gold", color: THEME.accent },
-  { id: "etf", label: "Gold ETF", color: "#8B5CF6" },
-  { id: "mf", label: "Gold Mutual Fund", color: "#EC4899" },
+  { id: "etf", label: "Gold ETF", color: THEME.violet },
+  { id: "mf", label: "Gold Mutual Fund", color: THEME.pink },
 ];
 
 const EMPTY_GOLD = {
@@ -198,7 +198,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
               border: `1px solid ${THEME.border}`,
             }}
           >
-            <Coins size={14} color="#F59E0B" />
+            <Coins size={14} color={THEME.gold} />
             <span style={{ fontSize: 12, color: THEME.textSecondary }}>Gold:</span>
             {manualPrice ? (
               <input
@@ -230,7 +230,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                     setManualPrice(true);
                   }
                 }}
-                style={{ fontSize: 13, fontWeight: 600, color: "#F59E0B", cursor: "pointer" }}
+                style={{ fontSize: 13, fontWeight: 600, color: THEME.gold, cursor: "pointer" }}
               >
                 {fmtINRFull(goldPrice)}/g
               </span>
@@ -262,7 +262,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
             label="Total Gold"
             value={`${stats.totalGrams.toFixed(2)}g`}
             icon={<Coins />}
-            color="#F59E0B"
+            color={THEME.gold}
           />
           <StatCard
             label="Current Value"
@@ -461,7 +461,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Current Value</div>
-                  <div style={{ fontWeight: 600, color: "#F59E0B" }}>
+                  <div style={{ fontWeight: 600, color: h.typeInfo.color }}>
                     <Prv>{fmtINRFull(h.currentValue)}</Prv>
                   </div>
                 </div>

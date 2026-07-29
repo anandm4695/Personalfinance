@@ -6,17 +6,6 @@ import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
-const input = {
-  width: "100%",
-  padding: "10px 12px",
-  background: "var(--t-paper)",
-  border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
-  color: THEME.ink,
-  fontSize: 14,
-  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-};
-
 export function GoalModal({ initial, onClose, onSave }: any) {
   const { goalCategories, familyProfiles } = useMasterData();
   const [clearHover, setClearHover] = useState(false);
@@ -40,7 +29,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
     <Modal title={initial ? "Edit Goal" : "Add Financial Goal"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select
-          style={input}
+          className="form-input"
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
@@ -53,16 +42,16 @@ export function GoalModal({ initial, onClose, onSave }: any) {
       </Field>
       <Field label="Goal Name">
         <input
-          style={input}
+          className="form-input"
           value={f.name}
           onChange={(e) => setF({ ...f, name: e.target.value })}
           placeholder="e.g. Buy a home, Retirement corpus"
         />
       </Field>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2" style={{ gap: 12 }}>
         <Field label="Category">
           <select
-            style={input}
+            className="form-input"
             value={f.category}
             onChange={(e) => setF({ ...f, category: e.target.value })}
           >
@@ -73,7 +62,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
         </Field>
         <Field label="Priority">
           <select
-            style={input}
+            className="form-input"
             value={f.priority}
             onChange={(e) => setF({ ...f, priority: e.target.value })}
           >
@@ -92,7 +81,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
       >
         <Field label="Target Amount">
           <input
-            style={input}
+            className="form-input"
             type="number"
             value={f.targetAmount}
             onChange={(e) => setF({ ...f, targetAmount: e.target.value })}
@@ -100,7 +89,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
         </Field>
         <Field label="Current Saved">
           <input
-            style={input}
+            className="form-input"
             type="number"
             value={f.currentAmount}
             onChange={(e) => setF({ ...f, currentAmount: e.target.value })}
@@ -108,7 +97,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
         </Field>
         <Field label="Start Date">
           <input
-            style={input}
+            className="form-input"
             type="date"
             value={f.startDate}
             onChange={(e) => setF({ ...f, startDate: e.target.value })}
@@ -118,7 +107,8 @@ export function GoalModal({ initial, onClose, onSave }: any) {
           {f.targetDate ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
-                style={{ ...input, flex: 1 }}
+                className="form-input"
+                style={{ flex: 1 }}
                 type="date"
                 value={f.targetDate}
                 onChange={(e) => setF({ ...f, targetDate: e.target.value })}
@@ -132,7 +122,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
                 style={{
                   padding: "10px 12px",
                   border: `1.5px solid ${THEME.rust}`,
-                  borderRadius: 10,
+                  borderRadius: "var(--radius-md)",
                   background: clearHover ? THEME.rust : "transparent",
                   color: clearHover ? "#fff" : THEME.rust,
                   cursor: "pointer",
@@ -152,8 +142,12 @@ export function GoalModal({ initial, onClose, onSave }: any) {
               onMouseEnter={() => setSetDateHover(true)}
               onMouseLeave={() => setSetDateHover(false)}
               style={{
-                ...input,
-                background: setDateHover ? "color-mix(in srgb, var(--t-accent) 6%, transparent)" : "transparent",
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: "var(--radius-md)",
+                background: setDateHover
+                  ? "color-mix(in srgb, var(--t-accent) 6%, transparent)"
+                  : "transparent",
                 border: `1.5px dashed ${setDateHover ? THEME.accent : THEME.line}`,
                 color: setDateHover ? THEME.accent : THEME.muted,
                 cursor: "pointer",

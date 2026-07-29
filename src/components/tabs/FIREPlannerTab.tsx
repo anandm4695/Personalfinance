@@ -341,7 +341,49 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         </div>
       </Card>
 
-      {/* FIRE Numbers */}
+      {/* FIRE Number — the target this whole tool is built around, so it gets top billing */}
+      <Card
+        variant="hero"
+        style={{
+          padding: "clamp(24px, 4vw, 36px)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.6)",
+          }}
+        >
+          <Flame size={13} /> Your FIRE Number
+        </div>
+        <div
+          style={{
+            fontSize: "clamp(32px, 5vw, 52px)",
+            fontWeight: 900,
+            color: "#fff",
+            letterSpacing: "-0.03em",
+            lineHeight: 1.05,
+          }}
+        >
+          <Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>
+        </div>
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+          Needed at age {targetAge} to sustain{" "}
+          <Prv>{fmtINRFull(fireCalc.expenseAtRetirement / 12)}</Prv>/mo of expenses at a{" "}
+          {swr}% withdrawal rate
+        </div>
+      </Card>
+
+      {/* Alternate FIRE scenarios — secondary to the main number above */}
       <div
         style={{
           display: "grid",
@@ -350,16 +392,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         }}
       >
         <StatCard
-          label="FIRE Number"
-          value={<Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>}
-          icon={<Flame />}
-          color={THEME.rust}
-        />
-        <StatCard
           label="Coast FIRE"
           value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>}
           icon={<Shield />}
-          color="#8B5CF6"
+          color={THEME.violet}
         />
         <StatCard
           label="Lean FIRE"
@@ -372,6 +408,12 @@ export const FIREPlannerTab = ({ state, metrics }) => {
           value={<Prv>{fmtINRFull(fireCalc.fatFIRE)}</Prv>}
           icon={<Zap />}
           color={THEME.sage}
+        />
+        <StatCard
+          label="Barista FIRE"
+          value={<Prv>{fmtINRFull(fireCalc.baristaNumber)}</Prv>}
+          icon={<TrendingUp />}
+          color={THEME.accent}
         />
       </div>
 
@@ -394,21 +436,12 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 {Math.min(100, fireCalc.progress).toFixed(1)}%
               </span>
             </div>
-            <div
-              style={{
-                height: 12,
-                borderRadius: 6,
-                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-                overflow: "hidden",
-              }}
-            >
+            <div className="progress-track" style={{ height: 10 }}>
               <div
+                className="progress-fill"
                 style={{
-                  height: "100%",
                   width: `${Math.min(100, fireCalc.progress)}%`,
-                  borderRadius: 6,
                   background: progressColor,
-                  transition: "width 0.5s",
                 }}
               />
             </div>
@@ -430,21 +463,12 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 {Math.min(100, fireCalc.coastProgress).toFixed(1)}%
               </span>
             </div>
-            <div
-              style={{
-                height: 12,
-                borderRadius: 6,
-                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-                overflow: "hidden",
-              }}
-            >
+            <div className="progress-track" style={{ height: 10 }}>
               <div
+                className="progress-fill"
                 style={{
-                  height: "100%",
                   width: `${Math.min(100, fireCalc.coastProgress)}%`,
-                  borderRadius: 6,
                   background: fireCalc.coastProgress >= 100 ? THEME.sage : THEME.accent,
-                  transition: "width 0.5s",
                 }}
               />
             </div>

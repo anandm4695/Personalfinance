@@ -748,30 +748,17 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               onClick={() => toggleComplete(r.id, r.date)}
               title="Mark as Done"
               aria-label={`Mark ${r.title} as done`}
+              className="reminder-done-btn"
               style={{
                 width: 34,
                 height: 34,
                 borderRadius: "50%",
-                border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
-                background: "transparent",
+                borderWidth: 1,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                color: THEME.sage,
                 transition: "all 0.2s ease-in-out",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderStyle = "solid";
-                e.currentTarget.style.borderColor = THEME.sage;
-                e.currentTarget.style.color = "#ffffff";
-                e.currentTarget.style.background = THEME.sage;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderStyle = "dashed";
-                e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
-                e.currentTarget.style.color = THEME.sage;
-                e.currentTarget.style.background = "transparent";
               }}
             >
               <Check size={16} strokeWidth={2.5} />
@@ -834,6 +821,20 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
 
   return (
     <div className="tab-content-enter">
+      <style>{`
+        .reminder-done-btn {
+          border-style: dashed;
+          border-color: color-mix(in srgb, ${THEME.sage} 40%, transparent);
+          background: transparent;
+          color: ${THEME.sage};
+        }
+        .reminder-done-btn:hover {
+          border-style: solid;
+          border-color: ${THEME.sage};
+          color: #ffffff;
+          background: ${THEME.sage};
+        }
+      `}</style>
       <SectionTitle
         sub="Upcoming dues, maturities, renewals and custom alerts"
         rightElement={
@@ -1570,30 +1571,17 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                           <button
                             onClick={() => toggleComplete(r.id, r.date)}
                             title="Mark as Done"
+                            className="reminder-done-btn"
                             style={{
                               width: 28,
                               height: 28,
                               borderRadius: "50%",
-                              border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
-                              background: "transparent",
+                              borderWidth: 1,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               cursor: "pointer",
-                              color: THEME.sage,
                               transition: "all 0.2s ease-in-out",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderStyle = "solid";
-                              e.currentTarget.style.borderColor = THEME.sage;
-                              e.currentTarget.style.color = "#ffffff";
-                              e.currentTarget.style.background = THEME.sage;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderStyle = "dashed";
-                              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
-                              e.currentTarget.style.color = THEME.sage;
-                              e.currentTarget.style.background = "transparent";
                             }}
                           >
                             <Check size={13} strokeWidth={2.5} />

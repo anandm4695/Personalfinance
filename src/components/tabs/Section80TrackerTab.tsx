@@ -215,21 +215,12 @@ export const Section80TrackerTab = ({ state, metrics }) => {
         <span>{fmtINRFull(used)} used</span>
         <span>{fmtINRFull(Math.max(0, limit - used))} remaining</span>
       </div>
-      <div
-        style={{
-          height: 8,
-          borderRadius: 4,
-          background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-          overflow: "hidden",
-        }}
-      >
+      <div className="progress-track">
         <div
+          className="progress-fill"
           style={{
-            height: "100%",
             width: `${Math.min(100, (used / limit) * 100)}%`,
-            borderRadius: 4,
             background: color,
-            transition: "width 0.5s",
           }}
         />
       </div>
@@ -387,10 +378,14 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
             Additional deduction up to ₹50,000
           </div>
-          <div className="amount-md" style={{ color: "#8B5CF6" }}>
+          <div className="amount-md" style={{ color: THEME.violet }}>
             <Prv>{fmtINRFull(data.sec80CCD1B.used)}</Prv>
           </div>
-          <ProgressBar used={data.sec80CCD1B.used} limit={data.sec80CCD1B.limit} color="#8B5CF6" />
+          <ProgressBar
+            used={data.sec80CCD1B.used}
+            limit={data.sec80CCD1B.limit}
+            color={THEME.violet}
+          />
         </Card>
 
         {/* 80CCD(2) */}
@@ -420,7 +415,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                 <Prv>{fmtINRFull(data.sec80D.self)}</Prv> / {fmtINRFull(data.sec80D.selfLimit)}
               </span>
             </div>
-            <ProgressBar used={data.sec80D.self} limit={data.sec80D.selfLimit} color="#EC4899" />
+            <ProgressBar used={data.sec80D.self} limit={data.sec80D.selfLimit} color={THEME.pink} />
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>Parents</span>
               <span style={{ fontWeight: 600, color: THEME.text }}>
@@ -458,10 +453,14 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
             Max: ₹10,000 on savings account interest
           </div>
-          <div className="amount-md" style={{ color: "#14B8A6" }}>
+          <div className="amount-md" style={{ color: THEME.sage }}>
             <Prv>{fmtINRFull(data.sec80TTA.total)}</Prv>
           </div>
-          <ProgressBar used={data.sec80TTA.total} limit={data.sec80TTA.limit} color="#14B8A6" />
+          <ProgressBar
+            used={data.sec80TTA.total}
+            limit={data.sec80TTA.limit}
+            color={THEME.sage}
+          />
         </Card>
 
         {/* HRA */}

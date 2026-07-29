@@ -787,7 +787,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         <SummaryCard
           label="MF Invested"
           value={`₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-          color="#7C3AED"
+          color={THEME.violet}
           icon={Layers}
         />
         <SummaryCard
@@ -980,7 +980,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           value={String(cashTransactionsInFY.length)}
           sub={`In +₹${totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })} · Out -₹${totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
           subColor={THEME.sage}
-          color="#0891B2"
+          color={THEME.cyan}
           active={activeSection === "cash_ledger"}
           onClick={() => setActiveSection("cash_ledger")}
         />
@@ -1235,7 +1235,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               icon={BarChart3}
               title="Mutual Funds Bought"
               count={mfBoughtInFY.length}
-              color="#7C3AED"
+              color={THEME.violet}
             />
             {mfBoughtInFY.length > 0 && (
               <Button
@@ -1474,7 +1474,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               icon={Coins}
               title="Bank & Cash Ledger"
               count={cashTransactionsInFY.length}
-              color="#0891B2"
+              color={THEME.cyan}
               subText={
                 cashTransactionsInFY.length > 0
                   ? `Inflow +${fmtINRFull(totalCredits)} · Outflow -${fmtINRFull(totalDebits)}`

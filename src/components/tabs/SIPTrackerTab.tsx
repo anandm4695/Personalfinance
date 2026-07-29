@@ -52,10 +52,14 @@ const FUND_COLORS: Record<string, string> = {
   Hybrid: THEME.gold,
   ELSS: THEME.rust,
   Index: THEME.sage,
-  // Liquid & Flexi Cap get distinct hues outside the 5-token semantic
-  // palette so all fund types remain visually distinguishable together.
+  // Liquid gets a distinct hue outside the 5-token semantic palette so all
+  // fund types remain visually distinguishable together. Flexi Cap reuses
+  // the fixed violet chart-extension token (not a raw hex) — a raw "#7c3aed"
+  // here would exactly match THEME.accent when the user's active theme is
+  // "Violet", making the badge indistinguishable from the frequency badge
+  // that already uses THEME.accent on the same card.
   Liquid: "#0891b2",
-  "Flexi Cap": "#7c3aed",
+  "Flexi Cap": THEME.violet,
 };
 
 export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics }: any) {

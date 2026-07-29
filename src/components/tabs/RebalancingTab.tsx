@@ -349,7 +349,10 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     return Math.max(0, 100 - (d1 + d2 + d3 + d4));
   }, [allocation, target]);
 
-  const CASH_COLOR = "#7C3AED";
+  // Fixed chart-extension token (not the user-selectable accent) — Equity
+  // already uses THEME.accent, so a hardcoded purple here would render as the
+  // exact same color if the user's active theme happens to be "Violet".
+  const CASH_COLOR = THEME.violet;
 
   const pieData = [
     { name: "Equity", value: allocation.equity, color: THEME.accent },

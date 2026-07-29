@@ -23,6 +23,7 @@
      hues that hold up in both light and dark. */
   --t-violet: #8b5cf6;
   --t-pink: #ec4899;
+  --t-cyan: #0891b2;
 
   /* Surface hierarchy — subtle warm tint */
   --surface-0: #ffffff;
@@ -123,6 +124,7 @@
 
   --t-violet: #a78bfa;
   --t-pink: #f472b6;
+  --t-cyan: #22d3ee;
 }
 
 /* ── Base Reset ────────────────────────────────────────────────── */

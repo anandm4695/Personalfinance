@@ -204,15 +204,9 @@ export const CommandPaletteModal = ({
 
   return (
     <div
+      className="modal-backdrop"
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "rgba(15, 23, 42, 0.4)",
-        backdropFilter: "blur(8px)",
-        display: "flex",
         alignItems: "flex-start",
-        justifyContent: "center",
         paddingTop: "12vh",
       }}
       onClick={onClose}

@@ -574,7 +574,7 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
       background: "transparent",
       position: "relative",
       borderRadius: 16,
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
+      boxShadow: "var(--shadow-card)",
       border: "1px solid var(--t-line)",
       ...cardStyle,
     }}
@@ -583,6 +583,7 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
       <button
         onClick={onEdit}
         aria-label="Edit"
+        className="icon-btn"
         style={{
           ...iconBtn,
           background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
@@ -596,22 +597,17 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
           color: THEME.muted,
           transition: "all 0.2s ease",
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = THEME.accent;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = THEME.muted;
-        }}
       >
         <Edit3 size={13} />
       </button>
       <button
         onClick={onRemove}
         aria-label="Remove"
+        className="icon-btn danger"
         style={{
           ...iconBtn,
-          background: "rgba(239, 68, 68, 0.08)",
-          border: "1px solid rgba(239, 68, 68, 0.2)",
+          background: "color-mix(in srgb, var(--t-rust) 8%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)",
           borderRadius: 8,
           width: 32,
           height: 32,
@@ -620,12 +616,6 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
           justifyContent: "center",
           color: THEME.rust,
           transition: "all 0.2s ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)";
         }}
       >
         <Trash2 size={13} />

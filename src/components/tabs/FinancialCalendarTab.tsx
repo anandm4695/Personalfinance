@@ -432,8 +432,11 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
         </SectionTitle>
         <EmptyState
           icon={Calendar}
+          gradient="linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)"
+          dotColor="#0EA5E9"
           title="No Upcoming Events"
-          subtitle="Add FDs, RDs, insurance policies, or subscriptions to see your financial calendar"
+          description="This calendar auto-populates from your Fixed Deposits, RDs, insurance policies, loans, credit cards, PPF and subscriptions — add those elsewhere in the app and their due dates and maturities will show up here."
+          pills={["FD / RD Maturities", "Premium Due Dates", "Loan Closures", "Renewal Alerts"]}
         />
       </div>
     );
@@ -454,33 +457,16 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       </SectionTitle>
 
       {/* Horizon Toggle */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          marginBottom: 20,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Forecast:</span>
+      <div className="chip-row" style={{ marginBottom: 20, alignItems: "center" }}>
+        <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600, marginRight: 2 }}>
+          Forecast:
+        </span>
         {[3, 6, 12].map((m) => (
           <button
             key={m}
             onClick={() => setHorizon(m)}
-            className="card-lift"
             aria-pressed={horizon === m}
-            style={{
-              padding: "6px 16px",
-              borderRadius: 8,
-              border: `1.5px solid ${horizon === m ? THEME.accent : THEME.line}`,
-              background: horizon === m ? THEME.accent : "var(--surface-0)",
-              color: horizon === m ? "#fff" : THEME.ink,
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
+            className={`chip ${horizon === m ? "active" : ""}`}
           >
             {m} Months
           </button>
@@ -511,6 +497,8 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
         <StatCard
           label="Overdue"
           value={String(stats.overdue)}
+          sub={stats.overdue > 0 ? "Needs action" : "All caught up"}
+          subColor={stats.overdue > 0 ? THEME.rust : undefined}
           icon={<AlertTriangle />}
           color={THEME.rust}
         />
@@ -586,7 +574,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       )}
 
       {/* Filter Row */}
-      <div style={{ display: "flex", gap: 6, marginTop: 20, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="chip-row" style={{ marginTop: 20, marginBottom: 16 }}>
         {filterOptions.map((f) => {
           const count =
             f.key === "all" ? events.length : events.filter((e) => e.type.startsWith(f.key)).length;
@@ -595,19 +583,8 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
             <button
               key={f.key}
               onClick={() => setActiveFilter(f.key)}
-              className="card-lift"
               aria-pressed={activeFilter === f.key}
-              style={{
-                padding: "5px 14px",
-                borderRadius: 20,
-                border: `1.5px solid ${activeFilter === f.key ? THEME.accent : THEME.line}`,
-                background: activeFilter === f.key ? THEME.accent : "var(--surface-0)",
-                color: activeFilter === f.key ? "#fff" : THEME.muted,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
+              className={`chip ${activeFilter === f.key ? "active" : ""}`}
             >
               {f.label} ({count})
             </button>

@@ -105,7 +105,8 @@ const XIRRStatCard = ({ label, value, icon: Icon, color }: any) => {
         display: "flex",
         flexDirection: "column",
         gap: 12,
-        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        boxShadow:
+          "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
         transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
@@ -236,7 +237,7 @@ export function XIRRReportTab({ state }: any) {
         name: rd.bank || "RD",
         type: "Recurring Deposit",
         icon: Repeat,
-        color: "#8B5CF6",
+        color: THEME.violet,
         invested: monthly * paidMonths,
         currentValue: currentVal,
         startDate: rd.startDate,
@@ -323,7 +324,7 @@ export function XIRRReportTab({ state }: any) {
           name: p.institution || p.name || "PPF",
           type: "PPF",
           icon: Shield,
-          color: "#059669",
+          color: THEME.sage,
           invested,
           currentValue: Number(p.balance || 0),
           startDate: txns[0]?.date,

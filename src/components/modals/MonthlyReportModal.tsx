@@ -548,7 +548,7 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
               justifyContent: "space-between",
               alignItems: "center",
               padding: "12px 16px",
-              background: "rgba(128,128,128,0.06)",
+              background: "color-mix(in srgb, var(--t-muted) 6%, transparent)",
               borderRadius: 10,
               marginBottom: 16,
               border: `1px solid ${THEME.line}`,
@@ -660,7 +660,10 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                     style={{
                       fontSize: 12,
                       fontWeight: 700,
-                      color: nwDelta > 0 ? "#34d399" : "#f87171",
+                      color:
+                        nwDelta > 0
+                          ? "color-mix(in srgb, var(--t-sage) 75%, white)"
+                          : "color-mix(in srgb, var(--t-rust) 75%, white)",
                       marginTop: 4,
                     }}
                   >
@@ -719,7 +722,7 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                 style={{
                   padding: 12,
                   borderRadius: 8,
-                  background: "rgba(128,128,128,0.06)",
+                  background: "color-mix(in srgb, var(--t-muted) 6%, transparent)",
                   textAlign: "center",
                 }}
               >
@@ -971,7 +974,7 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                       style={{
                         fontSize: 11,
                         color: THEME.muted,
-                        background: "rgba(128,128,128,0.08)",
+                        background: "color-mix(in srgb, var(--t-muted) 8%, transparent)",
                         padding: "1px 6px",
                         borderRadius: 4,
                       }}
@@ -1017,7 +1020,7 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                       display: "flex",
                       justifyContent: "space-between",
                       padding: "6px 10px",
-                      background: "rgba(128,128,128,0.05)",
+                      background: "color-mix(in srgb, var(--t-muted) 5%, transparent)",
                       borderRadius: 6,
                       fontSize: 13,
                     }}

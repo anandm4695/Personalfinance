@@ -1103,7 +1103,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             hover
             style={{
               padding: "16px 20px",
-              borderTop: `4px solid ${dark ? "#A78BFA" : "#7C3AED"}`,
+              borderTop: `4px solid ${THEME.violet}`,
               display: "flex",
               flexDirection: "column",
               gap: 10,
@@ -1115,11 +1115,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   width: 32,
                   height: 32,
                   borderRadius: 10,
-                  background: `color-mix(in srgb, ${dark ? "#A78BFA" : "#7C3AED"} 12%, transparent)`,
+                  background: `color-mix(in srgb, ${THEME.violet} 12%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: dark ? "#A78BFA" : "#7C3AED",
+                  color: THEME.violet,
                 }}
               >
                 <Shield size={16} />
@@ -1351,8 +1351,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               {/* Assets / Liabilities Sub-Cards */}
               <div style={{ display: "flex", gap: 10 }}>
                 {(() => {
-                  const assetColor = dark ? "#34D399" : "#059669";
-                  const liabColor = dark ? "#F87171" : "#DC2626";
+                  const assetColor = THEME.sage;
+                  const liabColor = THEME.rust;
                   return (
                     <>
                       <div

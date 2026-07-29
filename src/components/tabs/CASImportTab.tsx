@@ -471,7 +471,15 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
             </div>
 
             <div style={{ overflowX: "auto", maxHeight: 500, overflowY: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <table
+                style={{
+                  width: "100%",
+                  minWidth: 620,
+                  borderCollapse: "collapse",
+                  fontSize: 13,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
                 <thead>
                   <tr
                     style={{
@@ -547,10 +555,10 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                           {f.category}
                         </span>
                       </td>
-                      <td style={{ padding: 8, textAlign: "right", fontFamily: "monospace" }}>
+                      <td style={{ padding: 8, textAlign: "right" }}>
                         {f.units.toFixed(3)}
                       </td>
-                      <td style={{ padding: 8, textAlign: "right", fontFamily: "monospace" }}>
+                      <td style={{ padding: 8, textAlign: "right" }}>
                         {f.nav.toFixed(4)}
                       </td>
                       <td

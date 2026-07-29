@@ -23,6 +23,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const SUB_LOGOS: Record<string, string> = {
@@ -336,99 +337,53 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
               gap: 14,
               marginBottom: 28,
             }}
+            className="subs-stats-grid"
           >
-            {[
-              {
-                label: "Active Subscriptions",
-                value: String(activeSubs.length),
-                sub: "Monthly/Annual recurring",
-                color: THEME.accent,
-                Icon: Repeat,
-              },
-              {
-                label: "Monthly Equivalent",
-                value: fmtINRFull(totalMonthly),
-                sub:
-                  metrics?.monthIncome > 0
-                    ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
-                    : "Projected monthly spend",
-                color: THEME.gold,
-                Icon: Wallet,
-              },
-              {
-                label: "Annual Cost",
-                value: fmtINRFull(totalAnnual),
-                sub:
-                  metrics?.annualIncome > 0
-                    ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income`
-                    : "Total annual outgo",
-                color: THEME.rust,
-                Icon: Clock,
-              },
-              tile4,
-            ].map(({ label, value, sub, color, Icon }) => (
-              <div
-                key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
-            ))}
+            <style>{`
+              @media (max-width: 900px) {
+                .subs-stats-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important; }
+              }
+            `}</style>
+            <StatCard
+              label="Monthly Equivalent"
+              value={fmtINRFull(totalMonthly)}
+              sub={
+                metrics?.monthIncome > 0
+                  ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income · ${fmtINRFull(totalAnnual)}/yr`
+                  : `Projected monthly spend · ${fmtINRFull(totalAnnual)}/yr`
+              }
+              color={THEME.gold}
+              icon={<Wallet />}
+            />
+            <StatCard
+              label="Active Subscriptions"
+              value={String(activeSubs.length)}
+              sub="Monthly / annual recurring"
+              color={THEME.accent}
+              icon={<Repeat />}
+            />
+            <StatCard
+              label="Annual Cost"
+              value={fmtINRFull(totalAnnual)}
+              sub={
+                metrics?.annualIncome > 0
+                  ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income`
+                  : "Total annual outgo"
+              }
+              color={THEME.rust}
+              icon={<Clock />}
+            />
+            <StatCard
+              label={tile4.label}
+              value={tile4.value}
+              sub={tile4.sub}
+              color={tile4.color}
+              icon={<tile4.Icon />}
+            />
           </div>
         );
       })()}

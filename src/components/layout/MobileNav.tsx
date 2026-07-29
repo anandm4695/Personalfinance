@@ -216,7 +216,9 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
             position: "fixed",
             inset: 0,
             zIndex: 9998,
-            background: "rgba(0,0,0,0.5)",
+            // Ink-tinted, matching .modal-backdrop / .drawer-backdrop in styles.css
+            // instead of a pure-black overlay, so all dismissible surfaces share one hue.
+            background: "rgba(15,23,42,0.45)",
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
             animation: "fadeIn 0.15s ease",
@@ -234,7 +236,7 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
               maxHeight: "88vh",
               background: "var(--surface-0)",
               borderRadius: "24px 24px 0 0",
-              boxShadow: "0 -8px 40px rgba(0,0,0,0.2)",
+              boxShadow: "0 -8px 32px rgba(15,23,42,0.16)",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",

@@ -82,11 +82,11 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
 
 // Account type visual themes
 const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: typeof PiggyBank }> = {
-  savings: { color: "#0284c7", bg: "#0284c715", icon: PiggyBank },
-  current: { color: "#059669", bg: "#05966915", icon: Briefcase },
-  salary: { color: "#7c3aed", bg: "#7c3aed15", icon: Banknote },
-  joint: { color: "#d97706", bg: "#d9770615", icon: Handshake },
-  fd: { color: "#ea580c", bg: "#ea580c15", icon: Lock },
+  savings: { color: "#0284c7", bg: "color-mix(in srgb, #0284c7 8%, transparent)", icon: PiggyBank },
+  current: { color: "#059669", bg: "color-mix(in srgb, #059669 8%, transparent)", icon: Briefcase },
+  salary: { color: "#7c3aed", bg: "color-mix(in srgb, #7c3aed 8%, transparent)", icon: Banknote },
+  joint: { color: "#d97706", bg: "color-mix(in srgb, #d97706 8%, transparent)", icon: Handshake },
+  fd: { color: "#ea580c", bg: "color-mix(in srgb, #ea580c 8%, transparent)", icon: Lock },
   other: {
     color: THEME.muted,
     bg: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
@@ -327,27 +327,27 @@ const td = {
 };
 
 const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
-  salary: { color: "#059669", bg: "#0596691a" },
-  income: { color: "#059669", bg: "#0596691a" },
-  interest: { color: "#059669", bg: "#0596691a" },
-  dividend: { color: "#059669", bg: "#0596691a" },
-  savings: { color: "#059669", bg: "#0596691a" },
-  transfer: { color: "#8b5cf6", bg: "#8b5cf61a" },
-  food: { color: "#f59e0b", bg: "#f59e0b1a" },
-  dining: { color: "#f59e0b", bg: "#f59e0b1a" },
-  groceries: { color: "#f59e0b", bg: "#f59e0b1a" },
-  emi: { color: "#dc2626", bg: "#dc26261a" },
-  loan: { color: "#dc2626", bg: "#dc26261a" },
-  rent: { color: "#dc2626", bg: "#dc26261a" },
-  utilities: { color: "#0891b2", bg: "#0891b21a" },
-  bills: { color: "#0891b2", bg: "#0891b21a" },
-  "credit card": { color: "#dc2626", bg: "#dc26261a" },
-  shopping: { color: "#7c3aed", bg: "#7c3aed1a" },
-  travel: { color: "#0284c7", bg: "#0284c71a" },
-  health: { color: "#dc2626", bg: "#dc26261a" },
-  medical: { color: "#dc2626", bg: "#dc26261a" },
-  insurance: { color: "#ea580c", bg: "#ea580c1a" },
-  investment: { color: "#7c3aed", bg: "#7c3aed1a" },
+  salary: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
+  income: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
+  interest: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
+  dividend: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
+  savings: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
+  transfer: { color: "#8b5cf6", bg: "color-mix(in srgb, #8b5cf6 10%, transparent)" },
+  food: { color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 10%, transparent)" },
+  dining: { color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 10%, transparent)" },
+  groceries: { color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 10%, transparent)" },
+  emi: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
+  loan: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
+  rent: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
+  utilities: { color: "#0891b2", bg: "color-mix(in srgb, #0891b2 10%, transparent)" },
+  bills: { color: "#0891b2", bg: "color-mix(in srgb, #0891b2 10%, transparent)" },
+  "credit card": { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
+  shopping: { color: "#7c3aed", bg: "color-mix(in srgb, #7c3aed 10%, transparent)" },
+  travel: { color: "#0284c7", bg: "color-mix(in srgb, #0284c7 10%, transparent)" },
+  health: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
+  medical: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
+  insurance: { color: "#ea580c", bg: "color-mix(in srgb, #ea580c 10%, transparent)" },
+  investment: { color: "#7c3aed", bg: "color-mix(in srgb, #7c3aed 10%, transparent)" },
   subscription: {
     color: THEME.accent as string,
     bg: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
@@ -383,7 +383,6 @@ export function BanksTab({
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEdit, setInlineEdit] = useState<any>(null);
   const [activeRange, setActiveRange] = useState<string | null>(null);
-  const [hoveredTxnId, setHoveredTxnId] = useState<string | null>(null);
   const { transactionCategories: txnCats } = useMasterData();
 
   const autoPostLinkedTransaction = (linkedKey: string, txn: any, txnId: string) => {
@@ -1966,24 +1965,16 @@ export function BanksTab({
                     );
                   }
 
-                  const isHovered = hoveredTxnId === t.id;
-
                   return (
                     <tr
                       key={t.id}
-                      onMouseEnter={() => setHoveredTxnId(t.id)}
-                      onMouseLeave={() => setHoveredTxnId(null)}
+                      className="table-row-hover"
                       onClick={() => setViewTxnId(t.id)}
                       onDoubleClick={() => {
                         setInlineEditId(t.id);
                         setInlineEdit({ ...t });
                       }}
-                      style={{
-                        cursor: "pointer",
-                        background: isHovered ? "var(--surface-1)" : "transparent",
-                        transform: isHovered ? "translateX(2px)" : "none",
-                        transition: "all 0.2s var(--ease-premium)",
-                      }}
+                      style={{ cursor: "pointer" }}
                       title="Click to view details · double-click to edit inline"
                     >
                       <td
@@ -2123,7 +2114,7 @@ export function BanksTab({
                               ...iconBtn,
                               padding: 6,
                               borderRadius: 8,
-                              background: isHovered ? "var(--surface-0)" : "transparent",
+                              background: "transparent",
                             }}
                             title="Edit"
                             aria-label="Edit transaction"
@@ -2140,7 +2131,7 @@ export function BanksTab({
                               ...iconBtn,
                               padding: 6,
                               borderRadius: 8,
-                              background: isHovered ? "var(--surface-0)" : "transparent",
+                              background: "transparent",
                             }}
                             title="Delete"
                             aria-label="Delete transaction"

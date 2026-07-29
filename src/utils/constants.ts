@@ -27,6 +27,7 @@ export const THEME = {
   // aware via the CSS var.
   violet: "var(--t-violet)",
   pink: "var(--t-pink)",
+  cyan: "var(--t-cyan)",
 };
 
 // 11 corporate accent colors — one per theme preset (perfect 1:1 mapping).

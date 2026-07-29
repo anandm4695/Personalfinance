@@ -229,7 +229,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
       {/* Income Override */}
       <Card>
         <div style={{ padding: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="form-grid-2">
             <div>
               <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
                 Auto-Detected Annual Income
@@ -255,29 +255,60 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                 placeholder="Enter total taxable income"
                 value={manualIncome}
                 onChange={(e) => setManualIncome(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${THEME.line}`,
-                  background: "transparent",
-                  color: THEME.ink,
-                  fontSize: 14,
-                  outline: "none",
-                }}
+                className="form-input"
+                style={{ padding: "8px 12px", fontSize: 14 }}
               />
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Tax Summary */}
+      {/* Tax Summary — "Remaining to Pay" is the number that actually drives
+          action, so it leads as a headline card instead of competing equally
+          with the four supporting figures below it. */}
+      <Card
+        style={{
+          marginTop: 16,
+          borderTop: `3px solid ${remaining > 0 ? THEME.rust : THEME.sage}`,
+          background: `color-mix(in srgb, ${remaining > 0 ? THEME.rust : THEME.sage} 4%, transparent)`,
+        }}
+      >
+        <div style={{ padding: "18px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}
+          >
+            {remaining > 0 ? "Remaining to Pay" : "Advance Tax — Fully Paid"}
+          </div>
+          <div
+            style={{
+              fontSize: 36,
+              fontWeight: 900,
+              color: remaining > 0 ? THEME.rust : THEME.sage,
+              letterSpacing: "-0.03em",
+              marginTop: 4,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            <Prv>{fmtINRFull(remaining)}</Prv>
+          </div>
+          <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+            Net tax due {fmtINRFull(netTaxDue)} · already paid {fmtINRFull(totalPaid)}
+          </div>
+        </div>
+      </Card>
+
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
           gap: 14,
-          marginTop: 16,
+          marginTop: 14,
         }}
       >
         {[
@@ -285,11 +316,6 @@ const AdvanceTaxSection = ({ state, metrics }) => {
           { label: "TDS Already Paid", value: fmtINRFull(tdsPaid), color: THEME.sage },
           { label: "Net Tax Due", value: fmtINRFull(netTaxDue), color: THEME.gold },
           { label: "Advance Tax Paid", value: fmtINRFull(totalPaid), color: THEME.accent },
-          {
-            label: "Remaining to Pay",
-            value: fmtINRFull(remaining),
-            color: remaining > 0 ? THEME.rust : THEME.sage,
-          },
         ].map((s, i) => (
           <Card key={i}>
             <div style={{ padding: 14, textAlign: "center" }}>
@@ -501,7 +527,7 @@ const HraReceiptSection = ({ state }) => {
       </style></head>
       <body>
         <div class="no-print" style="text-align:center;margin-bottom:20px;">
-          <button onclick="window.print()" style="padding:10px 30px;font-size:16px;cursor:pointer;background:var(--t-accent);color:#fff;border:none;border-radius:8px;">Print / Save PDF</button>
+          <button onclick="window.print()" style="padding:10px 30px;font-size:16px;cursor:pointer;background:#1a1a1a;color:#fff;border:none;border-radius:8px;">Print / Save PDF</button>
         </div>
         ${receipts
           .map(
@@ -604,14 +630,7 @@ const HraReceiptSection = ({ state }) => {
         <>
           <Card>
             <div style={{ padding: 20 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                  marginBottom: 16,
-                }}
-              >
+              <div className="form-grid-2" style={{ marginBottom: 16 }}>
                 <div>
                   <label
                     style={{
@@ -628,15 +647,8 @@ const HraReceiptSection = ({ state }) => {
                     value={selectedProperty}
                     onChange={(e) => setSelectedProperty(e.target.value)}
                     aria-label="Select property"
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: `1.5px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 14,
-                    }}
+                    className="form-input"
+                    style={{ padding: "8px 12px", fontSize: 14 }}
                   >
                     <option value="">— Select —</option>
                     {rentedProps.map((p) => (
@@ -662,20 +674,12 @@ const HraReceiptSection = ({ state }) => {
                     value={tenantName}
                     onChange={(e) => setTenantName(e.target.value)}
                     placeholder="Your full name"
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: `1.5px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 14,
-                      outline: "none",
-                    }}
+                    className="form-input"
+                    style={{ padding: "8px 12px", fontSize: 14 }}
                   />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+              <div className="form-grid-3">
                 <div>
                   <label
                     style={{
@@ -692,16 +696,8 @@ const HraReceiptSection = ({ state }) => {
                     value={landlordName}
                     onChange={(e) => setLandlordName(e.target.value)}
                     placeholder="Full name"
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: `1.5px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 14,
-                      outline: "none",
-                    }}
+                    className="form-input"
+                    style={{ padding: "8px 12px", fontSize: 14 }}
                   />
                 </div>
                 <div>
@@ -721,17 +717,8 @@ const HraReceiptSection = ({ state }) => {
                     onChange={(e) => setLandlordPan(e.target.value.toUpperCase())}
                     placeholder="ABCDE1234F"
                     maxLength={10}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: `1.5px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 14,
-                      outline: "none",
-                      textTransform: "uppercase",
-                    }}
+                    className="form-input"
+                    style={{ padding: "8px 12px", fontSize: 14, textTransform: "uppercase" }}
                   />
                 </div>
                 <div>
@@ -750,16 +737,8 @@ const HraReceiptSection = ({ state }) => {
                     value={landlordAddress}
                     onChange={(e) => setLandlordAddress(e.target.value)}
                     placeholder="Address"
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: `1.5px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 14,
-                      outline: "none",
-                    }}
+                    className="form-input"
+                    style={{ padding: "8px 12px", fontSize: 14 }}
                   />
                 </div>
               </div>
@@ -1068,9 +1047,7 @@ const Form26ASSection = ({ state }) => {
       </div>
 
       {/* Summary */}
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}
-      >
+      <div className="form-grid-3" style={{ marginBottom: 20 }}>
         <Card>
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
@@ -1146,7 +1123,7 @@ const Form26ASSection = ({ state }) => {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
                   gap: 10,
                   alignItems: "end",
                 }}
@@ -1166,15 +1143,8 @@ const Form26ASSection = ({ state }) => {
                   <input
                     value={newEntry.deductor}
                     onChange={(e) => setNewEntry({ ...newEntry, deductor: e.target.value })}
-                    style={{
-                      width: "100%",
-                      padding: "7px 10px",
-                      borderRadius: 6,
-                      border: `1px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 13,
-                    }}
+                    className="form-input"
+                    style={{ padding: "7px 10px", fontSize: 13 }}
                   />
                 </div>
                 <div>
@@ -1195,16 +1165,8 @@ const Form26ASSection = ({ state }) => {
                       setNewEntry({ ...newEntry, tan: e.target.value.toUpperCase() })
                     }
                     maxLength={10}
-                    style={{
-                      width: "100%",
-                      padding: "7px 10px",
-                      borderRadius: 6,
-                      border: `1px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 13,
-                      textTransform: "uppercase",
-                    }}
+                    className="form-input"
+                    style={{ padding: "7px 10px", fontSize: 13, textTransform: "uppercase" }}
                   />
                 </div>
                 <div>
@@ -1223,15 +1185,8 @@ const Form26ASSection = ({ state }) => {
                     type="number"
                     value={newEntry.amount}
                     onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
-                    style={{
-                      width: "100%",
-                      padding: "7px 10px",
-                      borderRadius: 6,
-                      border: `1px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 13,
-                    }}
+                    className="form-input"
+                    style={{ padding: "7px 10px", fontSize: 13 }}
                   />
                 </div>
                 <div>
@@ -1250,15 +1205,8 @@ const Form26ASSection = ({ state }) => {
                     value={newEntry.section}
                     onChange={(e) => setNewEntry({ ...newEntry, section: e.target.value })}
                     aria-label="Select section"
-                    style={{
-                      width: "100%",
-                      padding: "7px 10px",
-                      borderRadius: 6,
-                      border: `1px solid ${THEME.line}`,
-                      background: "transparent",
-                      color: THEME.ink,
-                      fontSize: 13,
-                    }}
+                    className="form-input"
+                    style={{ padding: "7px 10px", fontSize: 13 }}
                   >
                     {SECTIONS.map((s) => (
                       <option key={s} value={s}>
