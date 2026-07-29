@@ -1121,14 +1121,17 @@ tbody tr:hover td {
 .mobile-bottom-nav {
   display: none;
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
   z-index: 200;
-  background: var(--t-darkInk);
-  border-top: 1px solid var(--t-line);
-  padding: 6px 0 env(safe-area-inset-bottom, 8px);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--surface-0) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--t-line);
+  border-radius: var(--radius-2xl);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* ── Divider ───────────────────────────────────────────────────── */

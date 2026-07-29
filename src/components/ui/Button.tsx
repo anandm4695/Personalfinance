@@ -41,21 +41,21 @@ export const Button: React.FC<ButtonProps> = ({
         };
       case "secondary":
         return {
-          background: "transparent",
-          border: `1.5px solid ${THEME.line}`,
-          color: THEME.ink,
+          background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+          border: `1.5px solid var(--t-line)`,
+          color: "var(--t-ink)",
         };
       case "ghost":
         return {
           background: "transparent",
           border: "none",
-          color: THEME.muted,
+          color: "var(--t-muted)",
         };
       case "danger":
         return {
-          background: "transparent",
-          border: `1.5px solid ${THEME.rust}`,
-          color: THEME.rust,
+          background: "color-mix(in srgb, var(--t-rust) 8%, transparent)",
+          border: `1.5px solid color-mix(in srgb, var(--t-rust) 35%, transparent)`,
+          color: "var(--t-rust)",
         };
       default:
         return {};
@@ -94,7 +94,7 @@ export const Button: React.FC<ButtonProps> = ({
     borderRadius: "var(--radius-md)",
     fontWeight: 600,
     cursor: isDisabled ? "not-allowed" : "pointer",
-    transition: "all 0.2s var(--ease-premium)",
+    transition: "transform 0.15s var(--ease-premium), box-shadow 0.15s var(--ease-premium), background 0.15s var(--ease-premium), border-color 0.15s var(--ease-premium)",
     ...getSizeStyle(),
     ...getVariantStyle(),
     ...(isDisabled ? { opacity: 0.45, pointerEvents: "none" as const } : {}),

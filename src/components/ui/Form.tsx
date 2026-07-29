@@ -45,9 +45,11 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
     {...props}
     style={{
       width: "100%",
-      padding: "10px 12px",
+      padding: "10px 14px",
       fontSize: "14px",
       fontWeight: 500,
+      borderRadius: "var(--radius-md)",
+      transition: "border-color 0.2s var(--ease-premium), box-shadow 0.2s var(--ease-premium)",
       ...props.style,
     }}
   />
@@ -61,12 +63,30 @@ export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (
     {...props}
     style={{
       width: "100%",
-      padding: "10px 12px",
+      padding: "10px 14px",
       fontSize: "14px",
       fontWeight: 500,
+      borderRadius: "var(--radius-md)",
+      transition: "border-color 0.2s var(--ease-premium), box-shadow 0.2s var(--ease-premium)",
       ...props.style,
     }}
   >
     {children}
   </select>
+);
+
+export const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => (
+  <textarea
+    {...props}
+    style={{
+      width: "100%",
+      padding: "10px 14px",
+      fontSize: "14px",
+      fontWeight: 500,
+      borderRadius: "var(--radius-md)",
+      minHeight: "80px",
+      transition: "border-color 0.2s var(--ease-premium), box-shadow 0.2s var(--ease-premium)",
+      ...props.style,
+    }}
+  />
 );
