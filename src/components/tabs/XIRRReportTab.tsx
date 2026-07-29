@@ -29,6 +29,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const th: React.CSSProperties = {
@@ -89,72 +90,6 @@ const holdingLabel = (startDate: string, endDate: string): string => {
   if (days <= 0) return "<1d";
   if (days < 365) return `${days}d`;
   return `${(days / 365).toFixed(1)}y`;
-};
-
-/* ─── Premium XIRR Bento Card ─────────────────────────────────── */
-const XIRRStatCard = ({ label, value, icon: Icon, color }: any) => {
-  return (
-    <div
-      className="card-lift"
-      style={{
-        background:
-          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-        border: `1.5px solid ${THEME.line}`,
-        borderTop: `4px solid ${color || THEME.accent}`,
-        borderRadius: 16,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        boxShadow:
-          "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: color || THEME.accent,
-            flexShrink: 0,
-          }}
-        >
-          {Icon}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-      <div>
-        <span
-          style={{
-            fontSize: 24,
-            fontWeight: 900,
-            color: THEME.ink,
-            letterSpacing: "-0.03em",
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {value}
-        </span>
-      </div>
-    </div>
-  );
 };
 
 export function XIRRReportTab({ state }: any) {
@@ -558,28 +493,36 @@ export function XIRRReportTab({ state }: any) {
           gap: 16,
         }}
       >
-        <XIRRStatCard
+        <StatCard
           label="Portfolio XIRR"
           value={xirrLabel(portfolioXIRR)}
-          icon={<Activity size={16} />}
+          numericValue={portfolioXIRR ?? undefined}
+          formatValue={(n) => `${n.toFixed(2)}%`}
+          icon={<Activity />}
           color={xirrColor(portfolioXIRR)}
         />
-        <XIRRStatCard
+        <StatCard
           label="Total Invested"
           value={fmtINRFull(totalInvested)}
-          icon={<Coins size={16} />}
+          numericValue={totalInvested}
+          formatValue={fmtINRFull}
+          icon={<Coins />}
           color={THEME.accent}
         />
-        <XIRRStatCard
+        <StatCard
           label="Current Value"
           value={fmtINRFull(totalCurrent)}
-          icon={<TrendingUp size={16} />}
+          numericValue={totalCurrent}
+          formatValue={fmtINRFull}
+          icon={<TrendingUp />}
           color={THEME.sage}
         />
-        <XIRRStatCard
+        <StatCard
           label="Total Gain / Loss"
           value={(totalGain >= 0 ? "+" : "") + fmtINRFull(Math.abs(totalGain))}
-          icon={totalGain >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+          numericValue={totalGain}
+          formatValue={(n) => (n >= 0 ? "+" : "") + fmtINRFull(Math.abs(n))}
+          icon={totalGain >= 0 ? <TrendingUp /> : <TrendingDown />}
           color={totalGain >= 0 ? THEME.sage : THEME.rust}
         />
       </div>
@@ -677,6 +620,7 @@ export function XIRRReportTab({ state }: any) {
               </div>
 
               <div
+                className="desktop-only"
                 style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}
               >
                 <table
@@ -693,7 +637,7 @@ export function XIRRReportTab({ state }: any) {
                       <th style={th}>Invested</th>
                       <th style={th}>Current Value</th>
                       <th style={th}>Gain / Loss</th>
-                      <th style={th}>Period</th>
+                      <th style={th} title="Time held from start date to today (or maturity)">Period</th>
                       <th style={th}>XIRR</th>
                     </tr>
                   </thead>
@@ -816,6 +760,134 @@ export function XIRRReportTab({ state }: any) {
                     })}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="mobile-only" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {items.map((row, i) => {
+                  const gain = (row.currentValue || 0) - (row.invested || 0);
+                  const gainPct = row.invested > 0 ? (gain / row.invested) * 100 : 0;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        border: `1.5px solid ${THEME.line}`,
+                        borderRadius: 12,
+                        padding: "12px 14px",
+                        background: "var(--surface-0)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: `color-mix(in srgb, ${row.color} 12%, transparent)`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <row.icon size={14} style={{ color: row.color }} />
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              fontWeight: 700,
+                              color: THEME.ink,
+                              fontSize: 13.5,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {row.name}
+                            {row.status === "matured" && (
+                              <Badge variant="muted" size="xs">
+                                matured
+                              </Badge>
+                            )}
+                          </div>
+                          {row.owner && row.owner !== "self" && (
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 1 }}>
+                              {row.owner}
+                            </div>
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            fontSize: 12.5,
+                            color: xirrColor(row.xirr),
+                            background: `color-mix(in srgb, ${xirrColor(row.xirr)} 12%, transparent)`,
+                            padding: "3px 9px",
+                            borderRadius: 8,
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {xirrLabel(row.xirr)}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(3, 1fr)",
+                          gap: 8,
+                          marginTop: 12,
+                          paddingTop: 10,
+                          borderTop: `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                            Invested
+                          </div>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: THEME.ink, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                            <Prv>{fmtINRExact(row.invested)}</Prv>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                            Current
+                          </div>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: THEME.ink, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                            <Prv>{fmtINRExact(row.currentValue)}</Prv>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                            Gain / Loss
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 12.5,
+                              fontWeight: 700,
+                              color: gain >= 0 ? THEME.sage : THEME.rust,
+                              marginTop: 2,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            <Prv>
+                              {gain >= 0 ? "+" : ""}
+                              {fmtINRExact(Math.abs(gain))}
+                            </Prv>{" "}
+                            <span style={{ fontSize: 10.5, opacity: 0.8, fontWeight: 500 }}>
+                              ({gainPct >= 0 ? "+" : ""}
+                              {gainPct.toFixed(1)}%)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 8 }}>
+                        Held {holdingLabel(row.startDate, row.endDate)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </Card>
