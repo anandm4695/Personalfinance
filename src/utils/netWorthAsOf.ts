@@ -58,6 +58,18 @@ function realEstateTrackedShare(property: any): number {
   return 1;
 }
 
+/** Single family profile's own share, mirroring `realEstateShareForOwner` in useMetrics.ts.
+ * Without this, a single-profile view (activeProfile !== "all") would fall through to
+ * realEstateTrackedShare and show the WHOLE household's combined share of a jointly-owned
+ * property under one member's individual net worth, instead of just their own slice. */
+function realEstateShareForOwner(property: any, profileId: string): number {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    const match = property.owners.find((o: any) => o?.id === profileId);
+    return match ? Number(match.sharePct || 0) / 100 : 0;
+  }
+  return property.owner === profileId ? 1 : 0;
+}
+
 function nextYm(ymStr: string): string {
   const [y, m] = ymStr.split("-").map(Number);
   const d = new Date(y, m, 1); // m is already 1-indexed month -> +1 month
@@ -111,7 +123,8 @@ export interface NetWorthAsOfResult {
 export function computeNetWorthAsOf(
   filteredState: any,
   asOfYm: string,
-  marketData: any
+  marketData: any,
+  profileId?: string
 ): NetWorthAsOfResult {
   const s = filteredState;
 
@@ -182,11 +195,13 @@ export function computeNetWorthAsOf(
   const realEstateAsset = (s.realEstateProperties || [])
     .filter((p: any) => p.status !== "sold")
     .filter((p: any) => gateInclude(p.purchaseDate, asOfYm))
-    .reduce(
-      (sum: number, p: any) =>
-        sum + Number(p.marketValue || p.agreementValue || 0) * realEstateTrackedShare(p),
-      0
-    );
+    .reduce((sum: number, p: any) => {
+      const share =
+        profileId && profileId !== "all"
+          ? realEstateShareForOwner(p, profileId)
+          : realEstateTrackedShare(p);
+      return sum + Number(p.marketValue || p.agreementValue || 0) * share;
+    }, 0);
 
   // A currently-"closed" card must still count as a liability for months before it
   // closed. Gate by closedDate (not the live status field) whenever we have it; a

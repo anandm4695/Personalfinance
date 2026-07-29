@@ -1023,14 +1023,18 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                                   monthlySip > 0 && remaining > 0
                                     ? Math.log(1 + (remaining * r) / monthlySip) / Math.log(1 + r)
                                     : 0;
-                                const reachDate =
-                                  monthsNeeded > 0
-                                    ? new Date(
-                                        new Date().setMonth(
-                                          new Date().getMonth() + Math.ceil(monthsNeeded)
-                                        )
-                                      )
-                                    : null;
+                                // Clamp day-of-month so e.g. 31 Jan + 1mo lands on 28/29 Feb,
+                                // not overflows into March (plain setMonth() rolls over).
+                                const reachDate = (() => {
+                                  if (monthsNeeded <= 0) return null;
+                                  const base = new Date();
+                                  const day = base.getDate();
+                                  const total = base.getMonth() + Math.ceil(monthsNeeded);
+                                  const y = base.getFullYear() + Math.floor(total / 12);
+                                  const m = ((total % 12) + 12) % 12;
+                                  const daysInMonth = new Date(y, m + 1, 0).getDate();
+                                  return new Date(y, m, Math.min(day, daysInMonth));
+                                })();
                                 const goalDate = g.targetDate ? new Date(g.targetDate) : null;
                                 const onTime = reachDate && goalDate ? reachDate <= goalDate : null;
                                 return (

@@ -492,11 +492,14 @@ describe("getCCDueDate", () => {
     expect(result).toBe("2025-02-10");
   });
 
-  it("returns next month when dueDay equals today", () => {
-    // Reference: Jan 15, dueDay: 15 -> date is Jan 15 which is <= now, so Feb 15
+  it("returns this month (due today) when dueDay equals today", () => {
+    // Reference: Jan 15, dueDay: 15 -> today IS the due date, so it must stay Jan 15,
+    // not roll to Feb 15 (that was the off-by-one bug: comparing a midnight due-date
+    // against a same-day "now" timestamp always treated today's due date as already
+    // passed).
     const ref = new Date(2025, 0, 15); // Jan 15
     const result = getCCDueDate({ dueDay: 15 }, ref);
-    expect(result).toBe("2025-02-15");
+    expect(result).toBe("2025-01-15");
   });
 
   it("handles year rollover from December", () => {
@@ -553,11 +556,13 @@ describe("getCCDueDate", () => {
     expect(result).toBe("2025-04-30");
   });
 
-  it("rolls a clamped month-end due date into the next month/year correctly", () => {
-    // Reference: Dec 31, dueDay: 31 -> already past this month's clamped date, rolls to Jan 31 next year
+  it("stays on the clamped month-end due date when today IS that date", () => {
+    // Reference: Dec 31, dueDay: 31 -> today IS the (clamped) due date, so it stays
+    // Dec 31, 2025, not roll to Jan 31 next year (see the "due today" off-by-one note
+    // above).
     const ref = new Date(2025, 11, 31); // Dec 31, 2025
     const result = getCCDueDate({ dueDay: 31 }, ref);
-    expect(result).toBe("2026-01-31");
+    expect(result).toBe("2025-12-31");
   });
 });
 

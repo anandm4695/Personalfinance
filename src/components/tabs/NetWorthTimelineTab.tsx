@@ -198,7 +198,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
+export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile = "all" }) => {
   const [projectionYears, setProjectionYears] = useState(5);
   const [selectedPreset, setSelectedPreset] = useState(1);
   const [monthlySavings, setMonthlySavings] = useState(
@@ -221,7 +221,11 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
     const points = [];
     let cursor = startYm;
     while (cursor <= todayYm) {
-      const { netWorth, assetBreakdown } = computeNetWorthAsOf(state, cursor, marketData);
+      // Pass activeProfile through so a jointly-owned property is scaled to just that family
+      // member's share here too — otherwise a single-profile view showed the whole household's
+      // combined tracked share (see realEstateShareForOwner vs realEstateTrackedShare) under
+      // one member's individual net worth, disagreeing with what `metrics` shows for "today".
+      const { netWorth, assetBreakdown } = computeNetWorthAsOf(state, cursor, marketData, activeProfile);
       points.push({
         month: cursor,
         label: formatMonth(cursor),

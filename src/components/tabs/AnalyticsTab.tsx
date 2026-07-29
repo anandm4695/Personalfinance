@@ -15016,6 +15016,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           state={state}
           marketData={marketData}
           selectedDate={calendarDate}
+          activeProfile={activeProfile}
           onClose={() => setShowReport(false)}
         />
       )}

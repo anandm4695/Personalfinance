@@ -396,11 +396,20 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
     setPeriodB(prevPeriodKey(mode, defaultA));
   };
 
+  // Same internal-transfer/investment exclusion useMetrics.ts and MonthlyReportModal.tsx
+  // apply — without it, a self-transfer between own accounts (both a debit and a credit
+  // on the "Transfer" category) inflated both income and expense here, and an Investment
+  // SIP debit counted as "expense" here while the Dashboard excludes it, so this tab's
+  // period totals and category deltas silently disagreed with every other report.
+  const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat || "");
+
   // Monthly expense totals + category breakdown (debit transactions)
   const monthlyExpense = useMemo(() => {
     const map = {};
     (state.transactions || [])
-      .filter((t) => t.type === "debit" && t.date)
+      .filter(
+        (t) => t.type === "debit" && t.date && !isTransferCat(t.category) && t.category !== "Investment"
+      )
       .forEach((t) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";
@@ -408,8 +417,24 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
         map[ym].total += Number(t.amount || 0);
         map[ym].cats[cat] = (map[ym].cats[cat] || 0) + Number(t.amount || 0);
       });
+    // Rent paid via the Rented Properties ledger (not logged as a transaction) — same
+    // ledger-vs-transaction reconciliation useMetrics.ts/MonthlyReportModal.tsx apply, so a
+    // household paying rent purely through that ledger isn't silently missing from this tab.
+    (state.rentedProperties || []).forEach((p) => {
+      (p.payments || []).forEach((pay) => {
+        if (!pay.date) return;
+        const ym = pay.date.slice(0, 7);
+        const hasRentTxn = (state.transactions || []).some(
+          (t) => t.date?.slice(0, 7) === ym && t.type === "debit" && (t.category || "").toLowerCase() === "rent"
+        );
+        if (hasRentTxn) return;
+        if (!map[ym]) map[ym] = { total: 0, cats: {} };
+        map[ym].total += Number(pay.amount || 0);
+        map[ym].cats["Rent"] = (map[ym].cats["Rent"] || 0) + Number(pay.amount || 0);
+      });
+    });
     return map;
-  }, [state.transactions]);
+  }, [state.transactions, state.rentedProperties]);
 
   // Monthly income, tracked separately by source so period aggregates can
   // prefer the manual income ledger over credit transactions (avoids double-counting
@@ -428,7 +453,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
   const monthlyIncomeTxn = useMemo(() => {
     const map = {};
     (state.transactions || [])
-      .filter((t) => t.type === "credit" && t.date)
+      .filter((t) => t.type === "credit" && t.date && !isTransferCat(t.category))
       .forEach((t) => {
         const ym = t.date.slice(0, 7);
         map[ym] = (map[ym] || 0) + Number(t.amount || 0);

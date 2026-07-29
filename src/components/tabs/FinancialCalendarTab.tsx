@@ -93,9 +93,17 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
   });
 
   const cutoffDate = useMemo(() => {
+    // Plain setMonth() overflows for day 29-31 starting dates when the target
+    // month is shorter (e.g. 31 Jan + 1 month rolls into 2/3 Mar, not 28 Feb),
+    // silently widening/narrowing the horizon window. Clamp to the target
+    // month's last day instead.
     const d = new Date(today());
-    d.setMonth(d.getMonth() + horizon);
-    return d.toISOString().slice(0, 10);
+    const day = d.getDate();
+    const total = d.getMonth() + horizon;
+    const y = d.getFullYear() + Math.floor(total / 12);
+    const m = ((total % 12) + 12) % 12;
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    return new Date(y, m, Math.min(day, daysInMonth)).toISOString().slice(0, 10);
   }, [horizon]);
 
   const events = useMemo(() => {
@@ -141,9 +149,15 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       if (!rd.maturityDate && !rd.startDate) return;
       let matDate = rd.maturityDate;
       if (!matDate && rd.startDate && rd.tenureMonths) {
+        // Clamp day-of-month so e.g. 31 Jan + 1mo lands on 28/29 Feb, not
+        // overflows into March (plain setMonth() silently rolls over).
         const d = new Date(rd.startDate);
-        d.setMonth(d.getMonth() + Number(rd.tenureMonths));
-        matDate = d.toISOString().slice(0, 10);
+        const day = d.getDate();
+        const total = d.getMonth() + Number(rd.tenureMonths);
+        const y = d.getFullYear() + Math.floor(total / 12);
+        const m = ((total % 12) + 12) % 12;
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        matDate = new Date(y, m, Math.min(day, daysInMonth)).toISOString().slice(0, 10);
       }
       if (!matDate) return;
       const days = getDaysUntil(matDate);
@@ -263,8 +277,15 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
     // Loan EMI end dates / closures
     (state.loansTaken || []).forEach((l) => {
       if (!l.monthsRemaining || !l.emi) return;
-      const closureDate = new Date(todayStr);
-      closureDate.setMonth(closureDate.getMonth() + Number(l.monthsRemaining));
+      // Clamp day-of-month (see RD maturity fallback above) so long remaining
+      // tenures don't overflow into the wrong month.
+      const closureBase = new Date(todayStr);
+      const closureDay = closureBase.getDate();
+      const closureTotal = closureBase.getMonth() + Number(l.monthsRemaining);
+      const closureY = closureBase.getFullYear() + Math.floor(closureTotal / 12);
+      const closureM = ((closureTotal % 12) + 12) % 12;
+      const closureDaysInMonth = new Date(closureY, closureM + 1, 0).getDate();
+      const closureDate = new Date(closureY, closureM, Math.min(closureDay, closureDaysInMonth));
       const closureDateStr = closureDate.toISOString().slice(0, 10);
       const days = getDaysUntil(closureDateStr);
 

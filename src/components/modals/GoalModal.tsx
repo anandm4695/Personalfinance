@@ -162,7 +162,12 @@ export function GoalModal({ initial, onClose, onSave }: any) {
           )}
         </Field>
       </div>
-      <ModalActions onSave={() => f.name && f.targetAmount && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() =>
+          f.name && Number(f.targetAmount) > 0 && Number(f.currentAmount || 0) >= 0 && onSave(f)
+        }
+        onClose={onClose}
+      />
     </Modal>
   );
 }

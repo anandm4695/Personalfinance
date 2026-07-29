@@ -495,6 +495,13 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
     // ── 9. RENTED PROPERTIES — Monthly Rent Dues ──
     const todayD = new Date();
     todayD.setHours(0, 0, 0, 0);
+    // Clamp to the last day of the target month so a dueDay of 29/30/31 doesn't
+    // silently overflow into the next month (e.g. 31 in April -> May 1), same
+    // footgun already fixed for credit-card due dates in getCCDueDate().
+    const clampedRentDate = (year: number, month: number, day: number) => {
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      return new Date(year, month, Math.min(day, lastDay));
+    };
     (state.rentedProperties || [])
       .filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0)
       .forEach((p: any) => {
@@ -507,13 +514,15 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         );
 
         if (!paidCurrent) {
-          const dueDate = new Date(currentYear, currentMonth, dueDay);
+          const dueDate = clampedRentDate(currentYear, currentMonth, dueDay);
           list.push({
             id: "rent-" + p.id,
             title: `${p.propertyName || "Rent"} — Monthly Rent`,
             subtitle: `Rent: ${fmtINRExact(p.monthlyRent)} · Due on ${dueDay}${["st", "nd", "rd"][((((dueDay + 90) % 100) - 10) % 10) - 1] || "th"} of month`,
             date: getLocalDateString(
-              dueDay >= todayD.getDate() ? dueDate : new Date(currentYear, currentMonth + 1, dueDay)
+              dueDay >= todayD.getDate()
+                ? dueDate
+                : clampedRentDate(currentYear, currentMonth + 1, dueDay)
             ),
             type: "Rent",
             amount: Number(p.monthlyRent || 0),
@@ -529,7 +538,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             (pay: any) => pay.date && pay.date.startsWith(nextMonthStr)
           );
           if (!paidNext) {
-            const nextDueDate = new Date(nextYear, nextMonthNorm, dueDay);
+            const nextDueDate = clampedRentDate(nextYear, nextMonthNorm, dueDay);
             list.push({
               id: "rent-next-" + p.id,
               title: `${p.propertyName || "Rent"} — Monthly Rent`,

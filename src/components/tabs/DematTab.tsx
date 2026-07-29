@@ -43,6 +43,10 @@ import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv } from "../../context/PrivacyContext";
 import { fmtINRFull, calcCAGR, today, calcXIRR } from "../../utils/finance";
+// Shared with CapitalGainsTab so the sell-preview LTCG/STCG split always agrees with the
+// actual tax report — see the isLongTerm/getHoldingMonths doc comments there for the
+// Section 2(42A) anniversary-date rules (day-of-month aware, strict >, not raw day-count).
+import { isLongTerm } from "./CapitalGainsTab";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
@@ -628,15 +632,16 @@ function computeFifoAlloc(
   });
   const result: FifoAlloc[] = [];
   let remaining = sellQty;
-  const refTime = sellDate ? new Date(sellDate).getTime() : Date.now();
+  const refDateStr = sellDate || today();
   for (const lot of sorted) {
     if (remaining <= 0) break;
     const available = Number(lot.qty);
     const consume = Math.min(available, remaining);
     const buyPrice = Number(lot.avgPrice);
-    const isLTCG = lot.buyDate
-      ? refTime - new Date(lot.buyDate).getTime() > 365 * 86400 * 1000
-      : false;
+    // Equity holding period: anniversary-date-aware, matching CapitalGainsTab's
+    // isLongTerm() rather than a naive "> 365 days" check, so the sell preview here
+    // doesn't disagree with the actual tax report for the same backdated sale.
+    const isLTCG = lot.buyDate ? isLongTerm(lot.buyDate, refDateStr, 12) : false;
     result.push({
       lot,
       consume,
@@ -3348,7 +3353,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     const days = Math.floor(
                                                       diff / (1000 * 60 * 60 * 24)
                                                     );
-                                                    const isLTCG = days > 365;
+                                                    // Anniversary-date-aware (Section 2(42A)), same rule as
+                                                    // CapitalGainsTab.isLongTerm — a naive "> 365 days" check
+                                                    // disagreed with the actual tax report near month/leap-year
+                                                    // boundaries.
+                                                    const isLTCG = isLongTerm(lot.buyDate, today(), 12);
                                                     return (
                                                       <span
                                                         style={{

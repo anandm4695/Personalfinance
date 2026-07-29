@@ -131,22 +131,26 @@ function getDateRange(period: Period, customStart: string, customEnd: string): [
   const todayStr = dateStr(now);
 
   switch (period) {
+    // setDate(1) must run BEFORE setMonth() — on the 29th-31st, setMonth() on a
+    // date still holding that day-of-number overflows into the following month
+    // when the target month is shorter (e.g. May 31 minus 3 months lands on
+    // Mar 3, not Feb 1), silently shrinking the trend window by up to a month.
     case "3m": {
       const d = new Date(now);
-      d.setMonth(d.getMonth() - 3);
       d.setDate(1);
+      d.setMonth(d.getMonth() - 3);
       return [dateStr(d), todayStr];
     }
     case "6m": {
       const d = new Date(now);
-      d.setMonth(d.getMonth() - 6);
       d.setDate(1);
+      d.setMonth(d.getMonth() - 6);
       return [dateStr(d), todayStr];
     }
     case "12m": {
       const d = new Date(now);
-      d.setMonth(d.getMonth() - 12);
       d.setDate(1);
+      d.setMonth(d.getMonth() - 12);
       return [dateStr(d), todayStr];
     }
     case "ytd": {

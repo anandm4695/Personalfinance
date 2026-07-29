@@ -2364,8 +2364,10 @@ function CCList({
             // doesn't overflow into the following month (e.g. Feb 31 -> Mar 3).
             const clampedDue = (year: number, month: number) =>
               new Date(year, month, Math.min(dd, new Date(year, month + 1, 0).getDate()));
+            // `<=` (not `<`): when today IS the due day, this month's due date must still
+            // be used so the badge reads "Due today!" instead of jumping to next month.
             const dueDate =
-              now.getDate() < dd
+              now.getDate() <= dd
                 ? clampedDue(now.getFullYear(), now.getMonth())
                 : clampedDue(now.getFullYear(), now.getMonth() + 1);
             const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());

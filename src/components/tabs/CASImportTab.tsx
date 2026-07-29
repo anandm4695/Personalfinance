@@ -230,12 +230,29 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
       });
 
       if (existing) {
+        // A re-import overwrites `units` with the CAS closing balance but previously left
+        // `invested` (cost basis) untouched — if units changed since the last import (new
+        // SIP installments, or a partial redemption), that silently corrupts the average
+        // cost per unit and any downstream P&L/LTCG math. Scale the cost basis by the same
+        // units ratio instead, same "avg cost per unit x remaining/new units" convention
+        // used for the redemption-cost-basis fix below in mergeMode. This snapshot format
+        // has no per-transaction cost data, so it's a best-effort carry-forward of the
+        // existing average cost, not a precise recomputation of newly purchased units.
+        const existingUnits = parseFloat(existing.units || "0");
+        const existingInvested = parseFloat(existing.invested || "0");
+        const newUnits = parseFloat(f.units || "0");
+        const avgCostPerUnit = existingUnits > 0 ? existingInvested / existingUnits : 0;
+        const newInvested =
+          avgCostPerUnit > 0 && newUnits !== existingUnits
+            ? avgCostPerUnit * newUnits
+            : existingInvested;
         await updateItem("mutualFunds", existing.id, {
           units: f.units,
           currentNav: f.nav,
           name: f.scheme,
           category: f.category,
           folioNumber: f.folio || existing.folioNumber,
+          invested: String(newInvested.toFixed(2)),
         });
       } else {
         await addItem("mutualFunds", {

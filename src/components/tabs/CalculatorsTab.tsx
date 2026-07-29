@@ -766,7 +766,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     "2022-23": 331,
     "2023-24": 348,
     "2024-25": 363,
-    "2025-26": 377,
+    "2025-26": 376, // CBDT Notification No. 70/2025 (was miscoded as 377)
+    "2026-27": 384, // CBDT Notification No. 85/2026
   };
   const CII_YEARS = Object.keys(CII_TABLE);
 
@@ -782,7 +783,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const purchase = Math.max(0, Number(idxPurchasePrice) || 0);
     const sale = Math.max(0, Number(idxSalePrice) || 0);
     const ciiPurchase = CII_TABLE[idxPurchaseYear] || 100;
-    const ciiSale = CII_TABLE[idxSaleYear] || 377;
+    const ciiSale = CII_TABLE[idxSaleYear] || CII_TABLE[CII_YEARS[CII_YEARS.length - 1]];
 
     // Without indexation
     const gainWithout = sale - purchase;
@@ -4891,10 +4892,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 >
                   <Info size={14} color={THEME.gold} style={{ marginTop: 2, flexShrink: 0 }} />
                   <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
-                    <b>Budget 2024 Note:</b> Indexation benefit was removed for most asset classes
-                    for purchases made after April 2023. This calculator applies to assets purchased
-                    before that cutoff date, where the old LTCG regime with indexation still
-                    applies.
+                    <b>Budget 2024 Note:</b> Indexation was withdrawn for capital-asset transfers on
+                    or after 23 Jul 2024 (LTCG taxed at 12.5% without indexation instead). Resident
+                    individuals/HUFs selling land or a building acquired before 23 Jul 2024 may still
+                    choose this old 20%-with-indexation method if it works out cheaper — that's the
+                    comparison shown below. (Debt mutual fund units bought on/after 1 Apr 2023 are a
+                    separate rule — always slab-taxed, indexation never applied regardless of sale
+                    date.)
                   </div>
                 </div>
               </Card>

@@ -83,24 +83,34 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     if (spendValues.length >= 3) {
       const avg = spendValues.reduce((s, v) => s + v, 0) / spendValues.length;
       const thisMonthSpend = monthlySpend[currentMonth] || 0;
-      if (thisMonthSpend > avg * 1.3 && thisMonthSpend > 0) {
+      // `avg` is a FULL-month total, but `thisMonthSpend` is a partial, in-progress month —
+      // comparing them directly meant "spending is unusually low" fired almost every day
+      // for the first ~15 days of every month (half the month elapsed = ~half of avg spent,
+      // which is normal pacing, not an anomaly) and "higher than usual" almost never fired
+      // except near month-end. Prorate `avg` to the same elapsed-days fraction before comparing.
+      const dayOfMonth = now.getDate();
+      const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const expectedToDate = avg * (dayOfMonth / daysInCurrentMonth);
+      if (expectedToDate > 0 && thisMonthSpend > expectedToDate * 1.3 && thisMonthSpend > 0) {
         alerts.push({
           id: "spend_anomaly",
           level: "warn",
           category: "spending",
           title: "Spending is higher than usual",
-          detail: `This month: ${fmtINRExact(thisMonthSpend)} vs avg: ${fmtINRExact(avg)} (${((thisMonthSpend / avg - 1) * 100).toFixed(0)}% higher)`,
+          detail: `So far this month: ${fmtINRExact(thisMonthSpend)} vs typical pace: ${fmtINRExact(expectedToDate)} (${((thisMonthSpend / expectedToDate - 1) * 100).toFixed(0)}% higher, avg full month: ${fmtINRExact(avg)})`,
           icon: TrendingUp,
           action: "Review your expenses",
         });
       }
-      if (thisMonthSpend > 0 && thisMonthSpend < avg * 0.5) {
+      // Only flag "unusually low" once enough of the month has elapsed for pacing to be
+      // meaningful — a week's worth of transactions is too small a sample to judge.
+      if (dayOfMonth >= 7 && thisMonthSpend > 0 && thisMonthSpend < expectedToDate * 0.5) {
         alerts.push({
           id: "spend_low",
           level: "info",
           category: "spending",
           title: "Spending is unusually low",
-          detail: `This month: ${fmtINRExact(thisMonthSpend)} vs avg: ${fmtINRExact(avg)} — are all expenses logged?`,
+          detail: `So far this month: ${fmtINRExact(thisMonthSpend)} vs typical pace: ${fmtINRExact(expectedToDate)} — are all expenses logged?`,
           icon: TrendingDown,
           action: "Check if transactions are missing",
         });

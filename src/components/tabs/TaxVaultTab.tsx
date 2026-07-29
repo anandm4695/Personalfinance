@@ -178,6 +178,91 @@ export const classifyMFHolding = (
   return { isEquity, isSlabTaxed, isLtcg };
 };
 
+// Union Budget 2024 raised equity STCG 15%→20% and LTCG 10%→12.5% (LTCG exemption
+// ₹1L→₹1.25L), effective 23 Jul 2024 — mid-way through FY2024-25. This used to be
+// applied as a single FY-wide rate (fyStartYear >= 2024 ? new : old), which taxed
+// EVERY sale in FY2024-25 at the new rate, including ones made before 23 Jul 2024
+// at the old (lower) rate. This nets gains/losses within each rate period first
+// (mirrors ITR Schedule 111A/112A's "up to 22.7.2024" / "23.7.2024 onwards" rows),
+// spills a period's net loss into the other period of the same head (STCG or LTCG)
+// when one period is net-negative, then applies each period's own rate. For FYs
+// entirely before or after the cutoff this degenerates to the old single-rate math.
+// The ₹1.25L LTCG exemption applies to the whole of FY2024-25 (not split per period,
+// per CBDT guidance) so it's taken once against the combined LTCG total.
+const CG_RATE_CHANGE_DATE = "2024-07-23";
+export const computeEquityCGTax = (
+  sells: { isLtcg: boolean; profit: number; sellDate?: string }[],
+  ltcgExemption: number
+) => {
+  let stcgGainsPre = 0,
+    stcgLossesPre = 0,
+    stcgGainsPost = 0,
+    stcgLossesPost = 0;
+  let ltcgGainsPre = 0,
+    ltcgLossesPre = 0,
+    ltcgGainsPost = 0,
+    ltcgLossesPost = 0;
+  (sells || []).forEach((s) => {
+    const isPost = !s.sellDate || s.sellDate >= CG_RATE_CHANGE_DATE;
+    const p = Number(s.profit) || 0;
+    if (s.isLtcg) {
+      if (isPost) p > 0 ? (ltcgGainsPost += p) : (ltcgLossesPost += Math.abs(p));
+      else p > 0 ? (ltcgGainsPre += p) : (ltcgLossesPre += Math.abs(p));
+    } else {
+      if (isPost) p > 0 ? (stcgGainsPost += p) : (stcgLossesPost += Math.abs(p));
+      else p > 0 ? (stcgGainsPre += p) : (stcgLossesPre += Math.abs(p));
+    }
+  });
+
+  let netSTCGpre = stcgGainsPre - stcgLossesPre;
+  let netSTCGpost = stcgGainsPost - stcgLossesPost;
+  if (netSTCGpre < 0 && netSTCGpost > 0) {
+    netSTCGpost += netSTCGpre;
+    netSTCGpre = 0;
+  } else if (netSTCGpost < 0 && netSTCGpre > 0) {
+    netSTCGpre += netSTCGpost;
+    netSTCGpost = 0;
+  }
+  const residualSTCGLoss = Math.min(0, netSTCGpre) + Math.min(0, netSTCGpost);
+  netSTCGpre = Math.max(0, netSTCGpre);
+  netSTCGpost = Math.max(0, netSTCGpost);
+
+  let netLTCGpre = ltcgGainsPre - ltcgLossesPre;
+  let netLTCGpost = ltcgGainsPost - ltcgLossesPost;
+  if (netLTCGpre < 0 && netLTCGpost > 0) {
+    netLTCGpost += netLTCGpre;
+    netLTCGpre = 0;
+  } else if (netLTCGpost < 0 && netLTCGpre > 0) {
+    netLTCGpre += netLTCGpost;
+    netLTCGpost = 0;
+  }
+  netLTCGpre = Math.max(0, netLTCGpre);
+  netLTCGpost = Math.max(0, netLTCGpost);
+
+  // Any STCG loss left after intra-STCG set-off can offset LTCG gains (post period first)
+  let remainingSTCGLoss = -residualSTCGLoss;
+  if (remainingSTCGLoss > 0) {
+    const usePost = Math.min(remainingSTCGLoss, netLTCGpost);
+    netLTCGpost -= usePost;
+    remainingSTCGLoss -= usePost;
+    const usePre = Math.min(remainingSTCGLoss, netLTCGpre);
+    netLTCGpre -= usePre;
+  }
+
+  // Exemption applies once against the FY's combined LTCG total, not per period
+  const exemptUsedPost = Math.min(ltcgExemption, netLTCGpost);
+  const exemptUsedPre = Math.min(ltcgExemption - exemptUsedPost, netLTCGpre);
+  const taxableLTCGpost = netLTCGpost - exemptUsedPost;
+  const taxableLTCGpre = netLTCGpre - exemptUsedPre;
+
+  return {
+    netSTCG: netSTCGpre + netSTCGpost,
+    netLTCG: netLTCGpre + netLTCGpost,
+    taxSTCG: netSTCGpre * 0.15 + netSTCGpost * 0.2,
+    taxLTCG: taxableLTCGpre * 0.1 + taxableLTCGpost * 0.125,
+  };
+};
+
 /* ══════════════════════════════════════════════════════════════════
    ADD PAYMENT MODAL
    ══════════════════════════════════════════════════════════════════ */
@@ -1766,58 +1851,49 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   }, [activeRegime, taxNewResult, taxOldResult]);
 
   const taxCalculations = useMemo(() => {
-    const { stcgGains, stcgLosses, ltcgGains, ltcgLosses } = realizedGainsData;
-    let actualNetSTCG = stcgGains - stcgLosses;
-    let actualNetLTCG = ltcgGains - ltcgLosses;
-    if (actualNetSTCG < 0) {
-      actualNetLTCG = Math.max(0, actualNetLTCG + actualNetSTCG);
-      actualNetSTCG = 0;
-    }
-    const stcgRate = fyStartYear >= 2024 ? 0.2 : 0.15;
-    const ltcgRate = fyStartYear >= 2024 ? 0.125 : 0.1;
+    const { allSells } = realizedGainsData;
+    // ₹1.25L exemption (up from ₹1L) applies to the whole of FY2024-25 onward, per
+    // CBDT guidance, even though the STCG/LTCG rate itself splits mid-year — see
+    // computeEquityCGTax for the per-transaction rate split.
     const ltcgExemption = fyStartYear >= 2024 ? 125_000 : 100_000;
-    const actualTaxSTCG = Math.max(0, actualNetSTCG) * stcgRate;
-    const actualTaxLTCG =
-      actualNetLTCG > ltcgExemption ? (actualNetLTCG - ltcgExemption) * ltcgRate : 0;
-    const totalActualTax = actualTaxSTCG + actualTaxLTCG;
+
+    const actualCalc = computeEquityCGTax(allSells, ltcgExemption);
+    const totalActualTax = actualCalc.taxSTCG + actualCalc.taxLTCG;
 
     let simulatedSTCLosses = 0,
       simulatedLTCLosses = 0;
+    // Harvested candidates are hypothetical sales made "now" (today), not in the
+    // browsed FY, so they always fall on/after the Budget 2024 rate-change date.
+    const simulatedSells = [...allSells];
     harvestCandidates.forEach((c) => {
       if (simulatedHarvestIds.includes(c.id)) {
         c.isLtcg ? (simulatedLTCLosses += c.loss) : (simulatedSTCLosses += c.loss);
+        simulatedSells.push({ isLtcg: c.isLtcg, profit: -c.loss, sellDate: today() });
       }
     });
-    let simNetSTCG = stcgGains - (stcgLosses + simulatedSTCLosses);
-    let simNetLTCG = ltcgGains - (ltcgLosses + simulatedLTCLosses);
-    if (simNetSTCG < 0) {
-      simNetLTCG = Math.max(0, simNetLTCG + simNetSTCG);
-      simNetSTCG = 0;
-    }
-    const simTaxSTCG = Math.max(0, simNetSTCG) * stcgRate;
-    const simTaxLTCG = simNetLTCG > ltcgExemption ? (simNetLTCG - ltcgExemption) * ltcgRate : 0;
-    const totalSimTax = simTaxSTCG + simTaxLTCG;
+    const simCalc = computeEquityCGTax(simulatedSells, ltcgExemption);
+    const totalSimTax = simCalc.taxSTCG + simCalc.taxLTCG;
 
     return {
       actual: {
-        netSTCG: Math.max(0, actualNetSTCG),
-        netLTCG: Math.max(0, actualNetLTCG),
-        taxSTCG: actualTaxSTCG,
-        taxLTCG: actualTaxLTCG,
+        netSTCG: actualCalc.netSTCG,
+        netLTCG: actualCalc.netLTCG,
+        taxSTCG: actualCalc.taxSTCG,
+        taxLTCG: actualCalc.taxLTCG,
         totalTax: totalActualTax,
       },
       simulated: {
         stcLossesAdded: simulatedSTCLosses,
         ltcLossesAdded: simulatedLTCLosses,
-        netSTCG: Math.max(0, simNetSTCG),
-        netLTCG: Math.max(0, simNetLTCG),
-        taxSTCG: simTaxSTCG,
-        taxLTCG: simTaxLTCG,
+        netSTCG: simCalc.netSTCG,
+        netLTCG: simCalc.netLTCG,
+        taxSTCG: simCalc.taxSTCG,
+        taxLTCG: simCalc.taxLTCG,
         totalTax: totalSimTax,
       },
       totalSaved: Math.max(0, totalActualTax - totalSimTax),
     };
-  }, [realizedGainsData, harvestCandidates, simulatedHarvestIds]);
+  }, [realizedGainsData, harvestCandidates, simulatedHarvestIds, fyStartYear]);
 
   /* ── Actions ─────────────────────────────────────────────────── */
   const printTaxSummary = () => {
@@ -4742,15 +4818,18 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      const { allSells, stcgGains, stcgLosses, ltcgGains, ltcgLosses } =
-                        realizedGainsData;
-                      const netSTCG = Math.max(0, stcgGains - stcgLosses);
-                      const netLTCG = Math.max(0, ltcgGains - ltcgLosses);
-                      const stcgRate = fyStartYear >= 2024 ? 0.2 : 0.15;
+                      const { allSells, stcgLosses, ltcgLosses } = realizedGainsData;
                       const ltcgExempt = fyStartYear >= 2024 ? 125000 : 100000;
-                      const ltcgRate2 = fyStartYear >= 2024 ? 0.125 : 0.1;
-                      const taxSTCG = netSTCG * stcgRate;
-                      const taxLTCG = netLTCG > ltcgExempt ? (netLTCG - ltcgExempt) * ltcgRate2 : 0;
+                      // Rate split at 23-Jul-2024 (Budget 2024) is applied per transaction,
+                      // not FY-wide — see computeEquityCGTax.
+                      const { netSTCG, netLTCG, taxSTCG, taxLTCG } = computeEquityCGTax(
+                        allSells,
+                        ltcgExempt
+                      );
+                      const straddlesRateChange = fyStartYear === 2024;
+                      const rateNote = straddlesRateChange
+                        ? `STCG 15% (before 23-Jul-2024) / 20% (on/after) · LTCG 10%/12.5% — Budget 2024 rate change fell mid-year`
+                        : `STCG rate ${(fyStartYear >= 2024 ? 20 : 15).toFixed(0)}%, LTCG rate ${(fyStartYear >= 2024 ? 12.5 : 10).toFixed(1)}%`;
                       const stcgRows = allSells.filter((s: any) => !s.isLtcg);
                       const ltcgRows = allSells.filter((s: any) => s.isLtcg);
                       const rowHtml = (items: any[], label: string) =>
@@ -4771,8 +4850,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         <h1>ITR Capital Gains Report — FY ${fy}</h1>
                         <p style="color:#6b7280">Generated: ${new Date().toLocaleDateString("en-IN")} | Schedule CG Summary</p>
                         <div class="summary">
-                          <div class="box"><div class="label">Net Short-Term CG</div><div class="value">${fmtINRFull(netSTCG)}</div><div class="label">Tax @ ${stcgRate * 100}%: ${fmtINRFull(taxSTCG)}</div></div>
-                          <div class="box"><div class="label">Net Long-Term CG</div><div class="value">${fmtINRFull(netLTCG)}</div><div class="label">Exempt: ${fmtINRFull(ltcgExempt)} | Tax @ ${ltcgRate2 * 100}%: ${fmtINRFull(taxLTCG)}</div></div>
+                          <div class="box"><div class="label">Net Short-Term CG</div><div class="value">${fmtINRFull(netSTCG)}</div><div class="label">Tax: ${fmtINRFull(taxSTCG)}</div></div>
+                          <div class="box"><div class="label">Net Long-Term CG</div><div class="value">${fmtINRFull(netLTCG)}</div><div class="label">Exempt: ${fmtINRFull(ltcgExempt)} | Tax: ${fmtINRFull(taxLTCG)}</div></div>
                           <div class="box"><div class="label">Total CG Tax Liability</div><div class="value" style="color:#ef4444">${fmtINRFull(taxSTCG + taxLTCG)}</div><div class="label">+ 4% Health & Education Cess</div></div>
                           <div class="box"><div class="label">Loss Set-off</div><div class="value">${fmtINRFull(stcgLosses + ltcgLosses)}</div><div class="label">STCL: ${fmtINRFull(stcgLosses)} | LTCL: ${fmtINRFull(ltcgLosses)}</div></div>
                         </div>
@@ -4791,7 +4870,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         <h2>Notes</h2><ul>
                         <li>GF = Grandfathering applied (equity bought before 01-Feb-2018, FMV used as cost basis)</li>
                         <li>STCG: Listed equity sold within 12 months; LTCG: Listed equity sold after 12 months</li>
-                        <li>FY ${fy}: STCG rate ${stcgRate * 100}%, LTCG rate ${ltcgRate2 * 100}% (above ₹${(ltcgExempt / 100000).toFixed(2)}L exemption)</li>
+                        <li>FY ${fy}: ${rateNote} (above ₹${(ltcgExempt / 100000).toFixed(2)}L LTCG exemption)</li>
                         </ul></body></html>`;
                       const w = window.open("", "_blank");
                       if (w) {

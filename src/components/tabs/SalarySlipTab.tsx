@@ -71,7 +71,12 @@ const EMPTY: any = {
   notes: "",
 };
 
-function autoCompute(form: any, netSalaryTouched?: boolean) {
+function autoCompute(
+  form: any,
+  netSalaryTouched?: boolean,
+  grossTouched?: boolean,
+  deductTouched?: boolean
+) {
   const earn = ["basic", "hra", "da", "specialAllowance", "lta", "bonus", "otherEarnings"];
   const deduct = ["pfEmployee", "esiEmployee", "professionalTax", "tds", "otherDeductions"];
   const gross = earn.reduce((s, k) => s + Number(form[k] || 0), 0);
@@ -79,8 +84,11 @@ function autoCompute(form: any, netSalaryTouched?: boolean) {
   const net = gross - totalD;
   return {
     ...form,
-    grossSalary: gross || form.grossSalary,
-    totalDeductions: totalD || form.totalDeductions,
+    // Once the user directly edits Gross/Deductions/Net, respect that value
+    // instead of silently clobbering it with the component sum on save —
+    // this field is presented as directly editable, not read-only.
+    grossSalary: grossTouched ? form.grossSalary : gross || form.grossSalary,
+    totalDeductions: deductTouched ? form.totalDeductions : totalD || form.totalDeductions,
     netSalary: netSalaryTouched ? form.netSalary : net || form.netSalary,
   };
 }
@@ -199,6 +207,8 @@ function SlipForm({ initial, onSave, onClose, apiKey }: any) {
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
   const [netSalaryTouched, setNetSalaryTouched] = useState(false);
+  const [grossTouched, setGrossTouched] = useState(false);
+  const [deductTouched, setDeductTouched] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   const parseWithAI = useCallback(async () => {
@@ -242,7 +252,7 @@ Return only the JSON, no explanation.`;
     }
   }, [form.rawText, apiKey]);
 
-  const computed = autoCompute(form, netSalaryTouched);
+  const computed = autoCompute(form, netSalaryTouched, grossTouched, deductTouched);
 
   const save = () => {
     if (!form.slipMonth) return;
@@ -383,7 +393,10 @@ Return only the JSON, no explanation.`;
               className="form-input"
               type="number"
               value={form[k]}
-              onChange={(e) => set(k, e.target.value)}
+              onChange={(e) => {
+                if (k === "grossSalary") setGrossTouched(true);
+                set(k, e.target.value);
+              }}
               placeholder="0"
             />
           </Field>
@@ -425,7 +438,10 @@ Return only the JSON, no explanation.`;
               className="form-input"
               type="number"
               value={form[k]}
-              onChange={(e) => set(k, e.target.value)}
+              onChange={(e) => {
+                if (k === "totalDeductions") setDeductTouched(true);
+                set(k, e.target.value);
+              }}
               placeholder="0"
             />
           </Field>

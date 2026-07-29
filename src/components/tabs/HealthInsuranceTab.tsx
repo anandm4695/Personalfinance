@@ -109,7 +109,8 @@ function PolicyForm({ initial, onSave, onClose }: any) {
   const removeMember = (i: number) => setMembers((m) => m.filter((_, idx) => idx !== i));
 
   const save = () => {
-    if (!form.insurer || !form.sumInsured || !form.premium) return;
+    if (!form.insurer.trim() || !(Number(form.sumInsured) > 0) || !(Number(form.premium) > 0))
+      return;
     onSave({ ...form, insuredMembers: members, id: initial?.id || uid() });
   };
 

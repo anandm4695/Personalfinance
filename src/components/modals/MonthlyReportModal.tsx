@@ -151,7 +151,14 @@ function subRenewedInMonth(sub: any, ym: string): boolean {
   return false;
 }
 
-export function MonthlyReportModal({ metrics, state, marketData, selectedDate, onClose }: any) {
+export function MonthlyReportModal({
+  metrics,
+  state,
+  marketData,
+  selectedDate,
+  onClose,
+  activeProfile = "all",
+}: any) {
   const [reportDate, setReportDate] = useState(() => selectedDate || new Date());
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"" | "ok" | "err" | "no-email">("");
@@ -395,7 +402,8 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
   // today's account balances as if they applied a decade ago.
   const earliestNWMonth = getEarliestNetWorthMonth(state);
   const hasNWData = isCurrentMonth || ym >= earliestNWMonth;
-  const pastNW = !isCurrentMonth && hasNWData ? computeNetWorthAsOf(state, ym, marketData) : null;
+  const pastNW =
+    !isCurrentMonth && hasNWData ? computeNetWorthAsOf(state, ym, marketData, activeProfile) : null;
   const displayNetWorth = isCurrentMonth ? metrics.netWorth : pastNW ? pastNW.netWorth : null;
   const displayAssets = isCurrentMonth ? metrics.totalAssets : pastNW ? pastNW.totalAssets : null;
   const displayLiabilities = isCurrentMonth
@@ -406,7 +414,9 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
 
   // Net worth change vs previous month (use null to distinguish "no prior data" from zero/negative NW)
   const prevNW =
-    ymPrev >= earliestNWMonth ? computeNetWorthAsOf(state, ymPrev, marketData).netWorth : null;
+    ymPrev >= earliestNWMonth
+      ? computeNetWorthAsOf(state, ymPrev, marketData, activeProfile).netWorth
+      : null;
   const nwDelta = hasNWData && prevNW !== null ? displayNetWorth - prevNW : 0;
 
   // Email report handler

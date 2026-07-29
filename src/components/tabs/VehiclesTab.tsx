@@ -475,7 +475,10 @@ type ComplianceStatus = { label: string; color: string; icon: "ok" | "warn" | "a
 
 const complianceStatus = (expiry: string): ComplianceStatus => {
   if (!expiry) return null;
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Use local-date today() (not toISOString, which is UTC) — in IST, the
+  // UTC date lags the local date for the first ~5.5 hours of every day,
+  // making an expiry look 1 day further out than it really is.
+  const todayStr = today();
   const expiryTime = new Date(expiry + "T00:00:00").getTime();
   const todayTime = new Date(todayStr + "T00:00:00").getTime();
   const daysLeft = Math.ceil((expiryTime - todayTime) / 86400000);
@@ -494,7 +497,7 @@ const serviceDueStatus = (
 ): ComplianceStatus => {
   let daysLeft: number | null = null;
   if (dueDate) {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = today();
     const dueTime = new Date(dueDate + "T00:00:00").getTime();
     const todayTime = new Date(todayStr + "T00:00:00").getTime();
     daysLeft = Math.ceil((dueTime - todayTime) / 86400000);
@@ -3401,9 +3404,18 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
     if (!window.confirm("Are you sure you want to delete this insurance record?")) return;
     const vehicle = vehicles.find((v) => v.id === vehicleId);
     if (!vehicle) return;
+    const remaining = (vehicle.insuranceHistory || []).filter((r: any) => r.id !== insuranceId);
+    // Re-derive insuranceExpiry from what's left — otherwise deleting the
+    // record that set the current expiry leaves a stale date driving the
+    // compliance badge/renewal alerts even though its source record is gone.
+    const latestExpiry = remaining.reduce(
+      (max: string, r: any) => (r.toDate && r.toDate > max ? r.toDate : max),
+      ""
+    );
     updateItem("vehicles", vehicle.id, {
       ...vehicle,
-      insuranceHistory: (vehicle.insuranceHistory || []).filter((r: any) => r.id !== insuranceId),
+      insuranceHistory: remaining,
+      insuranceExpiry: latestExpiry,
     });
   };
 

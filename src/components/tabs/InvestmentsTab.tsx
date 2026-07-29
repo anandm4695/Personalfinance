@@ -52,6 +52,10 @@ import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { MFCasPanel } from "./MFCasPanel";
+// Shared with CapitalGainsTab so LTCG/STCG shown here always agrees with the actual tax
+// report — see the isLongTerm doc comment there for the Section 2(42A) anniversary-date
+// rules (day-of-month aware, strict >, not a naive "> 365 days" count).
+import { isLongTerm } from "./CapitalGainsTab";
 
 interface InvestmentsTabProps {
   state: any;
@@ -11276,7 +11280,12 @@ function MFSection({
                                                           (1000 * 60 * 60 * 24)
                                                       )
                                                     : null;
-                                                  const isLTCG = days !== null && days > 365;
+                                                  // Anniversary-date-aware (Section 2(42A)), matching
+                                                  // CapitalGainsTab.isLongTerm — a naive "> 365 days" check
+                                                  // disagreed with the actual tax report near month/leap-year
+                                                  // boundaries.
+                                                  const isLTCG =
+                                                    lot.buyDate && isLongTerm(lot.buyDate, today(), 12);
                                                   const nearLTCG =
                                                     days !== null && !isLTCG && days > 300;
                                                   const cagr =
@@ -12235,9 +12244,11 @@ function SellMFModal({ mf, onClose, onSave }: any) {
   const profit = buyNav > 0 ? (sellNavNum - buyNav) * sellUnitsNum : 0;
   const remainingUnits = totalUnits - sellUnitsNum;
   const proceeds = sellUnitsNum * sellNavNum;
-  const isLTCG = mf.buyDate
-    ? Date.now() - new Date(mf.buyDate).getTime() > 365 * 86400 * 1000
-    : false;
+  // Anniversary-date-aware (Section 2(42A)) and evaluated against the user-selected
+  // sell date (not always "today"), matching CapitalGainsTab.isLongTerm — the previous
+  // naive "> 365 days since today" check both ignored a backdated sell date and could
+  // disagree with the actual tax report near month/leap-year boundaries.
+  const isLTCG = mf.buyDate ? isLongTerm(mf.buyDate, f.sellDate || today(), 12) : false;
 
   const handleSave = () => {
     if (!sellUnitsNum || !sellNavNum || sellUnitsNum > totalUnits) return;
@@ -12406,15 +12417,15 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
     if (sellUnitsNum <= 0 || sellNavNum <= 0 || qtyOver) return [];
     const result: MFAlloc[] = [];
     let remaining = sellUnitsNum;
-    const now = Date.now();
+    const refDateStr = f.sellDate || today();
     for (const lot of sortedLots) {
       if (remaining <= 0) break;
       const available = Number(lot.units) || 0;
       const consume = Math.min(available, remaining);
       const lotBuyNav = Number(lot.buyNav) || 0;
-      const isLTCG = lot.buyDate
-        ? now - new Date(lot.buyDate).getTime() > 365 * 86400 * 1000
-        : false;
+      // Anniversary-date-aware (Section 2(42A)) and evaluated against the user-selected
+      // sell date (not always "today"), matching CapitalGainsTab.isLongTerm.
+      const isLTCG = lot.buyDate ? isLongTerm(lot.buyDate, refDateStr, 12) : false;
       result.push({
         lot,
         consume,

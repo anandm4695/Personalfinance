@@ -515,14 +515,15 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
 
   const handleSave = () => {
     if (sub === "lic") {
-      if (!lic.planName || !lic.sumAssured) return;
+      if (!lic.planName || !(Number(lic.sumAssured) > 0)) return;
       const calculatedPremiumPaid = (lic.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
       );
       onSave("lic", { ...lic, premiumPaid: calculatedPremiumPaid, id: lic.id || uid() }, !!policy);
     } else if (sub === "invest") {
-      if (!invest.insurer || !invest.planName || !invest.expectedMaturityAmount) return;
+      if (!invest.insurer || !invest.planName || !(Number(invest.expectedMaturityAmount) > 0))
+        return;
       const calculatedPremiumPaid = (invest.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
@@ -533,7 +534,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         !!policy
       );
     } else {
-      if (!term.insurer || !term.coverAmount) return;
+      if (!term.insurer || !(Number(term.coverAmount) > 0)) return;
       const calculatedPremiumPaid = (term.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
@@ -1496,7 +1497,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
 
 const getPolicyStatus = (expiryOrMaturityDate: string) => {
   if (!expiryOrMaturityDate) return { label: "Active", color: THEME.sage };
-  const days = Math.round((new Date(expiryOrMaturityDate).getTime() - Date.now()) / 86400000);
+  // Compare local midnight to local midnight — `new Date(dateStr)` parses as
+  // UTC while Date.now() is the actual instant, so in IST (UTC+5:30) a policy
+  // expiring "today" would flip to "Expired" hours before local midnight.
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  const expiry = new Date(expiryOrMaturityDate + "T00:00:00");
+  const days = Math.round((expiry.getTime() - todayMidnight.getTime()) / 86400000);
   if (days < 0) return { label: "Matured / Expired", color: THEME.muted };
   if (days <= 180) {
     const m = Math.floor(days / 30);
@@ -1510,7 +1517,11 @@ const getPolicyStatus = (expiryOrMaturityDate: string) => {
 const getNextPremiumDue = (startDateStr: string, expiryDateStr?: string) => {
   if (!startDateStr) return null;
   const today = new Date();
-  if (expiryDateStr && new Date(expiryDateStr) < today) return null;
+  // Parse expiryDateStr the same way as start (local midnight) — mixing this
+  // with a bare `new Date(expiryDateStr)` (parsed as UTC) against `today`
+  // (actual instant) caused an already-expired policy to be treated as still
+  // active, or vice versa, depending on time of day in IST.
+  if (expiryDateStr && new Date(expiryDateStr + "T00:00:00") < today) return null;
   const start = new Date(startDateStr + "T00:00:00");
   const next = new Date(start);
   next.setFullYear(today.getFullYear());

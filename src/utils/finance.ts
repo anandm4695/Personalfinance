@@ -135,7 +135,12 @@ export const getCCDueDate = (c: any, referenceDate?: Date) => {
         return new Date(year, month, Math.min(day, lastDay));
       };
       let d = clampedDate(now.getFullYear(), now.getMonth());
-      if (d <= now) {
+      // Compare dates only (not time-of-day): `d` is always midnight, so comparing it
+      // against a full `now` timestamp made the due date roll to next month even when
+      // today IS the due date (midnight < any later time today). That showed "~30 days"
+      // left instead of "due today" on the actual due date.
+      const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (d < nowMidnight) {
         const nextMonth = now.getMonth() + 1;
         d = clampedDate(now.getFullYear() + Math.floor(nextMonth / 12), nextMonth % 12);
       }

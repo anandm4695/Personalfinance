@@ -98,7 +98,10 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
     const now = new Date();
     return events.map((e) => {
       const evType = EVENT_TYPES.find((t) => t.id === e.type) || EVENT_TYPES[7];
-      const targetDate = new Date(e.targetDate);
+      // Parse as local midnight (not bare `new Date(str)`, which is UTC) — otherwise
+      // an event dated "today" reads as already past for most of the day in IST,
+      // since the UTC-midnight instant for today's date is behind the actual "now".
+      const targetDate = new Date(e.targetDate + "T00:00:00");
       const yearsAway = Math.max(0, (targetDate.getTime() - now.getTime()) / (365.25 * 86400000));
       const inflatedCost =
         Number(e.estimatedCost || 0) * Math.pow(1 + evType.inflationRate / 100, yearsAway);

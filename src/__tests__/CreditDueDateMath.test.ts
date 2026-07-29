@@ -60,13 +60,24 @@ describe("dueStatus (BillPaymentTab due-day countdown)", () => {
     expect(result.daysLeft).toBe(25); // Apr 5 -> Apr 30
   });
 
-  it("rolls over into next month once the (clamped) due day has passed", () => {
+  it("shows due today (not next month) when today IS the clamped due date, regardless of time of day", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date(2025, 1, 28, 12)); // Feb 28, 2025, midday — past clamped Feb 28 due date
+    vi.setSystemTime(new Date(2025, 1, 28, 12)); // Feb 28, 2025, midday
+    const result = dueStatus(31);
+    // dueDay 31 clamps to Feb 28 in a non-leap Feb, and today IS Feb 28 — comparing
+    // dates only (not time-of-day) this must read as due today (0 days left), not
+    // rolled to Mar 31. Comparing the midnight due-date against a midday "now"
+    // timestamp used to always look "already passed" on the actual due date, which
+    // showed "~30 days" instead of "Due Today".
+    expect(result.daysLeft).toBe(0);
+    expect(result.label).toBe("Due Today");
+  });
+
+  it("rolls over into next month once the (clamped) due day has actually passed", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2025, 2, 1)); // Mar 1, 2025 — the day after the clamped Feb 28 due date
     const result = dueStatus(31);
     // Next occurrence is Mar 31, 2025 (not clamped, March has 31 days)
-    // Feb 28 12:00 -> Mar 31 00:00 is ~31 days (31 - 0.5)
-    expect(result.daysLeft).toBeGreaterThanOrEqual(30);
-    expect(result.daysLeft).toBeLessThanOrEqual(31);
+    expect(result.daysLeft).toBe(30);
   });
 });

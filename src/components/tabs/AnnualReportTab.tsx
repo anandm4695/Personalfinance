@@ -704,21 +704,27 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       income: monthlyMap[ym] || 0,
     }));
 
-    const rentalIncome = (state.rentalProperties || []).reduce((sum: number, p: any) => {
-      const receipts = (p.receipts || []).filter(
-        (r: any) => r.date && r.date >= fyStart && r.date <= fyEnd
-      );
-      return sum + receipts.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-    }, 0);
-    const hasRentalCategory = Object.keys(catMap).some((k) => /rental/i.test(k));
-    if (rentalIncome > 0 && !hasRentalCategory) {
+    const rentalReceiptsInFY = (state.rentalProperties || []).flatMap(
+      (p: any) => (p.receipts || []).filter((r: any) => r.date && r.date >= fyStart && r.date <= fyEnd)
+    );
+    // Receipts auto-posted by linking a bank "Rent" credit transaction (BanksTab's
+    // getLinkConfig) always get id `bank-${txnId}` (see BanksTab.tsx's applyLinkedTxn) and are
+    // already present in creditTxns as that same transaction. Only exclude them when totalIncome
+    // is actually built from creditTxns (the ledgerTotal===0 branch) — when it's built from the
+    // separate income ledger instead, transactions never contributed to totalIncome at all, so
+    // every receipt (bank-linked or not) is genuinely additional there.
+    const rentalIncome = (
+      ledgerTotal > 0
+        ? rentalReceiptsInFY
+        : rentalReceiptsInFY.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+    ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    if (rentalIncome > 0) {
       catMap["Rental Income"] = rentalIncome;
       breakdown.push({ name: "Rental Income", value: rentalIncome });
       breakdown.sort((a, b) => b.value - a.value);
     }
 
-    const addedRentalIncome = hasRentalCategory ? 0 : rentalIncome;
-    return { totalIncome: totalIncome + addedRentalIncome, breakdown, monthlyChart };
+    return { totalIncome: totalIncome + rentalIncome, breakdown, monthlyChart };
   }, [
     state.income,
     state.transactions,
@@ -738,11 +744,20 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     );
     const txnExpense = debitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
+    // Exclude bank-linked payments (id `bank-${txnId}`, stamped by BanksTab's applyLinkedTxn) —
+    // those are already counted inside debitTxns/txnExpense as the underlying "Rent" transaction,
+    // so including them here again double-counted every bank-paid rent instalment.
     const rentPaid = (state.rentedProperties || []).reduce(
       (sum: number, p: any) =>
         sum +
         (p.payments || [])
-          .filter((pay: any) => pay.date && pay.date >= fyStart && pay.date <= fyEnd)
+          .filter(
+            (pay: any) =>
+              pay.date &&
+              pay.date >= fyStart &&
+              pay.date <= fyEnd &&
+              !String(pay.id || "").startsWith("bank-")
+          )
           .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0),
       0
     );
@@ -771,7 +786,13 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     });
     (state.rentedProperties || []).forEach((p: any) => {
       (p.payments || [])
-        .filter((pay: any) => pay.date && pay.date >= fyStart && pay.date <= fyEnd)
+        .filter(
+          (pay: any) =>
+            pay.date &&
+            pay.date >= fyStart &&
+            pay.date <= fyEnd &&
+            !String(pay.id || "").startsWith("bank-")
+        )
         .forEach((pay: any) => {
           const ym = pay.date.slice(0, 7);
           monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(pay.amount || 0);

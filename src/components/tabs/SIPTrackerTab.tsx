@@ -129,8 +129,16 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       let daysUntilDue: number | null = null;
       if (!isCompleted && remaining > 0 && sip.startDate) {
         const startD = new Date(sip.startDate + "T00:00:00");
-        const nextD = new Date(startD);
-        nextD.setMonth(nextD.getMonth() + paid * periodMonths);
+        // Date.setMonth() overflows past month-end (e.g. Jan 31 + 1mo -> Mar 3, since
+        // Feb 31 doesn't exist) instead of clamping, silently shifting the due date for
+        // SIPs started on the 29th/30th/31st. Clamp to the target month's last day instead.
+        const startDay = startD.getDate();
+        const totalMonthsAdd = paid * periodMonths;
+        const rawMonth = startD.getMonth() + totalMonthsAdd;
+        const targetYear = startD.getFullYear() + Math.floor(rawMonth / 12);
+        const targetMonth = ((rawMonth % 12) + 12) % 12;
+        const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+        const nextD = new Date(targetYear, targetMonth, Math.min(startDay, lastDayOfTargetMonth));
         nextDueDateStr = getLocalDateString(nextD);
         const todayD = new Date(todayStr + "T00:00:00");
         daysUntilDue = Math.ceil((nextD.getTime() - todayD.getTime()) / 86400000);

@@ -232,11 +232,16 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     return state.subscriptions
       .filter((s: any) => !s.paused && s.renewalDate)
       .filter((s: any) => {
-        const rd = new Date(s.renewalDate);
+        // Parse as local midnight (matches `today`/`limit`, both local) — a bare
+        // "YYYY-MM-DD" parses as UTC midnight, which in IST lands at 05:30 local,
+        // pushing a renewal due exactly on the 30-day boundary out of range.
+        const rd = new Date(s.renewalDate + "T00:00:00");
         return rd >= today && rd <= limit;
       })
       .sort(
-        (a: any, b: any) => new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime()
+        (a: any, b: any) =>
+          new Date(a.renewalDate + "T00:00:00").getTime() -
+          new Date(b.renewalDate + "T00:00:00").getTime()
       );
   }, [state.subscriptions]);
 

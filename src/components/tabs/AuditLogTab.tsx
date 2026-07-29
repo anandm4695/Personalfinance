@@ -164,7 +164,13 @@ const formatDetailValue = (val: any): string => {
   if (typeof val === "number") return val.toLocaleString("en-IN");
   if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val)) {
     try {
-      return new Date(val).toLocaleDateString("en-IN", { dateStyle: "medium" });
+      // Bare "YYYY-MM-DD" (no time part) parses as UTC midnight; append a local
+      // time so it doesn't shift a day backward outside IST. Full timestamps
+      // (with "T"/time already present) are left as-is.
+      const hasTime = /\d{4}-\d{2}-\d{2}T/.test(val);
+      return new Date(hasTime ? val : `${val}T00:00:00`).toLocaleDateString("en-IN", {
+        dateStyle: "medium",
+      });
     } catch {
       return val;
     }

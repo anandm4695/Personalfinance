@@ -1660,12 +1660,23 @@ function FinanceDashboard() {
           (sum: number, f: any) => sum + (Number(f.principal) || 0),
           0
         );
+        // Field names/ownership-share must match useMetrics.ts's realEstateAsset (marketValue/
+        // agreementValue, scaled by tracked ownership share) — this used to read nonexistent
+        // currentValuation/valuation fields (always 0) and ignored co-ownership %, so the
+        // "realEstate" slice saved into netWorthHistory silently diverged from the real figure.
         const realEstateVal = (s.realEstateProperties || [])
           .filter((p: any) => p.status !== "sold")
-          .reduce(
-            (sum: number, p: any) => sum + Number(p.currentValuation || p.valuation || 0),
-            0
-          );
+          .reduce((sum: number, p: any) => {
+            const value = Number(p.marketValue || p.agreementValue || 0);
+            const owners = Array.isArray(p.owners) ? p.owners : null;
+            const share = owners && owners.length > 0
+              ? owners.reduce(
+                  (acc: number, o: any) => (o?.id !== "external" ? acc + Number(o.sharePct || 0) : acc),
+                  0
+                ) / 100
+              : 1;
+            return sum + value * share;
+          }, 0);
         const vehiclesVal = (s.vehicles || []).reduce(
           (sum: number, v: any) => sum + Number(v.currentValue || v.value || 0),
           0
@@ -4898,7 +4909,12 @@ function FinanceDashboard() {
                 <RebalancingTab state={filteredState} metrics={metrics} marketData={marketData} />
               )}
               {tab === "nwtimeline" && (
-                <NetWorthTimelineTab state={filteredState} metrics={metrics} marketData={marketData} />
+                <NetWorthTimelineTab
+                  state={filteredState}
+                  metrics={metrics}
+                  marketData={marketData}
+                  activeProfile={activeProfile}
+                />
               )}
 
               {tab === "casimport" && (

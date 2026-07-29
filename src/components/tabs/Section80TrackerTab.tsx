@@ -242,6 +242,27 @@ export const Section80TrackerTab = ({ state, metrics }) => {
         Section 80C / 80D Tracker
       </SectionTitle>
 
+      {/* These deductions (80C, 80CCD(1B), 80D, 80TTA, Sec 24) are only claimable
+          under the OLD tax regime — the New Regime (default since FY2023-24) blocks
+          all of them except 80CCD(2) employer NPS. Without this note, "Estimated Tax
+          Saved" reads as a universal number when it only applies if Old Regime is
+          chosen; see TaxVaultTab's regime comparison for the actual old-vs-new call. */}
+      <div
+        style={{
+          padding: "10px 14px",
+          borderRadius: 10,
+          background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.gold} 22%, transparent)`,
+          fontSize: 12,
+          color: THEME.muted,
+        }}
+      >
+        <b style={{ color: THEME.text }}>Old Regime only:</b> These deductions only reduce tax if
+        you file under the Old Tax Regime — the New Regime (default) disallows all of them except
+        80CCD(2) employer NPS. Check the Tax Vault's regime comparison before assuming this
+        "Estimated Tax Saved" applies to you.
+      </div>
+
       {/* Summary Stats */}
       <div
         style={{

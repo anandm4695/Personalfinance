@@ -77,6 +77,12 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
       let bestMatch: any = null;
       let bestScore = 0;
       existingFunds.forEach((ef) => {
+        // Folio number disambiguates the same scheme name held under multiple folios
+        // (e.g. different family members' accounts) — a fuzzy name match alone would
+        // wrongly merge them and corrupt cost basis. Same folio-first rule CASImportTab
+        // already applies; only skip this candidate when BOTH sides have a folio and
+        // they disagree — fall back to pure name matching when either side lacks one.
+        if (row.folioNumber && ef.folioNumber && row.folioNumber !== ef.folioNumber) return;
         const s = fuzzyScore(row.name, ef.name || ef.scheme || "");
         if (s > bestScore) {
           bestScore = s;
