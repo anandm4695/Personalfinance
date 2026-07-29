@@ -51,6 +51,10 @@ const SHORT_MONTHS = [
   "Dec",
 ];
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// Shared by the day-name header row and the day-cell grid so the two
+// 7-column grids can never drift out of alignment with each other.
+const CAL_GRID_COLS = "repeat(7, 1fr)";
+const CAL_GRID_GAP = 3;
 
 const ORDINAL = (d: number) => {
   if (d >= 11 && d <= 13) return "th";
@@ -80,6 +84,7 @@ export function PaymentCalendarTab({ state }: any) {
     year: todayDate.getFullYear(),
     month: todayDate.getMonth(),
   });
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   // ── Collect all recurring payment items ──────────────────────────────
   const payments = useMemo(() => {
@@ -318,7 +323,19 @@ export function PaymentCalendarTab({ state }: any) {
     return s + p.amount;
   }, 0);
 
+  // Months between the viewed month and the current month (0 = this month).
+  // Navigation is bounded to this range because past months have no due-date
+  // history to show (isActiveInMonth excludes monthsDiff < 0 for EMIs/SIPs),
+  // and the future range matches the 12-month bar overview above.
+  const monthsFromToday =
+    (viewDate.year - todayDate.getFullYear()) * 12 + (viewDate.month - todayDate.getMonth());
+  const canGoPrev = monthsFromToday > 0;
+  const canGoNext = monthsFromToday < 11;
+
   const navigateMonth = (dir: number) => {
+    if (dir < 0 && !canGoPrev) return;
+    if (dir > 0 && !canGoNext) return;
+    setSelectedDay(null);
     setViewDate((prev) => {
       let m = prev.month + dir;
       let y = prev.year;
@@ -353,6 +370,13 @@ export function PaymentCalendarTab({ state }: any) {
 
   return (
     <div className="tab-content-enter">
+      <style>{`
+        @media (max-width: 480px) {
+          .paycal-day-cell { min-height: 44px !important; padding: 3px 2px !important; }
+          .paycal-day-cell > div:first-child { font-size: 10px !important; }
+          .paycal-pill { font-size: 8px !important; padding: 1px 2px !important; }
+        }
+      `}</style>
       <SectionTitle sub="Every recurring outflow — EMIs, SIPs, RDs, subscriptions & insurance premiums plotted by date">
         Payment Calendar
       </SectionTitle>
@@ -436,14 +460,18 @@ export function PaymentCalendarTab({ state }: any) {
                   }}
                 >
                   <div
+                    title={fmtINRFull(m.total)}
                     style={{
                       fontSize: 10,
                       color: THEME.muted,
                       fontWeight: 600,
                       whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      maxWidth: 56,
                     }}
                   >
-                    <Prv>{fmtINRFull(m.total)}</Prv>
+                    <Prv>{fmtINR(m.total)}</Prv>
                   </div>
                   <div
                     style={{
@@ -494,15 +522,17 @@ export function PaymentCalendarTab({ state }: any) {
           >
             <button
               onClick={() => navigateMonth(-1)}
+              disabled={!canGoPrev}
               aria-label="Previous month"
-              title="Previous month"
+              title={canGoPrev ? "Previous month" : "Payment history isn't tracked before the current month"}
               style={{
                 background: "transparent",
                 border: `1.5px solid ${THEME.line}`,
                 borderRadius: 8,
                 padding: "6px 10px",
-                cursor: "pointer",
-                color: THEME.ink,
+                cursor: canGoPrev ? "pointer" : "not-allowed",
+                color: canGoPrev ? THEME.ink : THEME.muted,
+                opacity: canGoPrev ? 1 : 0.4,
                 display: "flex",
                 alignItems: "center",
               }}
@@ -532,15 +562,17 @@ export function PaymentCalendarTab({ state }: any) {
             </div>
             <button
               onClick={() => navigateMonth(1)}
+              disabled={!canGoNext}
               aria-label="Next month"
-              title="Next month"
+              title={canGoNext ? "Next month" : "Beyond the 12-month forecast window"}
               style={{
                 background: "transparent",
                 border: `1.5px solid ${THEME.line}`,
                 borderRadius: 8,
                 padding: "6px 10px",
-                cursor: "pointer",
-                color: THEME.ink,
+                cursor: canGoNext ? "pointer" : "not-allowed",
+                color: canGoNext ? THEME.ink : THEME.muted,
+                opacity: canGoNext ? 1 : 0.4,
                 display: "flex",
                 alignItems: "center",
               }}
@@ -553,8 +585,8 @@ export function PaymentCalendarTab({ state }: any) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(7, 1fr)",
-              gap: 3,
+              gridTemplateColumns: CAL_GRID_COLS,
+              gap: CAL_GRID_GAP,
               marginBottom: 6,
             }}
           >
@@ -578,8 +610,8 @@ export function PaymentCalendarTab({ state }: any) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(7, 1fr)",
-              gap: 3,
+              gridTemplateColumns: CAL_GRID_COLS,
+              gap: CAL_GRID_GAP,
             }}
           >
             {Array.from({ length: calendarData.firstDay }).map((_, i) => (
@@ -588,35 +620,66 @@ export function PaymentCalendarTab({ state }: any) {
             {Array.from({ length: calendarData.daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dayPmts = calendarData.dayMap[day] || [];
-              const isToday =
+              const isCurrentMonth =
                 viewDate.year === todayDate.getFullYear() &&
-                viewDate.month === todayDate.getMonth() &&
-                day === todayDate.getDate();
+                viewDate.month === todayDate.getMonth();
+              const isToday = isCurrentMonth && day === todayDate.getDate();
+              const isPast = isCurrentMonth && day < todayDate.getDate();
               const dayTotal = dayPmts.reduce((s: number, p: any) => s + p.amount, 0);
               const hasPmts = dayPmts.length > 0;
+              const isSelected = selectedDay === day && hasPmts;
+              const dayLabel = hasPmts
+                ? `${MONTH_NAMES[viewDate.month]} ${day}: ${dayPmts.length} payment${dayPmts.length > 1 ? "s" : ""} totalling ${fmtINRFull(dayTotal)}${isPast ? " (past due date)" : ""}`
+                : `${MONTH_NAMES[viewDate.month]} ${day}, no payments due`;
 
               return (
                 <div
                   key={day}
+                  className="paycal-day-cell"
+                  role={hasPmts ? "button" : undefined}
+                  tabIndex={hasPmts ? 0 : undefined}
+                  aria-label={dayLabel}
+                  aria-pressed={hasPmts ? isSelected : undefined}
+                  onClick={hasPmts ? () => setSelectedDay(isSelected ? null : day) : undefined}
+                  onKeyDown={
+                    hasPmts
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedDay(isSelected ? null : day);
+                          }
+                        }
+                      : undefined
+                  }
                   style={{
                     minHeight: 60,
                     borderRadius: 8,
                     border: `1.5px solid ${
-                      isToday ? THEME.accent : hasPmts ? THEME.line : "transparent"
+                      isSelected
+                        ? THEME.accent
+                        : isToday
+                          ? THEME.accent
+                          : hasPmts
+                            ? THEME.line
+                            : "transparent"
                     }`,
-                    background: isToday
-                      ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
-                      : hasPmts
-                        ? "color-mix(in srgb, var(--t-accent) 3%, transparent)"
-                        : "transparent",
+                    background: isSelected
+                      ? `color-mix(in srgb, ${THEME.accent} 14%, transparent)`
+                      : isToday
+                        ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                        : hasPmts
+                          ? "color-mix(in srgb, var(--t-accent) 3%, transparent)"
+                          : "transparent",
                     padding: "5px 4px",
+                    cursor: hasPmts ? "pointer" : "default",
+                    opacity: isPast && !isSelected ? 0.55 : 1,
                   }}
                 >
                   <div
                     style={{
-                      fontWeight: isToday ? 800 : 500,
+                      fontWeight: isToday ? 800 : hasPmts ? 700 : 500,
                       fontSize: 12,
-                      color: isToday ? THEME.accent : THEME.muted,
+                      color: isToday ? THEME.accent : hasPmts ? THEME.ink : THEME.muted,
                       marginBottom: 3,
                       lineHeight: 1,
                     }}
@@ -625,9 +688,11 @@ export function PaymentCalendarTab({ state }: any) {
                   </div>
                   {dayPmts.slice(0, 2).map((p, pi) => {
                     const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
+                    const isClamped = p.dueDay > calendarData.daysInMonth;
                     return (
                       <div
                         key={pi}
+                        className="paycal-pill"
                         style={{
                           fontSize: 9,
                           color: cfg.color,
@@ -640,9 +705,14 @@ export function PaymentCalendarTab({ state }: any) {
                           textOverflow: "ellipsis",
                           fontWeight: 600,
                         }}
-                        title={`${p.name} — ${fmtINRFull(p.amount)}`}
+                        title={`${p.name} — ${fmtINRFull(p.amount)}${
+                          isClamped
+                            ? ` (normally due ${p.dueDay}${ORDINAL(p.dueDay)}; moved to the last day of this shorter month)`
+                            : ""
+                        }`}
                       >
-                        {p.name.length > 8 ? p.name.slice(0, 7) + "…" : p.name}
+                        {p.name}
+                        {isClamped ? "*" : ""}
                       </div>
                     );
                   })}
@@ -654,7 +724,7 @@ export function PaymentCalendarTab({ state }: any) {
                         fontWeight: 600,
                       }}
                     >
-                      +{dayPmts.length - 2}
+                      +{dayPmts.length - 2} more
                     </div>
                   )}
                   {dayTotal > 0 && (
@@ -672,6 +742,58 @@ export function PaymentCalendarTab({ state }: any) {
               );
             })}
           </div>
+
+          {/* Selected-day detail — gives keyboard/touch users (no hover tooltip)
+              a way to see full names & amounts, and surfaces the +N overflow items */}
+          {selectedDay !== null && calendarData.dayMap[selectedDay]?.length > 0 && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "10px 14px",
+                borderRadius: 8,
+                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                border: `1px solid ${THEME.accent}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  color: THEME.ink,
+                  fontWeight: 700,
+                  marginBottom: 8,
+                }}
+              >
+                {MONTH_NAMES[viewDate.month]} {selectedDay}
+                {ORDINAL(selectedDay)} — {calendarData.dayMap[selectedDay].length} payment
+                {calendarData.dayMap[selectedDay].length > 1 ? "s" : ""}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {calendarData.dayMap[selectedDay].map((p: any, i: number) => {
+                  const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 12,
+                      }}
+                    >
+                      <cfg.icon size={13} style={{ color: cfg.color, flexShrink: 0 }} />
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.name}</span>
+                      {p.owner && p.owner !== "self" && (
+                        <span style={{ color: THEME.muted, fontSize: 11 }}>({p.owner})</span>
+                      )}
+                      <span style={{ marginLeft: "auto", color: cfg.color, fontWeight: 700 }}>
+                        <Prv>{fmtINRExact(p.amount)}</Prv>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Yearly/quarterly items shown below grid */}
           {(calendarData.annualThisMonth.length > 0 ||
