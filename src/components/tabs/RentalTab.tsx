@@ -564,8 +564,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           {propertiesOut.length === 0 ? (
             <EmptyState
               icon={Building2}
-              gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)"
-              dotColor="#059669"
+              gradient={`linear-gradient(135deg, ${THEME.sage} 0%, color-mix(in srgb, ${THEME.sage} 55%, white) 100%)`}
+              dotColor={THEME.sage}
               title="No Properties Rented Out"
               description="Add your shop, flat, or commercial space to track monthly rent receipts, security deposits, and taxable income under IHP."
               pills={[
@@ -864,7 +864,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         style={{
                           marginTop: 14,
                           display: "grid",
-                          gridTemplateColumns: "1fr 1fr 1fr",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
                           gap: 8,
                         }}
                       >
@@ -1033,6 +1033,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       >
                         <button
                           onClick={() => setExpandedLedger(expandedLedger === p.id ? null : p.id)}
+                          aria-expanded={expandedLedger === p.id}
                           style={{
                             background: "none",
                             border: "none",
@@ -2425,6 +2426,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       >
                         <button
                           onClick={() => setExpandedLedger(expandedLedger === p.id ? null : p.id)}
+                          aria-expanded={expandedLedger === p.id}
                           style={{
                             background: "none",
                             border: "none",
@@ -3205,7 +3207,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           >
             <TrendingUp size={15} color={THEME.accent} /> Rental P&L · FY {fyLabel}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: 12,
+            }}
+          >
             {[
               { label: "Income Received", value: outThisFY, color: THEME.sage, sign: "+" },
               { label: "Rent Paid Out", value: inThisFY, color: THEME.rust, sign: "-" },

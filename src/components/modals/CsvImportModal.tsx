@@ -747,15 +747,23 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           gap: 6,
           marginBottom: 16,
           padding: 4,
-          background: "rgba(128,128,128,0.06)",
+          background: "color-mix(in srgb, var(--t-muted) 8%, transparent)",
           borderRadius: 24,
           width: "fit-content",
         }}
       >
-        <button style={pillStyle(mode === "template")} onClick={() => setMode("template")}>
+        <button
+          style={pillStyle(mode === "template")}
+          onClick={() => setMode("template")}
+          aria-pressed={mode === "template"}
+        >
           <FileText size={13} /> Template Import
         </button>
-        <button style={pillStyle(mode === "smart")} onClick={() => setMode("smart")}>
+        <button
+          style={pillStyle(mode === "smart")}
+          onClick={() => setMode("smart")}
+          aria-pressed={mode === "smart"}
+        >
           <Zap size={13} /> Smart Import
         </button>
       </div>
@@ -765,8 +773,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           {/* Step 1: Download template */}
           <div
             style={{
-              background: "rgba(99,102,241,0.06)",
-              border: `1px solid rgba(99,102,241,0.2)`,
+              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               borderRadius: 10,
               padding: "12px 16px",
               marginBottom: 16,
@@ -795,21 +803,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 color: THEME.muted,
                 marginBottom: 14,
                 padding: "8px 12px",
-                background: "rgba(128,128,128,0.05)",
+                background: "color-mix(in srgb, var(--t-muted) 6%, transparent)",
                 borderRadius: 8,
               }}
             >
               <span style={{ fontWeight: 700 }}>Your account IDs:</span>{" "}
               {accounts.map((a, i) => (
                 <span key={a.id}>
-                  <code
-                    style={{
-                      background: "rgba(128,128,128,0.12)",
-                      padding: "1px 5px",
-                      borderRadius: 4,
-                      fontSize: 11,
-                    }}
-                  >
+                  <code className="code-chip" style={{ fontSize: 11 }}>
                     {a.id}
                   </code>{" "}
                   = {a.bankName || a.name || "Account"}
@@ -826,9 +827,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>
               Format:{" "}
-              <code
-                style={{ background: "rgba(128,128,128,0.1)", padding: "1px 4px", fontWeight: 400 }}
-              >
+              <code className="code-chip" style={{ fontWeight: 400 }}>
                 date, amount, type, category, note, narration, [referenceNumber], accountId
               </code>
             </label>
@@ -859,17 +858,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           </div>
 
           {error && (
-            <div
-              style={{
-                color: THEME.rust,
-                fontSize: 12,
-                marginBottom: 16,
-                padding: 10,
-                background: "rgba(220,38,38,0.05)",
-                borderRadius: 8,
-              }}
-            >
-              {error}
+            <div className="info-box info-box-error" style={{ marginBottom: 16, fontSize: 12 }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{error}</span>
             </div>
           )}
 
@@ -1055,17 +1046,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           )}
 
           {smartError && (
-            <div
-              style={{
-                color: THEME.rust,
-                fontSize: 12,
-                marginBottom: 16,
-                padding: 10,
-                background: "rgba(220,38,38,0.05)",
-                borderRadius: 8,
-              }}
-            >
-              {smartError}
+            <div className="info-box info-box-error" style={{ marginBottom: 16, fontSize: 12 }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{smartError}</span>
             </div>
           )}
 
@@ -1187,6 +1170,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                             checked={r.selected && !r.isDuplicate}
                             disabled={r.isDuplicate}
                             onChange={() => toggleRow(i)}
+                            aria-label={`Include row: ${r.narration || r.date} for ${fmtINRFull(r.amount)}`}
                           />
                         </td>
                         <td

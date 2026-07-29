@@ -330,6 +330,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
               padding: 6,
               display: "flex",
               alignItems: "center",
+            transition: "background 0.15s ease, color 0.15s ease",
             }}
           >
             <X size={14} />
@@ -522,7 +523,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>premium</div>
                   </div>
                   {days !== null && (
-                    <Badge color={days <= 7 ? "danger" : days <= 30 ? "warning" : "success"}>
+                    <Badge variant={days <= 7 ? "rust" : days <= 30 ? "gold" : "sage"}>
                       {days <= 0 ? "Expired" : `Renews in ${days}d`}
                     </Badge>
                   )}
@@ -539,6 +540,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                         padding: 6,
                         display: "flex",
                         alignItems: "center",
+                      transition: "background 0.15s ease, color 0.15s ease",
                       }}
                     >
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -555,6 +557,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                         padding: 6,
                         display: "flex",
                         alignItems: "center",
+                      transition: "background 0.15s ease, color 0.15s ease",
                       }}
                     >
                       <Pencil size={14} />
@@ -574,6 +577,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                         padding: 6,
                         display: "flex",
                         alignItems: "center",
+                      transition: "background 0.15s ease, color 0.15s ease",
                       }}
                     >
                       <Trash2 size={14} />

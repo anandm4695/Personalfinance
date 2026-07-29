@@ -523,6 +523,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
               <div key={cat} style={{ marginBottom: 20 }}>
                 <button
                   onClick={() => toggleCategory(cat)}
+                  aria-expanded={!collapsed}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -714,6 +715,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                 }
                                 style={{ padding: 6, color: THEME.gold }}
                                 title="Pause"
+                                aria-label={`Pause ${s.name}`}
                               >
                                 <Pause size={14} />
                               </Button>
@@ -853,6 +855,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             onClick={() => updateItem("subscriptions", s.id, { paused: false })}
                             style={{ padding: 6, color: THEME.sage }}
                             title="Resume"
+                            aria-label={`Resume ${s.name}`}
                           >
                             <Play size={14} />
                           </Button>

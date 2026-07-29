@@ -491,7 +491,7 @@ const btnSolid = {
   gap: 8,
   padding: "8px 16px",
   background: THEME.accent,
-  color: "#fff",
+  color: THEME.darkInk,
   border: "none",
   borderRadius: 8,
   fontWeight: 700,
@@ -885,7 +885,7 @@ function CreditScoreTracker() {
                   borderRadius: 100,
                   fontSize: 11,
                   fontWeight: 600,
-                  background: `${THEME.accent}14`,
+                  background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                   color: THEME.accent,
                 }}
               >
@@ -938,7 +938,7 @@ function CreditScoreTracker() {
                   <Badge
                     variant="accent"
                     style={{
-                      background: `${rating!.color}18`,
+                      background: `color-mix(in srgb, ${rating!.color} 9%, transparent)`,
                       color: rating!.color,
                       fontWeight: 800,
                       fontSize: 12,
@@ -2584,7 +2584,7 @@ function CCList({
                     ? "var(--t-accent)"
                     : "var(--t-muted)"
                   : "transparent",
-              color: viewMode === mode ? "#fff" : "var(--t-muted)",
+              color: viewMode === mode ? THEME.darkInk : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
               cursor: "pointer",
@@ -3040,15 +3040,15 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             label: "Total Charges",
             value: <Prv>{fmtINRFull(totalCharges)}</Prv>,
             color: THEME.rust,
-            bg: `${THEME.rust}15`,
-            border: `${THEME.rust}33`,
+            bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            border: `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
           },
           {
             label: "Net Outstanding",
             value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
-            bg: totalOutstanding > 0 ? `${THEME.rust}15` : `${THEME.sage}15`,
-            border: totalOutstanding > 0 ? `${THEME.rust}33` : `${THEME.sage}33`,
+            bg: totalOutstanding > 0 ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)` : `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+            border: totalOutstanding > 0 ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` : `color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
           },
         ].map((s) => (
           <div
@@ -3102,7 +3102,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
               fontSize: 12,
               padding: "6px 14px",
               color: THEME.accent,
-              borderColor: `${THEME.accent}66`,
+              borderColor: `color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
             }}
             onClick={() => {
               setShowCsvImport((v) => !v);
@@ -3118,7 +3118,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                 fontSize: 12,
                 padding: "6px 14px",
                 color: THEME.sage,
-                borderColor: `${THEME.sage}55`,
+                borderColor: `color-mix(in srgb, ${THEME.sage} 33%, transparent)`,
               }}
               onClick={downloadCsv}
             >
@@ -3161,8 +3161,8 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             padding: 18,
             borderRadius: 12,
             marginBottom: 16,
-            background: `${THEME.accent}09`,
-            border: `1px solid ${THEME.accent}38`,
+            background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
           }}
         >
           <div
@@ -3191,7 +3191,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                 fontSize: 11,
                 padding: "4px 12px",
                 borderRadius: 6,
-                border: `1px solid ${THEME.accent}4d`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
                 background: "transparent",
                 color: THEME.accent,
                 cursor: "pointer",
@@ -3240,11 +3240,11 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
               justifyContent: "center",
               gap: 8,
               padding: "20px 0",
-              border: `1.5px dashed ${THEME.accent}66`,
+              border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
               borderRadius: 10,
               cursor: "pointer",
               marginBottom: 12,
-              background: `${THEME.accent}08`,
+              background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
             }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
@@ -3302,7 +3302,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
               style={{
                 padding: "8px 18px",
                 borderRadius: 8,
-                border: `1px solid ${THEME.accent}66`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
                 background: "transparent",
                 color: THEME.accent,
                 fontWeight: 700,
@@ -3320,7 +3320,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                   borderRadius: 8,
                   border: "none",
                   background: THEME.accent,
-                  color: "#fff",
+                  color: THEME.darkInk,
                   fontWeight: 700,
                   fontSize: 12,
                   cursor: "pointer",
@@ -3355,7 +3355,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                 color: THEME.rust,
                 fontSize: 12,
                 padding: "8px 12px",
-                background: `${THEME.rust}0f`,
+                background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
                 borderRadius: 8,
               }}
             >
@@ -3374,7 +3374,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
               <div
                 style={{
                   padding: "8px 12px",
-                  background: `${THEME.accent}12`,
+                  background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
                   fontSize: 11,
                   fontWeight: 700,
                   color: THEME.accent,
@@ -3723,7 +3723,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     ? "var(--t-accent)"
                     : "var(--t-muted)"
                   : "transparent",
-              color: viewMode === mode ? "#fff" : "var(--t-muted)",
+              color: viewMode === mode ? THEME.darkInk : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
               cursor: "pointer",
@@ -4487,22 +4487,22 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
             label: "Total Loaded",
             value: <Prv>{fmtINRFull(totalLoaded)}</Prv>,
             color: THEME.sage,
-            bg: `${THEME.sage}15`,
-            border: `${THEME.sage}33`,
+            bg: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+            border: `color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
           },
           {
             label: "Total Spent",
             value: <Prv>{fmtINRFull(totalSpent)}</Prv>,
             color: THEME.rust,
-            bg: `${THEME.rust}15`,
-            border: `${THEME.rust}33`,
+            bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            border: `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
           },
           {
             label: "Balance",
             value: <Prv>{fmtINRFull(balance)}</Prv>,
             color: balance >= 0 ? THEME.sage : THEME.rust,
-            bg: balance >= 0 ? `${THEME.sage}15` : `${THEME.rust}15`,
-            border: balance >= 0 ? `${THEME.sage}33` : `${THEME.rust}33`,
+            bg: balance >= 0 ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)` : `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            border: balance >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
           },
         ].map((s) => (
           <div
@@ -4555,7 +4555,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               fontSize: 12,
               padding: "6px 14px",
               color: THEME.accent,
-              borderColor: `${THEME.accent}66`,
+              borderColor: `color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
             }}
             onClick={() => {
               setShowCsvImport((v) => !v);
@@ -4570,7 +4570,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               fontSize: 12,
               padding: "6px 14px",
               color: THEME.sage,
-              borderColor: `${THEME.sage}55`,
+              borderColor: `color-mix(in srgb, ${THEME.sage} 33%, transparent)`,
             }}
             onClick={() => openAdd("load")}
           >
@@ -4582,7 +4582,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               fontSize: 12,
               padding: "6px 14px",
               color: THEME.rust,
-              borderColor: `${THEME.rust}55`,
+              borderColor: `color-mix(in srgb, ${THEME.rust} 33%, transparent)`,
             }}
             onClick={() => openAdd("spend")}
           >
@@ -4597,8 +4597,8 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
             padding: 18,
             borderRadius: 12,
             marginBottom: 16,
-            background: `${THEME.accent}09`,
-            border: `1px solid ${THEME.accent}38`,
+            background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
           }}
         >
           <div
@@ -4627,7 +4627,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                 fontSize: 11,
                 padding: "4px 12px",
                 borderRadius: 6,
-                border: `1px solid ${THEME.accent}4d`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
                 background: "transparent",
                 color: THEME.accent,
                 cursor: "pointer",
@@ -4678,11 +4678,11 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               justifyContent: "center",
               gap: 8,
               padding: "20px 0",
-              border: `1.5px dashed ${THEME.accent}66`,
+              border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
               borderRadius: 10,
               cursor: "pointer",
               marginBottom: 12,
-              background: `${THEME.accent}08`,
+              background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
               transition: "background 0.15s",
             }}
             onDragOver={(e) => e.preventDefault()}
@@ -4743,7 +4743,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               style={{
                 padding: "8px 18px",
                 borderRadius: 8,
-                border: `1px solid ${THEME.accent}66`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
                 background: "transparent",
                 color: THEME.accent,
                 fontWeight: 700,
@@ -4761,7 +4761,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                   borderRadius: 8,
                   border: "none",
                   background: THEME.accent,
-                  color: "#fff",
+                  color: THEME.darkInk,
                   fontWeight: 700,
                   fontSize: 12,
                   cursor: "pointer",
@@ -4797,7 +4797,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                 color: THEME.rust,
                 fontSize: 12,
                 padding: "8px 12px",
-                background: `${THEME.rust}0f`,
+                background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
                 borderRadius: 8,
               }}
             >
@@ -4817,7 +4817,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               <div
                 style={{
                   padding: "8px 12px",
-                  background: `${THEME.accent}12`,
+                  background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
                   fontSize: 11,
                   fontWeight: 700,
                   color: THEME.accent,
@@ -4892,7 +4892,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                               fontWeight: 700,
                               padding: "2px 7px",
                               borderRadius: 99,
-                              background: r.type === "load" ? `${THEME.sage}1f` : `${THEME.rust}1f`,
+                              background: r.type === "load" ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                               color: r.type === "load" ? THEME.sage : THEME.rust,
                             }}
                           >
@@ -4930,8 +4930,8 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
             padding: 16,
             borderRadius: 10,
             marginBottom: 16,
-            background: txType === "load" ? `${THEME.sage}09` : `${THEME.rust}09`,
-            border: `1px solid ${txType === "load" ? `${THEME.sage}33` : `${THEME.rust}33`}`,
+            background: txType === "load" ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)` : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+            border: `1px solid ${txType === "load" ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
           }}
         >
           <div
@@ -5006,7 +5006,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                 borderRadius: 8,
                 border: "none",
                 background: txType === "load" ? THEME.sage : THEME.rust,
-                color: "#fff",
+                color: THEME.darkInk,
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: "pointer",
@@ -5105,7 +5105,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                           fontWeight: 700,
                           padding: "2px 8px",
                           borderRadius: 99,
-                          background: t.type === "load" ? `${THEME.sage}1f` : `${THEME.rust}1f`,
+                          background: t.type === "load" ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                           color: t.type === "load" ? THEME.sage : THEME.rust,
                         }}
                       >
@@ -6083,7 +6083,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                       style={{
                         fontSize: 9,
                         fontWeight: 800,
-                        color: "#fff",
+                        color: THEME.darkInk,
                         background: "var(--t-rust)",
                         padding: "2px 8px",
                         borderRadius: 99,
@@ -6407,7 +6407,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                           }}
                           style={{
                             background: "var(--t-sage)",
-                            color: "#fff",
+                            color: THEME.darkInk,
                             border: "none",
                             borderRadius: 8,
                             padding: "6px 14px",
@@ -8211,8 +8211,8 @@ function DebtPayoffOptimizer({ state }: any) {
                     style={{
                       padding: "5px 12px",
                       borderRadius: 8,
-                      border: `1px solid ${THEME.rust}4d`,
-                      background: `${THEME.rust}09`,
+                      border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
+                      background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
                       fontSize: 11,
                       fontWeight: 800,
                       color: THEME.rust,
@@ -8451,7 +8451,7 @@ function DebtPayoffOptimizer({ state }: any) {
                       width: 32,
                       height: 32,
                       borderRadius: "50%",
-                      background: `${THEME.sage}16`,
+                      background: `color-mix(in srgb, ${THEME.sage} 9%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -8527,7 +8527,7 @@ function DebtPayoffOptimizer({ state }: any) {
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: selectedPlan === "avalanche" ? `${THEME.accent}16` : `${THEME.gold}16`,
+                background: selectedPlan === "avalanche" ? `color-mix(in srgb, ${THEME.accent} 9%, transparent)` : `color-mix(in srgb, ${THEME.gold} 9%, transparent)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

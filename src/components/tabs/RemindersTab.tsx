@@ -747,6 +747,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             <button
               onClick={() => toggleComplete(r.id, r.date)}
               title="Mark as Done"
+              aria-label={`Mark ${r.title} as done`}
               style={{
                 width: 34,
                 height: 34,
@@ -1079,6 +1080,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                       <button
                         key={d}
                         onClick={() => updateNotifSettings({ leadDays: d })}
+                        aria-pressed={active}
                         style={{
                           padding: "6px 18px",
                           borderRadius: 8,
@@ -1094,6 +1096,12 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                           cursor: "pointer",
                           fontFamily: "inherit",
                           transition: "all 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!active) e.currentTarget.style.borderColor = THEME.accent;
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!active) e.currentTarget.style.borderColor = THEME.line;
                         }}
                       >
                         {d} days
@@ -1226,6 +1234,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             categories: { ...(notifSettings.categories || {}), [key]: !on },
                           })
                         }
+                        aria-pressed={on}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -1397,6 +1406,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   <button
                     key={t}
                     onClick={() => setActiveFilter(t)}
+                    aria-pressed={active}
                     style={{
                       padding: "5px 14px",
                       borderRadius: 99,
@@ -1648,6 +1658,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             <div style={{ marginTop: 32, marginBottom: 16 }}>
               <button
                 onClick={() => setShowCompleted(!showCompleted)}
+                aria-expanded={showCompleted}
                 style={{
                   background: "none",
                   border: "none",

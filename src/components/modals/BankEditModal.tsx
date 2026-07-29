@@ -32,6 +32,8 @@ export function BankEditModal({ account, onClose, onSave }: any) {
           style={input}
           value={f.bankName}
           onChange={(e) => setF({ ...f, bankName: e.target.value })}
+          placeholder="e.g. HDFC Bank"
+          autoFocus
         />
       </Field>
       <Field label="Account Number (last 4 ok)">
@@ -39,9 +41,10 @@ export function BankEditModal({ account, onClose, onSave }: any) {
           style={input}
           value={f.accountNumber}
           onChange={(e) => setF({ ...f, accountNumber: e.target.value })}
+          placeholder="●●●●1234"
         />
       </Field>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2">
         <Field label="Type">
           <select
             style={input}
@@ -59,13 +62,20 @@ export function BankEditModal({ account, onClose, onSave }: any) {
           <input
             style={input}
             type="number"
+            step="0.01"
+            inputMode="decimal"
             value={f.balance}
             onChange={(e) => setF({ ...f, balance: e.target.value })}
             placeholder="Override if needed"
           />
         </Field>
       </div>
-      <ModalActions onSave={() => f.bankName && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() => f.bankName.trim() && onSave(f)}
+        onClose={onClose}
+        disabled={!f.bankName.trim()}
+        saveLabel="Save Changes"
+      />
     </Modal>
   );
 }

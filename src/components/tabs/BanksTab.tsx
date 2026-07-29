@@ -39,6 +39,7 @@ import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
+import { EmptyState } from "../ui/EmptyState";
 
 // Bank logo domains for Clearbit / Google Favicon API
 const BANK_LOGO_DOMAINS: Record<string, string> = {
@@ -226,115 +227,29 @@ const EmptyHint = ({ text }: { text: string }) => (
 );
 
 const BankEmptyState = ({ onAdd }: any) => (
-  <div
-    style={{
-      padding: "60px 40px",
-      textAlign: "center",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 20,
-    }}
-  >
-    <div
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: 20,
-        background: "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Building2 size={28} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-        No Bank Accounts Added Yet
-      </div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>
-        Connect your savings, current, and salary accounts to track balances and every rupee that
-        moves in and out.
-      </div>
-    </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Savings & Current", "Balance Tracking", "CSV Import", "Auto Categories"].map((f) => (
-        <span
-          key={f}
-          style={{
-            fontSize: 11,
-            padding: "5px 12px",
-            borderRadius: 20,
-            background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-            color: THEME.accent,
-            fontWeight: 600,
-            border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-          }}
-        >
-          ● {f}
-        </span>
-      ))}
-    </div>
-    <Button variant="accent" icon={<Plus size={16} />} style={{ marginTop: 8 }} onClick={onAdd}>
-      Add Bank Account
-    </Button>
-  </div>
+  <EmptyState
+    icon={Building2}
+    gradient={`linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 55%, white))`}
+    dotColor={THEME.accent}
+    title="No Bank Accounts Added Yet"
+    description="Connect your savings, current, and salary accounts to track balances and every rupee that moves in and out."
+    pills={["Savings & Current", "Balance Tracking", "CSV Import", "Auto Categories"]}
+    buttonLabel="Add Bank Account"
+    onAdd={onAdd}
+  />
 );
 
 const TxnEmptyState = ({ onAdd }: any) => (
-  <div
-    style={{
-      padding: "60px 40px",
-      textAlign: "center",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 20,
-    }}
-  >
-    <div
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: 20,
-        background: `linear-gradient(135deg,${THEME.accent} 0%,#a78bfa 100%)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <ReceiptText size={28} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Transactions Yet</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>
-        Record income and expenses manually or bulk-import from your bank statement CSV. Every
-        transaction is auto-categorised.
-      </div>
-    </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Debit & Credit", "Category Tags", "Bulk CSV Import", "Recurring Detection"].map((f) => (
-        <span
-          key={f}
-          style={{
-            fontSize: 11,
-            padding: "5px 12px",
-            borderRadius: 20,
-            background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-            color: THEME.accent,
-            fontWeight: 600,
-            border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-          }}
-        >
-          ● {f}
-        </span>
-      ))}
-    </div>
-    <Button variant="accent" icon={<Plus size={16} />} onClick={onAdd} style={{ marginTop: 8 }}>
-      Add Transaction
-    </Button>
-  </div>
+  <EmptyState
+    icon={ReceiptText}
+    gradient={`linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 55%, white))`}
+    dotColor={THEME.accent}
+    title="No Transactions Yet"
+    description="Record income and expenses manually or bulk-import from your bank statement CSV. Every transaction is auto-categorised."
+    pills={["Debit & Credit", "Category Tags", "Bulk CSV Import", "Recurring Detection"]}
+    buttonLabel="Add Transaction"
+    onAdd={onAdd}
+  />
 );
 
 const btnSolid = {
@@ -343,7 +258,7 @@ const btnSolid = {
   gap: 8,
   padding: "8px 16px",
   background: THEME.accent,
-  color: "#fff",
+  color: THEME.darkInk,
   border: "none",
   borderRadius: 8,
   fontWeight: 700,
@@ -1388,6 +1303,7 @@ export function BanksTab({
                     border: `1.5px solid ${THEME.line}`,
                   }}
                   title="Edit account"
+                  aria-label={`Edit ${a.bankName} account`}
                 >
                   <Edit3 size={12} />
                 </button>
@@ -1410,6 +1326,7 @@ export function BanksTab({
                     border: `1.5px solid ${THEME.line}`,
                   }}
                   title="Delete account"
+                  aria-label={`Delete ${a.bankName} account`}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -2030,6 +1947,7 @@ export function BanksTab({
                               className="icon-btn"
                               style={{ ...iconBtn, color: THEME.sage, padding: 6 }}
                               title="Save"
+                              aria-label="Save transaction"
                             >
                               <Check size={14} />
                             </button>
@@ -2038,6 +1956,7 @@ export function BanksTab({
                               className="icon-btn danger"
                               style={{ ...iconBtn, color: THEME.rust, padding: 6 }}
                               title="Cancel"
+                              aria-label="Cancel edit"
                             >
                               <X size={14} />
                             </button>
@@ -2207,6 +2126,7 @@ export function BanksTab({
                               background: isHovered ? "var(--surface-0)" : "transparent",
                             }}
                             title="Edit"
+                            aria-label="Edit transaction"
                           >
                             <Edit3 size={12} />
                           </button>
@@ -2223,6 +2143,7 @@ export function BanksTab({
                               background: isHovered ? "var(--surface-0)" : "transparent",
                             }}
                             title="Delete"
+                            aria-label="Delete transaction"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -2577,7 +2498,7 @@ export function BanksTab({
                     borderRadius: "var(--radius-md)",
                     border: "none",
                     background: THEME.accent,
-                    color: "#fff",
+                    color: THEME.darkInk,
                     fontWeight: 700,
                     fontSize: 13,
                     cursor: "pointer",

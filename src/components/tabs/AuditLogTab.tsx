@@ -24,6 +24,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { SkeletonTableRows } from "../ui/Skeleton";
 
 const ACTION_COLORS = {
   ADD: THEME.sage,
@@ -434,6 +435,12 @@ export const AuditLogTab = ({ session }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <style>{`
+        .audit-search-wrap:focus-within {
+          border-color: var(--t-accent) !important;
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 12%, transparent);
+        }
+      `}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <SectionTitle sub="Track all changes and actions in your financial data">
           Audit Log
@@ -451,7 +458,7 @@ export const AuditLogTab = ({ session }) => {
             gap: 8,
             padding: "10px 14px",
             borderRadius: 10,
-            background: "color-mix(in srgb, var(--danger, #ef4444) 10%, transparent)",
+            background: `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
             border: `1px solid ${THEME.rust}`,
             color: THEME.rust,
             fontSize: 12.5,
@@ -561,6 +568,7 @@ export const AuditLogTab = ({ session }) => {
           }}
         >
           <div
+            className="audit-search-wrap"
             style={{
               display: "flex",
               alignItems: "center",
@@ -569,8 +577,9 @@ export const AuditLogTab = ({ session }) => {
               minWidth: 200,
               padding: "7px 12px",
               borderRadius: 8,
-              border: `1px solid ${THEME.border}`,
+              border: `1.5px solid ${THEME.border}`,
               background: THEME.card,
+              transition: "border-color 0.15s ease, box-shadow 0.15s ease",
             }}
           >
             <Search size={13} color={THEME.textSecondary} />
@@ -578,6 +587,7 @@ export const AuditLogTab = ({ session }) => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by description, type, or value…"
+              aria-label="Search audit log"
               style={{
                 border: "none",
                 outline: "none",
@@ -639,10 +649,8 @@ export const AuditLogTab = ({ session }) => {
 
         {/* Log list */}
         {loading ? (
-          <div
-            style={{ padding: 40, textAlign: "center", color: THEME.textSecondary, fontSize: 14 }}
-          >
-            Loading audit logs…
+          <div style={{ padding: "20px 20px 24px" }}>
+            <SkeletonTableRows rows={6} columns={4} rowHeight={18} />
           </div>
         ) : groupedLogs.length > 0 ? (
           <div style={{ maxHeight: 640, overflowY: "auto" }}>
@@ -867,41 +875,25 @@ export const AuditLogTab = ({ session }) => {
                 background: THEME.bg,
               }}
             >
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setPage(Math.max(0, page - 1))}
                 disabled={page === 0}
-                style={{
-                  padding: "6px 16px",
-                  borderRadius: 7,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                  cursor: page > 0 ? "pointer" : "default",
-                  opacity: page > 0 ? 1 : 0.4,
-                  fontSize: 13,
-                }}
               >
                 Previous
-              </button>
+              </Button>
               <span style={{ padding: "6px 12px", fontSize: 13, color: THEME.textSecondary }}>
                 Page {page + 1}
               </span>
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setPage(page + 1)}
                 disabled={filteredLogs.length < PAGE_SIZE}
-                style={{
-                  padding: "6px 16px",
-                  borderRadius: 7,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                  cursor: filteredLogs.length >= PAGE_SIZE ? "pointer" : "default",
-                  opacity: filteredLogs.length >= PAGE_SIZE ? 1 : 0.4,
-                  fontSize: 13,
-                }}
               >
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         ) : (

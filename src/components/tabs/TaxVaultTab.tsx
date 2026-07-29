@@ -584,8 +584,8 @@ const Reconciler26AS = ({
                   Matched ({reconciled.matched.length})
                 </span>
               </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="mobile-table-wrap">
+                <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
                       <th style={thStyle}>TAN</th>
@@ -598,7 +598,7 @@ const Reconciler26AS = ({
                   </thead>
                   <tbody>
                     {reconciled.matched.map((r: any, i: number) => (
-                      <tr key={i}>
+                      <tr key={i} className="table-row-hover">
                         <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>
                           {r.tan}
                         </td>
@@ -642,8 +642,8 @@ const Reconciler26AS = ({
                   — Present in 26AS but no matching record found in your data
                 </span>
               </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="mobile-table-wrap">
+                <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
                       <th style={thStyle}>TAN</th>
@@ -656,7 +656,7 @@ const Reconciler26AS = ({
                   </thead>
                   <tbody>
                     {reconciled.unmatchedIn26AS.map((r: any, i: number) => (
-                      <tr key={i}>
+                      <tr key={i} className="table-row-hover">
                         <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>
                           {r.tan}
                         </td>
@@ -700,8 +700,8 @@ const Reconciler26AS = ({
                   — TDS you recorded but not found in the pasted 26AS data
                 </span>
               </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="mobile-table-wrap">
+                <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
                       <th style={thStyle}>Type</th>
@@ -713,7 +713,7 @@ const Reconciler26AS = ({
                   </thead>
                   <tbody>
                     {reconciled.missingFrom26AS.map((r: any, i: number) => (
-                      <tr key={i}>
+                      <tr key={i} className="table-row-hover">
                         <td style={{ ...tdStyle, fontWeight: 600 }}>{r.type}</td>
                         <td style={tdStyle}>{r.note || "—"}</td>
                         <td style={{ ...tdStyle, color: THEME.muted }}>{r.item.date || "—"}</td>
@@ -2505,22 +2505,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                               {d.limit ? ` / ${fmtINRFull(d.limit)}` : ""}
                             </div>
                           </div>
-                          <div
-                            style={{
-                              height: 6,
-                              borderRadius: 3,
-                              background: `color-mix(in srgb, ${THEME.muted} 9%, transparent)`,
-                              overflow: "hidden",
-                            }}
-                          >
+                          <div className="progress-track">
                             <div
-                              style={{
-                                height: 6,
-                                borderRadius: 3,
-                                width: `${pct}%`,
-                                background: barColor,
-                                transition: "width 0.3s",
-                              }}
+                              className="progress-fill"
+                              style={{ width: `${pct}%`, background: barColor }}
                             />
                           </div>
                           {d.limit && remaining > 0 && (
@@ -3595,22 +3583,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             : "Fully utilized ✓"}
                         </span>
                       </div>
-                      <div
-                        style={{
-                          height: 5,
-                          background: THEME.line,
-                          borderRadius: 4,
-                          overflow: "hidden",
-                        }}
-                      >
+                      <div className="progress-track" style={{ height: 5 }}>
                         <div
-                          style={{
-                            height: "100%",
-                            width: `${pct}%`,
-                            background: barColor,
-                            borderRadius: 4,
-                            transition: "width 0.3s",
-                          }}
+                          className="progress-fill"
+                          style={{ width: `${pct}%`, background: barColor }}
                         />
                       </div>
                       {autoDetected.d80C_sources && (
@@ -4076,20 +4052,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                                   <span>Utilization</span>
                                   <span>{tip.utilizedPct.toFixed(0)}%</span>
                                 </div>
-                                <div
-                                  style={{
-                                    height: 4,
-                                    background: THEME.line,
-                                    borderRadius: 4,
-                                    overflow: "hidden",
-                                  }}
-                                >
+                                <div className="progress-track" style={{ height: 4 }}>
                                   <div
+                                    className="progress-fill"
                                     style={{
-                                      height: "100%",
                                       width: `${Math.min(100, tip.utilizedPct)}%`,
                                       background: priorityColor,
-                                      borderRadius: 4,
                                     }}
                                   />
                                 </div>
@@ -4877,9 +4845,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 marginBottom: 40,
               }}
             >
+              <div className="mobile-table-wrap">
               <table
                 style={{
                   width: "100%",
+                  minWidth: 640,
                   borderCollapse: "collapse",
                   fontSize: 13,
                   textAlign: "left",
@@ -4933,7 +4903,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                               ? `1px solid ${THEME.line}`
                               : "none",
                         }}
-                        className="hover-row"
+                        className="table-row-hover"
                       >
                         <td style={{ padding: "14px 20px", fontWeight: 800 }}>
                           <div>{sell.name}</div>
@@ -4985,6 +4955,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>

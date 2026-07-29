@@ -604,10 +604,10 @@ export const NomineeTrackerTab = ({
               borderRadius: 12,
               background:
                 coveragePercent === 100
-                  ? `linear-gradient(135deg, ${THEME.sage} 0%, #34d399 100%)`
+                  ? `linear-gradient(135deg, ${THEME.sage} 0%, color-mix(in srgb, ${THEME.sage} 55%, white) 100%)`
                   : coveragePercent >= 50
-                    ? `linear-gradient(135deg, #D97706 0%, #fbbf24 100%)`
-                    : `linear-gradient(135deg, ${THEME.rust} 0%, #f87171 100%)`,
+                    ? `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`
+                    : `linear-gradient(135deg, ${THEME.rust} 0%, color-mix(in srgb, ${THEME.rust} 55%, white) 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -643,7 +643,7 @@ export const NomineeTrackerTab = ({
                 coveragePercent === 100
                   ? THEME.sage
                   : coveragePercent >= 50
-                    ? "#D97706"
+                    ? THEME.gold
                     : THEME.rust,
               fontVariantNumeric: "tabular-nums",
             }}
@@ -669,10 +669,10 @@ export const NomineeTrackerTab = ({
               borderRadius: 4,
               background:
                 coveragePercent === 100
-                  ? `linear-gradient(90deg, ${THEME.sage}, #34d399)`
+                  ? `linear-gradient(90deg, ${THEME.sage}, color-mix(in srgb, ${THEME.sage} 55%, white))`
                   : coveragePercent >= 50
-                    ? `linear-gradient(90deg, #D97706, #fbbf24)`
-                    : `linear-gradient(90deg, ${THEME.rust}, #f87171)`,
+                    ? `linear-gradient(90deg, ${THEME.gold}, color-mix(in srgb, ${THEME.gold} 55%, white))`
+                    : `linear-gradient(90deg, ${THEME.rust}, color-mix(in srgb, ${THEME.rust} 55%, white))`,
               transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           />
@@ -706,7 +706,7 @@ export const NomineeTrackerTab = ({
             value={fmtINRFull(valueAtRisk)}
             sub="Without nominee protection"
             icon={<AlertTriangle size={16} />}
-            color="#D97706"
+            color={THEME.gold}
           />
         </div>
       </Card>
@@ -743,16 +743,24 @@ export const NomineeTrackerTab = ({
               <button
                 key={f}
                 onClick={() => setFilter(f)}
+                aria-pressed={isActive}
                 style={{
                   padding: "6px 14px",
                   borderRadius: 10,
                   border: "none",
-                  background: isActive ? "var(--accent)" : "transparent",
+                  background: isActive ? THEME.accent : "transparent",
                   color: isActive ? "#fff" : THEME.ink,
                   fontWeight: 700,
                   fontSize: 12,
                   cursor: "pointer",
                   transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive)
+                    e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 8%, transparent)`;
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.background = "transparent";
                 }}
               >
                 {labels[f]} ({counts[f]})
@@ -774,6 +782,7 @@ export const NomineeTrackerTab = ({
           />
           <input
             placeholder="Search assets, nominees..."
+            aria-label="Search assets and nominees"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -822,6 +831,7 @@ export const NomineeTrackerTab = ({
               >
                 <button
                   onClick={() => toggleCategory(category)}
+                  aria-expanded={!isCollapsed}
                   style={{
                     width: "100%",
                     display: "flex",
@@ -1035,7 +1045,7 @@ export const NomineeTrackerTab = ({
               width: 52,
               height: 52,
               borderRadius: 16,
-              background: `linear-gradient(135deg, #D97706 0%, #fbbf24 100%)`,
+              background: `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1093,11 +1103,11 @@ export const NomineeTrackerTab = ({
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      background: `color-mix(in srgb, #D97706 12%, transparent)`,
+                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#D97706",
+                      color: THEME.gold,
                       flexShrink: 0,
                     }}
                   >
@@ -1304,7 +1314,7 @@ export const NomineeTrackerTab = ({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "var(--accent)",
+                      color: THEME.accent,
                       flexShrink: 0,
                     }}
                   >
@@ -1392,7 +1402,7 @@ export const NomineeTrackerTab = ({
                         fontWeight: 500,
                       }}
                     >
-                      <Phone size={13} style={{ color: "var(--accent)" }} />
+                      <Phone size={13} style={{ color: THEME.accent }} />
                       <Prv>{c.phone}</Prv>
                     </div>
                   )}
@@ -1407,7 +1417,7 @@ export const NomineeTrackerTab = ({
                         fontWeight: 500,
                       }}
                     >
-                      <Mail size={13} style={{ color: "var(--accent)" }} />
+                      <Mail size={13} style={{ color: THEME.accent }} />
                       <Prv>{c.email}</Prv>
                     </div>
                   )}

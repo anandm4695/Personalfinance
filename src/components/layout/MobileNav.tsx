@@ -69,6 +69,14 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
     return tab;
   };
 
+  // Truncate only when the first word of the active label actually exceeds the
+  // bottom-nav tab width — a bare `slice(0,6) + "…"` was appending an ellipsis
+  // even to short labels like "AI" or "Bills" that never needed truncating.
+  const activeLabelShort = () => {
+    const word = findActiveLabel().split(" ")[0];
+    return word.length > 7 ? `${word.slice(0, 6)}…` : word;
+  };
+
   const navigateTo = (id: string) => {
     setTab(id);
     setSubTab(null);
@@ -194,7 +202,7 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
               lineHeight: 1,
             }}
           >
-            {!isPrimaryActive ? findActiveLabel().split(" ")[0].slice(0, 6) + "…" : "More"}
+            {!isPrimaryActive ? activeLabelShort() : "More"}
           </span>
         </button>
       </nav>

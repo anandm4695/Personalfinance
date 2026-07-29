@@ -150,6 +150,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
   const [imported, setImported] = useState(0);
   const [parseMethod, setParseMethod] = useState("text"); // "text" or "csv"
   const [rawText, setRawText] = useState("");
+  const [csvInputFocused, setCsvInputFocused] = useState(false);
 
   const handlePaste = useCallback(() => {
     if (!rawText.trim()) return;
@@ -288,20 +289,28 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
       )}
 
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <div
+          role="tablist"
+          aria-label="Import method"
+          style={{ display: "flex", gap: 8, marginBottom: 18 }}
+        >
           {["text", "csv"].map((m) => (
             <button
               key={m}
               onClick={() => setParseMethod(m)}
+              className="card-lift"
+              role="tab"
+              aria-selected={parseMethod === m}
               style={{
-                padding: "8px 16px",
-                borderRadius: 8,
+                padding: "8px 18px",
+                borderRadius: 10,
                 cursor: "pointer",
-                fontWeight: parseMethod === m ? 600 : 400,
-                border: `1px solid ${parseMethod === m ? "var(--accent)" : THEME.border}`,
-                background: parseMethod === m ? "var(--accent)" : THEME.card,
+                fontWeight: parseMethod === m ? 700 : 500,
+                border: `1.5px solid ${parseMethod === m ? "var(--accent)" : THEME.border}`,
+                background: parseMethod === m ? "var(--accent)" : "var(--surface-0)",
                 color: parseMethod === m ? "#fff" : THEME.text,
                 fontSize: 13,
+                transition: "all 0.15s ease",
               }}
             >
               {m === "text" ? "Paste CAS Text" : "Upload CSV"}
@@ -315,35 +324,71 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               rows={12}
+              aria-label="CAS statement text"
               placeholder="Copy-paste the text content from your CAS PDF here. You can use a PDF-to-text tool or copy from the PDF viewer..."
+              className="form-input"
               style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 8,
-                border: `1px solid ${THEME.border}`,
-                background: THEME.bg,
-                color: THEME.text,
-                fontSize: 13,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono)",
                 resize: "vertical",
+                lineHeight: 1.6,
               }}
             />
-            <Button variant="primary" size="sm" onClick={handlePaste} style={{ marginTop: 12 }}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handlePaste}
+              disabled={!rawText.trim()}
+              style={{ marginTop: 14 }}
+            >
               Parse CAS Text
             </Button>
           </div>
         ) : (
           <div>
-            <input
-              type="file"
-              accept=".csv,.txt"
-              onChange={handleCSV}
-              style={{ padding: "6px 0", fontSize: 14, color: THEME.text }}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: THEME.textSecondary }}>
-              Expected columns: Scheme/Fund Name, Folio (optional), Units, NAV (optional),
-              Value/Amount
-            </div>
+            <label
+              htmlFor="cas-csv-upload"
+              className="card-lift"
+              style={{
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "36px 20px",
+                borderRadius: "var(--radius-lg)",
+                border: `2px dashed ${csvInputFocused ? "var(--t-accent)" : THEME.border}`,
+                background: "color-mix(in srgb, var(--surface-1) 40%, transparent)",
+                boxShadow: csvInputFocused ? "var(--shadow-focus)" : "none",
+                cursor: "pointer",
+                textAlign: "center",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Upload size={26} color={THEME.accent} />
+              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.text }}>
+                Click to choose a CSV or TXT file
+              </div>
+              <div style={{ fontSize: 12, color: THEME.textSecondary }}>
+                Expected columns: Scheme/Fund Name, Folio (optional), Units, NAV (optional),
+                Value/Amount
+              </div>
+              <input
+                id="cas-csv-upload"
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleCSV}
+                onFocus={() => setCsvInputFocused(true)}
+                onBlur={() => setCsvInputFocused(false)}
+                aria-label="Upload CAS CSV file"
+                style={{
+                  position: "absolute",
+                  width: 1,
+                  height: 1,
+                  opacity: 0,
+                }}
+              />
+            </label>
           </div>
         )}
       </Card>
@@ -364,7 +409,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
               icon={<Briefcase />}
               color="var(--accent)"
             />
-            <StatCard label="Selected" value={stats.count} icon={<CheckCircle />} color="#10B981" />
+            <StatCard label="Selected" value={stats.count} icon={<CheckCircle />} color={THEME.sage} />
             <StatCard
               label="Total Value"
               value={fmtINRFull(stats.totalValue)}
@@ -384,16 +429,17 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 .map(([cat, val]) => (
                   <div
                     key={cat}
+                    className="card-lift"
                     style={{
-                      padding: "8px 16px",
-                      borderRadius: 8,
-                      background: THEME.bg,
+                      padding: "10px 18px",
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--surface-1)",
                       border: `1px solid ${THEME.border}`,
                     }}
                   >
                     <div style={{ fontSize: 12, color: THEME.textSecondary }}>{cat}</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: THEME.text }}>
-                      {fmtINRFull(val)}
+                      <Prv>{fmtINRFull(val)}</Prv>
                     </div>
                   </div>
                 ))}
@@ -417,9 +463,10 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 variant="primary"
                 size="sm"
                 onClick={importSelected}
-                disabled={importing || stats.count === 0}
+                loading={importing}
+                disabled={stats.count === 0}
               >
-                {importing ? "Importing..." : `Import ${stats.count} Funds`}
+                {importing ? "Importing…" : `Import ${stats.count} Funds`}
               </Button>
             </div>
 
@@ -457,11 +504,16 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 </thead>
                 <tbody>
                   {parsedFunds.map((f, i) => (
-                    <tr key={i} style={{ borderBottom: `1px solid ${THEME.border}` }}>
+                    <tr
+                      key={i}
+                      className="table-row-hover"
+                      style={{ borderBottom: `1px solid ${THEME.border}` }}
+                    >
                       <td style={{ padding: 8 }}>
                         <input
                           type="checkbox"
                           checked={f.selected}
+                          aria-label={`Include ${f.scheme || "this fund"} in import`}
                           onChange={() =>
                             setParsedFunds((p) =>
                               p.map((x, j) => (j === i ? { ...x, selected: !x.selected } : x))
@@ -509,7 +561,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                           color: THEME.text,
                         }}
                       >
-                        {fmtINRFull(f.value)}
+                        <Prv>{fmtINRFull(f.value)}</Prv>
                       </td>
                     </tr>
                   ))}
@@ -524,6 +576,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
         <EmptyState
           icon={Upload}
           title="Import Your CAS"
+          pills={["CAMS", "KFintech", "One-click import"]}
           description="Paste the text from your CAMS/KFintech CAS PDF or upload a CSV export. Your mutual fund holdings will be parsed and can be imported in one click."
         />
       )}

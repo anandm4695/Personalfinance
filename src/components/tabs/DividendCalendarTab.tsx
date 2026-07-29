@@ -73,7 +73,7 @@ const urgencyColor = (days: number | null): string => {
   if (days === null) return THEME.muted;
   if (days < 0) return THEME.muted;
   if (days <= 3) return THEME.rust;
-  if (days <= 14) return "#D97706";
+  if (days <= 14) return THEME.gold;
   return THEME.sage;
 };
 
@@ -406,7 +406,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
           label="Upcoming Ex-dates"
           value={String(upcomingExDates.length)}
           icon={<Calendar size={16} />}
-          color="#D97706"
+          color={THEME.gold}
         />
         <DividendStatCard
           label="Dividend Payers"
@@ -613,11 +613,10 @@ export function DividendCalendarTab({ state, marketData }: any) {
                   .map((r) => (
                     <tr
                       key={r.symbol}
+                      className="table-row-hover"
                       style={{
                         borderBottom: `1px solid ${THEME.line}`,
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-1)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

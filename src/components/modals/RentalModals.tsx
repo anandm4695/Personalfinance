@@ -18,6 +18,56 @@ const input: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
+// Shared per-row accent palette for up to 5 tenants/landlords/escalation
+// tiers — one constant reused everywhere instead of the same 5-color array
+// being redefined at each usage site. THEME only has 4 semantic colors, so
+// a 5th fixed violet rounds this out for the "5th person" case.
+const SPLIT_COLORS = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"];
+
+// Scoped styling for the native range slider used in the landlord split
+// card — replaces the unstyled default browser thumb/track with one that
+// picks up each row's accent color via the --slider-color custom property.
+const SLIDER_STYLE = `
+  .rental-split-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+  .rental-split-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--slider-color, var(--t-accent)) 25%, var(--t-line));
+  }
+  .rental-split-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--slider-color, var(--t-accent));
+    border: 2px solid var(--surface-0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .rental-split-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .rental-split-slider::-moz-range-track {
+    height: 4px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--slider-color, var(--t-accent)) 25%, var(--t-line));
+  }
+  .rental-split-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--slider-color, var(--t-accent));
+    border: 2px solid var(--surface-0);
+    cursor: pointer;
+  }
+`;
+
 /* ══════════════════════════════════════════════════════════════════
    EscalationTiersSection — shared by both Rented Out & Rented In
 ══════════════════════════════════════════════════════════════════ */
@@ -42,7 +92,7 @@ function EscalationTiersSection({
   setTiers: (t: any[]) => void;
   agreementStart: string;
 }) {
-  const TIER_COLORS = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"];
+  const TIER_COLORS = SPLIT_COLORS;
   return (
     <div style={{ marginBottom: 4 }}>
       <div
@@ -91,6 +141,15 @@ function EscalationTiersSection({
             display: "flex",
             alignItems: "center",
             gap: 5,
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 12%, transparent)`;
+            e.currentTarget.style.borderColor = THEME.accent;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 6%, transparent)`;
+            e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.accent} 33%, transparent)`;
           }}
         >
           <Plus size={12} /> Add Year
@@ -249,7 +308,7 @@ function TenantSplitCard({
   canDelete: boolean;
   onDelete: () => void;
 }) {
-  const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][idx % 5];
+  const accentColor = SPLIT_COLORS[idx % 5];
 
   return (
     <div
@@ -585,6 +644,8 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
               <button
                 key={n}
                 onClick={() => setTenantCount(n)}
+                aria-pressed={tenantCount === n}
+                aria-label={`${n} tenant${n > 1 ? "s" : ""}`}
                 style={{
                   width: 34,
                   height: 34,
@@ -603,6 +664,14 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
                     tenantCount === n
                       ? `0 4px 12px color-mix(in srgb, ${THEME.accent} 35%, transparent)`
                       : "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (tenantCount !== n)
+                    e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 18%, transparent)`;
+                }}
+                onMouseLeave={(e) => {
+                  if (tenantCount !== n)
+                    e.currentTarget.style.background = `color-mix(in srgb, ${THEME.muted} 10%, transparent)`;
                 }}
               >
                 {n}
@@ -666,6 +735,15 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 10%, transparent)`;
+              e.currentTarget.style.borderColor = THEME.accent;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 4%, transparent)`;
+              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.accent} 33%, transparent)`;
             }}
           >
             <Plus size={14} /> Add Another Tenant
@@ -829,7 +907,7 @@ function LandlordSplitCard({
   onDelete: () => void;
 }) {
   const share = (Number(ll.splitPct) / 100) * monthlyRent;
-  const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][idx % 5];
+  const accentColor = SPLIT_COLORS[idx % 5];
 
   return (
     <div
@@ -960,16 +1038,21 @@ function LandlordSplitCard({
         </div>
         <input
           type="range"
+          className="rental-split-slider"
           min={1}
           max={99}
           value={ll.splitPct}
           onChange={(e) => onChange({ ...ll, splitPct: Number(e.target.value) })}
-          style={{
-            width: "100%",
-            accentColor,
-            cursor: "pointer",
-            height: 4,
-          }}
+          aria-label={`${ll.name || `Landlord ${idx + 1}`} rent split percentage`}
+          style={
+            {
+              width: "100%",
+              accentColor,
+              cursor: "pointer",
+              height: 4,
+              "--slider-color": accentColor,
+            } as React.CSSProperties
+          }
         />
         <div
           style={{
@@ -1128,6 +1211,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
       onClose={onClose}
       maxWidth={620}
     >
+      <style>{SLIDER_STYLE}</style>
       {/* ── Basic property fields ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Owner / Profile" style={{ gridColumn: "1 / -1" }}>
@@ -1274,6 +1358,8 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
               <button
                 key={n}
                 onClick={() => setLandlordCount(n)}
+                aria-pressed={landlordCount === n}
+                aria-label={`${n} landlord${n > 1 ? "s" : ""}`}
                 style={{
                   width: 34,
                   height: 34,
@@ -1292,6 +1378,14 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
                     landlordCount === n
                       ? `0 4px 12px color-mix(in srgb, ${THEME.accent} 35%, transparent)`
                       : "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (landlordCount !== n)
+                    e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 18%, transparent)`;
+                }}
+                onMouseLeave={(e) => {
+                  if (landlordCount !== n)
+                    e.currentTarget.style.background = `color-mix(in srgb, ${THEME.muted} 10%, transparent)`;
                 }}
               >
                 {n}
@@ -1342,6 +1436,13 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
                 fontSize: 11,
                 fontWeight: 700,
                 cursor: "pointer",
+                transition: "background 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 16%, transparent)`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 8%, transparent)`;
               }}
             >
               Auto-equalise
@@ -1356,9 +1457,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
               style={{ display: "flex", height: 8, borderRadius: 99, overflow: "hidden", gap: 2 }}
             >
               {landlords.map((ll, i) => {
-                const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][
-                  i % 5
-                ];
+                const accentColor = SPLIT_COLORS[i % 5];
                 return (
                   <div
                     key={i}
@@ -1379,9 +1478,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 8 }}>
               {landlords.map((ll, i) => {
-                const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][
-                  i % 5
-                ];
+                const accentColor = SPLIT_COLORS[i % 5];
                 return (
                   <span
                     key={i}
@@ -1446,6 +1543,15 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 10%, transparent)`;
+              e.currentTarget.style.borderColor = THEME.accent;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 4%, transparent)`;
+              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.accent} 33%, transparent)`;
             }}
           >
             <Plus size={14} /> Add Another Landlord

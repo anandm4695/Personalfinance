@@ -41,6 +41,7 @@ import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
+import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 /* ─── STYLES ──────────────────────────────────────────────────────────────── */
@@ -551,37 +552,12 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <SectionTitle sub="Analyze your spending patterns, track category-wise trends, and detect anomalies.">
           Expense Trends & Analytics
         </SectionTitle>
-        <Card style={{ padding: "48px 32px", textAlign: "center" }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #fff))`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-            }}
-          >
-            <BarChart2 size={30} color="#fff" />
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
-            No Transactions Yet
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: THEME.muted,
-              maxWidth: 380,
-              margin: "0 auto",
-              lineHeight: 1.6,
-            }}
-          >
-            Add transactions from the Banks tab to start seeing your expense trends and analytics
-            here.
-          </div>
-        </Card>
+        <EmptyState
+          icon={BarChart2}
+          title="No Transactions Yet"
+          description="Add transactions from the Banks tab to start seeing your expense trends and analytics here."
+          pills={["Category trends", "Top merchants", "Anomaly detection"]}
+        />
       </div>
     );
   }
@@ -1107,7 +1083,22 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         cursor: "pointer",
                         userSelect: "none",
                       }}
+                      tabIndex={0}
+                      role="button"
+                      aria-sort={
+                        sortCol === col.key
+                          ? sortDir === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                      }
                       onClick={() => handleSort(col.key)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleSort(col.key);
+                        }
+                      }}
                     >
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                         {col.label} <SortIcon col={col.key} />
@@ -1120,15 +1111,21 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 {sortedCategoryTable.map((row) => (
                   <React.Fragment key={row.category}>
                     <tr
-                      style={{ cursor: "pointer", transition: "background 0.15s" }}
+                      className="table-row-hover"
+                      style={{ cursor: "pointer" }}
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={expandedCat === row.category}
+                      aria-label={`${row.category} — ${expandedCat === row.category ? "collapse" : "expand"} transactions`}
                       onClick={() =>
                         setExpandedCat(expandedCat === row.category ? null : row.category)
                       }
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "color-mix(in srgb, var(--t-accent) 4%, transparent)")
-                      }
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setExpandedCat(expandedCat === row.category ? null : row.category);
+                        }
+                      }}
                     >
                       <td style={td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

@@ -1219,6 +1219,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   return (
                     <div
                       key={d.name}
+                      className="card-lift"
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -1227,8 +1228,6 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         borderRadius: 14,
                         background: `color-mix(in srgb, ${d.color} 6%, var(--surface-0))`,
                         border: `1.5px solid color-mix(in srgb, ${d.color} 12%, transparent)`,
-                        transition: "transform 0.2s var(--ease-premium)",
-                        cursor: "pointer",
                       }}
                     >
                       <span

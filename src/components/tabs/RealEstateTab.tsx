@@ -398,7 +398,7 @@ function PropertyModal({ existing, onClose, onSave }: any) {
 
   return (
     <Modal title={isEdit ? "Edit Property" : "Add Property"} onClose={onClose} maxWidth={640}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2" style={{ gap: 12 }}>
         <Field label="Property Name *" style={{ gridColumn: "1 / -1" }}>
           <input
             style={input}
@@ -577,7 +577,13 @@ function PropertyModal({ existing, onClose, onSave }: any) {
       >
         Key Dates
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: 12,
+        }}
+      >
         <Field label="Purchase Date">
           <input
             style={input}
@@ -617,7 +623,7 @@ function PropertyModal({ existing, onClose, onSave }: any) {
       >
         Financials (Purchase)
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2" style={{ gap: 12 }}>
         <Field label="Agreement Value (₹)">
           <input
             style={input}
@@ -698,7 +704,7 @@ function PropertyModal({ existing, onClose, onSave }: any) {
           >
             Sale Details
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="form-grid-2" style={{ gap: 12 }}>
             <Field label="Sale Date">
               <input
                 style={input}
@@ -893,7 +899,7 @@ function DemandModal({ existing, propertyName, onClose, onSave }: any) {
       onClose={onClose}
       maxWidth={520}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2" style={{ gap: 12 }}>
         <Field label="Demand Date">
           <input
             style={input}
@@ -997,7 +1003,7 @@ function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any)
       onClose={onClose}
       maxWidth={520}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2" style={{ gap: 12 }}>
         <Field label="Payment Date">
           <input
             style={input}
@@ -1327,9 +1333,19 @@ function PropertyCard({
         </div>
       </div>
 
-      {/* Financials grid — premium tinted cells */}
+      {/* Financials grid — premium tinted cells. Auto-fit so it reflows to 2
+          or 1 columns on narrower viewports instead of squeezing 3 fixed
+          columns of INR figures into a phone-width card. Each tile carries
+          its own border/radius rather than relying on row/column-index
+          divider math, so the reflow doesn't leave stray border edges. */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderBottom: divider }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 1,
+          background: "var(--t-line)",
+          borderBottom: divider,
+        }}
       >
         {(() => {
           const tiles = [
@@ -1352,17 +1368,14 @@ function PropertyCard({
             { label: "TDS Balance", value: tdsBalance, color: tdsBalance > 0 ? THEME.rust : "#22c55e" },
             { label: "Market Value", value: property.marketValue, color: "#22c55e" },
           ];
-          const lastRow = Math.floor((tiles.length - 1) / 3);
-          return tiles.map(({ label, value, color }, i) => (
+          return tiles.map(({ label, value, color }) => (
           <div
             key={label}
             style={{
               padding: "14px 18px",
-              borderRight: i % 3 !== 2 ? divider : "none",
-              borderBottom: Math.floor(i / 3) < lastRow ? divider : "none",
               background: value
-                ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, transparent) 0%, transparent 100%)`
-                : "transparent",
+                ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, var(--t-card-bg)) 0%, var(--t-card-bg) 100%)`
+                : "var(--t-card-bg)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
@@ -1549,6 +1562,7 @@ function PropertyCard({
       {/* Expand / Collapse toggle — premium */}
       <button
         onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
         style={{
           width: "100%",
           padding: "12px 24px",
@@ -1966,6 +1980,8 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
           marginBottom: 24,
         }}
       >

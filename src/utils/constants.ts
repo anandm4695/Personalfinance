@@ -21,6 +21,12 @@ export const THEME = {
   success: "var(--t-sage)",
   primary: "var(--t-accent)",
   textMuted: "var(--t-muted)",
+  // Extension colors for charts/legends/avatar sets that need more distinct
+  // categories than the 5 semantic colors above provide (e.g. a 6th/7th
+  // slice) — fixed hues, not accent-preset-driven, but theme (light/dark)
+  // aware via the CSS var.
+  violet: "var(--t-violet)",
+  pink: "var(--t-pink)",
 };
 
 // 11 corporate accent colors — one per theme preset (perfect 1:1 mapping).

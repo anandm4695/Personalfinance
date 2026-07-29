@@ -126,7 +126,7 @@ const InsurerLogo = ({
         width: size,
         height: size,
         borderRadius: 10,
-        background: "rgba(128,128,128,0.1)",
+        background: "color-mix(in srgb, var(--t-muted) 10%, transparent)",
         border: `1px solid ${THEME.line}`,
         display: "flex",
         alignItems: "center",
@@ -2589,8 +2589,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <Card style={{ padding: 24 }}>
             <EmptyState
               icon={Sparkles}
-              gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)"
-              dotColor="#059669"
+              gradient={`linear-gradient(135deg, ${THEME.sage} 0%, color-mix(in srgb, ${THEME.sage} 55%, white) 100%)`}
+              dotColor={THEME.sage}
               title="No Investment Plans Added"
               description="Track your Endowment, ULIPs, and Guaranteed Income plans here. Monitor premium payments, expected maturity amounts, and calculate cash-flows."
               pills={["Premium Term", "Maturity Amount", "Paid So Far", "Balance Due"]}

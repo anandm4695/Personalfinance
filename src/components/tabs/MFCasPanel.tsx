@@ -433,6 +433,13 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
     alignItems: "center",
     gap: 6,
     border: "none",
+    transition: "filter 0.15s ease, box-shadow 0.15s ease",
+  };
+  const onSolidBtnEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.filter = "brightness(1.08)";
+  };
+  const onSolidBtnLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.filter = "none";
   };
 
   return (
@@ -462,6 +469,8 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           </div>
         </div>
         <button
+          className="icon-btn"
+          aria-label="Close CAS importer"
           style={{
             ...btnStyle,
             background: "transparent",
@@ -498,10 +507,13 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           placeholder="Paste text from CAS PDF here..."
+          aria-label="Pasted CAS statement text"
         />
         <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
           <button
-            style={{ ...btnStyle, background: THEME.accent, color: "#fff" }}
+            style={{ ...btnStyle, background: THEME.accent, color: THEME.darkInk }}
+            onMouseEnter={onSolidBtnEnter}
+            onMouseLeave={onSolidBtnLeave}
             onClick={() => parseCasText(inputText)}
           >
             Analyze CAS Text
@@ -510,19 +522,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
       </div>
 
       {error && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-            color: THEME.rust,
-            fontSize: 12,
-            marginBottom: 16,
-            display: "flex",
-            gap: 8,
-            alignItems: "flex-start",
-          }}
-        >
+        <div className="info-box info-box-error animate-slide-down" style={{ marginBottom: 16 }}>
           <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>{error}</span>
         </div>
@@ -615,7 +615,9 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                 </label>
               )}
               <button
-                style={{ ...btnStyle, background: THEME.sage, color: "#fff" }}
+                style={{ ...btnStyle, background: THEME.sage, color: THEME.darkInk }}
+                onMouseEnter={onSolidBtnEnter}
+                onMouseLeave={onSolidBtnLeave}
                 onClick={handleImport}
               >
                 Import {parsedRows.length} Transaction{parsedRows.length !== 1 ? "s" : ""}
@@ -795,19 +797,8 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
 
       {importDone && (
         <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-            color: THEME.sage,
-            fontSize: 12,
-            fontWeight: 600,
-            textAlign: "center",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
+          className="info-box info-box-success animate-scale-in"
+          style={{ fontWeight: 600, justifyContent: "center" }}
         >
           <CheckCircle size={15} />
           <span>Import completed successfully! {importedCount} holdings created.</span>

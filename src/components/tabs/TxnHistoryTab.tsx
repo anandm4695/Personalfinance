@@ -51,7 +51,7 @@ function livePrice(s: any, marketData: any): number {
 /* ── Premium Summary Card ─────────────────────────────────────── */
 const SummaryCard = ({ label, value, color, icon: Icon }: any) => (
   <div
-    className="card-lift"
+    className="card-base card-lift"
     style={{
       background:
         "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
@@ -62,8 +62,6 @@ const SummaryCard = ({ label, value, color, icon: Icon }: any) => (
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
     }}
   >
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -135,7 +133,8 @@ const PremiumDrillDownCard = ({
           }
         : undefined
     }
-    className="card-lift"
+    aria-pressed={onClick ? !!active : undefined}
+    className={`card-base${onClick ? " card-lift" : ""}`}
     style={{
       background:
         "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
@@ -146,11 +145,8 @@ const PremiumDrillDownCard = ({
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      boxShadow: active
-        ? "0 8px 30px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7)"
-        : "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      cursor: "pointer",
+      boxShadow: active ? "var(--shadow-card-hover)" : undefined,
+      cursor: onClick ? "pointer" : "default",
       position: "relative",
     }}
   >
@@ -518,7 +514,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
       );
     return (
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
+        <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "transparent" }}>
@@ -547,15 +543,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 return (
                   <tr
                     key={s.id}
+                    className="table-row-hover"
                     style={{
                       borderBottom: `1px solid ${THEME.line}`,
-                      transition: "background 0.2s",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "color-mix(in srgb, var(--accent) 4%, transparent)")
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <td style={{ ...td, paddingLeft: 16 }}>
                       <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -714,6 +705,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           />
           <input
             type="text"
+            aria-label="Search transactions"
             placeholder="Search symbols, notes, categories, brokers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -725,11 +717,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               background: "var(--surface-0)",
               color: THEME.ink,
               fontSize: 13.5,
-              outline: "none",
               boxShadow: "var(--shadow-sm)",
-              transition: "all 0.2s ease",
             }}
-            className="focus:border-accent"
           />
         </div>
         <div
@@ -854,7 +843,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 borderRadius: 20,
                 background: active ? THEME.accent : "var(--surface-0)",
                 border: `1px solid ${active ? THEME.accent : THEME.line}`,
-                color: active ? "#fff" : THEME.ink,
+                color: active ? THEME.darkInk : THEME.ink,
                 fontSize: 12.5,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -865,7 +854,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                   : "var(--shadow-card)",
               }}
             >
-              <Icon size={14} style={{ color: active ? "#fff" : THEME.accent }} />
+              <Icon size={14} style={{ color: active ? THEME.darkInk : THEME.accent }} />
               <span>{s.label}</span>
               {count > 0 && (
                 <span
@@ -877,7 +866,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     background: active
                       ? "rgba(255, 255, 255, 0.2)"
                       : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                    color: active ? "#fff" : THEME.accent,
+                    color: active ? THEME.darkInk : THEME.accent,
                     marginLeft: 4,
                   }}
                 >
@@ -1058,7 +1047,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             <EmptyState message={`No stock purchases recorded in ${fyLabel}`} />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
-              <div style={{ overflowX: "auto" }}>
+              <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "transparent" }}>
@@ -1080,15 +1069,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       return (
                         <tr
                           key={s.id}
+                          className="table-row-hover"
                           style={{
                             borderBottom: `1px solid ${THEME.line}`,
-                            transition: "background 0.2s",
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ ...td, paddingLeft: 16 }}>
                             <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -1293,7 +1277,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             <EmptyState message={`No MF purchases recorded in ${fyLabel}`} />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
-              <div style={{ overflowX: "auto" }}>
+              <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "transparent" }}>
@@ -1320,15 +1304,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       return (
                         <tr
                           key={m.id}
+                          className="table-row-hover"
                           style={{
                             borderBottom: `1px solid ${THEME.line}`,
-                            transition: "background 0.2s",
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ ...td, paddingLeft: 16 }}>
                             <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -1526,7 +1505,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
-              <div style={{ overflowX: "auto" }}>
+              <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "transparent" }}>
@@ -1545,15 +1524,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       return (
                         <tr
                           key={t.id}
+                          className="table-row-hover"
                           style={{
                             borderBottom: `1px solid ${THEME.line}`,
-                            transition: "background 0.2s",
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ ...td, paddingLeft: 16 }}>
                             <span style={{ fontWeight: 700, color: THEME.ink }}>
@@ -1620,6 +1594,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
                             }}
+                            title={t.description || undefined}
                           >
                             {t.description || "—"}
                           </td>

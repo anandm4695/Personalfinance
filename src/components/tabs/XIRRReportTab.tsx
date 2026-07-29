@@ -27,6 +27,7 @@ import {
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
+import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
 
 const th: React.CSSProperties = {
@@ -519,7 +520,7 @@ export function XIRRReportTab({ state }: any) {
           label="Total Invested"
           value={fmtINRFull(totalInvested)}
           icon={<Coins size={16} />}
-          color="var(--accent)"
+          color={THEME.accent}
         />
         <XIRRStatCard
           label="Current Value"
@@ -561,11 +562,11 @@ export function XIRRReportTab({ state }: any) {
                       width: 28,
                       height: 28,
                       borderRadius: 8,
-                      background: `color-mix(in srgb, ${items[0]?.color || "var(--accent)"} 12%, transparent)`,
+                      background: `color-mix(in srgb, ${items[0]?.color || THEME.accent} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: items[0]?.color || "var(--accent)",
+                      color: items[0]?.color || THEME.accent,
                       flexShrink: 0,
                     }}
                   >
@@ -586,7 +587,7 @@ export function XIRRReportTab({ state }: any) {
                       fontSize: 11,
                       fontWeight: 700,
                       color: THEME.muted,
-                      background: `color-mix(in srgb, ${items[0]?.color || "var(--accent)"} 10%, transparent)`,
+                      background: `color-mix(in srgb, ${items[0]?.color || THEME.accent} 10%, transparent)`,
                       padding: "2px 8px",
                       borderRadius: 10,
                     }}
@@ -633,6 +634,7 @@ export function XIRRReportTab({ state }: any) {
                 <table
                   style={{
                     width: "100%",
+                    minWidth: 640,
                     borderCollapse: "collapse",
                     fontSize: 13,
                   }}
@@ -654,13 +656,10 @@ export function XIRRReportTab({ state }: any) {
                       return (
                         <tr
                           key={i}
+                          className="table-row-hover"
                           style={{
                             borderBottom: `1px solid ${THEME.line}`,
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background = "var(--surface-1)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ padding: "12px 16px" }}>
                             <div
@@ -708,20 +707,9 @@ export function XIRRReportTab({ state }: any) {
                                 )}
                               </div>
                               {row.status === "matured" && (
-                                <span
-                                  style={{
-                                    fontSize: 9.5,
-                                    fontWeight: 700,
-                                    color: THEME.muted,
-                                    border: `1px solid ${THEME.line}`,
-                                    padding: "2px 6px",
-                                    borderRadius: 6,
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.02em",
-                                  }}
-                                >
+                                <Badge variant="muted" size="xs">
                                   matured
-                                </span>
+                                </Badge>
                               )}
                             </div>
                           </td>

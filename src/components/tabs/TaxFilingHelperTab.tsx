@@ -332,6 +332,23 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
           Income Summary — FY {selectedFY}
         </h3>
+        {incomeSummary.totalIncome === 0 ? (
+          <div
+            style={{
+              padding: "20px 16px",
+              borderRadius: 12,
+              background: THEME.bg,
+              border: `1px dashed ${THEME.border}`,
+              textAlign: "center",
+              fontSize: 13,
+              color: THEME.textSecondary,
+            }}
+          >
+            No income recorded for FY {selectedFY} yet — log salary, rent, interest, dividends or
+            capital gains elsewhere in the app to see them summarized here.
+          </div>
+        ) : (
+        <>
         <div
           style={{
             display: "grid",
@@ -341,20 +358,20 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         >
           {[
             { label: "Salary Income", value: incomeSummary.salaryIncome, color: THEME.accent },
-            { label: "Rental Income", value: incomeSummary.rentalIncome, color: "#10B981" },
-            { label: "Bank/FD Interest", value: incomeSummary.bankInterest, color: "#F59E0B" },
+            { label: "Rental Income", value: incomeSummary.rentalIncome, color: THEME.sage },
+            { label: "Bank/FD Interest", value: incomeSummary.bankInterest, color: THEME.gold },
             { label: "Dividend Income", value: incomeSummary.dividendIncome, color: "#8B5CF6" },
             {
               label: "Capital Gains (Stocks)",
               value: incomeSummary.stockGains,
-              color: incomeSummary.stockGains >= 0 ? "#10B981" : "#EF4444",
+              color: incomeSummary.stockGains >= 0 ? THEME.sage : THEME.rust,
             },
             {
               label: "Capital Gains (MF)",
               value: incomeSummary.mfGains,
-              color: incomeSummary.mfGains >= 0 ? "#10B981" : "#EF4444",
+              color: incomeSummary.mfGains >= 0 ? THEME.sage : THEME.rust,
             },
-            { label: "Other Income", value: incomeSummary.otherIncome, color: "#64748B" },
+            { label: "Other Income", value: incomeSummary.otherIncome, color: THEME.muted },
           ]
             .filter((i) => i.value !== 0)
             .map(({ label, value, color }) => (
@@ -368,7 +385,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
                 }}
               >
                 <div style={{ fontSize: 12, color: THEME.textSecondary }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color }}>
+                <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color }}>
                   <Prv>{fmtINRFull(value)}</Prv>
                 </div>
               </div>
@@ -379,15 +396,17 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             marginTop: 16,
             padding: "12px 16px",
             borderRadius: 12,
-            background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+            background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-accent) 30%, transparent)",
           }}
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Gross Total Income</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--accent)" }}>
+          <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.accent }}>
             <Prv>{fmtINRFull(incomeSummary.totalIncome)}</Prv>
           </div>
         </div>
+        </>
+        )}
       </Card>
 
       {/* Deductions */}
@@ -411,28 +430,17 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             }}
           >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80C (max ₹1.5L)</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#10B981" }}>
+            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.sage }}>
               <Prv>{fmtINRFull(deductions.sec80C)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.textSecondary, marginTop: 4 }}>
               PPF: {fmtINRFull(deductions.ppfContrib)} | ELSS: {fmtINRFull(deductions.elss)} | LIC:{" "}
               {fmtINRFull(deductions.licPremium)} | EPF: {fmtINRFull(deductions.epfContrib)}
             </div>
-            <div
-              style={{
-                height: 4,
-                borderRadius: 2,
-                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-                marginTop: 8,
-              }}
-            >
+            <div className="progress-track" style={{ height: 4, marginTop: 8 }}>
               <div
-                style={{
-                  height: "100%",
-                  width: `${Math.min(100, (deductions.sec80C / 150000) * 100)}%`,
-                  borderRadius: 2,
-                  background: "#10B981",
-                }}
+                className="progress-fill progress-fill-sage"
+                style={{ width: `${Math.min(100, (deductions.sec80C / 150000) * 100)}%` }}
               />
             </div>
           </div>
@@ -447,23 +455,15 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
               Section 80CCD(1B) — NPS (max ₹50K)
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6" }}>
+            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6" }}>
               <Prv>{fmtINRFull(deductions.sec80CCD1B)}</Prv>
             </div>
-            <div
-              style={{
-                height: 4,
-                borderRadius: 2,
-                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-                marginTop: 8,
-              }}
-            >
+            <div className="progress-track" style={{ height: 4, marginTop: 8 }}>
               <div
+                className="progress-fill"
                 style={{
-                  height: "100%",
                   width: `${Math.min(100, (deductions.sec80CCD1B / 50000) * 100)}%`,
-                  borderRadius: 2,
-                  background: "#8B5CF6",
+                  background: "linear-gradient(90deg, #8B5CF6, color-mix(in srgb, #8B5CF6 65%, white))",
                 }}
               />
             </div>
@@ -479,7 +479,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
               Section 80D — Health Insurance
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}>
+            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}>
               <Prv>{fmtINRFull(deductions.sec80D)}</Prv>
             </div>
           </div>
@@ -494,7 +494,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
               Section 24 — Home Loan Interest
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#F59E0B" }}>
+            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.gold }}>
               <Prv>{fmtINRFull(deductions.sec24)}</Prv>
             </div>
           </div>
@@ -509,7 +509,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
           }}
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Total Deductions</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#10B981" }}>
+          <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.sage }}>
             <Prv>{fmtINRFull(deductions.totalDeductions)}</Prv>
           </div>
         </div>
@@ -549,7 +549,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
               }}
             >
               <span style={{ fontWeight: 600, color: THEME.text }}>Total Tax Paid</span>
-              <span style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+              <span className="tabular-nums" style={{ fontWeight: 700, fontSize: 18, color: THEME.accent }}>
                 <Prv>{fmtINRFull(taxPaid.total)}</Prv>
               </span>
             </div>
@@ -572,17 +572,17 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
                   borderRadius: 8,
                   background: d.isPast
                     ? THEME.bg
-                    : "color-mix(in srgb, var(--accent) 8%, transparent)",
+                    : "color-mix(in srgb, var(--t-accent) 8%, transparent)",
                   border: `1px solid ${
-                    d.isPast ? THEME.border : "color-mix(in srgb, var(--accent) 30%, transparent)"
+                    d.isPast ? THEME.border : "color-mix(in srgb, var(--t-accent) 30%, transparent)"
                   }`,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {d.isPast ? (
-                    <CheckCircle size={16} color="#10B981" />
+                    <CheckCircle size={16} color={THEME.sage} />
                   ) : (
-                    <Clock size={16} color="var(--accent)" />
+                    <Clock size={16} color={THEME.accent} />
                   )}
                   <span style={{ fontSize: 13, color: THEME.text }}>
                     {d.label} ({d.pct}% due)
@@ -592,7 +592,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
                   style={{
                     fontWeight: 600,
                     fontSize: 13,
-                    color: d.isPast ? "#10B981" : THEME.text,
+                    color: d.isPast ? THEME.sage : THEME.text,
                   }}
                 >
                   <Prv>{fmtINRFull(d.due)}</Prv>
@@ -620,22 +620,10 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             {checklistProgress} / {ITR_CHECKLIST.length} completed
           </span>
         </div>
-        <div
-          style={{
-            height: 6,
-            borderRadius: 3,
-            background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-            marginBottom: 20,
-          }}
-        >
+        <div className="progress-track" style={{ marginBottom: 20 }}>
           <div
-            style={{
-              height: "100%",
-              width: `${(checklistProgress / ITR_CHECKLIST.length) * 100}%`,
-              borderRadius: 3,
-              background: "var(--accent)",
-              transition: "width 0.3s",
-            }}
+            className="progress-fill"
+            style={{ width: `${(checklistProgress / ITR_CHECKLIST.length) * 100}%` }}
           />
         </div>
 
@@ -656,21 +644,24 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             {ITR_CHECKLIST.filter((i) => i.category === cat).map((item) => (
               <label
                 key={item.id}
+                className="table-row-hover"
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  padding: "8px 0",
+                  padding: "8px 6px",
+                  borderRadius: 6,
                   cursor: "pointer",
                   borderBottom: `1px solid ${THEME.border}`,
-                  color: checkedItems[item.id] ? "#10B981" : THEME.text,
+                  color: checkedItems[item.id] ? THEME.sage : THEME.text,
+                  transition: "color 0.15s ease",
                 }}
               >
                 <input
                   type="checkbox"
                   checked={!!checkedItems[item.id]}
                   onChange={() => toggleCheck(item.id)}
-                  style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+                  style={{ width: 18, height: 18, accentColor: THEME.accent, cursor: "pointer" }}
                 />
                 <span
                   style={{

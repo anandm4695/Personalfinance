@@ -27,7 +27,6 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
-import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
@@ -181,20 +180,37 @@ export const FIREPlannerTab = ({ state, metrics }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle sub="Financial Independence, Retire Early — detailed retirement planning">
-        FIRE Planner
-      </SectionTitle>
+      <div className="sub-tab-hero animate-fade-in-up">
+        <div className="sub-tab-hero-icon">🔥</div>
+        <div className="sub-tab-hero-body">
+          <div className="sub-tab-hero-title">FIRE Planner</div>
+          <div className="sub-tab-hero-desc">
+            Financial Independence, Retire Early — model your path across Lean, Coast, Fat and
+            Barista FIRE scenarios
+          </div>
+        </div>
+        <div
+          className="sub-tab-hero-badge"
+          style={{
+            background: `color-mix(in srgb, ${progressColor} 14%, transparent)`,
+            color: progressColor,
+            borderColor: `color-mix(in srgb, ${progressColor} 25%, transparent)`,
+          }}
+        >
+          <Flame size={13} /> {Math.min(100, fireCalc.progress).toFixed(0)}% to FIRE
+        </div>
+      </div>
 
       {/* Input Panel */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+        <div className="section-label" style={{ marginBottom: 18 }}>
           Your Inputs
-        </h3>
+        </div>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-            gap: 16,
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: 20,
           }}
         >
           {[
@@ -210,41 +226,80 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               set: setMonthlySavings,
               prefix: "₹",
             },
-            { label: "Current Age", value: currentAge, set: setCurrentAge, suffix: "years" },
-            { label: "Target Retire Age", value: targetAge, set: setTargetAge, suffix: "years" },
+            {
+              label: "Current Age",
+              value: currentAge,
+              set: setCurrentAge,
+              suffix: "years",
+              min: 18,
+              max: 70,
+            },
+            {
+              label: "Target Retire Age",
+              value: targetAge,
+              set: setTargetAge,
+              suffix: "years",
+              min: 25,
+              max: 75,
+            },
             {
               label: "Life Expectancy",
               value: lifeExpectancy,
               set: setLifeExpectancy,
               suffix: "years",
+              min: 60,
+              max: 100,
             },
-            { label: "Pre-Retire Return", value: returnRate, set: setReturnRate, suffix: "% p.a." },
+            {
+              label: "Pre-Retire Return",
+              value: returnRate,
+              set: setReturnRate,
+              suffix: "% p.a.",
+              min: 4,
+              max: 20,
+              step: 0.5,
+            },
             {
               label: "Post-Retire Return",
               value: postRetireReturn,
               set: setPostRetireReturn,
               suffix: "% p.a.",
+              min: 2,
+              max: 15,
+              step: 0.5,
             },
             {
               label: "Inflation Rate",
               value: inflationRate,
               set: setInflationRate,
               suffix: "% p.a.",
+              min: 2,
+              max: 12,
+              step: 0.5,
             },
-            { label: "Safe Withdrawal Rate", value: swr, set: setSwr, suffix: "%" },
-          ].map(({ label, value, set, prefix, suffix }) => (
+            {
+              label: "Safe Withdrawal Rate",
+              value: swr,
+              set: setSwr,
+              suffix: "%",
+              min: 2,
+              max: 6,
+              step: 0.25,
+            },
+          ].map(({ label, value, set, prefix, suffix, min, max, step }) => (
             <div key={label}>
               <label
                 style={{
                   fontSize: 12,
                   color: THEME.textSecondary,
                   display: "block",
-                  marginBottom: 4,
+                  marginBottom: 6,
+                  fontWeight: 600,
                 }}
               >
                 {label}
               </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {prefix && (
                   <span style={{ fontSize: 13, color: THEME.textSecondary }}>{prefix}</span>
                 )}
@@ -252,15 +307,14 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                   type="number"
                   value={value}
                   aria-label={label}
+                  step={step}
                   onChange={(e) => set(Number(e.target.value))}
+                  className="form-input"
                   style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.border}`,
-                    background: THEME.card,
-                    color: THEME.text,
+                    padding: "8px 10px",
                     fontSize: 14,
-                    width: "100%",
+                    fontWeight: 700,
+                    color: THEME.text,
                   }}
                 />
                 {suffix && (
@@ -269,6 +323,19 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                   </span>
                 )}
               </div>
+              {typeof min === "number" && typeof max === "number" && (
+                <input
+                  type="range"
+                  className="cxo-slider"
+                  min={min}
+                  max={max}
+                  step={step || 1}
+                  value={value}
+                  aria-label={`${label} slider`}
+                  onChange={(e) => set(Number(e.target.value))}
+                  style={{ marginTop: 10 }}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -403,10 +470,11 @@ export const FIREPlannerTab = ({ state, metrics }) => {
           }}
         >
           <div
+            className="card-lift"
             style={{
-              padding: "16px",
-              borderRadius: 12,
-              background: THEME.bg,
+              padding: "18px",
+              borderRadius: "var(--radius-lg)",
+              background: "var(--surface-1)",
               border: `1px solid ${THEME.border}`,
             }}
           >
@@ -427,10 +495,11 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             </div>
           </div>
           <div
+            className="card-lift"
             style={{
-              padding: "16px",
-              borderRadius: 12,
-              background: THEME.bg,
+              padding: "18px",
+              borderRadius: "var(--radius-lg)",
+              background: "var(--surface-1)",
               border: `1px solid ${THEME.border}`,
             }}
           >
@@ -458,10 +527,11 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             </div>
           </div>
           <div
+            className="card-lift"
             style={{
-              padding: "16px",
-              borderRadius: 12,
-              background: THEME.bg,
+              padding: "18px",
+              borderRadius: "var(--radius-lg)",
+              background: "var(--surface-1)",
               border: `1px solid ${THEME.border}`,
             }}
           >
@@ -475,10 +545,11 @@ export const FIREPlannerTab = ({ state, metrics }) => {
           </div>
           {fireCalc.pensionIncome > 0 && (
             <div
+              className="card-lift"
               style={{
-                padding: "16px",
-                borderRadius: 12,
-                background: THEME.bg,
+                padding: "18px",
+                borderRadius: "var(--radius-lg)",
+                background: "var(--surface-1)",
                 border: `1px solid ${THEME.border}`,
               }}
             >

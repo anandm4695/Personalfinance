@@ -48,10 +48,12 @@ const BROKERS = [
 
 const FUND_COLORS: Record<string, string> = {
   Equity: THEME.accent,
-  Debt: "#64748b",
-  Hybrid: "#d97706",
-  ELSS: "#dc2626",
-  Index: "#059669",
+  Debt: THEME.muted,
+  Hybrid: THEME.gold,
+  ELSS: THEME.rust,
+  Index: THEME.sage,
+  // Liquid & Flexi Cap get distinct hues outside the 5-token semantic
+  // palette so all fund types remain visually distinguishable together.
   Liquid: "#0891b2",
   "Flexi Cap": "#7c3aed",
 };
@@ -425,6 +427,15 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                 <button
                   key={opt.key}
                   onClick={() => setSortBy(opt.key)}
+                  onMouseEnter={(e) => {
+                    if (sortBy !== opt.key)
+                      e.currentTarget.style.background =
+                        "color-mix(in srgb, var(--t-accent) 8%, transparent)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (sortBy !== opt.key) e.currentTarget.style.background = "transparent";
+                  }}
+                  aria-pressed={sortBy === opt.key}
                   style={{
                     padding: "4px 10px",
                     borderRadius: 7,
@@ -434,7 +445,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                     fontWeight: sortBy === opt.key ? 800 : 600,
                     cursor: "pointer",
                     background: sortBy === opt.key ? THEME.accent : "transparent",
-                    color: sortBy === opt.key ? "#fff" : THEME.muted,
+                    color: sortBy === opt.key ? THEME.darkInk : THEME.muted,
                     transition: "all 0.15s",
                   }}
                 >

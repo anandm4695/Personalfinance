@@ -24,6 +24,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
@@ -184,7 +185,7 @@ const ComparisonSplitCard = ({
             style={{
               fontSize: 20,
               fontWeight: 900,
-              color: isIncome ? THEME.sage : isNetWorth ? "var(--accent)" : THEME.ink,
+              color: isIncome ? THEME.sage : isNetWorth ? THEME.accent : THEME.ink,
               letterSpacing: "-0.02em",
             }}
           >
@@ -553,43 +554,16 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
   const DeltaIndicator = ({ value, showAmount = true }) => {
     if (!value || Math.abs(value) < 1) {
       return (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "3px 10px",
-            borderRadius: 20,
-            background: "var(--surface-2)",
-            color: THEME.muted,
-            fontSize: 11,
-            fontWeight: 700,
-          }}
-        >
+        <Badge variant="muted">
           <Minus size={12} /> Stable
-        </span>
+        </Badge>
       );
     }
     const isUp = value > 0;
-    const color = isUp ? THEME.rust : THEME.sage;
-    const bg = isUp
-      ? `color-mix(in srgb, ${THEME.rust} 16%, transparent)`
-      : `color-mix(in srgb, ${THEME.sage} 16%, transparent)`;
     return (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          padding: "3px 10px",
-          borderRadius: 20,
-          background: bg,
-          color: color,
-          fontSize: 11,
-          fontWeight: 800,
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-        }}
+      <Badge
+        variant={isUp ? "rust" : "sage"}
+        style={{ textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 800 }}
       >
         {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
         {isUp ? "Increased" : "Decreased"}
@@ -598,7 +572,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
             <Prv>{fmtINRFull(Math.abs(value))}</Prv>
           </span>
         )}
-      </span>
+      </Badge>
     );
   };
 
@@ -641,7 +615,8 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               <button
                 key={m.id}
                 onClick={() => handleModeChange(m.id)}
-                className="card-lift"
+                className={active ? "" : "btn-ghost"}
+                aria-pressed={active}
                 style={{
                   padding: "6px 14px",
                   borderRadius: 12,
@@ -811,7 +786,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
                   <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
                 )}
               />
-              <Bar dataKey={comp.currentLabel} fill="var(--accent)" radius={[0, 6, 6, 0]} />
+              <Bar dataKey={comp.currentLabel} fill={THEME.accent} radius={[0, 6, 6, 0]} />
               <Bar
                 dataKey={comp.previousLabel}
                 fill={`color-mix(in srgb, ${THEME.accent} 30%, transparent)`}
@@ -841,7 +816,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               Period-over-period comparative analysis by spending category
             </div>
           </div>
-          <div style={{ overflowX: "auto" }}>
+          <div className="mobile-table-wrap">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>

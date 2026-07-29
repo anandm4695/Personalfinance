@@ -181,6 +181,11 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <style>{`
+        .export-section-label:hover {
+          border-color: color-mix(in srgb, var(--t-accent) 40%, var(--t-line)) !important;
+        }
+      `}</style>
       <SectionTitle sub="Download your financial data and restore from backups">
         Data Export & Backup
       </SectionTitle>
@@ -196,7 +201,7 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
           label="Total Records"
           value={totalRecords}
           icon={<Database />}
-          color="var(--accent)"
+          color={THEME.accent}
         />
         <StatCard
           label="Selected for Export"
@@ -240,14 +245,23 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
                 <button
                   key={f.id}
                   onClick={() => setExportFormat(f.id)}
+                  aria-pressed={exportFormat === f.id}
                   style={{
                     padding: "8px 16px",
                     borderRadius: 8,
                     cursor: "pointer",
+                    fontWeight: 600,
                     fontSize: 13,
-                    border: `1px solid ${exportFormat === f.id ? "var(--accent)" : THEME.border}`,
-                    background: exportFormat === f.id ? "var(--accent)" : THEME.card,
+                    border: `1.5px solid ${exportFormat === f.id ? THEME.accent : THEME.border}`,
+                    background: exportFormat === f.id ? THEME.accent : THEME.card,
                     color: exportFormat === f.id ? "#fff" : THEME.text,
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (exportFormat !== f.id) e.currentTarget.style.borderColor = THEME.accent;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (exportFormat !== f.id) e.currentTarget.style.borderColor = THEME.border;
                   }}
                 >
                   {f.label}
@@ -327,6 +341,7 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
           {dataCounts.map((d) => (
             <label
               key={d.key}
+              className="export-section-label"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -342,19 +357,20 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
                     ? "color-mix(in srgb, var(--t-accent) 40%, transparent)"
                     : THEME.border
                 }`,
+                transition: "background 0.15s ease, border-color 0.15s ease",
               }}
             >
               <input
                 type="checkbox"
                 checked={selectedSections.has(d.key)}
                 onChange={() => toggleSection(d.key)}
-                style={{ accentColor: "var(--accent)" }}
+                style={{ accentColor: THEME.accent }}
               />
               <span style={{ fontSize: 13, color: THEME.text, flex: 1 }}>{d.label}</span>
               <span
                 style={{
                   fontSize: 12,
-                  color: d.count > 0 ? "var(--accent)" : THEME.textSecondary,
+                  color: d.count > 0 ? THEME.accent : THEME.textSecondary,
                   fontWeight: 600,
                 }}
               >
@@ -397,13 +413,18 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
             Restoring a backup will overwrite your current data. Make sure to export a backup first.
           </span>
         </div>
-        <input
-          type="file"
-          accept=".json"
-          aria-label="Choose backup file to restore"
-          onChange={onRestoreBackup}
-          style={{ fontSize: 14, color: THEME.text }}
-        />
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <Button variant="secondary" icon={<Upload size={15} />}>
+            Choose Backup File (.json)
+          </Button>
+          <input
+            type="file"
+            accept=".json"
+            aria-label="Choose backup file to restore"
+            onChange={onRestoreBackup}
+            style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
+          />
+        </div>
       </Card>
 
       {/* Tips */}

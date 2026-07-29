@@ -287,8 +287,14 @@ export const CommandPaletteModal = ({
           style={{ maxHeight: "50vh", overflowY: "auto", padding: 8 }}
         >
           {filtered.length === 0 ? (
-            <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--t-muted)" }}>
-              No commands found for &ldquo;{query}&rdquo;
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--t-muted)" }}>
+              <Search size={22} style={{ marginBottom: 8, opacity: 0.4 }} />
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>
+                No commands found for &ldquo;{query}&rdquo;
+              </div>
+              <div style={{ fontSize: 12, marginTop: 4, opacity: 0.8 }}>
+                Try a different search term
+              </div>
             </div>
           ) : (
             filtered.map((act, idx) => (
@@ -327,6 +333,37 @@ export const CommandPaletteModal = ({
               </div>
             ))
           )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            padding: "10px 20px",
+            borderTop: "1px solid var(--t-line)",
+            fontSize: 11,
+            color: "var(--t-muted)",
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <kbd className="code-chip" style={{ fontSize: 10, padding: "1px 6px" }}>
+              ↑↓
+            </kbd>
+            Navigate
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <kbd className="code-chip" style={{ fontSize: 10, padding: "1px 6px" }}>
+              ↵
+            </kbd>
+            Select
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <kbd className="code-chip" style={{ fontSize: 10, padding: "1px 6px" }}>
+              esc
+            </kbd>
+            Close
+          </span>
         </div>
       </div>
     </div>

@@ -386,8 +386,8 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
               style={{
                 padding: "10px 14px",
                 borderRadius: 10,
-                background: `${THEME.gold}12`,
-                border: `1px solid ${THEME.gold}40`,
+                background: `color-mix(in srgb, ${THEME.gold} 7%, transparent)`,
+                border: `1px solid ${`color-mix(in srgb, ${THEME.gold} 25%, transparent)`}`,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -884,8 +884,8 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
                       style={{
                         padding: "8px 12px",
                         borderRadius: 8,
-                        background: `${THEME.rust}0f`,
-                        border: `1px solid ${THEME.rust}33`,
+                        background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                        border: `1px solid ${`color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
                         fontSize: 11,
                         color: THEME.rust,
                         fontWeight: 600,
@@ -1093,8 +1093,8 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
                   style={{
                     padding: "10px 14px",
                     borderRadius: 10,
-                    background: `${THEME.accent}09`,
-                    border: `1px solid ${THEME.accent}30`,
+                    background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+                    border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 19%, transparent)`}`,
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr 1fr",
                     gap: 12,
@@ -1991,8 +1991,8 @@ function EditFDModal({ fd: initial, onClose, onSave }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 10,
-            background: `${THEME.gold}12`,
-            border: `1px solid ${THEME.gold}40`,
+            background: `color-mix(in srgb, ${THEME.gold} 7%, transparent)`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.gold} 25%, transparent)`}`,
             display: "flex",
             justifyContent: "space-between",
           }}
@@ -2244,8 +2244,8 @@ function EditMFModal({ mf: initial, onClose, onSave, activeProfile = "all" }: an
           style={{
             padding: "10px 14px",
             borderRadius: 10,
-            background: `${THEME.accent}09`,
-            border: `1px solid ${THEME.accent}33`,
+            background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 20%, transparent)`}`,
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr",
             gap: 12,
@@ -2455,8 +2455,8 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
                   style={{
                     padding: "8px 12px",
                     borderRadius: 8,
-                    background: `${THEME.rust}0f`,
-                    border: `1px solid ${THEME.rust}33`,
+                    background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                    border: `1px solid ${`color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
                     fontSize: 11,
                     color: THEME.rust,
                     fontWeight: 600,
@@ -2546,7 +2546,7 @@ function InvestmentEmptyState({
           border: "2px solid rgba(255, 255, 255, 0.2)",
         }}
       >
-        <Icon size={32} color="#fff" />
+        <Icon size={32} color={THEME.darkInk} />
       </div>
       <div
         style={{
@@ -2890,9 +2890,9 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                         key={l}
                         style={{
                           padding: "7px 6px",
-                          background: `${THEME.gold}0f`,
+                          background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
                           borderRadius: 8,
-                          border: `1px solid ${THEME.gold}24`,
+                          border: `1px solid ${`color-mix(in srgb, ${THEME.gold} 14%, transparent)`}`,
                           textAlign: "center" as const,
                         }}
                       >
@@ -3414,7 +3414,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
               gap: 20,
             }}
           >
@@ -3565,9 +3565,9 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                         key={l}
                         style={{
                           padding: "8px 6px",
-                          background: `${THEME.gold}0f`,
+                          background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
                           borderRadius: 8,
-                          border: `1px solid ${THEME.gold}24`,
+                          border: `1px solid ${`color-mix(in srgb, ${THEME.gold} 14%, transparent)`}`,
                           textAlign: "center" as const,
                         }}
                       >
@@ -4025,7 +4025,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
-            style={{ ...btnStyle, background: `${THEME.accent}12`, color: THEME.accent }}
+            style={{ ...btnStyle, background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`, color: THEME.accent }}
             onClick={downloadTemplate}
           >
             <Download size={12} /> Download Template
@@ -4113,7 +4113,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: `${THEME.rust}12`,
+            background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
             color: THEME.rust,
             fontSize: 12,
             marginBottom: 16,
@@ -4141,7 +4141,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
               ✓ {csvPreview.length} rows parsed and ready for import
             </div>
             <button
-              style={{ ...btnStyle, background: THEME.sage, color: "#fff" }}
+              style={{ ...btnStyle, background: THEME.sage, color: THEME.darkInk }}
               onClick={doImport}
             >
               Import {csvPreview.length} Lot{csvPreview.length !== 1 ? "s" : ""}
@@ -4312,7 +4312,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: `${THEME.sage}12`,
+            background: `color-mix(in srgb, ${THEME.sage} 7%, transparent)`,
             color: THEME.sage,
             fontSize: 12,
             fontWeight: 600,
@@ -4436,8 +4436,8 @@ function PPFCsvPanel({ onImport }: any) {
         padding: 18,
         borderRadius: 12,
         marginBottom: 16,
-        background: `${THEME.accent}09`,
-        border: `1px solid ${THEME.accent}38`,
+        background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+        border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 22%, transparent)`}`,
       }}
     >
       <div
@@ -4464,7 +4464,7 @@ function PPFCsvPanel({ onImport }: any) {
           onClick={downloadTemplate}
           style={{
             ...btnStyle,
-            border: `1px solid ${THEME.accent}4d`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 30%, transparent)`}`,
             background: "transparent",
             color: THEME.accent,
           }}
@@ -4485,16 +4485,16 @@ function PPFCsvPanel({ onImport }: any) {
         }}
       >
         <b style={{ color: THEME.ink }}>Format:</b>{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           date, type, amount, note
         </code>
         <br />
         Deposit:{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           2025-04-05, deposit, 150000, Annual contribution
         </code>
         &nbsp;&nbsp;Withdrawal:{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           2026-01-15, withdrawal, 25000, Partial
         </code>
       </div>
@@ -4506,11 +4506,11 @@ function PPFCsvPanel({ onImport }: any) {
           justifyContent: "center",
           gap: 8,
           padding: "20px 0",
-          border: `1.5px dashed ${THEME.accent}66`,
+          border: `1.5px dashed ${`color-mix(in srgb, ${THEME.accent} 40%, transparent)`}`,
           borderRadius: 10,
           cursor: "pointer",
           marginBottom: 12,
-          background: `${THEME.accent}08`,
+          background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
         }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
@@ -4562,7 +4562,7 @@ function PPFCsvPanel({ onImport }: any) {
         <button
           style={{
             ...btnStyle,
-            border: `1px solid ${THEME.accent}66`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 40%, transparent)`}`,
             background: "transparent",
             color: THEME.accent,
           }}
@@ -4572,7 +4572,7 @@ function PPFCsvPanel({ onImport }: any) {
         </button>
         {csvPreview.length > 0 && !importDone && (
           <button
-            style={{ ...btnStyle, border: "none", background: THEME.accent, color: "#fff" }}
+            style={{ ...btnStyle, border: "none", background: THEME.accent, color: THEME.darkInk }}
             onClick={doImport}
           >
             Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
@@ -4603,7 +4603,7 @@ function PPFCsvPanel({ onImport }: any) {
             color: THEME.rust,
             fontSize: 12,
             padding: "8px 12px",
-            background: `${THEME.rust}0f`,
+            background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
             borderRadius: 8,
           }}
         >
@@ -4622,7 +4622,7 @@ function PPFCsvPanel({ onImport }: any) {
           <div
             style={{
               padding: "8px 12px",
-              background: `${THEME.accent}12`,
+              background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
               fontSize: 11,
               fontWeight: 700,
               color: THEME.accent,
@@ -4835,7 +4835,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
           <Plus size={13} /> Add Transaction
         </button>
         <button
-          style={{ ...btnGhost, color: THEME.accent, borderColor: `${THEME.accent}66` }}
+          style={{ ...btnGhost, color: THEME.accent, borderColor: `color-mix(in srgb, ${THEME.accent} 40%, transparent)` }}
           onClick={() => {
             setShowCsvImport((v) => !v);
             setShowLedger(true);
@@ -4880,7 +4880,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
           <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead>
-                <tr style={{ background: `${THEME.accent}08` }}>
+                <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)` }}>
                   {["Date", "Type", "Amount", "Note", ""].map((h, i) => (
                     <th
                       key={i}
@@ -5033,7 +5033,7 @@ const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
           gap: 20,
         }}
       >
@@ -5192,7 +5192,7 @@ function NPSTransactionModal({ onClose, onSave, initial }: any) {
         <div
           style={{
             padding: "8px 12px",
-            background: `${NPS_ORANGE}0d`,
+            background: `color-mix(in srgb, ${NPS_ORANGE} 5%, transparent)`,
             borderRadius: 8,
             fontSize: 12,
             color: NPS_ORANGE,
@@ -5338,8 +5338,8 @@ function NPSCsvPanel({ onImport }: any) {
         padding: 18,
         borderRadius: 12,
         marginBottom: 16,
-        background: `${NPS_ORANGE}09`,
-        border: `1px solid ${NPS_ORANGE}38`,
+        background: `color-mix(in srgb, ${NPS_ORANGE} 4%, transparent)`,
+        border: `1px solid ${`color-mix(in srgb, ${NPS_ORANGE} 22%, transparent)`}`,
       }}
     >
       <div
@@ -5366,7 +5366,7 @@ function NPSCsvPanel({ onImport }: any) {
           onClick={downloadTemplate}
           style={{
             ...btnStyle,
-            border: `1px solid ${NPS_ORANGE}4d`,
+            border: `1px solid ${`color-mix(in srgb, ${NPS_ORANGE} 30%, transparent)`}`,
             background: "transparent",
             color: NPS_ORANGE,
           }}
@@ -5387,16 +5387,16 @@ function NPSCsvPanel({ onImport }: any) {
         }}
       >
         <b style={{ color: THEME.ink }}>Format:</b>{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           date, particulars, uploaded_by, employee_amount, employer_amount
         </code>
         <br />
         Use{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           0
         </code>{" "}
         for the side that did not contribute. Date format:{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           YYYY-MM-DD
         </code>
       </div>
@@ -5408,11 +5408,11 @@ function NPSCsvPanel({ onImport }: any) {
           justifyContent: "center",
           gap: 8,
           padding: "20px 0",
-          border: `1.5px dashed ${NPS_ORANGE}66`,
+          border: `1.5px dashed ${`color-mix(in srgb, ${NPS_ORANGE} 40%, transparent)`}`,
           borderRadius: 10,
           cursor: "pointer",
           marginBottom: 12,
-          background: `${NPS_ORANGE}08`,
+          background: `color-mix(in srgb, ${NPS_ORANGE} 3%, transparent)`,
         }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
@@ -5464,7 +5464,7 @@ function NPSCsvPanel({ onImport }: any) {
         <button
           style={{
             ...btnStyle,
-            border: `1px solid ${NPS_ORANGE}66`,
+            border: `1px solid ${`color-mix(in srgb, ${NPS_ORANGE} 40%, transparent)`}`,
             background: "transparent",
             color: NPS_ORANGE,
           }}
@@ -5474,7 +5474,7 @@ function NPSCsvPanel({ onImport }: any) {
         </button>
         {csvPreview.length > 0 && !importDone && (
           <button
-            style={{ ...btnStyle, border: "none", background: NPS_ORANGE, color: "#fff" }}
+            style={{ ...btnStyle, border: "none", background: NPS_ORANGE, color: THEME.darkInk }}
             onClick={doImport}
           >
             Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
@@ -5505,7 +5505,7 @@ function NPSCsvPanel({ onImport }: any) {
             color: THEME.rust,
             fontSize: 12,
             padding: "8px 12px",
-            background: `${THEME.rust}0f`,
+            background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
             borderRadius: 8,
           }}
         >
@@ -5524,7 +5524,7 @@ function NPSCsvPanel({ onImport }: any) {
           <div
             style={{
               padding: "8px 12px",
-              background: `${NPS_ORANGE}12`,
+              background: `color-mix(in srgb, ${NPS_ORANGE} 7%, transparent)`,
               fontSize: 11,
               fontWeight: 700,
               color: NPS_ORANGE,
@@ -5693,10 +5693,10 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                     fontSize: 10,
                     padding: "2px 8px",
                     borderRadius: 20,
-                    background: `${pfmColor}18`,
+                    background: `color-mix(in srgb, ${pfmColor} 9%, transparent)`,
                     color: pfmColor,
                     fontWeight: 700,
-                    border: `1px solid ${pfmColor}40`,
+                    border: `1px solid ${`color-mix(in srgb, ${pfmColor} 25%, transparent)`}`,
                   }}
                 >
                   {n.schemeType}
@@ -5890,7 +5890,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
         }}
       >
         <button
-          style={{ ...btnGhost, color: NPS_ORANGE, borderColor: `${NPS_ORANGE}4d` }}
+          style={{ ...btnGhost, color: NPS_ORANGE, borderColor: `color-mix(in srgb, ${NPS_ORANGE} 30%, transparent)` }}
           onClick={() => {
             setShowLedger((v) => !v);
             setShowCsvImport(false);
@@ -6353,8 +6353,8 @@ function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: 
               marginTop: 4,
               padding: "9px 12px",
               borderRadius: 8,
-              background: `${THEME.accent}09`,
-              border: `1px solid ${THEME.accent}26`,
+              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+              border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
               fontSize: 11,
               color: THEME.accent,
               marginBottom: 4,
@@ -6433,8 +6433,8 @@ function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: 
               marginTop: 4,
               padding: "9px 12px",
               borderRadius: 8,
-              background: `${THEME.sage}09`,
-              border: `1px solid ${THEME.sage}33`,
+              background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+              border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 20%, transparent)`}`,
               fontSize: 11,
               color: THEME.sage,
               marginBottom: 4,
@@ -6496,8 +6496,8 @@ function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: 
               marginTop: 4,
               padding: "9px 12px",
               borderRadius: 8,
-              background: `${THEME.sage}09`,
-              border: `1px solid ${THEME.sage}40`,
+              background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
+              border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 25%, transparent)`}`,
               fontSize: 11,
               color: THEME.sage,
               marginBottom: 4,
@@ -6739,8 +6739,8 @@ function EPFCsvPanel({ onImport }: any) {
         padding: 18,
         borderRadius: 12,
         marginBottom: 16,
-        background: `${THEME.accent}09`,
-        border: `1px solid ${THEME.accent}38`,
+        background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+        border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 22%, transparent)`}`,
       }}
     >
       <div
@@ -6767,7 +6767,7 @@ function EPFCsvPanel({ onImport }: any) {
           onClick={downloadTemplate}
           style={{
             ...btnStyle,
-            border: `1px solid ${THEME.accent}4d`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 30%, transparent)`}`,
             background: "transparent",
             color: THEME.accent,
           }}
@@ -6788,24 +6788,24 @@ function EPFCsvPanel({ onImport }: any) {
         }}
       >
         <b style={{ color: THEME.ink }}>Format:</b>{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           date, type, amount, note
         </code>
         <br />
         Type values:{" "}
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           employee
         </code>{" "}
         &nbsp;
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           employer
         </code>{" "}
         &nbsp;
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           interest
         </code>{" "}
         &nbsp;
-        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>
+        <code style={{ background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, padding: "1px 5px", borderRadius: 4 }}>
           withdrawal
         </code>
       </div>
@@ -6817,11 +6817,11 @@ function EPFCsvPanel({ onImport }: any) {
           justifyContent: "center",
           gap: 8,
           padding: "20px 0",
-          border: `1.5px dashed ${THEME.accent}66`,
+          border: `1.5px dashed ${`color-mix(in srgb, ${THEME.accent} 40%, transparent)`}`,
           borderRadius: 10,
           cursor: "pointer",
           marginBottom: 12,
-          background: `${THEME.accent}08`,
+          background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
         }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
@@ -6873,7 +6873,7 @@ function EPFCsvPanel({ onImport }: any) {
         <button
           style={{
             ...btnStyle,
-            border: `1px solid ${THEME.accent}66`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 40%, transparent)`}`,
             background: "transparent",
             color: THEME.accent,
           }}
@@ -6883,7 +6883,7 @@ function EPFCsvPanel({ onImport }: any) {
         </button>
         {csvPreview.length > 0 && !importDone && (
           <button
-            style={{ ...btnStyle, border: "none", background: THEME.accent, color: "#fff" }}
+            style={{ ...btnStyle, border: "none", background: THEME.accent, color: THEME.darkInk }}
             onClick={doImport}
           >
             Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
@@ -6914,7 +6914,7 @@ function EPFCsvPanel({ onImport }: any) {
             color: THEME.rust,
             fontSize: 12,
             padding: "8px 12px",
-            background: `${THEME.rust}0f`,
+            background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
             borderRadius: 8,
           }}
         >
@@ -6933,7 +6933,7 @@ function EPFCsvPanel({ onImport }: any) {
           <div
             style={{
               padding: "8px 12px",
-              background: `${THEME.accent}12`,
+              background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
               fontSize: 11,
               fontWeight: 700,
               color: THEME.accent,
@@ -7562,7 +7562,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               fontSize: 11,
               padding: "5px 10px",
               color: THEME.accent,
-              borderColor: `${THEME.accent}4d`,
+              borderColor: `color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
             }}
             onClick={() => {
               setEditEst(null);
@@ -7578,8 +7578,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             style={{
               padding: "12px 14px",
               borderRadius: 10,
-              background: `${THEME.accent}09`,
-              border: `1px dashed ${THEME.accent}33`,
+              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+              border: `1px dashed ${`color-mix(in srgb, ${THEME.accent} 20%, transparent)`}`,
               fontSize: 11,
               color: THEME.muted,
               textAlign: "center" as const,
@@ -7596,7 +7596,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                 top: 12,
                 bottom: 12,
                 width: 2,
-                background: `${THEME.accent}33`,
+                background: `color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
                 borderRadius: 2,
               }}
             />
@@ -7662,14 +7662,14 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                       width: 22,
                       height: 22,
                       borderRadius: "50%",
-                      background: isCurrent ? THEME.accent : `${THEME.accent}26`,
-                      border: `2px solid ${isCurrent ? THEME.accent : `${THEME.accent}59`}`,
+                      background: isCurrent ? THEME.accent : `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                      border: `2px solid ${isCurrent ? THEME.accent : `color-mix(in srgb, ${THEME.accent} 35%, transparent)`}`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: 10,
                       fontWeight: 800,
-                      color: isCurrent ? "#fff" : THEME.accent,
+                      color: isCurrent ? THEME.darkInk : THEME.accent,
                     }}
                   >
                     {idx + 1}
@@ -7696,8 +7696,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                           fontWeight: 700,
                           padding: "3px 9px",
                           borderRadius: 6,
-                          background: isCurrent ? THEME.accent : `${THEME.line}40`,
-                          color: isCurrent ? "#fff" : THEME.muted,
+                          background: isCurrent ? THEME.accent : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+                          color: isCurrent ? THEME.darkInk : THEME.muted,
                         }}
                       >
                         {dateLabel}
@@ -7912,8 +7912,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                               gap: 6,
                               padding: "6px 12px",
                               borderRadius: 8,
-                              border: `1px solid ${THEME.sage}66`,
-                              background: `${THEME.sage}0f`,
+                              border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 40%, transparent)`}`,
+                              background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
                               color: THEME.sage,
                               fontSize: 11,
                               fontWeight: 700,
@@ -7949,8 +7949,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               style={{
                 padding: "9px 12px",
                 borderRadius: 10,
-                border: `1px solid ${s.color}33`,
-                background: `${s.color}0d`,
+                border: `1px solid ${`color-mix(in srgb, ${s.color} 20%, transparent)`}`,
+                background: `color-mix(in srgb, ${s.color} 5%, transparent)`,
               }}
             >
               <div
@@ -7987,7 +7987,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
           <Plus size={13} /> Add Transaction
         </button>
         <button
-          style={{ ...btnGhost, color: THEME.accent, borderColor: `${THEME.accent}66` }}
+          style={{ ...btnGhost, color: THEME.accent, borderColor: `color-mix(in srgb, ${THEME.accent} 40%, transparent)` }}
           onClick={() => {
             setShowCsvImport((v) => !v);
             setShowLedger(true);
@@ -8072,7 +8072,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                         }}
                       >
                         <thead>
-                          <tr style={{ background: `${THEME.accent}0f` }}>
+                          <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)` }}>
                             <th
                               style={{
                                 padding: "7px 10px",
@@ -8224,9 +8224,9 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                             const erVal = t.employerShare || 0;
                             const penVal = t.pensionShare || 0;
                             const rowBg = isTransferRow
-                              ? `${THEME.sage}0f`
+                              ? `color-mix(in srgb, ${THEME.sage} 6%, transparent)`
                               : isIntRow
-                                ? `${THEME.sage}09`
+                                ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
                                 : undefined;
                             const txColor = isTransferRow
                               ? THEME.sage
@@ -8240,7 +8240,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 key={t.id}
                                 style={{
                                   borderTop: isTransferRow
-                                    ? `2px dashed ${THEME.sage}66`
+                                    ? `2px dashed ${`color-mix(in srgb, ${THEME.sage} 40%, transparent)`}`
                                     : `1px solid ${THEME.line}`,
                                   background: rowBg,
                                 }}
@@ -8260,8 +8260,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                           gap: 4,
                                           padding: "2px 7px",
                                           borderRadius: 5,
-                                          background: `${estColor}18`,
-                                          border: `1px solid ${estColor}40`,
+                                          background: `color-mix(in srgb, ${estColor} 9%, transparent)`,
+                                          border: `1px solid ${`color-mix(in srgb, ${estColor} 25%, transparent)`}`,
                                           maxWidth: 130,
                                         }}
                                       >
@@ -8411,7 +8411,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                           <tr
                             style={{
                               borderTop: `2px solid ${THEME.line}`,
-                              background: `${THEME.accent}09`,
+                              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
                             }}
                           >
                             <td
@@ -8537,7 +8537,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                 <div style={{ overflowX: "auto" as const }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
                   <thead>
-                    <tr style={{ background: `${THEME.accent}08` }}>
+                    <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)` }}>
                       {["Date", "Type", "Amount", "Note", ""].map((h, i) => (
                         <th
                           key={i}
@@ -8697,7 +8697,7 @@ function EPFEmptyState({ onAdd }: any) {
           width: 68,
           height: 68,
           borderRadius: 22,
-          background: `linear-gradient(135deg,${THEME.accent} 0%,${THEME.accent}cc 100%)`,
+          background: `linear-gradient(135deg,${THEME.accent} 0%,${`color-mix(in srgb, ${THEME.accent} 80%, transparent)`} 100%)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -8706,7 +8706,7 @@ function EPFEmptyState({ onAdd }: any) {
           border: "2px solid rgba(255, 255, 255, 0.2)",
         }}
       >
-        <Shield size={32} color="#fff" />
+        <Shield size={32} color={THEME.darkInk} />
       </div>
       <div
         style={{
@@ -8787,7 +8787,7 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
           gap: 20,
         }}
       >
@@ -8952,8 +8952,8 @@ const BankLogo = ({
         width: size,
         height: size,
         borderRadius: Math.round(size * 0.25),
-        background: `${color}18`,
-        border: `1px solid ${color}30`,
+        background: `color-mix(in srgb, ${color} 9%, transparent)`,
+        border: `1px solid ${`color-mix(in srgb, ${color} 19%, transparent)`}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -9119,8 +9119,8 @@ export const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: numbe
         width: size,
         height: size,
         borderRadius: Math.round(size * 0.25),
-        background: `${THEME.accent}18`,
-        border: `1px solid ${THEME.accent}30`,
+        background: `color-mix(in srgb, ${THEME.accent} 9%, transparent)`,
+        border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 19%, transparent)`}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -9197,7 +9197,7 @@ const MFInsightsBarList = ({ rows }: { rows: Array<{ name: string; value: number
                   fontSize: 11,
                   fontWeight: 700,
                   color,
-                  background: `${color}18`,
+                  background: `color-mix(in srgb, ${color} 9%, transparent)`,
                   padding: "1px 6px",
                   borderRadius: 4,
                 }}
@@ -10400,12 +10400,12 @@ function MFSection({
                       return (
                         <React.Fragment key={section.label || "__flat__"}>
                           {section.label && (
-                            <tr style={{ background: `${dotColor}08` }}>
+                            <tr style={{ background: `color-mix(in srgb, ${dotColor} 3%, transparent)` }}>
                               <td
                                 colSpan={9}
                                 style={{
                                   padding: "10px 20px",
-                                  borderBottom: `2px solid ${dotColor}30`,
+                                  borderBottom: `2px solid ${`color-mix(in srgb, ${dotColor} 19%, transparent)`}`,
                                 }}
                               >
                                 <div
@@ -10570,7 +10570,7 @@ function MFSection({
                                   }}
                                   style={{
                                     cursor: "pointer",
-                                    background: isExpanded ? `${THEME.accent}09` : "transparent",
+                                    background: isExpanded ? `color-mix(in srgb, ${THEME.accent} 4%, transparent)` : "transparent",
                                     transition: "background 0.15s ease",
                                     borderBottom: `1px solid ${THEME.line}`,
                                   }}
@@ -10626,12 +10626,12 @@ function MFSection({
                                             <span
                                               style={{
                                                 fontSize: 9,
-                                                background: `${categoryColors[grp.category] || THEME.accent}15`,
+                                                background: `color-mix(in srgb, ${categoryColors[grp.category] || THEME.accent} 8%, transparent)`,
                                                 color: categoryColors[grp.category] || THEME.accent,
                                                 padding: "1px 6px",
                                                 borderRadius: 10,
                                                 fontWeight: 700,
-                                                border: `1px solid ${categoryColors[grp.category] || THEME.accent}30`,
+                                                border: `1px solid ${`color-mix(in srgb, ${categoryColors[grp.category] || THEME.accent} 19%, transparent)`}`,
                                               }}
                                             >
                                               {grp.category}
@@ -10641,7 +10641,7 @@ function MFSection({
                                             <span
                                               style={{
                                                 fontSize: 9,
-                                                background: `${THEME.line}30`,
+                                                background: `color-mix(in srgb, ${THEME.line} 19%, transparent)`,
                                                 color: THEME.muted,
                                                 padding: "1px 6px",
                                                 borderRadius: 10,
@@ -10656,7 +10656,7 @@ function MFSection({
                                           <span
                                             style={{
                                               fontSize: 9,
-                                              background: `${THEME.line}40`,
+                                              background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                               color: THEME.muted,
                                               padding: "1px 6px",
                                               borderRadius: 10,
@@ -10809,7 +10809,7 @@ function MFSection({
 
                                 {/* Expanded detail drawer */}
                                 {isExpanded && (
-                                  <tr style={{ background: `${THEME.accent}08` }}>
+                                  <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)` }}>
                                     <td
                                       colSpan={9}
                                       style={{
@@ -11130,11 +11130,11 @@ function MFSection({
                                               style={{
                                                 fontSize: 10,
                                                 fontWeight: 800,
-                                                background: `${THEME.accent}15`,
+                                                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                                                 color: THEME.accent,
                                                 padding: "1px 8px",
                                                 borderRadius: 20,
-                                                border: `1px solid ${THEME.accent}25`,
+                                                border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
                                               }}
                                             >
                                               {groupItems.length}{" "}
@@ -11283,7 +11283,7 @@ function MFSection({
                                                   return (
                                                     <tr
                                                       key={lot.id}
-                                                      style={{ background: `${THEME.accent}08` }}
+                                                      style={{ background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)` }}
                                                     >
                                                       <td
                                                         style={{
@@ -11319,8 +11319,8 @@ function MFSection({
                                                               padding: "1px 6px",
                                                               borderRadius: 4,
                                                               background: isLTCG
-                                                                ? `${THEME.sage}1f`
-                                                                : `${THEME.gold}1a`,
+                                                                ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                                                                : `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
                                                               color: isLTCG
                                                                 ? THEME.sage
                                                                 : nearLTCG
@@ -11529,7 +11529,7 @@ function MFSection({
                       width: 32,
                       height: 32,
                       borderRadius: 9,
-                      background: `${THEME.gold}1f`,
+                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -11691,8 +11691,8 @@ function MFSection({
                             style={{
                               padding: "12px 14px",
                               borderRadius: 10,
-                              background: `${color}0a`,
-                              border: `1px solid ${color}20`,
+                              background: `color-mix(in srgb, ${color} 4%, transparent)`,
+                              border: `1px solid ${`color-mix(in srgb, ${color} 13%, transparent)`}`,
                             }}
                           >
                             <div
@@ -11720,8 +11720,8 @@ function MFSection({
                           style={{
                             padding: "14px 16px",
                             borderRadius: 10,
-                            background: `${THEME.sage}08`,
-                            border: `1px solid ${THEME.sage}20`,
+                            background: `color-mix(in srgb, ${THEME.sage} 3%, transparent)`,
+                            border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 13%, transparent)`}`,
                             marginBottom: 18,
                           }}
                         >
@@ -11862,8 +11862,8 @@ function MFSection({
                                       borderRadius: 6,
                                       background:
                                         f.planType === "Direct"
-                                          ? `${THEME.sage}18`
-                                          : `${THEME.gold}18`,
+                                          ? `color-mix(in srgb, ${THEME.sage} 9%, transparent)`
+                                          : `color-mix(in srgb, ${THEME.gold} 9%, transparent)`,
                                       color: f.planType === "Direct" ? THEME.sage : THEME.gold,
                                     }}
                                   >
@@ -12068,8 +12068,8 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
         style={{
           padding: "10px 14px",
           borderRadius: 8,
-          background: `${THEME.accent}08`,
-          border: `1px solid ${THEME.accent}20`,
+          background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+          border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 13%, transparent)`}`,
           marginBottom: 16,
           fontSize: 12,
           display: "flex",
@@ -12164,10 +12164,10 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
             borderRadius: 8,
             background:
               pnl !== null && pnl >= 0
-                ? `${THEME.sage}1a`
+                ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
                 : pnl !== null
-                  ? `${THEME.rust}1a`
-                  : `${THEME.accent}08`,
+                  ? `color-mix(in srgb, ${THEME.rust} 10%, transparent)`
+                  : `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
             marginTop: 8,
           }}
         >
@@ -12312,7 +12312,7 @@ function SellMFModal({ mf, onClose, onSave }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: profit >= 0 ? `${THEME.sage}1a` : `${THEME.rust}1a`,
+            background: profit >= 0 ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)` : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
             marginTop: 8,
           }}
         >
@@ -12343,7 +12343,7 @@ function SellMFModal({ mf, onClose, onSave }: any) {
                 padding: "2px 7px",
                 borderRadius: 4,
                 fontWeight: 800,
-                background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`,
+                background: isLTCG ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                 color: isLTCG ? THEME.sage : THEME.gold,
               }}
             >
@@ -12567,7 +12567,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                     key={a.lot.id}
                     style={{
                       borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined,
-                      background: i % 2 === 0 ? "transparent" : `${THEME.accent}08`,
+                      background: i % 2 === 0 ? "transparent" : `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                     }}
                   >
                     <td style={{ padding: "9px 12px" }}>
@@ -12619,7 +12619,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                           padding: "2px 7px",
                           borderRadius: 4,
                           fontWeight: 800,
-                          background: a.isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`,
+                          background: a.isLTCG ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                           color: a.isLTCG ? THEME.sage : THEME.gold,
                         }}
                       >
@@ -12638,8 +12638,8 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
             style={{
               padding: "14px 16px",
               borderRadius: 10,
-              background: totalPnl >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`,
-              border: `1px solid ${totalPnl >= 0 ? `${THEME.sage}55` : `${THEME.rust}55`}`,
+              background: totalPnl >= 0 ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)` : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+              border: `1px solid ${totalPnl >= 0 ? `color-mix(in srgb, ${THEME.sage} 33%, transparent)` : `color-mix(in srgb, ${THEME.rust} 33%, transparent)`}`,
               marginBottom: 4,
             }}
           >
@@ -12681,7 +12681,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                 display: "flex",
                 gap: 16,
                 paddingTop: 10,
-                borderTop: `1px solid ${THEME.line}40`,
+                borderTop: `1px solid ${`color-mix(in srgb, ${THEME.line} 25%, transparent)`}`,
                 flexWrap: "wrap",
               }}
             >
@@ -12693,7 +12693,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                       borderRadius: 4,
                       fontSize: 9,
                       fontWeight: 800,
-                      background: `${THEME.gold}1f`,
+                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                       color: THEME.gold,
                       marginRight: 6,
                     }}
@@ -12713,7 +12713,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                       borderRadius: 4,
                       fontSize: 9,
                       fontWeight: 800,
-                      background: `${THEME.sage}1f`,
+                      background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                       color: THEME.sage,
                       marginRight: 6,
                     }}
@@ -12845,8 +12845,8 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
         <Card
           style={{
             padding: "14px 18px",
-            background: `${THEME.accent}06`,
-            border: `1px solid ${THEME.accent}22`,
+            background: `color-mix(in srgb, ${THEME.accent} 2%, transparent)`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 13%, transparent)`}`,
           }}
         >
           <div style={{ fontSize: 12, color: THEME.accent, fontWeight: 600 }}>
@@ -12877,8 +12877,8 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
             style={{
               padding: 16,
               borderRadius: 12,
-              background: `${THEME.accent}06`,
-              border: `1px solid ${THEME.accent}22`,
+              background: `color-mix(in srgb, ${THEME.accent} 2%, transparent)`,
+              border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 13%, transparent)`}`,
               marginBottom: 16,
             }}
           >
@@ -12992,7 +12992,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
             <div style={{ overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
-                <tr style={{ background: `${THEME.muted}09` }}>
+                <tr style={{ background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)` }}>
                   <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700 }}>
                     Security
                   </th>
@@ -13014,7 +13014,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                       key={d.id}
                       style={{
                         borderTop: `1px solid ${THEME.line}`,
-                        background: d.isAuto ? `${THEME.accent}04` : undefined,
+                        background: d.isAuto ? `color-mix(in srgb, ${THEME.accent} 2%, transparent)` : undefined,
                       }}
                     >
                       <td style={{ padding: "10px 12px", fontWeight: 600 }}>
@@ -13026,7 +13026,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                             variant="muted"
                             style={{
                               fontSize: 10,
-                              background: `${THEME.accent}15`,
+                              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                               color: THEME.accent,
                             }}
                           >
@@ -13088,7 +13088,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
 
         {Object.keys(byFY).length > 1 && (
           <div
-            style={{ marginTop: 16, padding: 14, borderRadius: 10, background: `${THEME.muted}06` }}
+            style={{ marginTop: 16, padding: 14, borderRadius: 10, background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)` }}
           >
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>FY-wise Summary</div>
             <div
@@ -13294,7 +13294,7 @@ const DRIPSimulator = ({
               cursor: "pointer",
               border:
                 i === selectedRateIdx ? `2px solid ${THEME.accent}` : `1px solid ${THEME.line}`,
-              background: i === selectedRateIdx ? `${THEME.accent}15` : "transparent",
+              background: i === selectedRateIdx ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)` : "transparent",
               color: i === selectedRateIdx ? THEME.accent : THEME.muted,
               transition: "all 0.15s ease",
             }}
@@ -13311,7 +13311,7 @@ const DRIPSimulator = ({
           style={{
             padding: "14px 16px",
             borderRadius: 12,
-            background: `${THEME.muted}08`,
+            background: `color-mix(in srgb, ${THEME.muted} 3%, transparent)`,
             border: `1px solid ${THEME.line}`,
           }}
         >
@@ -13336,7 +13336,7 @@ const DRIPSimulator = ({
               marginTop: 10,
               height: 8,
               borderRadius: 4,
-              background: `${THEME.muted}15`,
+              background: `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
               overflow: "hidden",
             }}
           >
@@ -13356,8 +13356,8 @@ const DRIPSimulator = ({
           style={{
             padding: "14px 16px",
             borderRadius: 12,
-            background: `${THEME.sage}08`,
-            border: `1px solid ${THEME.sage}22`,
+            background: `color-mix(in srgb, ${THEME.sage} 3%, transparent)`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 13%, transparent)`}`,
           }}
         >
           <div
@@ -13381,7 +13381,7 @@ const DRIPSimulator = ({
               marginTop: 10,
               height: 8,
               borderRadius: 4,
-              background: `${THEME.sage}15`,
+              background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
               overflow: "hidden",
             }}
           >
@@ -13404,8 +13404,8 @@ const DRIPSimulator = ({
           style={{
             padding: "12px 16px",
             borderRadius: 10,
-            background: `${THEME.sage}08`,
-            border: `1px solid ${THEME.sage}22`,
+            background: `color-mix(in srgb, ${THEME.sage} 3%, transparent)`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 13%, transparent)`}`,
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -13606,7 +13606,7 @@ const YieldTracker = ({ state }: any) => {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: `${color}1f`,
+                  background: `color-mix(in srgb, ${color} 12%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -13690,8 +13690,8 @@ const YieldTracker = ({ state }: any) => {
                           width: 28,
                           height: 28,
                           borderRadius: 8,
-                          background: `${color}18`,
-                          border: `1px solid ${color}30`,
+                          background: `color-mix(in srgb, ${color} 9%, transparent)`,
+                          border: `1px solid ${`color-mix(in srgb, ${color} 19%, transparent)`}`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -13719,7 +13719,7 @@ const YieldTracker = ({ state }: any) => {
                     style={{
                       height: 6,
                       borderRadius: 4,
-                      background: `${color}18`,
+                      background: `color-mix(in srgb, ${color} 9%, transparent)`,
                       overflow: "hidden",
                     }}
                   >
@@ -13787,8 +13787,8 @@ const YieldTracker = ({ state }: any) => {
               marginTop: 16,
               padding: "10px 14px",
               borderRadius: 10,
-              background: `${THEME.accent}09`,
-              border: `1px solid ${THEME.accent}26`,
+              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+              border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
               fontSize: 11,
               color: THEME.muted,
               lineHeight: 1.6,

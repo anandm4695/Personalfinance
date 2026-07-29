@@ -184,7 +184,7 @@ const SectionHeader = ({
     }}
   >
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <Icon size={18} color="var(--accent)" />
+      <Icon size={18} color={THEME.accent} />
       <span
         style={{
           fontSize: 14,
@@ -745,11 +745,7 @@ export const InvestmentStatementTab = ({
                 row.invested === 0 && row.current === 0 ? null : (
                   <tr
                     key={row.label}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "color-mix(in srgb, var(--accent) 4%, transparent)")
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    className="table-row-hover"
                   >
                     <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                       {row.label}
@@ -821,7 +817,7 @@ export const InvestmentStatementTab = ({
           {expandedSections.stocks && (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div style={tableWrap}>
-                <table style={tbl}>
+                <table style={{ ...tbl, minWidth: 820 }}>
                   <thead>
                     <tr>
                       <th style={{ ...th, paddingLeft: 16 }}>Symbol</th>
@@ -855,11 +851,7 @@ export const InvestmentStatementTab = ({
                       return (
                         <tr
                           key={g.yfSym}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          className="table-row-hover"
                         >
                           <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                             {g.base}
@@ -928,7 +920,7 @@ export const InvestmentStatementTab = ({
           {expandedSections.mf && (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div style={tableWrap}>
-                <table style={tbl}>
+                <table style={{ ...tbl, minWidth: 900 }}>
                   <thead>
                     <tr>
                       <th style={{ ...th, paddingLeft: 16 }}>Scheme Name</th>
@@ -957,11 +949,7 @@ export const InvestmentStatementTab = ({
                       return (
                         <tr
                           key={mf.id}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          className="table-row-hover"
                         >
                           <td
                             style={{
@@ -1070,11 +1058,7 @@ export const InvestmentStatementTab = ({
                       return (
                         <tr
                           key={fd.id}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          className="table-row-hover"
                         >
                           <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                             {fd.bank || "--"}
@@ -1099,7 +1083,7 @@ export const InvestmentStatementTab = ({
                                 dtm != null && dtm <= 30
                                   ? THEME.rust
                                   : dtm != null && dtm <= 90
-                                    ? "#D97706"
+                                    ? THEME.gold
                                     : THEME.sage,
                             }}
                           >
@@ -1149,11 +1133,7 @@ export const InvestmentStatementTab = ({
                       return (
                         <tr
                           key={rd.id}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          className="table-row-hover"
                         >
                           <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                             {rd.bank || "--"}
@@ -1209,11 +1189,7 @@ export const InvestmentStatementTab = ({
                       return (
                         <tr
                           key={b.id}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          className="table-row-hover"
                         >
                           <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                             {b.name || "--"}
@@ -1273,11 +1249,7 @@ export const InvestmentStatementTab = ({
                       return (
                         <tr
                           key={p.id}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "color-mix(in srgb, var(--accent) 4%, transparent)")
-                          }
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          className="table-row-hover"
                         >
                           <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                             {p.institution || "--"}
@@ -1335,11 +1307,7 @@ export const InvestmentStatementTab = ({
                     {state.nps.map((n: any) => (
                       <tr
                         key={n.id}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            "color-mix(in srgb, var(--accent) 4%, transparent)")
-                        }
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        className="table-row-hover"
                       >
                         <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                           {n.fundManager || "--"}
@@ -1407,11 +1375,7 @@ export const InvestmentStatementTab = ({
                     {state.epf.map((e: any) => (
                       <tr
                         key={e.id}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            "color-mix(in srgb, var(--accent) 4%, transparent)")
-                        }
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        className="table-row-hover"
                       >
                         <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                           {e.employer || "--"}
@@ -1443,7 +1407,7 @@ export const InvestmentStatementTab = ({
           {expandedSections.insurance && (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div style={tableWrap}>
-                <table style={tbl}>
+                <table style={{ ...tbl, minWidth: 680 }}>
                   <thead>
                     <tr>
                       <th style={{ ...th, paddingLeft: 16 }}>Plan Name</th>
@@ -1458,11 +1422,7 @@ export const InvestmentStatementTab = ({
                     {(state.lic || []).map((l: any) => (
                       <tr
                         key={l.id}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            "color-mix(in srgb, var(--accent) 4%, transparent)")
-                        }
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        className="table-row-hover"
                       >
                         <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                           {l.planName || "--"}
@@ -1500,11 +1460,7 @@ export const InvestmentStatementTab = ({
                     {(state.investmentPlans || []).map((ip: any) => (
                       <tr
                         key={ip.id}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            "color-mix(in srgb, var(--accent) 4%, transparent)")
-                        }
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        className="table-row-hover"
                       >
                         <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                           {ip.planName || ip.insurer || "--"}

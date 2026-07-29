@@ -3516,6 +3516,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
               <button
                 onClick={() => setShowWidgetConfig(false)}
+                aria-label="Close widget settings"
                 style={{
                   background: "none",
                   border: "none",
@@ -3569,7 +3570,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "#fff",
+                        color: THEME.darkInk,
                         fontSize: 11,
                         fontWeight: 700,
                       }}
@@ -3601,7 +3602,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             variant="base"
             style={{
               padding: "20px 24px",
-              background: `linear-gradient(135deg, ${THEME.accent}08, ${THEME.sage}08)`,
+              background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.accent} 3%, transparent), color-mix(in srgb, ${THEME.sage} 3%, transparent))`,
               border: `1.5px solid ${THEME.line}`,
               borderRadius: 16,
               marginBottom: 20,
@@ -4838,7 +4839,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             : d.daysLeft <= 5
                               ? `color-mix(in srgb, var(--t-rust) 3%, transparent)`
                               : `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
-                          border: `1px solid ${borderColor}22`,
+                          border: `1px solid color-mix(in srgb, ${borderColor} 13%, transparent)`,
                           overflow: "hidden",
                           position: "relative",
                         }}
@@ -5497,6 +5498,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <Card className="bento-col-12" style={{ padding: 0, overflow: "hidden" }}>
               <button
                 onClick={() => setYoyOpen((p) => !p)}
+                aria-expanded={yoyOpen}
                 style={{
                   width: "100%",
                   display: "flex",
@@ -5872,6 +5874,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <Card className="bento-col-12" style={{ padding: 0, overflow: "hidden" }}>
               <button
                 onClick={() => setNominationOpen((p) => !p)}
+                aria-expanded={nominationOpen}
                 style={{
                   width: "100%",
                   display: "flex",
@@ -6329,7 +6332,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           fontSize: 11,
                           fontWeight: 700,
                           background: txnFilter === f ? THEME.accent : "transparent",
-                          color: txnFilter === f ? "#fff" : THEME.muted,
+                          color: txnFilter === f ? THEME.darkInk : THEME.muted,
                           transition: "all 0.2s ease",
                           textTransform: "capitalize" as const,
                         }}
@@ -6776,7 +6779,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             fontSize: 11,
                             fontWeight: 700,
                             background: trendPeriod === p ? THEME.accent : "transparent",
-                            color: trendPeriod === p ? "#fff" : THEME.muted,
+                            color: trendPeriod === p ? THEME.darkInk : THEME.muted,
                             transition: "all 0.2s ease",
                           }}
                         >
@@ -9047,7 +9050,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     padding: 14,
                     background: bg,
                     borderRadius: 12,
-                    border: `1px solid ${color}1c`,
+                    border: `1px solid color-mix(in srgb, ${color} 11%, transparent)`,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -9308,7 +9311,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                       fontWeight: 700,
                                       padding: "2px 7px",
                                       borderRadius: 6,
-                                      background: `${driftColor}18`,
+                                      background: `color-mix(in srgb, ${driftColor} 9%, transparent)`,
                                       color: driftColor,
                                       whiteSpace: "nowrap",
                                     }}
@@ -9504,6 +9507,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                       <button
                         onClick={() => setRebalWithNewMoney((v) => !v)}
+                        role="switch"
+                        aria-checked={rebalWithNewMoney}
+                        aria-label="Rebalance with new money instead of selling"
                         style={{
                           position: "relative",
                           width: 40,
@@ -10409,7 +10415,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <div style={{ marginTop: 8 }}>
                       <span
                         style={{
-                          background: `${color}18`,
+                          background: `color-mix(in srgb, ${color} 9%, transparent)`,
                           color,
                           fontSize: 12,
                           fontWeight: 700,
@@ -12694,6 +12700,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     >
                       <button
                         onClick={() => navToMonth(-1)}
+                        aria-label="Previous month"
                         style={{
                           width: 36,
                           height: 36,
@@ -12799,6 +12806,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <button
                           onClick={() => navToMonth(1)}
                           disabled={isCurrentMonth}
+                          aria-label="Next month"
                           style={{
                             width: 36,
                             height: 36,
@@ -13470,6 +13478,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1)
                     );
                   }}
+                  aria-label="Previous month"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -13499,6 +13508,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1)
                     );
                   }}
+                  aria-label="Next month"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -15077,7 +15087,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     padding: "14px 16px",
                     borderRadius: 12,
                     background: "rgba(255,255,255,0.02)",
-                    border: `1px solid ${evt.color}2e`,
+                    border: `1px solid color-mix(in srgb, ${evt.color} 18%, transparent)`,
                     borderLeft: `4px solid ${evt.color}`,
                     display: "flex",
                     alignItems: "center",

@@ -274,14 +274,14 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
             label="P&L"
             value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>}
             icon={<TrendingUp />}
-            color={stats.totalPnL >= 0 ? "#10B981" : "#EF4444"}
+            color={stats.totalPnL >= 0 ? THEME.sage : THEME.rust}
           />
           {stats.totalInterest > 0 && (
             <StatCard
               label="SGB Interest Earned"
               value={<Prv>{fmtINRFull(stats.totalInterest)}</Prv>}
               icon={<Award />}
-              color="#10B981"
+              color={THEME.sage}
             />
           )}
         </div>
@@ -373,7 +373,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(var(--grid-min-lg), 1fr))",
             gap: 16,
           }}
         >
@@ -438,7 +438,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      color: "#EF4444",
+                      color: THEME.rust,
                       padding: 6,
                     }}
                   >
@@ -473,7 +473,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>P&L</div>
-                  <div style={{ fontWeight: 600, color: h.pnl >= 0 ? "#10B981" : "#EF4444" }}>
+                  <div style={{ fontWeight: 600, color: h.pnl >= 0 ? THEME.sage : THEME.rust }}>
                     <Prv>
                       {h.pnl >= 0 ? "+" : ""}
                       {fmtINRFull(h.pnl)}
@@ -491,7 +491,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                       <div style={{ color: THEME.textSecondary, fontSize: 11 }}>
                         Interest Earned
                       </div>
-                      <div style={{ fontWeight: 600, color: "#10B981" }}>
+                      <div style={{ fontWeight: 600, color: THEME.sage }}>
                         <Prv>{fmtINRFull(h.interest)}</Prv>
                       </div>
                     </div>

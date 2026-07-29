@@ -243,7 +243,7 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
         style={{
           fontSize: Math.round(size * 0.3),
           fontWeight: 900,
-          color: "#fff",
+          color: THEME.darkInk,
           letterSpacing: "-0.01em",
         }}
       >
@@ -307,12 +307,12 @@ const BrokerLogo = ({
           height: size,
           borderRadius,
           background: "var(--surface-0)",
-          border: `1.5px solid ${theme.color}30`,
+          border: `1.5px solid ${`color-mix(in srgb, ${theme.color} 19%, transparent)`}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          boxShadow: `0 4px 14px ${theme.color}30`,
+          boxShadow: `0 4px 14px ${`color-mix(in srgb, ${theme.color} 19%, transparent)`}`,
           overflow: "hidden",
         }}
       >
@@ -341,14 +341,14 @@ const BrokerLogo = ({
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        boxShadow: `0 4px 14px ${theme.color}40`,
+        boxShadow: `0 4px 14px ${`color-mix(in srgb, ${theme.color} 25%, transparent)`}`,
       }}
     >
       <span
         style={{
           fontSize,
           fontWeight: 900,
-          color: "#fff",
+          color: THEME.darkInk,
           letterSpacing: "-0.01em",
           lineHeight: 1,
         }}
@@ -375,8 +375,8 @@ const EmptyHint = ({ text }: { text: string }) => (
         width: 40,
         height: 40,
         borderRadius: 12,
-        background: `${THEME.accent}12`,
-        border: `1px solid ${THEME.accent}26`,
+        background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
+        border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -404,13 +404,13 @@ const DematEmptyState = ({ onAdd }: any) => (
         width: 56,
         height: 56,
         borderRadius: 18,
-        background: `linear-gradient(135deg, ${THEME.sage} 0%, ${THEME.sage}b3 100%)`,
+        background: `linear-gradient(135deg, ${THEME.sage} 0%, ${`color-mix(in srgb, ${THEME.sage} 70%, transparent)`} 100%)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Briefcase size={24} color="#fff" />
+      <Briefcase size={24} color={THEME.darkInk} />
     </div>
     <div>
       <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No Demat Accounts Added</div>
@@ -431,10 +431,10 @@ const DematEmptyState = ({ onAdd }: any) => (
             fontSize: 11,
             padding: "4px 10px",
             borderRadius: 20,
-            background: `${THEME.sage}15`,
+            background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
             color: THEME.sage,
             fontWeight: 600,
-            border: `1px solid ${THEME.sage}26`,
+            border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 15%, transparent)`}`,
           }}
         >
           ● {f}
@@ -463,13 +463,13 @@ const StockEmptyState = ({ onAdd }: any) => (
         width: 64,
         height: 64,
         borderRadius: 20,
-        background: `linear-gradient(135deg, ${THEME.accent} 0%, ${THEME.accent}b3 100%)`,
+        background: `linear-gradient(135deg, ${THEME.accent} 0%, ${`color-mix(in srgb, ${THEME.accent} 70%, transparent)`} 100%)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <TrendingUp size={28} color="#fff" />
+      <TrendingUp size={28} color={THEME.darkInk} />
     </div>
     <div>
       <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Stock Holdings Yet</div>
@@ -487,10 +487,10 @@ const StockEmptyState = ({ onAdd }: any) => (
               fontSize: 11,
               padding: "5px 12px",
               borderRadius: 20,
-              background: `${THEME.accent}15`,
+              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
               color: THEME.accent,
               fontWeight: 600,
-              border: `1px solid ${THEME.accent}26`,
+              border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
             }}
           >
             ● {f}
@@ -565,10 +565,22 @@ const InvestCard = ({ children, style: extraStyle }: any) => (
 
 const CardActions = ({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => void }) => (
   <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-    <button onClick={onEdit} className="icon-btn" style={iconBtn} title="Edit account">
+    <button
+      onClick={onEdit}
+      className="icon-btn"
+      style={iconBtn}
+      title="Edit account"
+      aria-label="Edit account"
+    >
       <Edit3 size={14} />
     </button>
-    <button onClick={onRemove} className="icon-btn danger" style={iconBtn} title="Delete account">
+    <button
+      onClick={onRemove}
+      className="icon-btn danger"
+      style={iconBtn}
+      title="Delete account"
+      aria-label="Delete account"
+    >
       <Trash2 size={14} />
     </button>
   </div>
@@ -1481,7 +1493,7 @@ export function DematTab({
       {missingTables.includes("corporate_actions") && (
         <div
           style={{
-            background: `${THEME.rust}0f`,
+            background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
             border: `1.5px solid ${THEME.rust}`,
             borderRadius: 12,
             padding: "16px 20px",
@@ -1501,7 +1513,7 @@ export function DematTab({
                 flexShrink: 0,
               }}
             >
-              <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>!</span>
+              <span style={{ color: THEME.darkInk, fontSize: 18, fontWeight: 900 }}>!</span>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: THEME.rust, marginBottom: 4 }}>
@@ -1518,7 +1530,7 @@ export function DematTab({
               <pre
                 style={{
                   fontSize: 11,
-                  background: `${THEME.line}40`,
+                  background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                   padding: "10px 14px",
                   borderRadius: 8,
                   color: THEME.ink,
@@ -1571,7 +1583,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     borderRadius: 20,
                     fontSize: 10,
                     fontWeight: 800,
-                    background: `${THEME.accent}22`,
+                    background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
                     color: THEME.accent,
                   }}
                 >
@@ -1604,9 +1616,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 style={
                   active
                     ? ({
-                        "--active-bg": `${theme.color}15`,
+                        "--active-bg": `color-mix(in srgb, ${theme.color} 8%, transparent)`,
                         "--active-color": theme.color,
-                        "--active-border": `${theme.color}30`,
+                        "--active-border": `color-mix(in srgb, ${theme.color} 19%, transparent)`,
                       } as React.CSSProperties)
                     : {}
                 }
@@ -2555,7 +2567,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           onClick={() => toggleExpand(yfSym)}
                           style={{
                             cursor: "pointer",
-                            background: isExpanded ? `${THEME.accent}09` : "transparent",
+                            background: isExpanded ? `color-mix(in srgb, ${THEME.accent} 4%, transparent)` : "transparent",
                             transition: "background 0.15s ease",
                             borderBottom: `1px solid ${THEME.line}`,
                           }}
@@ -2581,7 +2593,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   <span
                                     style={{
                                       fontSize: 8,
-                                      background: `${THEME.line}40`,
+                                      background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                       color: THEME.muted,
                                       padding: "1px 5px",
                                       borderRadius: 4,
@@ -2610,7 +2622,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   <span
                                     style={{
                                       fontSize: 9,
-                                      background: `${THEME.line}40`,
+                                      background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
                                       color: THEME.muted,
                                       padding: "1px 6px",
                                       borderRadius: 10,
@@ -3250,7 +3262,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               key={lot.id}
                                               style={{
                                                 background: "transparent",
-                                                borderBottom: `1px dashed ${THEME.line}80`,
+                                                borderBottom: `1px dashed ${`color-mix(in srgb, ${THEME.line} 50%, transparent)`}`,
                                               }}
                                             >
                                               <td
@@ -3337,7 +3349,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                       diff / (1000 * 60 * 60 * 24)
                                                     );
                                                     const isLTCG = days > 365;
-                                                    const nearLTCG = !isLTCG && days > 300;
                                                     return (
                                                       <span
                                                         style={{
@@ -3350,12 +3361,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                           background: isLTCG
                                                             ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
                                                             : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                                                          color: isLTCG
-                                                            ? THEME.sage
-                                                            : nearLTCG
-                                                              ? "#d97706"
-                                                              : THEME.gold,
-                                                          border: `1px solid ${isLTCG ? `${THEME.sage}20` : `${THEME.gold}20`}`,
+                                                          color: isLTCG ? THEME.sage : THEME.gold,
+                                                          border: `1px solid ${isLTCG ? `color-mix(in srgb, ${THEME.sage} 13%, transparent)` : `color-mix(in srgb, ${THEME.gold} 13%, transparent)`}`,
                                                         }}
                                                       >
                                                         {isLTCG
@@ -3631,8 +3638,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                       : THEME.sage,
                                                   border: `1px solid ${
                                                     a.actionType === "split"
-                                                      ? `${THEME.gold}20`
-                                                      : `${THEME.sage}20`
+                                                      ? `color-mix(in srgb, ${THEME.gold} 13%, transparent)`
+                                                      : `color-mix(in srgb, ${THEME.sage} 13%, transparent)`
                                                   }`,
                                                 }}
                                               >
@@ -3704,7 +3711,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       icon={<ArrowLeftRight size={11} />}
                                       style={{
                                         color: THEME.rust,
-                                        borderColor: `${THEME.rust}40`,
+                                        borderColor: `color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
                                         background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
                                       }}
                                       onClick={(e: React.MouseEvent) => {
@@ -3720,7 +3727,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       icon={<Scissors size={11} />}
                                       style={{
                                         color: THEME.gold,
-                                        borderColor: `${THEME.gold}40`,
+                                        borderColor: `color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
                                         background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
                                       }}
                                       onClick={(e: React.MouseEvent) => {
@@ -4231,7 +4238,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
                   gap: 24,
                 }}
               >
@@ -4484,7 +4491,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     "3Y": 10.9,
                     "5Y": 14.5,
                     "10Y": 12.0,
-                    color: "#64748b",
+                    color: THEME.muted,
                   },
                   {
                     name: "Nifty Midcap",
@@ -4655,9 +4662,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               borderRadius: 10,
                               background:
                                 portfolioCagr !== null && portfolioCagr >= 0
-                                  ? `${THEME.sage}0d`
-                                  : `${THEME.rust}0d`,
-                              border: `1.5px solid ${portfolioCagr !== null && portfolioCagr >= 0 ? `${THEME.sage}30` : `${THEME.rust}30`}`,
+                                  ? `color-mix(in srgb, ${THEME.sage} 5%, transparent)`
+                                  : `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
+                              border: `1.5px solid ${portfolioCagr !== null && portfolioCagr >= 0 ? `color-mix(in srgb, ${THEME.sage} 19%, transparent)` : `color-mix(in srgb, ${THEME.rust} 19%, transparent)`}`,
                             }}
                           >
                             <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
@@ -4696,8 +4703,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               style={{
                                 padding: "8px 14px",
                                 borderRadius: 10,
-                                background: alpha >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`,
-                                border: `1.5px solid ${alpha >= 0 ? `${THEME.sage}40` : `${THEME.rust}40`}`,
+                                background: alpha >= 0 ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)` : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+                                border: `1.5px solid ${alpha >= 0 ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `color-mix(in srgb, ${THEME.rust} 25%, transparent)`}`,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 8,
@@ -4834,7 +4841,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             </tr>
                           </thead>
                           <tbody>
-                            <tr style={{ background: `${THEME.accent}0a` }}>
+                            <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)` }}>
                               <td
                                 style={{
                                   ...td,
@@ -5095,7 +5102,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   width: 60,
                   height: 60,
                   borderRadius: 18,
-                  background: `${THEME.accent}15`,
+                  background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -5162,7 +5169,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         width: 40,
                         height: 40,
                         borderRadius: 12,
-                        background: `${wl.color || WISHLIST_COLORS[0]}20`,
+                        background: `color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 13%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -5172,7 +5179,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       <Star
                         size={18}
                         color={wl.color || WISHLIST_COLORS[0]}
-                        fill={`${wl.color || WISHLIST_COLORS[0]}40`}
+                        fill={`color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 25%, transparent)`}
                       />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -5232,14 +5239,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       })()}
                       <span
                         style={{
-                          background: `${wl.color || WISHLIST_COLORS[0]}18`,
+                          background: `color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 9%, transparent)`,
                           color: wl.color || WISHLIST_COLORS[0],
                           fontSize: 12,
                           fontWeight: 700,
                           padding: "3px 10px",
                           borderRadius: 20,
                           whiteSpace: "nowrap",
-                          border: `1px solid ${wl.color || WISHLIST_COLORS[0]}30`,
+                          border: `1px solid ${`color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 19%, transparent)`}`,
                         }}
                       >
                         {items.length} stock{items.length !== 1 ? "s" : ""}
@@ -5369,7 +5376,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       style={{
                                         cursor: "pointer",
                                         background: isItemExpanded
-                                          ? `${THEME.accent}09`
+                                          ? `color-mix(in srgb, ${THEME.accent} 4%, transparent)`
                                           : "transparent",
                                         transition: "background 0.15s ease",
                                       }}
@@ -5587,7 +5594,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
                                     {/* Expandable chart drawer */}
                                     {isItemExpanded && (
-                                      <tr style={{ background: `${THEME.accent}08` }}>
+                                      <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)` }}>
                                         <td
                                           colSpan={7}
                                           style={{
@@ -6451,7 +6458,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
       <Field label="Broker">
         {lot.broker ? (
           <input
-            style={{ ...input, background: `${THEME.line}40`, cursor: "default" }}
+            style={{ ...input, background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, cursor: "default" }}
             value={f.broker}
             readOnly
           />
@@ -6469,7 +6476,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: profit >= 0 ? `${THEME.sage}1a` : `${THEME.rust}1a`,
+            background: profit >= 0 ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)` : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
             marginTop: 4,
           }}
         >
@@ -6668,7 +6675,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                     key={a.lot.id}
                     style={{
                       borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined,
-                      background: i % 2 === 0 ? "transparent" : `${THEME.accent}08`,
+                      background: i % 2 === 0 ? "transparent" : `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                     }}
                   >
                     <td style={{ ...td, padding: "9px 12px", borderBottom: "none" }}>
@@ -6776,7 +6783,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                           padding: "2px 7px",
                           borderRadius: 4,
                           fontWeight: 800,
-                          background: a.isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`,
+                          background: a.isLTCG ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                           color: a.isLTCG ? THEME.sage : THEME.gold,
                         }}
                       >
@@ -6794,8 +6801,8 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
             style={{
               padding: "14px 16px",
               borderRadius: 10,
-              background: totalPnl >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`,
-              border: `1px solid ${totalPnl >= 0 ? `${THEME.sage}55` : `${THEME.rust}55`}`,
+              background: totalPnl >= 0 ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)` : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+              border: `1px solid ${totalPnl >= 0 ? `color-mix(in srgb, ${THEME.sage} 33%, transparent)` : `color-mix(in srgb, ${THEME.rust} 33%, transparent)`}`,
               marginBottom: 4,
             }}
           >
@@ -6839,7 +6846,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                 display: "flex",
                 gap: 16,
                 paddingTop: 10,
-                borderTop: `1px solid ${THEME.line}40`,
+                borderTop: `1px solid ${`color-mix(in srgb, ${THEME.line} 25%, transparent)`}`,
                 flexWrap: "wrap",
               }}
             >
@@ -6851,7 +6858,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                       borderRadius: 4,
                       fontSize: 9,
                       fontWeight: 800,
-                      background: `${THEME.gold}1f`,
+                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                       color: THEME.gold,
                       marginRight: 6,
                     }}
@@ -6871,7 +6878,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                       borderRadius: 4,
                       fontSize: 9,
                       fontWeight: 800,
-                      background: `${THEME.sage}1f`,
+                      background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                       color: THEME.sage,
                       marginRight: 6,
                     }}
@@ -6979,7 +6986,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
                 flex: 1,
                 justifyContent: "center",
                 background: type === t ? THEME.accent : undefined,
-                color: type === t ? "#fff" : undefined,
+                color: type === t ? THEME.darkInk : undefined,
                 border: type === t ? `1px solid ${THEME.accent}` : undefined,
               }}
               onClick={() => setType(t)}
@@ -6994,7 +7001,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
           padding: "14px 16px",
           borderRadius: 10,
           border: `2px solid ${actionDate ? THEME.sage : THEME.rust}`,
-          background: actionDate ? `${THEME.sage}09` : `${THEME.rust}09`,
+          background: actionDate ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)` : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
           marginBottom: 16,
         }}
       >

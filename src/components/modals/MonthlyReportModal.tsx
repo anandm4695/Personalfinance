@@ -649,12 +649,14 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
             {hasNWData ? (
               <>
                 <div
+                  className="tabular-nums"
                   style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}
                 >
                   {fmtINRFull(displayNetWorth)}
                 </div>
                 {nwDelta !== 0 && (
                   <div
+                    className="tabular-nums"
                     style={{
                       fontSize: 12,
                       fontWeight: 700,
@@ -722,7 +724,9 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                 }}
               >
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>{label}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color }}>{fmtINRFull(value)}</div>
+                <div className="tabular-nums" style={{ fontSize: 16, fontWeight: 800, color }}>
+                  {fmtINRFull(value)}
+                </div>
                 <div style={{ marginTop: 5 }}>
                   <DeltaBadge current={value} prev={prev} higherIsBetter={higherIsBetter} />
                 </div>
@@ -759,24 +763,17 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                     {cat}
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 50,
-                        height: 4,
-                        background: THEME.line,
-                        borderRadius: 2,
-                        overflow: "hidden",
-                      }}
-                    >
+                    <div className="progress-track" style={{ width: 50, height: 4 }}>
                       <div
+                        className="progress-fill"
                         style={{
-                          height: "100%",
                           width: `${income > 0 ? Math.min(100, (amt / income) * 100) : 0}%`,
                           background: PIE_COLORS[(i + 4) % PIE_COLORS.length],
                         }}
                       />
                     </div>
                     <span
+                      className="tabular-nums"
                       style={{
                         fontWeight: 700,
                         minWidth: 80,
@@ -821,24 +818,19 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                     {cat}
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 50,
-                        height: 4,
-                        background: THEME.line,
-                        borderRadius: 2,
-                        overflow: "hidden",
-                      }}
-                    >
+                    <div className="progress-track" style={{ width: 50, height: 4 }}>
                       <div
+                        className="progress-fill"
                         style={{
-                          height: "100%",
                           width: `${expense > 0 ? Math.min(100, (amt / expense) * 100) : 0}%`,
                           background: PIE_COLORS[i % PIE_COLORS.length],
                         }}
                       />
                     </div>
-                    <span style={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}>
+                    <span
+                      className="tabular-nums"
+                      style={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}
+                    >
                       {fmtINRExact(amt)}
                     </span>
                   </div>
@@ -868,21 +860,10 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                         {fmtINRExact(row.spent)} / {fmtINRExact(row.budget)}
                       </span>
                     </div>
-                    <div
-                      style={{
-                        height: 5,
-                        background: THEME.line,
-                        borderRadius: 3,
-                        overflow: "hidden",
-                      }}
-                    >
+                    <div className="progress-track" style={{ height: 5 }}>
                       <div
-                        style={{
-                          height: "100%",
-                          width: `${pct}%`,
-                          background: row.over ? THEME.rust : THEME.sage,
-                          borderRadius: 3,
-                        }}
+                        className={`progress-fill ${row.over ? "progress-fill-rust" : "progress-fill-sage"}`}
+                        style={{ width: `${pct}%` }}
                       />
                     </div>
                     {row.over && (
@@ -949,20 +930,12 @@ export function MonthlyReportModal({ metrics, state, marketData, selectedDate, o
                       {g.done ? "✓ Complete" : `${g.pct}%`}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      height: 5,
-                      background: THEME.line,
-                      borderRadius: 3,
-                      overflow: "hidden",
-                    }}
-                  >
+                  <div className="progress-track" style={{ height: 5 }}>
                     <div
+                      className="progress-fill"
                       style={{
-                        height: "100%",
                         width: `${g.pct}%`,
                         background: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.gold,
-                        borderRadius: 3,
                       }}
                     />
                   </div>

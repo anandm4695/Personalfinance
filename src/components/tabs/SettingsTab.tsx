@@ -294,6 +294,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
           <button
             onClick={sortAZ}
             title="Sort A to Z"
+            aria-label="Sort A to Z"
             disabled={items.length < 2}
             style={{
               display: "flex",
@@ -318,6 +319,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
           <button
             onClick={sortZA}
             title="Sort Z to A"
+            aria-label="Sort Z to A"
             disabled={items.length < 2}
             style={{
               display: "flex",
@@ -346,6 +348,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
                 setSortDir("");
               }}
               title="Reset to default values"
+              aria-label="Reset to default values"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -410,6 +413,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
                 transition: "all 0.12s",
               }}
               title={`Remove ${item}`}
+              aria-label={`Remove ${item}`}
             >
               <XIcon size={10} />
             </button>
@@ -672,7 +676,7 @@ function AppearanceSection({
                           top: 0,
                           bottom: 0,
                           width: 5,
-                          background: pal?.light || "#4F46E5",
+                          background: pal?.light || THEME.accent,
                         }}
                       />
                       <div
@@ -703,8 +707,8 @@ function AppearanceSection({
                           width: 16,
                           height: 16,
                           borderRadius: "50%",
-                          background: pal?.light || "#4F46E5",
-                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || "#4F46E5"} 40%, transparent)`,
+                          background: pal?.light || THEME.accent,
+                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || THEME.accent} 40%, transparent)`,
                         }}
                       />
                       {isActive && (
@@ -832,7 +836,7 @@ function AppearanceSection({
                           top: 0,
                           bottom: 0,
                           width: 5,
-                          background: pal?.light || "#4F46E5",
+                          background: pal?.light || THEME.accent,
                         }}
                       />
                       <div
@@ -863,8 +867,8 @@ function AppearanceSection({
                           width: 16,
                           height: 16,
                           borderRadius: "50%",
-                          background: pal?.light || "#4F46E5",
-                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || "#4F46E5"} 40%, transparent)`,
+                          background: pal?.light || THEME.accent,
+                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || THEME.accent} 40%, transparent)`,
                         }}
                       />
                       {isActive && (
@@ -1616,6 +1620,7 @@ function DataSection({
               type="file"
               accept=".json"
               onChange={onRestoreBackup}
+              aria-label="Restore from backup JSON file"
               style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
             />
           </div>
@@ -1892,7 +1897,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: `linear-gradient(135deg,${THEME.accent},#8b5cf6)`,
+                  background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 55%, white))`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -2624,6 +2629,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
             <button
               onClick={() => setShowKey((v) => !v)}
               title={showKey ? "Hide key" : "Show key"}
+              aria-label={showKey ? "Hide API key" : "Show API key"}
               style={{
                 padding: "0 14px",
                 borderRadius: 10,

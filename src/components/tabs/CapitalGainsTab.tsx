@@ -302,7 +302,7 @@ const TransactionTable = ({
       </div>
       {expanded && (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {[
@@ -328,10 +328,7 @@ const TransactionTable = ({
               {rows.map((r, i) => (
                 <tr
                   key={i}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 2%, transparent)`)
-                  }
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  className="table-row-hover"
                 >
                   <td
                     style={{
@@ -986,15 +983,10 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
             </span>
           </div>
         </div>
-        <div style={{ width: "100%", height: 6, borderRadius: 6, background: "var(--surface-2)" }}>
+        <div className="progress-track">
           <div
-            style={{
-              width: `${Math.min(100, (ltcgExemptionUsed / ltcgExemptionLimit) * 100)}%`,
-              height: "100%",
-              borderRadius: 6,
-              background: THEME.sage,
-              transition: "width 0.4s ease",
-            }}
+            className="progress-fill progress-fill-sage"
+            style={{ width: `${Math.min(100, (ltcgExemptionUsed / ltcgExemptionLimit) * 100)}%` }}
           />
         </div>
         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 6 }}>
@@ -1018,6 +1010,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                 <button
                   key={t.key}
                   onClick={() => setActiveDetailTab(t.key)}
+                  aria-pressed={active}
+                  className={active ? "" : "table-row-hover"}
                   style={{
                     background: active
                       ? `color-mix(in srgb, ${t.color} 8%, transparent)`
@@ -1039,7 +1033,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                   {count > 0 && (
                     <span
                       style={{
-                        background: active ? t.color : `${THEME.muted}`,
+                        background: active ? t.color : THEME.muted,
                         color: "#fff",
                         borderRadius: 10,
                         padding: "1px 7px",
@@ -1127,7 +1121,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
 
           {showUnrealized && (
             <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
                     {[
@@ -1151,10 +1145,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                   {unrealized.map((h, i) => (
                     <tr
                       key={i}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 2%, transparent)`)
-                      }
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      className="table-row-hover"
                     >
                       <td
                         style={{
@@ -1302,7 +1293,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
               <div
                 style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${THEME.line}` }}
               >
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
                       {[
@@ -1323,10 +1314,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                     {harvestingSuggestions.map((h, i) => (
                       <tr
                         key={i}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = `color-mix(in srgb, ${THEME.gold} 2%, transparent)`)
-                        }
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        className="table-row-hover"
                       >
                         <td
                           style={{

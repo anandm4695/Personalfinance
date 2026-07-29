@@ -35,22 +35,30 @@ import { EmptyState } from "../ui/EmptyState";
 
 // Indian market benchmark returns (approximate)
 const BENCHMARKS = {
-  nifty50: { label: "Nifty 50", return1Y: 15, return3Y: 12, return5Y: 14, color: "#4F46E5" },
+  nifty50: { label: "Nifty 50", return1Y: 15, return3Y: 12, return5Y: 14, color: THEME.accent },
   niftyMidcap: {
     label: "Nifty Midcap 150",
     return1Y: 22,
     return3Y: 18,
     return5Y: 20,
-    color: "#059669",
+    color: THEME.sage,
   },
-  fdRate: { label: "FD Rate (SBI)", return1Y: 7.1, return3Y: 6.5, return5Y: 6.8, color: "#D97706" },
+  fdRate: {
+    label: "FD Rate (SBI)",
+    return1Y: 7.1,
+    return3Y: 6.5,
+    return5Y: 6.8,
+    color: THEME.gold,
+  },
   inflation: {
     label: "Inflation (CPI)",
     return1Y: 5.5,
     return3Y: 5.8,
     return5Y: 5.5,
-    color: "#DC2626",
+    color: THEME.rust,
   },
+  // Gold & PPF get distinct hues (not mapped to a semantic token) so all six
+  // benchmark series stay visually distinguishable on the same chart legend.
   gold: { label: "Gold", return1Y: 18, return3Y: 13, return5Y: 12, color: "#F59E0B" },
   ppf: { label: "PPF Rate", return1Y: 7.1, return3Y: 7.1, return5Y: 7.6, color: "#7C3AED" },
 };
@@ -326,8 +334,23 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
   const overallScore = Math.round(
     healthScore.reduce((s, h) => s + h.score, 0) / healthScore.length
   );
-  const scoreColor = overallScore >= 70 ? THEME.sage : overallScore >= 40 ? "#D97706" : THEME.rust;
+  const scoreColor = overallScore >= 70 ? THEME.sage : overallScore >= 40 ? THEME.gold : THEME.rust;
   const scoreLabel = overallScore >= 70 ? "Excellent" : overallScore >= 40 ? "Good" : "Needs Work";
+
+  if (portfolioReturns.overall.invested === 0 && portfolioReturns.overall.current === 0) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <SectionTitle sub="Compare your portfolio against market benchmarks">
+          Performance Benchmark
+        </SectionTitle>
+        <EmptyState
+          icon={BarChart3}
+          title="No Portfolio Data Yet"
+          description="Add stocks, mutual funds, FDs, PPF or gold holdings to see how your returns stack up against Nifty 50, FD rates and inflation."
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -432,7 +455,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
                     borderRadius: 12,
                     background: active ? "var(--accent)" : "transparent",
                     border: "none",
-                    color: active ? "#fff" : THEME.ink,
+                    color: active ? THEME.darkInk : THEME.ink,
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: "pointer",
@@ -557,7 +580,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
           gap: 16,
         }}
       >
@@ -629,7 +652,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
             }}
           >
             {healthScore.map((h) => {
-              const color = h.score >= 70 ? THEME.sage : h.score >= 40 ? "#D97706" : THEME.rust;
+              const color = h.score >= 70 ? THEME.sage : h.score >= 40 ? THEME.gold : THEME.rust;
               return (
                 <div
                   key={h.metric}

@@ -36,12 +36,24 @@ import { StatCard } from "../ui/StatCard";
 const BUREAUS = ["CIBIL", "Experian", "CRIF", "Equifax"];
 const SOURCES = ["manual", "OneScore", "Paisabazaar", "BankApp", "Other"];
 
+// Single source of truth for the score-band scale — reused by scoreGrade(),
+// the "Bureau Score Bands" legend, and chart reference lines so the five
+// tiers can't drift out of sync with each other.
+const SCORE_BANDS: { min: number; range: string; label: string; color: string }[] = [
+  { min: 750, range: "750–900", label: "Excellent", color: THEME.sage },
+  { min: 700, range: "700–749", label: "Good", color: "#2563eb" },
+  { min: 650, range: "650–699", label: "Fair", color: THEME.gold },
+  { min: 600, range: "600–649", label: "Poor", color: THEME.rust },
+  { min: 0, range: "< 600", label: "Very Poor", color: "#7f1d1d" },
+];
+
 function scoreGrade(score: number): { label: string; color: string; bg: string } {
-  if (score >= 750) return { label: "Excellent", color: "#16a34a", bg: "color-mix(in srgb, #16a34a 12%, transparent)" };
-  if (score >= 700) return { label: "Good", color: "#2563eb", bg: "color-mix(in srgb, #2563eb 12%, transparent)" };
-  if (score >= 650) return { label: "Fair", color: "#d97706", bg: "color-mix(in srgb, #d97706 12%, transparent)" };
-  if (score >= 600) return { label: "Poor", color: "#dc2626", bg: "color-mix(in srgb, #dc2626 12%, transparent)" };
-  return { label: "Very Poor", color: "#7f1d1d", bg: "color-mix(in srgb, #7f1d1d 12%, transparent)" };
+  const band = SCORE_BANDS.find((b) => score >= b.min) || SCORE_BANDS[SCORE_BANDS.length - 1];
+  return {
+    label: band.label,
+    color: band.color,
+    bg: `color-mix(in srgb, ${band.color} 12%, transparent)`,
+  };
 }
 
 const BUREAU_COLORS: Record<string, string> = {
@@ -209,10 +221,10 @@ function ScoreGauge({ score }: { score: number }) {
         <svg width="180" height="110" viewBox="0 0 120 75" style={{ overflow: "visible" }}>
           <defs>
             <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#dc2626" />
-              <stop offset="30%" stopColor="#d97706" />
+              <stop offset="0%" stopColor={THEME.rust} />
+              <stop offset="30%" stopColor={THEME.gold} />
               <stop offset="70%" stopColor="#2563eb" />
-              <stop offset="100%" stopColor="#16a34a" />
+              <stop offset="100%" stopColor={THEME.sage} />
             </linearGradient>
           </defs>
           
@@ -326,11 +338,11 @@ function ScoreGauge({ score }: { score: number }) {
 
 function CreditFactorsPanel() {
   const factors = [
-    { name: "Payment History", weight: "35% weight", desc: "Timely bill payments", value: 95, rating: "Excellent", color: "#16a34a" },
+    { name: "Payment History", weight: "35% weight", desc: "Timely bill payments", value: 95, rating: "Excellent", color: THEME.sage },
     { name: "Credit Utilization", weight: "30% weight", desc: "Balance to credit limit", value: 78, rating: "Good", color: "#2563eb" },
-    { name: "Credit History Age", weight: "15% weight", desc: "Age of accounts", value: 60, rating: "Fair", color: "#d97706" },
+    { name: "Credit History Age", weight: "15% weight", desc: "Age of accounts", value: 60, rating: "Fair", color: THEME.gold },
     { name: "Total Accounts / Mix", weight: "10% weight", desc: "Credit types variety", value: 85, rating: "Good", color: "#2563eb" },
-    { name: "Recent Inquiries", weight: "10% weight", desc: "Hard score checks", value: 90, rating: "Excellent", color: "#16a34a" },
+    { name: "Recent Inquiries", weight: "10% weight", desc: "Hard score checks", value: 90, rating: "Excellent", color: THEME.sage },
   ];
 
   return (
@@ -606,13 +618,13 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                     <StatCard
                       label="Recent Change"
                       value={
-                        <span style={{ color: delta > 0 ? "#16a34a" : delta < 0 ? "#dc2626" : THEME.muted }}>
+                        <span style={{ color: delta > 0 ? THEME.sage : delta < 0 ? THEME.rust : THEME.muted }}>
                           {delta > 0 ? "+" : ""}
                           {delta} pts
                         </span>
                       }
                       icon={delta > 0 ? <TrendingUp size={18} /> : delta < 0 ? <TrendingDown size={18} /> : <Minus size={18} />}
-                      color={delta > 0 ? "#16a34a" : delta < 0 ? "#dc2626" : THEME.muted}
+                      color={delta > 0 ? THEME.sage : delta < 0 ? THEME.rust : THEME.muted}
                       sub={delta > 0 ? "Score increased!" : delta < 0 ? "Score dropped" : "No change"}
                     />
                   )}
@@ -628,7 +640,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                     label="Peak Score"
                     value={String(Math.max(...sorted.map((s) => s.score)))}
                     icon={<Award />}
-                    color="#16a34a"
+                    color={THEME.sage}
                   />
                 </div>
               </div>
@@ -648,13 +660,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                   Bureau Score Bands
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[
-                    { range: "750–900", label: "Excellent", color: "#16a34a", bg: "color-mix(in srgb, #16a34a 12%, transparent)" },
-                    { range: "700–749", label: "Good", color: "#2563eb", bg: "color-mix(in srgb, #2563eb 12%, transparent)" },
-                    { range: "650–699", label: "Fair", color: "#d97706", bg: "color-mix(in srgb, #d97706 12%, transparent)" },
-                    { range: "600–649", label: "Poor", color: "#dc2626", bg: "color-mix(in srgb, #dc2626 12%, transparent)" },
-                    { range: "< 600", label: "Very Poor", color: "#7f1d1d", bg: "color-mix(in srgb, #7f1d1d 12%, transparent)" },
-                  ].map((b) => (
+                  {SCORE_BANDS.map((b) => (
                     <div
                       key={b.label}
                       style={{
@@ -663,7 +669,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                         gap: 6,
                         padding: "5px 12px",
                         borderRadius: 20,
-                        background: b.bg,
+                        background: `color-mix(in srgb, ${b.color} 12%, transparent)`,
                       }}
                     >
                       <span style={{ fontSize: 11, fontWeight: 700, color: b.color }}>
@@ -696,12 +702,12 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                       />
                       <ReferenceLine
                         y={750}
-                        stroke="#16a34a"
+                        stroke={THEME.sage}
                         strokeDasharray="4 4"
                         label={{
                           value: "Excellent (750+)",
                           fontSize: 10,
-                          fill: "#16a34a",
+                          fill: THEME.sage,
                           position: "insideBottomRight",
                         }}
                       />

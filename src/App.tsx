@@ -19,6 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Command,
+  Sparkles,
 } from "lucide-react";
 import {
   supabase,
@@ -3359,13 +3361,15 @@ function FinanceDashboard() {
                           }));
                         }
                       }}
+                      className="sidebar-nav-btn"
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
                         cursor: "pointer",
-                        padding: "0 16px",
-                        marginBottom: 12,
+                        padding: "5px 16px",
+                        marginBottom: 8,
+                        borderRadius: 8,
                       }}
                     >
                       <div
@@ -3588,6 +3592,29 @@ function FinanceDashboard() {
               WebkitBackdropFilter: "blur(16px) saturate(180%)",
             }}
           >
+            {/* Demo mode indicator — sample data in an isolated sandbox, not the user's real account */}
+            {getIsDemoMode() && (
+              <div
+                className="demo-banner"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 7,
+                  padding: "6px 16px",
+                  background: `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
+                  borderBottom: `1px solid color-mix(in srgb, var(--t-gold) 30%, transparent)`,
+                  color: THEME.gold,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.01em",
+                  textAlign: "center",
+                }}
+              >
+                <Sparkles size={12} style={{ flexShrink: 0 }} />
+                Demo Mode — exploring with sample data in an isolated sandbox
+              </div>
+            )}
             <div
               className="app-header-bar"
               style={{
@@ -3712,6 +3739,42 @@ function FinanceDashboard() {
                       <X size={12} />
                     </button>
                   )}
+                  {!search && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCmdPalette(true)}
+                      aria-label="Open command palette"
+                      title="Command palette (⌘K)"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 2,
+                        border: `1.5px solid ${THEME.line}`,
+                        borderRadius: 6,
+                        background: "transparent",
+                        padding: "2px 6px",
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        fontFamily: "inherit",
+                        color: THEME.muted,
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 8%, transparent)`;
+                        e.currentTarget.style.borderColor = THEME.accent;
+                        e.currentTarget.style.color = THEME.accent;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.borderColor = THEME.line;
+                        e.currentTarget.style.color = THEME.muted;
+                      }}
+                    >
+                      <Command size={10} />K
+                    </button>
+                  )}
                 </div>
                 {showSearch && searchResults.length > 0 && (
                   <div
@@ -3805,6 +3868,7 @@ function FinanceDashboard() {
                   onClick={() => setShowMobileSearch((v) => !v)}
                   className="header-icon-btn mobile-only"
                   aria-label="Search"
+                  aria-expanded={showMobileSearch}
                   title="Search"
                 >
                   <Search size={15} />
@@ -3815,7 +3879,9 @@ function FinanceDashboard() {
                     onClick={() => setShowAlerts((v) => !v)}
                     className="header-icon-btn"
                     style={{ position: "relative" }}
-                    aria-label={`${alerts.length} alerts`}
+                    aria-label={`Alerts${alerts.length > 0 ? ` (${alerts.length} unread)` : ""}`}
+                    aria-haspopup="true"
+                    aria-expanded={showAlerts}
                     title="Alerts"
                   >
                     <Bell size={15} />
@@ -3829,7 +3895,7 @@ function FinanceDashboard() {
                     )}
                   </button>
                   {showAlerts && (
-                    <div className="alerts-panel">
+                    <div className="alerts-panel" role="dialog" aria-label="Alerts">
                       <div
                         style={{
                           padding: "14px 16px",
@@ -4123,12 +4189,27 @@ function FinanceDashboard() {
                   <Download size={15} />
                 </button>
 
+                {/* Divider — separates utility actions from the account cluster */}
+                <div
+                  className="desktop-only"
+                  aria-hidden="true"
+                  style={{
+                    width: 1,
+                    height: 20,
+                    background: THEME.line,
+                    margin: "0 4px",
+                    flexShrink: 0,
+                  }}
+                />
+
                 {/* Profile Avatar + Dropdown */}
                 <div ref={profileMenuRef} style={{ position: "relative" }}>
                   <button
                     onClick={() => setShowProfileMenu((v) => !v)}
                     title="Profile & Settings"
                     aria-label="Profile & Settings"
+                    aria-haspopup="menu"
+                    aria-expanded={showProfileMenu}
                     style={{
                       background: "none",
                       border: "none",
@@ -4199,6 +4280,9 @@ function FinanceDashboard() {
 
                   {showProfileMenu && (
                     <div
+                      role="menu"
+                      aria-label="Profile & Settings"
+                      className="profile-dropdown-menu"
                       style={{
                         position: "absolute",
                         right: 0,
@@ -4325,6 +4409,7 @@ function FinanceDashboard() {
                           <button
                             key={item.label}
                             onClick={item.action}
+                            role="menuitem"
                             style={{
                               width: "100%",
                               display: "flex",
@@ -4362,6 +4447,7 @@ function FinanceDashboard() {
                               style={{ margin: "6px 16px", borderTop: `1px solid ${THEME.line}` }}
                             />
                             <button
+                              role="menuitem"
                               onClick={async () => {
                                 setShowProfileMenu(false);
                                 sessionStorage.removeItem("demo_session");
@@ -5008,6 +5094,9 @@ function FinanceDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="shortcuts-modal-title"
               style={{
                 background: THEME.paper,
                 borderRadius: 16,
@@ -5029,6 +5118,7 @@ function FinanceDashboard() {
                 }}
               >
                 <div
+                  id="shortcuts-modal-title"
                   style={{
                     fontWeight: 800,
                     fontSize: 18,
@@ -5040,6 +5130,8 @@ function FinanceDashboard() {
                 </div>
                 <button
                   onClick={() => setShowShortcuts(false)}
+                  aria-label="Close keyboard shortcuts help"
+                  title="Close"
                   style={{
                     background: "none",
                     border: "none",

@@ -737,8 +737,8 @@ function VehicleModal({ existing, onClose, onSave }: any) {
     });
   };
 
-  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
-  const g3: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 };
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 };
+  const g3: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 };
 
   return (
     <Modal
@@ -922,12 +922,22 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 based on the RTO prefix
                 {rcSource.includes("failed") && " (as live lookup was unsuccessful/unconfigured)"}.
                 To setup live RTO verification from government databases,{" "}
-                <span
-                  style={{ textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}
+                <button
+                  type="button"
                   onClick={() => setRcStatus("nokey")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    color: "inherit",
+                    font: "inherit",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
                 >
                   view live API instructions
-                </span>
+                </button>
                 .
               </div>
             )}
@@ -1372,7 +1382,7 @@ function ServiceModal({ existing, vehicleName, currentReminder, onClose, onSave 
     });
   };
 
-  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 };
 
   return (
     <Modal
@@ -1741,8 +1751,8 @@ function InsuranceModal({ existing, vehicleName, onClose, onSave }: any) {
     });
   };
 
-  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
-  const g3: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 };
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 };
+  const g3: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 };
 
   return (
     <Modal

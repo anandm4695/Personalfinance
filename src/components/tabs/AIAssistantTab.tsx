@@ -2322,7 +2322,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                         borderTopRightRadius: isUser ? 3 : 15,
                         borderTopLeftRadius: isUser ? 15 : 3,
                         background: isUser
-                          ? "linear-gradient(135deg, var(--t-ink), color-mix(in srgb, var(--t-ink) 80%, #3b82f6))"
+                          ? `linear-gradient(135deg, var(--t-ink), color-mix(in srgb, var(--t-ink) 80%, ${THEME.accent}))`
                           : "var(--t-paper)",
                         color: isUser ? "#fff" : THEME.ink,
                         border: isUser ? "none" : `1px solid ${THEME.line}`,

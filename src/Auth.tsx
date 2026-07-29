@@ -13,6 +13,9 @@ import {
   KeyRound,
   UserCircle,
   Mail,
+  Wallet,
+  TrendingUp,
+  ShieldCheck,
 } from "lucide-react";
 
 /* ─── Time-of-day greeting ───────────────────────────────────────────── */
@@ -270,22 +273,61 @@ export default function Auth({
     ["af-inp-wrap", focused ? "af-focused" : "", err ? "af-inp-err" : ""].filter(Boolean).join(" ");
 
   return (
-    <div className="af-root">
-      <div className="af-card">
-        {/* Logo */}
-        <div className="af-logo">
-          <img
-            src="/logo.png"
-            alt="Personal Finance by Anand Mohta"
-            style={{ width: 40, height: 40, objectFit: "contain" }}
-          />
-          <div>
-            <div className="af-logo-name">Personal Finance</div>
-            <div className="af-logo-tagline">by Anand Mohta</div>
+    <div className="af-shell">
+      {/* ── Brand panel — first impression, desktop only (hidden below 768px) ── */}
+      <div className="af-brand-panel" aria-hidden="true">
+        <div className="af-brand-glow" />
+        <div className="af-brand-content">
+          <div className="af-brand-logo">
+            <img src="/logo.png" alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
+            <div>
+              <div className="af-brand-name">Personal Finance</div>
+              <div className="af-brand-tagline">by Anand Mohta</div>
+            </div>
           </div>
+          <h1 className="af-brand-headline">
+            Everything you own.
+            <br />
+            One clear view.
+          </h1>
+          <p className="af-brand-sub">
+            Banks, stocks, EPF, real estate, credit cards and more — unified into a single,
+            always-current picture of your wealth.
+          </p>
+          <ul className="af-brand-features">
+            <li>
+              <Wallet size={16} />
+              <span>Multi-bank &amp; credit card tracking, auto-reconciled</span>
+            </li>
+            <li>
+              <TrendingUp size={16} />
+              <span>Live net worth across stocks, EPF, PPF &amp; real estate</span>
+            </li>
+            <li>
+              <ShieldCheck size={16} />
+              <span>Your data stays private — nothing shared, ever</span>
+            </li>
+          </ul>
         </div>
+      </div>
 
-        {/* Animated mode panel — old content slides out, new content slides in, on every mode change */}
+      {/* ── Form panel ── */}
+      <div className="af-form-panel">
+        <div className="af-card">
+          {/* Logo — shown only below 768px; the brand panel carries it on desktop */}
+          <div className="af-logo-mobile">
+            <img
+              src="/logo.png"
+              alt="Personal Finance by Anand Mohta"
+              style={{ width: 40, height: 40, objectFit: "contain" }}
+            />
+            <div>
+              <div className="af-logo-name">Personal Finance</div>
+              <div className="af-logo-tagline">by Anand Mohta</div>
+            </div>
+          </div>
+
+          {/* Animated mode panel — old content slides out, new content slides in, on every mode change */}
         <AnimatePresence mode="wait" initial={false} custom={slideDir}>
           <motion.div
             key={mode}
@@ -745,14 +787,15 @@ export default function Auth({
           </motion.div>
         </AnimatePresence>
 
-        {/* Demo / offline mode */}
-        {onOffline && (
-          <div className="af-demo-wrap">
-            <button onClick={onOffline} className="af-demo-btn">
-              Continue with demo account
-            </button>
-          </div>
-        )}
+          {/* Demo / offline mode */}
+          {onOffline && (
+            <div className="af-demo-wrap">
+              <button onClick={onOffline} className="af-demo-btn">
+                Continue with demo account
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{AF_STYLES}</style>
@@ -762,42 +805,95 @@ export default function Auth({
 
 /* ─── Styles ──────────────────────────────────────────────────────────── */
 const AF_STYLES = `
-/* ── Root ─────────────────────────────── */
-.af-root {
+/* ── Shell — two-panel layout ──────────── */
+.af-shell {
   --af-accent: #3F3D9E;
   --af-accent-hover: #2E2C79;
   --af-text: #0F172A;
   --af-text-secondary: #374151;
   --af-border: #E2E8F0;
   --af-border-hover: #CBD5E1;
+  --af-page-bg: #F4F5F8;
 
   min-height: 100vh;
   display: flex;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--af-page-bg);
+}
+
+/* ── Brand panel — left, first impression (desktop only, hidden < 768px) ── */
+.af-brand-panel {
+  position: relative;
+  flex: 0 0 42%;
+  min-width: 380px;
+  max-width: 540px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #1B1846 0%, #2E2A7D 46%, #3F3D9E 100%);
+  color: #F4F5FF;
+  padding: 56px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.af-brand-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.af-brand-glow::before {
+  content: '';
+  position: absolute;
+  top: -140px; right: -160px;
+  width: 460px; height: 460px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(197,161,82,0.32) 0%, rgba(197,161,82,0) 70%);
+}
+.af-brand-glow::after {
+  content: '';
+  position: absolute;
+  left: -220px; bottom: -260px;
+  width: 420px; height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(129,140,248,0.26) 0%, rgba(129,140,248,0) 70%);
+}
+.af-brand-content { position: relative; z-index: 1; max-width: 380px; }
+.af-brand-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
+.af-brand-name { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; color: #fff; }
+.af-brand-tagline { font-size: 11px; font-weight: 500; color: rgba(244,245,255,0.6); margin-top: 3px; }
+.af-brand-headline {
+  font-size: 33px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.18;
+  margin: 0 0 16px; color: #fff;
+}
+.af-brand-sub {
+  font-size: 14.5px; line-height: 1.65; color: rgba(244,245,255,0.72);
+  margin: 0 0 36px; font-weight: 400;
+}
+.af-brand-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.af-brand-features li {
+  display: flex; align-items: center; gap: 11px;
+  font-size: 13.5px; font-weight: 500; color: rgba(244,245,255,0.9);
+}
+.af-brand-features li svg { color: #E8B923; flex-shrink: 0; }
+
+/* ── Form panel — right ────────────────── */
+.af-form-panel {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #F4F5F8;
-  padding: 24px;
+  padding: 40px 24px;
+  min-height: 100vh;
+  overflow-y: auto;
 }
 
 .af-card {
   width: 100%;
   max-width: 400px;
-  background: #FFFFFF;
-  border: 1px solid var(--af-border);
-  border-radius: 14px;
-  padding: 32px 28px 28px;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.05);
   animation: af-card-enter 0.35s cubic-bezier(0.22,1,0.36,1) both;
 }
 
-/* Logo */
-.af-logo {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--af-border);
-}
+/* Mobile-only compact logo row (brand panel carries it on desktop) */
+.af-logo-mobile { display: none; }
 .af-logo-name {
   font-size: 15px; font-weight: 800;
   color: var(--af-text); letter-spacing: -0.02em; line-height: 1;
@@ -928,19 +1024,16 @@ const AF_STYLES = `
    DARK MODE
 ══════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
-  .af-root {
+  .af-shell {
     --af-accent: #8583E0;
     --af-accent-hover: #A5A3F0;
     --af-text: #F9FAFB;
     --af-text-secondary: #D1D5DB;
     --af-border: #2A3140;
     --af-border-hover: #3D4556;
-    background: #0B0E14;
+    --af-page-bg: #0B0E14;
   }
-  .af-card {
-    background: #12161F;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
-  }
+  .af-brand-panel { background: linear-gradient(160deg, #0E0C28 0%, #1C1958 46%, #2E2A7D 100%); }
   .af-card-sub { color: #9CA3AF; }
   .af-inp-wrap { background: #171C27; }
   .af-inp-wrap.af-focused { background: #1A2030; }
@@ -953,6 +1046,14 @@ const AF_STYLES = `
   .af-demo-btn { color: #6B7280; }
   .af-greeting { color: #6B7280; }
   .af-logo-tagline { color: #6B7280; }
+}
+/* Card chrome only appears below 768px (brand panel replaces it on desktop) —
+   give it the dark surface treatment there too. */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+  .af-card {
+    background: #12161F;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -983,9 +1084,29 @@ const AF_STYLES = `
 
 /* ══════════════════════════════════════
    RESPONSIVE
+   Brand panel disappears below 768px — matches the app-wide mobile
+   breakpoint used everywhere else (see src/styles.css). The form
+   panel then becomes the whole screen and the card regains its own
+   border/shadow so it still reads as a distinct surface.
 ══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .af-brand-panel { display: none; }
+  .af-form-panel { padding: 24px 16px; align-items: flex-start; padding-top: 40px; }
+  .af-logo-mobile {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--af-border);
+  }
+  .af-card {
+    background: #FFFFFF;
+    border: 1px solid var(--af-border);
+    border-radius: 14px;
+    padding: 32px 28px 28px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.05);
+  }
+}
+
 @media (max-width: 480px) {
-  .af-root { padding: 16px; align-items: flex-start; padding-top: 40px; }
+  .af-form-panel { padding: 16px; padding-top: 32px; }
   .af-card { padding: 26px 20px 22px; }
 }
 `;

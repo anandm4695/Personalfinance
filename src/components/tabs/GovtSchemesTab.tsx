@@ -197,8 +197,8 @@ function SchemeForm({ initial, onSave, onClose }: any) {
       {/* Scheme info card */}
       <div
         style={{
-          background: `${meta.color}12`,
-          border: `1px solid ${meta.color}30`,
+          background: `color-mix(in srgb, ${meta.color} 7%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${meta.color} 19%, transparent)`,
           borderRadius: 8,
           padding: "10px 14px",
           marginBottom: 16,
@@ -534,18 +534,19 @@ export function GovtSchemesTab({
             <button
               key={s.id}
               onClick={() => handleSubChange(s.id)}
+              aria-pressed={active}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
               style={
                 active
                   ? ({
-                      "--active-color": s.color,
-                      "--active-border": `${s.color}40`,
-                      "--active-bg": `${s.color}15`,
+                      background: `linear-gradient(135deg, ${s.color} 0%, color-mix(in srgb, ${s.color} 80%, black) 100%)`,
+                      color: "#fff",
+                      boxShadow: `0 4px 12px color-mix(in srgb, ${s.color} 35%, transparent)`,
                     } as React.CSSProperties)
                   : {}
               }
             >
-              <Icon size={13} color={active ? s.color : undefined} />
+              <Icon size={13} color={active ? "#fff" : undefined} />
               {s.label}
               {s.count > 0 && (
                 <span
@@ -555,9 +556,9 @@ export function GovtSchemesTab({
                     fontSize: 10,
                     fontWeight: 800,
                     background: active
-                      ? `${s.color}22`
+                      ? "color-mix(in srgb, #fff 25%, transparent)"
                       : `color-mix(in srgb, ${THEME.textMuted} 22%, transparent)`,
-                    color: active ? s.color : THEME.textMuted,
+                    color: active ? "#fff" : THEME.textMuted,
                     marginLeft: 4,
                   }}
                 >
@@ -573,7 +574,7 @@ export function GovtSchemesTab({
       {filteredSchemes.length === 0 ? (
         <EmptyState
           icon={activeMeta.value === "PMJJBY" || activeMeta.value === "PMSBY" ? Shield : Star}
-          gradient={`linear-gradient(135deg, ${activeMeta.color} 0%, ${activeMeta.color}b3 100%)`}
+          gradient={`linear-gradient(135deg, ${activeMeta.color} 0%, color-mix(in srgb, ${activeMeta.color} 70%, white) 100%)`}
           dotColor={activeMeta.color}
           title={`No ${activeMeta.label.split("—")[0].trim()} Tracked`}
           description={activeMeta.description}
@@ -598,7 +599,7 @@ export function GovtSchemesTab({
                       width: 42,
                       height: 42,
                       borderRadius: 10,
-                      background: `${meta.color}18`,
+                      background: `color-mix(in srgb, ${meta.color} 15%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -645,7 +646,7 @@ export function GovtSchemesTab({
                   )}
 
                   {Number(sc.interestRate) > 0 && (
-                    <Badge color="success">{sc.interestRate}% p.a.</Badge>
+                    <Badge variant="sage">{sc.interestRate}% p.a.</Badge>
                   )}
 
                   <div style={{ display: "flex", gap: 4 }}>

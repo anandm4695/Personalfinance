@@ -254,8 +254,14 @@ Return only the JSON, no explanation.`;
       onClose={onClose}
       maxWidth={720}
     >
+      <style>{`
+        @media (max-width: 480px) {
+          .salary-slip-info-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <ModalSection title="Slip Info" first />
       <div
+        className="salary-slip-info-grid"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}
       >
         <Field label="Month *">

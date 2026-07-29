@@ -740,6 +740,8 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
 
           {/* Segmented control toggle */}
           <div
+            role="group"
+            aria-label="Chart view"
             style={{
               display: "flex",
               background: "var(--surface-1)",
@@ -751,6 +753,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
           >
             <button
               onClick={() => setShowBreakdown(false)}
+              aria-pressed={!showBreakdown}
               style={{
                 padding: "6px 14px",
                 borderRadius: "var(--radius-sm)",
@@ -768,6 +771,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
             </button>
             <button
               onClick={() => setShowBreakdown(true)}
+              aria-pressed={showBreakdown}
               style={{
                 padding: "6px 14px",
                 borderRadius: "var(--radius-sm)",
@@ -1062,6 +1066,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
                   <button
                     key={i}
                     onClick={() => setSelectedPreset(i)}
+                    aria-pressed={isActive}
                     style={{
                       padding: "6px 14px",
                       borderRadius: "var(--radius-sm)",
@@ -1085,6 +1090,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
           {/* Controls: Monthly Savings input */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span
+              id="monthly-savings-label"
               style={{
                 fontSize: 11,
                 fontWeight: 700,
@@ -1109,6 +1115,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData }) => {
               </span>
               <input
                 type="number"
+                aria-labelledby="monthly-savings-label"
                 value={monthlySavings}
                 onChange={(e) => setMonthlySavings(Number(e.target.value))}
                 style={{

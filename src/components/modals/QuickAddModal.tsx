@@ -30,7 +30,7 @@ export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
 
   return (
     <Modal title="Quick Add Transaction" onClose={onClose}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2">
         <Field label="Date">
           <input
             style={input}
@@ -50,14 +50,18 @@ export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
           </select>
         </Field>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2">
         <Field label="Amount (₹)">
           <input
             style={input}
             type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
             value={f.amount}
             onChange={(e) => setF({ ...f, amount: e.target.value })}
             placeholder="0"
+            autoFocus
           />
         </Field>
         <Field label="Category">
@@ -105,7 +109,12 @@ export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
           placeholder="Cheque or reference number (optional)"
         />
       </Field>
-      <ModalActions onSave={() => f.amount && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() => f.amount && Number(f.amount) > 0 && onSave(f)}
+        onClose={onClose}
+        disabled={!f.amount || Number(f.amount) <= 0}
+        saveLabel="Add Transaction"
+      />
     </Modal>
   );
 }

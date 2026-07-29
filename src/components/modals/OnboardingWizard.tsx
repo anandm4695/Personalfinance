@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Check,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Card } from "../ui/Card";
@@ -57,6 +59,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const [investment, setInvestment] = useState({ type: "fd", name: "", amount: "", rate: "" });
   const [goal, setGoal] = useState({ name: "", targetAmount: "", targetDate: "" });
   const [apiKey, setApiKey] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const inputStyle = {
     width: "100%",
@@ -140,7 +143,14 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   return (
     <div
-      style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "70vh" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "70vh",
+        padding: "24px 16px",
+        boxSizing: "border-box",
+      }}
     >
       <div style={{ maxWidth: 560, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
@@ -158,7 +168,14 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           >
             <Sparkles size={28} color="#fff" />
           </div>
-          <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", marginBottom: 8 }}>
+          <h2
+            style={{
+              fontSize: "clamp(21px, 5vw, 28px)",
+              fontWeight: 900,
+              letterSpacing: "-0.03em",
+              marginBottom: 8,
+            }}
+          >
             Welcome to Personal Finance
           </h2>
           <p style={{ color: THEME.muted, fontSize: 14 }}>
@@ -212,7 +229,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           ))}
         </div>
 
-        <Card style={{ padding: 32, borderTop: `4px solid ${THEME.accent}` }}>
+        <Card style={{ padding: "clamp(20px, 5vw, 32px)", borderTop: `4px solid ${THEME.accent}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
             {React.createElement(STEPS[step].icon, { size: 20, color: THEME.accent })}
             <div>
@@ -233,7 +250,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 />
               </Field>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="form-grid-2" style={{ gap: 12 }}>
                 <Field label="Financial Year">
                   <select
                     style={inputStyle}
@@ -269,7 +286,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   onChange={(e) => setBank({ ...bank, bankName: e.target.value })}
                 />
               </Field>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="form-grid-2" style={{ gap: 12 }}>
                 <Field label="Account Number (optional)">
                   <input
                     style={inputStyle}
@@ -326,7 +343,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   onChange={(e) => setInvestment({ ...investment, name: e.target.value })}
                 />
               </Field>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="form-grid-2" style={{ gap: 12 }}>
                 <Field label="Amount / Principal">
                   <input
                     style={inputStyle}
@@ -361,7 +378,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   onChange={(e) => setGoal({ ...goal, name: e.target.value })}
                 />
               </Field>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="form-grid-2" style={{ gap: 12 }}>
                 <Field label="Target Amount">
                   <input
                     style={inputStyle}
@@ -390,12 +407,35 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 your device — only anonymised metrics are shared with the AI.
               </p>
               <Field label="Gemini API Key (optional — can add later in Settings)">
-                <input
-                  style={inputStyle}
-                  placeholder="AIza..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    style={{ ...inputStyle, flex: 1 }}
+                    type={showApiKey ? "text" : "password"}
+                    placeholder="AIza..."
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey((v) => !v)}
+                    title={showApiKey ? "Hide key" : "Show key"}
+                    aria-label={showApiKey ? "Hide API key" : "Show API key"}
+                    style={{
+                      padding: "0 14px",
+                      borderRadius: 10,
+                      border: `1px solid ${THEME.line}`,
+                      background: "var(--surface-0)",
+                      cursor: "pointer",
+                      color: THEME.muted,
+                      display: "flex",
+                      alignItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </Field>
               <div style={{ fontSize: 11, color: THEME.muted }}>
                 Get a free API key from <span style={{ color: THEME.accent }}>ai.google.dev</span>

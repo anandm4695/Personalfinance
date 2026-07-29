@@ -203,6 +203,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
   const ProgressBar = ({ used, limit, color }) => (
     <div style={{ marginTop: 8 }}>
       <div
+        className="tabular-nums"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -269,7 +270,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           value={fmtINRFull(data.taxSaved)}
           sub="At 30% tax bracket"
           icon={<IndianRupee />}
-          color="var(--accent)"
+          color={THEME.accent}
         />
         <StatCard
           label="80C Remaining"
@@ -336,6 +337,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
             {data.sec80C.items.map((item) => (
               <div
                 key={item.label}
+                className="table-row-hover"
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -345,8 +347,22 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                   background: THEME.bg,
                 }}
               >
-                <span style={{ fontSize: 13, color: THEME.text }}>{item.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)" }}>
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: THEME.text,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <item.icon size={14} color={THEME.muted} />
+                  {item.label}
+                </span>
+                <span
+                  className="tabular-nums"
+                  style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}
+                >
                   <Prv>{fmtINRFull(item.amount)}</Prv>
                 </span>
               </div>
@@ -371,7 +387,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
             Additional deduction up to ₹50,000
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#8B5CF6" }}>
+          <div className="amount-md" style={{ color: "#8B5CF6" }}>
             <Prv>{fmtINRFull(data.sec80CCD1B.used)}</Prv>
           </div>
           <ProgressBar used={data.sec80CCD1B.used} limit={data.sec80CCD1B.limit} color="#8B5CF6" />
@@ -386,7 +402,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
             <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
               No cap (up to 10% of basic salary)
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: THEME.accent }}>
+            <div className="amount-md" style={{ color: THEME.accent }}>
               <Prv>{fmtINRFull(data.sec80CCD2.total)}</Prv>
             </div>
           </Card>
@@ -428,10 +444,10 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
             Max deduction: ₹2,00,000 for self-occupied
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.gold }}>
+          <div className="amount-md" style={{ color: THEME.gold }}>
             <Prv>{fmtINRFull(data.sec24.total)}</Prv>
           </div>
-          <ProgressBar used={data.sec24.total} limit={data.sec24.limit} color="#F59E0B" />
+          <ProgressBar used={data.sec24.total} limit={data.sec24.limit} color={THEME.gold} />
         </Card>
 
         {/* 80TTA */}
@@ -442,7 +458,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
             Max: ₹10,000 on savings account interest
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#14B8A6" }}>
+          <div className="amount-md" style={{ color: "#14B8A6" }}>
             <Prv>{fmtINRFull(data.sec80TTA.total)}</Prv>
           </div>
           <ProgressBar used={data.sec80TTA.total} limit={data.sec80TTA.limit} color="#14B8A6" />

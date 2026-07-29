@@ -402,7 +402,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           label="Total Alerts"
           value={smartAlerts.length}
           icon={<Bell />}
-          color="var(--accent)"
+          color={THEME.accent}
         />
       </div>
 
@@ -410,14 +410,23 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button
           onClick={() => setFilter("all")}
+          aria-pressed={filter === "all"}
           style={{
             padding: "6px 14px",
             borderRadius: 20,
             fontSize: 13,
+            fontWeight: 600,
             cursor: "pointer",
-            border: `1px solid ${filter === "all" ? "var(--accent)" : THEME.border}`,
-            background: filter === "all" ? "var(--accent)" : THEME.card,
+            border: `1.5px solid ${filter === "all" ? THEME.accent : THEME.border}`,
+            background: filter === "all" ? THEME.accent : THEME.card,
             color: filter === "all" ? "#fff" : THEME.text,
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            if (filter !== "all") e.currentTarget.style.borderColor = THEME.accent;
+          }}
+          onMouseLeave={(e) => {
+            if (filter !== "all") e.currentTarget.style.borderColor = THEME.border;
           }}
         >
           All ({smartAlerts.length})
@@ -426,15 +435,24 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           <button
             key={cat}
             onClick={() => setFilter(cat)}
+            aria-pressed={filter === cat}
             style={{
               padding: "6px 14px",
               borderRadius: 20,
               fontSize: 13,
+              fontWeight: 600,
               cursor: "pointer",
               textTransform: "capitalize",
-              border: `1px solid ${filter === cat ? "var(--accent)" : THEME.border}`,
-              background: filter === cat ? "var(--accent)" : THEME.card,
+              border: `1.5px solid ${filter === cat ? THEME.accent : THEME.border}`,
+              background: filter === cat ? THEME.accent : THEME.card,
               color: filter === cat ? "#fff" : THEME.text,
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              if (filter !== cat) e.currentTarget.style.borderColor = THEME.accent;
+            }}
+            onMouseLeave={(e) => {
+              if (filter !== cat) e.currentTarget.style.borderColor = THEME.border;
             }}
           >
             {cat} ({smartAlerts.filter((a) => a.category === cat).length})
@@ -521,7 +539,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                           style={{
                             marginTop: 8,
                             fontSize: 12,
-                            color: "var(--accent)",
+                            color: THEME.accent,
                             fontWeight: 500,
                           }}
                         >

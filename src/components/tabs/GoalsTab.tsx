@@ -53,11 +53,11 @@ const GoalEmptyState = ({ onAdd }: any) => (
         width: 68,
         height: 68,
         borderRadius: 22,
-        background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)",
+        background: `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 8px 24px -4px rgba(217, 119, 6, 0.3)",
+        boxShadow: `0 8px 24px -4px color-mix(in srgb, ${THEME.gold} 30%, transparent)`,
         border: "2px solid rgba(255, 255, 255, 0.2)",
       }}
     >
@@ -111,7 +111,7 @@ const GoalEmptyState = ({ onAdd }: any) => (
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: "#f59e0b",
+                background: THEME.gold,
                 display: "inline-block",
               }}
             />
@@ -705,7 +705,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     <button
                       onClick={() => setEditGoal(g)}
                       style={{
-                        background: "transparent",
+                        background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.muted,
@@ -713,8 +713,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                         alignItems: "center",
                         padding: 4,
                         borderRadius: 6,
+                        transition: "background 0.15s ease, color 0.15s ease",
                       }}
                       title="Edit Goal"
+                      aria-label={`Edit goal ${g.name}`}
                     >
                       <Pencil size={14} />
                     </button>
@@ -723,7 +725,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                         if (window.confirm(`Delete goal "${g.name}"?`)) removeItem("goals", g.id);
                       }}
                       style={{
-                        background: "transparent",
+                        background: "none",
                         border: "none",
                         cursor: "pointer",
                         color: THEME.muted,
@@ -731,8 +733,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                         alignItems: "center",
                         padding: 4,
                         borderRadius: 6,
+                        transition: "background 0.15s ease, color 0.15s ease",
                       }}
                       title="Delete Goal"
+                      aria-label={`Delete goal ${g.name}`}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -752,7 +756,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 >
                   <div style={{ flex: 1, minWidth: 240 }}>
                     <div
-                      style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800 }}
+                      style={{ fontFamily: "var(--font-sans)", fontSize: 24, fontWeight: 800 }}
                     >
                       {g.name}
                     </div>
@@ -776,7 +780,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div
-                      style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800 }}
+                      style={{ fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 800 }}
                     >
                       <Prv>{fmtINRFull(g.currentAmount)}</Prv>{" "}
                       <span style={{ color: THEME.muted, fontSize: 15 }}>
@@ -804,7 +808,13 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     const circ = 2 * Math.PI * r;
                     const dashOff = circ * (1 - Math.min(progress, 100) / 100);
                     return (
-                      <svg width={sz} height={sz} style={{ flexShrink: 0 }}>
+                      <svg
+                        width={sz}
+                        height={sz}
+                        style={{ flexShrink: 0 }}
+                        role="img"
+                        aria-label={`${Math.min(Math.round(progress), 100)}% of goal reached`}
+                      >
                         <circle
                           cx={cx}
                           cy={cx}
@@ -972,6 +982,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                             <span style={{ fontSize: 10 }}> /mo</span>
                           </div>
                           <button
+                            aria-expanded={sipExpanded.has(g.id)}
+                            aria-label={`${sipExpanded.has(g.id) ? "Collapse" : "Expand"} SIP calculator for ${g.name}`}
                             onClick={() =>
                               setSipExpanded((prev) => {
                                 const next = new Set(prev);

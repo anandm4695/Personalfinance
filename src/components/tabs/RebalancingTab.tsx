@@ -349,18 +349,20 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     return Math.max(0, 100 - (d1 + d2 + d3 + d4));
   }, [allocation, target]);
 
+  const CASH_COLOR = "#7C3AED";
+
   const pieData = [
-    { name: "Equity", value: allocation.equity, color: "#4F46E5" },
-    { name: "Debt", value: allocation.debt + allocation.nps, color: "#059669" },
-    { name: "Gold", value: allocation.gold, color: "#D97706" },
-    { name: "Cash", value: allocation.cash, color: "#7C3AED" },
+    { name: "Equity", value: allocation.equity, color: THEME.accent },
+    { name: "Debt", value: allocation.debt + allocation.nps, color: THEME.sage },
+    { name: "Gold", value: allocation.gold, color: THEME.gold },
+    { name: "Cash", value: allocation.cash, color: CASH_COLOR },
   ].filter((d) => d.value > 0);
 
   const targetPieData = [
-    { name: "Equity", value: target.equity, color: "#4F46E5" },
-    { name: "Debt", value: target.debt, color: "#059669" },
-    { name: "Gold", value: target.gold || 0, color: "#D97706" },
-    { name: "Cash", value: target.cash, color: "#7C3AED" },
+    { name: "Equity", value: target.equity, color: THEME.accent },
+    { name: "Debt", value: target.debt, color: THEME.sage },
+    { name: "Gold", value: target.gold || 0, color: THEME.gold },
+    { name: "Cash", value: target.cash, color: CASH_COLOR },
   ].filter((d) => d.value > 0);
 
   const comparisonData = [
@@ -622,19 +624,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
             </div>
           )}
           {customTargetInvalid && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 12px",
-                borderRadius: 10,
-                background: "color-mix(in srgb, var(--t-rust) 10%, transparent)",
-                border: `1px solid color-mix(in srgb, var(--t-rust) 35%, transparent)`,
-              }}
-            >
-              <AlertTriangle size={14} color={THEME.rust} style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: THEME.rust }}>
+            <div className="info-box info-box-error animate-slide-down">
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontWeight: 600 }}>
                 Targets sum to {customTargetSum.toFixed(1)}% — should total 100%.
               </span>
             </div>
@@ -830,8 +822,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     content={<ChartTooltip formatter={(v) => `${v}%`} />}
                     cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />
-                  <Bar dataKey="Current" fill="#4F46E5" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="Target" fill="#059669" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="Current" fill={THEME.accent} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="Target" fill={THEME.sage} radius={[6, 6, 0, 0]} />
                   <Legend
                     wrapperStyle={{ fontSize: 11, paddingTop: 10 }}
                     formatter={(value: string) => (
@@ -1004,19 +996,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
           <Zap size={16} style={{ color: THEME.gold }} /> Actionable Suggestions
         </div>
         {suggestions.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "16px 20px",
-              borderRadius: 14,
-              background: `color-mix(in srgb, ${THEME.sage} 5%, transparent)`,
-              border: `1.5px solid color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
-            }}
-          >
-            <CheckCircle2 size={18} style={{ color: THEME.sage }} />
-            <span style={{ fontSize: 13.5, color: THEME.ink, fontWeight: 600 }}>
+          <div className="info-box info-box-success">
+            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 13.5, fontWeight: 600 }}>
               Your portfolio is perfectly aligned! No rebalancing suggestions required.
             </span>
           </div>
@@ -1170,12 +1152,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 .map((row, i) => (
                   <tr
                     key={i}
+                    className="table-row-hover"
                     style={{ borderBottom: `1px solid ${THEME.line}` }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "color-mix(in srgb, var(--accent) 4%, transparent)")
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <td style={{ ...td, paddingLeft: 16, color: THEME.ink, fontWeight: 700 }}>
                       {row.label}

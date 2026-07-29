@@ -442,7 +442,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      background: `${cat.color}18`,
+                      background: `color-mix(in srgb, ${cat.color} 15%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -469,12 +469,8 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                   </div>
                   {status && (
                     <Badge
-                      color={
-                        status.daysLeft <= 3
-                          ? "danger"
-                          : status.daysLeft <= 7
-                            ? "warning"
-                            : "success"
+                      variant={
+                        status.daysLeft <= 3 ? "rust" : status.daysLeft <= 7 ? "gold" : "sage"
                       }
                     >
                       {status.label}
@@ -591,7 +587,9 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                                 </span>
                               )}
                               {h.paymentMethod && (
-                                <Badge style={{ fontSize: 10 }}>{h.paymentMethod}</Badge>
+                                <Badge variant="muted" style={{ fontSize: 10 }}>
+                                  {h.paymentMethod}
+                                </Badge>
                               )}
                               <button
                                 onClick={() => removeItem("billPaymentHistory", h.id)}

@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Unlock,
   Flame,
+  Info,
 } from "lucide-react";
 import {
   AreaChart,
@@ -171,21 +172,22 @@ const DataRow = ({ label, value, bold, color }: any) => (
     }}
   >
     <span style={{ fontSize: 13, color: THEME.muted, fontWeight: bold ? 700 : 500 }}>{label}</span>
-    <span style={{ fontSize: 13, fontWeight: bold ? 700 : 600, color: color || THEME.ink }}>
+    <span
+      className="tabular-nums"
+      style={{ fontSize: 13, fontWeight: bold ? 700 : 600, color: color || THEME.ink }}
+    >
       <Prv>{value}</Prv>
     </span>
   </div>
 );
 
 const ProgressBar = ({ pct, color, height = 6 }: any) => (
-  <div style={{ width: "100%", height, borderRadius: height, background: `var(--surface-2)` }}>
+  <div className="progress-track" style={{ height }}>
     <div
+      className="progress-fill"
       style={{
         width: `${Math.min(100, Math.max(0, pct))}%`,
-        height: "100%",
-        borderRadius: height,
         background: color || THEME.accent,
-        transition: "width 0.4s ease",
       }}
     />
   </div>
@@ -229,21 +231,8 @@ const MetricTile = ({ label, value, sub, color }: any) => (
 );
 
 const InfoBanner = ({ children }: any) => (
-  <div
-    style={{
-      marginBottom: 12,
-      padding: "8px 14px",
-      borderRadius: 8,
-      background: "var(--surface-1)",
-      border: `1px solid ${THEME.line}`,
-      fontSize: 11,
-      color: THEME.muted,
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-    }}
-  >
-    <AlertTriangle size={12} style={{ flexShrink: 0 }} />
+  <div className="info-box info-box-info" style={{ marginBottom: 12, fontSize: 11 }}>
+    <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
     {children}
   </div>
 );
@@ -1222,7 +1211,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       items.push({
         icon: Trophy,
         text: `Best performer: ${best.name} (+${best.gainPct.toFixed(1)}%)`,
-        color: "#059669",
+        color: THEME.sage,
       });
     }
 
@@ -1245,7 +1234,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       items.push({
         icon: CheckCircle2,
         text: `${goalsData.completed} goal${goalsData.completed > 1 ? "s" : ""} completed this FY`,
-        color: "#059669",
+        color: THEME.sage,
       });
     }
 
@@ -1256,7 +1245,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       items.push({
         icon: Unlock,
         text: `${closedLoans.length} loan${closedLoans.length > 1 ? "s" : ""} fully repaid`,
-        color: "#059669",
+        color: THEME.sage,
       });
     }
 
@@ -1264,7 +1253,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       items.push({
         icon: Flame,
         text: `Excellent savings rate of ${savingsData.savingsRate.toFixed(0)}% achieved`,
-        color: "#059669",
+        color: THEME.sage,
       });
     }
 
@@ -1536,6 +1525,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                       window.scrollTo({ top: y, behavior: "smooth" });
                     }
                   }}
+                  aria-current={isActive ? "true" : undefined}
                   className="card-lift"
                   style={{
                     padding: "6px 14px",

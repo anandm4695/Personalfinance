@@ -23,6 +23,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
+import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 const getHealthColor = (months) => {
@@ -346,6 +347,13 @@ export const EmergencyFundTab = ({ state, metrics }) => {
           >
             <Wallet size={16} style={{ color: THEME.accent }} /> What Counts as Liquid Assets
           </div>
+          {data.totalLiquid <= 0 ? (
+            <EmptyState
+              icon={Wallet}
+              title="No liquid assets found yet"
+              description="Add bank accounts, liquid mutual funds, or prepaid card balances to start tracking your emergency fund coverage."
+            />
+          ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
               {
@@ -364,7 +372,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 label: "Prepaid Card Balances",
                 value: data.prepaidBalance,
                 icon: Wallet,
-                color: "#8B5CF6",
+                color: THEME.gold,
               },
             ]
               .filter((r) => r.value > 0)
@@ -450,6 +458,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 );
               })}
           </div>
+          )}
         </div>
       </Card>
 
@@ -470,7 +479,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 letterSpacing: "0.04em",
               }}
             >
-              <PieChart size={14} /> Monthly Expense Allocation
+              <PieChart size={16} style={{ color: THEME.accent }} /> Monthly Expense Allocation
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {data.expenseBreakdown

@@ -30,7 +30,6 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, uid, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
-import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -164,8 +163,15 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <SectionTitle sub="Plan for major financial milestones">Life Event Planner</SectionTitle>
+      <div className="sub-tab-hero animate-fade-in-up" style={{ flexWrap: "wrap" }}>
+        <div className="sub-tab-hero-icon">🎯</div>
+        <div className="sub-tab-hero-body">
+          <div className="sub-tab-hero-title">Life Event Planner</div>
+          <div className="sub-tab-hero-desc">
+            Plan for major financial milestones — education, home, wedding and more — with
+            inflation-adjusted targets
+          </div>
+        </div>
         <Button
           variant="primary"
           size="sm"
@@ -437,99 +443,61 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
           title={editingId ? "Edit Life Event" : "Add Life Event"}
           onClose={() => setShowModal(false)}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Field label="Event Name">
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g., Daughter's College"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--t-card-bg)",
-                  color: THEME.ink,
-                }}
+                className="form-input"
               />
             </Field>
-            <Field label="Event Type">
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--t-card-bg)",
-                  color: THEME.ink,
-                }}
-              >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Target Date">
-              <input
-                type="date"
-                value={form.targetDate}
-                onChange={(e) => setForm({ ...form, targetDate: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--t-card-bg)",
-                  color: THEME.ink,
-                }}
-              />
-            </Field>
-            <Field label="Estimated Cost (today's value)">
-              <input
-                type="number"
-                value={form.estimatedCost}
-                onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--t-card-bg)",
-                  color: THEME.ink,
-                }}
-              />
-            </Field>
-            <Field label="Amount Already Saved">
-              <input
-                type="number"
-                value={form.currentSaved}
-                onChange={(e) => setForm({ ...form, currentSaved: Number(e.target.value) })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--t-card-bg)",
-                  color: THEME.ink,
-                }}
-              />
-            </Field>
+            <div className="form-grid-2">
+              <Field label="Event Type">
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  className="form-input"
+                >
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Target Date">
+                <input
+                  type="date"
+                  value={form.targetDate}
+                  onChange={(e) => setForm({ ...form, targetDate: e.target.value })}
+                  className="form-input"
+                />
+              </Field>
+            </div>
+            <div className="form-grid-2">
+              <Field label="Estimated Cost (today's value)">
+                <input
+                  type="number"
+                  value={form.estimatedCost}
+                  onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })}
+                  className="form-input"
+                />
+              </Field>
+              <Field label="Amount Already Saved">
+                <input
+                  type="number"
+                  value={form.currentSaved}
+                  onChange={(e) => setForm({ ...form, currentSaved: Number(e.target.value) })}
+                  className="form-input"
+                />
+              </Field>
+            </div>
             <Field label="Priority">
               <select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--t-card-bg)",
-                  color: THEME.ink,
-                }}
+                className="form-input"
               >
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
@@ -541,14 +509,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={2}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.line}`,
-                  background: "var(--t-card-bg)",
-                  color: THEME.ink,
-                }}
+                className="form-input"
               />
             </Field>
           </div>

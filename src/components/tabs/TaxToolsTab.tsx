@@ -570,12 +570,34 @@ const HraReceiptSection = ({ state }) => {
       </div>
 
       {rentedProps.length === 0 ? (
-        <Card>
-          <div style={{ padding: 20, textAlign: "center" }}>
-            <Info size={20} style={{ color: THEME.muted, marginBottom: 8 }} />
-            <div style={{ fontSize: 14, color: THEME.muted }}>
-              No rented properties found. Add a rented property in the Rental Details tab first.
-            </div>
+        <Card style={{ padding: "40px 24px", textAlign: "center" }}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 14px",
+            }}
+          >
+            <Home size={22} style={{ color: THEME.accent }} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
+            No Rented Properties Yet
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              maxWidth: 340,
+              margin: "0 auto",
+              lineHeight: 1.6,
+            }}
+          >
+            Add a rented property in the Rental Details tab to start generating HRA rent receipts.
           </div>
         </Card>
       ) : (
@@ -765,6 +787,8 @@ const HraReceiptSection = ({ state }) => {
                     border: "none",
                     cursor: "pointer",
                     fontWeight: 600,
+                    padding: "4px 8px",
+                    borderRadius: 6,
                   }}
                 >
                   {months.length === fyMonths.length ? "Deselect All" : "Select All"}
@@ -784,6 +808,8 @@ const HraReceiptSection = ({ state }) => {
                     <button
                       key={m.key}
                       onClick={() => toggleMonth(m.key)}
+                      aria-pressed={isSelected}
+                      className={isSelected ? "" : "table-row-hover"}
                       style={{
                         padding: "10px 8px",
                         borderRadius: 8,
@@ -794,6 +820,7 @@ const HraReceiptSection = ({ state }) => {
                         color: isSelected ? THEME.accent : THEME.ink,
                         cursor: "pointer",
                         textAlign: "center",
+                        transition: "all 0.15s ease",
                       }}
                     >
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{m.label}</div>
@@ -1276,7 +1303,11 @@ const Form26ASSection = ({ state }) => {
                 </thead>
                 <tbody>
                   {entriesForFY.map((e) => (
-                    <tr key={e.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                    <tr
+                      key={e.id}
+                      className="table-row-hover"
+                      style={{ borderBottom: `1px solid ${THEME.line}` }}
+                    >
                       <td style={{ padding: "8px 10px", color: THEME.ink, fontWeight: 500 }}>
                         {e.deductor}
                       </td>
@@ -1348,7 +1379,11 @@ const Form26ASSection = ({ state }) => {
                 </thead>
                 <tbody>
                   {taxPayments.map((t) => (
-                    <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                    <tr
+                      key={t.id}
+                      className="table-row-hover"
+                      style={{ borderBottom: `1px solid ${THEME.line}` }}
+                    >
                       <td style={{ padding: "8px 10px" }}>
                         <Badge>{t.taxType || t.type || "Tax"}</Badge>
                       </td>
@@ -1404,6 +1439,8 @@ export const TaxToolsTab = ({ state, metrics }) => {
             <button
               key={s.key}
               onClick={() => setActiveSection(s.key)}
+              aria-pressed={active}
+              className={active ? "" : "btn-ghost"}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -1416,6 +1453,7 @@ export const TaxToolsTab = ({ state, metrics }) => {
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: "pointer",
+                transition: "all 0.2s ease",
               }}
             >
               <Icon size={15} /> {s.label}

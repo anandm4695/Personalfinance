@@ -17,7 +17,6 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact } from "../../utils/finance";
 import { Card } from "../ui/Card";
-import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
@@ -296,9 +295,21 @@ export const LoanAmortizationTab = ({ state }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle sub="Detailed EMI breakdown with prepayment simulator">
-        Loan Amortization
-      </SectionTitle>
+      <div className="sub-tab-hero animate-fade-in-up">
+        <div className="sub-tab-hero-icon">🏦</div>
+        <div className="sub-tab-hero-body">
+          <div className="sub-tab-hero-title">Loan Amortization</div>
+          <div className="sub-tab-hero-desc">
+            Detailed EMI breakdown with a prepayment simulator — see exactly how extra payments
+            cut interest and tenure
+          </div>
+        </div>
+        {loanData.principal > 0 && (
+          <div className="sub-tab-hero-badge">
+            <IndianRupee size={13} /> EMI {fmtINRExact(baseAmort.emi)}
+          </div>
+        )}
+      </div>
 
       {/* Loan Selector */}
       <Card style={{ padding: 24 }}>
@@ -387,17 +398,8 @@ export const LoanAmortizationTab = ({ state }) => {
                 id="loan-select-active"
                 value={selectedLoan || loans[0]?.id || ""}
                 onChange={(e) => setSelectedLoan(e.target.value)}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  border: `1.5px solid ${THEME.line}`,
-                  background: "var(--surface-0)",
-                  color: THEME.ink,
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  width: "100%",
-                  outline: "none",
-                }}
+                className="form-input"
+                style={{ padding: "10px 14px", fontSize: 13.5, fontWeight: 600 }}
               >
                 {loans.map((l) => (
                   <option key={l.id} value={l.id}>
@@ -430,16 +432,8 @@ export const LoanAmortizationTab = ({ state }) => {
                   type="number"
                   value={customPrincipal}
                   onChange={(e) => setCustomPrincipal(Number(e.target.value))}
-                  style={{
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: `1.5px solid ${THEME.line}`,
-                    background: "var(--surface-0)",
-                    color: THEME.ink,
-                    fontSize: 13.5,
-                    width: 140,
-                    outline: "none",
-                  }}
+                  className="form-input"
+                  style={{ padding: "9px 12px", fontSize: 13.5, width: 140 }}
                 />
               </div>
               <div>
@@ -463,16 +457,8 @@ export const LoanAmortizationTab = ({ state }) => {
                   step="0.1"
                   value={customRate}
                   onChange={(e) => setCustomRate(Number(e.target.value))}
-                  style={{
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: `1.5px solid ${THEME.line}`,
-                    background: "var(--surface-0)",
-                    color: THEME.ink,
-                    fontSize: 13.5,
-                    width: 100,
-                    outline: "none",
-                  }}
+                  className="form-input"
+                  style={{ padding: "9px 12px", fontSize: 13.5, width: 100 }}
                 />
               </div>
               <div>
@@ -495,16 +481,8 @@ export const LoanAmortizationTab = ({ state }) => {
                   type="number"
                   value={customTenure}
                   onChange={(e) => setCustomTenure(Number(e.target.value))}
-                  style={{
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: `1.5px solid ${THEME.line}`,
-                    background: "var(--surface-0)",
-                    color: THEME.ink,
-                    fontSize: 13.5,
-                    width: 100,
-                    outline: "none",
-                  }}
+                  className="form-input"
+                  style={{ padding: "9px 12px", fontSize: 13.5, width: 100 }}
                 />
               </div>
             </>
@@ -531,16 +509,8 @@ export const LoanAmortizationTab = ({ state }) => {
               value={extraEMI}
               onChange={(e) => setExtraEMI(Number(e.target.value))}
               placeholder="e.g. ₹5,000"
-              style={{
-                padding: "9px 12px",
-                borderRadius: 10,
-                border: `1.5px solid ${THEME.line}`,
-                background: "var(--surface-0)",
-                color: THEME.ink,
-                fontSize: 13.5,
-                width: 150,
-                outline: "none",
-              }}
+              className="form-input"
+              style={{ padding: "9px 12px", fontSize: 13.5, width: 150 }}
             />
           </div>
         </div>
@@ -923,15 +893,10 @@ export const LoanAmortizationTab = ({ state }) => {
                     {baseAmort.schedule.map((row) => (
                       <tr
                         key={row.month}
+                        className="table-row-hover"
                         style={{
                           borderBottom: `1px solid ${THEME.line}`,
-                          transition: "background 0.15s",
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            "color-mix(in srgb, var(--accent) 4%, transparent)")
-                        }
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <td style={tdCenter}>{row.month}</td>
                         <td style={td}>{fmtINRExact(row.emi)}</td>

@@ -565,9 +565,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   }, [state, documents]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const openAddModal = (defaultAssetType = "", defaultAssetId = "") => {
+  // `presetCategory` is an optional UI convenience (e.g. clicking a category
+  // tile in the empty-vault preview) — it only pre-fills the form's category
+  // field and never affects any linked-asset resolution below.
+  const openAddModal = (
+    defaultAssetType = "",
+    defaultAssetId = "",
+    presetCategory?: CategoryKey
+  ) => {
     let defaultOwner = "self";
-    let defaultCategory: CategoryKey = "Identity";
+    let defaultCategory: CategoryKey = presetCategory || "Identity";
     let defaultName = "";
 
     if (defaultAssetType && defaultAssetId) {
@@ -792,6 +799,73 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           buttonLabel="Add Document"
           onAdd={() => openAddModal()}
         />
+        {/* Category preview — shows the vault's real organizing structure so an
+            empty vault still reads as considered/bespoke, not a bare placeholder. */}
+        <div style={{ marginTop: 20 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: THEME.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 12,
+              textAlign: "center",
+            }}
+          >
+            Your vault organizes documents into 7 categories
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {CATEGORY_KEYS.map((catKey) => {
+              const cat = CATEGORIES[catKey];
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={catKey}
+                  onClick={() => openAddModal("", "", catKey)}
+                  aria-label={`Add a ${catKey} document`}
+                  className="card-lift"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "16px 10px",
+                    borderRadius: 14,
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "var(--surface-0)",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: cat.gradient,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={17} color="#fff" />
+                  </div>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: THEME.ink }}>
+                    {catKey}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         {showModal && renderModal()}
       </div>
     );
@@ -990,6 +1064,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                   className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
                   onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
                   title="Copy Number"
+                  aria-label="Copy document number"
                 >
                   {copiedId === doc.id ? <Check size={12} /> : <Copy size={12} />}
                 </button>
@@ -1270,6 +1345,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
               onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
               title="Copy Number"
+              aria-label="Copy document number"
               style={actionBtnBase}
             >
               {copiedId === doc.id ? <Check size={13} /> : <Copy size={13} />}
@@ -1510,6 +1586,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                     className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
                     onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
                     title="Copy Document Number"
+                    aria-label="Copy document number"
                   >
                     {copiedId === doc.id ? <Check size={16} /> : <Copy size={16} />}
                   </button>
@@ -2314,7 +2391,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                       fontWeight: 700,
                       padding: "2px 6px",
                       borderRadius: 10,
-                      boxShadow: `0 2px 8px ${catDef.color}40`,
+                      boxShadow: `0 2px 8px color-mix(in srgb, ${catDef.color} 25%, transparent)`,
                     }}
                   >
                     {count}
@@ -2654,9 +2731,26 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
             No documents found
           </div>
-          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 300, margin: "0 auto" }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              maxWidth: 300,
+              margin: "0 auto 16px",
+            }}
+          >
             Try adjusting your search or filter criteria
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFilterCategory("all");
+              setSearchQuery("");
+            }}
+          >
+            Clear search & filters
+          </Button>
         </Card>
       ) : viewMode === "grid" ? (
         <div className="doc-vault-doc-grid">

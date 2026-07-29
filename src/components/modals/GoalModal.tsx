@@ -14,10 +14,13 @@ const input = {
   borderRadius: 10,
   color: THEME.ink,
   fontSize: 14,
+  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
 };
 
 export function GoalModal({ initial, onClose, onSave }: any) {
   const { goalCategories, familyProfiles } = useMasterData();
+  const [clearHover, setClearHover] = useState(false);
+  const [setDateHover, setSetDateHover] = useState(false);
   const [f, setF] = useState(
     initial
       ? { ...initial }
@@ -122,17 +125,21 @@ export function GoalModal({ initial, onClose, onSave }: any) {
               />
               <button
                 type="button"
+                aria-label="Clear target date"
                 onClick={() => setF({ ...f, targetDate: "" })}
+                onMouseEnter={() => setClearHover(true)}
+                onMouseLeave={() => setClearHover(false)}
                 style={{
                   padding: "10px 12px",
                   border: `1.5px solid ${THEME.rust}`,
                   borderRadius: 10,
-                  background: "transparent",
-                  color: THEME.rust,
+                  background: clearHover ? THEME.rust : "transparent",
+                  color: clearHover ? "#fff" : THEME.rust,
                   cursor: "pointer",
                   fontSize: 12,
                   fontWeight: 600,
                   whiteSpace: "nowrap",
+                  transition: "background 0.15s ease, color 0.15s ease",
                 }}
               >
                 Clear
@@ -142,15 +149,18 @@ export function GoalModal({ initial, onClose, onSave }: any) {
             <button
               type="button"
               onClick={() => setF({ ...f, targetDate: today() })}
+              onMouseEnter={() => setSetDateHover(true)}
+              onMouseLeave={() => setSetDateHover(false)}
               style={{
                 ...input,
-                background: "transparent",
-                border: `1.5px dashed ${THEME.line}`,
-                color: THEME.muted,
+                background: setDateHover ? "color-mix(in srgb, var(--t-accent) 6%, transparent)" : "transparent",
+                border: `1.5px dashed ${setDateHover ? THEME.accent : THEME.line}`,
+                color: setDateHover ? THEME.accent : THEME.muted,
                 cursor: "pointer",
                 textAlign: "left",
                 fontSize: 13,
                 fontWeight: 500,
+                transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
               }}
             >
               + Set a target date (optional)

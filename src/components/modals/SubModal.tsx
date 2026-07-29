@@ -17,6 +17,7 @@ const input = {
 
 export function SubModal({ onClose, onSave, initialValues = null }: any) {
   const { familyProfiles } = useMasterData();
+  const [attempted, setAttempted] = useState(false);
   const [f, setF] = useState(
     initialValues
       ? {
@@ -40,6 +41,19 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           website: "",
         }
   );
+
+  const nameError = attempted && !f.name.trim() ? "Service name is required" : undefined;
+  const amountError =
+    attempted && !(Number(f.amount) > 0) ? "Enter an amount greater than 0" : undefined;
+
+  const handleSave = () => {
+    if (f.name.trim() && Number(f.amount) > 0) {
+      onSave(f);
+    } else {
+      setAttempted(true);
+    }
+  };
+
   return (
     <Modal title={initialValues ? "Edit Subscription" : "Add Subscription"} onClose={onClose}>
       <Field label="Owner / Profile">
@@ -55,11 +69,12 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           ))}
         </select>
       </Field>
-      <Field label="Service Name">
+      <Field label="Service Name" error={nameError}>
         <input
-          style={input}
+          style={{ ...input, ...(nameError ? { borderColor: THEME.rust } : {}) }}
           value={f.name}
           onChange={(e) => setF({ ...f, name: e.target.value })}
+          placeholder="e.g., Netflix, Spotify"
         />
       </Field>
       <Field label="Category">
@@ -84,12 +99,14 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           gap: 12,
         }}
       >
-        <Field label="Amount">
+        <Field label="Amount" error={amountError}>
           <input
-            style={input}
+            style={{ ...input, ...(amountError ? { borderColor: THEME.rust } : {}) }}
             type="number"
+            min="0"
             value={f.amount}
             onChange={(e) => setF({ ...f, amount: e.target.value })}
+            placeholder="e.g., 649"
           />
         </Field>
         <Field label="Cycle">
@@ -128,7 +145,11 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           placeholder="e.g., Shared with family, billed to credit card"
         />
       </Field>
-      <ModalActions onSave={() => f.name && Number(f.amount) > 0 && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={handleSave}
+        onClose={onClose}
+        saveLabel={initialValues ? "Save Changes" : "Add Subscription"}
+      />
     </Modal>
   );
 }

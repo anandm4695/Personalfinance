@@ -162,7 +162,7 @@ const stepBadge = (active: boolean, done: boolean): React.CSSProperties => ({
     : active
       ? THEME.accent
       : `color-mix(in srgb, ${THEME.line} 38%, transparent)`,
-  color: done || active ? "#fff" : THEME.muted,
+  color: done || active ? THEME.darkInk : THEME.muted,
   flexShrink: 0,
 });
 
@@ -628,17 +628,9 @@ export function BrokerImportModal({
           </div>
 
           {uploadError && (
-            <div
-              style={{
-                color: THEME.rust,
-                fontSize: 12,
-                marginBottom: 16,
-                padding: 10,
-                background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-                borderRadius: 8,
-              }}
-            >
-              {uploadError}
+            <div className="info-box info-box-error animate-slide-down" style={{ marginBottom: 16 }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{uploadError}</span>
             </div>
           )}
 
@@ -726,36 +718,16 @@ export function BrokerImportModal({
       {step === 2 && (
         <>
           {detectedBroker && (
-            <div
-              style={{
-                background: `color-mix(in srgb, ${THEME.sage} 5%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
-                borderRadius: 10,
-                padding: "10px 16px",
-                marginBottom: 16,
-                fontSize: 12,
-                color: THEME.sage,
-                fontWeight: 600,
-              }}
-            >
-              Columns auto-mapped for {detectedBroker} format. Verify and adjust if needed.
+            <div className="info-box info-box-success" style={{ marginBottom: 16, fontWeight: 600 }}>
+              <CheckCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>Columns auto-mapped for {detectedBroker} format. Verify and adjust if needed.</span>
             </div>
           )}
 
           {!detectedBroker && (
-            <div
-              style={{
-                background: `color-mix(in srgb, ${THEME.gold} 5%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
-                borderRadius: 10,
-                padding: "10px 16px",
-                marginBottom: 16,
-                fontSize: 12,
-                color: THEME.gold,
-                fontWeight: 600,
-              }}
-            >
-              Unknown format. Please map each column to its corresponding field below.
+            <div className="info-box info-box-warn" style={{ marginBottom: 16, fontWeight: 600 }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>Unknown format. Please map each column to its corresponding field below.</span>
             </div>
           )}
 
@@ -808,24 +780,13 @@ export function BrokerImportModal({
           </Field>
 
           {!dematSelected && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 12px",
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-                color: THEME.rust,
-                fontSize: 12,
-                fontWeight: 600,
-                marginTop: 10,
-              }}
-            >
-              <AlertTriangle size={14} />
-              {demats.length === 0
-                ? "You need to add a demat account before importing trades."
-                : "Select a demat account to import into."}
+            <div className="info-box info-box-error" style={{ marginTop: 10, fontWeight: 600 }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>
+                {demats.length === 0
+                  ? "You need to add a demat account before importing trades."
+                  : "Select a demat account to import into."}
+              </span>
             </div>
           )}
 
@@ -916,6 +877,7 @@ export function BrokerImportModal({
                   >
                     <input
                       type="checkbox"
+                      aria-label="Select all trades"
                       checked={selectedTrades.length === trades.length}
                       onChange={() => {
                         const allSelected = selectedTrades.length === trades.length;
@@ -961,6 +923,7 @@ export function BrokerImportModal({
                     <td style={{ padding: "8px 10px", textAlign: "center" }}>
                       <input
                         type="checkbox"
+                        aria-label={`Select ${t.tradeType.toLowerCase()} trade: ${t.symbol} ${t.qty} @ ${t.price} on ${t.date}`}
                         checked={t.selected}
                         onChange={() => toggleTrade(i)}
                         style={{ accentColor: THEME.accent }}

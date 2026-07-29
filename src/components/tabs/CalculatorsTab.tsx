@@ -1181,19 +1181,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   // ── INPUT ROW HELPERS ──
   const inpRow = (lbl: string, val: string, set: (v: string) => void, placeholder = "") => (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+      <label style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
         {lbl}
-      </div>
+      </label>
       <input
-        style={{
-          width: "100%",
-          padding: "10px 12px",
-          background: "var(--t-card-bg)",
-          border: `1.5px solid ${THEME.line}`,
-          borderRadius: 10,
-          color: THEME.ink,
-          fontSize: 14,
-        }}
+        className="form-input"
+        aria-label={lbl}
         type="number"
         value={val}
         placeholder={placeholder}
@@ -1218,7 +1211,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           justifyContent: "space-between",
           fontSize: 12,
           color: THEME.muted,
-          marginBottom: 4,
+          marginBottom: 6,
           fontWeight: 600,
         }}
       >
@@ -1229,16 +1222,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         </span>
       </div>
       <input
-        style={{
-          width: "100%",
-          accentColor: THEME.accent,
-          cursor: "pointer",
-        }}
+        className="cxo-slider"
         type="range"
         min={min}
         max={max}
         step={step}
         value={val}
+        aria-label={lbl}
         onChange={(e) => set(e.target.value)}
       />
     </div>
@@ -1413,6 +1403,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       {/* ── PILL SELECTION BAR ── */}
       <div
         className="demat-portfolio-bar no-scrollbar"
+        role="tablist"
+        aria-label="Calculator tools"
         style={{ marginBottom: 24, padding: "4px" }}
       >
         {[
@@ -1437,6 +1429,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             <button
               key={t.id}
               onClick={() => setCalcTab(t.id as any)}
+              role="tab"
+              aria-selected={active}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
             >
               <Icon size={14} />
@@ -5560,6 +5554,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <input
                               type="text"
                               value={src.name}
+                              aria-label={`Income source ${idx + 1} name`}
                               onChange={(e) => {
                                 const next = [...riSources];
                                 next[idx] = { ...next[idx], name: e.target.value };
@@ -5580,6 +5575,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <input
                               type="number"
                               value={src.monthly}
+                              aria-label={`${src.name || "Income source"} monthly amount`}
                               onChange={(e) => {
                                 const next = [...riSources];
                                 next[idx] = { ...next[idx], monthly: Number(e.target.value) || 0 };
@@ -5600,6 +5596,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <input
                               type="number"
                               value={src.startAge}
+                              aria-label={`${src.name || "Income source"} start age`}
                               onChange={(e) => {
                                 const next = [...riSources];
                                 next[idx] = { ...next[idx], startAge: Number(e.target.value) || 0 };
@@ -5620,6 +5617,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <input
                               type="number"
                               value={src.endAge}
+                              aria-label={`${src.name || "Income source"} end age`}
                               onChange={(e) => {
                                 const next = [...riSources];
                                 next[idx] = { ...next[idx], endAge: Number(e.target.value) || 0 };
@@ -5640,6 +5638,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <input
                               type="number"
                               value={src.growth}
+                              aria-label={`${src.name || "Income source"} annual growth percent`}
                               onChange={(e) => {
                                 const next = [...riSources];
                                 next[idx] = { ...next[idx], growth: Number(e.target.value) || 0 };
@@ -5669,6 +5668,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                                 padding: 4,
                               }}
                               title="Remove source"
+                              aria-label={`Remove ${src.label || "income source"}`}
                             >
                               <Trash2 size={14} />
                             </button>

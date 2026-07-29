@@ -3,6 +3,9 @@ import React from "react";
 export function LoadingScreen() {
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -11,14 +14,17 @@ export function LoadingScreen() {
         justifyContent: "center",
         background: "var(--t-paper, #0B0F1A)",
         gap: 20,
+        padding: "24px 16px",
+        boxSizing: "border-box",
+        textAlign: "center",
       }}
     >
       <img
         src="/logo.png"
         alt="Personal Finance by Anand Mohta"
         style={{
-          width: "clamp(80px, 20vw, 110px)",
-          height: "clamp(80px, 20vw, 110px)",
+          width: "clamp(72px, 20vw, 110px)",
+          height: "clamp(72px, 20vw, 110px)",
           objectFit: "contain",
           filter: "drop-shadow(0 0 24px rgba(197,161,82,0.45))",
           animation: "pulse-logo 2.4s ease-in-out infinite",
@@ -26,7 +32,7 @@ export function LoadingScreen() {
       />
       <div
         style={{
-          fontSize: 12,
+          fontSize: "clamp(10px, 3vw, 12px)",
           fontWeight: 600,
           letterSpacing: "0.18em",
           textTransform: "uppercase",
@@ -55,6 +61,21 @@ export function LoadingScreen() {
           }}
         />
       </div>
+      <span
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        Loading your dashboard…
+      </span>
       <style>{`
         @keyframes pulse-logo { 0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(197,161,82,0.35))} 50%{transform:scale(1.04);filter:drop-shadow(0 0 36px rgba(197,161,82,0.55))} }
         @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }

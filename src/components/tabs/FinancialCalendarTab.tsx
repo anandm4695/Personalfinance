@@ -468,11 +468,13 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           <button
             key={m}
             onClick={() => setHorizon(m)}
+            className="card-lift"
+            aria-pressed={horizon === m}
             style={{
               padding: "6px 16px",
               borderRadius: 8,
               border: `1.5px solid ${horizon === m ? THEME.accent : THEME.line}`,
-              background: horizon === m ? THEME.accent : "transparent",
+              background: horizon === m ? THEME.accent : "var(--surface-0)",
               color: horizon === m ? "#fff" : THEME.ink,
               fontWeight: 600,
               fontSize: 13,
@@ -593,15 +595,18 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
             <button
               key={f.key}
               onClick={() => setActiveFilter(f.key)}
+              className="card-lift"
+              aria-pressed={activeFilter === f.key}
               style={{
                 padding: "5px 14px",
                 borderRadius: 20,
                 border: `1.5px solid ${activeFilter === f.key ? THEME.accent : THEME.line}`,
-                background: activeFilter === f.key ? THEME.accent : "transparent",
+                background: activeFilter === f.key ? THEME.accent : "var(--surface-0)",
                 color: activeFilter === f.key ? "#fff" : THEME.muted,
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: "pointer",
+                transition: "all 0.15s ease",
               }}
             >
               {f.label} ({count})

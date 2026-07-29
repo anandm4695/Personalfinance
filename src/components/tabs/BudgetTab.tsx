@@ -506,6 +506,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               size="sm"
               onClick={handlePrevMonth}
               style={{ padding: 6, borderRadius: 8, height: "auto" }}
+              aria-label="Previous month"
             >
               <ChevronLeft size={16} />
             </Button>
@@ -531,6 +532,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               size="sm"
               onClick={handleNextMonth}
               style={{ padding: 6, borderRadius: 8, height: "auto" }}
+              aria-label="Next month"
             >
               <ChevronRight size={16} />
             </Button>
@@ -667,6 +669,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               const remaining = Math.max(0, totalBudget - totalSpent);
               const utilizationColor =
                 utilizationPct > 100 ? THEME.rust : utilizationPct > 80 ? THEME.gold : THEME.sage;
+              const utilizationFillClass =
+                utilizationPct > 100
+                  ? "progress-fill-rust"
+                  : utilizationPct > 80
+                    ? "progress-fill-gold"
+                    : "progress-fill-sage";
               return (
                 <Card
                   style={{
@@ -785,23 +793,10 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         >
                           {utilizationPct.toFixed(0)}%
                         </div>
-                        <div
-                          style={{
-                            width: 60,
-                            height: 6,
-                            borderRadius: 3,
-                            background: `${THEME.line}`,
-                            overflow: "hidden",
-                          }}
-                        >
+                        <div className="progress-track" style={{ width: 60 }}>
                           <div
-                            style={{
-                              width: `${Math.min(utilizationPct, 100)}%`,
-                              height: "100%",
-                              borderRadius: 3,
-                              background: utilizationColor,
-                              transition: "width 0.5s ease",
-                            }}
+                            className={`progress-fill ${utilizationFillClass}`}
+                            style={{ width: `${Math.min(utilizationPct, 100)}%` }}
                           />
                         </div>
                       </div>
@@ -980,7 +975,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           width: 36,
                           height: 36,
                           borderRadius: 10,
-                          background: `${color}1f`,
+                          background: `color-mix(in srgb, ${color} 12%, transparent)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -1278,7 +1273,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       transition: "box-shadow 0.3s ease, transform 0.3s ease",
                       ...(isHighlighted
                         ? {
-                            boxShadow: `0 0 0 2px ${barColor}, 0 4px 16px ${barColor}33`,
+                            boxShadow: `0 0 0 2px ${barColor}, 0 4px 16px color-mix(in srgb, ${barColor} 20%, transparent)`,
                             transform: "scale(1.01)",
                           }
                         : {}),
@@ -1292,8 +1287,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           height: 44,
                           borderRadius: 12,
                           flexShrink: 0,
-                          background: `${barColor}15`,
-                          border: `1px solid ${barColor}33`,
+                          background: `color-mix(in srgb, ${barColor} 8%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${barColor} 20%, transparent)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -1344,8 +1339,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                                 fontSize: 10,
                                 fontWeight: 700,
                                 color: statusBadge.color,
-                                background: `${statusBadge.color}12`,
-                                border: `1px solid ${statusBadge.color}33`,
+                                background: `color-mix(in srgb, ${statusBadge.color} 7%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${statusBadge.color} 20%, transparent)`,
                                 padding: "2px 8px",
                                 borderRadius: 20,
                               }}
@@ -1385,6 +1380,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           size="sm"
                           onClick={() => setEditBudget(b)}
                           style={{ padding: 6 }}
+                          title="Edit"
+                          aria-label={`Edit ${b.category} budget`}
                         >
                           <Pencil size={14} />
                         </Button>
@@ -1397,6 +1394,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             }
                           }}
                           style={{ padding: 6, color: THEME.rust }}
+                          title="Delete"
+                          aria-label={`Delete ${b.category} budget`}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -1650,7 +1649,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: `${color}1f`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1777,8 +1776,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           height: 44,
                           borderRadius: 12,
                           flexShrink: 0,
-                          background: `${hasPaid ? THEME.sage : statusColor}09`,
-                          border: `1px solid ${hasPaid ? THEME.sage : statusColor}22`,
+                          background: `color-mix(in srgb, ${hasPaid ? THEME.sage : statusColor} 4%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${hasPaid ? THEME.sage : statusColor} 13%, transparent)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -1805,6 +1804,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}
                         >
                           <span
+                            title={re.name}
                             style={{
                               fontWeight: 800,
                               fontSize: 16,
@@ -1944,6 +1944,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             }
                             style={{ padding: 6, color: re.isActive ? THEME.gold : THEME.sage }}
                             title={re.isActive ? "Pause" : "Resume"}
+                            aria-label={
+                              re.isActive ? `Pause ${re.name}` : `Resume ${re.name}`
+                            }
                           >
                             {re.isActive ? <Pause size={14} /> : <Play size={14} />}
                           </Button>
@@ -1952,6 +1955,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             size="sm"
                             onClick={() => setEditRecurring(re)}
                             style={{ padding: 6 }}
+                            title="Edit"
+                            aria-label={`Edit ${re.name}`}
                           >
                             <Pencil size={14} />
                           </Button>
@@ -1960,6 +1965,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             size="sm"
                             onClick={() => removeItem("recurringExpenses", re.id)}
                             style={{ padding: 6, color: THEME.rust }}
+                            title="Delete"
+                            aria-label={`Delete ${re.name}`}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -2071,8 +2078,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         style={{
                           padding: "14px 16px",
                           borderRadius: 12,
-                          background: `${statusColor}09`,
-                          border: `1px solid ${statusColor}33`,
+                          background: `color-mix(in srgb, ${statusColor} 4%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${statusColor} 20%, transparent)`,
                           display: "flex",
                           alignItems: "center",
                           gap: 14,
@@ -2083,8 +2090,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             width: 36,
                             height: 36,
                             borderRadius: 10,
-                            background: statusColor + "18",
-                            border: `1px solid ${statusColor}33`,
+                            background: `color-mix(in srgb, ${statusColor} 9%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${statusColor} 20%, transparent)`,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -2308,14 +2315,19 @@ export function BudgetModal({ onClose, onSave, initialValues = null, existing = 
         <input
           className="form-input"
           type="number"
+          min="0"
+          inputMode="decimal"
           value={f.monthly}
           onChange={(e) => setF({ ...f, monthly: e.target.value })}
           placeholder="e.g. 5000"
+          autoFocus
         />
       </Field>
       <ModalActions
         onSave={() => f.monthly && Number(f.monthly) > 0 && onSave(f)}
         onClose={onClose}
+        disabled={!(Number(f.monthly) > 0)}
+        saveLabel={initialValues ? "Save Changes" : "Add Budget"}
       />
     </Modal>
   );
@@ -2357,7 +2369,7 @@ export function RecurringModal({ onClose, onSave, initialValues = null, accounts
       title={initialValues ? "Edit Recurring Expense" : "Add Recurring Expense"}
       onClose={onClose}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2">
         <Field label="Owner / Profile">
           <select
             className="form-input"
@@ -2393,10 +2405,11 @@ export function RecurringModal({ onClose, onSave, initialValues = null, accounts
           value={f.name}
           onChange={(e) => setF({ ...f, name: e.target.value })}
           placeholder="e.g. Maid Salary, Broadband Bill"
+          autoFocus
         />
       </Field>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2">
         <Field label="Category">
           <select
             className="form-input"
@@ -2421,7 +2434,7 @@ export function RecurringModal({ onClose, onSave, initialValues = null, accounts
         </Field>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2">
         <Field label="Frequency">
           <select
             className="form-input"
@@ -2448,7 +2461,7 @@ export function RecurringModal({ onClose, onSave, initialValues = null, accounts
         </Field>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="form-grid-2">
         <Field label="Start Date">
           <input
             className="form-input"
@@ -2468,7 +2481,12 @@ export function RecurringModal({ onClose, onSave, initialValues = null, accounts
         </Field>
       </div>
 
-      <ModalActions onSave={() => f.name && f.amount && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() => f.name.trim() && Number(f.amount) > 0 && onSave(f)}
+        onClose={onClose}
+        disabled={!f.name.trim() || !(Number(f.amount) > 0)}
+        saveLabel={initialValues ? "Save Changes" : "Add Recurring Expense"}
+      />
     </Modal>
   );
 }

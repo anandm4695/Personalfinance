@@ -35,6 +35,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, getEffectiveRent } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 
@@ -629,45 +630,14 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         <SectionTitle sub="Forward-looking projection of your income, expenses, and one-time events">
           Cash Flow Forecast
         </SectionTitle>
-        <Card style={{ padding: "48px 32px", textAlign: "center" }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              background: `linear-gradient(135deg, ${THEME.accent}, ${THEME.sage})`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-            }}
-          >
-            <Activity size={30} color="#fff" />
-          </div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 800,
-              color: THEME.ink,
-              marginBottom: 8,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            No Cash Flow Data Yet
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: THEME.muted,
-              maxWidth: 420,
-              margin: "0 auto",
-              lineHeight: 1.6,
-            }}
-          >
-            Add income entries, loans, SIPs, subscriptions, or budgets to see your projected cash
-            flow over the next {forecastMonths} months.
-          </div>
-        </Card>
+        <EmptyState
+          icon={Activity}
+          gradient={`linear-gradient(135deg, ${THEME.accent}, ${THEME.sage})`}
+          dotColor={THEME.accent}
+          title="No Cash Flow Data Yet"
+          description={`Add income entries, loans, SIPs, subscriptions, or budgets to see your projected cash flow over the next ${forecastMonths} months.`}
+          pills={["Income", "Loans", "SIPs", "Subscriptions", "Budgets"]}
+        />
       </div>
     );
   }
