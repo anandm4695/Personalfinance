@@ -46,6 +46,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+import { isLongTerm, isEquityMF } from "./CapitalGainsTab";
 
 /* ══════════════════════════════════════════════════════════════════
    HELPERS & PREMIUM CONTROLS
@@ -865,53 +866,49 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
 
     const totalNewInvestments = stockBuys + mfBuys + fdAdds + ppfAdds;
 
-    const stcg = (state.stockSells || [])
-      .filter((s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd)
-      .reduce((sum: number, s: any) => {
-        const gain = Number(s.sellAmount || 0) - Number(s.invested || 0);
-        const holdDays =
-          s.buyDate && s.sellDate
-            ? (new Date(s.sellDate).getTime() - new Date(s.buyDate).getTime()) /
-              (1000 * 60 * 60 * 24)
-            : 0;
-        return holdDays <= 365 ? sum + gain : sum;
-      }, 0);
+    // stockSells/mfSells records store the realized gain in `profit` (set at sell time by
+    // DematTab/InvestmentsTab's sell modals) plus qty/buyPrice/sellPrice or units/buyNav/sellNav —
+    // there is no `sellAmount`/`invested` field on these records at all, so the previous
+    // `Number(s.sellAmount||0) - Number(s.invested||0)` always evaluated to 0 - 0 = 0, meaning
+    // STCG/LTCG here always showed ₹0 regardless of actual realized gains. Also switched the
+    // naive "> 365 days" split for a naive day-diff to isLongTerm()'s Section 2(42A)
+    // anniversary rule (12mo equity, 36mo pre-Apr-2023 debt MF, always-STCG post-Apr-2023 debt
+    // MF) to match CapitalGainsTab/TaxVaultTab's classification exactly.
+    const stockSellsInFY = (state.stockSells || []).filter(
+      (s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd
+    );
+    let stcg = 0;
+    let ltcg = 0;
+    stockSellsInFY.forEach((s: any) => {
+      const gain =
+        s.profit != null
+          ? Number(s.profit)
+          : (Number(s.sellPrice || 0) - Number(s.buyPrice || 0)) * Number(s.qty || 0);
+      if (isLongTerm(s.buyDate, s.sellDate, 12)) ltcg += gain;
+      else stcg += gain;
+    });
 
-    const ltcg = (state.stockSells || [])
-      .filter((s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd)
-      .reduce((sum: number, s: any) => {
-        const gain = Number(s.sellAmount || 0) - Number(s.invested || 0);
-        const holdDays =
-          s.buyDate && s.sellDate
-            ? (new Date(s.sellDate).getTime() - new Date(s.buyDate).getTime()) /
-              (1000 * 60 * 60 * 24)
-            : 0;
-        return holdDays > 365 ? sum + gain : sum;
-      }, 0);
-
-    const mfStcg = (state.mfSells || [])
-      .filter((s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd)
-      .reduce((sum: number, s: any) => {
-        const gain = Number(s.sellAmount || 0) - Number(s.invested || 0);
-        const holdDays =
-          s.buyDate && s.sellDate
-            ? (new Date(s.sellDate).getTime() - new Date(s.buyDate).getTime()) /
-              (1000 * 60 * 60 * 24)
-            : 0;
-        return holdDays <= 365 ? sum + gain : sum;
-      }, 0);
-
-    const mfLtcg = (state.mfSells || [])
-      .filter((s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd)
-      .reduce((sum: number, s: any) => {
-        const gain = Number(s.sellAmount || 0) - Number(s.invested || 0);
-        const holdDays =
-          s.buyDate && s.sellDate
-            ? (new Date(s.sellDate).getTime() - new Date(s.buyDate).getTime()) /
-              (1000 * 60 * 60 * 24)
-            : 0;
-        return holdDays > 365 ? sum + gain : sum;
-      }, 0);
+    const mfSellsInFY = (state.mfSells || []).filter(
+      (s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd
+    );
+    let mfStcg = 0;
+    let mfLtcg = 0;
+    mfSellsInFY.forEach((m: any) => {
+      const gain =
+        m.profit != null
+          ? Number(m.profit)
+          : (Number(m.sellNav || 0) - Number(m.buyNav || 0)) * Number(m.units || 0);
+      let long: boolean;
+      if (isEquityMF(m)) {
+        long = isLongTerm(m.buyDate, m.sellDate, 12);
+      } else {
+        const buyDate = new Date(m.buyDate);
+        const postApr2023 = buyDate >= new Date(2023, 3, 1);
+        long = postApr2023 ? false : isLongTerm(m.buyDate, m.sellDate, 36);
+      }
+      if (long) mfLtcg += gain;
+      else mfStcg += gain;
+    });
 
     return {
       savings,
@@ -1052,12 +1049,16 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     const totalEMI = loans.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const annualEMI = totalEMI * 12;
 
-    const avgRate =
-      loans.length > 0
-        ? loans.reduce((s: number, l: any) => s + Number(l.interestRate || l.rate || 0), 0) /
-          loans.length
-        : 0;
-    const interestPortion = totalOutstanding * (avgRate / 100);
+    // Weight each loan's own outstanding balance by its own rate, rather than applying a
+    // simple (unweighted) average rate across ALL loans to the POOLED outstanding total —
+    // that previous approach misallocated interest whenever loans had different balances
+    // (e.g. a small high-rate personal loan skewed the "average" applied to a much larger
+    // low-rate home loan's balance too).
+    const interestPortion = loans.reduce(
+      (s: number, l: any) =>
+        s + Number(l.outstanding || 0) * (Number(l.interestRate || l.rate || 0) / 100),
+      0
+    );
     const principalRepaid = Math.max(0, annualEMI - interestPortion);
 
     const ccOutstanding = (state.creditCards || []).reduce(
@@ -1237,14 +1238,20 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
 
     const stockPnLs = (state.stocks || []).map((s: any) => {
       const invested = Number(s.invested || (s.avgPrice || 0) * (s.qty || 0) || 0);
-      const current = Number(s.currentValue || s.ltp * (s.qty || 0) || 0);
+      // Stock records have no `currentValue`/`ltp` field — the real field is `currentPrice`
+      // (this component has no live marketData feed, unlike useMetrics.ts's stockValue calc).
+      // The old `s.ltp * (s.qty||0)` was always `undefined * n` = NaN, so `gain` was always
+      // NaN, `allPnL.filter(p => p.gain > 0)` silently dropped every stock, and "Best
+      // performer" would only ever surface if a mutual fund happened to also pass (also NaN).
+      const current = Number(s.currentValue || (s.currentPrice || 0) * (s.qty || 0) || 0);
       const gain = current - invested;
       const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
       return { name: s.name || s.symbol || "Stock", gain, gainPct };
     });
     const mfPnLs = (state.mutualFunds || []).map((m: any) => {
       const invested = Number(m.invested || m.investedAmount || 0);
-      const current = Number(m.currentValue || m.nav * (m.units || 0) || 0);
+      // Same bug as stocks above — the real field is `currentNav`, not `nav`.
+      const current = Number(m.currentValue || (m.currentNav || 0) * (m.units || 0) || 0);
       const gain = current - invested;
       const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
       return { name: m.name || m.scheme || "MF", gain, gainPct };

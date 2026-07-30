@@ -50,7 +50,7 @@ const EQUITY_CATEGORIES = [
   "sensex",
 ];
 
-const isEquityMF = (mf: any): boolean => {
+export const isEquityMF = (mf: any): boolean => {
   const cat = (mf.category || mf.type || mf.scheme || mf.name || "").toLowerCase();
   return EQUITY_CATEGORIES.some((k) => cat.includes(k));
 };
