@@ -47,6 +47,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 import { isLongTerm, isEquityMF } from "./CapitalGainsTab";
+import { computeNetWorthAsOf } from "../../utils/netWorthAsOf";
 
 /* ══════════════════════════════════════════════════════════════════
    HELPERS & PREMIUM CONTROLS
@@ -477,7 +478,7 @@ const PremiumStatCard = ({
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════ */
 
-export const AnnualReportTab = ({ state, metrics }: any) => {
+export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "all" }: any) => {
   // ── Inject print styles ────────────────────────────────────────
   useEffect(() => {
     const style = document.createElement("style");
@@ -624,31 +625,34 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     const marchKey = `${fyStartYear + 1}-03`;
     const openingMarchKey = `${fyStartYear}-03`; // last month of the PREVIOUS FY = opening balance of this FY
     const todayYM = today().slice(0, 7);
-
-    // Prefer the prior FY's March closing snapshot (true opening balance as of Apr 1).
-    // Only fall back to this FY's own April entry if no prior snapshot exists at all —
-    // using April's entry as "opening" would double-count April's own movement.
-    const openingEntry =
-      history.find((h: any) => h.month === openingMarchKey) ||
-      [...history].reverse().find((h: any) => h.month < aprilKey) ||
-      history.find((h: any) => h.month === aprilKey);
-    const openingNW = openingEntry ? Number(openingEntry.netWorth || 0) : 0;
-
-    const closingEntry =
-      history.find((h: any) => h.month === marchKey) ||
-      [...history]
-        .reverse()
-        .find(
-          (h: any) => h.month >= aprilKey && h.month <= (todayYM < marchKey ? todayYM : marchKey)
-        );
-
     const isCurrentFY = todayYM >= aprilKey && todayYM <= marchKey;
+
+    // Reconstruct a month's net worth from each asset's own dated records (same helper
+    // NetWorthTimelineTab/MonthlyReportModal use) instead of ONLY reading frozen monthly
+    // snapshots. Two real gaps in the old snapshot-only approach:
+    // 1. `getFilteredStateForProfile` (useMetrics.ts) always returns `netWorthHistory: []` for
+    //    any profile other than "All" — there is no per-family-member snapshot to read, so the
+    //    entire Net Worth section (and this chart) silently showed ₹0 / stayed empty whenever a
+    //    specific family member was selected via the header's profile switcher.
+    // 2. The snapshot is only ever written for whichever month the app happened to be open in
+    //    (App.tsx's debounced auto-snapshot effect) — any month you didn't open the app leaves a
+    //    permanent gap, and the old code's `.filter(d => d.value > 0)` silently dropped those
+    //    months from the chart, compressing the x-axis and distorting the visible trend/slope.
+    // For "All" + a month with a real recorded snapshot, still prefer that snapshot — it captured
+    // the actual historical stock/MF/gold price at the time, which computeNetWorthAsOf can't
+    // (it always reconstructs holdings at TODAY's price, per its own documented limitation).
+    const nwForMonth = (ym: string): number => {
+      if (ym > todayYM) return 0; // can't reconstruct a month that hasn't happened yet
+      if (activeProfile === "all") {
+        const entry = history.find((h: any) => h.month === ym);
+        if (entry) return Number(entry.netWorth || 0);
+      }
+      return computeNetWorthAsOf(state, ym, marketData, activeProfile).netWorth;
+    };
+
+    const openingNW = nwForMonth(openingMarchKey);
     const closingNW =
-      isCurrentFY && metrics.netWorth > 0
-        ? metrics.netWorth
-        : closingEntry
-          ? Number(closingEntry.netWorth || 0)
-          : 0;
+      isCurrentFY && metrics.netWorth > 0 ? metrics.netWorth : nwForMonth(marchKey);
 
     const change = closingNW - openingNW;
     const changePct =
@@ -656,17 +660,21 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
 
     const chartData = fyMonths
       .map((ym, idx) => {
-        const entry = history.find((h: any) => h.month === ym);
-        let nw = entry ? Number(entry.netWorth || 0) : 0;
-        if (isCurrentFY && ym === todayYM && metrics.netWorth > 0) {
-          nw = metrics.netWorth;
-        }
+        let nw = ym === todayYM && metrics.netWorth > 0 ? metrics.netWorth : nwForMonth(ym);
         return { month: MONTH_NAMES[idx], value: nw };
       })
       .filter((d) => d.value > 0);
 
     return { openingNW, closingNW, change, changePct, chartData, isCurrentFY };
-  }, [state.netWorthHistory, metrics.netWorth, selectedFY, fyMonths, fyStartYear]);
+  }, [
+    state,
+    metrics.netWorth,
+    marketData,
+    activeProfile,
+    selectedFY,
+    fyMonths,
+    fyStartYear,
+  ]);
 
   /* ═══════════════════════════════════════════════════════════════
      (b) INCOME SUMMARY

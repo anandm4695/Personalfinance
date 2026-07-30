@@ -4907,7 +4907,12 @@ function FinanceDashboard() {
               {tab === "capitalgains" && <CapitalGainsTab state={filteredState} />}
               {tab === "taxtools" && <TaxToolsTab state={filteredState} metrics={metrics} />}
               {tab === "annualreport" && (
-                <AnnualReportTab state={filteredState} metrics={metrics} />
+                <AnnualReportTab
+                  state={filteredState}
+                  metrics={metrics}
+                  marketData={marketData}
+                  activeProfile={activeProfile}
+                />
               )}
               {tab === "investstatement" && (
                 <InvestmentStatementTab
