@@ -28,6 +28,20 @@ import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
+// Add `years` to `date` without JS's Date.setFullYear() month-overflow bug: a Feb-29
+// commencement date rolled forward by a whole number of years can land on a non-leap
+// target year, where Feb 29 doesn't exist — the native setFullYear() silently rolls
+// that over into March 1 instead of clamping to Feb 28. Used by all 3 auto-fill
+// maturity/expiry handlers below (LIC, Term, Investment plans).
+const addYearsClamped = (date: Date, years: number): Date => {
+  const targetYear = date.getFullYear() + years;
+  const month = date.getMonth();
+  const lastDayOfMonth = new Date(targetYear, month + 1, 0).getDate();
+  const result = new Date(date);
+  result.setFullYear(targetYear, month, Math.min(date.getDate(), lastDayOfMonth));
+  return result;
+};
+
 const INSURER_LOGOS: Record<string, string> = {
   // Longer / more specific keys must come first to avoid substring false-matches
   "aditya birla": "adityabirlacapital.com",
@@ -216,8 +230,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         const commDate = new Date(nextLic.commencementDate);
         const termYears = parseInt(nextLic.policyTerm, 10);
         if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
-          const matDate = new Date(commDate);
-          matDate.setFullYear(matDate.getFullYear() + termYears);
+          const matDate = addYearsClamped(commDate, termYears);
           const yStr = matDate.getFullYear();
           const mStr = String(matDate.getMonth() + 1).padStart(2, "0");
           const dStr = String(matDate.getDate()).padStart(2, "0");
@@ -235,8 +248,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         const commDate = new Date(nextTerm.startDate);
         const termYears = parseInt(nextTerm.term, 10);
         if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
-          const expDate = new Date(commDate);
-          expDate.setFullYear(expDate.getFullYear() + termYears);
+          const expDate = addYearsClamped(commDate, termYears);
           const yStr = expDate.getFullYear();
           const mStr = String(expDate.getMonth() + 1).padStart(2, "0");
           const dStr = String(expDate.getDate()).padStart(2, "0");
@@ -258,8 +270,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         const commDate = new Date(nextInvest.commencementDate);
         const termYears = parseInt(nextInvest.policyTerm, 10);
         if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
-          const matDate = new Date(commDate);
-          matDate.setFullYear(matDate.getFullYear() + termYears);
+          const matDate = addYearsClamped(commDate, termYears);
           const yStr = matDate.getFullYear();
           const mStr = String(matDate.getMonth() + 1).padStart(2, "0");
           const dStr = String(matDate.getDate()).padStart(2, "0");
@@ -418,8 +429,12 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         amount: premium,
       });
 
-      current.setFullYear(current.getFullYear() + 1);
       count++;
+      // Re-anchor to the original commencement date each iteration (instead of
+      // mutating `current` in place) so a Feb-29 commencement re-lands on Feb 29
+      // every leap year instead of permanently drifting to Mar 1 after the first
+      // non-leap year rollover — see addYearsClamped.
+      current = addYearsClamped(commDate, count);
     }
 
     setLic({ ...lic, transactions: generated });
@@ -462,8 +477,12 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         amount: premium,
       });
 
-      current.setFullYear(current.getFullYear() + 1);
       count++;
+      // Re-anchor to the original commencement date each iteration (instead of
+      // mutating `current` in place) so a Feb-29 commencement re-lands on Feb 29
+      // every leap year instead of permanently drifting to Mar 1 after the first
+      // non-leap year rollover — see addYearsClamped.
+      current = addYearsClamped(commDate, count);
     }
 
     setTerm({ ...term, transactions: generated });
@@ -506,8 +525,12 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         amount: premium,
       });
 
-      current.setFullYear(current.getFullYear() + 1);
       count++;
+      // Re-anchor to the original commencement date each iteration (instead of
+      // mutating `current` in place) so a Feb-29 commencement re-lands on Feb 29
+      // every leap year instead of permanently drifting to Mar 1 after the first
+      // non-leap year rollover — see addYearsClamped.
+      current = addYearsClamped(commDate, count);
     }
 
     setInvest({ ...invest, transactions: generated });
@@ -1523,10 +1546,20 @@ const getNextPremiumDue = (startDateStr: string, expiryDateStr?: string) => {
   // active, or vice versa, depending on time of day in IST.
   if (expiryDateStr && new Date(expiryDateStr + "T00:00:00") < today) return null;
   const start = new Date(startDateStr + "T00:00:00");
+  const startMonth = start.getMonth();
+  const startDay = start.getDate();
+  // A Feb-29 commencement rolled into a non-leap year via setFullYear() overflows
+  // (Date auto-normalizes Feb 29 -> Mar 1), which threw off both the "is this year's
+  // anniversary already past" check and the displayed date. Clamp to the target
+  // year's actual last day of that month instead (Feb 29 -> Feb 28).
+  const setAnniversaryYear = (d: Date, year: number) => {
+    const lastDayOfMonth = new Date(year, startMonth + 1, 0).getDate();
+    d.setFullYear(year, startMonth, Math.min(startDay, lastDayOfMonth));
+  };
   const next = new Date(start);
-  next.setFullYear(today.getFullYear());
+  setAnniversaryYear(next, today.getFullYear());
   const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  if (next <= todayMidnight) next.setFullYear(today.getFullYear() + 1);
+  if (next <= todayMidnight) setAnniversaryYear(next, today.getFullYear() + 1);
   const days = Math.round((next.getTime() - todayMidnight.getTime()) / 86400000);
   const yStr = next.getFullYear();
   const mStr = String(next.getMonth() + 1).padStart(2, "0");

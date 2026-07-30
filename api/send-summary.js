@@ -520,6 +520,20 @@ function computeSummary(state) {
 
   const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat);
 
+  // Rent received via the Rental Properties ledger (landlord side) — mirrors
+  // rentPaidThisMonth's ledger-only inclusion below, just on the income side. Without
+  // this, a manually-logged receipt (no linked bank transaction) never appeared in the
+  // daily email's Income figure even though it's counted on the Dashboard/Monthly Report.
+  const rentReceivedThisMonth = (state.rentalProperties || []).reduce((sum, p) => {
+    const receiptsThisMonth = (p.receipts || [])
+      .filter((r) => r.date && r.date.startsWith(curYm))
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    return sum + receiptsThisMonth;
+  }, 0);
+  const hasRentReceivedTxn = monthTxns.some(
+    (t) => t.type === "credit" && (t.category || "").toLowerCase() === "rent"
+  );
+
   const monthIncome = (() => {
     const explicitIncomeMonth = (state.income || [])
       .filter((i) => i.date && i.date.startsWith(curYm))
@@ -527,7 +541,8 @@ function computeSummary(state) {
     const txnIncomeMonth = monthTxns
       .filter((t) => t.type === "credit" && !isTransferCat(t.category))
       .reduce((s, t) => s + Number(t.amount || 0), 0);
-    return explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
+    const rentTopUp = rentReceivedThisMonth > 0 && !hasRentReceivedTxn ? rentReceivedThisMonth : 0;
+    return (explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth) + rentTopUp;
   })();
 
   const rentPaidThisMonth = (state.rentedProperties || []).reduce((sum, p) => {

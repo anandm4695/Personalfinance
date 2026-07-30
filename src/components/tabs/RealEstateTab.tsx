@@ -1956,6 +1956,10 @@ export function RealEstateTab({
   const [editDemand, setEditDemand] = useState<any>(null);
   const [paymentForProperty, setPaymentForProperty] = useState<any>(null);
   const [editPayment, setEditPayment] = useState<any>(null);
+  // "share" (default) matches Dashboard/Net Worth — scales by ownership %.
+  // "full" shows each property's entire value, useful when managing the
+  // property itself rather than your personal net-worth stake in it.
+  const [valueView, setValueView] = useState<"share" | "full">("share");
 
   const stats = useMemo(() => {
     const activeProperties = properties.filter((p) => p.status !== "sold");
@@ -1964,10 +1968,13 @@ export function RealEstateTab({
     // co-owner, or one owned 100% by a single family member, must not count
     // at its full value here when the canonical net-worth calc (useMetrics.ts
     // / netWorthAsOf.ts) only counts the tracked share. See realEstateTrackedShare.
+    // Toggled off via valueView === "full" to show whole-property totals instead.
     const shareOf = (p: any) =>
-      activeProfile && activeProfile !== "all"
-        ? realEstateShareForOwner(p, activeProfile)
-        : realEstateTrackedShare(p);
+      valueView === "full"
+        ? 1
+        : activeProfile && activeProfile !== "all"
+          ? realEstateShareForOwner(p, activeProfile)
+          : realEstateTrackedShare(p);
     const portfolioValue = activeProperties.reduce(
       (s, p) => s + Number(p.marketValue || p.agreementValue || 0) * shareOf(p),
       0
@@ -2003,7 +2010,7 @@ export function RealEstateTab({
       appreciation,
       appreciationPct,
     };
-  }, [properties, demands, payments, activeProfile]);
+  }, [properties, demands, payments, activeProfile, valueView]);
 
   const handleSaveProperty = (data: any) => {
     if (editProperty) {
@@ -2095,6 +2102,51 @@ export function RealEstateTab({
           so it gets the hero-card slot (matches FIRE Number / Goals Overall Progress). */}
       {properties.length > 0 && (
         <>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: 12,
+            }}
+          >
+            <div style={{ display: "flex", gap: 6 }}>
+              {(
+                [
+                  { key: "share", label: "My Share" },
+                  { key: "full", label: "Full Value" },
+                ] as { key: "share" | "full"; label: string }[]
+              ).map((opt) => {
+                const active = valueView === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setValueView(opt.key)}
+                    className="card-lift"
+                    aria-pressed={active}
+                    title={
+                      opt.key === "share"
+                        ? "Shows only your ownership % of each property (matches Dashboard/Net Worth)"
+                        : "Shows each property's full value regardless of ownership split"
+                    }
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 16,
+                      background: active ? THEME.accent : "var(--surface-0)",
+                      border: `1px solid ${active ? THEME.accent : THEME.line}`,
+                      color: active ? "#fff" : THEME.ink,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <Card
             variant="hero"
             style={{

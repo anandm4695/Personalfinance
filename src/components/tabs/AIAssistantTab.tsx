@@ -1226,7 +1226,13 @@ You have access to local tools/functions to retrieve real-time and detailed tran
     const startDate = args.startDate || defaultStart;
     const endDate = args.endDate || defaultEnd;
     const txs = (state.transactions || []).filter(
-      (t: any) => t.type === "debit" && t.date >= startDate && t.date <= endDate
+      (t: any) =>
+        t.type === "debit" &&
+        t.date >= startDate &&
+        t.date <= endDate &&
+        t.category !== "Transfer" &&
+        t.category !== "Self Transfer" &&
+        t.category !== "Self-Transfer"
     );
     const byCat: Record<string, number> = {};
     txs.forEach((t: any) => {
@@ -1312,7 +1318,13 @@ You have access to local tools/functions to retrieve real-time and detailed tran
     const txs = state.transactions || [];
     const monthlySpend: Record<string, number> = {};
     txs
-      .filter((t: any) => t.type === "debit")
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .forEach((t: any) => {
         if (t.date) {
           const m = t.date.slice(0, 7);
@@ -1404,7 +1416,13 @@ You have access to local tools/functions to retrieve real-time and detailed tran
     const now = new Date();
     const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const txsThisMonth = (state.transactions || []).filter(
-      (t: any) => t.type === "debit" && t.date && t.date.startsWith(monthPrefix)
+      (t: any) =>
+        t.type === "debit" &&
+        t.date &&
+        t.date.startsWith(monthPrefix) &&
+        t.category !== "Transfer" &&
+        t.category !== "Self Transfer" &&
+        t.category !== "Self-Transfer"
     );
     const spentByCat: Record<string, number> = {};
     txsThisMonth.forEach((t: any) => {

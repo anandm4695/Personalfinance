@@ -322,8 +322,20 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     [txns, rangeStart, rangeEnd]
   );
 
-  const expenses = useMemo(() => periodTxns.filter((t: any) => t.type === "debit"), [periodTxns]);
-  const income = useMemo(() => periodTxns.filter((t: any) => t.type === "credit"), [periodTxns]);
+  // Exclude internal transfers (between the user's own accounts) — same treatment as
+  // BanksTab's dashboard KPI cards / useMetrics.ts, so trend totals here don't inflate
+  // both "income" and "expense" every time money moves between two of the user's own
+  // accounts (each leg of a transfer is separately categorised "Transfer").
+  const isTransferCat = (cat: string) =>
+    cat === "Transfer" || cat === "Self Transfer" || cat === "Self-Transfer";
+  const expenses = useMemo(
+    () => periodTxns.filter((t: any) => t.type === "debit" && !isTransferCat(t.category)),
+    [periodTxns]
+  );
+  const income = useMemo(
+    () => periodTxns.filter((t: any) => t.type === "credit" && !isTransferCat(t.category)),
+    [periodTxns]
+  );
 
   const monthlyData = useMemo(() => {
     const expenseMap: Record<string, number> = {};

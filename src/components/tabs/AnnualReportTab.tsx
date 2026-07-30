@@ -676,8 +676,19 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     );
     const ledgerTotal = incomeLedger.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
 
+    // Exclude internal transfers between the user's own accounts — same treatment as
+    // useMetrics.ts/BanksTab's dashboard KPIs/MonthlyReportModal. Without this, every
+    // self-transfer inflated the FY Income total here and polluted the category
+    // breakdown with a fake "Transfer" income source.
     const creditTxns = (state.transactions || []).filter(
-      (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type === "credit"
+      (t: any) =>
+        t.date &&
+        t.date >= fyStart &&
+        t.date <= fyEnd &&
+        t.type === "credit" &&
+        t.category !== "Transfer" &&
+        t.category !== "Self Transfer" &&
+        t.category !== "Self-Transfer"
     );
     const creditTotal = creditTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
@@ -740,8 +751,17 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
      (c) EXPENSE SUMMARY
      ═══════════════════════════════════════════════════════════════ */
   const expenseData = useMemo(() => {
+    // Same Transfer exclusion as incomeData's creditTxns above — a self-transfer out of
+    // one of the user's own accounts is not real spending.
     const debitTxns = (state.transactions || []).filter(
-      (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type === "debit"
+      (t: any) =>
+        t.date &&
+        t.date >= fyStart &&
+        t.date <= fyEnd &&
+        t.type === "debit" &&
+        t.category !== "Transfer" &&
+        t.category !== "Self Transfer" &&
+        t.category !== "Self-Transfer"
     );
     const txnExpense = debitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 

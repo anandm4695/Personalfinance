@@ -116,7 +116,14 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   const historicalData = useMemo(() => {
     const monthMap = {};
     (state.transactions || [])
-      .filter((t) => t.type === "debit" && t.date)
+      .filter(
+        (t) =>
+          t.type === "debit" &&
+          t.date &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .forEach((t) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";

@@ -71,7 +71,14 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // 1. Spending anomaly detection
     const monthlySpend = {};
     (state.transactions || [])
-      .filter((t) => t.type === "debit" && t.date)
+      .filter(
+        (t) =>
+          t.type === "debit" &&
+          t.date &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .forEach((t) => {
         const ym = t.date.slice(0, 7);
         monthlySpend[ym] = (monthlySpend[ym] || 0) + Number(t.amount || 0);
@@ -121,7 +128,14 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     const catSpend = {};
     const catAvg = {};
     (state.transactions || [])
-      .filter((t) => t.type === "debit" && t.date)
+      .filter(
+        (t) =>
+          t.type === "debit" &&
+          t.date &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .forEach((t) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";

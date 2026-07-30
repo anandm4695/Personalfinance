@@ -599,7 +599,7 @@ export function useMetrics(
           t.category !== "Self-Transfer"
       )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const monthIncome = explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
+    const monthIncomeBase = explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
 
     const rentPaidThisMonth = (sState.rentedProperties || []).reduce((sum: number, p: any) => {
       const paymentsThisMonth = (p.payments || [])
@@ -607,6 +607,27 @@ export function useMetrics(
         .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
       return sum + paymentsThisMonth;
     }, 0);
+
+    // Rent RECEIVED (landlord side, `rentalProperties[].receipts`) had no ledger-only
+    // inclusion path even though rent PAID above does — manually-logged receipts (not
+    // tied to a bank transaction) were invisible to Dashboard/Monthly Report income.
+    // Mirrors rentPaidThisMonth's guard: skip the ledger top-up for a month that already
+    // has a bank-linked "Rent" credit transaction counted in txnIncomeMonth, to avoid
+    // double-counting (BanksTab's applyLinkedTxn auto-posts into receipts AND transactions).
+    const rentReceivedThisMonth = (sState.rentalProperties || []).reduce(
+      (sum: number, p: any) => {
+        const receiptsThisMonth = (p.receipts || [])
+          .filter((r: any) => r.date && r.date.startsWith(ym))
+          .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+        return sum + receiptsThisMonth;
+      },
+      0
+    );
+    const hasRentReceivedTxn = monthTxns.some(
+      (t: any) => t.type === "credit" && t.category === "Rent"
+    );
+    const monthIncome =
+      monthIncomeBase + (rentReceivedThisMonth > 0 && !hasRentReceivedTxn ? rentReceivedThisMonth : 0);
 
     const txnDebitTotal = monthTxns
       .filter(
@@ -639,8 +660,20 @@ export function useMetrics(
       )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const annualizedCurrentMonth = (monthIncome || 0) * 12;
+    // Manually-logged rent receipts (not bank-linked) for the FY — same ledger-only gap as
+    // rentReceivedThisMonth above. Bank-linked receipts (id `bank-${txnId}`, see BanksTab's
+    // applyLinkedTxn) are excluded here since they're already counted via txnIncome/monthIncome.
+    const rentReceivedFY = (sState.rentalProperties || []).reduce((sum: number, p: any) => {
+      const receiptsInFY = (p.receipts || [])
+        .filter(
+          (r: any) =>
+            r.date && new Date(r.date) >= fyStart && !String(r.id || "").startsWith("bank-")
+        )
+        .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      return sum + receiptsInFY;
+    }, 0);
     // Prefer explicit ledger -> FY-to-date credit txns -> annualised single month (least accurate)
-    const annualIncome = explicitIncome || txnIncome || annualizedCurrentMonth || 0;
+    const annualIncome = (explicitIncome || txnIncome || annualizedCurrentMonth || 0) + rentReceivedFY;
 
     const subTotal = sState.subscriptions
       .filter((sub: any) => !sub.paused)

@@ -185,6 +185,26 @@ export function MonthlyReportModal({
   const isTransferCat = (cat: string) =>
     ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat || "");
 
+  // Rent received via the Rental Properties ledger (landlord side, not logged as a
+  // transaction) — same ledger-only gap as getRentInfo below has for rent PAID, just
+  // never had the mirror-image fix on the income side. Without this, a manually-logged
+  // receipt (no linked bank transaction) was invisible to this report's Income tile.
+  const getRentReceivedInfo = (targetYm: string, monthTxns: any[]) => {
+    const rentReceivedThisMonth = (state.rentalProperties || []).reduce(
+      (sum: number, p: any) => {
+        const receiptsThisMonth = (p.receipts || [])
+          .filter((r: any) => r.date && r.date.startsWith(targetYm))
+          .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+        return sum + receiptsThisMonth;
+      },
+      0
+    );
+    const hasRentReceivedTxn = monthTxns.some(
+      (t: any) => t.type === "credit" && (t.category || "").toLowerCase() === "rent"
+    );
+    return { rentReceivedThisMonth, hasRentReceivedTxn };
+  };
+
   const computeMonthIncome = (targetYm: string, monthTxns: any[]) => {
     const explicitIncomeMonth = (state.income || [])
       .filter((i: any) => i.date && i.date.startsWith(targetYm))
@@ -192,7 +212,12 @@ export function MonthlyReportModal({
     const txnIncomeMonth = monthTxns
       .filter((t: any) => t.type === "credit" && !isTransferCat(t.category))
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    return explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
+    const { rentReceivedThisMonth, hasRentReceivedTxn } = getRentReceivedInfo(
+      targetYm,
+      monthTxns
+    );
+    const rentTopUp = rentReceivedThisMonth > 0 && !hasRentReceivedTxn ? rentReceivedThisMonth : 0;
+    return (explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth) + rentTopUp;
   };
 
   // Rent paid via the Rented Properties ledger (not logged as a transaction) — shared by
@@ -252,6 +277,10 @@ export function MonthlyReportModal({
       ? incomeLedgerMonth
       : txns.filter((t: any) => t.type === "credit" && !isTransferCat(t.category));
   const incomeCatMap: Record<string, number> = {};
+  const { rentReceivedThisMonth, hasRentReceivedTxn } = getRentReceivedInfo(ym, txns);
+  if (rentReceivedThisMonth > 0 && !hasRentReceivedTxn) {
+    incomeCatMap["Rent"] = (incomeCatMap["Rent"] || 0) + rentReceivedThisMonth;
+  }
   incomeSourceEntries.forEach((e: any) => {
     const c = e.source || e.category || "Other Income";
     incomeCatMap[c] = (incomeCatMap[c] || 0) + Number(e.amount || 0);

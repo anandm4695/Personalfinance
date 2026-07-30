@@ -125,7 +125,15 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
   // Compute month spending dynamically based on selected month
   const monthSpending = useMemo(() => {
     const spending = state.transactions
-      .filter((t: any) => t.date && t.date.startsWith(selectedMonth) && t.type === "debit")
+      .filter(
+        (t: any) =>
+          t.date &&
+          t.date.startsWith(selectedMonth) &&
+          t.type === "debit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .reduce((acc: any, t: any) => {
         const cat = t.category || "Uncategorized";
         acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
@@ -157,7 +165,15 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
     }
     const prevMonthStr = `${py}-${String(pm).padStart(2, "0")}`;
     const spending = state.transactions
-      .filter((t: any) => t.date && t.date.startsWith(prevMonthStr) && t.type === "debit")
+      .filter(
+        (t: any) =>
+          t.date &&
+          t.date.startsWith(prevMonthStr) &&
+          t.type === "debit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .reduce((acc: any, t: any) => {
         const cat = t.category || "Uncategorized";
         acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);

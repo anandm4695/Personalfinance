@@ -5,9 +5,10 @@ import {
   monthsBetween,
   getCCDueDate,
   getLocalDateString,
-  calcTaxNew,
-  calcTaxOld,
+  calcTaxNewByFY,
+  calcTaxOldByFY,
 } from "../utils/finance";
+import { getCurrentFY } from "../utils/appConstants";
 
 export type Alert = {
   level: "error" | "warn" | "info";
@@ -217,9 +218,19 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
           tab: "credit",
         });
     }
-    // FOIR: use unfiltered household income + unfiltered loans for a consistent household metric
+    // FOIR: use unfiltered household income + unfiltered loans for a consistent household metric.
+    // Excludes internal transfers — a self-transfer between the user's own accounts isn't real
+    // income, and counting it would understate FOIR%, masking a genuinely risky EMI burden.
     const unfilteredMonthlyIncome = state.transactions
-      .filter((t: any) => t.date && t.date.startsWith(ym) && t.type === "credit")
+      .filter(
+        (t: any) =>
+          t.date &&
+          t.date.startsWith(ym) &&
+          t.type === "credit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const totalEMIForAlert = state.loansTaken
       .filter((l: any) => Number(l.monthsRemaining || 1) > 0)
@@ -259,11 +270,15 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
           });
       }
     }
-    // Tax regime switch alert — if switching saves >₹5,000 suggest it
+    // Tax regime switch alert — if switching saves >₹5,000 suggest it.
+    // Was pinned to the legacy calcTaxNew()/calcTaxOld() helpers, which hardcode FY 2025-26
+    // slabs regardless of the actual current year — the exact "stale FY fallback" bug class
+    // already fixed elsewhere (see hardcoded-values audit); switched to the FY-aware
+    // calcTaxNewByFY/calcTaxOldByFY so this alert keeps using correct slabs after FY rollover.
     if (metrics.annualIncome > 0) {
-      // calcTaxNew applies the FY 2025-26 standard deduction internally — pass gross income
-      const taxNewAmt = calcTaxNew(metrics.annualIncome).total;
-      const taxOldAmt = calcTaxOld(metrics.annualIncome, 50000).total;
+      const fy = state.profile?.fy || getCurrentFY();
+      const taxNewAmt = calcTaxNewByFY(metrics.annualIncome, fy).total;
+      const taxOldAmt = calcTaxOldByFY(metrics.annualIncome, 50000, fy).total;
       const saving = Math.abs(taxNewAmt - taxOldAmt);
       const betterRegime = taxOldAmt < taxNewAmt ? "Old" : "New";
       const currentRegime = state.profile?.regime === "old" ? "Old" : "New";
