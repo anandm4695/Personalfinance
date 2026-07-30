@@ -17,7 +17,7 @@ import {
   Bell,
   Filter,
 } from "lucide-react";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import {
   fmtINR,
   fmtINRFull,
@@ -175,7 +175,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           amount: Number(rd.monthly || 0) * Number(rd.tenureMonths || 0),
           maturityAmount: matAmt,
           rate: rd.rate,
-          color: "#8B5CF6",
+          color: THEME.violet,
           detail: `${rd.rate}% p.a. • ${rd.tenureMonths} months`,
         });
       }
@@ -194,7 +194,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           date: b.maturityDate,
           days,
           amount: Number(b.faceValue || b.totalPrincipalAmount || 0),
-          color: "#0EA5E9",
+          color: THEME.cyan,
           detail: `Coupon: ${b.coupon || 0}% • Face Value: ${fmtINRExact(b.faceValue || b.totalPrincipalAmount)}`,
         });
       }
@@ -232,7 +232,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           date: nextDateStr,
           days,
           amount: Number(lastDiv.amount || 0),
-          color: "#10B981",
+          color: THEME.sage,
           detail: `Based on last dividend of ${fmtINRExact(lastDiv.amount)} on ${formatDate(lastDiv.date)}`,
           projected: true,
         });
@@ -264,7 +264,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
             date: nextDueStr,
             days,
             amount: premium,
-            color: "#EC4899",
+            color: THEME.pink,
             detail: `Annual Premium: ${fmtINRExact(premium)}`,
           });
         }
@@ -298,7 +298,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           date: closureDateStr,
           days,
           amount: Number(l.outstanding || 0),
-          color: "#F97316",
+          color: THEME.rust,
           detail: `EMI: ${fmtINRExact(l.emi)} • Outstanding: ${fmtINRExact(l.outstanding)}`,
         });
       }
@@ -354,7 +354,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           date: s.renewalDate,
           days,
           amount: Number(s.amount || 0),
-          color: "#14B8A6",
+          color: THEME.gold,
           detail: `${s.cycle} • ${fmtINRExact(s.amount)}`,
         });
       }
@@ -377,7 +377,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           date: matDateStr,
           days,
           amount: Number(p.balance || 0),
-          color: "#059669",
+          color: THEME.sage,
           detail: `Balance: ${fmtINRExact(p.balance)}`,
         });
       }
@@ -453,8 +453,8 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
         </SectionTitle>
         <EmptyState
           icon={Calendar}
-          gradient="linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)"
-          dotColor="#0EA5E9"
+          gradient={`linear-gradient(135deg, ${THEME.cyan} 0%, color-mix(in srgb, ${THEME.cyan} 55%, white) 100%)`}
+          dotColor={THEME.cyan}
           title="No Upcoming Events"
           description="This calendar auto-populates from your Fixed Deposits, RDs, insurance policies, loans, credit cards, PPF and subscriptions — add those elsewhere in the app and their due dates and maturities will show up here."
           pills={["FD / RD Maturities", "Premium Due Dates", "Loan Closures", "Renewal Alerts"]}

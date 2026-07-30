@@ -49,17 +49,20 @@ import { StatCard } from "../ui/StatCard";
 // Category definitions
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Colors come from THEME's fixed semantic/extension tokens (not the user's selectable accent
+// preset) so each category keeps a stable, distinct identity regardless of which of the 10 accent
+// presets is active — a hardcoded hex here could silently collide with the chosen accent color.
 const CATEGORIES = {
   Identity: {
     icon: Fingerprint,
-    color: "#6366F1",
-    gradient: "linear-gradient(135deg, #6366F1 0%, #818CF8 100%)",
+    color: THEME.accent,
+    gradient: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 65%, white) 100%)`,
     subcategories: ["PAN Card", "Aadhaar", "Passport", "Voter ID", "Driving License"],
   },
   Financial: {
     icon: Landmark,
-    color: "#059669",
-    gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
+    color: THEME.sage,
+    gradient: `linear-gradient(135deg, ${THEME.sage} 0%, color-mix(in srgb, ${THEME.sage} 65%, white) 100%)`,
     subcategories: [
       "Bank Statement",
       "Tax Return (ITR)",
@@ -71,14 +74,14 @@ const CATEGORIES = {
   },
   Insurance: {
     icon: ShieldCheck,
-    color: "#0EA5E9",
-    gradient: "linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)",
+    color: THEME.cyan,
+    gradient: `linear-gradient(135deg, ${THEME.cyan} 0%, color-mix(in srgb, ${THEME.cyan} 65%, white) 100%)`,
     subcategories: ["Policy Document", "Claim Form", "Medical Report", "Other"],
   },
   Property: {
     icon: Home,
-    color: "#D97706",
-    gradient: "linear-gradient(135deg, #D97706 0%, #FBBF24 100%)",
+    color: THEME.gold,
+    gradient: `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 65%, white) 100%)`,
     subcategories: [
       "Sale Deed",
       "Registry",
@@ -91,20 +94,20 @@ const CATEGORIES = {
   },
   Vehicle: {
     icon: Car,
-    color: "#EF4444",
-    gradient: "linear-gradient(135deg, #EF4444 0%, #F87171 100%)",
+    color: THEME.rust,
+    gradient: `linear-gradient(135deg, ${THEME.rust} 0%, color-mix(in srgb, ${THEME.rust} 65%, white) 100%)`,
     subcategories: ["RC Book", "Insurance", "PUC Certificate", "Service Record", "Other"],
   },
   Legal: {
     icon: Scale,
-    color: "#8B5CF6",
-    gradient: "linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)",
+    color: THEME.violet,
+    gradient: `linear-gradient(135deg, ${THEME.violet} 0%, color-mix(in srgb, ${THEME.violet} 65%, white) 100%)`,
     subcategories: ["Will", "Power of Attorney", "Trust Deed", "Partnership Deed", "Other"],
   },
   Other: {
     icon: Folder,
-    color: "#64748B",
-    gradient: "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)",
+    color: THEME.muted,
+    gradient: `linear-gradient(135deg, ${THEME.muted} 0%, color-mix(in srgb, ${THEME.muted} 65%, white) 100%)`,
     subcategories: ["Certificate", "Receipt", "Warranty", "Other"],
   },
 };
@@ -151,13 +154,13 @@ function getDocStatus(expiryDate: string): "valid" | "expiring" | "expired" | "n
 function statusBadge(status: string) {
   switch (status) {
     case "expired":
-      return { label: "Expired", variant: "rust" as const, color: "#EF4444" };
+      return { label: "Expired", variant: "rust" as const, color: THEME.rust };
     case "expiring":
-      return { label: "Expiring Soon", variant: "gold" as const, color: "#D97706" };
+      return { label: "Expiring Soon", variant: "gold" as const, color: THEME.gold };
     case "valid":
-      return { label: "Valid", variant: "sage" as const, color: "#059669" };
+      return { label: "Valid", variant: "sage" as const, color: THEME.sage };
     default:
-      return { label: "No Expiry", variant: "muted" as const, color: "#64748B" };
+      return { label: "No Expiry", variant: "muted" as const, color: THEME.muted };
   }
 }
 
@@ -172,55 +175,36 @@ function getCategoryIcon(category: string) {
   return cat ? cat.icon : FileText;
 }
 
-// Custom function to return theme profiles structure
-function getOwnerAvatarInfo(ownerId: string) {
-  switch (ownerId) {
-    case "self":
-      return {
-        initials: "AM",
-        name: "Anand Mohta",
-        relation: "Self",
-        color: "#6366F1",
-        bg: "color-mix(in srgb, #6366F1 12%, transparent)",
-      };
-    case "wife":
-      return {
-        initials: "DM",
-        name: "Dharna Mohta",
-        relation: "Wife",
-        color: "#EC4899",
-        bg: "color-mix(in srgb, #EC4899 12%, transparent)",
-      };
-    case "daughter":
-      return {
-        initials: "RM",
-        name: "Revika Mohta",
-        relation: "Daughter",
-        color: "#A855F7",
-        bg: "color-mix(in srgb, #A855F7 12%, transparent)",
-      };
-    case "huf":
-      return {
-        initials: "H",
-        name: "Anand Mohta HUF",
-        relation: "HUF",
-        color: "#14B8A6",
-        bg: "color-mix(in srgb, #14B8A6 12%, transparent)",
-      };
-    default:
-      return {
-        initials: "??",
-        name: ownerId,
-        relation: "",
-        color: "#64748B",
-        bg: "color-mix(in srgb, #64748B 12%, transparent)",
-      };
-  }
+// Fixed per-relation accent hue + initials, layered onto whatever name/relation the user has
+// actually configured in Settings → Family Profiles (`profiles`, from useMasterData()). Falling
+// back to a hardcoded name here (instead of reading the live profile) meant a renamed family
+// member kept showing their old name on every document forever — this now always renders the
+// current name, and only falls back to the ownerId itself for an owner with no matching profile.
+const OWNER_AVATAR_STYLE: Record<string, { initials: string; color: string }> = {
+  self: { initials: "AM", color: THEME.accent },
+  wife: { initials: "DM", color: THEME.pink },
+  daughter: { initials: "RM", color: THEME.violet },
+  huf: { initials: "H", color: THEME.cyan },
+};
+
+function getOwnerAvatarInfo(ownerId: string, profiles: { id: string; name: string; relation: string }[] = []) {
+  const profile = profiles.find((p) => p.id === ownerId);
+  const style = OWNER_AVATAR_STYLE[ownerId] || {
+    initials: (profile?.name || ownerId || "??").slice(0, 2).toUpperCase(),
+    color: THEME.muted,
+  };
+  return {
+    initials: style.initials,
+    name: profile?.name || ownerId,
+    relation: profile?.relation || "",
+    color: style.color,
+    bg: `color-mix(in srgb, ${style.color} 12%, transparent)`,
+  };
 }
 
 function getCategoryColor(category: string) {
   const cat = CATEGORIES[category as CategoryKey];
-  return cat ? cat.color : "#64748B";
+  return cat ? cat.color : THEME.muted;
 }
 
 function getLinkedAssets(state: any, assetType: string): { id: string; label: string }[] {
@@ -873,7 +857,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
 
   // ── Family Initial Avatar ───────────────────────────────────────────────
   function OwnerAvatar({ ownerId, size = 26 }: { ownerId: string; size?: number }) {
-    const info = getOwnerAvatarInfo(ownerId);
+    const info = getOwnerAvatarInfo(ownerId, familyProfiles);
     return (
       <div
         title={`${info.name} (${info.relation})`}
@@ -947,7 +931,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     const badge = statusBadge(status);
     const days = daysUntilExpiry(doc.expiryDate);
     const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
-    const ownerInfo = getOwnerAvatarInfo(doc.owner);
+    const ownerInfo = getOwnerAvatarInfo(doc.owner, familyProfiles);
     // A stored linkedAsset id can go stale if the underlying asset was edited/deleted
     // elsewhere (e.g. bank account closed, property sold and removed) — the id then
     // resolves to nothing. Mirror the Detail modal's resolution here instead of the
@@ -1264,7 +1248,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     const status = getDocStatus(doc.expiryDate);
     const badge = statusBadge(status);
     const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
-    const ownerInfo = getOwnerAvatarInfo(doc.owner);
+    const ownerInfo = getOwnerAvatarInfo(doc.owner, familyProfiles);
 
     return (
       <div
@@ -1502,7 +1486,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     const badge = statusBadge(status);
     const days = daysUntilExpiry(doc.expiryDate);
     const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
-    const ownerInfo = getOwnerAvatarInfo(doc.owner);
+    const ownerInfo = getOwnerAvatarInfo(doc.owner, familyProfiles);
 
     let linkedAssetLabel = "";
     if (doc.linkedAssetType && doc.linkedAsset) {

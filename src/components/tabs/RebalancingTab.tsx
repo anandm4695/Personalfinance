@@ -506,6 +506,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   setSelectedPreset(key);
                   setUseCustom(false);
                 }}
+                aria-pressed={active}
                 className="card-lift"
                 style={{
                   padding: "16px 18px",
@@ -555,6 +556,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
           <div>
             <button
               onClick={() => setUseCustom(!useCustom)}
+              aria-pressed={useCustom}
               className="card-lift"
               style={{
                 padding: "6px 14px",

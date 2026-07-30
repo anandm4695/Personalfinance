@@ -31,6 +31,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
@@ -462,113 +463,94 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
       {sub === "out" ? (
         <div className="animate-fade-in-up">
           {propertiesOut.length > 0 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 14,
-                marginBottom: 32,
-              }}
-            >
-              {[
-                {
-                  label: "Property Portfolio",
-                  value: fmtINRFull(outPropertyValuation),
-                  sub: "Total asset valuation",
-                  color: "#A78BFA",
-                  Icon: Building2,
-                },
-                {
-                  label: "Monthly Rent",
-                  value: fmtINRFull(outMonthlyRent),
-                  sub: "Active agreements",
-                  color: THEME.accent,
-                  Icon: Landmark,
-                },
-                {
-                  label: "Received (FY)",
-                  value: fmtINRFull(outThisFY),
-                  sub: `of ${fmtINRFull(outExpectedFY)} annual target`,
-                  color: THEME.sage,
-                  Icon: TrendingUp,
-                },
-                {
-                  label: "Deposit Held",
-                  value: fmtINRFull(outDepositHeld),
-                  sub: "Total liability",
-                  color: THEME.gold,
-                  Icon: Shield,
-                },
-                {
-                  label: "Taxable IHP",
-                  value: fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7),
-                  sub:
-                    municipalTaxPaid > 0
-                      ? "After muni tax + 30% deduction"
-                      : "Post 30% std deduction",
-                  color: THEME.accent,
-                  Icon: Percent,
-                },
-              ].map(({ label, value, sub, color, Icon }) => (
+            <>
+              {/* Monthly Rent is the number a landlord opens this tab to check —
+                  gets the hero-card slot (matches FIRE Number / Goals Progress). */}
+              <Card
+                variant="hero"
+                style={{
+                  marginBottom: 20,
+                  padding: "clamp(24px, 4vw, 36px)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                }}
+              >
                 <div
-                  key={label}
-                  className="card-lift"
                   style={{
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderTop: `4px solid ${color}`,
-                    borderRadius: 14,
-                    padding: "18px 20px",
                     display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                    boxShadow: "var(--shadow-card)",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "rgba(255,255,255,0.6)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={18} />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: THEME.muted,
-                        textTransform: "uppercase" as const,
-                        letterSpacing: "0.1em",
-                      }}
-                    >
-                      {label}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 26,
-                      fontWeight: 900,
-                      color: THEME.ink,
-                      letterSpacing: "-0.04em",
-                      lineHeight: 1,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {value}
-                  </div>
-                  {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
+                  <Landmark size={13} /> Monthly Rent Income
                 </div>
-              ))}
-            </div>
+                <div
+                  style={{
+                    fontSize: "clamp(32px, 5vw, 52px)",
+                    fontWeight: 900,
+                    color: "#fff",
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.05,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  <Prv>{fmtINRFull(outMonthlyRent)}</Prv>
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+                  <Prv>{fmtINRFull(outThisFY)}</Prv> received so far this FY, of{" "}
+                  <Prv>{fmtINRFull(outExpectedFY)}</Prv> expected across {propertiesOut.length}{" "}
+                  propert{propertiesOut.length !== 1 ? "ies" : "y"}
+                </div>
+              </Card>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 14,
+                  marginBottom: 32,
+                }}
+              >
+                <StatCard
+                  label="Property Portfolio"
+                  value={<Prv>{fmtINRFull(outPropertyValuation)}</Prv>}
+                  sub="Total asset valuation"
+                  icon={<Building2 />}
+                  color={THEME.violet}
+                />
+                <StatCard
+                  label="Received (FY)"
+                  value={<Prv>{fmtINRFull(outThisFY)}</Prv>}
+                  sub={`of ${fmtINRFull(outExpectedFY)} annual target`}
+                  icon={<TrendingUp />}
+                  color={THEME.sage}
+                />
+                <StatCard
+                  label="Deposit Held"
+                  value={<Prv>{fmtINRFull(outDepositHeld)}</Prv>}
+                  sub="Total liability"
+                  icon={<Shield />}
+                  color={THEME.gold}
+                />
+                <StatCard
+                  label="Taxable IHP"
+                  value={<Prv>{fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7)}</Prv>}
+                  sub={
+                    municipalTaxPaid > 0
+                      ? "After muni tax + 30% deduction"
+                      : "Post 30% std deduction"
+                  }
+                  icon={<Percent />}
+                  color={THEME.accent}
+                />
+              </div>
+            </>
           )}
 
           {propertiesOut.length === 0 ? (
@@ -758,7 +740,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   THEME.sage,
                                   THEME.gold,
                                   THEME.rust,
-                                  "#A78BFA",
+                                  THEME.violet,
                                 ];
                                 const col = tierColors[ti % 5];
                                 const isCurrent = getCurrentTierIndex(p) === ti;
@@ -805,7 +787,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   THEME.sage,
                                   THEME.gold,
                                   THEME.rust,
-                                  "#A78BFA",
+                                  THEME.violet,
                                 ];
                                 const col = splitColors[ti % 5];
                                 return (
@@ -882,8 +864,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           style={{
                             padding: "9px 12px",
                             borderRadius: 10,
-                            background: "color-mix(in srgb, #A78BFA 7%, transparent)",
-                            border: "1px solid color-mix(in srgb, #A78BFA 22%, transparent)",
+                            background: `color-mix(in srgb, ${THEME.violet} 7%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${THEME.violet} 22%, transparent)`,
                           }}
                         >
                           <div
@@ -898,7 +880,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           >
                             Property Value
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: "#A78BFA" }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.violet }}>
                             {p.propertyValue ? fmtINRFull(p.propertyValue) : "—"}
                           </div>
                         </div>
@@ -1887,110 +1869,89 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
       ) : (
         <div className="animate-fade-in-up">
           {propertiesIn.length > 0 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 14,
-                marginBottom: 32,
-              }}
-            >
-              {[
-                {
-                  label: "Monthly Rent",
-                  value: fmtINRFull(inMonthlyRent),
-                  sub: "Active agreements",
-                  color: THEME.rust,
-                  Icon: Landmark,
-                },
-                {
-                  label: "Paid (FY)",
-                  value: fmtINRFull(inThisFY),
-                  sub: `of ${fmtINRFull(inExpectedFY)} annual commitment`,
-                  color: THEME.rust,
-                  Icon: Receipt,
-                },
-                {
-                  label: "Deposit Paid",
-                  value: fmtINRFull(inDepositPaid),
-                  sub: "Recoverable asset",
-                  color: THEME.sage,
-                  Icon: Shield,
-                },
-                {
-                  label: "HRA Eligible",
-                  value: fmtINRFull(inThisFY),
-                  sub: "Annual rent paid",
-                  color: THEME.accent,
-                  Icon: Building2,
-                },
-              ].map(({ label, value, sub, color, Icon }) => (
+            <>
+              {/* Monthly Rent Paid is the number a tenant opens this tab to check —
+                  gets the hero-card slot (matches FIRE Number / Goals Progress). */}
+              <Card
+                variant="hero"
+                style={{
+                  marginBottom: 20,
+                  padding: "clamp(24px, 4vw, 36px)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                }}
+              >
                 <div
-                  key={label}
-                  className="card-lift"
                   style={{
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderTop: `4px solid ${color}`,
-                    borderRadius: 14,
-                    padding: "18px 20px",
                     display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                    boxShadow: "var(--shadow-card)",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "rgba(255,255,255,0.6)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={18} />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: THEME.muted,
-                        textTransform: "uppercase" as const,
-                        letterSpacing: "0.1em",
-                      }}
-                    >
-                      {label}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 26,
-                      fontWeight: 900,
-                      color: THEME.ink,
-                      letterSpacing: "-0.04em",
-                      lineHeight: 1,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {value}
-                  </div>
-                  {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
+                  <Landmark size={13} /> Monthly Rent Paid
                 </div>
-              ))}
-            </div>
+                <div
+                  style={{
+                    fontSize: "clamp(32px, 5vw, 52px)",
+                    fontWeight: 900,
+                    color: "#fff",
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.05,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  <Prv>{fmtINRFull(inMonthlyRent)}</Prv>
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+                  <Prv>{fmtINRFull(inThisFY)}</Prv> paid so far this FY, of{" "}
+                  <Prv>{fmtINRFull(inExpectedFY)}</Prv> expected commitment
+                </div>
+              </Card>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 14,
+                  marginBottom: 32,
+                }}
+              >
+                <StatCard
+                  label="Paid (FY)"
+                  value={<Prv>{fmtINRFull(inThisFY)}</Prv>}
+                  sub={`of ${fmtINRFull(inExpectedFY)} annual commitment`}
+                  icon={<Receipt />}
+                  color={THEME.rust}
+                />
+                <StatCard
+                  label="Deposit Paid"
+                  value={<Prv>{fmtINRFull(inDepositPaid)}</Prv>}
+                  sub="Recoverable asset"
+                  icon={<Shield />}
+                  color={THEME.sage}
+                />
+                <StatCard
+                  label="HRA Eligible"
+                  value={<Prv>{fmtINRFull(inThisFY)}</Prv>}
+                  sub="Annual rent paid"
+                  icon={<Building2 />}
+                  color={THEME.accent}
+                />
+              </div>
+            </>
           )}
 
           {propertiesIn.length === 0 ? (
             <EmptyState
               icon={Building2}
-              gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
-              dotColor="#db2777"
+              gradient={`linear-gradient(135deg, ${THEME.pink} 0%, color-mix(in srgb, ${THEME.pink} 55%, white) 100%)`}
+              dotColor={THEME.pink}
               title="No Rented Properties Added"
               description="Add the home or office you rent to track your monthly payments, security deposit recovery, and annual rent paid for HRA claims."
               pills={[
@@ -2179,7 +2140,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   THEME.gold,
                                   THEME.accent,
                                   THEME.sage,
-                                  "#A78BFA",
+                                  THEME.violet,
                                 ];
                                 const col = tierColors[ti % 5];
                                 const isCurrent = getCurrentTierIndex(p) === ti;
@@ -2226,7 +2187,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   THEME.sage,
                                   THEME.gold,
                                   THEME.rust,
-                                  "#A78BFA",
+                                  THEME.violet,
                                 ];
                                 const col = splitColors[li % 5];
                                 const share = Math.round(

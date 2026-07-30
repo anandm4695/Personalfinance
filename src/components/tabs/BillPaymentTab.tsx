@@ -32,15 +32,18 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
+// Bill category colors — fixed THEME tokens instead of raw hex so tags stay
+// theme-aware in dark mode and never coincidentally match a user-selectable
+// accent preset.
 const CATEGORIES = [
-  { value: "electricity", label: "Electricity", Icon: Zap, color: "#f59e0b" },
-  { value: "gas", label: "Gas / Piped Gas", Icon: Droplets, color: "#f97316" },
-  { value: "water", label: "Water", Icon: Droplets, color: "#0ea5e9" },
-  { value: "broadband", label: "Broadband / Internet", Icon: Wifi, color: "#8b5cf6" },
-  { value: "mobile", label: "Mobile / Postpaid", Icon: Phone, color: "#10b981" },
-  { value: "cable_tv", label: "Cable TV / DTH", Icon: Tv, color: "#ef4444" },
-  { value: "maintenance", label: "Society Maintenance", Icon: Building, color: "#6b7280" },
-  { value: "other", label: "Other", Icon: IndianRupee, color: "#64748b" },
+  { value: "electricity", label: "Electricity", Icon: Zap, color: THEME.gold },
+  { value: "gas", label: "Gas / Piped Gas", Icon: Droplets, color: THEME.rust },
+  { value: "water", label: "Water", Icon: Droplets, color: THEME.cyan },
+  { value: "broadband", label: "Broadband / Internet", Icon: Wifi, color: THEME.violet },
+  { value: "mobile", label: "Mobile / Postpaid", Icon: Phone, color: THEME.sage },
+  { value: "cable_tv", label: "Cable TV / DTH", Icon: Tv, color: THEME.pink },
+  { value: "maintenance", label: "Society Maintenance", Icon: Building, color: THEME.accent },
+  { value: "other", label: "Other", Icon: IndianRupee, color: THEME.muted },
 ];
 
 const CAT_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.value, c]));
@@ -415,8 +418,8 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
       {bills.length === 0 ? (
         <EmptyState
           icon={Zap}
-          gradient="linear-gradient(135deg, #ea580c 0%, #fb923c 100%)"
-          dotColor="#ea580c"
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 55%, white) 100%)`}
+          dotColor={THEME.accent}
           title="No Bills Tracked Yet"
           description="Add your recurring utility bills to track due dates, payment history, and spot trends."
           pills={[

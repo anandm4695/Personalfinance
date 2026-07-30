@@ -1469,6 +1469,24 @@ export const NomineeTrackerTab = ({
             </div>
           </div>
 
+          <div
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.gold} 22%, transparent)`,
+              fontSize: 11.5,
+              color: THEME.muted,
+              lineHeight: 1.5,
+              marginBottom: 14,
+            }}
+          >
+            A nominee is only a <b style={{ color: THEME.ink }}>trustee/caretaker</b> for this
+            asset after death — not automatically its legal owner. Actual ownership follows your
+            Will (or succession law if there's none). Keep this in sync with your Will to avoid
+            disputes.
+          </div>
+
           <Field label="Nominee Name">
             <Input
               value={assignName}

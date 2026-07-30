@@ -1,24 +1,23 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import {
-  FileText,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  IndianRupee,
-  Calculator,
-  Download,
-  Calendar,
-  Shield,
-} from "lucide-react";
+import { FileText, CheckCircle, Clock, IndianRupee, Calculator, Calendar } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
 import { fmtINRFull, today, calcTaxNewByFY, calcTaxOldByFY } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
-import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
+
+/** Card section header — icon + label, matching the convention used across
+ * the app's other Card-based sections (e.g. NetWorthTimelineTab's "Net Worth
+ * History"), so this tab's cards read as part of the same family instead of
+ * plain unlabelled text headers. */
+const CardHeading = ({ icon: Icon, children }: any) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+    <Icon size={18} style={{ color: THEME.accent }} />
+    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>{children}</h3>
+  </div>
+);
 
 const ADVANCE_TAX_DATES = [
   { date: "06-15", label: "15 Jun", pct: 15 },
@@ -344,9 +343,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
 
       {/* ITR Summary */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-          Income Summary — FY {selectedFY}
-        </h3>
+        <CardHeading icon={IndianRupee}>Income Summary — FY {selectedFY}</CardHeading>
         {incomeSummary.totalIncome === 0 ? (
           <div
             style={{
@@ -430,9 +427,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
 
       {/* Deductions */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-          Deductions
-        </h3>
+        <CardHeading icon={Calculator}>Deductions</CardHeading>
         <div
           style={{
             display: "grid",
@@ -499,7 +494,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             }}
           >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              Section 80D — Health Insurance
+              Section 80D — Health Insurance (max ₹25K self + ₹25K parents)
             </div>
             <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}>
               <Prv>{fmtINRFull(deductions.sec80D)}</Prv>
@@ -514,7 +509,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             }}
           >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              Section 24 — Home Loan Interest
+              Section 24 — Home Loan Interest (max ₹2L)
             </div>
             <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.gold }}>
               <Prv>{fmtINRFull(deductions.sec24)}</Prv>
@@ -546,9 +541,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         }}
       >
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-            Tax Already Paid
-          </h3>
+          <CardHeading icon={CheckCircle}>Tax Already Paid</CardHeading>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: THEME.textSecondary }}>TDS Deducted</span>
@@ -579,9 +572,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         </Card>
 
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-            Advance Tax Schedule
-          </h3>
+          <CardHeading icon={Calendar}>Advance Tax Schedule</CardHeading>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {advanceTaxSchedule.map((d) => (
               <div
@@ -635,9 +626,12 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             marginBottom: 16,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
-            ITR Filing Checklist
-          </h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FileText size={18} style={{ color: THEME.accent }} />
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
+              ITR Filing Checklist
+            </h3>
+          </div>
           <span style={{ fontSize: 13, color: THEME.textSecondary }}>
             {checklistProgress} / {ITR_CHECKLIST.length} completed
           </span>

@@ -23,6 +23,7 @@ import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, today } from "../../utils/finance";
 import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -814,7 +815,7 @@ function OwnerSplitRow({
   canDelete: boolean;
   onDelete: () => void;
 }) {
-  const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][idx % 5];
+  const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, THEME.violet][idx % 5];
   const usedSet = new Set(usedIds);
   const isExternal = owner.id === EXTERNAL_OWNER_ID;
 
@@ -1301,7 +1302,7 @@ function PropertyCard({
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
             {owners.map((o, i) => {
-              const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][
+              const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, THEME.violet][
                 i % 5
               ];
               return (
@@ -1383,23 +1384,23 @@ function PropertyCard({
         {(() => {
           const tiles = [
             { label: "Agreement Value", value: property.agreementValue, color: THEME.accent },
-            { label: "Agreement Value Paid", value: property.agreementValuePaid, color: "#0ea5e9" },
+            { label: "Agreement Value Paid", value: property.agreementValuePaid, color: THEME.cyan },
             {
               label: "Agreement Value Balance",
               value: agreementValueBalance,
-              color: agreementValueBalance > 0 ? THEME.rust : "#22c55e",
+              color: agreementValueBalance > 0 ? THEME.rust : THEME.sage,
             },
-            { label: "Stamp Duty", value: property.stampDuty, color: "#f59e0b" },
-            { label: "Stamp Duty Paid", value: property.stampDutyPaid, color: "#0ea5e9" },
+            { label: "Stamp Duty", value: property.stampDuty, color: THEME.gold },
+            { label: "Stamp Duty Paid", value: property.stampDutyPaid, color: THEME.cyan },
             {
               label: "Stamp Duty Balance",
               value: stampDutyBalance,
-              color: stampDutyBalance > 0 ? THEME.rust : "#22c55e",
+              color: stampDutyBalance > 0 ? THEME.rust : THEME.sage,
             },
-            { label: "TDS Amount", value: property.tdsAmount, color: "#ec4899" },
-            { label: "TDS Paid", value: property.tdsValue, color: "#8b5cf6" },
-            { label: "TDS Balance", value: tdsBalance, color: tdsBalance > 0 ? THEME.rust : "#22c55e" },
-            { label: "Market Value", value: property.marketValue, color: "#22c55e" },
+            { label: "TDS Amount", value: property.tdsAmount, color: THEME.pink },
+            { label: "TDS Paid", value: property.tdsValue, color: THEME.violet },
+            { label: "TDS Balance", value: tdsBalance, color: tdsBalance > 0 ? THEME.rust : THEME.sage },
+            { label: "Market Value", value: property.marketValue, color: THEME.sage },
           ];
           return tiles.map(({ label, value, color }) => (
           <div
@@ -1558,7 +1559,7 @@ function PropertyCard({
                 background:
                   paidPct >= 100
                     ? `linear-gradient(90deg, ${THEME.sage}, color-mix(in srgb, ${THEME.sage} 70%, white))`
-                    : `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #60a5fa))`,
+                    : `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, white))`,
                 borderRadius: 4,
                 transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
               }}
@@ -1989,7 +1990,19 @@ export function RealEstateTab({
       .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
     const outstanding = Math.max(0, totalDemanded - totalPaid);
     const allPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
-    return { portfolioValue, totalInvested, totalPaid: allPaid, outstanding };
+    // Same "current value − cost" arithmetic already used per-card (see PropertyCard's
+    // `gain`), just aggregated across the portfolio — this is the number the whole
+    // section answers, so it earns the hero-card slot below.
+    const appreciation = portfolioValue - totalInvested;
+    const appreciationPct = totalInvested > 0 ? (appreciation / totalInvested) * 100 : 0;
+    return {
+      portfolioValue,
+      totalInvested,
+      totalPaid: allPaid,
+      outstanding,
+      appreciation,
+      appreciationPct,
+    };
   }, [properties, demands, payments, activeProfile]);
 
   const handleSaveProperty = (data: any) => {
@@ -2078,44 +2091,98 @@ export function RealEstateTab({
         </Button>
       </div>
 
-      {/* Stats — premium gradient cards */}
+      {/* Stats — Portfolio Value + Appreciation is the number this section answers,
+          so it gets the hero-card slot (matches FIRE Number / Goals Overall Progress). */}
       {properties.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 14,
-            marginBottom: 28,
-          }}
-        >
-          <StatCard
-            label="Portfolio Value"
-            value={<Prv>{fmtINRFull(stats.portfolioValue)}</Prv>}
-            icon={<TrendingUp />}
-            color={THEME.sage}
-          />
-          <StatCard
-            label="Total Invested"
-            value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>}
-            sub="Agreement + Stamp + TDS"
-            icon={<IndianRupee />}
-            color={THEME.accent}
-          />
-          <StatCard
-            label="Total Paid"
-            value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>}
-            sub="All payments"
-            icon={<CheckCircle />}
-            color={THEME.accent}
-          />
-          <StatCard
-            label="Outstanding"
-            value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>}
-            sub="Demands pending"
-            icon={<Clock />}
-            color={stats.outstanding > 0 ? THEME.rust : THEME.muted}
-          />
-        </div>
+        <>
+          <Card
+            variant="hero"
+            style={{
+              marginBottom: 20,
+              padding: "clamp(24px, 4vw, 36px)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.6)",
+              }}
+            >
+              <Home size={13} /> Portfolio Value
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(32px, 5vw, 52px)",
+                fontWeight: 900,
+                color: "#fff",
+                letterSpacing: "-0.03em",
+                lineHeight: 1.05,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              <Prv>{fmtINRFull(stats.portfolioValue)}</Prv>
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+              {stats.appreciation >= 0 ? "Up " : "Down "}
+              <Prv>{fmtINRFull(Math.abs(stats.appreciation))}</Prv> (
+              {stats.appreciation >= 0 ? "+" : "−"}
+              {Math.abs(stats.appreciationPct).toFixed(1)}%) against{" "}
+              <Prv>{fmtINRFull(stats.totalInvested)}</Prv> invested (agreement + stamp + TDS)
+            </div>
+          </Card>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+              marginBottom: 28,
+            }}
+          >
+            <StatCard
+              label="Total Invested"
+              value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>}
+              sub="Agreement + Stamp + TDS"
+              icon={<IndianRupee />}
+              color={THEME.accent}
+            />
+            <StatCard
+              label="Total Paid"
+              value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>}
+              sub="All payments"
+              icon={<CheckCircle />}
+              color={THEME.accent}
+            />
+            <StatCard
+              label="Outstanding"
+              value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>}
+              sub="Demands pending"
+              icon={<Clock />}
+              color={stats.outstanding > 0 ? THEME.rust : THEME.muted}
+            />
+            <StatCard
+              label="Appreciation"
+              value={
+                <>
+                  {stats.appreciation >= 0 ? "+" : "−"}
+                  <Prv>{fmtINRFull(Math.abs(stats.appreciation))}</Prv>
+                </>
+              }
+              sub={`${stats.appreciation >= 0 ? "+" : "−"}${Math.abs(stats.appreciationPct).toFixed(1)}% vs. invested`}
+              icon={<TrendingUp />}
+              color={stats.appreciation >= 0 ? THEME.sage : THEME.rust}
+            />
+          </div>
+        </>
       )}
 
       {/* Properties */}

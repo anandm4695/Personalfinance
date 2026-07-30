@@ -34,7 +34,7 @@ export function EmptyState({
   buttonLabel,
   onAdd,
 }: EmptyStateProps) {
-  const displayTitle = title || message || "No Data";
+  const displayTitle = title || message || "Nothing here yet";
   const displayDescription = description || subtitle || "";
   return (
     <Card style={{ padding: "48px 32px", textAlign: "center" }}>

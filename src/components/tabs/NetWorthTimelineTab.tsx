@@ -343,9 +343,56 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
     );
   }
 
+  const latestDelta = momDeltas.length > 0 ? momDeltas[momDeltas.length - 1] : null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle sub="Track your wealth journey over time">Net Worth Timeline</SectionTitle>
+
+      {/* Net Worth Today is the one number this whole tab answers — gets top
+          billing as a hero card (same treatment as GoalsTab's "Overall
+          Progress" / FIREPlannerTab's FIRE Number), so it visually dominates
+          the supporting Total Growth / CAGR / Best Month cards below instead
+          of reading as just one more equal-weight tile in the grid. */}
+      <Card
+        variant="hero"
+        style={{ padding: "clamp(24px, 4vw, 36px)", display: "flex", flexDirection: "column", gap: 4 }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.6)",
+          }}
+        >
+          <TrendingUp size={13} /> Net Worth Today
+        </div>
+        <div
+          style={{
+            fontSize: "clamp(32px, 5vw, 52px)",
+            fontWeight: 900,
+            color: "#fff",
+            letterSpacing: "-0.03em",
+            lineHeight: 1.05,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          <Prv>{fmtINRFull(metrics.netWorth || 0)}</Prv>
+        </div>
+        {latestDelta && (
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+            {latestDelta.delta >= 0 ? "+" : "-"}
+            <Prv>{fmtINRFull(Math.abs(latestDelta.delta))}</Prv> (
+            {latestDelta.pctChange >= 0 ? "+" : ""}
+            {latestDelta.pctChange.toFixed(1)}%) vs last month
+          </div>
+        )}
+      </Card>
 
       {/* ── Summary KPI Cards ────────────────────────────────────────────────── */}
       {stats && (

@@ -617,6 +617,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 key={opt.key}
                 onClick={() => setPeriod(opt.key)}
                 className="card-lift"
+                aria-pressed={active}
                 style={{
                   padding: "5px 12px",
                   borderRadius: 16,

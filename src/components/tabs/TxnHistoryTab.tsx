@@ -18,6 +18,7 @@ import { fmtINRFull } from "../../utils/finance";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const th = {
@@ -47,66 +48,6 @@ function livePrice(s: any, marketData: any): number {
   const md = marketData?.[yfSym];
   return md?.price !== undefined ? Number(md.price) : Number(s.currentPrice || 0);
 }
-
-/* ── Premium Summary Card ─────────────────────────────────────── */
-const SummaryCard = ({ label, value, color, icon: Icon }: any) => (
-  <div
-    className="card-base card-lift"
-    style={{
-      background:
-        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-      border: `1.5px solid ${THEME.line}`,
-      borderTop: `4px solid ${color}`,
-      borderRadius: 16,
-      padding: "18px 20px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 12,
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color,
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: THEME.muted,
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-        }}
-      >
-        {label}
-      </div>
-    </div>
-    <div
-      style={{
-        fontSize: 26,
-        fontWeight: 900,
-        color: THEME.ink,
-        letterSpacing: "-0.04em",
-        lineHeight: 1,
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
-      <Prv>{value}</Prv>
-    </div>
-  </div>
-);
 
 /* ── Premium Drill-Down Card ──────────────────────────────────── */
 const PremiumDrillDownCard = ({
@@ -785,29 +726,29 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           marginBottom: 24,
         }}
       >
-        <SummaryCard
+        <StatCard
           label="Stocks Invested"
           value={`₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
           color={THEME.accent}
-          icon={BarChart3}
+          icon={<BarChart3 />}
         />
-        <SummaryCard
+        <StatCard
           label="MF Invested"
           value={`₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
           color={THEME.violet}
-          icon={Layers}
+          icon={<Layers />}
         />
-        <SummaryCard
+        <StatCard
           label="Realized P&L"
           value={`${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
           color={totalRealizedPnl >= 0 ? THEME.sage : THEME.rust}
-          icon={totalRealizedPnl >= 0 ? TrendingUp : TrendingDown}
+          icon={totalRealizedPnl >= 0 ? <TrendingUp /> : <TrendingDown />}
         />
-        <SummaryCard
+        <StatCard
           label="Cash Net Flow"
           value={`${cashNetFlow >= 0 ? "+" : ""}₹${Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
           color={cashNetFlow >= 0 ? THEME.sage : THEME.rust}
-          icon={Coins}
+          icon={<Coins />}
         />
       </div>
 
@@ -841,6 +782,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             <button
               key={s.id}
               onClick={() => setActiveSection(s.id)}
+              aria-pressed={active}
               className="card-lift"
               style={{
                 display: "flex",

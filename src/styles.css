@@ -961,8 +961,10 @@ tbody tr:hover td {
   flex: 1;
 }
 .modal-close-btn {
-  width: 32px;
-  height: 32px;
+  /* 36px matches .header-icon-btn's touch target so every dismiss control
+     in the app meets the same minimum tap size. */
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   border: none;
   background: color-mix(in srgb, var(--t-muted) 10%, transparent);
@@ -1305,6 +1307,31 @@ tbody tr:hover td {
   background: color-mix(in srgb, var(--t-rust) 8%, transparent);
   border-color: color-mix(in srgb, var(--t-rust) 35%, var(--t-line));
   color: var(--t-rust);
+}
+
+/* Round icon-only action buttons (e.g. "mark complete" toggles) — shares
+   .header-icon-btn's 36px touch target but circular instead of squared. */
+.icon-circle-btn {
+  background: transparent;
+  border: 1.5px solid var(--t-line);
+  color: var(--t-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+  flex-shrink: 0;
+}
+.icon-circle-btn:hover {
+  background: color-mix(in srgb, var(--t-sage) 12%, transparent);
+  border-color: color-mix(in srgb, var(--t-sage) 45%, var(--t-line));
+  color: var(--t-sage);
 }
 
 /* Search bar */

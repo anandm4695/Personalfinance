@@ -23,6 +23,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 
 // Internal helper components
 
@@ -158,7 +159,51 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
 
       {state.goals.length > 0 && (
         <>
-          {/* Stat cards — matches Banks tab StatCard style */}
+          {/* Overall Progress is the one number this whole tab answers — gets top billing
+              as a hero card, matching the FIRE Number / Emergency Fund gauge treatment. */}
+          <Card
+            variant="hero"
+            style={{
+              marginBottom: 20,
+              padding: "clamp(24px, 4vw, 36px)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.6)",
+              }}
+            >
+              <Activity size={13} /> Overall Progress
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(32px, 5vw, 52px)",
+                fontWeight: 900,
+                color: "#fff",
+                letterSpacing: "-0.03em",
+                lineHeight: 1.05,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {animatedOverallPct.toFixed(1)}%
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+              <Prv>{fmtINRFull(totalSaved)}</Prv> saved of <Prv>{fmtINRFull(totalTarget)}</Prv>{" "}
+              across {state.goals.length} goal{state.goals.length !== 1 ? "s" : ""}
+            </div>
+          </Card>
+
+          {/* Secondary stats — supporting figures for the hero number above */}
           <div
             style={{
               display: "grid",
@@ -167,114 +212,46 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               marginBottom: 28,
             }}
           >
-            {[
-              {
-                label: "Total Target",
-                value: fmtINRFull(totalTarget),
-                color: THEME.accent,
-                Icon: Target,
-              },
-              {
-                label: "Total Saved",
-                value: fmtINRFull(totalSaved),
-                color: THEME.sage,
-                Icon: PiggyBank,
-              },
-              {
-                label: "Remaining",
-                value: fmtINRFull(totalRemaining),
-                color: THEME.rust,
-                Icon: TrendingDown,
-              },
-              {
-                label: "Overall Progress",
-                value: `${animatedOverallPct.toFixed(1)}%`,
-                color: ringColor(overallPct),
-                Icon: Activity,
-              },
-              {
-                label: "Monthly Required",
-                value:
-                  totalMonthlyRequired > 0
-                    ? fmtINRFull(totalMonthlyRequired)
-                    : completedCount === state.goals.length
-                      ? "All done!"
-                      : state.goals.some((g: any) => g.targetDate)
-                        ? "On track"
-                        : "No deadlines",
-                color:
-                  totalMonthlyRequired > 0 &&
-                  monthlySavings > 0 &&
-                  totalMonthlyRequired > monthlySavings
-                    ? THEME.rust
-                    : completedCount === state.goals.length
-                      ? THEME.sage
-                      : THEME.gold,
-                Icon: Calendar,
-              },
-            ].map(({ label, value, color, Icon }) => (
-              <div
-                key={label}
-                className="card-lift"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
-                  border: `1.5px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 16,
-                  padding: "20px 22px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow:
-                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 11,
-                      background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-                      border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-                      boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-              </div>
-            ))}
+            <StatCard
+              label="Total Target"
+              value={fmtINRFull(totalTarget)}
+              icon={<Target />}
+              color={THEME.accent}
+            />
+            <StatCard
+              label="Total Saved"
+              value={fmtINRFull(totalSaved)}
+              icon={<PiggyBank />}
+              color={THEME.sage}
+            />
+            <StatCard
+              label="Remaining"
+              value={fmtINRFull(totalRemaining)}
+              icon={<TrendingDown />}
+              color={THEME.rust}
+            />
+            <StatCard
+              label="Monthly Required"
+              value={
+                totalMonthlyRequired > 0
+                  ? fmtINRFull(totalMonthlyRequired)
+                  : completedCount === state.goals.length
+                    ? "All done!"
+                    : state.goals.some((g: any) => g.targetDate)
+                      ? "On track"
+                      : "No deadlines"
+              }
+              icon={<Calendar />}
+              color={
+                totalMonthlyRequired > 0 &&
+                monthlySavings > 0 &&
+                totalMonthlyRequired > monthlySavings
+                  ? THEME.rust
+                  : completedCount === state.goals.length
+                    ? THEME.sage
+                    : THEME.gold
+              }
+            />
           </div>
 
           <Card style={{ marginBottom: 32, padding: 28 }}>

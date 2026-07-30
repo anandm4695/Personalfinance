@@ -34,7 +34,7 @@ const ACTION_COLORS = {
   UPDATE_SETTINGS: THEME.violet,
   UPDATE_PROFILE: THEME.gold,
   IMPORT: THEME.pink,
-  EXPORT: "#2DD4BF",
+  EXPORT: THEME.cyan,
   RESET: THEME.rust,
 };
 
@@ -488,7 +488,7 @@ export const AuditLogTab = ({ session }) => {
           label="Total Actions"
           value={logs.length}
           icon={<Activity />}
-          color="var(--accent)"
+          color={THEME.accent}
         />
         <StatCard label="Adds" value={actionStats.ADD || 0} icon={<Plus />} color={THEME.sage} />
         <StatCard

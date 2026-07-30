@@ -49,8 +49,8 @@ const TYPE_COLORS: Record<string, string> = {
   family_floater: THEME.primary,
   individual: THEME.success,
   corporate: THEME.gold,
-  top_up: "#8b5cf6",
-  super_top_up: "#ec4899",
+  top_up: THEME.violet,
+  super_top_up: THEME.pink,
   critical_illness: THEME.danger,
 };
 
@@ -298,6 +298,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input
           className="form-input"
+          aria-label="Insured member name"
           placeholder="Member name"
           value={memberName}
           onChange={(e) => setMemberName(e.target.value)}
@@ -305,12 +306,13 @@ function PolicyForm({ initial, onSave, onClose }: any) {
         />
         <input
           className="form-input"
+          aria-label="Insured member relation"
           placeholder="Relation (self, spouse…)"
           value={memberRelation}
           onChange={(e) => setMemberRelation(e.target.value)}
           style={{ flex: 1 }}
         />
-        <Button size="sm" onClick={addMember}>
+        <Button size="sm" onClick={addMember} aria-label="Add insured member">
           Add
         </Button>
       </div>
@@ -465,8 +467,8 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
       {policies.length === 0 ? (
         <EmptyState
           icon={Heart}
-          gradient="linear-gradient(135deg, #e11d48 0%, #fb7185 100%)"
-          dotColor="#e11d48"
+          gradient={`linear-gradient(135deg, ${THEME.danger} 0%, color-mix(in srgb, ${THEME.danger} 55%, white) 100%)`}
+          dotColor={THEME.danger}
           title="No Health Insurance Policies Yet"
           description="Add your health insurance policies to track coverage, premiums, renewals, and claims."
           pills={["Family Floater", "Corporate Cover", "Renewal Alerts", "Premium Tracking"]}

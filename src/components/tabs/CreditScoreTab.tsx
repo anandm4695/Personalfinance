@@ -41,10 +41,13 @@ const SOURCES = ["manual", "OneScore", "Paisabazaar", "BankApp", "Other"];
 // tiers can't drift out of sync with each other.
 const SCORE_BANDS: { min: number; range: string; label: string; color: string }[] = [
   { min: 750, range: "750–900", label: "Excellent", color: THEME.sage },
-  { min: 700, range: "700–749", label: "Good", color: "#2563eb" },
+  { min: 700, range: "700–749", label: "Good", color: THEME.cyan },
   { min: 650, range: "650–699", label: "Fair", color: THEME.gold },
   { min: 600, range: "600–649", label: "Poor", color: THEME.rust },
-  { min: 0, range: "< 600", label: "Very Poor", color: "#7f1d1d" },
+  // Deepened rust (not a new arbitrary hex) so "Very Poor" reads as a step
+  // worse than "Poor" on the same red hue instead of introducing an
+  // unrelated color that could collide with the selected accent preset.
+  { min: 0, range: "< 600", label: "Very Poor", color: `color-mix(in srgb, ${THEME.rust} 65%, black)` },
 ];
 
 function scoreGrade(score: number): { label: string; color: string; bg: string } {
@@ -56,11 +59,14 @@ function scoreGrade(score: number): { label: string; color: string; bg: string }
   };
 }
 
+// Fixed chart-extension tokens (not the user-selectable accent) — raw hex
+// here would go stale in dark mode and could exactly match the active
+// accent preset (e.g. "#4f46e5" is the literal default Indigo accent).
 const BUREAU_COLORS: Record<string, string> = {
-  CIBIL: "#4f46e5",
-  Experian: "#8b5cf6",
-  CRIF: "#059669",
-  Equifax: "#d97706",
+  CIBIL: THEME.accent,
+  Experian: THEME.violet,
+  CRIF: THEME.sage,
+  Equifax: THEME.gold,
 };
 
 function getOwnerAvatarInfo(ownerId: string) {
@@ -70,40 +76,40 @@ function getOwnerAvatarInfo(ownerId: string) {
         initials: "AM",
         name: "Anand Mohta",
         relation: "Self",
-        color: "#6366F1",
-        bg: "color-mix(in srgb, #6366F1 12%, transparent)",
+        color: THEME.accent,
+        bg: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
       };
     case "wife":
       return {
         initials: "DM",
         name: "Dharna Mohta",
         relation: "Wife",
-        color: "#EC4899",
-        bg: "color-mix(in srgb, #EC4899 12%, transparent)",
+        color: THEME.pink,
+        bg: `color-mix(in srgb, ${THEME.pink} 12%, transparent)`,
       };
     case "daughter":
       return {
         initials: "RM",
         name: "Revika Mohta",
         relation: "Daughter",
-        color: "#A855F7",
-        bg: "color-mix(in srgb, #A855F7 12%, transparent)",
+        color: THEME.violet,
+        bg: `color-mix(in srgb, ${THEME.violet} 12%, transparent)`,
       };
     case "huf":
       return {
         initials: "H",
         name: "Anand Mohta HUF",
         relation: "HUF",
-        color: "#14B8A6",
-        bg: "color-mix(in srgb, #14B8A6 12%, transparent)",
+        color: THEME.cyan,
+        bg: `color-mix(in srgb, ${THEME.cyan} 12%, transparent)`,
       };
     default:
       return {
         initials: "??",
         name: ownerId,
         relation: "",
-        color: "#64748B",
-        bg: "color-mix(in srgb, #64748B 12%, transparent)",
+        color: THEME.muted,
+        bg: `color-mix(in srgb, ${THEME.muted} 12%, transparent)`,
       };
   }
 }
@@ -223,7 +229,7 @@ function ScoreGauge({ score }: { score: number }) {
             <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor={THEME.rust} />
               <stop offset="30%" stopColor={THEME.gold} />
-              <stop offset="70%" stopColor="#2563eb" />
+              <stop offset="70%" stopColor={THEME.cyan} />
               <stop offset="100%" stopColor={THEME.sage} />
             </linearGradient>
           </defs>
@@ -339,9 +345,9 @@ function ScoreGauge({ score }: { score: number }) {
 function CreditFactorsPanel() {
   const factors = [
     { name: "Payment History", weight: "35% weight", desc: "Timely bill payments", value: 95, rating: "Excellent", color: THEME.sage },
-    { name: "Credit Utilization", weight: "30% weight", desc: "Balance to credit limit", value: 78, rating: "Good", color: "#2563eb" },
+    { name: "Credit Utilization", weight: "30% weight", desc: "Balance to credit limit", value: 78, rating: "Good", color: THEME.cyan },
     { name: "Credit History Age", weight: "15% weight", desc: "Age of accounts", value: 60, rating: "Fair", color: THEME.gold },
-    { name: "Total Accounts / Mix", weight: "10% weight", desc: "Credit types variety", value: 85, rating: "Good", color: "#2563eb" },
+    { name: "Total Accounts / Mix", weight: "10% weight", desc: "Credit types variety", value: 85, rating: "Good", color: THEME.cyan },
     { name: "Recent Inquiries", weight: "10% weight", desc: "Hard score checks", value: 90, rating: "Excellent", color: THEME.sage },
   ];
 
@@ -711,7 +717,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                           position: "insideBottomRight",
                         }}
                       />
-                      <ReferenceLine y={700} stroke="#2563eb" strokeDasharray="4 4" />
+                      <ReferenceLine y={700} stroke={THEME.cyan} strokeDasharray="4 4" />
                       <Line
                         type="monotone"
                         dataKey="score"
@@ -850,7 +856,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                 <li>Keep credit utilization ratio below 30% of the total limit.</li>
                 <li>Avoid submitting multiple hard loan inquiries in quick succession.</li>
                 <li>Keep older credit accounts active to build long-term credit history age.</li>
-                <li>Regularly check credit reports for errors and file disputes for disputes.</li>
+                <li>Regularly check your credit report for errors and raise a dispute with the bureau if you spot one.</li>
               </ul>
             </div>
           </div>

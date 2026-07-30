@@ -670,11 +670,14 @@ function saveCreditScores(scores: CreditScoreEntry[]) {
 }
 
 function getScoreRating(score: number) {
-  if (score >= 750) return { label: "Excellent", color: "#16a34a" };
+  if (score >= 750) return { label: "Excellent", color: THEME.sage };
   if (score >= 700) return { label: "Good", color: THEME.accent };
-  if (score >= 650) return { label: "Fair", color: "#eab308" };
-  if (score >= 550) return { label: "Poor", color: "#f97316" };
-  return { label: "Very Poor", color: "#dc2626" };
+  if (score >= 650) return { label: "Fair", color: THEME.gold };
+  if (score >= 550) return { label: "Poor", color: THEME.rust };
+  // Deepened rust (not a new arbitrary hex) so "Very Poor" reads as a step
+  // worse than "Poor" on the same red hue instead of an unrelated color
+  // that could collide with the selected accent preset.
+  return { label: "Very Poor", color: `color-mix(in srgb, ${THEME.rust} 65%, black)` };
 }
 
 function ScoreGauge({ score }: { score: number }) {
@@ -963,7 +966,7 @@ function CreditScoreTracker() {
                       const diff = latest.score - prev.score;
                       if (diff === 0) return null;
                       return (
-                        <span style={{ color: diff > 0 ? "#16a34a" : "#dc2626", fontWeight: 700 }}>
+                        <span style={{ color: diff > 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
                           {diff > 0 ? (
                             <ArrowUp size={12} style={{ verticalAlign: "middle" }} />
                           ) : (
@@ -990,8 +993,8 @@ function CreditScoreTracker() {
                   <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                     <defs>
                       <linearGradient id="creditScoreFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#16a34a" stopOpacity={0.02} />
+                        <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
                     <XAxis
@@ -1022,10 +1025,10 @@ function CreditScoreTracker() {
                     <Area
                       type="monotone"
                       dataKey="score"
-                      stroke="#16a34a"
+                      stroke={THEME.sage}
                       strokeWidth={2.5}
                       fill="url(#creditScoreFill)"
-                      dot={{ r: 4, fill: "#16a34a", strokeWidth: 0 }}
+                      dot={{ r: 4, fill: THEME.sage, strokeWidth: 0 }}
                       activeDot={{ r: 6 }}
                     />
                   </AreaChart>
@@ -1082,8 +1085,8 @@ function CreditScoreTracker() {
                         </td>
                         <td style={td}>{entry.bureau}</td>
                         <td style={td}>
-                          {trend === "up" && <ArrowUp size={14} color="#16a34a" />}
-                          {trend === "down" && <ArrowDown size={14} color="#dc2626" />}
+                          {trend === "up" && <ArrowUp size={14} color={THEME.sage} />}
+                          {trend === "down" && <ArrowDown size={14} color={THEME.rust} />}
                           {trend === "same" && <Minus size={14} color={THEME.muted} />}
                         </td>
                         <td
@@ -1124,7 +1127,7 @@ function CreditScoreTracker() {
                               border: "none",
                               cursor: "pointer",
                               padding: 4,
-                              color: "#dc2626",
+                              color: THEME.rust,
                               marginLeft: 4,
                             }}
                           >
@@ -1160,7 +1163,7 @@ function CreditScoreTracker() {
                     lineHeight: 1.5,
                   }}
                 >
-                  <CheckCircle2 size={15} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <CheckCircle2 size={15} color={THEME.sage} style={{ flexShrink: 0, marginTop: 2 }} />
                   <span>{tip}</span>
                 </div>
               ))}

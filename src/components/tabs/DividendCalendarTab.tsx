@@ -1,20 +1,13 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Coins,
-  TrendingUp,
-  Calendar,
-  RefreshCw,
-  AlertCircle,
-  BarChart3,
-  Clock,
-} from "lucide-react";
+import { Coins, TrendingUp, Calendar, RefreshCw, AlertCircle, BarChart3 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { StockLogo } from "./DematTab";
 
@@ -90,72 +83,6 @@ const urgencyLabel = (days: number | null): string => {
 const tsToDate = (ts: number | null | undefined): string | null => {
   if (!ts || ts <= 0) return null;
   return new Date(Number(ts) * 1000).toISOString().slice(0, 10);
-};
-
-/* ─── Premium Dividend Bento Card ─────────────────────────────────── */
-const DividendStatCard = ({ label, value, icon: Icon, color }: any) => {
-  return (
-    <div
-      className="card-lift"
-      style={{
-        background:
-          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-        border: `1.5px solid ${THEME.line}`,
-        borderTop: `4px solid ${color || THEME.accent}`,
-        borderRadius: 16,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        boxShadow:
-          "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: color || THEME.accent,
-            flexShrink: 0,
-          }}
-        >
-          {Icon}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-      <div>
-        <span
-          style={{
-            fontSize: 24,
-            fontWeight: 900,
-            color: THEME.ink,
-            letterSpacing: "-0.03em",
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {value}
-        </span>
-      </div>
-    </div>
-  );
 };
 
 export function DividendCalendarTab({ state, marketData }: any) {
@@ -383,6 +310,23 @@ export function DividendCalendarTab({ state, marketData }: any) {
         </div>
       </div>
 
+      {/* Plain-English explainer — "ex-dividend date" is not obvious to a lay
+          user, and it's the single most important date on this whole screen. */}
+      <div
+        style={{
+          padding: "10px 14px",
+          borderRadius: 10,
+          background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.gold} 22%, transparent)`,
+          fontSize: 12,
+          color: THEME.muted,
+        }}
+      >
+        <b style={{ color: THEME.ink }}>What's an ex-dividend date?</b> You must own the stock{" "}
+        <i>before</i> this date to receive the upcoming dividend — buying on or after it means you
+        miss that payout. The "Pay Date" is when the dividend actually lands in your account.
+      </div>
+
       {/* Summary stats */}
       <div
         style={{
@@ -391,28 +335,28 @@ export function DividendCalendarTab({ state, marketData }: any) {
           gap: 16,
         }}
       >
-        <DividendStatCard
+        <StatCard
           label="Est. Annual Dividend"
           value={fmtINRFull(totalEstIncome)}
-          icon={<Coins size={16} />}
+          icon={<Coins />}
           color={THEME.sage}
         />
-        <DividendStatCard
+        <StatCard
           label="Portfolio Div. Yield"
           value={portfolioYield > 0 ? `${portfolioYield.toFixed(2)}%` : "—"}
-          icon={<TrendingUp size={16} />}
-          color="var(--accent)"
+          icon={<TrendingUp />}
+          color={THEME.accent}
         />
-        <DividendStatCard
+        <StatCard
           label="Upcoming Ex-dates"
           value={String(upcomingExDates.length)}
-          icon={<Calendar size={16} />}
+          icon={<Calendar />}
           color={THEME.gold}
         />
-        <DividendStatCard
+        <StatCard
           label="Dividend Payers"
           value={`${dividendPayers.length} / ${stockRows.length}`}
-          icon={<BarChart3 size={16} />}
+          icon={<BarChart3 />}
           color={THEME.muted}
         />
       </div>
@@ -579,7 +523,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
               <span
                 style={{
                   fontSize: 11,
-                  color: "var(--accent)",
+                  color: THEME.accent,
                   fontWeight: 600,
                 }}
               >

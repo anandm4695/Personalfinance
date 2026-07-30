@@ -455,8 +455,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
       {state.subscriptions.length === 0 ? (
         <EmptyState
           icon={Repeat}
-          gradient="linear-gradient(135deg,#ea580c 0%,#fb923c 100%)"
-          dotColor="#ea580c"
+          gradient={`linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`}
+          dotColor={THEME.gold}
           title="No Subscriptions Tracked"
           description="Track Netflix, Spotify, Swiggy One, cloud tools, and any recurring bill — monthly or annual — so nothing slips through unnoticed."
           pills={[

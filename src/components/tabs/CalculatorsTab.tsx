@@ -1242,10 +1242,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     >
       <span style={{ color: THEME.muted, fontWeight: 500 }}>{lbl}</span>
       <span
+        // key={val} forces a remount whenever the computed result changes, replaying
+        // the `number-pop` animation below — a small scale "pop" so a recalculated
+        // output reads as an update, not a silent, easy-to-miss text swap.
+        key={val}
         style={{
           fontWeight: highlight ? 900 : 700,
           color: color || (highlight ? THEME.sage : THEME.ink),
           fontVariantNumeric: "tabular-nums",
+          display: "inline-block",
+          animation: "number-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
         {fmtINRFull(val)}

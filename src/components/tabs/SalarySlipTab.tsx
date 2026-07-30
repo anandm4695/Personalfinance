@@ -39,6 +39,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => {
@@ -131,72 +132,6 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
           </span>
         </div>
       ))}
-    </div>
-  );
-};
-
-/* ─── Premium Salary Bento Card ─────────────────────────────────── */
-const SalaryStatCard = ({ label, value, icon: Icon, color }: any) => {
-  return (
-    <div
-      className="card-lift"
-      style={{
-        background:
-          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-        border: `1.5px solid ${THEME.line}`,
-        borderTop: `4px solid ${color || THEME.accent}`,
-        borderRadius: 16,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        boxShadow:
-          "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: color || THEME.accent,
-            flexShrink: 0,
-          }}
-        >
-          {Icon}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-      <div>
-        <span
-          style={{
-            fontSize: 24,
-            fontWeight: 900,
-            color: THEME.ink,
-            letterSpacing: "-0.03em",
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {value}
-        </span>
-      </div>
     </div>
   );
 };
@@ -608,29 +543,29 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
             }}
           >
             {latest && (
-              <SalaryStatCard
+              <StatCard
                 label="Last Net Salary"
-                value={<Prv>{fmtINRFull(Number(latest.netSalary || 0))}</Prv>}
-                icon={<IndianRupee size={16} />}
+                value={fmtINRFull(Number(latest.netSalary || 0))}
+                icon={<IndianRupee />}
                 color={THEME.sage}
               />
             )}
-            <SalaryStatCard
+            <StatCard
               label="Avg Monthly Net"
-              value={<Prv>{fmtINRFull(avgNet)}</Prv>}
-              icon={<TrendingUp size={16} />}
-              color="var(--accent)"
+              value={fmtINRFull(avgNet)}
+              icon={<TrendingUp />}
+              color={THEME.accent}
             />
-            <SalaryStatCard
+            <StatCard
               label={`Total TDS (${fyLabel})`}
-              value={<Prv>{fmtINRFull(totalTDS)}</Prv>}
-              icon={<TrendingDown size={16} />}
+              value={fmtINRFull(totalTDS)}
+              icon={<TrendingDown />}
               color={THEME.rust}
             />
-            <SalaryStatCard
+            <StatCard
               label={`Total PF (${fyLabel})`}
-              value={<Prv>{fmtINRFull(totalPF)}</Prv>}
-              icon={<Briefcase size={16} />}
+              value={fmtINRFull(totalPF)}
+              icon={<Briefcase />}
               color={THEME.gold}
             />
           </div>

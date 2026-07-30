@@ -48,6 +48,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
+import { StatCard } from "../ui/StatCard";
 
 const CATEGORY_ICONS: Record<string, any> = {
   Food: Utensils,
@@ -574,6 +575,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
             <button
               key={tab}
               onClick={() => setActiveSubTab(tab)}
+              aria-pressed={activeSubTab === tab}
               style={{
                 border:
                   activeSubTab === tab
@@ -954,63 +956,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                     Icon: TrendingUp,
                   },
                 ].map(({ label, value, sub, color, Icon }) => (
-                  <div
-                    key={label}
-                    className="card-lift"
-                    style={{
-                      background: "var(--surface-0)",
-                      border: `1px solid ${THEME.line}`,
-                      borderTop: `4px solid ${color}`,
-                      borderRadius: 14,
-                      padding: "18px 20px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                      boxShadow: "var(--shadow-card)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon size={18} />
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: THEME.muted,
-                          textTransform: "uppercase" as const,
-                          letterSpacing: "0.1em",
-                        }}
-                      >
-                        {label}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 26,
-                        fontWeight: 900,
-                        color: THEME.ink,
-                        letterSpacing: "-0.04em",
-                        lineHeight: 1,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {value}
-                    </div>
-                    {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-                  </div>
+                  <StatCard key={label} label={label} value={value} sub={sub} color={color} icon={<Icon />} />
                 ))}
               </div>
             );
@@ -1626,63 +1572,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 Icon: AlertCircle,
               },
             ].map(({ label, value, sub, color, Icon }) => (
-              <div
-                key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
+              <StatCard key={label} label={label} value={value} sub={sub} color={color} icon={<Icon />} />
             ))}
           </div>
 

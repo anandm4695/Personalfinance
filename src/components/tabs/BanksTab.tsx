@@ -33,7 +33,6 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Drawer } from "../ui/Drawer";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
-import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
@@ -80,13 +79,17 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   amazon: "amazon.in",
 };
 
-// Account type visual themes
+// Account type visual themes — use fixed theme tokens (not raw hex) so these
+// stay theme-aware in dark mode and never coincidentally match whichever
+// accent color preset the user has picked (e.g. the old #0284c7 was an exact
+// pixel match for the "Sky Blue" accent preset, making savings accounts look
+// like they were highlighted/selected).
 const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: typeof PiggyBank }> = {
-  savings: { color: "#0284c7", bg: "color-mix(in srgb, #0284c7 8%, transparent)", icon: PiggyBank },
-  current: { color: "#059669", bg: "color-mix(in srgb, #059669 8%, transparent)", icon: Briefcase },
-  salary: { color: "#7c3aed", bg: "color-mix(in srgb, #7c3aed 8%, transparent)", icon: Banknote },
-  joint: { color: "#d97706", bg: "color-mix(in srgb, #d97706 8%, transparent)", icon: Handshake },
-  fd: { color: "#ea580c", bg: "color-mix(in srgb, #ea580c 8%, transparent)", icon: Lock },
+  savings: { color: THEME.cyan, bg: `color-mix(in srgb, ${THEME.cyan} 8%, transparent)`, icon: PiggyBank },
+  current: { color: THEME.sage, bg: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`, icon: Briefcase },
+  salary: { color: THEME.violet, bg: `color-mix(in srgb, ${THEME.violet} 8%, transparent)`, icon: Banknote },
+  joint: { color: THEME.gold, bg: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`, icon: Handshake },
+  fd: { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`, icon: Lock },
   other: {
     color: THEME.muted,
     bg: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
@@ -252,34 +255,6 @@ const TxnEmptyState = ({ onAdd }: any) => (
   />
 );
 
-const btnSolid = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 16px",
-  background: THEME.accent,
-  color: THEME.darkInk,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const btnGhost = {
-  background: "transparent",
-  border: `1.5px solid ${THEME.line}`,
-  color: THEME.ink,
-  padding: "8px 14px",
-  fontSize: 13,
-  fontWeight: 500,
-  borderRadius: 10,
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-};
-
 const input = {
   width: "100%",
   padding: "10px 12px",
@@ -326,28 +301,32 @@ const td = {
   borderBottom: `1px solid ${THEME.line}`,
 };
 
+// Transaction category tag colors — mapped onto the fixed THEME tokens rather
+// than raw hex so every tag stays theme-aware in dark mode and never happens
+// to land exactly on a user-selectable accent preset (the old #7c3aed and
+// #0284c7 were pixel-identical to the "Violet" and "Sky Blue" presets).
 const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
-  salary: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
-  income: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
-  interest: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
-  dividend: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
-  savings: { color: "#059669", bg: "color-mix(in srgb, #059669 10%, transparent)" },
-  transfer: { color: "#8b5cf6", bg: "color-mix(in srgb, #8b5cf6 10%, transparent)" },
-  food: { color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 10%, transparent)" },
-  dining: { color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 10%, transparent)" },
-  groceries: { color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 10%, transparent)" },
-  emi: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
-  loan: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
-  rent: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
-  utilities: { color: "#0891b2", bg: "color-mix(in srgb, #0891b2 10%, transparent)" },
-  bills: { color: "#0891b2", bg: "color-mix(in srgb, #0891b2 10%, transparent)" },
-  "credit card": { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
-  shopping: { color: "#7c3aed", bg: "color-mix(in srgb, #7c3aed 10%, transparent)" },
-  travel: { color: "#0284c7", bg: "color-mix(in srgb, #0284c7 10%, transparent)" },
-  health: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
-  medical: { color: "#dc2626", bg: "color-mix(in srgb, #dc2626 10%, transparent)" },
-  insurance: { color: "#ea580c", bg: "color-mix(in srgb, #ea580c 10%, transparent)" },
-  investment: { color: "#7c3aed", bg: "color-mix(in srgb, #7c3aed 10%, transparent)" },
+  salary: { color: THEME.sage, bg: `color-mix(in srgb, ${THEME.sage} 10%, transparent)` },
+  income: { color: THEME.sage, bg: `color-mix(in srgb, ${THEME.sage} 10%, transparent)` },
+  interest: { color: THEME.sage, bg: `color-mix(in srgb, ${THEME.sage} 10%, transparent)` },
+  dividend: { color: THEME.sage, bg: `color-mix(in srgb, ${THEME.sage} 10%, transparent)` },
+  savings: { color: THEME.sage, bg: `color-mix(in srgb, ${THEME.sage} 10%, transparent)` },
+  transfer: { color: THEME.violet, bg: `color-mix(in srgb, ${THEME.violet} 10%, transparent)` },
+  food: { color: THEME.gold, bg: `color-mix(in srgb, ${THEME.gold} 10%, transparent)` },
+  dining: { color: THEME.gold, bg: `color-mix(in srgb, ${THEME.gold} 10%, transparent)` },
+  groceries: { color: THEME.gold, bg: `color-mix(in srgb, ${THEME.gold} 10%, transparent)` },
+  emi: { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 10%, transparent)` },
+  loan: { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 10%, transparent)` },
+  rent: { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 10%, transparent)` },
+  utilities: { color: THEME.cyan, bg: `color-mix(in srgb, ${THEME.cyan} 10%, transparent)` },
+  bills: { color: THEME.cyan, bg: `color-mix(in srgb, ${THEME.cyan} 10%, transparent)` },
+  "credit card": { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 10%, transparent)` },
+  shopping: { color: THEME.pink, bg: `color-mix(in srgb, ${THEME.pink} 10%, transparent)` },
+  travel: { color: THEME.pink, bg: `color-mix(in srgb, ${THEME.pink} 10%, transparent)` },
+  health: { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 10%, transparent)` },
+  medical: { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 10%, transparent)` },
+  insurance: { color: THEME.rust, bg: `color-mix(in srgb, ${THEME.rust} 10%, transparent)` },
+  investment: { color: THEME.pink, bg: `color-mix(in srgb, ${THEME.pink} 10%, transparent)` },
   subscription: {
     color: THEME.accent as string,
     bg: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
@@ -681,20 +660,21 @@ export function BanksTab({
           Banks & Transactions
         </SectionTitle>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn-ghost" style={btnGhost} onClick={() => setShowBank(true)}>
-            <Plus size={14} /> Account
-          </button>
-          <button
-            className="btn-ghost"
-            style={btnGhost}
+          <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => setShowBank(true)}>
+            Account
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<FileUp size={14} />}
             onClick={() => setShowImport(true)}
             title="Import transactions from CSV"
           >
-            <FileUp size={14} /> Import CSV
-          </button>
-          <button className="btn-primary" style={btnSolid} onClick={() => setShowTxn(true)}>
-            <Plus size={14} /> Transaction
-          </button>
+            Import CSV
+          </Button>
+          <Button variant="accent" size="sm" icon={<Plus size={14} />} onClick={() => setShowTxn(true)}>
+            Transaction
+          </Button>
         </div>
       </div>
 
@@ -1518,6 +1498,7 @@ export function BanksTab({
               return (
                 <button
                   key={p}
+                  aria-pressed={isActive}
                   style={{
                     padding: "5px 12px",
                     borderRadius: "var(--radius-sm)",
@@ -1974,6 +1955,14 @@ export function BanksTab({
                         setInlineEditId(t.id);
                         setInlineEdit({ ...t });
                       }}
+                      tabIndex={0}
+                      onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setViewTxnId(t.id);
+                        }
+                      }}
+                      aria-label={`View details for ${t.note || "transaction"} on ${t.date || ""}`}
                       style={{ cursor: "pointer" }}
                       title="Click to view details · double-click to edit inline"
                     >
@@ -2241,6 +2230,15 @@ export function BanksTab({
                 <div
                   key={t.id}
                   onClick={() => setViewTxnId(t.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e: React.KeyboardEvent) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setViewTxnId(t.id);
+                    }
+                  }}
+                  aria-label={`View details for ${t.note || "transaction"} on ${t.date || ""}`}
                   style={{
                     border: `1.5px solid ${THEME.line}`,
                     borderRadius: 12,
@@ -2458,45 +2456,27 @@ export function BanksTab({
               {row("Narration", t.narration)}
               {row("Reference", t.referenceNumber)}
               <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-                <button
+                <Button
+                  variant="secondary"
+                  style={{ flex: 1 }}
                   onClick={() => {
                     setViewTxnId(null);
                     setInlineEditId(t.id);
                     setInlineEdit({ ...t });
                   }}
-                  style={{
-                    flex: 1,
-                    padding: "10px 16px",
-                    borderRadius: "var(--radius-md)",
-                    border: `1.5px solid ${THEME.line}`,
-                    background: "transparent",
-                    color: THEME.ink,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
                 >
                   Quick Edit
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="accent"
+                  style={{ flex: 1 }}
                   onClick={() => {
                     setViewTxnId(null);
                     setEditTxnId(t.id);
                   }}
-                  style={{
-                    flex: 1,
-                    padding: "10px 16px",
-                    borderRadius: "var(--radius-md)",
-                    border: "none",
-                    background: THEME.accent,
-                    color: THEME.darkInk,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
                 >
                   Full Edit
-                </button>
+                </Button>
               </div>
             </Drawer>
           );

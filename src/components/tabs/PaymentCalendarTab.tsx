@@ -65,14 +65,16 @@ const ORDINAL = (d: number) => {
   return "th";
 };
 
+// Fixed THEME tokens (not raw hex) so every category dot stays theme-aware in
+// dark mode and never coincidentally matches a user-selectable accent preset.
 const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  emi: { label: "Loan EMI", color: "#EF4444", icon: CreditCard },
-  sip: { label: "SIP", color: "#6366F1", icon: Activity },
-  rd: { label: "RD Instalment", color: "#8B5CF6", icon: Repeat },
-  subscription: { label: "Subscription", color: "#14B8A6", icon: Zap },
-  insurance: { label: "Insurance", color: "#EC4899", icon: Heart },
-  rent: { label: "Rent", color: "#F97316", icon: Building2 },
-  health: { label: "Health Ins.", color: "#0EA5E9", icon: Shield },
+  emi: { label: "Loan EMI", color: THEME.rust, icon: CreditCard },
+  sip: { label: "SIP", color: THEME.violet, icon: Activity },
+  rd: { label: "RD Instalment", color: THEME.accent, icon: Repeat },
+  subscription: { label: "Subscription", color: THEME.cyan, icon: Zap },
+  insurance: { label: "Insurance", color: THEME.pink, icon: Heart },
+  rent: { label: "Rent", color: THEME.gold, icon: Building2 },
+  health: { label: "Health Ins.", color: THEME.sage, icon: Shield },
   other: { label: "Other", color: THEME.muted, icon: Wallet },
 };
 
@@ -359,8 +361,8 @@ export function PaymentCalendarTab({ state }: any) {
         </SectionTitle>
         <EmptyState
           icon={Calendar}
-          gradient="linear-gradient(135deg, #6366F1 0%, #818CF8 100%)"
-          dotColor="#6366F1"
+          gradient={`linear-gradient(135deg, ${THEME.violet} 0%, color-mix(in srgb, ${THEME.violet} 55%, white) 100%)`}
+          dotColor={THEME.violet}
           title="No Recurring Payments"
           description="This calendar plots every EMI, SIP, RD, subscription and insurance premium you track elsewhere in the app onto a monthly view — add one to see it show up here by due date."
           pills={["Loan EMIs", "SIPs & RDs", "Subscriptions", "Insurance Premiums"]}

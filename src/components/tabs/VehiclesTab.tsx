@@ -45,6 +45,7 @@ import { fmtINRFull, fmtINRExact, today as todayFn } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
@@ -437,21 +438,21 @@ const FUEL_TYPES: Record<string, string> = {
 };
 
 const SERVICE_TYPES: Record<string, { label: string; color: string }> = {
-  regular_service: { label: "Regular Service", color: "#3b82f6" },
-  tyre_change: { label: "Tyre Change", color: "#f59e0b" },
-  battery_change: { label: "Battery Change", color: "#8b5cf6" },
-  repair: { label: "Repair", color: "#ef4444" },
-  insurance: { label: "Insurance Renewal", color: "#10b981" },
-  puc: { label: "PUC Renewal", color: "#06b6d4" },
-  other: { label: "Other", color: "#6b7280" },
+  regular_service: { label: "Regular Service", color: THEME.accent },
+  tyre_change: { label: "Tyre Change", color: THEME.gold },
+  battery_change: { label: "Battery Change", color: THEME.violet },
+  repair: { label: "Repair", color: THEME.rust },
+  insurance: { label: "Insurance Renewal", color: THEME.sage },
+  puc: { label: "PUC Renewal", color: THEME.cyan },
+  other: { label: "Other", color: THEME.muted },
 };
 
 const INSURANCE_POLICY_TYPES: Record<string, { label: string; color: string }> = {
-  comprehensive: { label: "Comprehensive", color: "#6366f1" },
-  own_damage: { label: "Own Damage (OD)", color: "#f59e0b" },
-  third_party: { label: "Third Party (TP)", color: "#06b6d4" },
-  zero_dep: { label: "Zero Depreciation", color: "#10b981" },
-  bundled_long_term: { label: "Bundled Long-Term (1yr OD + 3/5yr TP)", color: "#8b5cf6" },
+  comprehensive: { label: "Comprehensive", color: THEME.accent },
+  own_damage: { label: "Own Damage (OD)", color: THEME.gold },
+  third_party: { label: "Third Party (TP)", color: THEME.cyan },
+  zero_dep: { label: "Zero Depreciation", color: THEME.sage },
+  bundled_long_term: { label: "Bundled Long-Term (1yr OD + 3/5yr TP)", color: THEME.violet },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -991,7 +992,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 num: "1",
                 title: "RapidAPI",
                 badge: "Recommended — Sign in with Google",
-                color: "#2563eb",
+                color: THEME.accent,
                 steps: [
                   "Go to rapidapi.com → Sign Up → Continue with Google (easiest login, no approval needed)",
                   'Search "RTO Vehicle Information Verification India" → Subscribe (free tier has 20 free calls/month)',
@@ -1003,7 +1004,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 num: "2",
                 title: "Surepass",
                 badge: "Alternative — Account creation restricted for some users",
-                color: "#d97706",
+                color: THEME.gold,
                 steps: [
                   "NOTE: Users have reported issues signing up / creating accounts with Surepass support.",
                   "Go to surepass.io → click Sign Up (email or Google)",
@@ -1015,7 +1016,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 num: "3",
                 title: "Attestr",
                 badge: "Alternative — Indian developer API",
-                color: "#7c3aed",
+                color: THEME.violet,
                 steps: [
                   "Go to attestr.com → Sign Up with email/Google",
                   "Dashboard → API Console → create credentials",
@@ -2136,20 +2137,20 @@ function VehicleCard({
   );
 
   const SPEC_FIELDS = [
-    { key: "Owner", label: "Owner", val: ownerName, icon: User, color: "#3b82f6" },
+    { key: "Owner", label: "Owner", val: ownerName, icon: User, color: THEME.accent },
     {
       key: "Purchase Date",
       label: "Purchase Date",
       val: fmtDate(vehicle.purchaseDate),
       icon: Calendar,
-      color: "#10b981",
+      color: THEME.sage,
     },
     {
       key: "Purchase Price",
       label: "Purchase Price (On-Road)",
       val: vehicle.purchasePrice ? fmtINRExact(vehicle.purchasePrice) : "—",
       icon: Coins,
-      color: "#f59e0b",
+      color: THEME.gold,
     },
     ...(exShowroomTotal > 0
       ? [
@@ -2158,7 +2159,7 @@ function VehicleCard({
             label: "Ex-Showroom (Basic + GST)",
             val: fmtINRExact(exShowroomTotal),
             icon: Coins,
-            color: "#f59e0b",
+            color: THEME.gold,
           },
         ]
       : []),
@@ -2169,7 +2170,7 @@ function VehicleCard({
             label: "RTO Registration Charges",
             val: fmtINRExact(vehicle.rtoCharges),
             icon: FileText,
-            color: "#8b5cf6",
+            color: THEME.violet,
           },
         ]
       : []),
@@ -2180,7 +2181,7 @@ function VehicleCard({
             label: "Accessories Charges",
             val: fmtINRExact(vehicle.accessoriesCharges),
             icon: Coins,
-            color: "#ec4899",
+            color: THEME.pink,
           },
         ]
       : []),
@@ -2189,14 +2190,14 @@ function VehicleCard({
       label: "Current Value",
       val: vehicle.currentValue ? fmtINRExact(vehicle.currentValue) : "—",
       icon: Coins,
-      color: "#10b981",
+      color: THEME.sage,
     },
     {
       key: "Insurance Expiry",
       label: "Insurance Expiry",
       val: fmtDate(vehicle.insuranceExpiry),
       icon: Shield,
-      color: "#6366f1",
+      color: THEME.accent,
       expiry: vehicle.insuranceExpiry,
     },
     {
@@ -2204,7 +2205,7 @@ function VehicleCard({
       label: "PUC Expiry",
       val: fmtDate(vehicle.pucExpiry),
       icon: Activity,
-      color: "#06b6d4",
+      color: THEME.cyan,
       expiry: vehicle.pucExpiry,
     },
     {
@@ -2218,7 +2219,7 @@ function VehicleCard({
         return parts.length ? parts.join(" · ") : "—";
       })(),
       icon: Wrench,
-      color: "#f59e0b",
+      color: THEME.gold,
       status: serviceDueStat,
     },
     {
@@ -2226,14 +2227,14 @@ function VehicleCard({
       label: "Chassis No.",
       val: vehicle.chassisNumber || "—",
       icon: Hash,
-      color: "#8b5cf6",
+      color: THEME.violet,
     },
     {
       key: "Engine No.",
       label: "Engine No.",
       val: vehicle.engineNumber || "—",
       icon: Gauge,
-      color: "#ec4899",
+      color: THEME.pink,
     },
   ];
 
@@ -2598,7 +2599,7 @@ function VehicleCard({
                     value: latestOdo ? `${latestOdo.toLocaleString("en-IN")} km` : "—",
                     sub: "Based on maximum odometer reading in logs",
                     icon: Milestone,
-                    color: "#059669",
+                    color: THEME.sage,
                   },
                   {
                     label: "Cost Per Kilometer",
@@ -3486,47 +3487,85 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
         </div>
       )}
 
-      {/* Stat tiles */}
+      {/* Current Value is the number this tab answers — gets the hero-card slot
+          (matches FIRE Number / Goals Progress / Portfolio Value elsewhere). */}
       {vehicles.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 14,
-            marginBottom: 24,
-          }}
-        >
-          <StatCard
-            label="Vehicles Owned"
-            value={vehicles.length.toString()}
-            sub={`${vehicles.filter((v) => v.vehicleType === "two-wheeler").length} two-wheeler · ${vehicles.filter((v) => v.vehicleType === "four-wheeler").length} four-wheeler`}
-            icon={<Car />}
-            color={THEME.accent}
-          />
-          <StatCard
-            label="Current Value"
-            value={<Prv>{fmtINRFull(totalCurrentValue)}</Prv>}
-            sub={
-              totalPurchasePrice ? (
-                <Prv>Bought for {fmtINRFull(totalPurchasePrice)}</Prv>
-              ) : undefined
-            }
-            subColor={
-              totalPurchasePrice && totalCurrentValue < totalPurchasePrice
-                ? THEME.rust
-                : undefined
-            }
-            icon={<IndianRupee />}
-            color={THEME.sage}
-          />
-          <StatCard
-            label="Total Service Spend"
-            value={<Prv>{fmtINRFull(totalServiceSpend)}</Prv>}
-            sub="across all vehicles"
-            icon={<Wrench />}
-            color={THEME.gold}
-          />
-        </div>
+        <>
+          <Card
+            variant="hero"
+            style={{
+              marginBottom: 20,
+              padding: "clamp(24px, 4vw, 36px)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.6)",
+              }}
+            >
+              <IndianRupee size={13} /> Current Fleet Value
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(32px, 5vw, 52px)",
+                fontWeight: 900,
+                color: "#fff",
+                letterSpacing: "-0.03em",
+                lineHeight: 1.05,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              <Prv>{fmtINRFull(totalCurrentValue)}</Prv>
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+              {totalPurchasePrice ? (
+                <>
+                  <Prv>Bought for {fmtINRFull(totalPurchasePrice)}</Prv> across{" "}
+                  {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""}
+                  {totalCurrentValue < totalPurchasePrice
+                    ? ` · down ${fmtINRFull(totalPurchasePrice - totalCurrentValue)} from depreciation`
+                    : ""}
+                </>
+              ) : (
+                `Across ${vehicles.length} vehicle${vehicles.length !== 1 ? "s" : ""}`
+              )}
+            </div>
+          </Card>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+              marginBottom: 24,
+            }}
+          >
+            <StatCard
+              label="Vehicles Owned"
+              value={vehicles.length.toString()}
+              sub={`${vehicles.filter((v) => v.vehicleType === "two-wheeler").length} two-wheeler · ${vehicles.filter((v) => v.vehicleType === "four-wheeler").length} four-wheeler`}
+              icon={<Car />}
+              color={THEME.accent}
+            />
+            <StatCard
+              label="Total Service Spend"
+              value={<Prv>{fmtINRFull(totalServiceSpend)}</Prv>}
+              sub="across all vehicles"
+              icon={<Wrench />}
+              color={THEME.gold}
+            />
+          </div>
+        </>
       )}
 
       {/* Empty state */}

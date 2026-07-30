@@ -239,6 +239,7 @@ export const CommandPaletteModal = ({
           <input
             ref={inputRef}
             placeholder="Type a command or search…"
+            aria-label="Search commands and pages"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}

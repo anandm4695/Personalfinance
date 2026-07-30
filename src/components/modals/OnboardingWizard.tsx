@@ -65,7 +65,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     width: "100%",
     padding: "10px 14px",
     borderRadius: 10,
-    border: `1px solid ${THEME.line}`,
+    border: `1.5px solid ${THEME.line}`,
     fontSize: 14,
     background: "var(--surface-0)",
     color: THEME.ink,
@@ -479,7 +479,15 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </div>
               </Field>
               <div style={{ fontSize: 11, color: THEME.muted }}>
-                Get a free API key from <span style={{ color: THEME.accent }}>ai.google.dev</span>
+                Get a free API key from{" "}
+                <a
+                  href="https://ai.google.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: THEME.accent, fontWeight: 600, textDecoration: "underline" }}
+                >
+                  ai.google.dev
+                </a>
               </div>
             </div>
           )}

@@ -18,6 +18,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const th: React.CSSProperties = {
@@ -138,71 +139,6 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
           </span>
         </div>
       ))}
-    </div>
-  );
-};
-
-/* ─── Premium Amortization Bento Card ─────────────────────────────────── */
-const AmortizationStatCard = ({ label, value, icon: Icon, color }: any) => {
-  return (
-    <div
-      className="card-lift"
-      style={{
-        background:
-          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-        border: `1.5px solid ${THEME.line}`,
-        borderTop: `4px solid ${color || THEME.accent}`,
-        borderRadius: 16,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: color || THEME.accent,
-            flexShrink: 0,
-          }}
-        >
-          {Icon}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-      <div>
-        <span
-          style={{
-            fontSize: 24,
-            fontWeight: 900,
-            color: THEME.ink,
-            letterSpacing: "-0.03em",
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {value}
-        </span>
-      </div>
     </div>
   );
 };
@@ -344,6 +280,7 @@ export const LoanAmortizationTab = ({ state }) => {
               <button
                 onClick={() => setUseCustom(false)}
                 className="card-lift"
+                aria-pressed={!useCustom}
                 style={{
                   padding: "8px 16px",
                   borderRadius: 10,
@@ -361,6 +298,7 @@ export const LoanAmortizationTab = ({ state }) => {
               <button
                 onClick={() => setUseCustom(true)}
                 className="card-lift"
+                aria-pressed={useCustom}
                 style={{
                   padding: "8px 16px",
                   borderRadius: 10,
@@ -537,25 +475,25 @@ export const LoanAmortizationTab = ({ state }) => {
               gap: 16,
             }}
           >
-            <AmortizationStatCard
+            <StatCard
               label="Monthly EMI"
               value={<Prv>{fmtINRExact(baseAmort.emi)}</Prv>}
               icon={<IndianRupee size={16} />}
               color="var(--accent)"
             />
-            <AmortizationStatCard
+            <StatCard
               label="Total Interest"
               value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>}
               icon={<TrendingDown size={16} />}
               color={THEME.rust}
             />
-            <AmortizationStatCard
+            <StatCard
               label="Total Payment"
               value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>}
               icon={<Calculator size={16} />}
               color="var(--accent)"
             />
-            <AmortizationStatCard
+            <StatCard
               label="Loan Closes In"
               value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`}
               icon={<Calendar size={16} />}
@@ -854,6 +792,7 @@ export const LoanAmortizationTab = ({ state }) => {
               <button
                 onClick={() => setShowTable(!showTable)}
                 className="card-lift"
+                aria-expanded={showTable}
                 style={{
                   background: "var(--surface-0)",
                   border: `1.5px solid ${THEME.line}`,

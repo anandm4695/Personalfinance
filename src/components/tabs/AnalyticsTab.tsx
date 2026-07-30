@@ -1729,7 +1729,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             : savingsScore >= 18
               ? THEME.gold
               : savingsScore >= 10
-                ? "#F97316"
+                ? `color-mix(in srgb, ${THEME.gold} 45%, ${THEME.rust})`
                 : THEME.rust,
         hint:
           metrics.monthIncome > 0
@@ -1747,7 +1747,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             : debtScore >= 18
               ? THEME.gold
               : debtScore >= 10
-                ? "#F97316"
+                ? `color-mix(in srgb, ${THEME.gold} 45%, ${THEME.rust})`
                 : THEME.rust,
         hint:
           metrics.totalAssets === 0
@@ -1767,7 +1767,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             : emergencyScore >= 18
               ? THEME.gold
               : emergencyScore >= 10
-                ? "#F97316"
+                ? `color-mix(in srgb, ${THEME.gold} 45%, ${THEME.rust})`
                 : THEME.rust,
         hint:
           metrics.monthExpense > 0
@@ -1785,7 +1785,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             : divScore >= 18
               ? THEME.gold
               : divScore >= 10
-                ? "#F97316"
+                ? `color-mix(in srgb, ${THEME.gold} 45%, ${THEME.rust})`
                 : THEME.rust,
         hint: investTypes.length > 0 ? (investTypes as string[]).join(", ") : "No investments yet",
       },
@@ -3401,6 +3401,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 key={s.id}
                 onClick={() => setSub(s.id)}
                 className={`demat-portfolio-pill ${sub === s.id ? "active" : ""}`}
+                aria-pressed={sub === s.id}
               >
                 <Icon size={14} />
                 {s.label}
@@ -3942,7 +3943,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     color: "#fff",
                   }}
                 >
-                  {fmtINRFull(animatedNetWorth)}
+                  <Prv>{fmtINRFull(animatedNetWorth)}</Prv>
                 </div>
                 <div
                   style={{
@@ -6333,6 +6334,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <button
                         key={f}
                         onClick={() => setTxnFilter(f)}
+                        aria-pressed={txnFilter === f}
                         style={{
                           padding: "3px 10px",
                           borderRadius: 6,
@@ -6533,6 +6535,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {
                   label: "Net Worth",
                   value: fmtINRFull(metrics.netWorth),
+                  money: true,
                   delta:
                     filteredNetWorthTrend.length >= 2
                       ? (
@@ -6552,6 +6555,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {
                   label: "YTD Income",
                   value: fmtINRFull(ytdData.ytdIncome),
+                  money: true,
                   delta: null,
                   positive: ytdData.ytdIncome >= 0,
                   icon: IndianRupee,
@@ -6559,6 +6563,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {
                   label: "YTD Savings Rate",
                   value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
+                  money: false,
                   delta: null,
                   positive: ytdData.ytdSavingsRate >= 20,
                   icon: Landmark,
@@ -6575,6 +6580,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           100
                         ).toFixed(1) + "%"
                       : "—",
+                  money: false,
                   delta: null,
                   positive:
                     metrics.mfValue + metrics.stockValue >=
@@ -6584,11 +6590,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               ] as {
                 label: string;
                 value: string;
+                money: boolean;
                 delta: string | null;
                 positive: boolean;
                 icon: any;
               }[]
-            ).map(({ label, value, delta, positive, icon: Icon }) => (
+            ).map(({ label, value, money, delta, positive, icon: Icon }) => (
               <div
                 key={label}
                 className="card-lift"
@@ -6633,7 +6640,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     lineHeight: 1.1,
                   }}
                 >
-                  {value}
+                  {money ? <Prv>{value}</Prv> : value}
                 </div>
                 {delta !== null && (
                   <div
@@ -6768,6 +6775,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <button
                           key={p}
                           onClick={() => setTrendPeriod(p)}
+                          aria-pressed={trendPeriod === p}
                           style={{
                             padding: "3px 10px",
                             borderRadius: 6,
@@ -7327,6 +7335,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <button
                         key={mode}
                         onClick={() => setYtdMode(mode)}
+                        aria-pressed={ytdMode === mode}
                         style={{
                           padding: "5px 12px",
                           borderRadius: 8,
@@ -7352,16 +7361,19 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     {
                       label: "YTD Income",
                       value: fmtINRFull(ytdData.ytdIncome),
+                      money: true,
                       color: ytdData.ytdIncome > 0 ? THEME.sage : THEME.muted,
                     },
                     {
                       label: "YTD Expense",
                       value: fmtINRFull(ytdData.ytdExpense),
+                      money: true,
                       color: ytdData.ytdExpense > 0 ? THEME.rust : THEME.muted,
                     },
                     {
                       label: "YTD Savings",
                       value: fmtINRFull(ytdData.ytdSavings),
+                      money: true,
                       color:
                         ytdData.ytdIncome === 0 && ytdData.ytdExpense === 0
                           ? THEME.muted
@@ -7372,6 +7384,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     {
                       label: "YTD Savings Rate",
                       value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
+                      money: false,
                       color:
                         ytdData.ytdIncome === 0
                           ? THEME.muted
@@ -7381,7 +7394,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               ? THEME.gold
                               : THEME.rust,
                     },
-                  ].map(({ label, value, color }) => (
+                  ].map(({ label, value, money, color }) => (
                     <div
                       key={label}
                       style={{
@@ -7406,7 +7419,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div
                         style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em" }}
                       >
-                        {value}
+                        {money ? <Prv>{value}</Prv> : value}
                       </div>
                     </div>
                   ))}
@@ -8074,9 +8087,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           return (
                             <div
                               key={i}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Drill down into ${item.name}`}
                               onMouseEnter={() => setActiveAssetIndex(i)}
                               onMouseLeave={() => setActiveAssetIndex(null)}
                               onClick={() => setSelectedAssetClass(item.name)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setSelectedAssetClass(item.name);
+                                }
+                              }}
                               style={{
                                 display: "flex",
                                 justifyContent: "space-between",
@@ -8762,9 +8784,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             return (
                               <div
                                 key={i}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Drill down into ${item.name}`}
                                 onMouseEnter={() => setActiveCapIndex(i)}
                                 onMouseLeave={() => setActiveCapIndex(null)}
                                 onClick={() => setSelectedCapClass(item.name)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setSelectedCapClass(item.name);
+                                  }
+                                }}
                                 style={{
                                   display: "flex",
                                   justifyContent: "space-between",
@@ -10455,7 +10486,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             top: 0,
                             bottom: 0,
                             width: 2,
-                            background: "rgba(255,255,255,0.35)",
+                            background: `color-mix(in srgb, ${THEME.ink} 22%, transparent)`,
                             transform: "translateX(-50%)",
                           }}
                         />
@@ -10814,6 +10845,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <button
                         key={preset.label}
                         onClick={() => setFireWhatIfExtra(preset.val)}
+                        aria-pressed={fireWhatIfExtra === preset.val}
                         style={{
                           padding: "3px 8px",
                           borderRadius: 6,
@@ -11178,6 +11210,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <button
                           key={preset.label}
                           onClick={() => setWindfallAmount(preset.val)}
+                          aria-pressed={windfallAmount === preset.val}
                           style={{
                             padding: "3px 8px",
                             borderRadius: 6,
@@ -11269,6 +11302,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <button
                           key={preset.label}
                           onClick={() => setExtraExpenseAmount(preset.val)}
+                          aria-pressed={extraExpenseAmount === preset.val}
                           style={{
                             padding: "3px 8px",
                             borderRadius: 6,
@@ -11825,7 +11859,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             background: isOverBudget
                               ? THEME.rust
                               : spendingPct > 95
-                                ? "#F97316"
+                                ? `color-mix(in srgb, ${THEME.gold} 45%, ${THEME.rust})`
                                 : spendingPct > (100 - targetPct) * 0.8
                                   ? THEME.gold
                                   : spendingPct > 50
@@ -12414,6 +12448,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <button
                           key={preset}
                           onClick={() => setSipLsTarget(preset)}
+                          aria-pressed={sipLsTarget === preset}
                           style={{
                             padding: "3px 8px",
                             borderRadius: 6,
@@ -12903,7 +12938,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 );
               })()}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))",
+                  gap: 24,
+                }}
+              >
                 <Card style={{ padding: 24, display: "flex", flexDirection: "column" }}>
                   <div
                     style={{
@@ -13215,9 +13256,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               return (
                                 <div
                                   key={i}
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-label={`Drill down into ${item.name}`}
                                   onMouseEnter={() => setActiveExpenseIndex(i)}
                                   onMouseLeave={() => setActiveExpenseIndex(null)}
                                   onClick={() => setSelectedExpenseCategory(item.name)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      setSelectedExpenseCategory(item.name);
+                                    }
+                                  }}
                                   style={{
                                     display: "flex",
                                     justifyContent: "space-between",
@@ -13883,8 +13933,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       return (
                         <div
                           key={i}
+                          {...(hasEvents
+                            ? {
+                                role: "button",
+                                tabIndex: 0,
+                                "aria-label": `${d} ${calendarDate.toLocaleString("en-IN", { month: "long" })}: ${dueDays[d].length} event${dueDays[d].length !== 1 ? "s" : ""} — ${dueDays[d].map((e: any) => e.label).join(", ")}`,
+                              }
+                            : {})}
                           onClick={() => {
                             if (d && hasEvents) {
+                              setSelectedDayEvents({ day: d, events: dueDays[d] });
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if ((e.key === "Enter" || e.key === " ") && d && hasEvents) {
+                              e.preventDefault();
                               setSelectedDayEvents({ day: d, events: dueDays[d] });
                             }
                           }}
@@ -13908,7 +13971,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             cursor: hasEvents ? "pointer" : "default",
                             transition: "all 0.18s ease-in-out",
                           }}
-                          className={hasEvents ? "hover:scale-[1.03] hover:shadow-lg" : ""}
+                          className={hasEvents ? "card-lift" : ""}
                         >
                           {d && (
                             <>
@@ -15089,7 +15152,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   style={{
                     padding: "14px 16px",
                     borderRadius: 12,
-                    background: "rgba(255,255,255,0.02)",
+                    background: `color-mix(in srgb, ${THEME.ink} 3%, transparent)`,
                     border: `1px solid color-mix(in srgb, ${evt.color} 18%, transparent)`,
                     borderLeft: `4px solid ${evt.color}`,
                     display: "flex",
@@ -15205,17 +15268,29 @@ const HeroStat = ({
       ? "rgba(52,211,153,0.18)"
       : "rgba(255,255,255,0.09)";
   const isClickable = !!(tabId && setTab);
+  const handleActivate = isClickable
+    ? () => {
+        setTab(tabId);
+        if (subTabId && setSubTab) setSubTab(subTabId);
+      }
+    : undefined;
   return (
     <div
-      onClick={
-        isClickable
-          ? () => {
-              setTab(tabId);
-              if (subTabId && setSubTab) setSubTab(subTabId);
-            }
-          : undefined
-      }
+      onClick={handleActivate}
       title={isClickable ? `View in ${label}` : undefined}
+      {...(isClickable
+        ? {
+            role: "button",
+            tabIndex: 0,
+            "aria-label": `View in ${label}`,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleActivate!();
+              }
+            },
+          }
+        : {})}
       style={{
         borderLeft: `2px solid ${borderColor}`,
         paddingLeft: 12,
@@ -15262,7 +15337,7 @@ const HeroStat = ({
           lineHeight: 1,
         }}
       >
-        {fmtINRFull(value)}
+        <Prv>{fmtINRFull(value)}</Prv>
       </div>
     </div>
   );

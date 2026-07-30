@@ -133,7 +133,7 @@ export function XIRRReportTab({ state }: any) {
         name: fd.bank || "FD",
         type: "Fixed Deposit",
         icon: Landmark,
-        color: "#6366F1",
+        color: THEME.cyan,
         invested: Number(fd.principal),
         currentValue: currentVal,
         startDate: fd.startDate,
@@ -200,7 +200,7 @@ export function XIRRReportTab({ state }: any) {
         name: mf.name || mf.scheme || "MF",
         type: "Mutual Fund",
         icon: BarChart3,
-        color: "#10B981",
+        color: THEME.accent,
         invested: Number(mf.invested),
         currentValue: currentVal,
         startDate: mf.buyDate,
@@ -228,7 +228,7 @@ export function XIRRReportTab({ state }: any) {
         name: s.symbol || s.name || "Stock",
         type: "Stocks",
         icon: TrendingUp,
-        color: "#F59E0B",
+        color: THEME.gold,
         invested,
         currentValue: currentVal,
         startDate: buyDate,
@@ -290,7 +290,7 @@ export function XIRRReportTab({ state }: any) {
           name: p.employer || p.institution || "EPF",
           type: "EPF",
           icon: Shield,
-          color: "#0891B2",
+          color: THEME.pink,
           invested,
           currentValue: currentVal,
           startDate: txns[0]?.date,
@@ -310,7 +310,7 @@ export function XIRRReportTab({ state }: any) {
           name: p.employer || p.institution || "EPF",
           type: "EPF",
           icon: Shield,
-          color: "#0891B2",
+          color: THEME.pink,
           invested,
           currentValue: currentVal,
           startDate: p.startDate,
@@ -344,7 +344,7 @@ export function XIRRReportTab({ state }: any) {
           name: `${p.institution || "NPS"}${p.tier ? ` (Tier ${p.tier})` : ""}`,
           type: "NPS",
           icon: Briefcase,
-          color: "#7C3AED",
+          color: THEME.rust,
           invested,
           currentValue: currentVal,
           startDate: txns[0]?.date,
@@ -364,7 +364,7 @@ export function XIRRReportTab({ state }: any) {
           name: `${p.institution || "NPS"}${p.tier ? ` (Tier ${p.tier})` : ""}`,
           type: "NPS",
           icon: Briefcase,
-          color: "#7C3AED",
+          color: THEME.rust,
           invested: currentVal,
           currentValue: currentVal,
           startDate,
@@ -417,7 +417,7 @@ export function XIRRReportTab({ state }: any) {
         name: b.name || b.issuer || "Bond",
         type: "Bonds",
         icon: FileText,
-        color: "#0EA5E9",
+        color: THEME.muted,
         invested: invAmount,
         currentValue: faceVal,
         startDate: purchaseDate,
@@ -602,7 +602,7 @@ export function XIRRReportTab({ state }: any) {
                   </span>
                   <span style={{ color: THEME.muted, fontWeight: 500 }}>
                     Value:{" "}
-                    <b style={{ color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
+                    <b style={{ color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
                       <Prv>{fmtINRExact(typeCurrent)}</Prv>
                     </b>
                   </span>

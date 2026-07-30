@@ -44,6 +44,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
+import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1338,37 +1339,12 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       </SectionTitle>
 
       {!hasAnyData ? (
-        <Card style={{ padding: "64px 32px", textAlign: "center" }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 60%, #fff))`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-            }}
-          >
-            <FileText size={30} color="#fff" />
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
-            No Data for {fyLabel}
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: THEME.muted,
-              maxWidth: 400,
-              margin: "0 auto",
-              lineHeight: 1.6,
-            }}
-          >
-            Add income entries, transactions, or investments to generate your annual financial
-            report for {fyLabel}.
-          </div>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title={`No Data for ${fyLabel}`}
+          description={`Add income entries, transactions, or investments to generate your annual financial report for ${fyLabel}.`}
+          pills={["Income vs Expense", "Net Worth Growth", "Goal Progress", "Tax Summary"]}
+        />
       ) : (
         <>
           {/* ─── Premium Executive Hero Card ─────────────────────────── */}
@@ -1463,7 +1439,10 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                     style={{
                       fontSize: 20,
                       fontWeight: 800,
-                      color: netWorthData.change >= 0 ? "#34d399" : "#f87171",
+                      color:
+                        netWorthData.change >= 0
+                          ? `color-mix(in srgb, ${THEME.sage} 70%, white)`
+                          : `color-mix(in srgb, ${THEME.rust} 65%, white)`,
                     }}
                   >
                     {netWorthData.change >= 0 ? "+" : ""}
@@ -1487,7 +1466,10 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                     style={{
                       fontSize: 20,
                       fontWeight: 800,
-                      color: savingsData.savingsRate >= 20 ? "#34d399" : "#fbbf24",
+                      color:
+                        savingsData.savingsRate >= 20
+                          ? `color-mix(in srgb, ${THEME.sage} 70%, white)`
+                          : `color-mix(in srgb, ${THEME.gold} 65%, white)`,
                     }}
                   >
                     {savingsData.savingsRate.toFixed(0)}%

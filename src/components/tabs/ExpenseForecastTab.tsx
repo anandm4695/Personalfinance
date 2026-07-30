@@ -9,6 +9,7 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
+  Info,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -26,6 +27,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
@@ -106,85 +108,6 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
     </div>
   );
 };
-
-/* ─── Premium Stat Card ───────────────────────────────────────── */
-const PremiumStatCard = ({ label, value, color, icon: Icon, sub, subColor }: any) => (
-  <div
-    className="card-lift"
-    style={{
-      background:
-        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-      border: `1.5px solid ${THEME.line}`,
-      borderTop: `4px solid ${color}`,
-      borderRadius: 16,
-      padding: "18px 20px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 12,
-      boxShadow:
-        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color,
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-          }}
-        >
-          {label}
-        </div>
-        {sub && (
-          <div
-            style={{
-              fontSize: 10,
-              color: subColor || THEME.muted,
-              fontWeight: subColor ? 700 : 400,
-              marginTop: 2,
-              opacity: subColor ? 1 : 0.8,
-            }}
-          >
-            {sub}
-          </div>
-        )}
-      </div>
-    </div>
-    <div
-      style={{
-        fontSize: 26,
-        fontWeight: 900,
-        color: THEME.ink,
-        letterSpacing: "-0.04em",
-        lineHeight: 1,
-        fontVariantNumeric: "tabular-nums",
-        marginTop: 4,
-      }}
-    >
-      <Prv>{value}</Prv>
-    </div>
-  </div>
-);
 
 export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   const [forecastMonths, setForecastMonths] = useState(6);
@@ -352,30 +275,30 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
           gap: 14,
         }}
       >
-        <PremiumStatCard
+        <StatCard
           label="Annual Projection"
           value={fmtINRFull(annualProjection)}
-          icon={Calendar}
+          icon={<Calendar />}
           color="var(--accent)"
         />
-        <PremiumStatCard
+        <StatCard
           label="Monthly Average"
           value={fmtINRFull(Math.round(annualProjection / 12))}
-          icon={BarChart3}
+          icon={<BarChart3 />}
           color={THEME.accent}
         />
-        <PremiumStatCard
+        <StatCard
           label="Trending Up"
           value={`${trendingUp} categories`}
-          icon={ArrowUp}
+          icon={<ArrowUp />}
           color={THEME.rust}
           sub="Rising spending velocity"
           subColor={THEME.rust}
         />
-        <PremiumStatCard
+        <StatCard
           label="Trending Down"
           value={`${trendingDown} categories`}
-          icon={ArrowDown}
+          icon={<ArrowDown />}
           color={THEME.sage}
           sub="Cooling spending velocity"
           subColor={THEME.sage}
@@ -659,6 +582,31 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
           </table>
         </div>
       </Card>
+
+      {/* Disclaimer */}
+      <div
+        style={{
+          padding: "10px 16px",
+          borderRadius: 10,
+          background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+          fontSize: 11,
+          color: THEME.muted,
+          lineHeight: 1.6,
+        }}
+      >
+        <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+        <span>
+          <strong>How this forecast works:</strong> Predicted values blend each category's
+          same-month seasonal average with its trailing 6-month average, then apply a ±20% band
+          for the lower/upper bounds. It is a statistical projection from your own transaction
+          history, not a guarantee — one-off expenses (medical, travel, gifting) and any new
+          recurring commitments won't be reflected until they show up in past months.
+        </span>
+      </div>
     </div>
   );
 };

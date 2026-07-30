@@ -824,6 +824,28 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         Capital Gains Report
       </SectionTitle>
 
+      {/* Plain-English glossary for the STCG/LTCG jargon used throughout this
+          page's stat cards below — placed up top, before a first-time user
+          hits those abbreviations, rather than only in the small-print
+          disclaimer at the very bottom of the page. */}
+      <div
+        style={{
+          padding: "10px 14px",
+          borderRadius: 10,
+          background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+          fontSize: 12,
+          color: THEME.muted,
+        }}
+      >
+        <b style={{ color: THEME.ink }}>STCG vs LTCG:</b> Sell an equity stock/fund within 12 months
+        of buying it and the profit is <b style={{ color: THEME.ink }}>Short-Term (STCG)</b>, taxed
+        at {stcgRate * 100}%. Hold it longer and it's{" "}
+        <b style={{ color: THEME.ink }}>Long-Term (LTCG)</b>, taxed at only {ltcgRate * 100}% — and
+        the first {fmtINRFull(ltcgExemptionLimit)} of LTCG each financial year is tax-free
+        (Section 112A exemption).
+      </div>
+
       {/* ── Summary StatCards (standard component) ────────────────── */}
       <div
         style={{

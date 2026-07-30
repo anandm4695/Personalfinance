@@ -4,10 +4,8 @@ import {
   Calculator,
   Calendar,
   FileText,
-  Download,
   AlertTriangle,
   CheckCircle2,
-  IndianRupee,
   Home,
   Printer,
   ChevronDown,
@@ -1090,6 +1088,31 @@ const Form26ASSection = ({ state }) => {
           </div>
         </Card>
       </div>
+
+      {!isMatch && entriesForFY.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
+            fontSize: 12,
+            color: THEME.muted,
+            marginBottom: 20,
+          }}
+        >
+          <Info size={14} style={{ flexShrink: 0, marginTop: 2, color: THEME.rust }} />
+          <span>
+            A mismatch usually means either an entry here doesn't match what's actually reflected
+            in Form 26AS/AIS on the Income Tax portal, or your deductor (employer/bank/tenant)
+            hasn't filed or corrected their TDS return yet. Reconcile against the portal before
+            filing your ITR — a mismatch there can delay your refund.
+          </span>
+        </div>
+      )}
 
       {/* 26AS Entries */}
       <Card>

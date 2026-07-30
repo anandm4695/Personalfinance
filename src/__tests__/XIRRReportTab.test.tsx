@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 import { XIRRReportTab } from "../components/tabs/XIRRReportTab";
 import { calcXIRR, fdMaturity, monthsBetween, fmtINRFull, today } from "../utils/finance";
+import { PrivacyProvider } from "../context/PrivacyContext";
 
 describe("XIRRReportTab Premium UI Statically", () => {
   const mockState = {
@@ -40,7 +41,7 @@ describe("XIRRReportTab Premium UI Statically", () => {
   };
 
   it("should render overall portfolio stats, per-type tables, itemized listings, and color guide details", () => {
-    const html = renderToString(<XIRRReportTab state={mockState} />);
+    const html = renderToString(<PrivacyProvider><XIRRReportTab state={mockState} /></PrivacyProvider>);
 
     // Verify key elements and labels render correctly
     expect(html).toContain("XIRR Report");
@@ -82,7 +83,7 @@ describe("XIRRReportTab Premium UI Statically", () => {
       nps: [],
       bonds: [],
     };
-    const html = renderToString(<XIRRReportTab state={state} />);
+    const html = renderToString(<PrivacyProvider><XIRRReportTab state={state} /></PrivacyProvider>);
 
     expect(expectedXIRR).not.toBeNull();
     expect(html).toContain(`${expectedXIRR!.toFixed(2)}%`);
@@ -117,7 +118,7 @@ describe("XIRRReportTab Premium UI Statically", () => {
       nps: [],
       bonds: [],
     };
-    const html = renderToString(<XIRRReportTab state={state} />);
+    const html = renderToString(<PrivacyProvider><XIRRReportTab state={state} /></PrivacyProvider>);
 
     // "Total Invested" stat card is plain text (not privacy-masked), and with only
     // one RD in state it equals this RD's invested amount exactly.
@@ -162,7 +163,7 @@ describe("XIRRReportTab Premium UI Statically", () => {
       ],
     };
 
-    const html = renderToString(<XIRRReportTab state={state} />);
+    const html = renderToString(<PrivacyProvider><XIRRReportTab state={state} /></PrivacyProvider>);
     expect(html).toContain("TechCorp");
     expect(html).toContain("HDFC Pension");
     expect(html).toContain("SGB 2028");

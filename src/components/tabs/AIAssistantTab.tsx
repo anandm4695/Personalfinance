@@ -1993,6 +1993,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
             <button
               onClick={() => setShowSavedNotes((p) => !p)}
               title="Saved notes"
+              aria-expanded={showSavedNotes}
               style={{
                 padding: "5px 10px",
                 borderRadius: 8,
@@ -2537,6 +2538,8 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               <div style={{ marginBottom: 10 }}>
                 {/* Category tabs */}
                 <div
+                  role="tablist"
+                  aria-label="Suggested question categories"
                   style={{
                     display: "flex",
                     gap: 6,
@@ -2552,6 +2555,8 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                     return (
                       <button
                         key={cat}
+                        role="tab"
+                        aria-selected={isActive}
                         onClick={() => setActivePromptCategory(cat)}
                         style={{
                           padding: "5px 14px",
@@ -2642,6 +2647,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about savings, investments, tax planning, debt…"
+                aria-label="Message the AI advisor"
                 disabled={loading}
                 style={{
                   flex: 1,

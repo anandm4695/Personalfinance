@@ -3,6 +3,7 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 import { PerformanceBenchmarkTab } from "../components/tabs/PerformanceBenchmarkTab";
+import { PrivacyProvider } from "../context/PrivacyContext";
 
 // Simple mock for recharts ResponsiveContainer
 vi.mock("recharts", async () => {
@@ -50,16 +51,18 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
 
   it("should render overall returns, total invested stats, benchmarks comparison charts, and health radars", () => {
     const html = renderToString(
-      <PerformanceBenchmarkTab
-        state={mockState}
-        metrics={{
-          monthIncome: 100000,
-          monthExpense: 30000,
-          debtToAssetRatio: 10,
-          overallGoalPct: 45,
-        }}
-        marketData={{}}
-      />
+      <PrivacyProvider>
+        <PerformanceBenchmarkTab
+          state={mockState}
+          metrics={{
+            monthIncome: 100000,
+            monthExpense: 30000,
+            debtToAssetRatio: 10,
+            overallGoalPct: 45,
+          }}
+          marketData={{}}
+        />
+      </PrivacyProvider>
     );
 
     // Verify key titles and card details render correctly
@@ -94,11 +97,13 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
     };
 
     const html = renderToString(
-      <PerformanceBenchmarkTab
-        state={goldOnlyState}
-        metrics={{ monthIncome: 0, monthExpense: 0, debtToAssetRatio: 0, overallGoalPct: 0 }}
-        marketData={{}}
-      />
+      <PrivacyProvider>
+        <PerformanceBenchmarkTab
+          state={goldOnlyState}
+          metrics={{ monthIncome: 0, monthExpense: 0, debtToAssetRatio: 0, overallGoalPct: 0 }}
+          marketData={{}}
+        />
+      </PrivacyProvider>
     );
 
     // goldPricePerGram defaults to 7200 (no localStorage override in tests).

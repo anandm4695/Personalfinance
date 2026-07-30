@@ -1946,8 +1946,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <Card style={{ padding: 24 }}>
             <EmptyState
               icon={Shield}
-              gradient="linear-gradient(135deg,#b45309 0%,#f59e0b 100%)"
-              dotColor="#f59e0b"
+              gradient={`linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`}
+              dotColor={THEME.gold}
               title="No LIC Policies Added Yet"
               description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
               pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
@@ -2270,8 +2270,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <Card style={{ padding: 24 }}>
             <EmptyState
               icon={Heart}
-              gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
-              dotColor="#db2777"
+              gradient={`linear-gradient(135deg, ${THEME.pink} 0%, color-mix(in srgb, ${THEME.pink} 55%, white) 100%)`}
+              dotColor={THEME.pink}
               title="No Term Plans Tracked"
               description="Add your pure protection term plans to track cover amounts, insurers, and expiry dates."
               pills={["High Cover", "Low Premium", "Policy Duration", "Adequacy Ratio"]}

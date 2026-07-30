@@ -695,6 +695,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           >
             <button
               onClick={() => setForecastMonths(3)}
+              aria-pressed={forecastMonths === 3}
               className={`cf-segbtn ${forecastMonths === 3 ? "active" : ""}`}
               style={{
                 padding: "6px 14px",
@@ -712,6 +713,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             </button>
             <button
               onClick={() => setForecastMonths(6)}
+              aria-pressed={forecastMonths === 6}
               className={`cf-segbtn ${forecastMonths === 6 ? "active" : ""}`}
               style={{
                 padding: "6px 14px",
@@ -1348,7 +1350,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           padding: "12px 20px",
                           borderBottom:
                             idx < inflows.length - 1 ? `1px solid ${THEME.line}` : "none",
-                          cursor: "pointer",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1555,7 +1556,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           padding: "12px 20px",
                           borderBottom:
                             idx < outflows.length - 1 ? `1px solid ${THEME.line}` : "none",
-                          cursor: "pointer",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1791,7 +1791,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           padding: "10px 0",
                           position: "relative",
                           zIndex: 1,
-                          cursor: "pointer",
                         }}
                       >
                         {/* Timeline Dot container */}

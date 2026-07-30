@@ -1,10 +1,11 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Upload, AlertCircle, FileText, Bot, CheckCircle, GitMerge } from "lucide-react";
+import { AlertCircle, Bot, CheckCircle, GitMerge, X } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 
 interface MFCasPanelProps {
@@ -428,26 +429,6 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
     setInputText("");
   };
 
-  const btnStyle = {
-    padding: "6px 14px",
-    fontSize: 12,
-    fontWeight: 600,
-    borderRadius: 8,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    border: "none",
-    transition: "filter 0.15s ease, box-shadow 0.15s ease",
-  };
-  const onSolidBtnEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.filter = "brightness(1.08)";
-  };
-  const onSolidBtnLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.filter = "none";
-  };
-
   return (
     <Card
       style={{ padding: 20, border: `1px solid ${THEME.line}`, background: "var(--surface-0)" }}
@@ -456,37 +437,42 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: "flex-start",
           marginBottom: 12,
+          gap: 12,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Bot size={18} color={THEME.accent} />
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 800,
-              color: THEME.muted,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
-            Smart CAS Statement Importer (Text Paste)
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <Bot size={18} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
+          <div>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: THEME.ink,
+                letterSpacing: "0.02em",
+              }}
+            >
+              Smart CAS Import — Merge into Mutual Funds
+            </div>
+            {/* This importer is deliberately distinct from the standalone "CAS Import" page: it
+                fuzzy-matches parsed transactions against your existing MF holdings (by folio, then
+                name) and can merge units/NAV straight into them instead of creating duplicates. */}
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, lineHeight: 1.4 }}>
+              Paste transaction-level CAS text here to update existing holdings in place. For a
+              one-off snapshot import instead, use the "CAS Import" page from the sidebar.
+            </div>
           </div>
         </div>
-        <button
-          className="icon-btn"
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<X size={14} />}
           aria-label="Close CAS importer"
-          style={{
-            ...btnStyle,
-            background: "transparent",
-            color: THEME.muted,
-            border: `1px solid ${THEME.line}`,
-          }}
           onClick={onClose}
         >
           Close
-        </button>
+        </Button>
       </div>
 
       <div style={{ marginBottom: 16 }}>
@@ -516,14 +502,9 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           aria-label="Pasted CAS statement text"
         />
         <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
-          <button
-            style={{ ...btnStyle, background: THEME.accent, color: THEME.darkInk }}
-            onMouseEnter={onSolidBtnEnter}
-            onMouseLeave={onSolidBtnLeave}
-            onClick={() => parseCasText(inputText)}
-          >
+          <Button variant="accent" size="sm" onClick={() => parseCasText(inputText)}>
             Analyze CAS Text
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -620,14 +601,14 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                   />
                 </label>
               )}
-              <button
-                style={{ ...btnStyle, background: THEME.sage, color: THEME.darkInk }}
-                onMouseEnter={onSolidBtnEnter}
-                onMouseLeave={onSolidBtnLeave}
+              <Button
+                variant="primary"
+                size="sm"
+                style={{ background: THEME.sage }}
                 onClick={handleImport}
               >
                 Import {parsedRows.length} Transaction{parsedRows.length !== 1 ? "s" : ""}
-              </button>
+              </Button>
             </div>
           </div>
 

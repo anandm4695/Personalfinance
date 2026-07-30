@@ -32,6 +32,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 
 // Indian market benchmark returns (approximate)
 const BENCHMARKS = {
@@ -102,77 +103,6 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
           </span>
         </div>
       ))}
-    </div>
-  );
-};
-
-/* ─── Premium Stat Bento Card ─────────────────────────────────── */
-const BenchmarkStatCard = ({ label, value, sub, icon: Icon, color }: any) => {
-  return (
-    <div
-      className="card-lift"
-      style={{
-        background:
-          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
-        border: `1.5px solid ${THEME.line}`,
-        borderTop: `4px solid ${color || THEME.accent}`,
-        borderRadius: 16,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        boxShadow:
-          "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: color || THEME.accent,
-            flexShrink: 0,
-          }}
-        >
-          {Icon}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-        <span
-          style={{
-            fontSize: 24,
-            fontWeight: 900,
-            color: THEME.ink,
-            letterSpacing: "-0.03em",
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {value}
-        </span>
-        {sub && (
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: color || THEME.muted }}>
-            ({sub})
-          </span>
-        )}
-      </div>
     </div>
   );
 };
@@ -411,35 +341,43 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
           gap: 16,
         }}
       >
-        <BenchmarkStatCard
+        <StatCard
           label="Overall Return"
           value={`${portfolioReturns.overall.return.toFixed(1)}%`}
+          numericValue={portfolioReturns.overall.return}
+          formatValue={(n) => `${n.toFixed(1)}%`}
+          sub="Blended, weighted by current value"
           icon={
             portfolioReturns.overall.return >= 0 ? (
-              <TrendingUp size={16} />
+              <TrendingUp />
             ) : (
-              <TrendingDown size={16} />
+              <TrendingDown />
             )
           }
           color={portfolioReturns.overall.return >= 0 ? THEME.sage : THEME.rust}
         />
-        <BenchmarkStatCard
+        <StatCard
           label="Total Invested"
-          value={<Prv>{fmtINRFull(portfolioReturns.overall.invested)}</Prv>}
-          icon={<IndianRupee size={16} />}
-          color="var(--accent)"
+          value={fmtINRFull(portfolioReturns.overall.invested)}
+          numericValue={portfolioReturns.overall.invested}
+          formatValue={fmtINRFull}
+          icon={<IndianRupee />}
+          color={THEME.accent}
         />
-        <BenchmarkStatCard
+        <StatCard
           label="Current Value"
-          value={<Prv>{fmtINRFull(portfolioReturns.overall.current)}</Prv>}
-          icon={<Target size={16} />}
-          color="var(--accent)"
+          value={fmtINRFull(portfolioReturns.overall.current)}
+          numericValue={portfolioReturns.overall.current}
+          formatValue={fmtINRFull}
+          icon={<Target />}
+          color={THEME.accent}
         />
-        <BenchmarkStatCard
+        <StatCard
           label="Financial Health"
           value={String(overallScore)}
           sub={scoreLabel}
-          icon={<Shield size={16} />}
+          subColor={scoreColor}
+          icon={<Shield />}
           color={scoreColor}
         />
       </div>

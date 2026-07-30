@@ -565,6 +565,17 @@ function FinanceDashboard() {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  // Body scroll lock while the keyboard-shortcuts help is open — this panel is
+  // hand-rolled (not the shared Modal component, since it's a static reference
+  // list with no form state) so it needs the same lock the shared Modal gets for free.
+  useEffect(() => {
+    if (!showShortcuts) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showShortcuts]);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -1269,6 +1280,7 @@ function FinanceDashboard() {
         setShowCmdPalette(false);
         setShowAlerts(false);
         setShowSearch(false);
+        setShowShortcuts(false);
         return;
       }
 
@@ -3743,7 +3755,13 @@ function FinanceDashboard() {
                         cursor: "pointer",
                         color: THEME.muted,
                         display: "flex",
-                        padding: 0,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        // Padding + negative margin enlarges the tap target to ~36px
+                        // (matches .header-icon-btn) without growing the visible icon
+                        // or nudging the layout — same trick used in MobileNav.
+                        padding: 12,
+                        margin: -12,
                         flexShrink: 0,
                       }}
                     >
@@ -3787,7 +3805,7 @@ function FinanceDashboard() {
                     </button>
                   )}
                 </div>
-                {showSearch && searchResults.length > 0 && (
+                {showSearch && search.trim() && (
                   <div
                     style={{
                       position: "absolute",
@@ -3802,39 +3820,53 @@ function FinanceDashboard() {
                       overflow: "hidden",
                     }}
                   >
-                    {searchResults.map((r, i) => (
-                      <div
-                        key={`${r.tab}-${r.name}-${i}`}
-                        onMouseDown={() => {
-                          setTab(r.tab);
-                          setSearch("");
-                          setShowSearch(false);
-                        }}
-                        style={{
-                          padding: "10px 14px",
-                          cursor: "pointer",
-                          borderBottom: `1px solid ${THEME.line}`,
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          transition: "background 0.12s",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 5%, transparent)`)
-                        }
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      >
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                            {r.name}
+                    {searchResults.length > 0 ? (
+                      searchResults.map((r, i) => (
+                        <div
+                          key={`${r.tab}-${r.name}-${i}`}
+                          onMouseDown={() => {
+                            setTab(r.tab);
+                            setSearch("");
+                            setShowSearch(false);
+                          }}
+                          style={{
+                            padding: "10px 14px",
+                            cursor: "pointer",
+                            borderBottom:
+                              i < searchResults.length - 1 ? `1px solid ${THEME.line}` : "none",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            transition: "background 0.12s",
+                          }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 5%, transparent)`)
+                          }
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                              {r.name}
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted }}>{r.type}</div>
                           </div>
-                          <div style={{ fontSize: 11, color: THEME.muted }}>{r.type}</div>
+                          <div style={{ fontSize: 12, color: THEME.accent, flexShrink: 0 }}>
+                            {r.detail}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 12, color: THEME.accent, flexShrink: 0 }}>
-                          {r.detail}
-                        </div>
+                      ))
+                    ) : (
+                      <div
+                        style={{
+                          padding: "16px 14px",
+                          textAlign: "center",
+                          fontSize: 12.5,
+                          color: THEME.muted,
+                        }}
+                      >
+                        No matches for &ldquo;{search}&rdquo; — try a different term.
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
@@ -4562,7 +4594,12 @@ function FinanceDashboard() {
                       cursor: "pointer",
                       color: THEME.muted,
                       display: "flex",
-                      padding: 0,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      // Enlarge the tap target to ~36px on this touch-only surface
+                      // without changing the visible icon size or layout.
+                      padding: 11,
+                      margin: -11,
                       flexShrink: 0,
                     }}
                   >
@@ -4620,7 +4657,7 @@ function FinanceDashboard() {
                       padding: "16px 0",
                     }}
                   >
-                    No results for "{search}"
+                    No matches for &ldquo;{search}&rdquo; — try a different term.
                   </div>
                 )}
               </div>

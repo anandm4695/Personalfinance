@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   BarChart3,
   Calendar,
@@ -9,6 +9,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  Printer,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -25,8 +26,27 @@ import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
+
+const printStyles = `@media print {
+  @page { margin: 15mm 20mm; size: A4 portrait; }
+  body { background: #ffffff !important; color: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body * { visibility: hidden; }
+  .comparison-report, .comparison-report * { visibility: visible; }
+  .comparison-report { position: absolute; left: 0; top: 0; width: 100%; font-size: 11px; color: #0f172a !important; background: #ffffff !important; }
+  .no-print { display: none !important; }
+  .card-base, .tile-card, .insight-card, .hero-card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  .recharts-responsive-container { width: 100% !important; height: auto !important; }
+}`;
 
 const th: React.CSSProperties = {
   textAlign: "left",
@@ -246,6 +266,17 @@ const ComparisonSplitCard = ({
 };
 
 export const ComparisonReportsTab = ({ state, metrics }) => {
+  // ── Inject print styles (scoped to this tab, cleaned up on unmount) ──
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.id = "comparison-report-print";
+    style.textContent = printStyles;
+    document.head.appendChild(style);
+    return () => {
+      style.remove();
+    };
+  }, []);
+
   const now = new Date();
   const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const lastYM = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, "0")}`;
@@ -603,7 +634,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div className="comparison-report" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div
         style={{
           display: "flex",
@@ -617,19 +648,20 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
           Comparison Reports
         </SectionTitle>
 
-        {/* Premium Mode Switcher */}
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            background: "var(--surface-0)",
-            border: `1.5px solid ${THEME.line}`,
-            padding: "4px",
-            borderRadius: 16,
-            boxShadow: "var(--shadow-sm)",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {/* Premium Mode Switcher */}
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              background: "var(--surface-0)",
+              border: `1.5px solid ${THEME.line}`,
+              padding: "4px",
+              borderRadius: 16,
+              boxShadow: "var(--shadow-sm)",
+              flexWrap: "wrap",
+            }}
+          >
           {[
             { id: "month", label: "Month vs Month" },
             { id: "quarter", label: "Quarter vs Quarter" },
@@ -660,11 +692,15 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               </button>
             );
           })}
+          </div>
+          <Button variant="accent" size="sm" icon={<Printer size={14} />} onClick={() => window.print()}>
+            Print / PDF
+          </Button>
         </div>
       </div>
 
       {/* Period Selectors */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>Compare</span>
           <select

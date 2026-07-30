@@ -9,6 +9,7 @@ import {
   Briefcase,
   IndianRupee,
   Eye,
+  RefreshCw,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
@@ -151,10 +152,20 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
   const [parseMethod, setParseMethod] = useState("text"); // "text" or "csv"
   const [rawText, setRawText] = useState("");
   const [csvInputFocused, setCsvInputFocused] = useState(false);
+  const [csvParsing, setCsvParsing] = useState(false);
+  const [parseError, setParseError] = useState("");
 
   const handlePaste = useCallback(() => {
     if (!rawText.trim()) return;
+    setParseError("");
     const holdings = parseCASText(rawText);
+    if (holdings.length === 0) {
+      setParseError(
+        "No fund holdings found in that text. Make sure you copied the full \"Closing Unit Balance\" / NAV / Valuation lines from the CAS PDF, not just the summary page."
+      );
+      setParsedFunds([]);
+      return;
+    }
     setParsedFunds(holdings);
     setImported(0);
   }, [rawText]);
@@ -162,14 +173,24 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
   const handleCSV = useCallback((e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setParseError("");
+    setCsvParsing(true);
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result;
-      if (typeof text !== "string") return;
+      if (typeof text !== "string") {
+        setCsvParsing(false);
+        setParseError("Could not read that file as text. Please choose a CSV or TXT export.");
+        return;
+      }
 
       // Try CSV parsing: scheme, folio, units, nav, value columns
       const lines = text.split(/\r?\n/).filter((l) => l.trim());
-      if (lines.length < 2) return;
+      if (lines.length < 2) {
+        setCsvParsing(false);
+        setParseError("The file looks empty — it needs a header row plus at least one fund row.");
+        return;
+      }
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/^"|"$/g, ""));
       const schemeIdx = headers.findIndex((h) => h.includes("scheme") || h.includes("fund"));
       const folioIdx = headers.findIndex((h) => h.includes("folio"));
@@ -204,14 +225,32 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
         })
         .filter(Boolean);
 
+      setCsvParsing(false);
+      if (holdings.length === 0) {
+        setParseError(
+          schemeIdx === -1 || unitsIdx === -1
+            ? "Couldn't find Scheme/Fund and Units columns in the header row — check the column names match the expected format below."
+            : "No valid fund rows found — every row needs a scheme name and a positive units value."
+        );
+        setParsedFunds([]);
+        return;
+      }
       setParsedFunds(holdings);
       setImported(0);
     };
+    reader.onerror = () => {
+      setCsvParsing(false);
+      setParseError("Failed to read the file. Please try again.");
+    };
     reader.readAsText(file);
+    // Allow re-selecting the same file later (e.g. after fixing it) — without this,
+    // choosing the identical filename twice in a row wouldn't fire onChange again.
+    e.target.value = "";
   }, []);
 
   const importSelected = async () => {
     setImporting(true);
+    setParseError("");
     const toImport = parsedFunds.filter((f) => f.selected);
     const existingMFs = state.mutualFunds || [];
 
@@ -305,6 +344,23 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
         </Card>
       )}
 
+      {parseError && (
+        <Card
+          style={{
+            padding: 16,
+            background: "color-mix(in srgb, var(--t-rust) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-rust) 35%, transparent)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <AlertTriangle size={18} color="var(--t-rust)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span style={{ color: "var(--t-rust)", fontWeight: 600, fontSize: 13, lineHeight: 1.5 }}>
+              {parseError}
+            </span>
+          </div>
+        </Card>
+      )}
+
       <Card style={{ padding: 24 }}>
         <div
           role="tablist"
@@ -314,7 +370,10 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
           {["text", "csv"].map((m) => (
             <button
               key={m}
-              onClick={() => setParseMethod(m)}
+              onClick={() => {
+                setParseMethod(m);
+                setParseError("");
+              }}
               className="card-lift"
               role="tab"
               aria-selected={parseMethod === m}
@@ -323,8 +382,8 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 borderRadius: 10,
                 cursor: "pointer",
                 fontWeight: parseMethod === m ? 700 : 500,
-                border: `1.5px solid ${parseMethod === m ? "var(--accent)" : THEME.border}`,
-                background: parseMethod === m ? "var(--accent)" : "var(--surface-0)",
+                border: `1.5px solid ${parseMethod === m ? THEME.accent : THEME.border}`,
+                background: parseMethod === m ? THEME.accent : "var(--surface-0)",
                 color: parseMethod === m ? "#fff" : THEME.text,
                 fontSize: 13,
                 transition: "all 0.15s ease",
@@ -377,14 +436,19 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 border: `2px dashed ${csvInputFocused ? "var(--t-accent)" : THEME.border}`,
                 background: "color-mix(in srgb, var(--surface-1) 40%, transparent)",
                 boxShadow: csvInputFocused ? "var(--shadow-focus)" : "none",
-                cursor: "pointer",
+                cursor: csvParsing ? "wait" : "pointer",
+                opacity: csvParsing ? 0.7 : 1,
                 textAlign: "center",
                 transition: "all 0.15s ease",
               }}
             >
-              <Upload size={26} color={THEME.accent} />
+              {csvParsing ? (
+                <RefreshCw size={26} color={THEME.accent} className="animate-spin" />
+              ) : (
+                <Upload size={26} color={THEME.accent} />
+              )}
               <div style={{ fontSize: 14, fontWeight: 700, color: THEME.text }}>
-                Click to choose a CSV or TXT file
+                {csvParsing ? "Parsing file…" : "Click to choose a CSV or TXT file"}
               </div>
               <div style={{ fontSize: 12, color: THEME.textSecondary }}>
                 Expected columns: Scheme/Fund Name, Folio (optional), Units, NAV (optional),
@@ -397,6 +461,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 onChange={handleCSV}
                 onFocus={() => setCsvInputFocused(true)}
                 onBlur={() => setCsvInputFocused(false)}
+                disabled={csvParsing}
                 aria-label="Upload CAS CSV file"
                 style={{
                   position: "absolute",
@@ -424,7 +489,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
               label="Funds Found"
               value={parsedFunds.length}
               icon={<Briefcase />}
-              color="var(--accent)"
+              color={THEME.accent}
             />
             <StatCard label="Selected" value={stats.count} icon={<CheckCircle />} color={THEME.sage} />
             <StatCard
@@ -566,7 +631,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                             borderRadius: 6,
                             fontSize: 11,
                             background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
-                            color: "var(--accent)",
+                            color: THEME.accent,
                           }}
                         >
                           {f.category}

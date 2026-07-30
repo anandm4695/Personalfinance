@@ -31,16 +31,41 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
-const COLORS = [
-  "#3B82F6",
-  "#10B981",
-  "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
-  "#EC4899",
-  "#6366F1",
-  "#14B8A6",
-];
+// Theme-aware — matches the 6 possible deduction-mix pie slices (80C,
+// 80CCD(1B), 80CCD(2), 80D, 80TTA, Sec 24) 1:1, so the pie never falls back
+// to a hardcoded hex that could clash with the user's selected accent preset.
+const COLORS = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, THEME.violet, THEME.cyan];
+
+// Hoisted to module scope (was previously defined inside the component body
+// on every render, which gives React a brand-new component identity each
+// time — remounting the DOM node instead of updating it, so the width
+// transition on .progress-fill never animates and instead just snaps).
+const ProgressBar = ({ used, limit, color }: { used: number; limit: number; color: string }) => (
+  <div style={{ marginTop: 8 }}>
+    <div
+      className="tabular-nums"
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 11,
+        color: THEME.textSecondary,
+        marginBottom: 4,
+      }}
+    >
+      <span>{fmtINRFull(used)} used</span>
+      <span>{fmtINRFull(Math.max(0, limit - used))} remaining</span>
+    </div>
+    <div className="progress-track">
+      <div
+        className="progress-fill"
+        style={{
+          width: `${Math.min(100, (used / limit) * 100)}%`,
+          background: color,
+        }}
+      />
+    </div>
+  </div>
+);
 
 export const Section80TrackerTab = ({ state, metrics }) => {
   const data = useMemo(() => {
@@ -199,33 +224,6 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       taxSaved,
     };
   }, [state]);
-
-  const ProgressBar = ({ used, limit, color }) => (
-    <div style={{ marginTop: 8 }}>
-      <div
-        className="tabular-nums"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 11,
-          color: THEME.textSecondary,
-          marginBottom: 4,
-        }}
-      >
-        <span>{fmtINRFull(used)} used</span>
-        <span>{fmtINRFull(Math.max(0, limit - used))} remaining</span>
-      </div>
-      <div className="progress-track">
-        <div
-          className="progress-fill"
-          style={{
-            width: `${Math.min(100, (used / limit) * 100)}%`,
-            background: color,
-          }}
-        />
-      </div>
-    </div>
-  );
 
   const pieData = [
     { name: "80C", value: data.sec80C.used },

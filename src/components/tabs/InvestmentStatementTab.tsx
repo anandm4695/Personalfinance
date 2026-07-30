@@ -84,19 +84,18 @@ const tdBold: React.CSSProperties = { ...td, fontWeight: 700 };
 const tdBoldRight: React.CSSProperties = { ...tdRight, fontWeight: 700 };
 
 /* ── Color palette for pie chart ───────────────────────────────────── */
-// First 4 map to the same semantic tokens RebalancingTab's allocation pie
-// uses for the equivalent buckets (accent/sage/gold + a fixed extension hue),
-// so "Equity"/"Debt" read as the same color across both tabs and adapt to
-// the user's selected accent theme instead of being stuck on indigo/purple.
+// Maps to the same semantic tokens RebalancingTab's allocation pie uses for
+// the equivalent buckets (accent/sage/gold + a fixed extension hue), so
+// "Equity"/"Debt" read as the same color across both tabs and adapt to the
+// user's selected accent theme instead of being stuck on indigo/purple.
+// pieData only ever emits these 4 categories (see pieData below) — kept the
+// array exactly this length so no unused/hardcoded hex slots can drift out
+// of sync with the accent-preset palette.
 const PIE_COLORS = [
   THEME.accent, // Equity
   THEME.sage, // Debt
   THEME.gold, // Retirement
   THEME.violet, // Insurance
-  THEME.rust, // Other (unused today — pieData only emits the 4 above)
-  THEME.pink,
-  "#2563EB",
-  "#B91C1C",
 ];
 
 /* ── P&L color helper ──────────────────────────────────────────────── */
@@ -706,8 +705,6 @@ export const InvestmentStatementTab = ({
           title="No Investments Yet"
           description="Add investments across Fixed Deposits, Mutual Funds, Stocks, PPF, NPS, EPF and more to see your consolidated statement."
           pills={["Stocks", "Mutual Funds", "FDs", "PPF", "NPS", "EPF"]}
-          buttonLabel="Go to Investments"
-          onAdd={() => {}}
         />
       </div>
     );
@@ -743,6 +740,61 @@ export const InvestmentStatementTab = ({
           </Button>
         </div>
       </div>
+
+      {/* ── 1b. Hero Total — "what's my portfolio worth right now" is the one
+           number this whole statement answers, so it gets top billing above
+           the line-item table instead of only appearing as one more bolded
+           row buried at the bottom of it (same treatment as NetWorthTimelineTab's
+           "Net Worth Today" / GoalsTab's "Overall Progress"). */}
+      <Card
+        variant="hero"
+        style={{ padding: "clamp(24px, 4vw, 36px)", display: "flex", flexDirection: "column", gap: 4 }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.6)",
+          }}
+        >
+          Total Portfolio Value
+        </div>
+        <div
+          style={{
+            fontSize: "clamp(32px, 5vw, 52px)",
+            fontWeight: 900,
+            color: "#fff",
+            letterSpacing: "-0.03em",
+            lineHeight: 1.05,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          <Prv>{fmtINRFull(summary.totalCurrent)}</Prv>
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            color: "rgba(255,255,255,0.65)",
+            marginTop: 4,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 14,
+          }}
+        >
+          <span>
+            Invested <Prv>{fmtINRFull(summary.totalInvested)}</Prv>
+          </span>
+          <span>
+            {summary.totalGain >= 0 ? "+" : ""}
+            <Prv>{fmtINRFull(summary.totalGain)}</Prv> gain/loss
+          </span>
+          {summary.weightedCAGR != null && (
+            <span>Weighted CAGR {summary.weightedCAGR.toFixed(1)}%</span>
+          )}
+        </div>
+      </Card>
 
       {/* ── 2. Portfolio Summary Table ──────────────────────────────── */}
       <Card style={{ padding: 0, overflow: "hidden" }}>

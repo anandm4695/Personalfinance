@@ -252,10 +252,10 @@ export const EmergencyFundTab = ({ state, metrics }) => {
               <Badge
                 variant={
                   data.monthsCovered >= 6
-                    ? "success"
+                    ? "sage"
                     : data.monthsCovered >= 3
-                      ? "warning"
-                      : "error"
+                      ? "gold"
+                      : "rust"
                 }
               >
                 {healthLabel}

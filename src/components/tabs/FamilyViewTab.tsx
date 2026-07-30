@@ -844,318 +844,53 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           marginBottom: 8,
         }}
       >
-        {/* Total Assets */}
-        <Card
-          hover
-          style={{
-            padding: "16px 20px",
-            borderTop: `4px solid ${THEME.sage}`,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.sage,
-              }}
-            >
-              <TrendingUp size={16} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Total Family Assets
-              </div>
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.03em",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              <Prv>{fmtINRFull(totalAssets)}</Prv>
-            </div>
-            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-              Combined Financial Capital
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          label="Total Family Assets"
+          value={<Prv>{fmtINRFull(totalAssets)}</Prv>}
+          sub="Combined Financial Capital"
+          icon={<TrendingUp />}
+          color={THEME.sage}
+        />
 
-        {/* Total Liabilities */}
-        <Card
-          hover
-          style={{
-            padding: "16px 20px",
-            borderTop: `4px solid ${totalLiabilities > 0 ? THEME.rust : THEME.sage}`,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                background:
-                  totalLiabilities > 0
-                    ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)`
-                    : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: totalLiabilities > 0 ? THEME.rust : THEME.sage,
-              }}
-            >
-              <CreditCard size={16} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Total Liabilities
-              </div>
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.03em",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              <Prv>{fmtINRFull(totalLiabilities)}</Prv>
-            </div>
-            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-              Outstanding Debt & Cards
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          label="Total Liabilities"
+          value={<Prv>{fmtINRFull(totalLiabilities)}</Prv>}
+          sub="Outstanding Debt & Cards"
+          icon={<CreditCard />}
+          color={totalLiabilities > 0 ? THEME.rust : THEME.sage}
+        />
 
-        {/* Active Members */}
-        <Card
-          hover
-          style={{
-            padding: "16px 20px",
-            borderTop: `4px solid ${THEME.accent}`,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.accent,
-              }}
-            >
-              <Users size={16} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Active Profiles
-              </div>
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.03em",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              {activeMembers.length} / {familyProfiles.length}
-            </div>
-            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-              Profiles with Registered Assets
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          label="Active Profiles"
+          value={`${activeMembers.length} / ${familyProfiles.length}`}
+          sub="Profiles with Registered Assets"
+          icon={<Users />}
+          color={THEME.accent}
+        />
 
-        {/* Debt-to-Asset Ratio */}
-        <Card
-          hover
-          style={{
-            padding: "16px 20px",
-            borderTop: `4px solid ${debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage}`,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color:
-                  debtToAssetRatio > 30
-                    ? THEME.rust
-                    : debtToAssetRatio > 15
-                      ? THEME.gold
-                      : THEME.sage,
-              }}
-            >
-              <Percent size={16} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Debt-to-Asset Ratio
-              </div>
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.03em",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              {debtToAssetRatio.toFixed(1)}%
-            </div>
-            <div style={{ marginTop: 4 }}>
-              <Badge
-                variant={debtToAssetRatio > 30 ? "rust" : debtToAssetRatio > 15 ? "gold" : "sage"}
-                style={{ fontSize: 9, padding: "1px 5px", textTransform: "uppercase" }}
-              >
-                {debtToAssetRatio > 30
-                  ? "High Leverage"
-                  : debtToAssetRatio > 15
-                    ? "Moderate Leverage"
-                    : "Healthy Leverage"}
-              </Badge>
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          label="Debt-to-Asset Ratio"
+          value={`${debtToAssetRatio.toFixed(1)}%`}
+          sub={
+            debtToAssetRatio > 30
+              ? "High Leverage"
+              : debtToAssetRatio > 15
+                ? "Moderate Leverage"
+                : "Healthy Leverage"
+          }
+          subColor={debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage}
+          icon={<Percent />}
+          color={debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage}
+        />
 
-        {/* Life Insurance Coverage */}
         {totalLifeCover > 0 && (
-          <Card
-            hover
-            style={{
-              padding: "16px 20px",
-              borderTop: `4px solid ${THEME.violet}`,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${THEME.violet} 12%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: THEME.violet,
-                }}
-              >
-                <Shield size={16} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  Consolidated Life Cover
-                </div>
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 900,
-                  color: THEME.ink,
-                  letterSpacing: "-0.03em",
-                  fontVariantNumeric: "tabular-nums",
-                  lineHeight: 1,
-                }}
-              >
-                <Prv>{fmtINRFull(totalLifeCover)}</Prv>
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-                Aggregate Insurance Cover
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            label="Consolidated Life Cover"
+            value={<Prv>{fmtINRFull(totalLifeCover)}</Prv>}
+            sub="Aggregate Insurance Cover"
+            icon={<Shield />}
+            color={THEME.violet}
+          />
         )}
       </div>
 

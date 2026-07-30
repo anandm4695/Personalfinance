@@ -39,6 +39,7 @@ import { Prv } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 
 const TYPE_COLORS: Record<string, string> = {
   "Credit Card": THEME.rust,
@@ -745,30 +746,22 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setEditingReminder(r.raw)}
-                style={{ padding: 6, color: THEME.muted }}
+                style={{ padding: 8, color: THEME.muted }}
                 title="Edit"
+                aria-label={`Edit ${r.title}`}
               >
                 <Pencil size={14} />
               </Button>
             )}
 
-            {/* Complete Checkbox */}
+            {/* Complete Checkbox — icon-circle-btn pattern: a round, generously-sized
+                (>= 36px) hit target so this is comfortable to tap on a phone, not just
+                a mouse cursor. */}
             <button
               onClick={() => toggleComplete(r.id, r.date)}
               title="Mark as Done"
               aria-label={`Mark ${r.title} as done`}
-              className="reminder-done-btn"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "50%",
-                borderWidth: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.2s ease-in-out",
-              }}
+              className="icon-circle-btn"
             >
               <Check size={16} strokeWidth={2.5} />
             </button>
@@ -939,63 +932,14 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             }}
           >
             {tiles.map(({ label, value, sub, color, Icon }) => (
-              <div
+              <StatCard
                 key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
+                label={label}
+                value={value}
+                sub={sub}
+                color={color}
+                icon={<Icon />}
+              />
             ))}
           </div>
         );
@@ -1580,10 +1524,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                           <button
                             onClick={() => toggleComplete(r.id, r.date)}
                             title="Mark as Done"
+                            aria-label={`Mark ${r.title} as done`}
                             className="reminder-done-btn"
                             style={{
-                              width: 28,
-                              height: 28,
+                              width: 32,
+                              height: 32,
                               borderRadius: "50%",
                               borderWidth: 1,
                               display: "flex",
@@ -1591,6 +1536,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                               justifyContent: "center",
                               cursor: "pointer",
                               transition: "all 0.2s ease-in-out",
+                              flexShrink: 0,
                             }}
                           >
                             <Check size={13} strokeWidth={2.5} />
@@ -1601,8 +1547,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                               variant="ghost"
                               size="sm"
                               onClick={() => setEditingReminder(r.raw)}
-                              style={{ padding: 6, color: THEME.muted }}
+                              style={{ padding: 8, color: THEME.muted }}
                               title="Edit"
+                              aria-label={`Edit ${r.title}`}
                             >
                               <Pencil size={12} />
                             </Button>

@@ -1563,7 +1563,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                   background: active
                     ? `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 85%, #000) 100%)`
                     : "transparent",
-                  color: active ? "#ffffff" : THEME.muted,
+                  color: active ? THEME.darkInk : THEME.muted,
                   fontWeight: active ? 800 : 600,
                   fontSize: 13,
                   cursor: "pointer",
@@ -1574,7 +1574,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                <Icon size={14} style={{ color: active ? "#ffffff" : THEME.muted }} />
+                <Icon size={14} style={{ color: active ? THEME.darkInk : THEME.muted }} />
                 {s.label}
                 {s.count !== undefined && s.count > 0 && (
                   <span
@@ -1586,7 +1586,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                       background: active
                         ? "rgba(255, 255, 255, 0.25)"
                         : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                      color: active ? "#ffffff" : THEME.accent,
+                      color: active ? THEME.darkInk : THEME.accent,
                       transition: "all 0.25s",
                     }}
                   >
@@ -2081,14 +2081,14 @@ function EditRDModal({ rd: initial, onClose, onSave }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 10,
-            background: "color-mix(in srgb, #0ea5e9 6%, transparent)",
-            border: "1px solid color-mix(in srgb, #0ea5e9 20%, transparent)",
+            background: `color-mix(in srgb, ${THEME.cyan} 6%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.cyan} 20%, transparent)`,
             display: "flex",
             justifyContent: "space-between",
           }}
         >
           <span style={{ fontSize: 11, color: THEME.muted }}>Projected Maturity</span>
-          <span style={{ fontWeight: 900, color: "#0284c7", fontSize: 15 }}>
+          <span style={{ fontWeight: 900, color: THEME.cyan, fontSize: 15 }}>
             {fmtINRFull(maturity)}
           </span>
         </div>
@@ -2644,7 +2644,7 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
       ? items.reduce((s: number, f: any) => s + Number(f.rate || 0), 0) / items.length
       : 0;
   const maturedCount = items.filter((f: any) => (fdDaysLeft(f) ?? 1) < 0).length;
-  const FD_AMBER = "#d97706";
+  const FD_AMBER = THEME.gold;
 
   return (
     <div className="animate-fade-in-up">
@@ -2998,7 +2998,10 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
 /* ── RD Section ─────────────────────────────────────────────────────── */
 function RDSection({ items, removeItem, updateItem, onAdd }: any) {
   const [editRD, setEditRD] = useState<any>(null);
-  const RD_BLUE = "#0284c7";
+  // Fixed chart-extension token (not the user-selectable accent) — a raw hex
+  // here would go stale in dark mode and could collide with the active
+  // accent preset.
+  const RD_BLUE = THEME.cyan;
 
   return (
     <div className="animate-fade-in-up">
@@ -3352,13 +3355,13 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
     if (days === 0) return { text: "Matures today!", color: THEME.rust, matured: false };
     if (days <= 30) return { text: `${days}d left`, color: THEME.rust, matured: false };
     if (days <= 365)
-      return { text: `${Math.ceil(days / 30)}m left`, color: "#d97706", matured: false };
+      return { text: `${Math.ceil(days / 30)}m left`, color: THEME.gold, matured: false };
     const yrs = Math.floor(days / 365);
     const mos = Math.ceil((days % 365) / 30);
     return { text: `${yrs}y ${mos}m`, color: THEME.muted, matured: false };
   };
 
-  const BOND_AMBER = "#d97706";
+  const BOND_AMBER = THEME.gold;
   const lbl = {
     fontSize: 9,
     color: THEME.muted,
@@ -3406,7 +3409,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
               numericValue={annualIncome}
               formatValue={fmtINRFull}
               icon={<Coins />}
-              color="#059669"
+              color={THEME.sage}
             />
             <StatCard
               label="Bonds Held"
@@ -5054,8 +5057,13 @@ const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 );
 
 /* ── NPS helpers ─────────────────────────────────────────────────────── */
-const NPS_ORANGE = "#c2410c";
+// Fixed chart-extension token (not the user-selectable accent) — a raw hex
+// here would go stale in dark mode and could collide with the active accent
+// preset.
+const NPS_ORANGE = THEME.gold;
 
+// Actual Pension Fund Manager brand colors — deliberately fixed regardless
+// of app theme, same convention as BankLogo/BrokerLogo brand colors.
 const NPS_PFM_COLOR: Record<string, string> = {
   SBI: "#0067b2",
   LIC: "#00a651",
@@ -5082,11 +5090,15 @@ function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: a
   const a = Number(altAssetPct) || 0;
   const total = e + c + g + a;
   if (!total) return null;
+  // Fixed chart-extension tokens (not the user-selectable accent) — raw hex
+  // here would go stale in dark mode and could collide with the active
+  // accent preset. Deliberately avoids THEME.gold since it matches the NPS
+  // section's own brand color (NPS_ORANGE) used on the same account cards.
   const bars = [
-    { label: "E", pct: e, color: "#f59e0b" },
-    { label: "C", pct: c, color: "#3b82f6" },
-    { label: "G", pct: g, color: "#22c55e" },
-    { label: "A", pct: a, color: "#a855f7" },
+    { label: "E", pct: e, color: THEME.rust },
+    { label: "C", pct: c, color: THEME.cyan },
+    { label: "G", pct: g, color: THEME.sage },
+    { label: "A", pct: a, color: THEME.violet },
   ].filter((b) => b.pct > 0);
   return (
     <div style={{ marginTop: 10 }}>
@@ -5583,7 +5595,7 @@ function NPSCsvPanel({ onImport }: any) {
                     <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.accent }}>
                       {r.employeeAmount > 0 ? fmtINRFull(r.employeeAmount) : "—"}
                     </td>
-                    <td style={{ padding: "6px 10px", fontWeight: 700, color: "#0ea5e9" }}>
+                    <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.cyan }}>
                       {r.employerAmount > 0 ? fmtINRFull(r.employerAmount) : "—"}
                     </td>
                   </tr>
@@ -5758,7 +5770,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
             <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>
               Current Corpus
               {corpusFromTxs && (
-                <span style={{ fontSize: 10, color: "#0ea5e9", marginLeft: 6, fontWeight: 600 }}>
+                <span style={{ fontSize: 10, color: THEME.cyan, marginLeft: 6, fontWeight: 600 }}>
                   based on contributions — update corpus for market value
                 </span>
               )}
@@ -5799,9 +5811,9 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
             {
               label: "Employer Total",
               value: totalEmployer,
-              color: "#0ea5e9",
-              bg: "color-mix(in srgb, #0ea5e9 10%, var(--t-paper))",
-              border: "color-mix(in srgb, #0ea5e9 25%, transparent)",
+              color: THEME.cyan,
+              bg: `color-mix(in srgb, ${THEME.cyan} 10%, var(--t-paper))`,
+              border: `color-mix(in srgb, ${THEME.cyan} 25%, transparent)`,
             },
           ].map(({ label, value, color, bg, border }) => (
             <div
@@ -5864,7 +5876,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
 
       {/* Annual contribution from account fields */}
       {annualTotal > 0 && totalContributed === 0 && (
-        <div style={{ marginTop: 8, fontSize: 10, color: "#0ea5e9", fontWeight: 600 }}>
+        <div style={{ marginTop: 8, fontSize: 10, color: THEME.cyan, fontWeight: 600 }}>
           Annual estimate: {fmtINRFull(annualTotal)}/yr
           {Number(n.employerContribution) > 0 ? " (incl. employer — 80CCD(2))" : ""}
         </div>
@@ -6042,7 +6054,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                             padding: "8px 12px",
                             textAlign: "right" as const,
                             fontWeight: 700,
-                            color: t.employerAmount > 0 ? "#0ea5e9" : THEME.muted,
+                            color: t.employerAmount > 0 ? THEME.cyan : THEME.muted,
                           }}
                         >
                           {t.employerAmount > 0 ? fmtINRFull(t.employerAmount) : "—"}
@@ -6102,7 +6114,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                           padding: "8px 12px",
                           textAlign: "right" as const,
                           fontWeight: 800,
-                          color: "#0ea5e9",
+                          color: THEME.cyan,
                         }}
                       >
                         {fmtINRFull(totalEmployer)}
@@ -6215,7 +6227,7 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
                     {
                       label: "Employer Contributions",
                       value: fmtINRFull(totalEmployer),
-                      color: "#0ea5e9",
+                      color: THEME.cyan,
                       Icon: Briefcase,
                     },
                   ]
@@ -6248,13 +6260,16 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
 }
 
 /* ── EPF Account Card ────────────────────────────────────────────────── */
+// Fixed chart-extension tokens (not the user-selectable accent) — raw hex
+// here would go stale in dark mode and could exactly match the active
+// accent preset.
 const EPF_TX_TYPES = [
-  { value: "monthly_contribution", label: "Monthly Contribution (Passbook)", color: "#8b5cf6" },
+  { value: "monthly_contribution", label: "Monthly Contribution (Passbook)", color: THEME.violet },
   { value: "employee_contribution", label: "Employee Contribution", color: THEME.accent },
-  { value: "employer_contribution", label: "Employer Contribution", color: "#0ea5e9" },
-  { value: "interest_credit", label: "Interest Credit (EPFO)", color: "#22c55e" },
-  { value: "transfer_in", label: "Transfer In (from Previous Employer)", color: "#10b981" },
-  { value: "withdrawal", label: "Withdrawal", color: "#ef4444" },
+  { value: "employer_contribution", label: "Employer Contribution", color: THEME.cyan },
+  { value: "interest_credit", label: "Interest Credit (EPFO)", color: THEME.sage },
+  { value: "transfer_in", label: "Transfer In (from Previous Employer)", color: THEME.gold },
+  { value: "withdrawal", label: "Withdrawal", color: THEME.rust },
 ];
 
 function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: any) {
@@ -7502,9 +7517,9 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             {
               label: "Employer PF",
               value: closingEmployer,
-              color: "#0ea5e9",
-              bg: "color-mix(in srgb, #0ea5e9 10%, var(--t-paper))",
-              border: "color-mix(in srgb, #0ea5e9 25%, transparent)",
+              color: THEME.cyan,
+              bg: `color-mix(in srgb, ${THEME.cyan} 10%, var(--t-paper))`,
+              border: `color-mix(in srgb, ${THEME.cyan} 25%, transparent)`,
             },
             {
               label: "EPS (Pension)",
@@ -7815,16 +7830,16 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                           {
                             label: "Er PF",
                             value: estErC + estIntEr,
-                            color: "#0ea5e9",
-                            bg: "color-mix(in srgb, #0ea5e9 10%, var(--t-paper))",
-                            border: "color-mix(in srgb, #0ea5e9 22%, transparent)",
+                            color: THEME.cyan,
+                            bg: `color-mix(in srgb, ${THEME.cyan} 10%, var(--t-paper))`,
+                            border: `color-mix(in srgb, ${THEME.cyan} 22%, transparent)`,
                           },
                           {
                             label: "Pension",
                             value: estPenC + estPenInt,
                             color: THEME.gold,
-                            bg: "color-mix(in srgb, #eab308 10%, var(--t-paper))",
-                            border: "color-mix(in srgb, #eab308 22%, transparent)",
+                            bg: `color-mix(in srgb, ${THEME.gold} 10%, var(--t-paper))`,
+                            border: `color-mix(in srgb, ${THEME.gold} 22%, transparent)`,
                           },
                         ].map(({ label, value, color, bg, border }) => (
                           <div
@@ -8034,14 +8049,17 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               ests.forEach((e: any) => {
                 estMap[e.id] = e;
               });
-              /* assign a distinct color per establishment (cycle through palette) */
+              /* Assign a distinct color per establishment (cycle through palette).
+                 Fixed chart-extension tokens (not the user-selectable accent) —
+                 raw hex here would go stale in dark mode and could collide with
+                 the active accent preset. */
               const EST_COLORS = [
                 THEME.accent,
-                "#0ea5e9",
-                "#f59e0b",
-                "#ec4899",
-                "#8b5cf6",
-                "#10b981",
+                THEME.cyan,
+                THEME.gold,
+                THEME.pink,
+                THEME.violet,
+                THEME.sage,
               ];
               const estColorMap: Record<string, string> = {};
               sortedEsts.forEach((e: any, i: number) => {
@@ -8354,7 +8372,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                     padding: "6px 10px",
                                     textAlign: "right" as const,
                                     fontWeight: 800,
-                                    color: numColor("#0ea5e9"),
+                                    color: numColor(THEME.cyan),
                                   }}
                                 >
                                   {fmtINRFull(erVal)}
@@ -8364,7 +8382,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                     padding: "6px 10px",
                                     textAlign: "right" as const,
                                     fontWeight: 800,
-                                    color: isIntRow || isTransferRow ? THEME.muted : "#f59e0b",
+                                    color: isIntRow || isTransferRow ? THEME.muted : THEME.gold,
                                   }}
                                 >
                                   {fmtINRFull(penVal)}
@@ -8493,7 +8511,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 padding: "7px 10px",
                                 textAlign: "right" as const,
                                 fontWeight: 900,
-                                color: "#0ea5e9",
+                                color: THEME.cyan,
                               }}
                             >
                               {fmtINRFull(
@@ -10350,18 +10368,22 @@ function MFSection({
               return bucketOrder.map((label) => ({ label, keys: buckets[label] }));
             })();
 
+            // Fixed chart-extension tokens (not the user-selectable accent) — raw
+            // hex here would go stale in dark mode and could exactly match the
+            // active accent preset (e.g. a raw "#6366f1" would collide with the
+            // "Indigo"/"Ocean Blue" presets).
             const categoryColors: Record<string, string> = {
-              Equity: "#6366f1",
-              Debt: "#f59e0b",
-              Hybrid: "#10b981",
-              ELSS: "#8b5cf6",
-              Index: "#0ea5e9",
-              Liquid: "#64748b",
-              International: "#ec4899",
-              "Direct Growth": "#6366f1",
-              "Direct IDCW": "#f59e0b",
-              "Regular Growth": "#10b981",
-              "Regular IDCW": "#ec4899",
+              Equity: THEME.accent,
+              Debt: THEME.gold,
+              Hybrid: THEME.sage,
+              ELSS: THEME.violet,
+              Index: THEME.cyan,
+              Liquid: THEME.muted,
+              International: THEME.pink,
+              "Direct Growth": THEME.accent,
+              "Direct IDCW": THEME.gold,
+              "Regular Growth": THEME.sage,
+              "Regular IDCW": THEME.pink,
             };
 
             return (
@@ -11334,11 +11356,7 @@ function MFSection({
                                                               background: isLTCG
                                                                 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
                                                                 : `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
-                                                              color: isLTCG
-                                                                ? THEME.sage
-                                                                : nearLTCG
-                                                                  ? "#d97706"
-                                                                  : THEME.gold,
+                                                              color: isLTCG ? THEME.sage : THEME.gold,
                                                             }}
                                                           >
                                                             {isLTCG
@@ -13509,32 +13527,35 @@ const YieldTracker = ({ state }: any) => {
     return s + (corpus * 10) / 100;
   }, 0);
 
+  // Fixed chart-extension tokens (not the user-selectable accent) — raw hex
+  // here would go stale in dark mode and could collide with the active
+  // accent preset.
   const streams = [
     {
       label: "Fixed Deposits",
       value: fdInterest,
-      color: "#d97706",
+      color: THEME.gold,
       icon: Coins,
       note: "annual interest on active FDs",
     },
     {
       label: "Bonds",
       value: bondInterest,
-      color: "#92400e",
+      color: THEME.muted,
       icon: FileText,
       note: "annual coupon on face value",
     },
     {
       label: "Recurring Deposits",
       value: rdInterest,
-      color: "#0284c7",
+      color: THEME.cyan,
       icon: Repeat,
       note: RD_NOTE,
     },
     {
       label: "PPF",
       value: ppfInterest,
-      color: "#15803d",
+      color: THEME.sage,
       icon: Shield,
       note: `@ ${PPF_RATE}% current rate`,
     },
@@ -13548,7 +13569,7 @@ const YieldTracker = ({ state }: any) => {
     {
       label: "NPS (est.)",
       value: npsGrowth,
-      color: "#c2410c",
+      color: THEME.violet,
       icon: Briefcase,
       note: "@ ~10% blended CAGR estimate",
     },

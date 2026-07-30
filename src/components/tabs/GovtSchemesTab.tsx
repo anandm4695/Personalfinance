@@ -32,12 +32,16 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
+// Category colors drawn only from THEME tokens (no arbitrary hex, no collision
+// risk with the 10 selectable accent presets) — cycled across the 7 usable
+// tokens (accent/gold/sage/rust/violet/pink/cyan) since 11 scheme types need
+// more categorical distinction than the app's 5 core semantic colors alone.
 const SCHEMES = [
   {
     value: "APY",
     label: "APY — Atal Pension Yojana",
     description: "Guaranteed pension of ₹1,000–5,000/month at 60. For unorganised sector workers.",
-    color: "#2563eb",
+    color: THEME.accent,
     fields: ["pensionAmount"],
     hasBalance: false,
   },
@@ -46,7 +50,7 @@ const SCHEMES = [
     label: "SSY — Sukanya Samriddhi Yojana",
     description:
       "Tax-free savings scheme for girl child. 8.2% p.a. Matures at 21 years / marriage.",
-    color: "#ec4899",
+    color: THEME.pink,
     fields: ["memberName", "interestRate"],
     hasBalance: true,
   },
@@ -54,7 +58,7 @@ const SCHEMES = [
     value: "PMJJBY",
     label: "PMJJBY — Pradhan Mantri Jeevan Jyoti Bima",
     description: "Life insurance cover of ₹2 lakh. Annual premium ₹436.",
-    color: "#059669",
+    color: THEME.sage,
     fields: ["coverageAmount", "premium"],
     hasBalance: false,
   },
@@ -62,7 +66,7 @@ const SCHEMES = [
     value: "PMSBY",
     label: "PMSBY — Pradhan Mantri Suraksha Bima",
     description: "Accident insurance ₹2 lakh. Annual premium ₹20.",
-    color: "#d97706",
+    color: THEME.gold,
     fields: ["coverageAmount", "premium"],
     hasBalance: false,
   },
@@ -70,7 +74,7 @@ const SCHEMES = [
     value: "PMKISAN",
     label: "PM-KISAN — Kisan Samman Nidhi",
     description: "₹6,000/year in 3 instalments for eligible farmers.",
-    color: "#16a34a",
+    color: THEME.cyan,
     fields: [],
     hasBalance: false,
   },
@@ -78,7 +82,7 @@ const SCHEMES = [
     value: "SCSS",
     label: "SCSS — Senior Citizen Savings Scheme",
     description: "Post office scheme for 60+. 8.2% p.a. quarterly payout.",
-    color: "#7c3aed",
+    color: THEME.violet,
     fields: ["interestRate"],
     hasBalance: true,
   },
@@ -86,7 +90,7 @@ const SCHEMES = [
     value: "NSC",
     label: "NSC — National Savings Certificate",
     description: "5-year post office scheme. 7.7% p.a. Qualifies for 80C deduction.",
-    color: "#b45309",
+    color: THEME.rust,
     fields: ["interestRate"],
     hasBalance: true,
   },
@@ -94,7 +98,7 @@ const SCHEMES = [
     value: "KVP",
     label: "KVP — Kisan Vikas Patra",
     description: "Investment doubles in ~115 months. 7.5% p.a.",
-    color: "#0891b2",
+    color: THEME.gold,
     fields: ["interestRate"],
     hasBalance: true,
   },
@@ -102,7 +106,7 @@ const SCHEMES = [
     value: "POST_MIS",
     label: "Post Office MIS — Monthly Income Scheme",
     description: "Monthly interest payout. 7.4% p.a. Max deposit ₹9L (single) / ₹15L (joint).",
-    color: "#dc2626",
+    color: THEME.rust,
     fields: ["interestRate"],
     hasBalance: true,
   },
@@ -110,7 +114,7 @@ const SCHEMES = [
     value: "RBI_BOND",
     label: "RBI Floating Rate Bond",
     description: "7-year bond. Floating rate (currently 8.05%). No premature withdrawal.",
-    color: "#1d4ed8",
+    color: THEME.accent,
     fields: ["interestRate"],
     hasBalance: true,
   },
@@ -118,7 +122,7 @@ const SCHEMES = [
     value: "NPS_LITE",
     label: "NPS Lite — Swavalamban",
     description: "NPS for unorganised sector. Govt co-contribution for eligible members.",
-    color: "#0f766e",
+    color: THEME.cyan,
     fields: ["interestRate"],
     hasBalance: true,
   },

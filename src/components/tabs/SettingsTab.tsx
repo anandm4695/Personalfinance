@@ -58,6 +58,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { DocumentVaultTab } from "./DocumentVaultTab";
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
@@ -178,6 +179,7 @@ function OptionRow({
             <button
               key={opt.value}
               onClick={() => onChange(opt.value)}
+              aria-pressed={active}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -295,6 +297,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
             onClick={sortAZ}
             title="Sort A to Z"
             aria-label="Sort A to Z"
+            aria-pressed={sortDir === "asc"}
             disabled={items.length < 2}
             style={{
               display: "flex",
@@ -320,6 +323,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
             onClick={sortZA}
             title="Sort Z to A"
             aria-label="Sort Z to A"
+            aria-pressed={sortDir === "desc"}
             disabled={items.length < 2}
             style={{
               display: "flex",
@@ -437,6 +441,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
         <Plus size={14} style={{ marginLeft: 14, flexShrink: 0, color: THEME.muted }} />
         <input
           ref={inputRef}
+          aria-label={`Add new ${MD_LABELS[listKey] || "item"}`}
           style={{
             flex: 1,
             background: "none",
@@ -538,6 +543,8 @@ function AppearanceSection({
           </div>
           <button
             onClick={toggleDarkMode}
+            role="switch"
+            aria-checked={darkMode}
             aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             style={{
               position: "relative",
@@ -638,6 +645,8 @@ function AppearanceSection({
                   <button
                     key={preset.id}
                     onClick={() => applyPreset(preset)}
+                    aria-pressed={isActive}
+                    aria-label={`${preset.label} theme preset${isActive ? " (active)" : ""}`}
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -798,6 +807,8 @@ function AppearanceSection({
                   <button
                     key={preset.id}
                     onClick={() => applyPreset(preset)}
+                    aria-pressed={isActive}
+                    aria-label={`${preset.label} theme preset${isActive ? " (active)" : ""}`}
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -1343,6 +1354,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
               <div style={{ flex: 1 }}>
                 <input
                   style={inp}
+                  aria-label={`Display name for ${p.relation}`}
                   value={p.name}
                   onChange={(e) => setName(p.id, e.target.value)}
                   placeholder={p.relation}
@@ -1740,26 +1752,9 @@ function DataSection({
               You'll be redirected to the login page
             </div>
           </div>
-          <button
-            onClick={onSignOut}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              background: "none",
-              border: `1.5px solid ${THEME.line}`,
-              borderRadius: 8,
-              cursor: "pointer",
-              color: THEME.muted,
-              fontSize: 13,
-              fontWeight: 600,
-              padding: "8px 16px",
-              fontFamily: "inherit",
-              transition: "all 0.15s",
-            }}
-          >
-            <LogOut size={14} /> Sign Out
-          </button>
+          <Button variant="secondary" onClick={onSignOut} icon={<LogOut size={14} />}>
+            Sign Out
+          </Button>
         </div>
       </Card>
     </div>
@@ -1917,6 +1912,9 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           </div>
           <button
             onClick={() => updateEmailSettings({ emailEnabled: !enabled })}
+            role="switch"
+            aria-checked={enabled}
+            aria-label={enabled ? "Disable email summary reports" : "Enable email summary reports"}
             style={{
               position: "relative",
               width: 52,
@@ -2099,6 +2097,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   <button
                     key={f.value}
                     onClick={() => updateEmailSettings({ emailFrequency: f.value })}
+                    aria-pressed={frequency === f.value}
                     style={{
                       flex: "1 1 140px",
                       padding: "12px 16px",
@@ -2144,6 +2143,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     <button
                       key={d.value}
                       onClick={() => updateEmailSettings({ emailDay: d.value })}
+                      aria-pressed={day === d.value}
                       style={{
                         padding: "7px 14px",
                         borderRadius: 8,
@@ -2351,25 +2351,14 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             <div
               style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}
             >
-              <button
+              <Button
+                variant="accent"
                 onClick={handleSendTest}
-                disabled={sending || !address}
-                style={{
-                  padding: "10px 24px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: !address ? THEME.line : sending ? THEME.muted : THEME.accent,
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: !address ? "default" : "pointer",
-                  fontFamily: "inherit",
-                  transition: "all 0.2s ease",
-                  opacity: sending ? 0.7 : 1,
-                }}
+                disabled={!address}
+                loading={sending}
               >
-                {sending ? "Sending…" : "Send Test Email Now"}
-              </button>
+                Send Test Email Now
+              </Button>
               {sendStatus === "ok" && (
                 <span
                   style={{
@@ -2429,24 +2418,9 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   Diagnose why emails may not be delivering
                 </div>
               </div>
-              <button
-                onClick={handleCheckConfig}
-                disabled={checking}
-                style={{
-                  padding: "8px 18px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${THEME.line}`,
-                  background: "var(--t-paper)",
-                  color: THEME.ink,
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: checking ? "default" : "pointer",
-                  fontFamily: "inherit",
-                  opacity: checking ? 0.6 : 1,
-                }}
-              >
-                {checking ? "Checking…" : "Check Config"}
-              </button>
+              <Button variant="secondary" size="sm" onClick={handleCheckConfig} loading={checking}>
+                Check Config
+              </Button>
             </div>
 
             {health && !health.error && (
@@ -2814,63 +2788,14 @@ export function SettingsTab({
             }}
           >
             {tiles.map(({ label, value, sub, color, Icon }) => (
-              <div
+              <StatCard
                 key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
+                label={label}
+                value={value}
+                sub={sub}
+                icon={<Icon />}
+                color={color}
+              />
             ))}
           </div>
         );
