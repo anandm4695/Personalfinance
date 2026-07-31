@@ -10,6 +10,8 @@ import {
   Calendar,
   Award,
   RefreshCw,
+  Download,
+  ArrowUpDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -26,8 +28,17 @@ import {
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { fmtINR, fmtINRFull, uid, today } from "../../utils/finance";
-import { supabase } from "../../supabaseClient";
+import {
+  fmtINR,
+  fmtINRFull,
+  uid,
+  today,
+  monthsBetween,
+  calcCAGR,
+  exportArrayToCSV,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -58,28 +69,27 @@ const EMPTY_GOLD = {
   purity: "24K",
 };
 
-// Approximate gold price per gram (user can refresh)
-const DEFAULT_GOLD_PRICE = 7200; // ₹ per gram for 24K
+const SORT_OPTIONS = [
+  { id: "value", label: "Current Value (High-Low)" },
+  { id: "pnl", label: "P&L (High-Low)" },
+  { id: "purchaseDate", label: "Purchase Date (Newest)" },
+  { id: "name", label: "Name (A-Z)" },
+];
 
-const PURITY_FACTOR: Record<string, number> = {
-  "24K": 1,
-  "22K": 22 / 24,
-  "18K": 18 / 24,
-  "14K": 14 / 24,
-};
-
-export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
+export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSettings }) => {
   const { familyProfiles } = useMasterData();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_GOLD });
-  const [goldPrice, setGoldPrice] = useState(() => {
-    try {
-      return Number(localStorage.getItem("gold_price_per_gram")) || DEFAULT_GOLD_PRICE;
-    } catch {
-      return DEFAULT_GOLD_PRICE;
-    }
-  });
+  const [sortBy, setSortBy] = useState("value");
+
+  // Gold price is entered here but consumed by many other tabs (Net Worth,
+  // Analytics, Rebalancing, Family View, Benchmark) — it's synced through
+  // state.settings.goldPricePerGram (DB-backed, so it's the same on every
+  // device) via getGoldPricePerGram(); localStorage is kept only as a
+  // same-device cache for the instant before settings load.
+  const goldPrice = useMemo(() => getGoldPricePerGram(state), [state?.settings?.goldPricePerGram]);
+  const [draftPrice, setDraftPrice] = useState(goldPrice);
   const [manualPrice, setManualPrice] = useState(false);
 
   const holdings = useMemo(() => [...(state.goldHoldings || [])], [state.goldHoldings]);
@@ -88,11 +98,18 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
     return holdings.map((h) => {
       const grams = Number(h.grams || 0);
       const purchasePrice = Number(h.purchasePrice || 0);
-      const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
+      const hasPurchasePrice = purchasePrice > 0;
+      const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
       const currentValue = grams * goldPrice * purityMul;
-      const invested = purchasePrice > 0 ? purchasePrice : currentValue;
+      // Without a recorded purchase price there's no gain/loss to compute — fall
+      // back to currentValue (so this holding contributes 0, not a fabricated
+      // number) but flag it via hasPurchasePrice so the UI can say "not tracked"
+      // instead of lying with a "+₹0 (0.0%)" P&L.
+      const invested = hasPurchasePrice ? purchasePrice : currentValue;
       const pnl = currentValue - invested;
       const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+      const cagr =
+        hasPurchasePrice && h.purchaseDate ? calcCAGR(invested, currentValue, h.purchaseDate) : null;
 
       // SGB interest — accrues only up to maturity/redemption; SGBs stop paying
       // interest once matured, so accrual must not run past maturityDate.
@@ -111,10 +128,53 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
         interest = invested * (Number(h.interestRate || 2.5) / 100) * years;
       }
 
+      let maturityStatus = null;
+      if (h.type === "sgb" && h.maturityDate) {
+        const monthsToMaturity = monthsBetween(today(), h.maturityDate);
+        if (monthsToMaturity <= 0) {
+          maturityStatus = "Matured";
+        } else if (monthsToMaturity < 12) {
+          maturityStatus = `Matures in ${monthsToMaturity}mo`;
+        } else {
+          const y = Math.floor(monthsToMaturity / 12);
+          const m = monthsToMaturity % 12;
+          maturityStatus = `Matures in ${y}y${m ? ` ${m}mo` : ""}`;
+        }
+      }
+
       const typeInfo = GOLD_TYPES.find((t) => t.id === h.type) || GOLD_TYPES[0];
-      return { ...h, grams, invested, currentValue, pnl, pnlPct, interest, typeInfo };
+      return {
+        ...h,
+        grams,
+        hasPurchasePrice,
+        invested,
+        currentValue,
+        pnl,
+        pnlPct,
+        cagr,
+        interest,
+        maturityStatus,
+        typeInfo,
+      };
     });
   }, [holdings, goldPrice]);
+
+  const sorted = useMemo(() => {
+    const arr = [...enriched];
+    switch (sortBy) {
+      case "pnl":
+        return arr.sort((a, b) => b.pnl - a.pnl);
+      case "purchaseDate":
+        return arr.sort((a, b) => (b.purchaseDate || "").localeCompare(a.purchaseDate || ""));
+      case "name":
+        return arr.sort((a, b) =>
+          (a.name || a.typeInfo.label).localeCompare(b.name || b.typeInfo.label)
+        );
+      case "value":
+      default:
+        return arr.sort((a, b) => b.currentValue - a.currentValue);
+    }
+  }, [enriched, sortBy]);
 
   const stats = useMemo(() => {
     const totalGrams = enriched.reduce((s, h) => s + h.grams, 0);
@@ -124,6 +184,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
     const totalInterest = enriched
       .filter((h) => h.type === "sgb")
       .reduce((s, h) => s + h.interest, 0);
+    const untrackedCount = enriched.filter((h) => !h.hasPurchasePrice).length;
 
     const byType = GOLD_TYPES.map((t) => {
       const items = enriched.filter((h) => h.type === t.id);
@@ -135,8 +196,45 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
       };
     }).filter((t) => t.grams > 0);
 
-    return { totalGrams, totalInvested, totalValue, totalPnL, totalInterest, byType };
+    return { totalGrams, totalInvested, totalValue, totalPnL, totalInterest, untrackedCount, byType };
   }, [enriched]);
+
+  const handleExportCSV = () => {
+    const rows = sorted.map((h) => ({
+      name: h.name || h.typeInfo.label,
+      type: h.typeInfo.label,
+      grams: h.grams,
+      purity: h.type === "physical" ? h.purity : "",
+      purchaseDate: h.purchaseDate || "",
+      purchasePrice: h.hasPurchasePrice ? h.invested.toFixed(2) : "",
+      currentValue: h.currentValue.toFixed(2),
+      pnl: h.hasPurchasePrice ? h.pnl.toFixed(2) : "",
+      pnlPct: h.hasPurchasePrice ? h.pnlPct.toFixed(2) : "",
+      interestRate: h.type === "sgb" ? h.interestRate : "",
+      interestEarned: h.type === "sgb" ? h.interest.toFixed(2) : "",
+      maturityDate: h.maturityDate || "",
+      owner: h.owner || "",
+    }));
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "name", label: "Name" },
+        { key: "type", label: "Type" },
+        { key: "grams", label: "Grams" },
+        { key: "purity", label: "Purity" },
+        { key: "purchaseDate", label: "Purchase Date" },
+        { key: "purchasePrice", label: "Purchase Price" },
+        { key: "currentValue", label: "Current Value" },
+        { key: "pnl", label: "P&L" },
+        { key: "pnlPct", label: "P&L %" },
+        { key: "interestRate", label: "Interest Rate %" },
+        { key: "interestEarned", label: "Interest Earned" },
+        { key: "maturityDate", label: "Maturity Date" },
+        { key: "owner", label: "Owner" },
+      ],
+      `gold-sgb-holdings-${today()}.csv`
+    );
+  };
 
   const handleSave = async () => {
     if (editingId) {
@@ -166,30 +264,38 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
     setShowModal(true);
   };
 
-  const updateGoldPrice = async (price) => {
-    setGoldPrice(price);
-    localStorage.setItem("gold_price_per_gram", String(price));
-    // Persist to DB so the daily email cron can read it (localStorage is unavailable server-side)
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session?.user?.id) {
-      supabase
-        .from("user_settings")
-        .upsert({ user_id: session.user.id, gold_price_per_gram: price })
-        .then(({ error }) => {
-          if (error) console.error("[updateGoldPrice] DB upsert failed:", error.message);
-        });
+  // Commits the price into state.settings via the shared updateSettings helper
+  // (which also upserts user_settings.gold_price_per_gram in the DB, so the
+  // daily email cron and every other tab see the same number on any device) —
+  // committed once on blur/Enter rather than on every keystroke.
+  const commitGoldPrice = async (price) => {
+    const clean = Number(price);
+    if (!clean || clean <= 0) {
+      setManualPrice(false);
+      return;
     }
+    try {
+      localStorage.setItem("gold_price_per_gram", String(clean));
+    } catch {}
+    await updateSettings({ goldPricePerGram: clean });
+    setManualPrice(false);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <SectionTitle sub="Track physical gold, SGBs, ETFs and digital gold">
           Gold & Sovereign Gold Bonds
         </SectionTitle>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div
             style={{
               display: "flex",
@@ -206,10 +312,19 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
             {manualPrice ? (
               <input
                 type="number"
-                value={goldPrice}
+                value={draftPrice}
                 aria-label="Gold price per gram override"
-                onChange={(e) => updateGoldPrice(Number(e.target.value))}
-                onBlur={() => setManualPrice(false)}
+                onChange={(e) => setDraftPrice(Number(e.target.value))}
+                onBlur={() => commitGoldPrice(draftPrice)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setManualPrice(false);
+                  }
+                }}
                 autoFocus
                 style={{
                   width: 70,
@@ -226,10 +341,14 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 role="button"
                 tabIndex={0}
                 aria-label={`Gold price ${fmtINRFull(goldPrice)} per gram. Click to edit.`}
-                onClick={() => setManualPrice(true)}
+                onClick={() => {
+                  setDraftPrice(goldPrice);
+                  setManualPrice(true);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
+                    setDraftPrice(goldPrice);
                     setManualPrice(true);
                   }
                 }}
@@ -239,6 +358,28 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
               </span>
             )}
           </div>
+          {holdings.length > 0 && (
+            <button
+              onClick={handleExportCSV}
+              className="icon-btn"
+              title="Export holdings to CSV"
+              aria-label="Export holdings to CSV"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "0 12px",
+                borderRadius: 8,
+                border: `1px solid ${THEME.border}`,
+                background: THEME.card,
+                color: THEME.textSecondary,
+                cursor: "pointer",
+                fontSize: 12,
+              }}
+            >
+              <Download size={14} />
+            </button>
+          )}
           <Button
             variant="primary"
             size="sm"
@@ -323,6 +464,11 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
             <StatCard
               label="P&L"
               value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>}
+              sub={
+                stats.untrackedCount > 0
+                  ? `${stats.untrackedCount} holding${stats.untrackedCount > 1 ? "s" : ""} missing purchase price — understated`
+                  : undefined
+              }
               icon={<TrendingUp />}
               color={stats.totalPnL >= 0 ? THEME.sage : THEME.rust}
             />
@@ -421,14 +567,39 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
 
       {/* Holdings Cards */}
       {enriched.length > 0 ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(var(--grid-min-lg), 1fr))",
-            gap: 16,
-          }}
-        >
-          {enriched.map((h) => (
+        <>
+          {enriched.length > 1 && (
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+              <ArrowUpDown size={13} color={THEME.textSecondary} />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                aria-label="Sort holdings by"
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: `1px solid ${THEME.border}`,
+                  background: THEME.card,
+                  color: THEME.text,
+                  fontSize: 12,
+                }}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    Sort: {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(var(--grid-min-lg), 1fr))",
+              gap: 16,
+            }}
+          >
+            {sorted.map((h) => (
             <Card key={h.id} style={{ padding: 20 }}>
               <div
                 style={{
@@ -455,8 +626,27 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                     <div style={{ fontWeight: 600, fontSize: 15, color: THEME.text }}>
                       {h.name || h.typeInfo.label}
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-                      {h.typeInfo.label} {h.purity && `• ${h.purity}`}
+                    <div style={{ fontSize: 12, color: THEME.textSecondary, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span>
+                        {h.typeInfo.label} {h.purity && `• ${h.purity}`}
+                      </span>
+                      {h.maturityStatus && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "1px 7px",
+                            borderRadius: 999,
+                            background:
+                              h.maturityStatus === "Matured"
+                                ? `color-mix(in srgb, ${THEME.sage} 18%, transparent)`
+                                : `color-mix(in srgb, ${THEME.accent} 14%, transparent)`,
+                            color: h.maturityStatus === "Matured" ? THEME.sage : THEME.accent,
+                          }}
+                        >
+                          {h.maturityStatus}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -524,13 +714,28 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>P&L</div>
-                  <div style={{ fontWeight: 600, color: h.pnl >= 0 ? THEME.sage : THEME.rust }}>
-                    <Prv>
-                      {h.pnl >= 0 ? "+" : ""}
-                      {fmtINRFull(h.pnl)}
-                    </Prv>{" "}
-                    ({h.pnlPct.toFixed(1)}%)
-                  </div>
+                  {h.hasPurchasePrice ? (
+                    <div style={{ fontWeight: 600, color: h.pnl >= 0 ? THEME.sage : THEME.rust }}>
+                      <Prv>
+                        {h.pnl >= 0 ? "+" : ""}
+                        {fmtINRFull(h.pnl)}
+                      </Prv>{" "}
+                      ({h.pnlPct.toFixed(1)}%)
+                      {h.cagr != null && (
+                        <span style={{ fontSize: 11, color: THEME.textSecondary, fontWeight: 500 }}>
+                          {" "}
+                          · {h.cagr.toFixed(1)}% CAGR
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{ fontWeight: 500, fontSize: 12, color: THEME.textSecondary, fontStyle: "italic" }}
+                      title="Add a purchase price to track gains/losses on this holding"
+                    >
+                      Not tracked
+                    </div>
+                  )}
                 </div>
                 {h.type === "sgb" && (
                   <>
@@ -561,13 +766,23 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 </div>
               )}
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       ) : (
         <EmptyState
           icon={Coins}
+          gradient={`linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 65%, white) 100%)`}
+          dotColor={THEME.gold}
           title="No Gold Holdings"
           description="Track your physical gold, Sovereign Gold Bonds (SGBs), Gold ETFs, and digital gold holdings."
+          pills={["P&L + CAGR", "SGB Interest Tracking", "Net Worth Integration"]}
+          buttonLabel="Add Your First Gold Holding"
+          onAdd={() => {
+            setForm({ ...EMPTY_GOLD });
+            setEditingId(null);
+            setShowModal(true);
+          }}
         />
       )}
 
@@ -629,7 +844,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 }}
               />
             </Field>
-            <Field label="Purchase Price (total ₹)">
+            <Field label="Purchase Price (total ₹) — needed to track gain/loss">
               <input
                 type="number"
                 value={form.purchasePrice}

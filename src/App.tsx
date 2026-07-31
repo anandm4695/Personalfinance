@@ -5057,6 +5057,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  updateSettings={updateSettings}
                 />
               )}
               {tab === "healthinsurance" && (

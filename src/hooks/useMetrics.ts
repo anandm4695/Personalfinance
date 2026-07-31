@@ -9,6 +9,8 @@ import {
   calcTaxNew,
   calcTaxOld,
   getTaxDueForDashboard,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { DEFAULT_MASTER_DATA, FamilyProfile } from "../utils/masterData";
@@ -244,22 +246,10 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     0
   );
 
-  const goldPrice = (() => {
-    try {
-      return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
-    } catch {
-      return 7200;
-    }
-  })();
-  const PURITY_FACTOR: Record<string, number> = {
-    "24K": 1,
-    "22K": 22 / 24,
-    "18K": 18 / 24,
-    "14K": 14 / 24,
-  };
+  const goldPrice = getGoldPricePerGram(pState);
   const goldValue = (pState.goldHoldings || []).reduce((s: number, h: any) => {
     const grams = Number(h.grams || 0);
-    const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
+    const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
     const currentValue = grams * goldPrice * purityMul;
     return s + currentValue;
   }, 0);
@@ -519,23 +509,11 @@ export function useMetrics(
       0
     );
 
-    // Gold & SGBs: value at current gold price (stored in localStorage), fallback to purchase price
-    const goldPrice = (() => {
-      try {
-        return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
-      } catch {
-        return 7200;
-      }
-    })();
-    const PURITY_FACTOR: Record<string, number> = {
-      "24K": 1,
-      "22K": 22 / 24,
-      "18K": 18 / 24,
-      "14K": 14 / 24,
-    };
+    // Gold & SGBs: value at current gold price (DB-synced via state.settings), fallback to purchase price
+    const goldPrice = getGoldPricePerGram(sState);
     const goldValue = (sState.goldHoldings || []).reduce((s: number, h: any) => {
       const grams = Number(h.grams || 0);
-      const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
+      const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
       const currentValue = grams * goldPrice * purityMul;
       return s + currentValue;
     }, 0);

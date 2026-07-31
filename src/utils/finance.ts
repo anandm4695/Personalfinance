@@ -41,6 +41,32 @@ export const fmtINRExact = (n: number | string | null | undefined) => {
   return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: hasPaisa ? 2 : 0, maximumFractionDigits: 2 })}`;
 };
 
+export const DEFAULT_GOLD_PRICE_PER_GRAM = 7200; // ₹ per gram for 24K, last-resort fallback only
+
+export const GOLD_PURITY_FACTOR: Record<string, number> = {
+  "24K": 1,
+  "22K": 22 / 24,
+  "18K": 18 / 24,
+  "14K": 14 / 24,
+};
+
+// Gold price per gram is entered once (GoldSGBTab) and consumed by many modules
+// (net worth, analytics, rebalancing, family view, benchmark). It's synced to
+// `user_settings.gold_price_per_gram` so it's available across devices — but
+// every consumer used to read `localStorage` directly instead, so the price set
+// on one device silently fell back to the stale default on any other device/
+// browser. Centralizing here: state (DB-synced) wins, localStorage is only a
+// same-device cache for callers that don't have `state` in scope.
+export const getGoldPricePerGram = (state?: any): number => {
+  const fromState = Number(state?.settings?.goldPricePerGram);
+  if (fromState > 0) return fromState;
+  try {
+    const fromLocal = Number(localStorage.getItem("gold_price_per_gram"));
+    if (fromLocal > 0) return fromLocal;
+  } catch {}
+  return DEFAULT_GOLD_PRICE_PER_GRAM;
+};
+
 export const uid = () => {
   if (typeof crypto !== "undefined" && (crypto as any).randomUUID) {
     return (crypto as any).randomUUID();

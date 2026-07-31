@@ -26,7 +26,14 @@
  *   default) — it's included for every month, same as Tier 3.
  */
 
-import { monthsBetween, rdMaturity, calculateEpfBalance, today } from "./finance";
+import {
+  monthsBetween,
+  rdMaturity,
+  calculateEpfBalance,
+  today,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
+} from "./finance";
 
 function ym(dateStr: string): string {
   return dateStr.slice(0, 7);
@@ -171,24 +178,12 @@ export function computeNetWorthAsOf(
     .filter((v: any) => gateInclude(v.purchaseDate, asOfYm))
     .reduce((sum: number, v: any) => sum + Number(v.currentValue || v.purchasePrice || 0), 0);
 
-  const goldPrice = (() => {
-    try {
-      return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
-    } catch {
-      return 7200;
-    }
-  })();
-  const PURITY_FACTOR: Record<string, number> = {
-    "24K": 1,
-    "22K": 22 / 24,
-    "18K": 18 / 24,
-    "14K": 14 / 24,
-  };
+  const goldPrice = getGoldPricePerGram(s);
   const goldValue = (s.goldHoldings || [])
     .filter((h: any) => gateInclude(h.purchaseDate, asOfYm))
     .reduce((sum: number, h: any) => {
       const grams = Number(h.grams || 0);
-      const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
+      const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
       return sum + grams * goldPrice * purityMul;
     }, 0);
 

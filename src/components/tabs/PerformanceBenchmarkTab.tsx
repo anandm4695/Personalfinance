@@ -27,7 +27,13 @@ import {
   Radar,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, calcCAGR } from "../../utils/finance";
+import {
+  fmtINR,
+  fmtINRFull,
+  calcCAGR,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
@@ -157,20 +163,13 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     const ppfValue = ppfAccs.reduce((s, p) => s + Number(p.balance || 0), 0);
 
     // Gold returns
-    const goldPricePerGram = (() => {
-      try {
-        return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
-      } catch {
-        return 7200;
-      }
-    })();
+    const goldPricePerGram = getGoldPricePerGram(state);
     // Physical gold purity (e.g. 22K jewellery) is worth less than 24K bullion —
     // apply the same purity discount used everywhere else (GoldSGBTab, useMetrics,
     // RebalancingTab); omitting it overstated goldValue/goldReturn for non-24K holdings.
-    const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
     let earliestGoldDate: string | null = null;
     const goldValue = goldHoldings.reduce((s, g) => {
-      const purityMul = g.type === "physical" ? PURITY_FACTOR[g.purity] || 1 : 1;
+      const purityMul = g.type === "physical" ? GOLD_PURITY_FACTOR[g.purity] || 1 : 1;
       if (g.purchaseDate && (!earliestGoldDate || g.purchaseDate < earliestGoldDate))
         earliestGoldDate = g.purchaseDate;
       return s + Number(g.grams || 0) * goldPricePerGram * purityMul;

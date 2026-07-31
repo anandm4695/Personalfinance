@@ -83,6 +83,8 @@ import {
   getEffectiveRent,
   calculateEpfBalance,
   today,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
 } from "../../utils/finance";
 import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { getCurrentFY } from "../../utils/appConstants";
@@ -1464,19 +1466,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           .sort((a: any, b: any) => b.value - a.value);
 
       case "Gold & SGBs": {
-        const gp = (() => {
-          try {
-            return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
-          } catch {
-            return 7200;
-          }
-        })();
-        const PF: Record<string, number> = {
-          "24K": 1,
-          "22K": 22 / 24,
-          "18K": 18 / 24,
-          "14K": 14 / 24,
-        };
+        const gp = getGoldPricePerGram(state);
+        const PF = GOLD_PURITY_FACTOR;
         const GTYPES: Record<string, string> = {
           physical: "Physical",
           sgb: "SGB",

@@ -25,7 +25,14 @@ import {
   Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, rdMaturity, calculateEpfBalance } from "../../utils/finance";
+import {
+  fmtINR,
+  fmtINRFull,
+  rdMaturity,
+  calculateEpfBalance,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -250,17 +257,10 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
     }, 0);
 
-    const goldPricePerGram = (() => {
-      try {
-        return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
-      } catch {
-        return 7200;
-      }
-    })();
-    const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+    const goldPricePerGram = getGoldPricePerGram(state);
     const gold = (state.goldHoldings || []).reduce((s, g) => {
       const grams = Number(g.grams || 0);
-      const purityMul = g.type === "physical" ? PURITY_FACTOR[g.purity] || 1 : 1;
+      const purityMul = g.type === "physical" ? GOLD_PURITY_FACTOR[g.purity] || 1 : 1;
       return s + grams * goldPricePerGram * purityMul;
     }, 0);
 

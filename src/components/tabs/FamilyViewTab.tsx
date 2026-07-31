@@ -41,6 +41,8 @@ import {
   calculateEpfBalance,
   monthsBetween,
   today,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -302,17 +304,10 @@ const memberAssets = (state, owner, marketData) => {
     (s, r) => s + Number(r.propertyValue || 0),
     0
   );
-  const goldPrice = (() => {
-    try {
-      return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
-    } catch {
-      return 7200;
-    }
-  })();
-  const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+  const goldPrice = getGoldPricePerGram(state);
   const gold = filter(state.goldHoldings || []).reduce((s, h) => {
     const grams = Number(h.grams || 0);
-    const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
+    const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
     return s + grams * goldPrice * purityMul;
   }, 0);
 
