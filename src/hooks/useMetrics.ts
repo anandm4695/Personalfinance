@@ -34,6 +34,19 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
       .filter((b: any) => b.owner === profileId)
       .map((b: any) => b.id)
   );
+  // realEstateDemands/realEstatePayments don't carry an `owner` field either — they
+  // reference a property via `propertyId`. Previously these went through the plain
+  // `filterByOwner` above, which checks `item.owner === profileId`; since that field
+  // never exists on demand/payment rows, the filter silently returned an EMPTY array
+  // for every specific profile (only "all" — which skips filtering entirely — ever
+  // showed them). That zeroed out this profile's real-estate outstanding-demand
+  // liability in every net-worth calc and blanked the RealEstateTab demand-letter/
+  // payment tables whenever a specific family member was selected. Cross-reference
+  // against the (already co-owner-aware) filtered properties instead, same pattern
+  // as ownedBillIds above.
+  const ownedPropertyIds = new Set(
+    filterRealEstateByOwner(state.realEstateProperties || []).map((p: any) => p.id)
+  );
   return {
     ...state,
     bankAccounts: filterByOwner(state.bankAccounts),
@@ -59,8 +72,12 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
     rentalProperties: filterByOwner(state.rentalProperties || []),
     rentedProperties: filterByOwner(state.rentedProperties || []),
     realEstateProperties: filterRealEstateByOwner(state.realEstateProperties || []),
-    realEstateDemands: filterByOwner(state.realEstateDemands || []),
-    realEstatePayments: filterByOwner(state.realEstatePayments || []),
+    realEstateDemands: (Array.isArray(state.realEstateDemands) ? state.realEstateDemands : []).filter(
+      (d: any) => ownedPropertyIds.has(d.propertyId)
+    ),
+    realEstatePayments: (Array.isArray(state.realEstatePayments) ? state.realEstatePayments : []).filter(
+      (p: any) => ownedPropertyIds.has(p.propertyId)
+    ),
     vehicles: filterByOwner(state.vehicles || []),
     dividends: filterByOwner(state.dividends || []),
     documents: filterByOwner(state.documents || []),
@@ -286,20 +303,23 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     0
   );
 
-  const realEstateOutstanding = (() => {
-    const ucIds = new Set(
-      (pState.realEstateProperties || [])
-        .filter((p: any) => p.status === "under-construction")
-        .map((p: any) => p.id)
-    );
-    const demanded = (pState.realEstateDemands || [])
-      .filter((d: any) => ucIds.has(d.propertyId))
-      .reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
-    const paid = (pState.realEstatePayments || [])
-      .filter((p: any) => ucIds.has(p.propertyId))
-      .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-    return Math.max(0, demanded - paid);
-  })();
+  // Scale each under-construction property's outstanding builder demand by this
+  // profile's ownership share — mirrors realEstateAsset above so a jointly-owned
+  // property's payment obligation isn't counted in full against a co-owner who
+  // only holds part of it (e.g. an external co-owner's share isn't this
+  // household member's liability).
+  const realEstateOutstanding = (pState.realEstateProperties || [])
+    .filter((p: any) => p.status === "under-construction")
+    .reduce((total: number, p: any) => {
+      const share = profileId ? realEstateShareForOwner(p, profileId) : 1;
+      const demanded = (pState.realEstateDemands || [])
+        .filter((d: any) => d.propertyId === p.id)
+        .reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
+      const paid = (pState.realEstatePayments || [])
+        .filter((pm: any) => pm.propertyId === p.id)
+        .reduce((s: number, pm: any) => s + Number(pm.amount || 0), 0);
+      return total + Math.max(0, demanded - paid) * share;
+    }, 0);
 
   const totalLiabilities =
     ccOutstanding +
@@ -536,21 +556,23 @@ export function useMetrics(
         return s + value * share;
       }, 0);
 
-    // Outstanding builder demands for under-construction properties = contractual cash obligations
-    const realEstateOutstanding = (() => {
-      const ucIds = new Set(
-        (sState.realEstateProperties || [])
-          .filter((p: any) => p.status === "under-construction")
-          .map((p: any) => p.id)
-      );
-      const demanded = (sState.realEstateDemands || [])
-        .filter((d: any) => ucIds.has(d.propertyId))
-        .reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
-      const paid = (sState.realEstatePayments || [])
-        .filter((p: any) => ucIds.has(p.propertyId))
-        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      return Math.max(0, demanded - paid);
-    })();
+    // Outstanding builder demands for under-construction properties = contractual cash
+    // obligations. Scaled per-property by the same ownership share as realEstateAsset
+    // above, so a jointly-owned property's payment obligation isn't counted in full
+    // against a co-owner (or this household) who only holds part of it.
+    const realEstateOutstanding = (sState.realEstateProperties || [])
+      .filter((p: any) => p.status === "under-construction")
+      .reduce((total: number, p: any) => {
+        const share =
+          activeProfile !== "all" ? realEstateShareForOwner(p, activeProfile) : realEstateTrackedShare(p);
+        const demanded = (sState.realEstateDemands || [])
+          .filter((d: any) => d.propertyId === p.id)
+          .reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
+        const paid = (sState.realEstatePayments || [])
+          .filter((pm: any) => pm.propertyId === p.id)
+          .reduce((s: number, pm: any) => s + Number(pm.amount || 0), 0);
+        return total + Math.max(0, demanded - paid) * share;
+      }, 0);
 
     const totalAssets =
       cashInBanks +

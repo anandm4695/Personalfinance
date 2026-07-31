@@ -16,6 +16,7 @@ import {
   CreditCard,
   Bell,
   Filter,
+  Building2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -383,6 +384,41 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       }
     });
 
+    // Real Estate builder demand letters (under-construction properties only) —
+    // one-off milestone dues, not a recurring cycle, so unlike everything else in
+    // this file each occurrence is a distinct existing record rather than a
+    // projected next-due date. Previously these dues appeared nowhere outside the
+    // Real Estate tab itself, so a milestone payment could be missed entirely.
+    const ucPropertyIds = new Set(
+      (state.realEstateProperties || [])
+        .filter((p: any) => p.status === "under-construction")
+        .map((p: any) => p.id)
+    );
+    (state.realEstateDemands || []).forEach((d: any) => {
+      if (!ucPropertyIds.has(d.propertyId) || d.status === "paid" || !d.dueDate) return;
+      const totalAmt = Number(d.totalAmount || d.amount || 0);
+      const paidForDemand = (state.realEstatePayments || [])
+        .filter((p: any) => p.demandId === d.id)
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      const remaining = Math.max(0, totalAmt - paidForDemand);
+      if (remaining <= 0) return;
+      const days = getDaysUntil(d.dueDate);
+      if (days <= horizon * 31 + 10) {
+        const property = (state.realEstateProperties || []).find((p: any) => p.id === d.propertyId);
+        items.push({
+          type: "realestate_demand",
+          category: "Real Estate",
+          icon: Building2,
+          name: `${property?.name || "Property"} — ${d.milestone || "Demand"}`,
+          date: d.dueDate,
+          days,
+          amount: remaining,
+          color: THEME.gold,
+          detail: `Demand: ${fmtINRExact(totalAmt)}${paidForDemand > 0 ? ` • Paid: ${fmtINRExact(paidForDemand)}` : ""}`,
+        });
+      }
+    });
+
     return items.sort((a, b) => a.days - b.days);
   }, [state, horizon]);
 
@@ -441,6 +477,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
     { key: "loan", label: "Loans" },
     { key: "cc", label: "Credit Cards" },
     { key: "subscription", label: "Subscriptions" },
+    { key: "realestate", label: "Real Estate" },
   ];
 
   const toggleSection = (key) => setExpandedSection((p) => ({ ...p, [key]: !p[key] }));

@@ -1166,6 +1166,23 @@ function PropertyCard({
       Number(property.saleTds || 0)
     : 0;
   const gain = isSold ? saleProceeds - totalCost : Number(property.marketValue || 0) - totalCost;
+  const gainPct = totalCost > 0 ? (gain / totalCost) * 100 : 0;
+  // Simple annualised return using holding period (purchase → sale, or purchase →
+  // today for a still-held property) — plain CAGR, not XIRR, since this is a single
+  // lump-sum cost basis vs. a single current/exit value (no intermediate cashflows
+  // to model, unlike the demand/payment ledger which is a cost timeline, not a return one).
+  const holdingYears = property.purchaseDate
+    ? Math.max(
+        0,
+        (new Date((isSold && property.saleDate ? property.saleDate : today()) + "T00:00:00").getTime() -
+          new Date(property.purchaseDate + "T00:00:00").getTime()) /
+          (365.25 * 24 * 3600 * 1000)
+      )
+    : 0;
+  const cagr =
+    holdingYears >= 0.5 && totalCost > 0 && gain !== 0
+      ? (Math.pow((totalCost + gain) / totalCost, 1 / holdingYears) - 1) * 100
+      : null;
 
   // All table cell borders use CSS variable directly (valid CSS, not "var(...)44" which is invalid)
   const divider = "1px solid var(--t-line)";
@@ -1481,7 +1498,9 @@ function PropertyCard({
               }}
             >
               {gain >= 0 ? "▲" : "▼"} {isSold ? "Realised" : "Unrealised"}{" "}
-              {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv>
+              {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv> (
+              {gain >= 0 ? "+" : "−"}
+              {Math.abs(gainPct).toFixed(1)}%)
             </span>
             <span style={{ fontSize: 11, color: THEME.muted }}>
               Cost: <Prv>{fmtINRFull(totalCost)}</Prv>
@@ -1493,6 +1512,7 @@ function PropertyCard({
               ) : (
                 ""
               )}
+              {cagr !== null ? ` · ${cagr >= 0 ? "+" : "−"}${Math.abs(cagr).toFixed(1)}% CAGR` : ""}
             </span>
           </div>
         )}
@@ -1986,17 +2006,28 @@ export function RealEstateTab({
           shareOf(p),
       0
     );
+    // Demand letters and payments are billed against the full property (they aren't
+    // pre-split per owner), so — unlike portfolioValue/totalInvested above, which read
+    // a per-property field — these need an explicit per-item share lookup before summing.
+    // Previously these two stats ignored the ownership share (and, before the upstream
+    // filteredState fix, could include another family member's properties entirely),
+    // showing the full 100% figure regardless of the "My Share" toggle or active profile.
+    const propById = new Map(properties.map((p) => [p.id, p]));
+    const shareOfItem = (item: any) => {
+      const prop = propById.get(item.propertyId);
+      return prop ? shareOf(prop) : 0;
+    };
     const ucIds = new Set(
       properties.filter((p) => p.status === "under-construction").map((p) => p.id)
     );
-    const totalPaid = payments
-      .filter((p) => ucIds.has(p.propertyId))
-      .reduce((s, p) => s + Number(p.amount || 0), 0);
     const totalDemanded = demands
       .filter((d) => ucIds.has(d.propertyId))
-      .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
-    const outstanding = Math.max(0, totalDemanded - totalPaid);
-    const allPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+      .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0) * shareOfItem(d), 0);
+    const totalPaidUC = payments
+      .filter((p) => ucIds.has(p.propertyId))
+      .reduce((s, p) => s + Number(p.amount || 0) * shareOfItem(p), 0);
+    const outstanding = Math.max(0, totalDemanded - totalPaidUC);
+    const allPaid = payments.reduce((s, p) => s + Number(p.amount || 0) * shareOfItem(p), 0);
     // Same "current value − cost" arithmetic already used per-card (see PropertyCard's
     // `gain`), just aggregated across the portfolio — this is the number the whole
     // section answers, so it earns the hero-card slot below.

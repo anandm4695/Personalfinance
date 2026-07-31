@@ -315,22 +315,27 @@ export function computeNetWorthAsOf(
     return sum + Math.max(0, totalT - totalP);
   }, 0);
 
-  const realEstateOutstanding = (() => {
-    const ucIds = new Set(
-      (s.realEstateProperties || [])
-        .filter((p: any) => p.status === "under-construction")
-        .map((p: any) => p.id)
-    );
-    const demanded = (s.realEstateDemands || [])
-      .filter((d: any) => ucIds.has(d.propertyId))
-      .filter((d: any) => gateInclude(d.demandDate || d.dueDate, asOfYm))
-      .reduce((sum: number, d: any) => sum + Number(d.totalAmount || d.amount || 0), 0);
-    const paid = (s.realEstatePayments || [])
-      .filter((p: any) => ucIds.has(p.propertyId))
-      .filter((p: any) => gateInclude(p.paymentDate || p.date, asOfYm))
-      .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-    return Math.max(0, demanded - paid);
-  })();
+  // Scaled per-property by the same ownership share as realEstateAsset above, so a
+  // jointly-owned property's payment obligation isn't counted in full against a
+  // co-owner (or this household) who only holds part of it — mirrors the identical
+  // fix in useMetrics.ts's realEstateOutstanding.
+  const realEstateOutstanding = (s.realEstateProperties || [])
+    .filter((p: any) => p.status === "under-construction")
+    .reduce((total: number, p: any) => {
+      const share =
+        profileId && profileId !== "all"
+          ? realEstateShareForOwner(p, profileId)
+          : realEstateTrackedShare(p);
+      const demanded = (s.realEstateDemands || [])
+        .filter((d: any) => d.propertyId === p.id)
+        .filter((d: any) => gateInclude(d.demandDate || d.dueDate, asOfYm))
+        .reduce((sum: number, d: any) => sum + Number(d.totalAmount || d.amount || 0), 0);
+      const paid = (s.realEstatePayments || [])
+        .filter((pm: any) => pm.propertyId === p.id)
+        .filter((pm: any) => gateInclude(pm.paymentDate || pm.date, asOfYm))
+        .reduce((sum: number, pm: any) => sum + Number(pm.amount || 0), 0);
+      return total + Math.max(0, demanded - paid) * share;
+    }, 0);
 
   // Stocks — held rows bought by asOfYm, plus sold rows bought by asOfYm but not yet sold by then.
   const stockValue =

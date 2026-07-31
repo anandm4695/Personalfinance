@@ -480,6 +480,45 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       }
     });
 
+    // Real Estate builder demand alerts (overdue or due within 10 days) — these are
+    // one-off milestone payments with real consequences for missing them (interest
+    // penalty, risk of booking cancellation under the builder-buyer agreement), but
+    // previously surfaced nowhere outside manually opening the Real Estate tab.
+    {
+      const ucPropertyIds = new Set(
+        (state.realEstateProperties || [])
+          .filter((p: any) => p.status === "under-construction")
+          .map((p: any) => p.id)
+      );
+      (state.realEstateDemands || []).forEach((d: any) => {
+        if (!ucPropertyIds.has(d.propertyId) || d.status === "paid" || !d.dueDate) return;
+        const totalAmt = Number(d.totalAmount || d.amount || 0);
+        const paidForDemand = (state.realEstatePayments || [])
+          .filter((p: any) => p.demandId === d.id)
+          .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+        const remaining = Math.max(0, totalAmt - paidForDemand);
+        if (remaining <= 0) return;
+        const days = Math.ceil(
+          (new Date(d.dueDate + "T00:00:00").getTime() -
+            new Date(today() + "T00:00:00").getTime()) /
+            86400000
+        );
+        if (days > 10) return;
+        const property = (state.realEstateProperties || []).find(
+          (p: any) => p.id === d.propertyId
+        );
+        list.push({
+          level: days < 0 || days <= 3 ? "error" : "warn",
+          title:
+            days < 0
+              ? `Builder demand overdue by ${Math.abs(days)}d`
+              : `Builder demand due in ${days}d`,
+          detail: `${property?.name || "Property"} — ${d.milestone || "Demand"} · ₹${remaining.toLocaleString("en-IN")} pending`,
+          tab: "realestate",
+        });
+      });
+    }
+
     const ORDER = { error: 0, warn: 1, info: 2 };
     return list
       .filter((a) => {
@@ -515,6 +554,9 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     state.wishlistItems,
     state.healthInsurance,
     state.billPayments,
+    state.realEstateProperties,
+    state.realEstateDemands,
+    state.realEstatePayments,
     marketData,
   ]);
 
