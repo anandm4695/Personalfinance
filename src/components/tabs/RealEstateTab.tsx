@@ -28,6 +28,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
+import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 
 // Sentinel owner id for a co-owner who isn't one of this household's tracked
@@ -2075,59 +2076,24 @@ export function RealEstateTab({
 
   return (
     <div>
-      {/* Header — premium */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 24,
-              fontWeight: 900,
-              color: THEME.ink,
-              letterSpacing: "-0.03em",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
+      {/* Header — standard SectionTitle (matches the rest of the app; see
+          BanksTab/RentalTab/GoldSGBTab etc. — a per-tab gradient icon badge next
+          to the title was a one-off pattern that had only crept into 4 of the
+          app's 54 tabs, not an established standard, so it's dropped here). */}
+      <SectionTitle
+        sub={`${properties.length} propert${properties.length !== 1 ? "ies" : "y"} · Track purchases, demand letters & payments`}
+        rightElement={
+          <Button
+            variant="accent"
+            icon={<Plus size={14} />}
+            onClick={() => setShowPropertyModal(true)}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 11,
-                background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 70%, ${THEME.sage}) 100%)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: `0 4px 12px color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
-                flexShrink: 0,
-              }}
-            >
-              <Home size={18} color="#fff" />
-            </div>
-            Real Estate
-          </div>
-          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, marginLeft: 46 }}>
-            {properties.length} propert{properties.length !== 1 ? "ies" : "y"} · Track purchases,
-            demand letters &amp; payments
-          </div>
-        </div>
-        <Button
-          variant="accent"
-          icon={<Plus size={14} />}
-          onClick={() => setShowPropertyModal(true)}
-        >
-          Add Property
-        </Button>
-      </div>
+            Add Property
+          </Button>
+        }
+      >
+        Real Estate
+      </SectionTitle>
 
       {/* Stats — Portfolio Value + Appreciation is the number this section answers,
           so it gets the hero-card slot (matches FIRE Number / Goals Overall Progress). */}
