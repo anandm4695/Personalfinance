@@ -2605,9 +2605,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           {activeRegime === "old" && <HRACalculator />}
 
           {/* ── 2. ADVANCE TAX SUMMARY ─────────────────────────────── */}
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 24 }}
-          >
+          <div className="tv-hero-grid-2" style={{ marginBottom: 24 }}>
             <Card
               variant="hero"
               style={{
@@ -4286,9 +4284,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           </div>
 
           {/* Simulated Dashboard */}
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 32 }}
-          >
+          <div className="tv-hero-grid-2" style={{ marginBottom: 32 }}>
             <Card
               variant="hero"
               style={{

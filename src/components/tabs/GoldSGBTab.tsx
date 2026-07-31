@@ -254,40 +254,88 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
       </div>
 
       {holdings.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 14,
-          }}
-        >
-          <StatCard
-            label="Total Gold"
-            value={`${stats.totalGrams.toFixed(2)}g`}
-            icon={<Coins />}
-            color={THEME.gold}
-          />
-          <StatCard
-            label="Current Value"
-            value={<Prv>{fmtINRFull(stats.totalValue)}</Prv>}
-            icon={<IndianRupee />}
-            color={THEME.accent}
-          />
-          <StatCard
-            label="P&L"
-            value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>}
-            icon={<TrendingUp />}
-            color={stats.totalPnL >= 0 ? THEME.sage : THEME.rust}
-          />
-          {stats.totalInterest > 0 && (
+        <>
+          {/* Current Value is the one number this whole tab answers, so it earns
+              the hero-card slot — matches the FIRE Number / Goals Overall Progress
+              / Real Estate Portfolio Value treatment used across the app. */}
+          <Card
+            variant="hero"
+            style={{
+              padding: "clamp(24px, 4vw, 36px)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.6)",
+              }}
+            >
+              <Coins size={13} /> Current Gold Value
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(32px, 5vw, 52px)",
+                fontWeight: 900,
+                color: "#fff",
+                letterSpacing: "-0.03em",
+                lineHeight: 1.05,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              <Prv>{fmtINRFull(stats.totalValue)}</Prv>
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+              {stats.totalGrams.toFixed(2)}g held ·{" "}
+              {stats.totalPnL >= 0 ? "Up " : "Down "}
+              <Prv>{fmtINRFull(Math.abs(stats.totalPnL))}</Prv> against{" "}
+              <Prv>{fmtINRFull(stats.totalInvested)}</Prv> invested
+            </div>
+          </Card>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+            }}
+          >
             <StatCard
-              label="SGB Interest Earned"
-              value={<Prv>{fmtINRFull(stats.totalInterest)}</Prv>}
-              icon={<Award />}
-              color={THEME.sage}
+              label="Total Gold"
+              value={`${stats.totalGrams.toFixed(2)}g`}
+              icon={<Coins />}
+              color={THEME.gold}
             />
-          )}
-        </div>
+            <StatCard
+              label="Total Invested"
+              value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>}
+              icon={<IndianRupee />}
+              color={THEME.accent}
+            />
+            <StatCard
+              label="P&L"
+              value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>}
+              icon={<TrendingUp />}
+              color={stats.totalPnL >= 0 ? THEME.sage : THEME.rust}
+            />
+            {stats.totalInterest > 0 && (
+              <StatCard
+                label="SGB Interest Earned"
+                value={<Prv>{fmtINRFull(stats.totalInterest)}</Prv>}
+                icon={<Award />}
+                color={THEME.sage}
+              />
+            )}
+          </div>
+        </>
       )}
 
       {/* Type Breakdown */}

@@ -160,7 +160,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
       }}
     >
       <span style={{ fontSize: size / 2.5, fontWeight: 800, color: "var(--t-muted)" }}>
-        {bankName.slice(0, 2).toUpperCase()}
+        {(bankName || "").slice(0, 2).toUpperCase() || "?"}
       </span>
     </div>
   );
@@ -1184,7 +1184,7 @@ function CreditScoreTracker() {
           <Field label="Date">
             <input
               type="date"
-              className="field-input"
+              className="form-input"
               value={form.date}
               max={today()}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
@@ -1193,7 +1193,7 @@ function CreditScoreTracker() {
           <Field label="Credit Score (300-900)">
             <input
               type="number"
-              className="field-input"
+              className="form-input"
               placeholder="e.g. 750"
               min={300}
               max={900}
@@ -1203,7 +1203,7 @@ function CreditScoreTracker() {
           </Field>
           <Field label="Bureau">
             <select
-              className="field-input"
+              className="form-input"
               value={form.bureau}
               onChange={(e) => setForm({ ...form, bureau: e.target.value })}
             >
@@ -1217,7 +1217,7 @@ function CreditScoreTracker() {
           <Field label="Notes (optional)">
             <input
               type="text"
-              className="field-input"
+              className="form-input"
               placeholder="e.g. Checked on CIBIL website"
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -3456,7 +3456,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
       {showAdd && (
         <div
           style={{
-            background: THEME.darkInk,
+            background: "var(--surface-1)",
             border: `1px solid ${THEME.line}`,
             borderRadius: 10,
             marginBottom: 16,
@@ -3831,7 +3831,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
               letterSpacing: "-0.02em",
             }}
           >
-            {viewMode === "active" ? "No Active Prepaid Cards" : "No Closed Credit Cards"}
+            {viewMode === "active" ? "No Active Prepaid Cards" : "No Closed Prepaid Cards"}
           </div>
           <div
             style={{

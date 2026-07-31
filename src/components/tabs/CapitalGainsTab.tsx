@@ -1040,9 +1040,13 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           />
         </div>
         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 6 }}>
-          {ltcgExemptionUsed >= ltcgExemptionLimit
-            ? "Exemption fully utilized"
-            : `${fmtINRFull(ltcgExemptionLimit - ltcgExemptionUsed)} remaining exemption`}
+          {ltcgExemptionUsed >= ltcgExemptionLimit ? (
+            "Exemption fully utilized"
+          ) : (
+            <>
+              <Prv>{fmtINRFull(ltcgExemptionLimit - ltcgExemptionUsed)}</Prv> remaining exemption
+            </>
+          )}
         </div>
       </Card>
 

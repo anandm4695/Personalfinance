@@ -577,6 +577,7 @@ function FinanceDashboard() {
     };
   }, [showShortcuts]);
   const [showAlerts, setShowAlerts] = useState(false);
+  const alertsMenuRef = useRef<HTMLDivElement>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
@@ -1390,6 +1391,27 @@ function FinanceDashboard() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showProfileMenu]);
+
+  // Close alerts dropdown on outside click or Escape — it's a hand-rolled
+  // floating panel (not the shared Modal/Drawer), so it needs its own
+  // dismissal wiring; previously only the in-panel X button could close it.
+  useEffect(() => {
+    if (!showAlerts) return;
+    const handleClick = (e: MouseEvent) => {
+      if (alertsMenuRef.current && !alertsMenuRef.current.contains(e.target as Node)) {
+        setShowAlerts(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowAlerts(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [showAlerts]);
 
   // One-time backfill: historical netWorthHistory snapshots were saved without
   // investmentPlans (investment schemes). This adds the missing value to every
@@ -3917,7 +3939,7 @@ function FinanceDashboard() {
                   <Search size={15} />
                 </button>
                 {/* Bell / Alerts */}
-                <div style={{ position: "relative" }}>
+                <div ref={alertsMenuRef} style={{ position: "relative" }}>
                   <button
                     onClick={() => setShowAlerts((v) => !v)}
                     className="header-icon-btn"

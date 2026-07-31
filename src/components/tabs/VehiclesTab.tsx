@@ -1054,7 +1054,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                   <span
                     style={{
                       fontSize: 11,
-                      background: p.color + "15",
+                      background: `color-mix(in srgb, ${p.color} 15%, transparent)`,
                       color: p.color,
                       borderRadius: 20,
                       padding: "1px 7px",
@@ -2077,7 +2077,7 @@ function VehicleCard({
     Number(vehicle.purchaseSgstAmount || 0);
   const totalServiceCost = sh.reduce((s: number, r: any) => s + Number(r.cost || 0), 0);
   const lastService = sh.length
-    ? sh.slice().sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
+    ? sh.slice().sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""))[0]
     : null;
 
   const latestOdo = sh.reduce((max: number, r: any) => Math.max(max, Number(r.odometer || 0)), 0);
@@ -2117,7 +2117,7 @@ function VehicleCard({
         }),
         odometer: Number(r.odometer),
       }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   }, [sh]);
 
   const deprPct =
@@ -3068,7 +3068,7 @@ function VehicleCard({
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {sh
                   .slice()
-                  .sort((a: any, b: any) => b.date.localeCompare(a.date))
+                  .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""))
                   .map((rec: any, idx: number) => (
                     <ServiceRow
                       key={rec.id || idx}

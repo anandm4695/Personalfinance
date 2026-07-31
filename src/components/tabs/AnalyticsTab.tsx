@@ -3262,6 +3262,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             value: fmtINRFull(metrics.netWorth),
             color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust,
             Icon: TrendingUp,
+            money: true,
           },
           {
             label: "Savings Rate",
@@ -3274,18 +3275,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             value: fmtINRFull(metrics.monthIncome),
             color: THEME.sage,
             Icon: ArrowUpRight,
+            money: true,
           },
           {
             label: "Monthly Spend",
             value: fmtINRFull(metrics.monthExpense),
             color: THEME.rust,
             Icon: Receipt,
+            money: true,
           },
           {
             label: "Est. Tax",
             value: fmtINRFull(metrics.taxDue),
             color: metrics.taxDue > 0 ? THEME.rust : THEME.sage,
             Icon: Landmark,
+            money: true,
           },
           ...(momNetWorthDelta
             ? [
@@ -3294,6 +3298,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   value: `${momNetWorthDelta.delta >= 0 ? "+" : ""}${fmtINRFull(momNetWorthDelta.delta)}`,
                   color: momNetWorthDelta.delta >= 0 ? THEME.sage : THEME.rust,
                   Icon: momNetWorthDelta.delta >= 0 ? ArrowUpRight : ArrowDownRight,
+                  money: true,
                 },
               ]
             : []),
@@ -3318,7 +3323,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               marginBottom: 24,
             }}
           >
-            {items.map(({ label, value, color, Icon }) => (
+            {items.map(({ label, value, color, Icon, money }) => (
               <div
                 key={label}
                 className="card-lift"
@@ -3371,7 +3376,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {value}
+                  {money ? <Prv>{value}</Prv> : value}
                 </div>
               </div>
             ))}
@@ -3972,7 +3977,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     % equity ratio
                   </div>
                   <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
-                    · Total assets {fmtINRFull(metrics.totalAssets)}
+                    · Total assets <Prv>{fmtINRFull(metrics.totalAssets)}</Prv>
                   </div>
                   {momNetWorthDelta && (
                     <div
@@ -3992,7 +3997,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <ArrowDownRight size={13} />
                       )}
                       {momNetWorthDelta.delta >= 0 ? "+" : ""}
-                      {fmtINRFull(momNetWorthDelta.delta)} MoM (
+                      <Prv>{fmtINRFull(momNetWorthDelta.delta)}</Prv> MoM (
                       {momNetWorthDelta.pct >= 0 ? "+" : ""}
                       {momNetWorthDelta.pct.toFixed(1)}%)
                     </div>
@@ -5907,7 +5912,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       nominationAudit.pct > 80
                         ? "sage"
                         : nominationAudit.pct >= 50
-                          ? "warning"
+                          ? "gold"
                           : "rust"
                     }
                     style={{ fontSize: 10, padding: "2px 8px" }}
@@ -6470,7 +6475,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             }}
                           >
                             {t.type === "credit" ? "+" : "-"}
-                            {fmtINRFull(t.amount)}
+                            <Prv>{fmtINRFull(t.amount)}</Prv>
                           </div>
                           <span
                             style={{
@@ -7780,7 +7785,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
             </div>
             <div className="sub-tab-hero-badge">
-              <IndianRupee size={12} /> {fmtINRFull(metrics.totalAssets)} assets
+              <IndianRupee size={12} /> <Prv>{fmtINRFull(metrics.totalAssets)}</Prv> assets
             </div>
           </div>
           <div
@@ -7967,14 +7972,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           width: "100%",
                         }}
                       >
-                        {fmtINRFull(
-                          activeAssetIndex !== null
-                            ? assetBreakdown[activeAssetIndex]?.value
-                            : selectedAssetClass
-                              ? assetBreakdown.find((x) => x.name === selectedAssetClass)?.value ||
-                                0
-                              : metrics.totalAssets
-                        )}
+                        <Prv>
+                          {fmtINRFull(
+                            activeAssetIndex !== null
+                              ? assetBreakdown[activeAssetIndex]?.value
+                              : selectedAssetClass
+                                ? assetBreakdown.find((x) => x.name === selectedAssetClass)
+                                    ?.value || 0
+                                : metrics.totalAssets
+                          )}
+                        </Prv>
                       </span>
                       <span
                         style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginTop: 2 }}
@@ -9897,7 +9904,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                   </div>
                   {overlappingStockCount > 0 && (
-                    <Badge variant={concentrationRisks.length > 0 ? "danger" : "warning"}>
+                    <Badge variant={concentrationRisks.length > 0 ? "rust" : "gold"}>
                       {overlappingStockCount} Overlapping Stock
                       {overlappingStockCount !== 1 ? "s" : ""} Detected
                     </Badge>
@@ -12685,7 +12692,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 {spendingData.total > 0 && (
                   <div className="sub-tab-hero-badge">
-                    <ArrowDownRight size={12} /> {fmtINRFull(spendingData.total)} spent
+                    <ArrowDownRight size={12} /> <Prv>{fmtINRFull(spendingData.total)}</Prv> spent
                   </div>
                 )}
               </div>

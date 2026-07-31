@@ -455,6 +455,41 @@ tbody tr:hover td {
   }
 }
 
+/* ── Tax Vault hero-card 2-col dashboards (Advance Tax Summary,
+   Capital Gains Simulated Dashboard): "1.2fr 1fr" isn't caught by the
+   generic [style*="1fr 1fr"]/repeat(N) mobile overrides below, so a
+   fontSize:52 hero number was getting crushed into a ~half-width column
+   on phones. Added by 4th calc-logic/UI audit. ───────────────────────── */
+.tv-hero-grid-2 {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 768px) {
+  .tv-hero-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Calc result tile row: 3 stat tiles, collapses to 2/1 col on narrow
+   screens so bold currency figures don't get crushed to ~70px on phones.
+   Added by 4th calc-logic/UI audit (CalculatorsTab result grids). ─────── */
+.calc-result-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 560px) {
+  .calc-result-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 360px) {
+  .calc-result-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Hero card — Executive Grade ───────────────────────────────── */
 .hero-card {
   position: relative;
@@ -3030,5 +3065,19 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
   /* Asset Class Comparison needs room for rotated labels + bottom legend + value labels */
   .asset-comparison-chart .recharts-wrapper {
     max-height: 460px;
+  }
+}
+
+/* ── AnalyticsTab: donut chart + drill-down legend layout ──
+   Referenced by AnalyticsTab.tsx (Asset Allocation, Market Cap, Spending Breakup panels)
+   but was previously undefined. Base layout matches the inline flex styles already on
+   the element; this adds the mobile-narrow stacking behavior those inline styles lacked. */
+.allocation-interactive-container {
+  width: 100%;
+}
+@media (max-width: 480px) {
+  .allocation-interactive-container {
+    flex-direction: column !important;
+    gap: 16px !important;
   }
 }

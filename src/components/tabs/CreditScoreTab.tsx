@@ -123,6 +123,36 @@ const EMPTY = {
   notes: "",
 };
 
+// Hoisted to module scope (was previously defined inside CreditScoreTab's render
+// body) — a component defined inline in a parent's render is recreated with a new
+// identity on every render, forcing React to unmount/remount it instead of
+// reconciling, which drops any local state or in-flight CSS transitions.
+function OwnerAvatar({ ownerId, size = 22 }: { ownerId: string; size?: number }) {
+  const info = getOwnerAvatarInfo(ownerId);
+  return (
+    <div
+      title={`${info.name} (${info.relation})`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: info.bg,
+        border: `1.5px solid ${info.color}`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: info.color,
+        fontSize: size * 0.45,
+        fontWeight: 700,
+        cursor: "default",
+        flexShrink: 0,
+      }}
+    >
+      {info.initials}
+    </div>
+  );
+}
+
 function ScoreForm({ initial, onSave, onClose }: any) {
   const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
@@ -404,32 +434,6 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
     }
     setModal(null);
   };
-
-  function OwnerAvatar({ ownerId, size = 22 }: { ownerId: string; size?: number }) {
-    const info = getOwnerAvatarInfo(ownerId);
-    return (
-      <div
-        title={`${info.name} (${info.relation})`}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: "50%",
-          background: info.bg,
-          border: `1.5px solid ${info.color}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: info.color,
-          fontSize: size * 0.45,
-          fontWeight: 700,
-          cursor: "default",
-          flexShrink: 0,
-        }}
-      >
-        {info.initials}
-      </div>
-    );
-  }
 
   return (
     <div>

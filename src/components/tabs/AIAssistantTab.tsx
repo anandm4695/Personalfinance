@@ -2369,9 +2369,18 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                         <MarkdownRenderer text={msg.text} />
                       )}
                     </div>
-                    {/* Action buttons sit BELOW the bubble in normal flow — never overlaps text */}
+                    {/* Action buttons sit BELOW the bubble in normal flow — never overlaps text.
+                        flexWrap so Copy/Save/Follow-Up don't overflow the ~226px bubble width on
+                        narrow phones (their combined width exceeds that at ~320px viewports). */}
                     {!isUser && (
-                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 5 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          gap: 5,
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <button
                           onClick={() => copyMessage(msg.text, i)}
                           style={{

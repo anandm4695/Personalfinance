@@ -332,7 +332,9 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
   };
 
   const billHistory = (billId: string) =>
-    history.filter((h) => h.billId === billId).sort((a, b) => b.paidDate.localeCompare(a.paidDate));
+    history
+      .filter((h) => h.billId === billId)
+      .sort((a, b) => (b.paidDate || "").localeCompare(a.paidDate || ""));
 
   return (
     <div>

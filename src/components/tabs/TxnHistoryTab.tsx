@@ -152,6 +152,243 @@ const PremiumDrillDownCard = ({
   </div>
 );
 
+// Hoisted to module scope (were previously defined inside TxnHistoryTab's render
+// body) — components defined inline in a parent's render are recreated with a new
+// identity on every render, forcing React to unmount/remount them instead of
+// reconciling, which drops local state and re-triggers mount transitions/effects
+// on every keystroke in the search box or FY selector above.
+const SectionHeader = ({ icon: Icon, title, count, color = THEME.accent, subText }: any) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          background: `color-mix(in srgb, ${color} 12%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={16} color={color} />
+      </div>
+      <span style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.015em" }}>
+        {title}
+      </span>
+      {count > 0 && (
+        <span
+          style={{
+            padding: "2px 8px",
+            borderRadius: 20,
+            fontSize: 10,
+            fontWeight: 800,
+            background: `color-mix(in srgb, ${color} 10%, transparent)`,
+            color,
+          }}
+        >
+          {count}
+        </span>
+      )}
+    </div>
+    {subText && (
+      <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, paddingLeft: 42 }}>
+        {subText}
+      </div>
+    )}
+  </div>
+);
+
+const TxnHistoryEmptyState = ({ message }: { message: string }) => (
+  <Card style={{ padding: 48, textAlign: "center" }}>
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+      <Package size={32} color={THEME.muted} style={{ opacity: 0.35 }} />
+    </div>
+    <div style={{ fontSize: 14, color: THEME.muted }}>{message}</div>
+  </Card>
+);
+
+const SoldTable = ({
+  rows,
+  type,
+  removeItem,
+  fmtDate,
+  fyLabel,
+}: {
+  rows: any[];
+  type: "stock" | "mf";
+  removeItem: (collection: string, id: string) => void;
+  fmtDate: (d: string) => string;
+  fyLabel: string;
+}) => {
+  const total = rows.reduce((s: number, r: any) => s + Number(r.profit || 0), 0);
+  if (rows.length === 0)
+    return (
+      <TxnHistoryEmptyState
+        message={`No ${type === "stock" ? "stock sales" : "MF redemptions"} recorded in ${fyLabel}`}
+      />
+    );
+  return (
+    <Card style={{ padding: 0, overflow: "hidden" }}>
+      <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "transparent" }}>
+              <th style={{ ...th, paddingLeft: 16 }}>{type === "stock" ? "Company" : "Scheme"}</th>
+              <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
+              <th style={{ ...th, textAlign: "right" }}>
+                {type === "stock" ? "Buy Price" : "Buy NAV"}
+              </th>
+              <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Qty" : "Units"}</th>
+              <th style={{ ...th, textAlign: "right" }}>Sell Date</th>
+              <th style={{ ...th, textAlign: "right" }}>
+                {type === "stock" ? "Sell Price" : "Sell NAV"}
+              </th>
+              <th style={{ ...th, textAlign: "right" }}>Profit / Loss</th>
+              <th style={{ ...th, textAlign: "right" }}>Broker</th>
+              <th style={th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s: any) => {
+              const profit = Number(s.profit || 0);
+              const buyP = type === "stock" ? Number(s.buyPrice) : Number(s.buyNav);
+              const sellP = type === "stock" ? Number(s.sellPrice) : Number(s.sellNav);
+              return (
+                <tr
+                  key={s.id}
+                  className="table-row-hover"
+                  style={{
+                    borderBottom: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <td style={{ ...td, paddingLeft: 16 }}>
+                    <span style={{ fontWeight: 700, color: THEME.ink }}>
+                      {type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}
+                    </span>
+                    {type === "stock" && (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          marginLeft: 6,
+                          color: THEME.muted,
+                          background: "var(--surface-2)",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {s.exchange || "NSE"}
+                      </span>
+                    )}
+                    {type === "mf" && s.type && (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          marginLeft: 6,
+                          color: THEME.muted,
+                          background: "var(--surface-2)",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {s.type}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
+                    {fmtDate(s.buyDate)}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
+                    ₹{buyP.toFixed(type === "mf" ? 4 : 2)}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
+                    {type === "stock" ? s.qty : Number(s.units).toFixed(3)}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
+                    {fmtDate(s.sellDate)}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
+                    <span style={{ color: sellP >= buyP ? THEME.sage : THEME.rust }}>
+                      ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      ...td,
+                      textAlign: "right",
+                      color: profit >= 0 ? THEME.sage : THEME.rust,
+                      fontWeight: 800,
+                      fontSize: 14,
+                    }}
+                  >
+                    {profit >= 0 ? "+" : ""}₹
+                    {Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </td>
+                  <td
+                    style={{
+                      ...td,
+                      textAlign: "right",
+                      color: THEME.muted,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {s.broker || "—"}
+                  </td>
+                  <td style={{ ...td, paddingRight: 16 }}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)}
+                      title="Delete"
+                      aria-label="Delete sale record"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        padding: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: THEME.rust,
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr style={{ background: "var(--surface-1)" }}>
+              <td colSpan={6} style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}>
+                Total Realized P&L
+              </td>
+              <td
+                style={{
+                  ...td,
+                  textAlign: "right",
+                  fontWeight: 900,
+                  color: total >= 0 ? THEME.sage : THEME.rust,
+                  fontSize: 15,
+                }}
+              >
+                {total >= 0 ? "+" : ""}₹
+                {Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </td>
+              <td colSpan={2} style={td}></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </Card>
+  );
+};
+
 export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const currentFY = (() => {
     const now = new Date();
@@ -396,235 +633,6 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const SectionHeader = ({ icon: Icon, title, count, color = THEME.accent, subText }: any) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: `color-mix(in srgb, ${color} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Icon size={16} color={color} />
-        </div>
-        <span
-          style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.015em" }}
-        >
-          {title}
-        </span>
-        {count > 0 && (
-          <span
-            style={{
-              padding: "2px 8px",
-              borderRadius: 20,
-              fontSize: 10,
-              fontWeight: 800,
-              background: `color-mix(in srgb, ${color} 10%, transparent)`,
-              color,
-            }}
-          >
-            {count}
-          </span>
-        )}
-      </div>
-      {subText && (
-        <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, paddingLeft: 42 }}>
-          {subText}
-        </div>
-      )}
-    </div>
-  );
-
-  const EmptyState = ({ message }: { message: string }) => (
-    <Card style={{ padding: 48, textAlign: "center" }}>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-        <Package size={32} color={THEME.muted} style={{ opacity: 0.35 }} />
-      </div>
-      <div style={{ fontSize: 14, color: THEME.muted }}>{message}</div>
-    </Card>
-  );
-
-  const SoldTable = ({ rows, type }: { rows: any[]; type: "stock" | "mf" }) => {
-    const total = rows.reduce((s: number, r: any) => s + Number(r.profit || 0), 0);
-    if (rows.length === 0)
-      return (
-        <EmptyState
-          message={`No ${type === "stock" ? "stock sales" : "MF redemptions"} recorded in ${fyLabel}`}
-        />
-      );
-    return (
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "transparent" }}>
-                <th style={{ ...th, paddingLeft: 16 }}>
-                  {type === "stock" ? "Company" : "Scheme"}
-                </th>
-                <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
-                <th style={{ ...th, textAlign: "right" }}>
-                  {type === "stock" ? "Buy Price" : "Buy NAV"}
-                </th>
-                <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Qty" : "Units"}</th>
-                <th style={{ ...th, textAlign: "right" }}>Sell Date</th>
-                <th style={{ ...th, textAlign: "right" }}>
-                  {type === "stock" ? "Sell Price" : "Sell NAV"}
-                </th>
-                <th style={{ ...th, textAlign: "right" }}>Profit / Loss</th>
-                <th style={{ ...th, textAlign: "right" }}>Broker</th>
-                <th style={th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s: any) => {
-                const profit = Number(s.profit || 0);
-                const buyP = type === "stock" ? Number(s.buyPrice) : Number(s.buyNav);
-                const sellP = type === "stock" ? Number(s.sellPrice) : Number(s.sellNav);
-                return (
-                  <tr
-                    key={s.id}
-                    className="table-row-hover"
-                    style={{
-                      borderBottom: `1px solid ${THEME.line}`,
-                    }}
-                  >
-                    <td style={{ ...td, paddingLeft: 16 }}>
-                      <span style={{ fontWeight: 700, color: THEME.ink }}>
-                        {type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}
-                      </span>
-                      {type === "stock" && (
-                        <span
-                          style={{
-                            fontSize: 9,
-                            marginLeft: 6,
-                            color: THEME.muted,
-                            background: "var(--surface-2)",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {s.exchange || "NSE"}
-                        </span>
-                      )}
-                      {type === "mf" && s.type && (
-                        <span
-                          style={{
-                            fontSize: 9,
-                            marginLeft: 6,
-                            color: THEME.muted,
-                            background: "var(--surface-2)",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {s.type}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
-                      {fmtDate(s.buyDate)}
-                    </td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                      ₹{buyP.toFixed(type === "mf" ? 4 : 2)}
-                    </td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
-                      {type === "stock" ? s.qty : Number(s.units).toFixed(3)}
-                    </td>
-                    <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
-                      {fmtDate(s.sellDate)}
-                    </td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                      <span style={{ color: sellP >= buyP ? THEME.sage : THEME.rust }}>
-                        ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        textAlign: "right",
-                        color: profit >= 0 ? THEME.sage : THEME.rust,
-                        fontWeight: 800,
-                        fontSize: 14,
-                      }}
-                    >
-                      {profit >= 0 ? "+" : ""}₹
-                      {Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        textAlign: "right",
-                        color: THEME.muted,
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {s.broker || "—"}
-                    </td>
-                    <td style={{ ...td, paddingRight: 16 }}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)
-                        }
-                        title="Delete"
-                        aria-label="Delete sale record"
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          padding: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: THEME.rust,
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: "var(--surface-1)" }}>
-                <td
-                  colSpan={6}
-                  style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}
-                >
-                  Total Realized P&L
-                </td>
-                <td
-                  style={{
-                    ...td,
-                    textAlign: "right",
-                    fontWeight: 900,
-                    color: total >= 0 ? THEME.sage : THEME.rust,
-                    fontSize: 15,
-                  }}
-                >
-                  {total >= 0 ? "+" : ""}₹
-                  {Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </td>
-                <td colSpan={2} style={td}></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </Card>
-    );
   };
 
   return (
@@ -993,7 +1001,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             )}
           </div>
           {stocksBoughtInFY.length === 0 ? (
-            <EmptyState message={`No stock purchases recorded in ${fyLabel}`} />
+            <TxnHistoryEmptyState message={`No stock purchases recorded in ${fyLabel}`} />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
@@ -1165,7 +1173,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               </Button>
             )}
           </div>
-          <SoldTable rows={stocksSoldInFY} type="stock" />
+          <SoldTable
+            rows={stocksSoldInFY}
+            type="stock"
+            removeItem={removeItem}
+            fmtDate={fmtDate}
+            fyLabel={fyLabel}
+          />
         </div>
       )}
 
@@ -1223,7 +1237,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             )}
           </div>
           {mfBoughtInFY.length === 0 ? (
-            <EmptyState message={`No MF purchases recorded in ${fyLabel}`} />
+            <TxnHistoryEmptyState message={`No MF purchases recorded in ${fyLabel}`} />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
@@ -1404,7 +1418,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               </Button>
             )}
           </div>
-          <SoldTable rows={mfSoldInFY} type="mf" />
+          <SoldTable
+            rows={mfSoldInFY}
+            type="mf"
+            removeItem={removeItem}
+            fmtDate={fmtDate}
+            fyLabel={fyLabel}
+          />
         </div>
       )}
 
@@ -1449,7 +1469,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             )}
           </div>
           {cashTransactionsInFY.length === 0 ? (
-            <EmptyState
+            <TxnHistoryEmptyState
               message={`No bank/cash transactions recorded in ${fyLabel} matching your search`}
             />
           ) : (

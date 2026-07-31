@@ -4695,7 +4695,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
   const [editTx, setEditTx] = useState<any>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
 
-  const sorted = [...txs].sort((a, b) => b.date.localeCompare(a.date));
+  const sorted = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalDeposits = txs
     .filter((t) => t.type === "deposit")
     .reduce((s, t) => s + Number(t.amount), 0);

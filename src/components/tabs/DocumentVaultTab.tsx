@@ -175,30 +175,35 @@ function getCategoryIcon(category: string) {
   return cat ? cat.icon : FileText;
 }
 
-// Fixed per-relation accent hue + initials, layered onto whatever name/relation the user has
-// actually configured in Settings → Family Profiles (`profiles`, from useMasterData()). Falling
-// back to a hardcoded name here (instead of reading the live profile) meant a renamed family
-// member kept showing their old name on every document forever — this now always renders the
-// current name, and only falls back to the ownerId itself for an owner with no matching profile.
-const OWNER_AVATAR_STYLE: Record<string, { initials: string; color: string }> = {
-  self: { initials: "AM", color: THEME.accent },
-  wife: { initials: "DM", color: THEME.pink },
-  daughter: { initials: "RM", color: THEME.violet },
-  huf: { initials: "H", color: THEME.cyan },
+// Fixed per-relation accent hue, layered onto whatever name/relation the user has actually
+// configured in Settings → Family Profiles (`profiles`, from useMasterData()). Only the *color*
+// is fixed per relation-slot here — initials are always derived from the live profile name below,
+// never hardcoded: an earlier version hardcoded both name AND initials (e.g. "AM"/"DM"/"RM" for
+// the demo user's own initials), so a renamed family member kept showing the old person's initials
+// on every document forever even after the name itself was fixed to read live.
+const OWNER_AVATAR_COLOR: Record<string, string> = {
+  self: THEME.accent,
+  wife: THEME.pink,
+  daughter: THEME.violet,
+  huf: THEME.cyan,
 };
+
+function initialsFor(name: string): string {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "??";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 function getOwnerAvatarInfo(ownerId: string, profiles: { id: string; name: string; relation: string }[] = []) {
   const profile = profiles.find((p) => p.id === ownerId);
-  const style = OWNER_AVATAR_STYLE[ownerId] || {
-    initials: (profile?.name || ownerId || "??").slice(0, 2).toUpperCase(),
-    color: THEME.muted,
-  };
+  const color = OWNER_AVATAR_COLOR[ownerId] || THEME.muted;
   return {
-    initials: style.initials,
+    initials: initialsFor(profile?.name || ownerId),
     name: profile?.name || ownerId,
     relation: profile?.relation || "",
-    color: style.color,
-    bg: `color-mix(in srgb, ${style.color} 12%, transparent)`,
+    color,
+    bg: `color-mix(in srgb, ${color} 12%, transparent)`,
   };
 }
 
@@ -355,6 +360,593 @@ const actionBtnBase: React.CSSProperties = {
   justifyContent: "center",
   transition: "background 0.15s, color 0.15s",
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Presentational helpers — hoisted to module scope (not defined inside
+// DocumentVaultTab's render body). A component function declared inside a
+// parent's render body gets a new identity every render, which forces React
+// to unmount/remount every instance (losing hover/focus state and DOM,
+// paying full re-render cost) on every parent state change — e.g. every
+// keystroke in the search box would have remounted the entire document grid.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function OwnerAvatar({
+  ownerId,
+  familyProfiles,
+  size = 26,
+}: {
+  ownerId: string;
+  familyProfiles: any[];
+  size?: number;
+}) {
+  const info = getOwnerAvatarInfo(ownerId, familyProfiles);
+  return (
+    <div
+      title={`${info.name} (${info.relation})`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: info.bg,
+        border: `1.5px solid ${info.color}`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: info.color,
+        fontSize: size * 0.45,
+        fontWeight: 700,
+        cursor: "default",
+        flexShrink: 0,
+      }}
+    >
+      {info.initials}
+    </div>
+  );
+}
+
+// ── Circular Progress Wheel ──────────────────────────────────────────────
+function CircularProgressWheel({ percentage, size = 80 }: { percentage: number; size?: number }) {
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="coverage-circular-progress" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)", overflow: "visible" }}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="transparent"
+          stroke="var(--surface-2)"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="transparent"
+          stroke={percentage === 100 ? THEME.sage : THEME.accent}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.6s ease" }}
+        />
+      </svg>
+      <div className="coverage-circular-progress-text">
+        <span style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}>
+          {percentage}%
+        </span>
+        <span style={{ fontSize: 8, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>
+          Covered
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Document card (grid mode) ───────────────────────────────────────────
+function DocCard({
+  doc,
+  state,
+  familyProfiles,
+  copiedId,
+  onView,
+  onCopy,
+  onEdit,
+  onDelete,
+}: {
+  doc: any;
+  state: any;
+  familyProfiles: any[];
+  copiedId: string | null;
+  onView: (id: string) => void;
+  onCopy: (id: string, text: string, e?: React.MouseEvent) => void;
+  onEdit: (doc: any) => void;
+  onDelete: (id: string) => void;
+}) {
+  const status = getDocStatus(doc.expiryDate);
+  const badge = statusBadge(status);
+  const days = daysUntilExpiry(doc.expiryDate);
+  const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
+  const ownerInfo = getOwnerAvatarInfo(doc.owner, familyProfiles);
+  // A stored linkedAsset id can go stale if the underlying asset was edited/deleted
+  // elsewhere (e.g. bank account closed, property sold and removed) — the id then
+  // resolves to nothing. Mirror the Detail modal's resolution here instead of the
+  // old truthy check on doc.linkedAsset alone, so the card doesn't proudly show
+  // "Linked" for a reference that no longer points at a real record.
+  const linkedAssetResolved =
+    !!doc.linkedAssetType &&
+    !!doc.linkedAsset &&
+    getLinkedAssets(state, doc.linkedAssetType).some((a) => a.id === doc.linkedAsset);
+
+  return (
+    <div
+      className="doc-vault-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`View document ${doc.name}`}
+      onClick={() => onView(doc.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onView(doc.id);
+        }
+      }}
+      style={{
+        "--cat-color": cat.color,
+        cursor: "pointer",
+      } as React.CSSProperties}
+    >
+      {/* Card Decorative Top Header */}
+      <div
+        style={{
+          height: 12,
+          background: cat.gradient,
+          position: "relative",
+          width: "100%",
+        }}
+      >
+        {days !== null && days <= 30 && (
+          <span
+            className="status-pulse-dot"
+            style={{
+              position: "absolute",
+              top: 4,
+              right: 8,
+              color: days < 0 ? THEME.rust : THEME.gold,
+              transform: "scale(0.8)",
+            }}
+          />
+        )}
+      </div>
+
+      <div style={{ padding: "16px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
+        {/* Main Info */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: cat.color,
+              flexShrink: 0,
+            }}
+          >
+            {React.createElement(cat.icon, { size: 18 })}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.01em",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {doc.name}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: cat.color }}>
+                {doc.category}
+              </span>
+              {doc.subcategory && (
+                <span style={{ fontSize: 10, color: THEME.muted }}>• {doc.subcategory}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Copyable Doc Number */}
+        {doc.documentNumber && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "6px 10px",
+              background: "var(--surface-1)",
+              borderRadius: 8,
+              border: `1px solid ${THEME.line}`,
+              marginBottom: 12,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "0.03em",
+              }}
+            >
+              <Prv>{doc.documentNumber}</Prv>
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
+                onClick={(e) => onCopy(doc.id, doc.documentNumber, e)}
+                title="Copy Number"
+                aria-label="Copy document number"
+              >
+                {copiedId === doc.id ? <Check size={12} /> : <Copy size={12} />}
+              </button>
+              {copiedId === doc.id && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage }}>Copied</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Metadata */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11, flex: 1 }}>
+          {doc.issuer && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
+              <Building size={11} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {doc.issuer}
+              </span>
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
+            <Calendar size={11} style={{ flexShrink: 0 }} />
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+              Exp: {doc.expiryDate ? formatDate(doc.expiryDate) : "No expiry"}
+            </span>
+          </div>
+
+          {/* Expiry visual indicator */}
+          {days !== null && days >= 0 && days <= 30 && (
+            <div style={{ marginTop: 2 }}>
+              <div style={{ height: 4, borderRadius: 2, background: "var(--surface-2)", overflow: "hidden", marginBottom: 3 }}>
+                <div style={{ width: `${(days / 30) * 100}%`, height: "100%", background: THEME.gold }} />
+              </div>
+              <span style={{ fontSize: 10, color: THEME.gold, fontWeight: 700 }}>
+                {days === 0 ? "Expires today" : `${days} day(s) left`}
+              </span>
+            </div>
+          )}
+
+          {days !== null && days < 0 && (
+            <div style={{ fontSize: 10, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
+              Expired {Math.abs(days)} day(s) ago
+            </div>
+          )}
+        </div>
+
+        {/* Owner details and Asset Links indicator */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderTop: `1px dashed ${THEME.line}`,
+            paddingTop: 10,
+            marginTop: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <OwnerAvatar ownerId={doc.owner} familyProfiles={familyProfiles} size={20} />
+            <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+              {ownerInfo.name}
+            </span>
+          </div>
+
+          {linkedAssetResolved && (
+            <div
+              title="Linked with financial asset"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 9,
+                fontWeight: 700,
+                color: THEME.accent,
+                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                padding: "2px 6px",
+                borderRadius: 6,
+              }}
+            >
+              <Link2 size={10} />
+              Linked
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Card actions bottom bar */}
+      <div
+        style={{
+          display: "flex",
+          borderTop: `1px solid ${THEME.line}`,
+          background: "var(--surface-1)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {doc.url && (
+          <button
+            onClick={() => window.open(doc.url, "_blank")}
+            style={{
+              flex: 1,
+              padding: "8px 0",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 5,
+              fontSize: 10,
+              fontWeight: 700,
+              color: THEME.accent,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <ExternalLink size={11} />
+            Open
+          </button>
+        )}
+        <button
+          onClick={() => onEdit(doc)}
+          style={{
+            flex: 1,
+            padding: "8px 0",
+            border: "none",
+            borderLeft: doc.url ? `1px solid ${THEME.line}` : "none",
+            background: "transparent",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 5,
+            fontSize: 10,
+            fontWeight: 700,
+            color: THEME.muted,
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 50%, transparent)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Pencil size={11} />
+          Edit
+        </button>
+        <button
+          onClick={() => onDelete(doc.id)}
+          style={{
+            flex: 1,
+            padding: "8px 0",
+            border: "none",
+            borderLeft: `1px solid ${THEME.line}`,
+            background: "transparent",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 5,
+            fontSize: 10,
+            fontWeight: 700,
+            color: THEME.rust,
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Trash2 size={11} />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Document row (list mode) ────────────────────────────────────────────
+function DocRow({
+  doc,
+  familyProfiles,
+  copiedId,
+  onView,
+  onCopy,
+  onEdit,
+  onDelete,
+}: {
+  doc: any;
+  familyProfiles: any[];
+  copiedId: string | null;
+  onView: (id: string) => void;
+  onCopy: (id: string, text: string, e?: React.MouseEvent) => void;
+  onEdit: (doc: any) => void;
+  onDelete: (id: string) => void;
+}) {
+  const status = getDocStatus(doc.expiryDate);
+  const badge = statusBadge(status);
+  const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`View document ${doc.name}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 16px",
+        borderBottom: `1px solid ${THEME.line}`,
+        transition: "background 0.15s",
+        cursor: "pointer",
+      }}
+      onClick={() => onView(doc.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onView(doc.id);
+        }
+      }}
+      className="card-lift"
+    >
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 6,
+          background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: cat.color,
+          flexShrink: 0,
+        }}
+      >
+        {React.createElement(cat.icon, { size: 14 })}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: THEME.ink,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {doc.name}
+        </div>
+        <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+          {doc.category}
+          {doc.subcategory ? ` / ${doc.subcategory}` : ""}
+          {doc.documentNumber ? (
+            <>
+              {" "}
+              | <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}><Prv>{doc.documentNumber}</Prv></span>
+            </>
+          ) : (
+            ""
+          )}
+        </div>
+      </div>
+
+      {/* Desktop elements */}
+      <div className="doc-vault-list-meta" style={{ textAlign: "right", flexShrink: 0, paddingRight: 10 }}>
+        <div style={{ fontSize: 11, color: THEME.ink, fontWeight: 600 }}>{doc.issuer || "--"}</div>
+        <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+          {doc.expiryDate ? `Expires ${formatDate(doc.expiryDate)}` : "No expiry"}
+        </div>
+      </div>
+
+      {/* Owner profile badge */}
+      <div style={{ flexShrink: 0, marginRight: 4 }}>
+        <OwnerAvatar ownerId={doc.owner} familyProfiles={familyProfiles} size={20} />
+      </div>
+
+      <Badge variant={badge.variant} style={{ fontSize: 9, flexShrink: 0, padding: "2px 6px" }}>
+        {badge.label}
+      </Badge>
+
+      <div style={{ display: "flex", gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+        {doc.documentNumber && (
+          <button
+            className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
+            onClick={(e) => onCopy(doc.id, doc.documentNumber, e)}
+            title="Copy Number"
+            aria-label="Copy document number"
+            style={actionBtnBase}
+          >
+            {copiedId === doc.id ? <Check size={13} /> : <Copy size={13} />}
+          </button>
+        )}
+        {doc.url && (
+          <button
+            onClick={() => window.open(doc.url, "_blank")}
+            aria-label="Open document link"
+            title="Open"
+            style={{ ...actionBtnBase, color: THEME.accent }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <ExternalLink size={13} />
+          </button>
+        )}
+        <button
+          onClick={() => onEdit(doc)}
+          aria-label="Edit document"
+          title="Edit"
+          style={{ ...actionBtnBase, color: THEME.muted }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 60%, transparent)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Pencil size={13} />
+        </button>
+        <button
+          onClick={() => onDelete(doc.id)}
+          aria-label="Delete document"
+          title="Delete"
+          style={{ ...actionBtnBase, color: THEME.rust }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
@@ -855,544 +1447,6 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     );
   }
 
-  // ── Family Initial Avatar ───────────────────────────────────────────────
-  function OwnerAvatar({ ownerId, size = 26 }: { ownerId: string; size?: number }) {
-    const info = getOwnerAvatarInfo(ownerId, familyProfiles);
-    return (
-      <div
-        title={`${info.name} (${info.relation})`}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: "50%",
-          background: info.bg,
-          border: `1.5px solid ${info.color}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: info.color,
-          fontSize: size * 0.45,
-          fontWeight: 700,
-          cursor: "default",
-          flexShrink: 0,
-        }}
-      >
-        {info.initials}
-      </div>
-    );
-  }
-
-  // ── Circular Progress Wheel ──────────────────────────────────────────────
-  function CircularProgressWheel({ percentage, size = 80 }: { percentage: number; size?: number }) {
-    const strokeWidth = 6;
-    const radius = (size - strokeWidth) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-    return (
-      <div className="coverage-circular-progress" style={{ width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: "rotate(-90deg)", overflow: "visible" }}>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="transparent"
-            stroke="var(--surface-2)"
-            strokeWidth={strokeWidth}
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="transparent"
-            stroke={percentage === 100 ? THEME.sage : THEME.accent}
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 0.6s ease" }}
-          />
-        </svg>
-        <div className="coverage-circular-progress-text">
-          <span style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}>
-            {percentage}%
-          </span>
-          <span style={{ fontSize: 8, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>
-            Covered
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Document card (grid mode) ───────────────────────────────────────────
-  function DocCard({ doc }: { doc: any }) {
-    const status = getDocStatus(doc.expiryDate);
-    const badge = statusBadge(status);
-    const days = daysUntilExpiry(doc.expiryDate);
-    const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
-    const ownerInfo = getOwnerAvatarInfo(doc.owner, familyProfiles);
-    // A stored linkedAsset id can go stale if the underlying asset was edited/deleted
-    // elsewhere (e.g. bank account closed, property sold and removed) — the id then
-    // resolves to nothing. Mirror the Detail modal's resolution here instead of the
-    // old truthy check on doc.linkedAsset alone, so the card doesn't proudly show
-    // "Linked" for a reference that no longer points at a real record.
-    const linkedAssetResolved =
-      !!doc.linkedAssetType &&
-      !!doc.linkedAsset &&
-      getLinkedAssets(state, doc.linkedAssetType).some((a) => a.id === doc.linkedAsset);
-
-    return (
-      <div
-        className="doc-vault-card"
-        role="button"
-        tabIndex={0}
-        aria-label={`View document ${doc.name}`}
-        onClick={() => setViewDocId(doc.id)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setViewDocId(doc.id);
-          }
-        }}
-        style={{
-          "--cat-color": cat.color,
-          cursor: "pointer",
-        } as React.CSSProperties}
-      >
-        {/* Card Decorative Top Header */}
-        <div
-          style={{
-            height: 12,
-            background: cat.gradient,
-            position: "relative",
-            width: "100%",
-          }}
-        >
-          {days !== null && days <= 30 && (
-            <span
-              className="status-pulse-dot"
-              style={{
-                position: "absolute",
-                top: 4,
-                right: 8,
-                color: days < 0 ? THEME.rust : THEME.gold,
-                transform: "scale(0.8)",
-              }}
-            />
-          )}
-        </div>
-
-        <div style={{ padding: "16px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
-          {/* Main Info */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: cat.color,
-                flexShrink: 0,
-              }}
-            >
-              {React.createElement(cat.icon, { size: 18 })}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: THEME.ink,
-                  letterSpacing: "-0.01em",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {doc.name}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: cat.color }}>
-                  {doc.category}
-                </span>
-                {doc.subcategory && (
-                  <span style={{ fontSize: 10, color: THEME.muted }}>• {doc.subcategory}</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Copyable Doc Number */}
-          {doc.documentNumber && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "6px 10px",
-                background: "var(--surface-1)",
-                borderRadius: 8,
-                border: `1px solid ${THEME.line}`,
-                marginBottom: 12,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.ink,
-                  letterSpacing: "0.03em",
-                }}
-              >
-                <Prv>{doc.documentNumber}</Prv>
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button
-                  className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
-                  onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
-                  title="Copy Number"
-                  aria-label="Copy document number"
-                >
-                  {copiedId === doc.id ? <Check size={12} /> : <Copy size={12} />}
-                </button>
-                {copiedId === doc.id && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage }}>Copied</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Metadata */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11, flex: 1 }}>
-            {doc.issuer && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-                <Building size={11} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {doc.issuer}
-                </span>
-              </div>
-            )}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-              <Calendar size={11} style={{ flexShrink: 0 }} />
-              <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                Exp: {doc.expiryDate ? formatDate(doc.expiryDate) : "No expiry"}
-              </span>
-            </div>
-
-            {/* Expiry visual indicator */}
-            {days !== null && days >= 0 && days <= 30 && (
-              <div style={{ marginTop: 2 }}>
-                <div style={{ height: 4, borderRadius: 2, background: "var(--surface-2)", overflow: "hidden", marginBottom: 3 }}>
-                  <div style={{ width: `${(days / 30) * 100}%`, height: "100%", background: THEME.gold }} />
-                </div>
-                <span style={{ fontSize: 10, color: THEME.gold, fontWeight: 700 }}>
-                  {days === 0 ? "Expires today" : `${days} day(s) left`}
-                </span>
-              </div>
-            )}
-
-            {days !== null && days < 0 && (
-              <div style={{ fontSize: 10, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
-                Expired {Math.abs(days)} day(s) ago
-              </div>
-            )}
-          </div>
-
-          {/* Owner details and Asset Links indicator */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderTop: `1px dashed ${THEME.line}`,
-              paddingTop: 10,
-              marginTop: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <OwnerAvatar ownerId={doc.owner} size={20} />
-              <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                {ownerInfo.name}
-              </span>
-            </div>
-
-            {linkedAssetResolved && (
-              <div
-                title="Linked with financial asset"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: THEME.accent,
-                  background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                  padding: "2px 6px",
-                  borderRadius: 6,
-                }}
-              >
-                <Link2 size={10} />
-                Linked
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Card actions bottom bar */}
-        <div
-          style={{
-            display: "flex",
-            borderTop: `1px solid ${THEME.line}`,
-            background: "var(--surface-1)",
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {doc.url && (
-            <button
-              onClick={() => window.open(doc.url, "_blank")}
-              style={{
-                flex: 1,
-                padding: "8px 0",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 5,
-                fontSize: 10,
-                fontWeight: 700,
-                color: THEME.accent,
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <ExternalLink size={11} />
-              Open
-            </button>
-          )}
-          <button
-            onClick={() => openEditModal(doc)}
-            style={{
-              flex: 1,
-              padding: "8px 0",
-              border: "none",
-              borderLeft: doc.url ? `1px solid ${THEME.line}` : "none",
-              background: "transparent",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 5,
-              fontSize: 10,
-              fontWeight: 700,
-              color: THEME.muted,
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 50%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <Pencil size={11} />
-            Edit
-          </button>
-          <button
-            onClick={() => handleDelete(doc.id)}
-            style={{
-              flex: 1,
-              padding: "8px 0",
-              border: "none",
-              borderLeft: `1px solid ${THEME.line}`,
-              background: "transparent",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 5,
-              fontSize: 10,
-              fontWeight: 700,
-              color: THEME.rust,
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <Trash2 size={11} />
-            Delete
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Document row (list mode) ────────────────────────────────────────────
-  function DocRow({ doc }: { doc: any }) {
-    const status = getDocStatus(doc.expiryDate);
-    const badge = statusBadge(status);
-    const cat = CATEGORIES[doc.category as CategoryKey] || CATEGORIES.Other;
-    const ownerInfo = getOwnerAvatarInfo(doc.owner, familyProfiles);
-
-    return (
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label={`View document ${doc.name}`}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "10px 16px",
-          borderBottom: `1px solid ${THEME.line}`,
-          transition: "background 0.15s",
-          cursor: "pointer",
-        }}
-        onClick={() => setViewDocId(doc.id)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setViewDocId(doc.id);
-          }
-        }}
-        className="card-lift"
-      >
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: cat.color,
-            flexShrink: 0,
-          }}
-        >
-          {React.createElement(cat.icon, { size: 14 })}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: THEME.ink,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {doc.name}
-          </div>
-          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-            {doc.category}
-            {doc.subcategory ? ` / ${doc.subcategory}` : ""}
-            {doc.documentNumber ? (
-              <>
-                {" "}
-                | <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}><Prv>{doc.documentNumber}</Prv></span>
-              </>
-            ) : (
-              ""
-            )}
-          </div>
-        </div>
-        
-        {/* Desktop elements */}
-        <div className="doc-vault-list-meta" style={{ textAlign: "right", flexShrink: 0, paddingRight: 10 }}>
-          <div style={{ fontSize: 11, color: THEME.ink, fontWeight: 600 }}>{doc.issuer || "--"}</div>
-          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-            {doc.expiryDate ? `Expires ${formatDate(doc.expiryDate)}` : "No expiry"}
-          </div>
-        </div>
-
-        {/* Owner profile badge */}
-        <div style={{ flexShrink: 0, marginRight: 4 }}>
-          <OwnerAvatar ownerId={doc.owner} size={20} />
-        </div>
-
-        <Badge variant={badge.variant} style={{ fontSize: 9, flexShrink: 0, padding: "2px 6px" }}>
-          {badge.label}
-        </Badge>
-        
-        <div style={{ display: "flex", gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-          {doc.documentNumber && (
-            <button
-              className={`copy-btn ${copiedId === doc.id ? "copied" : ""}`}
-              onClick={(e) => handleCopy(doc.id, doc.documentNumber, e)}
-              title="Copy Number"
-              aria-label="Copy document number"
-              style={actionBtnBase}
-            >
-              {copiedId === doc.id ? <Check size={13} /> : <Copy size={13} />}
-            </button>
-          )}
-          {doc.url && (
-            <button
-              onClick={() => window.open(doc.url, "_blank")}
-              aria-label="Open document link"
-              title="Open"
-              style={{ ...actionBtnBase, color: THEME.accent }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <ExternalLink size={13} />
-            </button>
-          )}
-          <button
-            onClick={() => openEditModal(doc)}
-            aria-label="Edit document"
-            title="Edit"
-            style={{ ...actionBtnBase, color: THEME.muted }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 60%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            onClick={() => handleDelete(doc.id)}
-            aria-label="Delete document"
-            title="Delete"
-            style={{ ...actionBtnBase, color: THEME.rust }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // ── Renew Modal ────────────────────────────────────────────────────────
   function renderRenewModal() {
     if (!renewDoc) return null;
@@ -1604,7 +1658,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 Owner / Profile
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <OwnerAvatar ownerId={doc.owner} size={22} />
+                <OwnerAvatar ownerId={doc.owner} familyProfiles={familyProfiles} size={22} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
                   {ownerInfo.name}
                 </span>
@@ -2748,7 +2802,17 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       ) : viewMode === "grid" ? (
         <div className="doc-vault-doc-grid">
           {filteredDocs.map((doc) => (
-            <DocCard key={doc.id} doc={doc} />
+            <DocCard
+              key={doc.id}
+              doc={doc}
+              state={state}
+              familyProfiles={familyProfiles}
+              copiedId={copiedId}
+              onView={setViewDocId}
+              onCopy={handleCopy}
+              onEdit={openEditModal}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       ) : (
@@ -2762,7 +2826,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             <div style={{ width: 110, textAlign: "center" }}>Actions</div>
           </div>
           {filteredDocs.map((doc) => (
-            <DocRow key={doc.id} doc={doc} />
+            <DocRow
+              key={doc.id}
+              doc={doc}
+              familyProfiles={familyProfiles}
+              copiedId={copiedId}
+              onView={setViewDocId}
+              onCopy={handleCopy}
+              onEdit={openEditModal}
+              onDelete={handleDelete}
+            />
           ))}
         </Card>
       )}

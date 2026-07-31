@@ -1403,7 +1403,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {fmtINRFull(m.target)}
+                        <Prv>{fmtINRFull(m.target)}</Prv>
                       </div>
                       <div
                         style={{

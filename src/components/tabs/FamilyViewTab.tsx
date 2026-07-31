@@ -49,8 +49,14 @@ import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
-const MEMBER_COLORS_LIGHT = ["#4F46E5", "#059669", "#D97706", "#7C3AED"];
-const MEMBER_COLORS_DARK = ["#818CF8", "#34D399", "#FBBF24", "#A78BFA"];
+// Family-member swatch colors. Deliberately drawn from the app's fixed
+// "extension" tokens (--t-violet/--t-cyan/--t-pink/--t-gold — see THEME
+// comment in constants.ts) rather than raw hex: these are theme-aware
+// (light/dark) automatically via the CSS var and, critically, are NOT part
+// of the 11 user-selectable ACCENT_PALETTES, so a member's color can never
+// collide with the app's live accent color the way the old raw-hex set did
+// (every one of its 4 entries happened to exactly equal a preset accent).
+const MEMBER_COLORS = [THEME.violet, THEME.cyan, THEME.pink, THEME.gold];
 const MEMBER_ICONS = {
   self: Crown,
   wife: Heart,
@@ -58,19 +64,25 @@ const MEMBER_ICONS = {
   huf: Building2,
 };
 
+// Asset-class swatch colors for the allocation pies/legends. A handful of
+// these used to exactly equal a user-selectable ACCENT_PALETTES hex (Cash ==
+// "indigo" preset, Equity == "emerald", PPF == "amber", Insurance ==
+// "purple", Bonds == "teal") — nudged those five off the exact preset values
+// below so a themed accent color never becomes visually indistinguishable
+// from one of these category dots. The rest were already distinct.
 const ASSET_CLASS_COLORS_LIGHT = {
-  Cash: "#2563EB",
+  Cash: "#3B5BDB",
   "Fixed Deposits": "#0891B2",
   "Recurring Deposits": "#06B6D4",
-  Equity: "#059669",
+  Equity: "#0E9F6E",
   "Mutual Funds": "#10B981",
-  PPF: "#D97706",
+  PPF: "#C2650C",
   NPS: "#EA580C",
   EPF: "#F59E0B",
-  Insurance: "#7C3AED",
+  Insurance: "#8B5CF6",
   "Real Estate": "#DC2626",
   Vehicles: "#64748B",
-  Bonds: "#0D9488",
+  Bonds: "#0F9B8E",
   "Investment Plans": "#6D28D9",
   "Gold & SGBs": "#B45309",
   "Loans Given": "#0369A1",
@@ -81,18 +93,18 @@ const ASSET_CLASS_COLORS_LIGHT = {
 };
 
 const ASSET_CLASS_COLORS_DARK = {
-  Cash: "#60A5FA",
+  Cash: "#748FFC",
   "Fixed Deposits": "#22D3EE",
   "Recurring Deposits": "#67E8F9",
-  Equity: "#34D399",
+  Equity: "#3DD68C",
   "Mutual Funds": "#6EE7B7",
-  PPF: "#FBBF24",
+  PPF: "#F2A93B",
   NPS: "#FB923C",
   EPF: "#FCD34D",
-  Insurance: "#A78BFA",
+  Insurance: "#B197FC",
   "Real Estate": "#F87171",
   Vehicles: "#94A3B8",
-  Bonds: "#2DD4BF",
+  Bonds: "#5CE1D0",
   "Investment Plans": "#C084FC",
   "Gold & SGBs": "#FCD34D",
   "Loans Given": "#38BDF8",
@@ -102,7 +114,7 @@ const ASSET_CLASS_COLORS_DARK = {
   "Informal Loans Given": "#60A5FA",
 };
 
-const getMemberColors = (dark: boolean) => (dark ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT);
+const getMemberColors = () => MEMBER_COLORS;
 const getAssetClassColors = (dark: boolean) =>
   dark ? ASSET_CLASS_COLORS_DARK : ASSET_CLASS_COLORS_LIGHT;
 
@@ -473,11 +485,10 @@ const getTopHoldings = (state, owner) => {
 export const FamilyViewTab = ({ state, metrics, marketData }) => {
   const { familyProfiles } = useMasterData();
   const dark = state.settings?.darkMode ?? false;
-  const MEMBER_COLORS = getMemberColors(dark);
   const ASSET_CLASS_COLORS = getAssetClassColors(dark);
 
   const familyData = useMemo(() => {
-    const colors = getMemberColors(dark);
+    const colors = getMemberColors();
     const members = familyProfiles.map((p, idx) => {
       const assets = memberAssets(state, p.id, marketData);
       const topHoldings = getTopHoldings(state, p.id);

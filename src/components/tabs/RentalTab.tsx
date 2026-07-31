@@ -527,7 +527,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 <StatCard
                   label="Received (FY)"
                   value={<Prv>{fmtINRFull(outThisFY)}</Prv>}
-                  sub={`of ${fmtINRFull(outExpectedFY)} annual target`}
+                  sub={
+                    <>
+                      of <Prv>{fmtINRFull(outExpectedFY)}</Prv> annual target
+                    </>
+                  }
                   icon={<TrendingUp />}
                   color={THEME.sage}
                 />
@@ -710,7 +714,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             )}
                             {" · "}
                             <span style={{ color: THEME.accent }}>
-                              {fmtINRExact(getEffectiveRent(p))}/mo
+                              <Prv>{fmtINRExact(getEffectiveRent(p))}</Prv>/mo
                             </span>
                             {p.escalationTiers?.length > 1 && (
                               <span
@@ -765,7 +769,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: {fmtINRExact(tier.amount)}
+                                    Y{ti + 1}: <Prv>{fmtINRExact(tier.amount)}</Prv>
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo
@@ -814,7 +818,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         flexShrink: 0,
                                       }}
                                     />
-                                    {t.name || `T${ti + 1}`}: {fmtINRExact(t.monthlyRent)}/mo
+                                    {t.name || `T${ti + 1}`}: <Prv>{fmtINRExact(t.monthlyRent)}</Prv>/mo
                                   </span>
                                 );
                               })}
@@ -881,7 +885,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             Property Value
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.violet }}>
-                            {p.propertyValue ? fmtINRFull(p.propertyValue) : "—"}
+                            {p.propertyValue ? <Prv>{fmtINRFull(p.propertyValue)}</Prv> : "—"}
                           </div>
                         </div>
                         <div
@@ -905,11 +909,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             FY Received
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
-                            {fmtINRFull(
-                              (p.receipts || [])
-                                .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
-                                .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
-                            )}
+                            <Prv>
+                              {fmtINRFull(
+                                (p.receipts || [])
+                                  .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
+                                  .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
+                              )}
+                            </Prv>
                           </div>
                         </div>
                         <div
@@ -933,17 +939,19 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             Deposit Held
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.gold }}>
-                            {fmtINRFull(
-                              Math.max(
-                                0,
-                                getActualSecurityDeposit(p) -
-                                  (p.depositDeductions || []).reduce(
-                                    (ss: number, dd: any) => ss + Number(dd.amount || 0),
-                                    0
-                                  ) -
-                                  Number(p.depositReturned || 0)
-                              )
-                            )}
+                            <Prv>
+                              {fmtINRFull(
+                                Math.max(
+                                  0,
+                                  getActualSecurityDeposit(p) -
+                                    (p.depositDeductions || []).reduce(
+                                      (ss: number, dd: any) => ss + Number(dd.amount || 0),
+                                      0
+                                    ) -
+                                    Number(p.depositReturned || 0)
+                                )
+                              )}
+                            </Prv>
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
                             <div
@@ -956,7 +964,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             >
                               Agreed:{" "}
                               <span style={{ color: THEME.gold }}>
-                                {fmtINRExact(p.securityDeposit || 0)}
+                                <Prv>{fmtINRExact(p.securityDeposit || 0)}</Prv>
                               </span>
                             </div>
                           ) : p.depositReceivedDate ? (
@@ -1001,7 +1009,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             >
                               <span>FY Collection</span>
                               <span style={{ color: barColor }}>
-                                {pct.toFixed(0)}% of {fmtINRFull(expected)} expected
+                                {pct.toFixed(0)}% of <Prv>{fmtINRFull(expected)}</Prv> expected
                               </span>
                             </div>
                             <div className="progress-track">
@@ -1925,7 +1933,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 <StatCard
                   label="Paid (FY)"
                   value={<Prv>{fmtINRFull(inThisFY)}</Prv>}
-                  sub={`of ${fmtINRFull(inExpectedFY)} annual commitment`}
+                  sub={
+                    <>
+                      of <Prv>{fmtINRFull(inExpectedFY)}</Prv> annual commitment
+                    </>
+                  }
                   icon={<Receipt />}
                   color={THEME.rust}
                 />
@@ -2106,7 +2118,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             )}
                             {" · "}
                             <span style={{ color: THEME.rust }}>
-                              {fmtINRExact(getEffectiveRent(p))}/mo
+                              <Prv>{fmtINRExact(getEffectiveRent(p))}</Prv>/mo
                             </span>
                             {p.escalationTiers?.length > 1 && (
                               <span
@@ -2165,7 +2177,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: {fmtINRExact(tier.amount)}
+                                    Y{ti + 1}: <Prv>{fmtINRExact(tier.amount)}</Prv>
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo
@@ -2217,7 +2229,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         flexShrink: 0,
                                       }}
                                     />
-                                    {ll.name || `L${li + 1}`}: {fmtINRFull(share)}/mo (
+                                    {ll.name || `L${li + 1}`}: <Prv>{fmtINRFull(share)}</Prv>/mo (
                                     {ll.splitPct}%)
                                   </span>
                                 );
@@ -2285,11 +2297,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             FY Paid
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.rust }}>
-                            {fmtINRFull(
-                              (p.payments || [])
-                                .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
-                                .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
-                            )}
+                            <Prv>
+                              {fmtINRFull(
+                                (p.payments || [])
+                                  .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
+                                  .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
+                              )}
+                            </Prv>
                           </div>
                         </div>
                         <div
@@ -2313,9 +2327,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             Deposit Paid
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
-                            {fmtINRFull(
-                              Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0))
-                            )}
+                            <Prv>
+                              {fmtINRFull(
+                                Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0))
+                              )}
+                            </Prv>
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
                             <div
@@ -2328,7 +2344,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             >
                               Agreed:{" "}
                               <span style={{ color: THEME.sage }}>
-                                {fmtINRExact(p.securityDeposit || 0)}
+                                <Prv>{fmtINRExact(p.securityDeposit || 0)}</Prv>
                               </span>
                             </div>
                           ) : p.depositPaidDate ? (
@@ -2373,7 +2389,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             >
                               <span>FY Payments</span>
                               <span style={{ color: barColor }}>
-                                {pct.toFixed(0)}% of {fmtINRFull(expected)} expected
+                                {pct.toFixed(0)}% of <Prv>{fmtINRFull(expected)}</Prv> expected
                               </span>
                             </div>
                             <div className="progress-track">
@@ -3224,7 +3240,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         : "-"
                       : sign
                     : ""}
-                  {fmtINRFull(Math.abs(value))}
+                  <Prv>{fmtINRFull(Math.abs(value))}</Prv>
                 </div>
               </div>
             ))}

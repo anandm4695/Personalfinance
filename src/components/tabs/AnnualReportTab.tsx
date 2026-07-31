@@ -1201,7 +1201,12 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       const e = expenseData.highestExpense;
       items.push({
         icon: Receipt,
-        text: `Highest single expense: ${fmtINRFull(e.amount)} — ${e.note || e.category || "Transaction"} (${e.date || ""})`,
+        text: (
+          <>
+            Highest single expense: <Prv>{fmtINRFull(e.amount)}</Prv> —{" "}
+            {e.note || e.category || "Transaction"} ({e.date || ""})
+          </>
+        ),
         color: THEME.rust,
       });
     }
@@ -1239,7 +1244,11 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       );
       items.push({
         icon: TrendingUp,
-        text: `Largest investment: ${fmtINRFull(largest.amount)} in ${largest.name}`,
+        text: (
+          <>
+            Largest investment: <Prv>{fmtINRFull(largest.amount)}</Prv> in {largest.name}
+          </>
+        ),
         color: THEME.sage,
       });
     }

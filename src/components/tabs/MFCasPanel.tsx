@@ -7,6 +7,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { Prv } from "../../context/PrivacyContext";
 
 interface MFCasPanelProps {
   onImport: (data: any[]) => void;
@@ -777,7 +778,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                       <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.buyNav}</td>
                       <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.units}</td>
                       <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>
-                        {fmtINRFull(Number(r.invested))}
+                        <Prv>{fmtINRFull(Number(r.invested))}</Prv>
                       </td>
                     </tr>
                   );

@@ -1184,6 +1184,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         className="form-input"
         aria-label={lbl}
         type="number"
+        inputMode="decimal"
         value={val}
         placeholder={placeholder}
         onChange={(e) => set(e.target.value)}
@@ -1640,7 +1641,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               style={{ display: "flex", flexDirection: "column", gap: 20 }}
             >
               {/* Key results */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+              <div className="calc-result-grid-3">
                 <div
                   style={{
                     padding: "16px 18px",
@@ -1923,7 +1924,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               style={{ display: "flex", flexDirection: "column", gap: 20 }}
             >
               {/* Key result tiles */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+              <div className="calc-result-grid-3">
                 {/* Remaining corpus */}
                 <div
                   style={{
@@ -4261,7 +4262,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </span>
                     </div>
                     <label
-                      className="switch"
                       style={{
                         position: "relative",
                         display: "inline-block",
@@ -4276,7 +4276,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         style={{ opacity: 0, width: 0, height: 0 }}
                       />
                       <span
-                        className="slider round"
                         style={{
                           position: "absolute",
                           cursor: "pointer",
@@ -4351,7 +4350,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </span>
                     </div>
                     <label
-                      className="switch"
                       style={{
                         position: "relative",
                         display: "inline-block",
@@ -4366,7 +4364,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         style={{ opacity: 0, width: 0, height: 0 }}
                       />
                       <span
-                        className="slider round"
                         style={{
                           position: "absolute",
                           cursor: "pointer",
@@ -4443,7 +4440,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </span>
                     </div>
                     <label
-                      className="switch"
                       style={{
                         position: "relative",
                         display: "inline-block",
@@ -4458,7 +4454,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         style={{ opacity: 0, width: 0, height: 0 }}
                       />
                       <span
-                        className="slider round"
                         style={{
                           position: "absolute",
                           cursor: "pointer",
@@ -5585,6 +5580,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           <td style={{ padding: "6px" }}>
                             <input
                               type="number"
+                              inputMode="decimal"
                               value={src.monthly}
                               aria-label={`${src.name || "Income source"} monthly amount`}
                               onChange={(e) => {
@@ -5606,6 +5602,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           <td style={{ padding: "6px" }}>
                             <input
                               type="number"
+                              inputMode="numeric"
                               value={src.startAge}
                               aria-label={`${src.name || "Income source"} start age`}
                               onChange={(e) => {
@@ -5627,6 +5624,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           <td style={{ padding: "6px" }}>
                             <input
                               type="number"
+                              inputMode="numeric"
                               value={src.endAge}
                               aria-label={`${src.name || "Income source"} end age`}
                               onChange={(e) => {
@@ -5648,6 +5646,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           <td style={{ padding: "6px" }}>
                             <input
                               type="number"
+                              inputMode="decimal"
                               value={src.growth}
                               aria-label={`${src.name || "Income source"} annual growth percent`}
                               onChange={(e) => {

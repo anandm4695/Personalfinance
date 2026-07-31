@@ -296,7 +296,8 @@ const AdvanceTaxSection = ({ state, metrics }) => {
             <Prv>{fmtINRFull(remaining)}</Prv>
           </div>
           <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
-            Net tax due {fmtINRFull(netTaxDue)} · already paid {fmtINRFull(totalPaid)}
+            Net tax due <Prv>{fmtINRFull(netTaxDue)}</Prv> · already paid{" "}
+            <Prv>{fmtINRFull(totalPaid)}</Prv>
           </div>
         </div>
       </Card>
@@ -561,6 +562,10 @@ const HraReceiptSection = ({ state }) => {
       </body></html>
     `;
     const w = window.open("", "_blank");
+    // window.open returns null when the browser's popup blocker intercepts it
+    // (a real, common state — not a hypothetical) — matches the same guard
+    // used by TaxVaultTab's print popup for the identical reason.
+    if (!w) return;
     w.document.write(html);
     w.document.close();
   };

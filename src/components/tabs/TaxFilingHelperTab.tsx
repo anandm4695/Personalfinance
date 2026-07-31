@@ -448,8 +448,10 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
               <Prv>{fmtINRFull(deductions.sec80C)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.textSecondary, marginTop: 4 }}>
-              PPF: {fmtINRFull(deductions.ppfContrib)} | ELSS: {fmtINRFull(deductions.elss)} | LIC:{" "}
-              {fmtINRFull(deductions.licPremium)} | EPF: {fmtINRFull(deductions.epfContrib)}
+              PPF: <Prv>{fmtINRFull(deductions.ppfContrib)}</Prv> | ELSS:{" "}
+              <Prv>{fmtINRFull(deductions.elss)}</Prv> | LIC:{" "}
+              <Prv>{fmtINRFull(deductions.licPremium)}</Prv> | EPF:{" "}
+              <Prv>{fmtINRFull(deductions.epfContrib)}</Prv>
             </div>
             <div className="progress-track" style={{ height: 4, marginTop: 8 }}>
               <div

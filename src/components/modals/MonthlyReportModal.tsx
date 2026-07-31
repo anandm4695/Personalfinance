@@ -127,6 +127,21 @@ function DeltaBadge({
 }
 
 // Determine if a subscription renewed in the given YYYY-MM
+const SectionLabel = ({ children }: any) => (
+  <div
+    style={{
+      fontSize: 10,
+      color: THEME.muted,
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.15em",
+      marginBottom: 8,
+      fontWeight: 700,
+    }}
+  >
+    {children}
+  </div>
+);
+
 function subRenewedInMonth(sub: any, ym: string): boolean {
   if (sub.paused) return false;
   const [y, m] = ym.split("-").map(Number);
@@ -506,21 +521,6 @@ export function MonthlyReportModal({
       }
     });
   }
-
-  const SectionLabel = ({ children }: any) => (
-    <div
-      style={{
-        fontSize: 10,
-        color: THEME.muted,
-        textTransform: "uppercase" as const,
-        letterSpacing: "0.15em",
-        marginBottom: 8,
-        fontWeight: 700,
-      }}
-    >
-      {children}
-    </div>
-  );
 
   return (
     <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose} maxWidth={760}>

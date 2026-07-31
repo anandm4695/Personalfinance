@@ -97,22 +97,30 @@ const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: typ
   },
 };
 
+// Liquidity-by-account donut palette — was 15 raw hex values; 7 of them
+// (#0284c7, #059669, #7c3aed, #d97706, #4f46e5, #0d9488, #2563eb) were exact
+// byte-for-byte matches for accent presets (Sky Blue, Emerald, Violet, Amber,
+// Indigo/Blue, Teal), the same "coincidentally matches the active accent"
+// footgun already fixed for ACCOUNT_TYPE_THEMES above, and would also go
+// stale in dark mode. Built entirely from the fixed THEME extension tokens
+// (+ color-mix blends for slots beyond the base 8) so it can never collide
+// with a user-selected accent and stays theme-aware.
 const CHART_PALETTE = [
-  "#0284c7",
-  "#059669",
-  "#7c3aed",
-  "#d97706",
-  "#ea580c",
-  "#0891b2",
-  "#db2777",
-  "#4f46e5",
-  "#65a30d",
-  "#dc2626",
-  "#0d9488",
-  "#a855f7",
-  "#ca8a04",
-  "#2563eb",
-  "#e11d48",
+  THEME.accent,
+  THEME.sage,
+  THEME.gold,
+  THEME.rust,
+  THEME.violet,
+  THEME.pink,
+  THEME.cyan,
+  THEME.muted,
+  `color-mix(in srgb, ${THEME.accent} 60%, ${THEME.sage} 40%)`,
+  `color-mix(in srgb, ${THEME.gold} 60%, ${THEME.rust} 40%)`,
+  `color-mix(in srgb, ${THEME.violet} 60%, ${THEME.pink} 40%)`,
+  `color-mix(in srgb, ${THEME.cyan} 60%, ${THEME.accent} 40%)`,
+  `color-mix(in srgb, ${THEME.sage} 60%, ${THEME.cyan} 40%)`,
+  `color-mix(in srgb, ${THEME.rust} 60%, ${THEME.pink} 40%)`,
+  `color-mix(in srgb, ${THEME.gold} 60%, ${THEME.violet} 40%)`,
 ];
 
 function getAccountTheme(type: string) {
