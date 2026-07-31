@@ -17,6 +17,7 @@ import {
   Plus,
   Briefcase,
   TrendingUp,
+  TrendingDown,
   Percent,
   ArrowLeftRight,
   RefreshCw,
@@ -38,11 +39,12 @@ import {
   Lightbulb,
   CheckCircle2,
   Target,
+  Download,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv } from "../../context/PrivacyContext";
-import { fmtINRFull, calcCAGR, today, calcXIRR } from "../../utils/finance";
+import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
 // Shared with CapitalGainsTab so the sell-preview LTCG/STCG split always agrees with the
 // actual tax report — see the isLongTerm/getHoldingMonths doc comments there for the
 // Section 2(42A) anniversary-date rules (day-of-month aware, strict >, not raw day-count).
@@ -937,10 +939,14 @@ export function DematTab({
         return cB - cA;
       }
 
-      const priceA = mdA?.price || Number(a.lots[0]?.currentPrice || 0);
-      const priceB = mdB?.price || Number(b.lots[0]?.currentPrice || 0);
-      const valA = a.lots.reduce((s: number, l: any) => s + Number(l.qty) * priceA, 0);
-      const valB = b.lots.reduce((s: number, l: any) => s + Number(l.qty) * priceB, 0);
+      const valA = a.lots.reduce(
+        (s: number, l: any) => s + Number(l.qty) * (mdA?.price ?? Number(l.currentPrice || 0)),
+        0
+      );
+      const valB = b.lots.reduce(
+        (s: number, l: any) => s + Number(l.qty) * (mdB?.price ?? Number(l.currentPrice || 0)),
+        0
+      );
 
       if (sortBy === "value") return valB - valA;
 
@@ -966,6 +972,22 @@ export function DematTab({
     ? state.stocks.filter((s: any) => s.dematId === selectedDematId)
     : state.stocks;
 
+  // Today's best/worst mover — independent of the search box so it always
+  // reflects the currently selected account, not the current search filter.
+  const dayMovers = useMemo(() => {
+    const withChange = groups
+      .filter((g) => !selectedDematId || g.lots.some((l: any) => l.dematId === selectedDematId))
+      .map((g) => {
+        const md = marketData[g.yfSym];
+        if (!md || md.changePercent == null) return null;
+        return { base: g.base, exchange: g.exchange, changePercent: Number(md.changePercent) };
+      })
+      .filter(Boolean) as { base: string; exchange: string; changePercent: number }[];
+    if (withChange.length < 2) return null;
+    const sorted = [...withChange].sort((a, b) => b.changePercent - a.changePercent);
+    return { top: sorted[0], bottom: sorted[sorted.length - 1] };
+  }, [groups, marketData, selectedDematId]);
+
   const handleRefresh = async () => {
     try {
       await fetchLivePrices();
@@ -973,6 +995,51 @@ export function DematTab({
       console.error(`Failed to fetch: ${e.message}`);
       showToast?.(`Failed to refresh live prices: ${e?.message || "Unknown error"}`, "error");
     }
+  };
+
+  const handleExportHoldings = () => {
+    const rows = filteredStocks.map((st: any) => {
+      const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
+      const exch = st.exchange || "NSE";
+      const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+      const md = marketData[yfSym];
+      const qty = Number(st.qty) || 0;
+      const avgPrice = Number(st.avgPrice) || 0;
+      const currentPrice = md?.price ?? Number(st.currentPrice || 0);
+      const invested = qty * avgPrice;
+      const currentValue = qty * currentPrice;
+      const demat = state.demat.find((d: any) => d.id === st.dematId);
+      return {
+        symbol: base,
+        exchange: exch,
+        broker: demat?.broker || "",
+        qty,
+        avgPrice: avgPrice.toFixed(2),
+        currentPrice: currentPrice.toFixed(2),
+        buyDate: st.buyDate || "",
+        invested: invested.toFixed(2),
+        currentValue: currentValue.toFixed(2),
+        pnl: (currentValue - invested).toFixed(2),
+        pnlPct: invested ? (((currentValue - invested) / invested) * 100).toFixed(2) : "0.00",
+      };
+    });
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "symbol", label: "Symbol" },
+        { key: "exchange", label: "Exchange" },
+        { key: "broker", label: "Broker" },
+        { key: "qty", label: "Quantity" },
+        { key: "avgPrice", label: "Avg Price" },
+        { key: "currentPrice", label: "Current Price" },
+        { key: "buyDate", label: "Buy Date" },
+        { key: "invested", label: "Invested" },
+        { key: "currentValue", label: "Current Value" },
+        { key: "pnl", label: "P&L" },
+        { key: "pnlPct", label: "P&L %" },
+      ],
+      `demat-holdings-${today()}.csv`
+    );
   };
 
   const CHART_PERIOD_LABELS: Record<string, string> = {
@@ -1037,6 +1104,20 @@ export function DematTab({
     (s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice),
     0
   );
+
+  // Dividends are tracked app-wide (Investments > Dividends) but weren't
+  // surfaced anywhere on this tab — join by symbol so real total-return
+  // (price gain + income) is visible here too.
+  const totalDividendsReceived = useMemo(() => {
+    const heldSymbols = new Set(
+      filteredStocks.map((st: any) =>
+        (st.symbol || "").replace(/\.(NS|BO)$/i, "").trim().toUpperCase()
+      )
+    );
+    return (state.dividends || [])
+      .filter((d: any) => heldSymbols.has((d.symbol || "").trim().toUpperCase()))
+      .reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
+  }, [filteredStocks, state.dividends]);
 
   const overallXirr = useMemo(() => {
     try {
@@ -1145,7 +1226,11 @@ export function DematTab({
       return livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
     };
 
-    // Calculate stock values and weights
+    // Calculate stock values, then aggregate lot-by-lot values up to one
+    // entry per symbol — a stock held via multiple lots (or across multiple
+    // demat accounts) was otherwise appearing as separate same-symbol
+    // entries here, which split it into duplicate pie-chart wedges and
+    // caused a duplicate React key in the legend below.
     const stockValues = filteredStocks.map((st: any) => {
       const val = Number(st.qty) * getStockPrice(st);
       const base = st.symbol.replace(/\.(NS|BO)$/i, "").toUpperCase();
@@ -1161,10 +1246,38 @@ export function DematTab({
       };
     });
 
-    const totalVal = stockValues.reduce((sum: number, s: any) => sum + s.value, 0) || 1;
+    const aggregatedBySymbol: Record<string, any> = {};
+    stockValues.forEach((s) => {
+      const key = `${s.symbol}|${s.exchange}`;
+      if (!aggregatedBySymbol[key]) {
+        aggregatedBySymbol[key] = {
+          symbol: s.symbol,
+          exchange: s.exchange,
+          yfSym: s.yfSym,
+          qty: 0,
+          invested: 0,
+          value: 0,
+          currentPrice: s.currentPrice,
+        };
+      }
+      aggregatedBySymbol[key].qty += s.qty;
+      aggregatedBySymbol[key].invested += s.qty * s.avgPrice;
+      aggregatedBySymbol[key].value += s.value;
+    });
+    const stockValuesAgg = Object.values(aggregatedBySymbol).map((s: any) => ({
+      symbol: s.symbol,
+      exchange: s.exchange,
+      yfSym: s.yfSym,
+      qty: s.qty,
+      avgPrice: s.qty > 0 ? s.invested / s.qty : 0,
+      currentPrice: s.currentPrice,
+      value: s.value,
+    }));
+
+    const totalVal = stockValuesAgg.reduce((sum: number, s: any) => sum + s.value, 0) || 1;
 
     // Weights
-    const stockWeights = stockValues
+    const stockWeights = stockValuesAgg
       .map((s: any) => ({
         ...s,
         weight: (s.value / totalVal) * 100,
@@ -1424,6 +1537,21 @@ export function DematTab({
       totalMfVal,
     };
   }, [filteredStocks, marketData, state.mutualFunds]);
+
+  // Sector allocation — regroups the same stockWeights used for the per-stock
+  // pie chart by GICS sector (from live market data) so concentration risk
+  // shows up at the sector level too, not just single-stock weight.
+  const sectorAllocation = useMemo(() => {
+    const bySector: Record<string, number> = {};
+    portfolioScoreData.stockWeights.forEach((s: any) => {
+      const sector = marketData[s.yfSym]?.sector || "Unclassified";
+      bySector[sector] = (bySector[sector] || 0) + s.value;
+    });
+    const totalVal = Object.values(bySector).reduce((a, b) => a + b, 0) || 1;
+    return Object.entries(bySector)
+      .map(([sector, value]) => ({ sector, value, weight: (value / totalVal) * 100 }))
+      .sort((a, b) => b.value - a.value);
+  }, [portfolioScoreData.stockWeights, marketData]);
 
   const fmtVol = (v: number) => {
     if (!v) return "—";
@@ -2252,6 +2380,57 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             })}
           </Grid>
 
+          {/* Today's Movers — best/worst intraday performer at a glance */}
+          {dayMovers && (
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.sage} 7%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.sage} 22%, transparent)`,
+                  fontSize: 12,
+                }}
+              >
+                <TrendingUp size={14} color={THEME.sage} />
+                <span style={{ color: THEME.muted, fontWeight: 600 }}>Top Gainer</span>
+                <b style={{ color: THEME.ink }}>{dayMovers.top.base}</b>
+                <span style={{ color: THEME.sage, fontWeight: 800 }}>
+                  +{dayMovers.top.changePercent.toFixed(2)}%
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.rust} 22%, transparent)`,
+                  fontSize: 12,
+                }}
+              >
+                <TrendingDown size={14} color={THEME.rust} />
+                <span style={{ color: THEME.muted, fontWeight: 600 }}>Top Loser</span>
+                <b style={{ color: THEME.ink }}>{dayMovers.bottom.base}</b>
+                <span style={{ color: THEME.rust, fontWeight: 800 }}>
+                  {dayMovers.bottom.changePercent.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Search & Sort Bar */}
           {state.stocks.length > 0 && (
             <div
@@ -2367,6 +2546,22 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <option value="name">Symbol (A-Z)</option>
                 </select>
               </div>
+
+              <button
+                onClick={handleExportHoldings}
+                className="icon-btn"
+                title="Export holdings to CSV"
+                aria-label="Export holdings to CSV"
+                style={{
+                  ...iconBtn,
+                  width: 42,
+                  height: 42,
+                  border: `1.5px solid ${THEME.line}`,
+                  borderRadius: 12,
+                }}
+              >
+                <Download size={16} />
+              </button>
             </div>
           )}
 
@@ -2482,13 +2677,20 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 <tbody>
                   {visibleGroups.map(({ base, exchange, yfSym, lots }) => {
                     const md = marketData[yfSym];
-                    const currentPrice = md?.price ?? Number(lots[0]?.currentPrice ?? 0);
-                    const totalQty = lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
+                    const totalQty = lots.reduce((s: number, l: any) => s + (Number(l.qty) || 0), 0);
                     const totalInv = lots.reduce(
-                      (s: number, l: any) => s + Number(l.qty) * Number(l.avgPrice),
+                      (s: number, l: any) => s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0),
                       0
                     );
-                    const totalCurr = totalQty * currentPrice;
+                    // Sum each lot at its own price (live if available, else that lot's own
+                    // stored fallback) so this reconciles exactly with the portfolio-level
+                    // totalValue above, which is computed the same lot-by-lot way.
+                    const totalCurr = lots.reduce(
+                      (s: number, l: any) =>
+                        s + (Number(l.qty) || 0) * (md?.price ?? Number(l.currentPrice || 0)),
+                      0
+                    );
+                    const currentPrice = totalQty > 0 ? totalCurr / totalQty : 0;
                     const totalPnl = totalCurr - totalInv;
                     const totalPnlPct = totalInv ? (totalPnl / totalInv) * 100 : 0;
 
@@ -2520,6 +2722,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         // Historical stock sells matching base symbol and exchange
                         const sells = safeStockSells.filter((s: any) => {
                           if (!s) return false;
+                          if (selectedDematId && s.dematId !== selectedDematId) return false;
                           const sSymbol = (s.symbol || "").trim().toLowerCase();
                           const gSymbol = base.trim().toLowerCase();
                           return sSymbol === gSymbol && s.exchange === exchange;
@@ -2645,23 +2848,27 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{totalQty}</td>
 
                           <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            ₹
-                            {Number(totalQty > 0 ? totalInv / totalQty : 0).toLocaleString(
-                              "en-IN",
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )}
+                            <Prv>
+                              ₹
+                              {Number(totalQty > 0 ? totalInv / totalQty : 0).toLocaleString(
+                                "en-IN",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )}
+                            </Prv>
                           </td>
 
                           <td style={{ ...td, textAlign: "right" }}>
                             <div style={{ fontWeight: 700, color: THEME.ink }}>
-                              ₹
-                              {currentPrice.toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                              <Prv>
+                                ₹
+                                {currentPrice.toLocaleString("en-IN", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </Prv>
                             </div>
                             {isLive ? (
                               <div
@@ -2690,11 +2897,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           </td>
 
                           <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            {fmtINRFull(totalInv)}
+                            <Prv>{fmtINRFull(totalInv)}</Prv>
                           </td>
 
                           <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
-                            {fmtINRFull(totalCurr)}
+                            <Prv>{fmtINRFull(totalCurr)}</Prv>
                           </td>
 
                           {/* Portfolio Weight column with allocation bar */}
@@ -2744,8 +2951,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     color: totalQty * changeAmt >= 0 ? THEME.sage : THEME.rust,
                                   }}
                                 >
-                                  {totalQty * changeAmt >= 0 ? "+" : ""}
-                                  {fmtINRFull(totalQty * changeAmt)}
+                                  <Prv>
+                                    {totalQty * changeAmt >= 0 ? "+" : ""}
+                                    {fmtINRFull(totalQty * changeAmt)}
+                                  </Prv>
                                 </div>
                                 <div
                                   style={{
@@ -2771,8 +2980,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                               }}
                             >
-                              {totalPnl >= 0 ? "+" : ""}
-                              {fmtINRFull(totalPnl)}
+                              <Prv>
+                                {totalPnl >= 0 ? "+" : ""}
+                                {fmtINRFull(totalPnl)}
+                              </Prv>
                             </div>
                             <div
                               style={{
@@ -2906,7 +3117,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 activePeriod === p ? THEME.accent : THEME.muted,
                                               boxShadow:
                                                 activePeriod === p
-                                                  ? "0 1px 3px rgba(0,0,0,0.08)"
+                                                  ? `0 1px 3px color-mix(in srgb, ${THEME.ink} 16%, transparent)`
                                                   : "none",
                                               transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                                             }}
@@ -3316,10 +3527,12 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   fontVariantNumeric: "tabular-nums",
                                                 }}
                                               >
-                                                ₹
-                                                {Number(lot.avgPrice).toLocaleString("en-IN", {
-                                                  minimumFractionDigits: 2,
-                                                })}
+                                                <Prv>
+                                                  ₹
+                                                  {Number(lot.avgPrice).toLocaleString("en-IN", {
+                                                    minimumFractionDigits: 2,
+                                                  })}
+                                                </Prv>
                                               </td>
                                               <td
                                                 style={{
@@ -3405,8 +3618,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     fontVariantNumeric: "tabular-nums",
                                                   }}
                                                 >
-                                                  {lPnl >= 0 ? "+" : ""}
-                                                  {fmtINRFull(lPnl)}
+                                                  <Prv>
+                                                    {lPnl >= 0 ? "+" : ""}
+                                                    {fmtINRFull(lPnl)}
+                                                  </Prv>
                                                 </div>
                                                 {lot.buyDate &&
                                                   (() => {
@@ -3439,7 +3654,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   fontVariantNumeric: "tabular-nums",
                                                 }}
                                               >
-                                                {fmtINRFull(lCurr)}
+                                                <Prv>{fmtINRFull(lCurr)}</Prv>
                                               </td>
                                               <td
                                                 style={{
@@ -3526,13 +3741,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             fontVariantNumeric: "tabular-nums",
                                           }}
                                         >
-                                          ₹
-                                          {Number(
-                                            totalQty > 0 ? totalInv / totalQty : 0
-                                          ).toLocaleString("en-IN", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })}
+                                          <Prv>
+                                            ₹
+                                            {Number(
+                                              totalQty > 0 ? totalInv / totalQty : 0
+                                            ).toLocaleString("en-IN", {
+                                              minimumFractionDigits: 2,
+                                              maximumFractionDigits: 2,
+                                            })}
+                                          </Prv>
                                         </td>
                                         <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
                                         <td
@@ -3560,8 +3777,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               fontVariantNumeric: "tabular-nums",
                                             }}
                                           >
-                                            {totalPnl >= 0 ? "+" : ""}
-                                            {fmtINRFull(totalPnl)}
+                                            <Prv>
+                                              {totalPnl >= 0 ? "+" : ""}
+                                              {fmtINRFull(totalPnl)}
+                                            </Prv>
                                           </div>
                                         </td>
                                         <td
@@ -3575,7 +3794,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             fontVariantNumeric: "tabular-nums",
                                           }}
                                         >
-                                          {fmtINRFull(totalCurr)}
+                                          <Prv>{fmtINRFull(totalCurr)}</Prv>
                                         </td>
                                         <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
                                       </tr>
@@ -3675,10 +3894,12 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               </span>
                                               <span style={{ color: THEME.line }}>·</span>
                                               <span style={{ color: THEME.muted }}>
-                                                Avg ₹{Number(a.oldAvgPrice).toFixed(1)} →{" "}
-                                                <b style={{ color: THEME.ink }}>
-                                                  ₹{Number(a.newAvgPrice).toFixed(1)}
-                                                </b>
+                                                <Prv>
+                                                  Avg ₹{Number(a.oldAvgPrice).toFixed(1)} →{" "}
+                                                  <b style={{ color: THEME.ink }}>
+                                                    ₹{Number(a.newAvgPrice).toFixed(1)}
+                                                  </b>
+                                                </Prv>
                                               </span>
                                             </div>
                                           ))}
@@ -4217,7 +4438,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         <div
                           style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 2 }}
                         >
-                          {fmtINRFull(totalValue)}
+                          <Prv>{fmtINRFull(totalValue)}</Prv>
                         </div>
                       </div>
                       <div>
@@ -4400,7 +4621,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             })}
                         </Pie>
                         <Tooltip
-                          formatter={(value: any) => [fmtINRFull(value || 0), "Current Value"]}
+                          formatter={(value: any) => [
+                            <Prv>{fmtINRFull(value || 0)}</Prv>,
+                            "Current Value",
+                          ]}
                           contentStyle={{
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,
@@ -4422,7 +4646,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       const color = `hsl(${hues[idx % hues.length]}, 60%, 50%)`;
                       return (
                         <div
-                          key={s.symbol}
+                          key={`${s.symbol}-${s.exchange}`}
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
@@ -4440,7 +4664,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             />
                             <span style={{ fontWeight: 700, color: THEME.ink }}>{s.symbol}</span>
                             <span style={{ color: THEME.muted, fontSize: 11 }}>
-                              ({s.qty} shares)
+                              (<Prv>{s.qty}</Prv> shares)
                             </span>
                           </div>
                           <span style={{ fontWeight: 800, color: THEME.ink }}>
@@ -4464,6 +4688,69 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     )}
                   </div>
                 </Card>
+
+                {/* Sector Allocation Breakdown */}
+                {sectorAllocation.length > 0 && (
+                  <Card style={{ display: "flex", flexDirection: "column", gap: 14, padding: 24 }}>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 800,
+                        color: THEME.ink,
+                        borderBottom: `1px solid ${THEME.line}`,
+                        paddingBottom: 10,
+                      }}
+                    >
+                      Sector Allocation
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {sectorAllocation.map((s, idx) => {
+                        const hues = [210, 160, 42, 12, 280, 190, 330, 100];
+                        const color = `hsl(${hues[idx % hues.length]}, 60%, 50%)`;
+                        return (
+                          <div key={s.sector} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                fontSize: 12,
+                              }}
+                            >
+                              <span style={{ fontWeight: 700, color: THEME.ink }}>{s.sector}</span>
+                              <span style={{ fontWeight: 800, color: THEME.muted }}>
+                                {s.weight.toFixed(1)}%
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                width: "100%",
+                                height: 6,
+                                borderRadius: 10,
+                                background: "var(--t-line)",
+                                overflow: "hidden",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: `${s.weight}%`,
+                                  height: "100%",
+                                  borderRadius: 10,
+                                  background: color,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {sectorAllocation.some((s) => s.sector === "Unclassified") && (
+                      <div style={{ fontSize: 10, color: THEME.muted, fontStyle: "italic" }}>
+                        "Unclassified" holdings are missing live sector data — refresh prices to
+                        fill this in.
+                      </div>
+                    )}
+                  </Card>
+                )}
               </div>
 
               {/* ── BENCHMARK COMPARISON SECTION ── */}
@@ -4485,6 +4772,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 const absoluteReturnPct =
                   totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested) * 100 : 0;
 
+                // Illustrative long-run averages, not live index data (no historical
+                // index-return API is wired up yet) — surfaced with an "as of" +
+                // disclaimer label below so it doesn't read as authoritative live data.
+                const BENCHMARK_DATA_ASOF = "Mar 2026";
                 const benchmarks = [
                   {
                     name: "Nifty 50",
@@ -4492,7 +4783,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     "3Y": 11.2,
                     "5Y": 14.8,
                     "10Y": 12.1,
-                    color: "#3b82f6",
+                    color: THEME.accent,
                   },
                   {
                     name: "Sensex",
@@ -4516,7 +4807,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     "3Y": 20.5,
                     "5Y": 18.9,
                     "10Y": 15.8,
-                    color: "#f59e0b",
+                    color: THEME.gold,
                   },
                 ];
 
@@ -4552,7 +4843,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     return: portfolioCagr !== null ? Number(portfolioCagr.toFixed(1)) : 0,
                     fill: THEME.accent,
                   },
-                  { name: "Nifty 50", return: benchmarks[0][benchmarkPeriod], fill: "#3b82f6" },
+                  { name: "Nifty 50", return: benchmarks[0][benchmarkPeriod], fill: THEME.accent },
                   {
                     name: "Nifty Midcap",
                     return: benchmarks[2][benchmarkPeriod],
@@ -4561,7 +4852,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   {
                     name: "Nifty Smallcap",
                     return: benchmarks[3][benchmarkPeriod],
-                    fill: "#f59e0b",
+                    fill: THEME.gold,
                   },
                 ];
 
@@ -4620,7 +4911,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               Total Invested
                             </span>
                             <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                              {fmtINRFull(totalInvested)}
+                              <Prv>{fmtINRFull(totalInvested)}</Prv>
                             </span>
                           </div>
                           <div
@@ -4638,7 +4929,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               Current Value
                             </span>
                             <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                              {fmtINRFull(totalValue)}
+                              <Prv>{fmtINRFull(totalValue)}</Prv>
                             </span>
                           </div>
                           <div
@@ -4700,6 +4991,56 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 : "N/A"}
                             </span>
                           </div>
+                          {totalDividendsReceived > 0 && (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                padding: "10px 14px",
+                                borderRadius: 10,
+                                background: "var(--surface-0)",
+                                border: `1px solid ${THEME.line}`,
+                              }}
+                            >
+                              <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
+                                Dividends Received
+                              </span>
+                              <span style={{ fontSize: 14, fontWeight: 800, color: THEME.sage }}>
+                                <Prv>+{fmtINRFull(totalDividendsReceived)}</Prv>
+                              </span>
+                            </div>
+                          )}
+                          {totalDividendsReceived > 0 && (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                padding: "10px 14px",
+                                borderRadius: 10,
+                                background: "var(--surface-0)",
+                                border: `1px solid ${THEME.line}`,
+                              }}
+                            >
+                              <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
+                                True Total Return
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 800,
+                                  color:
+                                    pnl + totalDividendsReceived >= 0 ? THEME.sage : THEME.rust,
+                                }}
+                              >
+                                <Prv>
+                                  {pnl + totalDividendsReceived >= 0 ? "+" : ""}
+                                  {fmtINRFull(pnl + totalDividendsReceived)}
+                                </Prv>
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {alpha !== null && (
@@ -4826,24 +5167,39 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     <div style={{ marginTop: 24 }}>
                       <div
                         style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: THEME.muted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
+                          display: "flex",
+                          alignItems: "baseline",
+                          justifyContent: "space-between",
+                          flexWrap: "wrap",
+                          gap: 6,
                           marginBottom: 10,
                         }}
                       >
-                        Index Returns (Historical Annualized)
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: THEME.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          Index Returns (Historical Annualized)
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontStyle: "italic" }}>
+                          Illustrative long-run averages, as of {BENCHMARK_DATA_ASOF} — not
+                          live-updated
+                        </div>
                       </div>
                       <div
                         style={{
                           borderRadius: 12,
                           border: `1px solid ${THEME.line}`,
                           overflow: "hidden",
+                          overflowX: "auto",
                         }}
                       >
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 420 }}>
                           <thead>
                             <tr style={{ background: "var(--surface-0)" }}>
                               <th style={{ ...th, paddingLeft: 16 }}>Index</th>
@@ -4961,7 +5317,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     <div
                       style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginTop: 2 }}
                     >
-                      AI-driven insights based on your portfolio composition
+                      Rule-based insights based on your portfolio composition
                     </div>
                   </div>
                 </div>
@@ -5274,6 +5630,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         className="icon-btn"
                         style={{ ...iconBtn, color: THEME.accent }}
                         title="Add stock"
+                        aria-label="Add stock to watchlist"
                       >
                         <Plus size={14} />
                       </button>
@@ -5285,6 +5642,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         className="icon-btn"
                         style={iconBtn}
                         title="Rename watchlist"
+                        aria-label="Rename watchlist"
                       >
                         <Edit3 size={14} />
                       </button>
@@ -5299,6 +5657,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         className="icon-btn danger"
                         style={iconBtn}
                         title="Delete watchlist"
+                        aria-label="Delete watchlist"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -5385,7 +5744,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   <React.Fragment key={it.id}>
                                     <tr
                                       className="demat-holdings-row"
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-expanded={isItemExpanded}
                                       onClick={toggleWatchItem}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          toggleWatchItem();
+                                        }
+                                      }}
                                       style={{
                                         cursor: "pointer",
                                         background: isItemExpanded
@@ -5708,7 +6076,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                               : THEME.muted,
                                                           boxShadow:
                                                             wlActivePeriod === p
-                                                              ? "0 1px 3px rgba(0,0,0,0.08)"
+                                                              ? `0 1px 3px color-mix(in srgb, ${THEME.ink} 16%, transparent)`
                                                               : "none",
                                                           transition:
                                                             "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
@@ -6240,6 +6608,7 @@ function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: 
   const [f, setF] = useState(
     initial || { broker: "", dpId: "", clientId: "", owner: defaultOwner }
   );
+  const isValid = !!f.broker?.trim();
   return (
     <Modal title={initial ? "Edit Demat Account" : "Add Demat Account"} onClose={onClose}>
       <Field label="Owner / Profile">
@@ -6279,7 +6648,7 @@ function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: 
           />
         </Field>
       </div>
-      <ModalActions onSave={() => f.broker && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => isValid && onSave(f)} onClose={onClose} disabled={!isValid} />
     </Modal>
   );
 }
@@ -6306,6 +6675,15 @@ function StockModal({
       owner: defaultOwner,
     }
   );
+  const qtyNum = Number(f.qty);
+  const avgPriceNum = Number(f.avgPrice);
+  const currentPriceNum = Number(f.currentPrice);
+  const isValid =
+    !!f.symbol.trim() &&
+    !!f.dematId &&
+    qtyNum > 0 &&
+    avgPriceNum > 0 &&
+    (f.currentPrice === "" || (Number.isFinite(currentPriceNum) && currentPriceNum >= 0));
   return (
     <Modal title={initial ? "Edit Stock" : "Add Stock"} onClose={onClose}>
       <Field label="Owner / Profile">
@@ -6368,6 +6746,7 @@ function StockModal({
           <input
             style={input}
             type="number"
+            min="0.0001"
             value={f.qty}
             onChange={(e) => setF({ ...f, qty: e.target.value })}
           />
@@ -6377,6 +6756,7 @@ function StockModal({
             style={input}
             type="number"
             step="0.01"
+            min="0.01"
             value={f.avgPrice}
             onChange={(e) => setF({ ...f, avgPrice: e.target.value })}
           />
@@ -6386,6 +6766,7 @@ function StockModal({
             style={input}
             type="number"
             step="0.01"
+            min="0"
             value={f.currentPrice}
             onChange={(e) => setF({ ...f, currentPrice: e.target.value })}
           />
@@ -6395,11 +6776,12 @@ function StockModal({
         <input
           style={input}
           type="date"
+          max={today()}
           value={f.buyDate || ""}
           onChange={(e) => setF({ ...f, buyDate: e.target.value })}
         />
       </Field>
-      <ModalActions onSave={() => f.symbol && f.qty && f.avgPrice && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => isValid && onSave(f)} onClose={onClose} disabled={!isValid} />
     </Modal>
   );
 }
@@ -6415,8 +6797,10 @@ function SellStockModal({ lot, onClose, onSave }: any) {
   const sellPriceNum = Number(f.sellPrice) || 0;
   const profit = (sellPriceNum - Number(lot.avgPrice)) * sellQtyNum;
   const remainingQty = Number(lot.qty) - sellQtyNum;
+  const isValid =
+    sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= Number(lot.qty) && !!f.sellDate;
   const handleSave = () => {
-    if (!sellQtyNum || !sellPriceNum || sellQtyNum > Number(lot.qty)) return;
+    if (!isValid) return;
     const record = {
       id: `ss-${Date.now()}`,
       owner: lot.owner || "self",
@@ -6444,7 +6828,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
           <input
             style={input}
             type="number"
-            min="1"
+            min="0.0001"
             max={lot.qty}
             value={f.sellQty}
             onChange={(e) => setF({ ...f, sellQty: e.target.value })}
@@ -6455,6 +6839,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
             style={input}
             type="number"
             step="0.01"
+            min="0.01"
             value={f.sellPrice}
             onChange={(e) => setF({ ...f, sellPrice: e.target.value })}
           />
@@ -6464,6 +6849,8 @@ function SellStockModal({ lot, onClose, onSave }: any) {
         <input
           style={input}
           type="date"
+          min={lot.buyDate || undefined}
+          max={today()}
           value={f.sellDate}
           onChange={(e) => setF({ ...f, sellDate: e.target.value })}
         />
@@ -6495,11 +6882,13 @@ function SellStockModal({ lot, onClose, onSave }: any) {
         >
           <span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Profit/Loss: </span>
           <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>
-            {profit >= 0 ? "+" : ""}₹
-            {Math.abs(profit).toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            <Prv>
+              {profit >= 0 ? "+" : ""}₹
+              {Math.abs(profit).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </Prv>
           </b>
           {remainingQty > 0 && (
             <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>
@@ -6508,7 +6897,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
           )}
         </div>
       )}
-      <ModalActions onSave={handleSave} onClose={onClose} />
+      <ModalActions onSave={handleSave} onClose={onClose} disabled={!isValid} />
     </Modal>
   );
 }
@@ -6516,6 +6905,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
 function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
   const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
   const sortedForDefault = [...group.lots].sort((a: any, b: any) => {
+    if (!a.buyDate && !b.buyDate) return 0;
     if (!a.buyDate) return 1;
     if (!b.buyDate) return -1;
     return new Date(a.buyDate).getTime() - new Date(b.buyDate).getTime();
@@ -6615,6 +7005,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
           <input
             style={input}
             type="date"
+            max={today()}
             value={f.sellDate}
             onChange={(e) => setF({ ...f, sellDate: e.target.value })}
           />
@@ -6710,7 +7101,9 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                         textAlign: "right",
                       }}
                     >
-                      ₹{Number(a.buyPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      <Prv>
+                        ₹{Number(a.buyPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </Prv>
                     </td>
                     <td
                       style={{
@@ -6768,7 +7161,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                         color: THEME.muted,
                       }}
                     >
-                      ₹{fmt2(a.consume * a.buyPrice)}
+                      <Prv>₹{fmt2(a.consume * a.buyPrice)}</Prv>
                     </td>
                     <td
                       style={{
@@ -6780,7 +7173,9 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                         color: a.pnl >= 0 ? THEME.sage : THEME.rust,
                       }}
                     >
-                      {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
+                      <Prv>
+                        {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
+                      </Prv>
                     </td>
                     <td
                       style={{
@@ -6831,14 +7226,16 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>
                   Total Proceeds
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800 }}>₹{fmt2(totalProceeds)}</div>
+                <div style={{ fontSize: 15, fontWeight: 800 }}>
+                  <Prv>₹{fmt2(totalProceeds)}</Prv>
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>
                   Cost Basis (FIFO)
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>
-                  ₹{fmt2(totalCost)}
+                  <Prv>₹{fmt2(totalCost)}</Prv>
                 </div>
               </div>
               <div>
@@ -6850,7 +7247,9 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                     color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                   }}
                 >
-                  {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
+                  <Prv>
+                    {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
+                  </Prv>
                 </div>
               </div>
             </div>
@@ -6879,7 +7278,9 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                     STCG
                   </span>
                   <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    {stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}
+                    <Prv>
+                      {stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}
+                    </Prv>
                   </b>
                 </span>
               )}
@@ -6899,7 +7300,9 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                     LTCG
                   </span>
                   <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    {ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}
+                    <Prv>
+                      {ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}
+                    </Prv>
                   </b>
                 </span>
               )}
@@ -6941,7 +7344,9 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
     newTotalQty =
       type === "split" ? Math.floor((totalQty * n) / m) : Math.floor((totalQty * (m + n)) / m);
   const newAvgPreview = newTotalQty > 0 ? totalInv / newTotalQty : 0;
-  const isValid = n > 0 && m > 0 && !!actionDate && (type === "split" ? n > m : true);
+  // Split ratios can go either way (forward split n>m, or a reverse split/
+  // consolidation n<m) — only n===m (a no-op "split") is nonsensical.
+  const isValid = n > 0 && m > 0 && !!actionDate && (type === "split" ? n !== m : true);
   const handleApply = () => {
     if (!isValid) return;
     const lotCalcs = group.lots.map((lot: any) => {
@@ -7002,7 +7407,20 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
                 color: type === t ? THEME.darkInk : undefined,
                 border: type === t ? `1px solid ${THEME.accent}` : undefined,
               }}
-              onClick={() => setType(t)}
+              onClick={() => {
+                setType(t);
+                // Reset to a sane default ratio per type — carrying over a
+                // split's 2:1 into Bonus (or vice versa) silently changes what
+                // the entered ratio means (e.g. a "2:1" bonus triples the
+                // holding, when the far more common bonus ratio is 1:1).
+                if (t === "bonus") {
+                  setRatioN("1");
+                  setRatioM("1");
+                } else {
+                  setRatioN("2");
+                  setRatioM("1");
+                }
+              }}
             >
               {t === "split" ? "Stock Split" : "Bonus Shares"}
             </button>
@@ -7034,6 +7452,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
         <input
           style={{ ...input, borderColor: actionDate ? THEME.sage : THEME.rust }}
           type="date"
+          max={today()}
           aria-label="Corporate action date"
           value={actionDate}
           onChange={(e) => setActionDate(e.target.value)}
@@ -7095,10 +7514,12 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
           </span>
           <span style={{ marginLeft: 20 }}>
             <span style={{ color: THEME.muted }}>Avg Price: </span>
-            <b style={{ color: THEME.muted }}>
-              ₹{(totalQty > 0 ? totalInv / totalQty : 0).toFixed(2)}
-            </b>{" "}
-            → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b>
+            <Prv>
+              <b style={{ color: THEME.muted }}>
+                ₹{(totalQty > 0 ? totalInv / totalQty : 0).toFixed(2)}
+              </b>{" "}
+              → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b>
+            </Prv>
           </span>
         </div>
       )}

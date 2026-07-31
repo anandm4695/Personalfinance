@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
   const symList = String(symbols)
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter((s) => s && /^[A-Z0-9.\-&]+$/i.test(s) && s.length <= 20)
     .slice(0, 30);
 
   const results = {};
@@ -59,7 +59,7 @@ module.exports = async function handler(req, res) {
             prevClose: quote?.regularMarketPreviousClose ?? null,
             volume: quote?.regularMarketVolume ?? null,
             // New fields for analysis
-            sector: summary?.assetProfile?.sector ?? "Unknown",
+            sector: summary?.assetProfile?.sector ?? null,
             marketCap:
               summary?.price?.marketCap ??
               summary?.summaryDetail?.marketCap ??

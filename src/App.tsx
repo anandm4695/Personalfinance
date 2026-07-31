@@ -1077,9 +1077,22 @@ function FinanceDashboard() {
         symbolMap[yfSym] = yfSym;
       });
       const groups = Object.values(symbolMap);
-      const res = await fetch(`/api/stock-price?symbols=${groups.join(",")}`);
-      if (!res.ok) throw new Error(`API error ${res.status}`);
-      const data = await res.json();
+      // api/stock-price.js caps a single request at 30 symbols — chunk larger
+      // portfolios into multiple requests instead of silently losing prices
+      // for every symbol past the 30th.
+      const CHUNK_SIZE = 30;
+      const chunks: string[][] = [];
+      for (let i = 0; i < groups.length; i += CHUNK_SIZE) {
+        chunks.push(groups.slice(i, i + CHUNK_SIZE));
+      }
+      const chunkResults = await Promise.all(
+        chunks.map(async (chunk) => {
+          const res = await fetch(`/api/stock-price?symbols=${chunk.join(",")}`);
+          if (!res.ok) throw new Error(`API error ${res.status}`);
+          return res.json();
+        })
+      );
+      const data = Object.assign({}, ...chunkResults);
       const ts = Date.now();
       setMarketDataTs(ts);
       setMarketData((prev: any) => {
@@ -1095,7 +1108,10 @@ function FinanceDashboard() {
           const exch = s.exchange || "NSE";
           const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
           const md = data[yfSym];
-          return md && (s.sector !== md.sector || Number(s.marketCap) !== Number(md.marketCap));
+          if (!md) return false;
+          const oldCap = s.marketCap != null && s.marketCap !== "" ? Number(s.marketCap) : null;
+          const newCap = md.marketCap != null ? Number(md.marketCap) : null;
+          return s.sector !== md.sector || oldCap !== newCap;
         });
 
         if (updates.length > 0) {
