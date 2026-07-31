@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS public.govt_schemes (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id             UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   scheme_type         TEXT NOT NULL DEFAULT 'APY',
-  -- APY | SSY | PMJJBY | PMSBY | PMKISAN | NPS_LITE | SCSS | NSC | KVP | POST_MIS | POST_TD | PPF_POST | RBI_BOND
+  -- APY | SSY | PMJJBY | PMSBY | PMKISAN | NPS_LITE | SCSS | NSC | KVP | POST_MIS | RBI_BOND
+  -- (must match the `value`s in the SCHEMES config in GovtSchemesTab.tsx)
   scheme_name         TEXT NOT NULL DEFAULT '',         -- display name / custom label
   account_number      TEXT DEFAULT '',
   member_name         TEXT DEFAULT '',                  -- beneficiary name (e.g. daughter's name for SSY)

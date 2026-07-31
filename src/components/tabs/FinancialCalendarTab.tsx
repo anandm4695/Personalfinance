@@ -17,6 +17,7 @@ import {
   Bell,
   Filter,
   Building2,
+  Star,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -26,7 +27,9 @@ import {
   today,
   fdMaturity,
   rdMaturity,
+  nextAnnualOccurrence,
 } from "../../utils/finance";
+import { SCHEME_RULES, projectSchemeValue } from "../../utils/govtSchemes";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -384,6 +387,55 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       }
     });
 
+    // Govt Scheme maturities (SSY/SCSS/NSC/KVP/POST_MIS/RBI_BOND/NPS_LITE) — these
+    // never appeared anywhere outside the Govt Schemes tab itself, so a matured
+    // scheme (e.g. a 5-year NSC or KVP) could go unnoticed indefinitely.
+    (state.govtSchemes || []).forEach((sc) => {
+      if (!sc.maturityDate) return;
+      const rule = SCHEME_RULES[sc.schemeType];
+      if (!rule || rule.growth === "none") return; // insurance schemes have no maturity corpus
+      const days = getDaysUntil(sc.maturityDate);
+      if (days <= horizon * 31 + 10) {
+        const projection = projectSchemeValue(sc);
+        items.push({
+          type: "govt_scheme_maturity",
+          category: "Govt Scheme",
+          icon: Star,
+          name: `${sc.schemeName || sc.schemeType}${sc.memberName ? ` — ${sc.memberName}` : ""} — Maturity`,
+          date: sc.maturityDate,
+          days,
+          amount: Number(sc.currentBalance || 0),
+          maturityAmount: projection?.mode === "compounding" ? projection.value : undefined,
+          rate: sc.interestRate,
+          color: THEME.gold,
+          detail: `${sc.interestRate ? `${sc.interestRate}% p.a. • ` : ""}Balance: ${fmtINRExact(sc.currentBalance)}`,
+        });
+      }
+    });
+
+    // Govt Scheme premium due (PMJJBY/PMSBY annual renewal)
+    (state.govtSchemes || []).forEach((sc) => {
+      const rule = SCHEME_RULES[sc.schemeType];
+      if (!rule || rule.growth !== "none") return;
+      const premium = Number(sc.premium || 0);
+      if (!premium || !sc.startDate) return;
+      const nextDueStr = nextAnnualOccurrence(sc.startDate, todayStr);
+      const days = getDaysUntil(nextDueStr);
+      if (days <= horizon * 31 + 10) {
+        items.push({
+          type: "govt_scheme_premium",
+          category: "Govt Scheme",
+          icon: Star,
+          name: `${sc.schemeName || sc.schemeType} — Premium Due`,
+          date: nextDueStr,
+          days,
+          amount: premium,
+          color: THEME.pink,
+          detail: `Annual Premium: ${fmtINRExact(premium)}`,
+        });
+      }
+    });
+
     // Real Estate builder demand letters (under-construction properties only) —
     // one-off milestone dues, not a recurring cycle, so unlike everything else in
     // this file each occurrence is a distinct existing record rather than a
@@ -434,14 +486,22 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
     const totalInflows = events
       .filter(
         (e) =>
-          ["fd_maturity", "rd_maturity", "bond_maturity", "dividend", "ppf_maturity"].includes(
-            e.type
-          ) && e.days >= 0
+          [
+            "fd_maturity",
+            "rd_maturity",
+            "bond_maturity",
+            "dividend",
+            "ppf_maturity",
+            "govt_scheme_maturity",
+          ].includes(e.type) && e.days >= 0
       )
       .reduce((s, e) => s + (e.maturityAmount || e.amount || 0), 0);
     const totalOutflows = events
       .filter(
-        (e) => ["insurance_premium", "cc_fee", "subscription"].includes(e.type) && e.days >= 0
+        (e) =>
+          ["insurance_premium", "cc_fee", "subscription", "govt_scheme_premium"].includes(
+            e.type
+          ) && e.days >= 0
       )
       .reduce((s, e) => s + (e.amount || 0), 0);
 
@@ -455,9 +515,14 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
         if (!monthlyMap[m]) monthlyMap[m] = { inflow: 0, outflow: 0, events: 0 };
         monthlyMap[m].events++;
         if (
-          ["fd_maturity", "rd_maturity", "bond_maturity", "dividend", "ppf_maturity"].includes(
-            e.type
-          )
+          [
+            "fd_maturity",
+            "rd_maturity",
+            "bond_maturity",
+            "dividend",
+            "ppf_maturity",
+            "govt_scheme_maturity",
+          ].includes(e.type)
         ) {
           monthlyMap[m].inflow += e.maturityAmount || e.amount || 0;
         } else {
@@ -478,6 +543,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
     { key: "cc", label: "Credit Cards" },
     { key: "subscription", label: "Subscriptions" },
     { key: "realestate", label: "Real Estate" },
+    { key: "govt_scheme", label: "Govt Schemes" },
   ];
 
   const toggleSection = (key) => setExpandedSection((p) => ({ ...p, [key]: !p[key] }));

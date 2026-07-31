@@ -110,6 +110,25 @@ export const addMonthsToDateStr = (dateStr: string, monthsToAdd: number): string
   return `${newY}-${String(newM + 1).padStart(2, "0")}-${String(newD).padStart(2, "0")}`;
 };
 
+// Returns the next occurrence (this year, or next if already past) of
+// `startDate`'s month/day on or after `refDate` — both "YYYY-MM-DD". Used for
+// annual-renewal due dates (insurance premiums etc). Built entirely from
+// local Y-M-D components (never a bare `new Date("YYYY-MM-DD")` parse, which
+// is UTC and can land on the wrong local day) and clamps the day-of-month so
+// e.g. a Feb 29 anniversary doesn't overflow into March on a non-leap year —
+// same class of bug documented on `getCCDueDate` above.
+export const nextAnnualOccurrence = (startDate: string, refDate: string): string => {
+  const [, m, d] = startDate.split("-").map(Number);
+  const [refY] = refDate.split("-").map(Number);
+  const clampedDate = (y: number) => {
+    const lastDay = new Date(y, m, 0).getDate();
+    return new Date(y, m - 1, Math.min(d, lastDay));
+  };
+  let occStr = getLocalDateString(clampedDate(refY));
+  if (occStr < refDate) occStr = getLocalDateString(clampedDate(refY + 1));
+  return occStr;
+};
+
 // ── Rental Escalation Tier Helpers ────────────────────────────────────────────
 
 export const getEffectiveRent = (p: any, yearMonth?: string): number => {

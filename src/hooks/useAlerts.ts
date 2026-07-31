@@ -7,8 +7,10 @@ import {
   getLocalDateString,
   calcTaxNewByFY,
   calcTaxOldByFY,
+  nextAnnualOccurrence,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
+import { SCHEME_RULES } from "../utils/govtSchemes";
 
 export type Alert = {
   level: "error" | "warn" | "info";
@@ -395,6 +397,44 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
         });
       }
     });
+    // Govt Scheme maturity alerts (within 30 days) — these never surfaced
+    // anywhere before, so a matured SSY/NSC/KVP/SCSS/POMIS/RBI Bond could sit
+    // unnoticed indefinitely once it stops earning at the matured rate.
+    (state.govtSchemes || []).forEach((sc: any) => {
+      if (!sc.maturityDate) return;
+      const rule = SCHEME_RULES[sc.schemeType];
+      if (!rule || rule.growth === "none") return;
+      const days = Math.ceil(
+        (new Date(sc.maturityDate + "T00:00:00").getTime() - todayMidnight) / 86400000
+      );
+      if (days >= 0 && days <= 30) {
+        list.push({
+          level: days <= 7 ? "error" : "warn",
+          title: `${sc.schemeName || sc.schemeType} maturing in ${days}d`,
+          detail: `Balance: ${fmtINRFull(sc.currentBalance)}. Decide: renew, withdraw, or reinvest.`,
+          tab: "govtschemes",
+        });
+      }
+    });
+    // Govt Scheme insurance premium due (PMJJBY/PMSBY annual renewal)
+    (state.govtSchemes || []).forEach((sc: any) => {
+      const rule = SCHEME_RULES[sc.schemeType];
+      if (!rule || rule.growth !== "none") return;
+      const premium = Number(sc.premium || 0);
+      if (!premium || !sc.startDate) return;
+      const nextDueStr = nextAnnualOccurrence(sc.startDate, today());
+      const days = Math.ceil(
+        (new Date(nextDueStr + "T00:00:00").getTime() - todayMidnight) / 86400000
+      );
+      if (days >= 0 && days <= 15) {
+        list.push({
+          level: days <= 3 ? "error" : "warn",
+          title: `${sc.schemeName || sc.schemeType} premium due in ${days}d`,
+          detail: `Annual premium of ${fmtINRFull(premium)} due — renew to keep the cover active.`,
+          tab: "govtschemes",
+        });
+      }
+    });
     // SIP bounce detection: SIP exists but no MF buy in current month
     const currentMonth = ym;
     const mfBuyMonths = new Set(
@@ -557,6 +597,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     state.realEstateProperties,
     state.realEstateDemands,
     state.realEstatePayments,
+    state.govtSchemes,
     marketData,
   ]);
 

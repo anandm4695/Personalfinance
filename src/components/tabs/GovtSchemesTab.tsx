@@ -31,11 +31,28 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+import {
+  APY_PENSION_TIERS,
+  PMKISAN_ANNUAL_BENEFIT,
+  SCHEME_RULES,
+  annualizeContribution,
+  getMaturityStatus,
+  getSchemeWarnings,
+  projectSchemeValue,
+} from "../../utils/govtSchemes";
 
 // Category colors drawn only from THEME tokens (no arbitrary hex, no collision
 // risk with the 10 selectable accent presets) — cycled across the 7 usable
 // tokens (accent/gold/sage/rust/violet/pink/cyan) since 11 scheme types need
 // more categorical distinction than the app's 5 core semantic colors alone.
+//
+// `hideContribution` suppresses the generic Contribution Amount/Frequency
+// fields for schemes where they'd either duplicate a dedicated field (PMJJBY/
+// PMSBY already have Annual Premium) or don't apply at all (PM-KISAN is a
+// fixed DBT benefit paid to the user, not a user contribution) — showing both
+// invited double-entry and silently corrupted the Annual Outflow stat.
+// `balanceLabel`/`balanceCardLabel` let PM-KISAN reuse the `currentBalance`
+// column to mean "amount received" instead of "corpus".
 const SCHEMES = [
   {
     value: "APY",
@@ -61,6 +78,7 @@ const SCHEMES = [
     color: THEME.sage,
     fields: ["coverageAmount", "premium"],
     hasBalance: false,
+    hideContribution: true,
   },
   {
     value: "PMSBY",
@@ -69,6 +87,7 @@ const SCHEMES = [
     color: THEME.gold,
     fields: ["coverageAmount", "premium"],
     hasBalance: false,
+    hideContribution: true,
   },
   {
     value: "PMKISAN",
@@ -76,7 +95,11 @@ const SCHEMES = [
     description: "₹6,000/year in 3 instalments for eligible farmers.",
     color: THEME.cyan,
     fields: [],
-    hasBalance: false,
+    hasBalance: true,
+    hideContribution: true,
+    balanceLabel: "Total Amount Received (₹)",
+    balancePlaceholder: "Sum of instalments received to date",
+    balanceCardLabel: "received",
   },
   {
     value: "SCSS",
@@ -169,12 +192,27 @@ function SchemeForm({ initial, onSave, onClose }: any) {
   const [form, setForm] = useState({ ...EMPTY, startDate: today(), ...initial });
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const meta = SCHEME_MAP[form.schemeType] || SCHEMES[0];
+  const isNew = !initial?.id;
+
+  // Auto-fill the official premium on a fresh PMJJBY/PMSBY entry so a blank
+  // field doesn't silently understate the Annual Outflow stat — still
+  // editable, since premiums have changed over the scheme's history.
+  useEffect(() => {
+    if (!isNew) return;
+    const rule = SCHEME_RULES[form.schemeType];
+    if (rule?.defaultPremium && !form.premium) {
+      set("premium", String(rule.defaultPremium));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.schemeType]);
 
   const save = () => {
     if (!form.schemeType) return;
     const name = form.schemeName || meta.label.split("—")[0].trim();
     onSave({ ...form, schemeName: name, id: initial?.id || uid() });
   };
+
+  const warnings = getSchemeWarnings(form);
 
   const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 
@@ -280,13 +318,13 @@ function SchemeForm({ initial, onSave, onClose }: any) {
       <ModalSection title="Contribution & Value" />
       <div style={g2}>
         {meta.hasBalance && (
-          <Field label="Current Balance (₹)">
+          <Field label={meta.balanceLabel || "Current Balance (₹)"}>
             <input
               className="form-input"
               type="number"
               value={form.currentBalance}
               onChange={(e) => set("currentBalance", e.target.value)}
-              placeholder="Current corpus"
+              placeholder={meta.balancePlaceholder || "Current corpus"}
             />
           </Field>
         )}
@@ -301,37 +339,46 @@ function SchemeForm({ initial, onSave, onClose }: any) {
             />
           </Field>
         )}
-        <Field label="Contribution Amount (₹)">
-          <input
-            className="form-input"
-            type="number"
-            value={form.contributionAmount}
-            onChange={(e) => set("contributionAmount", e.target.value)}
-            placeholder="Per instalment"
-          />
-        </Field>
-        <Field label="Contribution Frequency">
-          <select
-            className="form-input"
-            value={form.frequency}
-            onChange={(e) => set("frequency", e.target.value)}
-          >
-            {["monthly", "quarterly", "annual", "one_time"].map((f) => (
-              <option key={f} value={f}>
-                {f.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!meta.hideContribution && (
+          <>
+            <Field label="Contribution Amount (₹)">
+              <input
+                className="form-input"
+                type="number"
+                value={form.contributionAmount}
+                onChange={(e) => set("contributionAmount", e.target.value)}
+                placeholder="Per instalment"
+              />
+            </Field>
+            <Field label="Contribution Frequency">
+              <select
+                className="form-input"
+                value={form.frequency}
+                onChange={(e) => set("frequency", e.target.value)}
+              >
+                {["monthly", "quarterly", "annual", "one_time"].map((f) => (
+                  <option key={f} value={f}>
+                    {f.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
+        )}
         {meta.fields.includes("pensionAmount") && (
           <Field label="Monthly Pension at 60 (₹)">
-            <input
+            <select
               className="form-input"
-              type="number"
               value={form.pensionAmount}
               onChange={(e) => set("pensionAmount", e.target.value)}
-              placeholder="e.g. 5000"
-            />
+            >
+              <option value="">Select tier</option>
+              {APY_PENSION_TIERS.map((t) => (
+                <option key={t} value={t}>
+                  ₹{t.toLocaleString("en-IN")}
+                </option>
+              ))}
+            </select>
           </Field>
         )}
         {meta.fields.includes("coverageAmount") && (
@@ -357,6 +404,30 @@ function SchemeForm({ initial, onSave, onClose }: any) {
           </Field>
         )}
       </div>
+
+      {warnings.length > 0 && (
+        <div
+          style={{
+            background: `color-mix(in srgb, ${THEME.warning} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.warning} 25%, transparent)`,
+            borderRadius: 8,
+            padding: "10px 14px",
+            marginBottom: 16,
+            fontSize: 12,
+            color: THEME.warning,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          {warnings.map((w, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{w}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <ModalSection title="Additional Details" />
       <div style={g2}>
@@ -414,11 +485,34 @@ export function GovtSchemesTab({
     onSubTabChange?.(newSub);
   };
 
-  const totalCorpus = schemes.reduce((s, sc) => s + Number(sc.currentBalance || 0), 0);
-  const totalContrib = schemes.reduce((s, sc) => {
-    const freq = sc.frequency || "annual";
-    const mult = { monthly: 12, quarterly: 4, annual: 1, one_time: 0 }[freq] || 1;
-    return s + Number(sc.contributionAmount || 0) * mult;
+  // Corpus excludes PM-KISAN's currentBalance, which tracks cumulative DBT
+  // *received* (already-spent income), not a held asset.
+  const totalCorpus = schemes
+    .filter((sc) => sc.schemeType !== "PMKISAN")
+    .reduce((s, sc) => s + Number(sc.currentBalance || 0), 0);
+
+  // Annual Outflow = money the user pays INTO schemes: periodic contributions
+  // (SSY/NSC/KVP/APY/etc, gated off for schemes whose form hides that field)
+  // plus PMJJBY/PMSBY's dedicated Annual Premium — previously excluded here,
+  // which silently understated this stat for anyone tracking insurance schemes.
+  const totalOutflow = schemes.reduce((s, sc) => {
+    const meta = SCHEME_MAP[sc.schemeType];
+    if (meta?.hideContribution) {
+      return s + Number(sc.premium || 0);
+    }
+    return s + annualizeContribution(Number(sc.contributionAmount || 0), sc.frequency || "annual");
+  }, 0);
+
+  // Annual Benefit = money schemes pay OUT to the user: PM-KISAN's fixed DBT
+  // and the annualized interest payout for SCSS/POMIS/RBI Bond (which
+  // disburse interest on a cycle rather than compounding it into the corpus).
+  const totalBenefit = schemes.reduce((s, sc) => {
+    if (sc.schemeType === "PMKISAN") return s + PMKISAN_ANNUAL_BENEFIT;
+    const rule = SCHEME_RULES[sc.schemeType];
+    if (rule?.growth === "payout") {
+      return s + (Number(sc.currentBalance || 0) * Number(sc.interestRate || 0)) / 100;
+    }
+    return s;
   }, 0);
 
   const save = (data: any) => {
@@ -515,10 +609,17 @@ export function GovtSchemesTab({
             color={THEME.success}
           />
           <StatCard
-            label="Annual Contribution"
-            value={<Prv>{fmtINRFull(totalContrib)}</Prv>}
+            label="Annual Outflow"
+            value={<Prv>{fmtINRFull(totalOutflow)}</Prv>}
             icon={<TrendingUp size={18} />}
             color={THEME.primary}
+          />
+          <StatCard
+            label="Annual Benefit"
+            value={<Prv>{fmtINRFull(totalBenefit)}</Prv>}
+            sub="PM-KISAN + payout schemes"
+            icon={<Repeat size={18} />}
+            color={THEME.violet}
           />
           <StatCard
             label="Schemes Active"
@@ -594,6 +695,8 @@ export function GovtSchemesTab({
               label: sc.schemeType,
             };
             const isExpanded = expanded === sc.id;
+            const maturityStatus = getMaturityStatus(sc.maturityDate);
+            const projection = projectSchemeValue(sc);
 
             return (
               <Card key={sc.id} style={{ borderLeft: `4px solid ${meta.color}` }}>
@@ -629,7 +732,9 @@ export function GovtSchemesTab({
                       <div style={{ fontWeight: 700, fontSize: 16, color: THEME.success }}>
                         <Prv>{fmtINRFull(Number(sc.currentBalance))}</Prv>
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.textMuted }}>corpus</div>
+                      <div style={{ fontSize: 11, color: THEME.textMuted }}>
+                        {meta.balanceCardLabel || "corpus"}
+                      </div>
                     </div>
                   )}
                   {Number(sc.pensionAmount) > 0 && (
@@ -651,6 +756,19 @@ export function GovtSchemesTab({
 
                   {Number(sc.interestRate) > 0 && (
                     <Badge variant="sage">{sc.interestRate}% p.a.</Badge>
+                  )}
+                  {maturityStatus && (
+                    <Badge
+                      variant={
+                        maturityStatus.urgency === "overdue"
+                          ? "rust"
+                          : maturityStatus.urgency === "soon"
+                            ? "gold"
+                            : "muted"
+                      }
+                    >
+                      {maturityStatus.label}
+                    </Badge>
                   )}
 
                   <div style={{ display: "flex", gap: 4 }}>
@@ -755,6 +873,27 @@ export function GovtSchemesTab({
                       )}
                       {sc.bankAccount && <div>Bank: {sc.bankAccount}</div>}
                     </div>
+                    {projection && (
+                      <div
+                        style={{
+                          marginTop: 10,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: meta.color,
+                        }}
+                      >
+                        <TrendingUp size={13} />
+                        {projection.label}: <Prv>{fmtINRFull(projection.value)}</Prv>
+                        {projection.mode === "payout" && (
+                          <span style={{ fontWeight: 400, color: THEME.textMuted }}>
+                            (based on current balance)
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {sc.notes && (
                       <div
                         style={{
