@@ -67,6 +67,23 @@ export const monthsBetween = (d1: string, d2: string) => {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 };
 
+// Add `monthsToAdd` calendar months to a "YYYY-MM-DD" date string, clamping the day-of-month so
+// it never overflows into a later month (e.g. Jan 31 + 1 month must land on Feb 28/29, not roll
+// over into March — plain Date.setMonth silently overflows for day 29-31 starting dates when the
+// target month is shorter). Operates entirely on Y-M-D components (no Date-object round trip),
+// so it's also immune to the UTC/local-timezone off-by-one that `new Date(str).toISOString()`
+// patterns are prone to for users outside IST. Mirrors XIRRReportTab's Date-object version of
+// the same fix, for call sites that work with date strings instead.
+export const addMonthsToDateStr = (dateStr: string, monthsToAdd: number): string => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const total = m - 1 + monthsToAdd;
+  const newY = y + Math.floor(total / 12);
+  const newM = ((total % 12) + 12) % 12;
+  const daysInMonth = new Date(newY, newM + 1, 0).getDate();
+  const newD = Math.min(d, daysInMonth);
+  return `${newY}-${String(newM + 1).padStart(2, "0")}-${String(newD).padStart(2, "0")}`;
+};
+
 // ── Rental Escalation Tier Helpers ────────────────────────────────────────────
 
 export const getEffectiveRent = (p: any, yearMonth?: string): number => {
@@ -770,10 +787,12 @@ export const calculateEpfBalance = (e: any, asOf?: string): number => {
   // resolve via the passbook math (correctly returning 0 for months before its first entry),
   // rather than falling through to the static e.balance fallback just because every qualifying
   // transaction happens to be filtered out for an early asOf month.
-  const hasPassbook = txs.some(
-    (t: any) =>
-      t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in"
-  );
+  // Bug fix: this previously only counted "monthly_contribution"/"interest_credit"/"transfer_in"
+  // as evidence of a passbook, so an account tracked purely via the simpler "employee_contribution"
+  // / "employer_contribution" / "withdrawal" entry types (a normal, UI-offered way to log EPF —
+  // see EPF_TX_TYPES in InvestmentsTab.tsx) had every entered transaction silently ignored in
+  // favor of the stale static e.balance field. Any non-empty ledger should win over that fallback.
+  const hasPassbook = txs.length > 0;
 
   if (!hasPassbook) {
     return Number(e.balance || 0);

@@ -38,6 +38,7 @@ import {
   today,
   uid,
   monthsBetween,
+  addMonthsToDateStr,
   calculateEpfBalance,
   calcCAGR,
   calcXIRR,
@@ -76,6 +77,55 @@ interface InvestmentsTabProps {
 const liveMfNav = (m: any, mfMarketData?: Record<string, any>): number => {
   const live = mfMarketData?.[m?.mfCode]?.nav;
   return live !== undefined && live !== null && live !== "" ? Number(live) : Number(m?.currentNav) || 0;
+};
+
+// Bonds don't compound like FD/RD — their principal is flat and the return comes purely from
+// coupon income. Previously "current value" was hardcoded identical to "principal" everywhere
+// (portfolio summary strip AND per-card display), so bonds silently contributed zero gain/loss
+// to Net Returns / Return % no matter how long they'd been held or what coupon they paid.
+// This adds a real (if simplified — no per-coupon-date ledger exists) valuation: principal plus
+// coupon income accrued since purchase, capped at the term so a matured bond doesn't keep
+// accruing forever, and shown as a single running total rather than modeling each individual
+// coupon payment date.
+// Bug fix: this file had four different, disagreeing formulas for an MF lot's "current value"
+// (portfolio KPI strip, table group rows, row display, per-lot rows) — whenever a fund had no
+// live NAV and no stored currentNav, some fell back to the invested amount (implying 0% return)
+// while others returned a hard ₹0 or "—", so the same fund could show conflicting figures within
+// one screen (e.g. a nonzero "Current Value" but a near-0% "Weight", with P&L hidden). Centralize
+// both the invested-value fallback and the current-value fallback here, and expose isStale so
+// callers can show an honest "NAV unavailable" indicator instead of a silently fabricated number.
+const mfInvestedValue = (m: any): number => {
+  const stored = Number(m?.invested ?? m?.investedValue) || 0;
+  if (stored > 0) return stored;
+  const units = Number(m?.units) || 0;
+  const buyNav = Number(m?.buyNav) || 0;
+  return units * buyNav;
+};
+
+const mfCurrentValueOf = (
+  m: any,
+  getLiveNavFn: (m: any) => number
+): { value: number; isStale: boolean } => {
+  const units = Number(m?.units) || 0;
+  const nav = getLiveNavFn(m);
+  if (units > 0 && nav > 0) return { value: units * nav, isStale: false };
+  return { value: mfInvestedValue(m), isStale: true };
+};
+
+const bondAnnualCoupon = (b: any): number => {
+  const principal =
+    Number(b?.totalPrincipalAmount || 0) ||
+    Number(b?.numberOfUnits || 0) * Number(b?.faceValuePerUnit || 0);
+  return (principal * (Number(b?.coupon) || 0)) / 100;
+};
+
+const bondCurrentValue = (b: any): number => {
+  const principal = Number(b?.totalInvestmentAmount || b?.totalPrincipalAmount || b?.faceValue) || 0;
+  const annualCoupon = bondAnnualCoupon(b);
+  if (!b?.orderDate || annualCoupon <= 0) return principal;
+  const fullTermYears = b?.maturityDate ? monthsBetween(b.orderDate, b.maturityDate) / 12 : Infinity;
+  const elapsedYears = Math.max(0, monthsBetween(b.orderDate, today()) / 12);
+  return principal + annualCoupon * Math.min(elapsedYears, fullTermYears);
 };
 
 // AMC / fund-house names, longest-first so multi-word brands (e.g. "ICICI Prudential")
@@ -187,10 +237,12 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
   });
   const calcFdMaturity = (startDate: string, years: string) => {
     if (!startDate || !years || isNaN(Number(years))) return "";
-    const d = new Date(startDate);
+    // Bug fix: the previous new Date(str)+setMonth+toISOString round trip both mis-handled
+    // day-of-month overflow (e.g. 31 Jan + 1 month silently rolled into March) and was subject
+    // to a UTC/local-timezone off-by-one for browsers outside IST. addMonthsToDateStr works
+    // entirely on Y-M-D components and clamps the day, avoiding both.
     const totalMonths = Math.round(Number(years) * 12);
-    d.setMonth(d.getMonth() + totalMonths);
-    return d.toISOString().slice(0, 10);
+    return addMonthsToDateStr(startDate, totalMonths);
   };
   const setFdField = (field: string, value: string) => {
     setFd((prev) => {
@@ -1266,11 +1318,24 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   const totalCurrent =
     (state.fixedDeposits?.reduce((s: number, x: any) => s + fdCurrentValue(x), 0) || 0) +
     (state.recurringDeposits?.reduce((s: number, x: any) => s + rdCurrentValue(x), 0) || 0) +
-    (state.bonds?.reduce(
-      (s: number, x: any) => s + (Number(x.totalInvestmentAmount || x.faceValue) || 0),
-      0
-    ) || 0) +
-    (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.bonds?.reduce((s: number, x: any) => s + bondCurrentValue(x), 0) || 0) +
+    (state.ppf?.reduce((s: number, x: any) => {
+      // Bug fix: unlike totalPrincipal just above, this had no ledger fallback — a PPF account
+      // tracked purely via the deposit/withdrawal ledger (balance left at 0) showed a large
+      // "Total Invested" against a near-zero "Current Value", implying a huge loss. Mirror NPS's
+      // fallback (below): use the manual balance when set, else net ledger deposits-withdrawals.
+      const manualBalance = Number(x.balance) || 0;
+      if (manualBalance > 0) return s + manualBalance;
+      const txs = x.transactions || [];
+      if (txs.length === 0) return s;
+      const deposits = txs
+        .filter((t: any) => t.type === "deposit")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const withdrawals = txs
+        .filter((t: any) => t.type === "withdrawal")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      return s + Math.max(0, deposits - withdrawals);
+    }, 0) || 0) +
     (state.nps?.reduce((s: number, x: any) => {
       const bal = Number(x.balance) || 0;
       if (bal > 0) return s + bal;
@@ -1917,9 +1982,9 @@ function EditFDModal({ fd: initial, onClose, onSave }: any) {
 
   const calcMaturity = (sd: string, yrs: string) => {
     if (!sd || !yrs || isNaN(Number(yrs))) return "";
-    const d = new Date(sd);
-    d.setMonth(d.getMonth() + Math.round(Number(yrs) * 12));
-    return d.toISOString().slice(0, 10);
+    // Bug fix: see calcFdMaturity in AddInvestmentModal — the old setMonth+toISOString round
+    // trip both overflowed day-of-month (31 Jan + 1mo → March) and was UTC-timezone-fragile.
+    return addMonthsToDateStr(sd, Math.round(Number(yrs) * 12));
   };
   const setField = (field: string, value: string) => {
     setForm((prev) => {
@@ -3237,8 +3302,10 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                     {r.startDate &&
                       tenureMonths > 0 &&
                       (() => {
-                        const d = new Date(r.startDate + "T00:00:00");
-                        d.setMonth(d.getMonth() + tenureMonths);
+                        // addMonthsToDateStr clamps day-of-month overflow (e.g. 31 Aug + 1mo
+                        // must land in Sep, not silently roll into Oct like raw setMonth would).
+                        const maturityStr = addMonthsToDateStr(r.startDate, tenureMonths);
+                        const d = new Date(maturityStr + "T00:00:00");
                         const lbl = d.toLocaleDateString("en-IN", {
                           month: "short",
                           year: "numeric",
@@ -3456,6 +3523,8 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       year: "numeric",
                     })
                   : "—";
+              const currentVal = bondCurrentValue(b);
+              const couponEarned = currentVal - investmentAmt;
 
               return (
                 <Card key={b.id} style={{ padding: 22, borderTop: `3px solid ${BOND_AMBER}` }}>
@@ -3485,6 +3554,11 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       {b.issuer && (
                         <Badge variant="muted" style={{ fontSize: 9 }}>
                           {b.issuer}
+                        </Badge>
+                      )}
+                      {ml?.matured && (
+                        <Badge variant="muted" style={{ fontSize: 9 }}>
+                          Matured
                         </Badge>
                       )}
                     </div>
@@ -3549,11 +3623,17 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       fontWeight: 900,
                       color: BOND_AMBER,
                       letterSpacing: "-0.02em",
-                      marginBottom: 16,
+                      marginBottom: couponEarned > 0 ? 4 : 16,
                     }}
                   >
                     <Prv>{fmtINRFull(investmentAmt)}</Prv>
                   </div>
+                  {couponEarned > 0 && (
+                    <div style={{ fontSize: 10, color: THEME.sage, marginBottom: 16 }}>
+                      +{fmtINRFull(couponEarned)} coupon earned to date ·{" "}
+                      <Prv>{fmtINRFull(currentVal)}</Prv> current value
+                    </div>
+                  )}
 
                   {/* Key metrics — 4 amber pills */}
                   <div
@@ -4687,6 +4767,56 @@ function PPFCsvPanel({ onImport }: any) {
   );
 }
 
+/* ── Edit PPF Modal ──────────────────────────────────────────────────── */
+// Lets the balance be reconciled after the bank/post-office credits the annual PPF interest —
+// previously PPF had no edit path at all, so `p.balance` was frozen at whatever was entered
+// once when the account was first added (see PPFAccountCard's ledger-fallback comment below).
+function EditPPFModal({ ppf: initial, onClose, onSave }: any) {
+  const [form, setForm] = useState({
+    institution: initial.institution || initial.bank || "",
+    accountNumber: initial.accountNumber || "",
+    balance: initial.balance != null ? String(initial.balance) : "",
+  });
+  return (
+    <Modal title="Edit PPF Account" onClose={onClose}>
+      <Field label="Bank / Post Office">
+        <input
+          style={inp}
+          value={form.institution}
+          onChange={(e) => setForm({ ...form, institution: e.target.value })}
+          placeholder="e.g. SBI, Post Office"
+        />
+      </Field>
+      <Field label="Account Number">
+        <input
+          style={inp}
+          value={form.accountNumber}
+          onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+          placeholder="PPF account number"
+        />
+      </Field>
+      <Field label="Current Balance (₹)">
+        <input
+          style={inp}
+          type="number"
+          value={form.balance}
+          onChange={(e) => setForm({ ...form, balance: e.target.value })}
+          placeholder="250000"
+        />
+      </Field>
+      <div style={{ fontSize: 11, color: THEME.muted, marginTop: -6, marginBottom: 4 }}>
+        Update this after your bank/post office credits the yearly PPF interest — the ledger
+        below tracks deposits &amp; withdrawals only, not interest.
+      </div>
+      <ModalActions
+        onSave={() => form.institution && onSave({ ...form, balance: Number(form.balance) || 0 })}
+        onClose={onClose}
+        saveLabel="Save Changes"
+      />
+    </Modal>
+  );
+}
+
 /* ── PPF Account Card with Ledger ────────────────────────────────────── */
 function PPFAccountCard({ p, removeItem, updateItem }: any) {
   const [txs, setTxs] = useState<any[]>(p.transactions || []);
@@ -4694,6 +4824,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
   const [showTxModal, setShowTxModal] = useState(false);
   const [editTx, setEditTx] = useState<any>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showEditAccount, setShowEditAccount] = useState(false);
 
   const sorted = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalDeposits = txs
@@ -4702,6 +4833,13 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
   const totalWithdrawals = txs
     .filter((t) => t.type === "withdrawal")
     .reduce((s, t) => s + Number(t.amount), 0);
+  // Bug fix: the balance display below previously always rendered the static p.balance field,
+  // ignoring the transaction ledger entirely — an account tracked purely via deposits/withdrawals
+  // (and never given a manual balance) showed ₹0 forever. Mirror NPSAccountCard's fallback.
+  const manualBalance = Number(p.balance) || 0;
+  const ledgerNet = Math.max(0, totalDeposits - totalWithdrawals);
+  const balanceFromLedger = manualBalance === 0 && txs.length > 0;
+  const displayBalance = manualBalance > 0 ? manualBalance : ledgerNet;
 
   const persist = (updated: any[]) => {
     setTxs(updated);
@@ -4765,21 +4903,38 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
             )}
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<Trash2 size={12} />}
-          style={{ color: THEME.rust }}
-          onClick={() => removeItem("ppf", p.id)}
-          aria-label={`Delete ${p.institution || p.bank || "PPF"} account`}
-          title="Delete"
-        />
+        <div style={{ display: "flex", gap: 4 }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Pencil size={12} />}
+            onClick={() => setShowEditAccount(true)}
+            aria-label={`Edit ${p.institution || p.bank || "PPF"} account`}
+            title="Edit"
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Trash2 size={12} />}
+            style={{ color: THEME.rust }}
+            onClick={() => removeItem("ppf", p.id)}
+            aria-label={`Delete ${p.institution || p.bank || "PPF"} account`}
+            title="Delete"
+          />
+        </div>
       </div>
 
       {/* Balance */}
-      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Current Balance</div>
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>
+        Current Balance
+        {balanceFromLedger && (
+          <span style={{ fontSize: 10, color: THEME.cyan, marginLeft: 6, fontWeight: 600 }}>
+            from ledger — update after yearly interest credit
+          </span>
+        )}
+      </div>
       <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>
-        <Prv>{fmtINRFull(p.balance)}</Prv>
+        <Prv>{fmtINRFull(displayBalance)}</Prv>
       </div>
 
       {/* Stats row */}
@@ -5022,6 +5177,18 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
           onSave={saveTx}
         />
       )}
+
+      {/* Edit Account Modal */}
+      {showEditAccount && (
+        <EditPPFModal
+          ppf={p}
+          onClose={() => setShowEditAccount(false)}
+          onSave={(updated: any) => {
+            updateItem("ppf", p.id, updated);
+            setShowEditAccount(false);
+          }}
+        />
+      )}
     </Card>
   );
 }
@@ -5090,6 +5257,13 @@ function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: a
   const a = Number(altAssetPct) || 0;
   const total = e + c + g + a;
   if (!total) return null;
+  // Bug fix: bar segments used to be renormalized to (pct/total)*100%, so the bar always
+  // visually filled edge-to-edge regardless of whether e+c+g+a actually summed to 100 — an
+  // incomplete (e.g. 80%) or invalid (e.g. 110%) allocation looked exactly like a valid,
+  // complete one, while the labels beside it still showed the raw (non-renormalized) percentages.
+  // Segments are now sized directly off the raw percentages against a fixed 100%-wide track, so
+  // an incomplete allocation visibly leaves a gap instead of silently stretching to fill it.
+  const isInvalid = Math.abs(total - 100) > 1;
   // Fixed chart-extension tokens (not the user-selectable accent) — raw hex
   // here would go stale in dark mode and could collide with the active
   // accent preset. Deliberately avoids THEME.gold since it matches the NPS
@@ -5102,9 +5276,21 @@ function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: a
   ].filter((b) => b.pct > 0);
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", height: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          borderRadius: 6,
+          overflow: "hidden",
+          height: 8,
+          width: "100%",
+          background: `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+        }}
+      >
         {bars.map((b) => (
-          <div key={b.label} style={{ width: `${(b.pct / total) * 100}%`, background: b.color }} />
+          <div
+            key={b.label}
+            style={{ width: `${Math.min(100, b.pct)}%`, background: b.color, flexShrink: 0 }}
+          />
         ))}
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 5, flexWrap: "wrap" as const }}>
@@ -5131,6 +5317,11 @@ function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: a
             {b.label} {b.pct}%
           </span>
         ))}
+        {isInvalid && (
+          <span style={{ fontSize: 10, color: THEME.rust, fontWeight: 700 }}>
+            Total {total}% — should sum to 100%
+          </span>
+        )}
       </div>
     </div>
   );
@@ -5158,7 +5349,10 @@ function NPSTransactionModal({ onClose, onSave, initial }: any) {
 
   const empAmt = Number(form.employeeAmount || 0);
   const erAmt = Number(form.employerAmount || 0);
-  const valid = !!form.date && (empAmt > 0 || erAmt > 0);
+  // Bug fix: previously only required ONE side positive, so e.g. employeeAmount=-5000,
+  // employerAmount=10000 passed validation and silently corrupted totalEmployee/corpus sums —
+  // the `min={0}` on the inputs below doesn't block a pasted or programmatically-set negative.
+  const valid = !!form.date && empAmt >= 0 && erAmt >= 0 && (empAmt > 0 || erAmt > 0);
 
   return (
     <Modal title={initial ? "Edit NPS Transaction" : "Add NPS Transaction"} onClose={onClose}>
@@ -7296,10 +7490,11 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const closingEmployer = totalEmployer + erInterest + transferInEr;
   const closingPension = totalPension + transferInPen + penInterest;
   const closingTotal = closingEmployee + closingEmployer + closingPension - totalWithdrawal;
-  const hasPassbook = txs.some(
-    (t) =>
-      t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in"
-  );
+  // Any non-empty ledger wins over the static balance fallback — matches calculateEpfBalance
+  // in finance.ts (previously only monthly_contribution/interest_credit/transfer_in counted,
+  // so accounts tracked via the simpler employee/employer/withdrawal entry types had their
+  // logged transactions silently ignored here).
+  const hasPassbook = txs.length > 0;
   const displayCorpus = hasPassbook ? closingTotal : Number(p.balance || 0);
 
   const stats = [
@@ -7640,7 +7835,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                 .filter(
                   (x) => x.type === "monthly_contribution" || x.type === "employer_contribution"
                 )
-                .reduce((s, x) => s + Number(x.employerShare || 0), 0);
+                .reduce((s, x) => s + Number(x.employerShare || x.amount || 0), 0);
               const estPenC = estTxs
                 .filter((x) => x.type === "monthly_contribution")
                 .reduce((s, x) => s + Number(x.pensionShare || 0), 0);
@@ -7746,14 +7941,23 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                           <Pencil size={11} />
                         </button>
                         <button
-                          onClick={() => removeEst(est.id)}
+                          onClick={() => {
+                            if (alreadyTransferred) return;
+                            removeEst(est.id);
+                          }}
+                          disabled={alreadyTransferred}
                           aria-label={`Delete ${est.employerName || "employer"} service history`}
-                          title="Delete"
+                          title={
+                            alreadyTransferred
+                              ? "Can't delete — a Transfer In references this employer by name. Deleting it would cause this establishment's own transactions to be double-counted alongside the transfer-in lump sum."
+                              : "Delete"
+                          }
                           style={{
                             background: "none",
                             border: "none",
-                            cursor: "pointer",
-                            color: THEME.rust,
+                            cursor: alreadyTransferred ? "not-allowed" : "pointer",
+                            color: alreadyTransferred ? THEME.muted : THEME.rust,
+                            opacity: alreadyTransferred ? 0.5 : 1,
                             padding: 6,
                             display: "flex",
                             alignItems: "center",
@@ -9911,16 +10115,9 @@ function MFSection({
     }
   }, [items, mfSells]);
 
-  const totalInvested = items.reduce(
-    (s: number, m: any) => s + (Number(m.invested || m.investedValue) || 0),
-    0
-  );
+  const totalInvested = items.reduce((s: number, m: any) => s + mfInvestedValue(m), 0);
   const totalCurrent = items.reduce(
-    (s: number, m: any) =>
-      s +
-      (Number(m.units || 0) * getLiveNav(m) ||
-        Number(m.invested || m.investedValue) ||
-        0),
+    (s: number, m: any) => s + mfCurrentValueOf(m, getLiveNav).value,
     0
   );
   const totalPnl = totalCurrent - totalInvested;
@@ -10223,12 +10420,31 @@ function MFSection({
                   <Button
                     variant="secondary"
                     size="sm"
-                    icon={<RefreshCw size={13} className={refreshingAll ? "animate-spin" : ""} />}
+                    icon={
+                      <RefreshCw
+                        size={13}
+                        className={refreshingAll || fetchingMfNavs ? "animate-spin" : ""}
+                      />
+                    }
                     onClick={refreshAllNavs}
-                    style={{ opacity: refreshingAll ? 0.6 : 1 }}
+                    disabled={refreshingAll || fetchingMfNavs}
+                    style={{ opacity: refreshingAll || fetchingMfNavs ? 0.6 : 1 }}
                   >
-                    {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
+                    {refreshingAll || fetchingMfNavs ? "Refreshing NAVs…" : "Refresh All NAVs"}
                   </Button>
+                  {/* Previously plumbed in but never rendered — non-technical users had no way
+                      to tell whether displayed NAVs were fresh or hours-old from cache. */}
+                  {!refreshingAll && !fetchingMfNavs && mfMarketDataTs && (
+                    <span style={{ fontSize: 10, color: THEME.muted }}>
+                      NAVs as of{" "}
+                      {new Date(mfMarketDataTs).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
                   {!refreshingAll &&
                     (() => {
                       const failed = Object.values(navError).filter(Boolean).length;
@@ -10312,17 +10528,13 @@ function MFSection({
             });
             const grpVal = (g: any) =>
               g.items.reduce(
-                (s: number, m: any) => s + (Number(m.units || 0) * getLiveNav(m) || 0),
+                (s: number, m: any) => s + mfCurrentValueOf(m, getLiveNav).value,
                 0
               );
             const grpInvFn = (g: any) =>
-              g.items.reduce(
-                (s: number, m: any) =>
-                  s +
-                  (Number(m.invested || m.investedValue) ||
-                    (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)),
-                0
-              );
+              g.items.reduce((s: number, m: any) => s + mfInvestedValue(m), 0);
+            const grpIsStale = (g: any) =>
+              g.items.every((m: any) => mfCurrentValueOf(m, getLiveNav).isStale);
             const grpUnits = (g: any) =>
               g.items.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
 
@@ -10517,21 +10729,12 @@ function MFSection({
                               (s: number, m: any) => s + (Number(m.units) || 0),
                               0
                             );
-                            const grpInvested = groupItems.reduce(
-                              (s: number, m: any) =>
-                                s +
-                                (Number(m.invested || m.investedValue) ||
-                                  (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)),
-                              0
-                            );
-                            const grpCurrent = groupItems.reduce(
-                              (s: number, m: any) =>
-                                s + (Number(m.units || 0) * getLiveNav(m) || 0),
-                              0
-                            );
-                            const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
+                            const grpInvested = grpInvFn(grp);
+                            const grpCurrent = grpVal(grp);
+                            const grpStale = grpIsStale(grp);
+                            const grpPnl = grpStale ? 0 : grpCurrent - grpInvested;
                             const grpPnlPct =
-                              grpInvested > 0 && grpCurrent > 0 ? (grpPnl / grpInvested) * 100 : 0;
+                              grpInvested > 0 && !grpStale ? (grpPnl / grpInvested) * 100 : 0;
                             const displayName = grp.fundName || "Unnamed Fund";
                             const displayFolio = grp.folio;
                             const isExpanded = lotExpandedGroups.has(gKey);
@@ -10718,7 +10921,12 @@ function MFSection({
                                     <Prv>{fmtINRFull(grpInvested)}</Prv>
                                   </td>
                                   <td style={{ ...mfTd, textAlign: "right", fontWeight: 800 }}>
-                                    <Prv>{fmtINRFull(grpCurrent || grpInvested)}</Prv>
+                                    <Prv>{fmtINRFull(grpCurrent)}</Prv>
+                                    {grpStale && (
+                                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 600 }}>
+                                        NAV unavailable
+                                      </div>
+                                    )}
                                   </td>
 
                                   {/* Portfolio Weight column with allocation bar */}
@@ -10795,7 +11003,7 @@ function MFSection({
                                   </td>
 
                                   <td style={{ ...mfTd, textAlign: "right", paddingRight: 20 }}>
-                                    {grpCurrent > 0 ? (
+                                    {!grpStale ? (
                                       <>
                                         <div
                                           style={{
@@ -11206,6 +11414,14 @@ function MFSection({
                                                       schemeName:
                                                         displayName +
                                                         (displayFolio ? ` (${displayFolio})` : ""),
+                                                      // Kept separate from schemeName (which
+                                                      // includes the folio suffix for display) —
+                                                      // grpXirr below and SellMFModal's single-lot
+                                                      // path both key mfSells.scheme off the bare
+                                                      // fund name, so persisting the folio-suffixed
+                                                      // string here silently orphaned this fund's
+                                                      // realized-sale cash flows from its own XIRR.
+                                                      fundName: displayName,
                                                       lots: groupItems.map((m: any) => ({
                                                         ...m,
                                                         currentNav: getLiveNav(m),
@@ -11286,15 +11502,13 @@ function MFSection({
                                                   const lotUnits = Number(lot.units) || 0;
                                                   const lotBuyNav = Number(lot.buyNav) || 0;
                                                   const lotCurrentNav = getLiveNav(lot);
-                                                  const lotInv =
-                                                    Number(lot.invested || lot.investedValue) ||
-                                                    lotBuyNav * lotUnits;
-                                                  const lotCurr = lotUnits * lotCurrentNav;
-                                                  const lotPnl = lotCurr > 0 ? lotCurr - lotInv : 0;
+                                                  const lotInv = mfInvestedValue(lot);
+                                                  const lotValueInfo = mfCurrentValueOf(lot, getLiveNav);
+                                                  const lotCurr = lotValueInfo.value;
+                                                  const lotStale = lotValueInfo.isStale;
+                                                  const lotPnl = lotStale ? 0 : lotCurr - lotInv;
                                                   const lotPnlPct =
-                                                    lotInv > 0 && lotCurr > 0
-                                                      ? (lotPnl / lotInv) * 100
-                                                      : 0;
+                                                    lotInv > 0 && !lotStale ? (lotPnl / lotInv) * 100 : 0;
                                                   const days = lot.buyDate
                                                     ? Math.floor(
                                                         (Date.now() -
@@ -11311,7 +11525,7 @@ function MFSection({
                                                   const nearLTCG =
                                                     days !== null && !isLTCG && days > 300;
                                                   const cagr =
-                                                    lot.buyDate && lotInv > 0 && lotCurr > 0
+                                                    lot.buyDate && lotInv > 0 && !lotStale
                                                       ? calcCAGR(lotInv, lotCurr, lot.buyDate)
                                                       : null;
 
@@ -11399,7 +11613,7 @@ function MFSection({
                                                           textAlign: "right",
                                                         }}
                                                       >
-                                                        {lotCurr > 0 ? (
+                                                        {!lotStale ? (
                                                           <>
                                                             <div
                                                               style={{
@@ -11458,7 +11672,18 @@ function MFSection({
                                                           fontWeight: 800,
                                                         }}
                                                       >
-                                                        {lotCurr > 0 ? fmtINRFull(lotCurr) : "—"}
+                                                        {fmtINRFull(lotCurr)}
+                                                        {lotStale && (
+                                                          <div
+                                                            style={{
+                                                              fontSize: 9,
+                                                              color: THEME.muted,
+                                                              fontWeight: 600,
+                                                            }}
+                                                          >
+                                                            NAV unavailable
+                                                          </div>
+                                                        )}
                                                       </td>
                                                       <td
                                                         style={{
@@ -11483,10 +11708,39 @@ function MFSection({
                                                             style={{ color: THEME.gold }}
                                                             onClick={(e: any) => {
                                                               e.stopPropagation();
-                                                              setSellMF({ ...lot, currentNav: getLiveNav(lot) });
+                                                              if (hasMultiple) {
+                                                                // Selling an arbitrarily-chosen lot out of
+                                                                // purchase order would bypass mandatory FIFO
+                                                                // cost-basis matching (Sec 2(42A)/AMC redemption
+                                                                // rules always consume the oldest lot first) —
+                                                                // route multi-lot funds through the FIFO
+                                                                // allocator instead so STCG/LTCG splits here
+                                                                // actually match the AMC's Capital Gains
+                                                                // Statement / Form 26AS.
+                                                                setFifoSellMFGroup({
+                                                                  schemeName:
+                                                                    displayName +
+                                                                    (displayFolio ? ` (${displayFolio})` : ""),
+                                                                  fundName: displayName,
+                                                                  lots: groupItems.map((m: any) => ({
+                                                                    ...m,
+                                                                    currentNav: getLiveNav(m),
+                                                                  })),
+                                                                });
+                                                              } else {
+                                                                setSellMF({ ...lot, currentNav: getLiveNav(lot) });
+                                                              }
                                                             }}
-                                                            aria-label={`Sell ${lot.fundName || displayName} lot`}
-                                                            title="Sell"
+                                                            aria-label={
+                                                              hasMultiple
+                                                                ? `Sell ${lot.fundName || displayName} — multiple lots, opens FIFO order`
+                                                                : `Sell ${lot.fundName || displayName} lot`
+                                                            }
+                                                            title={
+                                                              hasMultiple
+                                                                ? "Multiple lots — sells oldest-first (FIFO) as required for correct STCG/LTCG"
+                                                                : "Sell"
+                                                            }
                                                           />
                                                           <Button
                                                             variant="ghost"
@@ -11571,8 +11825,24 @@ function MFSection({
                     <Activity size={16} />
                   </div>
                   <div style={{ textAlign: "left" }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: THEME.ink,
+                      }}
+                    >
                       Expense Ratio Impact Analyzer
+                      <Badge
+                        variant="muted"
+                        style={{ fontSize: 9 }}
+                        title="Uses flat assumed expense ratios by plan/asset type (Direct Equity 0.5%, Regular Equity 1.5%, Direct Debt 0.2%, Regular Debt 1%) — actual TERs vary by fund and can be materially higher for sectoral/small-AUM funds"
+                      >
+                        Estimated
+                      </Badge>
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
                       Hidden cost of expense ratios and potential savings from switching to Direct
@@ -12012,7 +12282,7 @@ function MFSection({
               addItem("mfSells", {
                 id: `mfs-${Date.now()}-${i}`,
                 owner: alloc.lot.owner || "self",
-                scheme: fifoSellMFGroup.schemeName,
+                scheme: fifoSellMFGroup.fundName || fifoSellMFGroup.schemeName,
                 units: alloc.consume,
                 buyNav: alloc.buyNav,
                 buyDate: alloc.lot.buyDate || "",
@@ -12798,8 +13068,35 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
   // Manual dividend records
   const manualDividends = state.dividends || [];
 
-  // Auto-detected dividends from transactions (category = "Dividend" or narration contains "dividend")
+  // FY (Apr-Mar) for a date, used to bucket auto-detected rows that have no explicit fy field.
+  const fyFromDate = (d: string): string => {
+    if (!d) return "Unknown";
+    const [y, m] = d.split("-").map(Number);
+    if (!y || !m) return "Unknown";
+    const startYear = m >= 4 ? y : y - 1;
+    return `${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}`;
+  };
+
+  // Auto-detected dividends from transactions (category = "Dividend" or narration contains "dividend").
+  // Bug fix: a bank credit already logged in detail as a manual entry (the normal workflow, since
+  // the manual form is what captures TDS/FY that the bank feed lacks) used to be summed AGAIN here,
+  // double-counting the same payout. A bank credit is typically net-of-TDS while the matching manual
+  // entry is usually the gross declared amount with tds entered separately, so dedup by date + the
+  // manual entry's own net (amount - tds) rather than a naive gross-amount match.
   const autoDividends = React.useMemo(() => {
+    const manualNetByDate = new Map<string, number[]>();
+    manualDividends.forEach((d: any) => {
+      if (!d.paymentDate) return;
+      const net = (Number(d.amount) || 0) - (Number(d.tds) || 0);
+      const arr = manualNetByDate.get(d.paymentDate) || [];
+      arr.push(net);
+      manualNetByDate.set(d.paymentDate, arr);
+    });
+    const isAlreadyLogged = (date: string, amount: number) => {
+      const nets = manualNetByDate.get(date);
+      if (!nets) return false;
+      return nets.some((net) => Math.abs(net - amount) <= 1);
+    };
     return (state.transactions || [])
       .filter((t: any) => {
         const cat = (t.category || "").toLowerCase();
@@ -12813,6 +13110,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
             note.includes("interim div"))
         );
       })
+      .filter((t: any) => !isAlreadyLogged(t.date, Number(t.amount) || 0))
       .map((t: any) => ({
         id: t.id,
         symbol: (t.note || t.narration || t.description || "").slice(0, 30),
@@ -12821,11 +13119,11 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
         amount: Number(t.amount) || 0,
         tds: 0,
         paymentDate: t.date,
-        fy: "",
-        note: "Auto-detected from transactions",
+        fy: fyFromDate(t.date),
+        note: "Auto-detected from transactions (net amount — TDS unknown)",
         isAuto: true,
       }));
-  }, [state.transactions]);
+  }, [state.transactions, manualDividends]);
 
   // Combined view
   const allDividends = [
@@ -12835,7 +13133,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
   const totalDividends = allDividends.reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
   const totalTDS = allDividends.reduce((s: number, d: any) => s + (Number(d.tds) || 0), 0);
   const byFY: Record<string, { amount: number; tds: number; count: number }> = {};
-  manualDividends.forEach((d: any) => {
+  allDividends.forEach((d: any) => {
     const fy = d.fy || "Unknown";
     if (!byFY[fy]) byFY[fy] = { amount: 0, tds: 0, count: 0 };
     byFY[fy].amount += Number(d.amount) || 0;
@@ -12885,7 +13183,10 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
           <div style={{ fontSize: 12, color: THEME.accent, fontWeight: 600 }}>
             {autoDividends.length} dividend transaction{autoDividends.length > 1 ? "s" : ""}{" "}
             auto-detected from your bank transactions (category "Dividend" or narration containing
-            "dividend"). These are shown below alongside manual records.
+            "dividend"). These are shown below alongside manual records — any auto-detected credit
+            already matched to a manual entry (same date, net-of-TDS amount) is excluded to avoid
+            double-counting. Auto-detected amounts are the raw bank credit, so TDS on those rows is
+            unknown (shown as ₹0) unless you log the payout manually with its TDS.
           </div>
         </Card>
       )}
@@ -13185,10 +13486,16 @@ const DRIPSimulator = ({
   const [selectedRateIdx, setSelectedRateIdx] = React.useState(1); // default 12%
   const selectedRate = DRIP_RATES[selectedRateIdx].rate;
 
+  // Bug fix: reinvestment must compound the NET amount actually received (amount - TDS
+  // withheld), not the gross declared dividend — only the net amount ever reaches the bank
+  // account to be reinvested, so compounding the gross figure inflated every DRIP projection
+  // below by however much TDS was withheld on that payout.
+  const netDividendAmt = (d: any) => Math.max(0, (Number(d.amount) || 0) - (Number(d.tds) || 0));
+
   const dripValue = React.useMemo(() => {
     const nowMs = new Date(today()).getTime();
     return allDividends.reduce((sum: number, d: any) => {
-      const amt = Number(d.amount) || 0;
+      const amt = netDividendAmt(d);
       const dateStr = d.paymentDate || d.date;
       if (!dateStr || amt <= 0) return sum + amt;
       const years = (nowMs - new Date(dateStr).getTime()) / (365.25 * 86400000);
@@ -13200,7 +13507,7 @@ const DRIPSimulator = ({
   const dripAt12 = React.useMemo(() => {
     const nowMs = new Date(today()).getTime();
     return allDividends.reduce((sum: number, d: any) => {
-      const amt = Number(d.amount) || 0;
+      const amt = netDividendAmt(d);
       const dateStr = d.paymentDate || d.date;
       if (!dateStr || amt <= 0) return sum + amt;
       const years = (nowMs - new Date(dateStr).getTime()) / (365.25 * 86400000);
@@ -13212,7 +13519,7 @@ const DRIPSimulator = ({
   const dripAt15 = React.useMemo(() => {
     const nowMs = new Date(today()).getTime();
     return allDividends.reduce((sum: number, d: any) => {
-      const amt = Number(d.amount) || 0;
+      const amt = netDividendAmt(d);
       const dateStr = d.paymentDate || d.date;
       if (!dateStr || amt <= 0) return sum + amt;
       const years = (nowMs - new Date(dateStr).getTime()) / (365.25 * 86400000);
@@ -13494,9 +13801,7 @@ const YieldTracker = ({ state }: any) => {
     const tenureMonths = Number(r.tenureMonths) || 0;
     if (!tenureMonths) return s;
     if (r.startDate && tenureMonths) {
-      const start = new Date(r.startDate);
-      start.setMonth(start.getMonth() + tenureMonths);
-      if (start < new Date()) return s;
+      if (addMonthsToDateStr(r.startDate, tenureMonths) < today()) return s;
     }
     const fullMaturity = rdMaturity(Number(r.monthly), Number(r.rate), tenureMonths);
     const fullDeposited = (Number(r.monthly) || 0) * tenureMonths;
@@ -13525,6 +13830,18 @@ const YieldTracker = ({ state }: any) => {
     );
     const corpus = bal > 0 ? bal : txCorpus;
     return s + (corpus * 10) / 100;
+  }, 0);
+
+  // Dividends (manually logged only — matching DividendTracker's own dedup logic against
+  // auto-detected bank transactions here would duplicate that heuristic; manual entries are
+  // the ones with a reliable TDS figure), trailing 12 months, net of TDS actually received.
+  const oneYearAgoStr = (() => {
+    const [y, m, d] = today().split("-").map(Number);
+    return `${y - 1}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  })();
+  const dividendYield = (state.dividends || []).reduce((s: number, d: any) => {
+    if (!d.paymentDate || d.paymentDate < oneYearAgoStr) return s;
+    return s + Math.max(0, (Number(d.amount) || 0) - (Number(d.tds) || 0));
   }, 0);
 
   // Fixed chart-extension tokens (not the user-selectable accent) — raw hex
@@ -13567,15 +13884,31 @@ const YieldTracker = ({ state }: any) => {
       note: `@ ${EPF_RATE}% announced rate`,
     },
     {
+      label: "Dividends",
+      value: dividendYield,
+      color: THEME.rust,
+      icon: IndianRupee,
+      note: "manually logged, trailing 12mo, net of TDS",
+    },
+    {
+      // Bug fix: this used to be folded into the same "Annual Yield" total as every contractual,
+      // cash-paying stream above (FD/Bond/RD/PPF/EPF interest) with no distinction — NPS units
+      // don't pay out cash, this is a speculative mark-to-market growth guess, not income. Flagged
+      // isEstimate so the UI below can separate "money you'll actually receive" from "a projection."
       label: "NPS (est.)",
       value: npsGrowth,
       color: THEME.violet,
       icon: Briefcase,
-      note: "@ ~10% blended CAGR estimate",
+      note: "@ ~10% blended CAGR estimate — not a cash payout",
+      isEstimate: true,
     },
   ].filter((s) => s.value > 0);
 
-  const totalAnnual = streams.reduce((s, x) => s + x.value, 0);
+  const contractualAnnual = streams
+    .filter((s) => !s.isEstimate)
+    .reduce((s, x) => s + x.value, 0);
+  const estimatedAnnual = streams.filter((s) => s.isEstimate).reduce((s, x) => s + x.value, 0);
+  const totalAnnual = contractualAnnual + estimatedAnnual;
   const totalMonthly = totalAnnual / 12;
 
   const maxVal = Math.max(...streams.map((s) => s.value), 1);
@@ -13595,7 +13928,10 @@ const YieldTracker = ({ state }: any) => {
           {
             label: "Annual Yield",
             value: fmtINRFull(totalAnnual),
-            sub: "All income streams combined",
+            sub:
+              estimatedAnnual > 0
+                ? `${fmtINRFull(contractualAnnual)} contractual + ${fmtINRFull(estimatedAnnual)} est. NPS growth`
+                : "Interest, coupons & dividends combined",
             color: THEME.accent,
             Icon: IndianRupee,
           },
@@ -13688,7 +14024,8 @@ const YieldTracker = ({ state }: any) => {
             No Yield Data Yet
           </div>
           <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360, margin: "0 auto" }}>
-            Add Fixed Deposits, Bonds, PPF, EPF, RD or NPS to see your income breakdown here.
+            Add Fixed Deposits, Bonds, PPF, EPF, RD, NPS or Dividends to see your income
+            breakdown here.
           </div>
         </Card>
       ) : (

@@ -458,12 +458,10 @@ export const InvestmentStatementTab = ({
     const epfBalance = epfs.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0);
     const epfContributions = epfs.reduce((s: number, x: any) => {
       const txs = x.transactions || [];
-      const hasPassbook = txs.some(
-        (t: any) =>
-          t.type === "monthly_contribution" ||
-          t.type === "interest_credit" ||
-          t.type === "transfer_in"
-      );
+      // Any non-empty ledger wins over the static balance fallback — matches calculateEpfBalance
+      // in finance.ts (previously gated on monthly_contribution/interest_credit/transfer_in only,
+      // silently dropping accounts logged via the simpler employee/employer contribution types).
+      const hasPassbook = txs.length > 0;
       if (!hasPassbook) return s + (Number(x.balance) || 0);
       const monthlyRows = txs.filter((t: any) => t.type === "monthly_contribution");
       const empContrib =
