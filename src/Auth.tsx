@@ -103,6 +103,15 @@ export default function Auth({
   const [msg, setMsg] = useState<string | null>(null);
   const [slideDir, setSlideDir] = useState(1); // 1 = forward (slide in from right), -1 = back (from left)
   const shouldReduceMotion = useReducedMotion();
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [showResendLink, setShowResendLink] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+
+  // Skip autoFocus on small screens — auto-popping the virtual keyboard the instant
+  // the page loads shoves the branding off-screen and feels jarring on mobile.
+  const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 768;
+  const onCapsLockKey = (e: React.KeyboardEvent<HTMLInputElement>) =>
+    setCapsLockOn(e.getModifierState && e.getModifierState("CapsLock"));
 
   // Field-level touched state
   const [emailTouched, setEmailTouched] = useState(false);
@@ -126,6 +135,7 @@ export default function Auth({
   // ── Auto-clear error when user starts typing ──────────────────────────
   useEffect(() => {
     if (error) setError(null);
+    if (showResendLink) setShowResendLink(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password, confirmPassword, displayName, newPassword, confirmNewPassword]);
 
@@ -224,6 +234,9 @@ export default function Auth({
           localStorage.setItem("pf_pending_onboarding", cleanEmail);
         } catch {}
         setMsg("Account created! Please check your inbox to verify your email before signing in.");
+        // Send them back to the login form (email preserved) so the next step is obvious
+        // once they've verified — mirrors the reset-password flow's auto-return-to-login.
+        setTimeout(() => switchMode("login"), 3000);
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
@@ -235,13 +248,51 @@ export default function Auth({
         } else {
           localStorage.removeItem("pf_remember_email");
         }
-        if (data.session) onLogin(data.session);
+        if (data.session) {
+          onLogin(data.session);
+        } else {
+          // Supabase returned neither an error nor a session (e.g. an MFA challenge) —
+          // without this, the button silently stops loading with zero feedback.
+          setError("Unable to sign in right now. Please try again.");
+        }
       }
     } catch (err: any) {
-      setError(friendlyError(err.message));
+      const rawMsg: string = err?.message || "";
+      setError(friendlyError(rawMsg));
+      setShowResendLink(!isSignUp && !isForgot && rawMsg.toLowerCase().includes("email not confirmed"));
     } finally {
       setLoading(false);
     }
+  };
+
+  // Re-sends the signup confirmation email — surfaced when a login attempt fails because
+  // the account exists but was never verified, so the user isn't stuck re-reading their inbox.
+  const handleResendVerification = async () => {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) return;
+    setResendState("sending");
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email: cleanEmail });
+      if (error) throw error;
+      setResendState("sent");
+      setShowResendLink(false);
+      setError(null);
+      setMsg("Verification email resent! Please check your inbox (and spam folder).");
+    } catch (err: any) {
+      setResendState("idle");
+      setError(friendlyError(err.message));
+    }
+  };
+
+  // Escape hatch for the reset-password screen — without it, a user who opens a recovery
+  // link by mistake (or changes their mind) is stuck there with no way back to sign-in.
+  const handleCancelReset = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    window.history.replaceState({}, document.title, window.location.pathname);
+    onRecoveryComplete?.();
+    switchMode("login");
   };
 
   // Swaps the visible mode + resets field state. AnimatePresence around the mode panel
@@ -251,6 +302,9 @@ export default function Auth({
     setSlideDir(MODE_ORDER[m] >= MODE_ORDER[mode] ? 1 : -1);
     setError(null);
     setMsg(null);
+    setShowResendLink(false);
+    setResendState("idle");
+    setCapsLockOn(false);
     setEmailTouched(false);
     setPassTouched(false);
     setConfirmPassTouched(false);
@@ -366,7 +420,19 @@ export default function Auth({
             {error && (
               <div className="af-alert af-alert-err" role="alert">
                 <AlertCircle size={15} aria-hidden="true" />
-                <span>{error}</span>
+                <div>
+                  <span>{error}</span>
+                  {showResendLink && (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendState === "sending"}
+                      className="af-resend-link"
+                    >
+                      {resendState === "sending" ? "Sending…" : "Resend confirmation email"}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -401,11 +467,14 @@ export default function Auth({
                       onBlur={() => {
                         setNewPassFocused(false);
                         setNewPassTouched(true);
+                        setCapsLockOn(false);
                       }}
+                      onKeyDown={onCapsLockKey}
+                      onKeyUp={onCapsLockKey}
                       className="af-inp"
                       placeholder="Minimum 8 characters"
                       autoComplete="new-password"
-                      autoFocus
+                      autoFocus={!isMobileViewport}
                       aria-invalid={!!newPassErr}
                     />
                     <button
@@ -417,6 +486,12 @@ export default function Auth({
                       {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
+                  {capsLockOn && newPassFocused && (
+                    <div className="af-caps-msg" role="status">
+                      <AlertCircle size={11} aria-hidden="true" />
+                      Caps Lock is on
+                    </div>
+                  )}
                   {newPassErr && (
                     <div className="af-err-msg" role="alert">
                       <AlertCircle size={11} />
@@ -547,7 +622,7 @@ export default function Auth({
                           className="af-inp af-inp-padded"
                           placeholder="e.g. Anand Mohta"
                           autoComplete="name"
-                          autoFocus
+                          autoFocus={!isMobileViewport}
                         />
                       </div>
                     </div>
@@ -576,7 +651,10 @@ export default function Auth({
                         className="af-inp af-inp-padded"
                         placeholder="you@example.com"
                         autoComplete="email"
-                        autoFocus={!isSignUp}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        autoFocus={!isSignUp && !isMobileViewport}
                         aria-describedby={emailErr ? "af-email-err" : undefined}
                         aria-invalid={!!emailErr}
                       />
@@ -608,7 +686,10 @@ export default function Auth({
                           onBlur={() => {
                             setPassFocused(false);
                             setPassTouched(true);
+                            setCapsLockOn(false);
                           }}
+                          onKeyDown={onCapsLockKey}
+                          onKeyUp={onCapsLockKey}
                           className="af-inp af-inp-padded"
                           placeholder={
                             isSignUp ? "Create a strong password (8+ chars)" : "Enter your password"
@@ -626,6 +707,12 @@ export default function Auth({
                           {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
+                      {capsLockOn && passFocused && (
+                        <div className="af-caps-msg" role="status">
+                          <AlertCircle size={11} aria-hidden="true" />
+                          Caps Lock is on
+                        </div>
+                      )}
                       {passErr && (
                         <div id="af-pass-err" className="af-err-msg" role="alert">
                           <AlertCircle size={11} aria-hidden="true" />
@@ -765,7 +852,13 @@ export default function Auth({
             )}
 
             {/* Mode switcher */}
-            {!isReset && (
+            {isReset ? (
+              <div className="af-switch">
+                <button type="button" onClick={handleCancelReset} className="af-link">
+                  Cancel and return to sign in
+                </button>
+              </div>
+            ) : (
               <div className="af-switch">
                 {isForgot ? (
                   <button onClick={() => switchMode("login")} className="af-link">
@@ -974,6 +1067,15 @@ const AF_STYLES = `
 }
 .af-eye-btn:hover { color: var(--af-accent); }
 .af-err-msg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #EF4444; font-weight: 500; }
+.af-caps-msg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #B45309; font-weight: 600; }
+
+/* Resend-verification link nested inside the error alert */
+.af-resend-link {
+  display: block; margin-top: 6px; background: none; border: none; padding: 0;
+  font-size: 12px; font-weight: 700; color: inherit; text-decoration: underline;
+  cursor: pointer; font-family: inherit;
+}
+.af-resend-link:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Remember + Forgot row */
 .af-meta-row { display: flex; align-items: center; justify-content: space-between; margin-top: -4px; }
@@ -1056,6 +1158,7 @@ const AF_STYLES = `
   .af-demo-btn { color: #6B7280; }
   .af-greeting { color: #6B7280; }
   .af-logo-tagline { color: #6B7280; }
+  .af-caps-msg { color: #FBBF24; }
 }
 /* Card chrome only appears below 768px (brand panel replaces it on desktop) —
    give it the dark surface treatment there too. */
@@ -1088,6 +1191,7 @@ const AF_STYLES = `
 .dark-theme .af-demo-btn { color: #6B7280; }
 .dark-theme .af-greeting { color: #6B7280; }
 .dark-theme .af-logo-tagline { color: #6B7280; }
+.dark-theme .af-caps-msg { color: #FBBF24; }
 @media (max-width: 768px) {
   .dark-theme .af-card {
     background: #12161F;
