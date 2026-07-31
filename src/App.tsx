@@ -2394,6 +2394,22 @@ function FinanceDashboard() {
             [costField]: Math.max(0, Number(prop[costField] || 0) - amt),
           });
         }
+      } else if (lt === "subscriptions") {
+        // BanksTab's autoPostLinkedTransaction advances renewalDate by one cycle when this
+        // transaction is added — roll it back the same amount so deleting the payment
+        // truly undoes it (previously this branch was missing, so the renewal date stayed
+        // advanced forever after a linked subscription payment was deleted).
+        const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
+        if (sub && sub.renewalDate) {
+          const base = new Date(sub.renewalDate + "T00:00:00");
+          if (!isNaN(base.getTime())) {
+            const prev = new Date(base);
+            if (sub.cycle === "monthly") prev.setMonth(prev.getMonth() - 1);
+            else if (sub.cycle === "quarterly") prev.setMonth(prev.getMonth() - 3);
+            else prev.setFullYear(prev.getFullYear() - 1);
+            updateItem("subscriptions", lid, { renewalDate: getLocalDateString(prev) });
+          }
+        }
       }
     }
 

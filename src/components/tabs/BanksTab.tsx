@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Plus,
   FileUp,
@@ -24,6 +24,8 @@ import {
   Landmark,
   Search,
   Link2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today, autoCateg, getLocalDateString } from "../../utils/finance";
@@ -565,21 +567,28 @@ export function BanksTab({
     }
   };
 
-  // Compute each account's balance from its transactions (credits − debits).
-  // Falls back to stored `balance` only if the account has zero transactions,
-  // so the displayed value always matches the ledger total.
-  const txnNetByAccount = useMemo(() => {
-    const map: Record<string, number> = {};
-    state.transactions.forEach((t: any) => {
-      if (map[t.accountId] === undefined) map[t.accountId] = 0;
-      if (t.type === "credit") map[t.accountId] += Number(t.amount || 0);
-      else if (t.type === "debit") map[t.accountId] -= Number(t.amount || 0);
-    });
-    return map;
-  }, [state.transactions]);
+  // Pagination — large CSV imports can bring in hundreds/thousands of rows;
+  // rendering every row unconditionally made the ledger sluggish to scroll.
+  const TXN_PAGE_SIZE = 50;
+  const [txnPage, setTxnPage] = useState(1);
+  useEffect(() => {
+    setTxnPage(1);
+  }, [filterAcc, filterType, search, dateFrom, dateTo, sortField, sortDirection]);
+  const totalTxnPages = Math.max(1, Math.ceil(sortedTxns.length / TXN_PAGE_SIZE));
+  const currentTxnPage = Math.min(txnPage, totalTxnPages);
+  const pagedTxns = useMemo(
+    () => sortedTxns.slice((currentTxnPage - 1) * TXN_PAGE_SIZE, currentTxnPage * TXN_PAGE_SIZE),
+    [sortedTxns, currentTxnPage]
+  );
 
-  const getDisplayBalance = (acc: any): number =>
-    txnNetByAccount[acc.id] !== undefined ? txnNetByAccount[acc.id] : Number(acc.balance || 0);
+  // `acc.balance` is the single source of truth for an account's running balance —
+  // App.tsx's addItem/updateItem/removeItem/addTransactions all keep it in sync by
+  // applying each transaction's credit/debit delta on top of the opening balance the
+  // account was created with. (Net Worth/Dashboard use this same field — see
+  // useMetrics.ts's `cashInBanks`.) Do NOT recompute it as sum(credits)-sum(debits)
+  // here: that silently discards the opening balance the moment an account has any
+  // transactions and desyncs this tab's numbers from the rest of the app.
+  const getDisplayBalance = (acc: any): number => Number(acc?.balance || 0);
 
   const totalBalance = state.bankAccounts.reduce(
     (acc: any, a: any) => acc + getDisplayBalance(a),
@@ -642,7 +651,7 @@ export function BanksTab({
       topSpendCategories: sortedCats,
       liquidityWeights: weights,
     };
-  }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts, txnNetByAccount]);
+  }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts]);
 
   const chartColorById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -1070,7 +1079,7 @@ export function BanksTab({
                               fontWeight: 700,
                             }}
                           >
-                            {fmtINRFull(c.amount)} ({percentage.toFixed(0)}%)
+                            <Prv>{fmtINRFull(c.amount)}</Prv> ({percentage.toFixed(0)}%)
                           </span>
                         </div>
                         <div
@@ -1769,7 +1778,7 @@ export function BanksTab({
                 </tr>
               </thead>
               <tbody>
-                {sortedTxns.map((t: any) => {
+                {pagedTxns.map((t: any) => {
                   const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
                   const isEditing = inlineEditId === t.id;
 
@@ -1806,6 +1815,22 @@ export function BanksTab({
                           />
                         </td>
                         <td style={{ ...td, padding: "12px 16px" }}>
+                          {t.linkedType && (
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: THEME.gold,
+                                fontWeight: 700,
+                                marginBottom: 4,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                              title="Changing the amount here will not update the linked record — delete and re-add the transaction instead if the amount was wrong."
+                            >
+                              <Link2 size={10} /> Linked — amount changes will not sync
+                            </div>
+                          )}
                           <input
                             value={inlineEdit.note || ""}
                             onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })}
@@ -2085,7 +2110,7 @@ export function BanksTab({
                           fontWeight: 800,
                         }}
                       >
-                        {t.type === "debit" ? fmtINRExact(t.amount) : ""}
+                        {t.type === "debit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
                       </td>
                       <td
                         style={{
@@ -2097,7 +2122,7 @@ export function BanksTab({
                           fontWeight: 800,
                         }}
                       >
-                        {t.type === "credit" ? fmtINRExact(t.amount) : ""}
+                        {t.type === "credit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
                       </td>
                       <td style={{ ...td, padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: 2 }}>
@@ -2194,7 +2219,7 @@ export function BanksTab({
                             borderTop,
                           }}
                         >
-                          -{fmtINRExact(totalDebit)}
+                          -<Prv>{fmtINRExact(totalDebit)}</Prv>
                         </td>
                         <td
                           style={{
@@ -2207,7 +2232,7 @@ export function BanksTab({
                             borderTop,
                           }}
                         >
-                          +{fmtINRExact(totalCredit)}
+                          +<Prv>{fmtINRExact(totalCredit)}</Prv>
                         </td>
                         <td
                           style={{
@@ -2221,7 +2246,7 @@ export function BanksTab({
                           }}
                         >
                           {net >= 0 ? "+" : "-"}
-                          {fmtINRExact(Math.abs(net))}
+                          <Prv>{fmtINRExact(Math.abs(net))}</Prv>
                         </td>
                       </tr>
                     </tfoot>
@@ -2232,7 +2257,7 @@ export function BanksTab({
         )}
         {sortedTxns.length > 0 && (
           <div className="mobile-only" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {sortedTxns.map((t: any) => {
+            {pagedTxns.map((t: any) => {
               const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
               return (
                 <div
@@ -2319,7 +2344,7 @@ export function BanksTab({
                       }}
                     >
                       {t.type === "credit" ? "+" : "-"}
-                      {fmtINRExact(t.amount)}
+                      <Prv>{fmtINRExact(t.amount)}</Prv>
                     </div>
                   </div>
                   {t.category && (
@@ -2341,6 +2366,62 @@ export function BanksTab({
                 </div>
               );
             })}
+          </div>
+        )}
+        {sortedTxns.length > TXN_PAGE_SIZE && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 10,
+              paddingTop: 4,
+            }}
+          >
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+              Showing {(currentTxnPage - 1) * TXN_PAGE_SIZE + 1}–
+              {Math.min(currentTxnPage * TXN_PAGE_SIZE, sortedTxns.length)} of {sortedTxns.length}
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() => setTxnPage((p) => Math.max(1, p - 1))}
+                disabled={currentTxnPage <= 1}
+                className="icon-btn"
+                style={{
+                  ...iconBtn,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${THEME.line}`,
+                  background: "var(--surface-1)",
+                  opacity: currentTxnPage <= 1 ? 0.4 : 1,
+                  cursor: currentTxnPage <= 1 ? "not-allowed" : "pointer",
+                }}
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                Page {currentTxnPage} of {totalTxnPages}
+              </span>
+              <button
+                onClick={() => setTxnPage((p) => Math.min(totalTxnPages, p + 1))}
+                disabled={currentTxnPage >= totalTxnPages}
+                className="icon-btn"
+                style={{
+                  ...iconBtn,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${THEME.line}`,
+                  background: "var(--surface-1)",
+                  opacity: currentTxnPage >= totalTxnPages ? 0.4 : 1,
+                  cursor: currentTxnPage >= totalTxnPages ? "not-allowed" : "pointer",
+                }}
+                aria-label="Next page"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
         )}
       </Card>
@@ -2409,7 +2490,7 @@ export function BanksTab({
                   }}
                 >
                   {t.type === "credit" ? "+" : "-"}
-                  {fmtINRExact(t.amount)}
+                  <Prv>{fmtINRExact(t.amount)}</Prv>
                 </div>
                 <div
                   style={{
@@ -2784,7 +2865,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
         }}
       >
         <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: 13, fontWeight: 800, color }}>{fmtINRFull(bal)}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color }}><Prv>{fmtINRFull(bal)}</Prv></span>
       </div>
     );
   };
@@ -2850,7 +2931,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
               <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                 Current Balance
               </span>
-              <span style={{ fontSize: 14, fontWeight: 800, color }}>{fmtINRFull(bal)}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color }}><Prv>{fmtINRFull(bal)}</Prv></span>
             </div>
           );
         })()}
@@ -3098,7 +3179,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
             <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
               Current Balance
             </span>
-            <span style={{ fontSize: 14, fontWeight: 800, color }}>{fmtINRFull(bal)}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color }}><Prv>{fmtINRFull(bal)}</Prv></span>
           </div>
         );
       })()}
