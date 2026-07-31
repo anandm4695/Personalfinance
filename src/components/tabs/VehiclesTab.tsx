@@ -523,6 +523,18 @@ const serviceDueStatus = (
   return { label: `${joined} left`, color: THEME.sage, icon: "ok" };
 };
 
+// Latest known odometer reading — the greater of the manually-entered "current
+// odometer" on the vehicle record and the highest reading logged in service
+// history. Without this, a vehicle with a stale/empty service log would never
+// trigger km-based service-due alerts even if the owner tracks mileage manually.
+const getLatestOdo = (vehicle: any): number => {
+  const fromService = (vehicle.serviceHistory || []).reduce(
+    (max: number, r: any) => Math.max(max, Number(r.odometer || 0)),
+    0
+  );
+  return Math.max(fromService, Number(vehicle.currentOdometer || 0));
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared field input style — matches app's input styling
 // ─────────────────────────────────────────────────────────────────────────────
@@ -636,6 +648,7 @@ const EMPTY_VEHICLE = {
   rtoCharges: "",
   accessoriesCharges: "",
   currentValue: "",
+  currentOdometer: "",
   insuranceExpiry: "",
   pucExpiry: "",
   nextServiceDueDate: "",
@@ -663,6 +676,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
           rtoCharges: existing.rtoCharges ?? "",
           accessoriesCharges: existing.accessoriesCharges ?? "",
           currentValue: existing.currentValue ?? "",
+          currentOdometer: existing.currentOdometer ?? "",
         }
       : { ...EMPTY_VEHICLE }
   );
@@ -672,6 +686,12 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
   const canSave = f.make.trim() && f.model.trim();
+  const onRoadTotal =
+    Number(f.purchaseBasicCost || 0) +
+    Number(f.purchaseCgstAmount || 0) +
+    Number(f.purchaseSgstAmount || 0) +
+    Number(f.rtoCharges || 0) +
+    Number(f.accessoriesCharges || 0);
 
   const lookupRC = async () => {
     const reg = (f.registrationNumber || "").trim();
@@ -734,6 +754,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
       rtoCharges: Number(f.rtoCharges) || 0,
       accessoriesCharges: Number(f.accessoriesCharges) || 0,
       currentValue: Number(f.currentValue) || 0,
+      currentOdometer: Number(f.currentOdometer) || 0,
       year: Number(f.year) || new Date().getFullYear(),
       nextServiceDueOdometer: Number(f.nextServiceDueOdometer) || 0,
       serviceHistory: existing?.serviceHistory || [],
@@ -1205,28 +1226,51 @@ function VehicleModal({ existing, onClose, onSave }: any) {
             )}
           </strong>
           {" · "}Basic + RTO + Accessories:{" "}
-          <strong style={{ color: "var(--text)" }}>
-            {fmtINRFull(
-              Number(f.purchaseBasicCost || 0) +
-                Number(f.purchaseCgstAmount || 0) +
-                Number(f.purchaseSgstAmount || 0) +
-                Number(f.rtoCharges || 0) +
-                Number(f.accessoriesCharges || 0)
-            )}
-          </strong>{" "}
-          (enter into Purchase Price above if this is the on-road price)
+          <strong style={{ color: "var(--text)" }}>{fmtINRFull(onRoadTotal)}</strong>
+          {onRoadTotal > 0 && Number(f.purchasePrice || 0) !== onRoadTotal && (
+            <>
+              {" — "}
+              <button
+                type="button"
+                onClick={() => set("purchasePrice", String(onRoadTotal))}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  color: THEME.accent,
+                  font: "inherit",
+                  fontWeight: 700,
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                }}
+              >
+                use as Purchase Price ↑
+              </button>
+            </>
+          )}
         </div>
       )}
 
-      <Field label="Current Market Value (₹)">
-        <input
-          style={inp}
-          type="number"
-          value={f.currentValue}
-          onChange={(e) => set("currentValue", e.target.value)}
-          placeholder="Current resale value estimate"
-        />
-      </Field>
+      <div style={g2}>
+        <Field label="Current Market Value (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.currentValue}
+            onChange={(e) => set("currentValue", e.target.value)}
+            placeholder="Current resale value estimate"
+          />
+        </Field>
+        <Field label="Current Odometer Reading (km)">
+          <input
+            style={inp}
+            type="number"
+            value={f.currentOdometer}
+            onChange={(e) => set("currentOdometer", e.target.value)}
+            placeholder="e.g. 18500"
+          />
+        </Field>
+      </div>
 
       {/* Compliance */}
       <ModalSection title="Compliance" />
@@ -2080,11 +2124,14 @@ function VehicleCard({
     ? sh.slice().sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""))[0]
     : null;
 
-  const latestOdo = sh.reduce((max: number, r: any) => Math.max(max, Number(r.odometer || 0)), 0);
-  const depreciation = Math.max(
-    0,
-    Number(vehicle.purchasePrice || 0) - Number(vehicle.currentValue || 0)
-  );
+  const latestOdo = getLatestOdo(vehicle);
+  // Only count depreciation once a Current Value has actually been entered —
+  // otherwise an unset (0) currentValue reads as "100% depreciated" and wildly
+  // overstates TCO / cost-per-km for a vehicle nobody has re-valued yet.
+  const hasCurrentValue = Number(vehicle.currentValue || 0) > 0;
+  const depreciation = hasCurrentValue
+    ? Math.max(0, Number(vehicle.purchasePrice || 0) - Number(vehicle.currentValue || 0))
+    : 0;
   const tco = depreciation + totalServiceCost;
   const costPerKm = latestOdo > 0 && tco > 0 ? tco / latestOdo : null;
 
@@ -2094,7 +2141,7 @@ function VehicleCard({
     sh.forEach((r) => {
       const dateVal = r.date;
       if (dateVal) {
-        const yr = new Date(dateVal).getFullYear();
+        const yr = new Date(dateVal + "T00:00:00").getFullYear();
         if (!isNaN(yr)) {
           years[yr] = (years[yr] || 0) + Number(r.cost || 0);
         }
@@ -2221,6 +2268,13 @@ function VehicleCard({
       icon: Wrench,
       color: THEME.gold,
       status: serviceDueStat,
+    },
+    {
+      key: "Current Odometer",
+      label: "Current Odometer",
+      val: latestOdo ? `${latestOdo.toLocaleString("en-IN")} km` : "—",
+      icon: Milestone,
+      color: THEME.cyan,
     },
     {
       key: "Chassis No.",
@@ -2590,7 +2644,9 @@ function VehicleCard({
                   {
                     label: "Total Cost of Ownership",
                     value: fmtINRExact(tco),
-                    sub: `Deprec. (${fmtINRExact(Math.max(0, depreciation))}) + Service (${fmtINRExact(totalServiceCost)})`,
+                    sub: hasCurrentValue
+                      ? `Deprec. (${fmtINRExact(depreciation)}) + Service (${fmtINRExact(totalServiceCost)})`
+                      : `Service (${fmtINRExact(totalServiceCost)}) — add Current Value for depreciation`,
                     icon: Coins,
                     color: THEME.accent,
                   },
@@ -3283,8 +3339,38 @@ function VehicleCard({
 // VehiclesTab — Main export
 // ─────────────────────────────────────────────────────────────────────────────
 
+const URGENCY_RANK: Record<string, number> = { alert: 0, warn: 1, ok: 2 };
+
+// Worst (lowest-rank / most urgent) compliance status across insurance, PUC,
+// and service-due for a vehicle. Vehicles with no compliance data at all sort last.
+function vehicleUrgencyRank(v: any): number {
+  const statuses = [
+    complianceStatus(v.insuranceExpiry),
+    complianceStatus(v.pucExpiry),
+    serviceDueStatus(v.nextServiceDueDate, Number(v.nextServiceDueOdometer || 0), getLatestOdo(v)),
+  ].filter(Boolean) as { icon: "ok" | "warn" | "alert" }[];
+  if (!statuses.length) return 3;
+  return Math.min(...statuses.map((s) => URGENCY_RANK[s.icon]));
+}
+
 export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
   const vehicles: any[] = state.vehicles || [];
+  const [sortBy, setSortBy] = useState<"default" | "value" | "urgency">("default");
+
+  const sortedVehicles = useMemo(() => {
+    if (sortBy === "default") return vehicles;
+    const arr = vehicles.slice();
+    if (sortBy === "value") {
+      arr.sort(
+        (a, b) =>
+          Number(b.currentValue || b.purchasePrice || 0) -
+          Number(a.currentValue || a.purchasePrice || 0)
+      );
+    } else if (sortBy === "urgency") {
+      arr.sort((a, b) => vehicleUrgencyRank(a) - vehicleUrgencyRank(b));
+    }
+    return arr;
+  }, [vehicles, sortBy]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [vehicleModal, setVehicleModal] = useState<{ open: boolean; existing?: any }>({
@@ -3328,10 +3414,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
       if (ins && ins.icon !== "ok") list.push(`${v.make} ${v.model}: Insurance ${ins.label}`);
       const puc = complianceStatus(v.pucExpiry);
       if (puc && puc.icon !== "ok") list.push(`${v.make} ${v.model}: PUC ${puc.label}`);
-      const latestOdo = (v.serviceHistory || []).reduce(
-        (max: number, r: any) => Math.max(max, Number(r.odometer || 0)),
-        0
-      );
+      const latestOdo = getLatestOdo(v);
       const svc = serviceDueStatus(
         v.nextServiceDueDate,
         Number(v.nextServiceDueOdometer || 0),
@@ -3452,6 +3535,38 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           Add Vehicle
         </Button>
       </div>
+
+      {/* Sort control */}
+      {vehicles.length > 1 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Sort:</span>
+          {(
+            [
+              { key: "default", label: "Default" },
+              { key: "value", label: "Value: High → Low" },
+              { key: "urgency", label: "Compliance Urgency" },
+            ] as const
+          ).map((opt) => (
+            <Button
+              key={opt.key}
+              size="sm"
+              variant={sortBy === opt.key ? "accent" : "ghost"}
+              onClick={() => setSortBy(opt.key)}
+              style={{ height: 32 }}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Compliance alerts */}
       {alerts.length > 0 && (
@@ -3584,7 +3699,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
 
       {/* Vehicle cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {vehicles.map((v) => (
+        {sortedVehicles.map((v) => (
           <VehicleCard
             key={v.id}
             vehicle={v}

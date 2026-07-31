@@ -242,7 +242,7 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
       return s + value * share;
     }, 0);
   const vehicleAsset = (pState.vehicles || []).reduce(
-    (s: number, v: any) => s + Number(v.currentValue || v.value || 0),
+    (s: number, v: any) => s + Number(v.currentValue || v.purchasePrice || 0),
     0
   );
 
