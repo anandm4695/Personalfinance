@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   Calculator,
   Lightbulb,
+  Clock,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { THEME } from "../../utils/constants";
@@ -4009,6 +4010,15 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
           const { loaded, spent, balance } = computeStats(p.transactions);
           const txnCount = (p.transactions || []).length;
           const name = p.cardName || p.name || p.provider || "Prepaid Card";
+          const expiryDays = p.expiryDate
+            ? Math.ceil(
+                (new Date(p.expiryDate + "T00:00:00").getTime() -
+                  new Date(today() + "T00:00:00").getTime()) /
+                  86400000
+              )
+            : null;
+          const lowBalanceThreshold = Number(p.lowBalanceThreshold || 0) || 100;
+          const isLowBalance = !isClosed && balance > 0 && balance < lowBalanceThreshold;
           return (
             <div
               key={p.id}
@@ -4323,18 +4333,71 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   })}
                 </div>
               )}
+              {!isClosed && expiryDays !== null && expiryDays <= 30 && (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    marginTop: 8,
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: expiryDays < 0 ? "#ff9999" : expiryDays <= 7 ? "#ff9999" : "#fde68a",
+                    background:
+                      expiryDays < 0 || expiryDays <= 7
+                        ? "rgba(239,68,68,0.22)"
+                        : "rgba(245,158,11,0.2)",
+                    padding: "3px 8px",
+                    borderRadius: 99,
+                  }}
+                >
+                  <Clock size={10} />
+                  {expiryDays < 0
+                    ? `Expired ${Math.abs(expiryDays)}d ago`
+                    : expiryDays === 0
+                      ? "Expires today"
+                      : `Expires in ${expiryDays}d`}
+                </div>
+              )}
 
               <div style={{ marginTop: 20 }}>
                 <div
                   style={{
-                    fontSize: 9,
-                    color: "rgba(255,255,255,0.55)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
                   }}
                 >
-                  Available Balance
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: "rgba(255,255,255,0.55)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Available Balance
+                  </div>
+                  {isLowBalance && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: "#fde68a",
+                        background: "rgba(245,158,11,0.22)",
+                        padding: "2px 7px",
+                        borderRadius: 99,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      <AlertCircle size={9} /> Low
+                    </div>
+                  )}
                 </div>
                 <div
                   style={{
@@ -5060,8 +5123,10 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                             color: r.type === "load" ? THEME.sage : THEME.rust,
                           }}
                         >
-                          {r.type === "load" ? "+" : "−"}
-                          {fmtINRExact(r.amount)}
+                          <Prv>
+                            {r.type === "load" ? "+" : "−"}
+                            {fmtINRExact(r.amount)}
+                          </Prv>
                         </td>
                       </tr>
                     ))}
@@ -5273,8 +5338,10 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                         color: t.type === "load" ? THEME.sage : THEME.rust,
                       }}
                     >
-                      {t.type === "load" ? "+" : "−"}
-                      {fmtINRExact(t.amount)}
+                      <Prv>
+                        {t.type === "load" ? "+" : "−"}
+                        {fmtINRExact(t.amount)}
+                      </Prv>
                     </td>
                     <td style={{ padding: "11px 10px" }}>
                       <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
@@ -7035,6 +7102,26 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
           />
         </Field>
       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Expiry Date (optional)">
+          <input
+            type="date"
+            style={input}
+            value={f.expiryDate || ""}
+            onChange={(e) => setF({ ...f, expiryDate: e.target.value })}
+          />
+        </Field>
+        <Field label="Low Balance Alert Below (optional)">
+          <input
+            style={input}
+            type="number"
+            min="0"
+            value={f.lowBalanceThreshold || ""}
+            onChange={(e) => setF({ ...f, lowBalanceThreshold: e.target.value })}
+            placeholder="Default ₹100"
+          />
+        </Field>
+      </div>
       {!initial && (
         <Field label="Current Balance on Card (optional)">
           <input
@@ -7064,7 +7151,12 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
                   },
                 ]
               : initTxns;
-          onSave({ ...f, cardName: name, transactions: txns });
+          onSave({
+            ...f,
+            cardName: name,
+            transactions: txns,
+            lowBalanceThreshold: f.lowBalanceThreshold ? Number(f.lowBalanceThreshold) : null,
+          });
         }}
         onClose={onClose}
       />

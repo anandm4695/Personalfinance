@@ -18,6 +18,7 @@ import {
   Filter,
   Building2,
   Star,
+  Wallet,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -471,6 +472,33 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       }
     });
 
+    // Prepaid card expiries — previously surfaced nowhere outside the Credit tab
+    // itself, so a card could lapse with unused balance still loaded on it.
+    (state.prepaidCards || []).forEach((pc: any) => {
+      if (!pc.expiryDate || (pc.status || "").toLowerCase() === "closed") return;
+      const days = getDaysUntil(pc.expiryDate);
+      if (days <= horizon * 31 + 10) {
+        const txns = pc.transactions || [];
+        const loaded = txns
+          .filter((t: any) => t.type === "load")
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+        const spent = txns
+          .filter((t: any) => t.type === "spend")
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+        items.push({
+          type: "prepaid_card_expiry",
+          category: "Prepaid Card",
+          icon: Wallet,
+          name: `${pc.cardName || "Prepaid Card"} — Expiry`,
+          date: pc.expiryDate,
+          days,
+          amount: Math.max(0, loaded - spent),
+          color: THEME.gold,
+          detail: `Balance: ${fmtINRExact(Math.max(0, loaded - spent))} — use or transfer before expiry`,
+        });
+      }
+    });
+
     return items.sort((a, b) => a.days - b.days);
   }, [state, horizon]);
 
@@ -525,7 +553,10 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           ].includes(e.type)
         ) {
           monthlyMap[m].inflow += e.maturityAmount || e.amount || 0;
-        } else {
+        } else if (e.type !== "prepaid_card_expiry") {
+          // Expiry isn't a cash outflow — it's an at-risk balance the user still
+          // owns until they spend it or let it lapse, so it shouldn't inflate the
+          // monthly "money going out" total the way an actual bill/demand does.
           monthlyMap[m].outflow += e.amount || 0;
         }
       });
@@ -544,6 +575,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
     { key: "subscription", label: "Subscriptions" },
     { key: "realestate", label: "Real Estate" },
     { key: "govt_scheme", label: "Govt Schemes" },
+    { key: "prepaid_card", label: "Prepaid Cards" },
   ];
 
   const toggleSection = (key) => setExpandedSection((p) => ({ ...p, [key]: !p[key] }));

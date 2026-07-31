@@ -433,6 +433,8 @@ ALTER TABLE public.credit_cards ADD COLUMN IF NOT EXISTS shared_group_limit nume
 -- prepaid_cards
 ALTER TABLE public.prepaid_cards ADD COLUMN IF NOT EXISTS status      text DEFAULT 'active';
 ALTER TABLE public.prepaid_cards ADD COLUMN IF NOT EXISTS closed_date date;
+ALTER TABLE public.prepaid_cards ADD COLUMN IF NOT EXISTS expiry_date date;
+ALTER TABLE public.prepaid_cards ADD COLUMN IF NOT EXISTS low_balance_threshold numeric(12,2);
 
 -- user_settings
 ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS master_data      jsonb;

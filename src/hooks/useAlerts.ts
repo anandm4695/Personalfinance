@@ -587,6 +587,45 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       });
     }
 
+    // Prepaid card expiring soon (within 30 days) — cards that have an expiry date
+    // set and are still active.
+    (state.prepaidCards || []).forEach((pc: any) => {
+      if (!pc.expiryDate || (pc.status || "").toLowerCase() === "closed") return;
+      const days = Math.ceil(
+        (new Date(pc.expiryDate + "T00:00:00").getTime() - todayMidnight) / 86400000
+      );
+      if (days >= 0 && days <= 30) {
+        list.push({
+          level: days <= 7 ? "error" : "warn",
+          title: `${pc.cardName || "Prepaid card"} expires in ${days}d`,
+          detail: `${pc.cardType || "Prepaid Card"}${pc.last4 ? ` •••• ${pc.last4}` : ""} — use or transfer any remaining balance before it expires.`,
+          tab: "credit",
+        });
+      }
+    });
+    // Prepaid card low balance — flags active cards below the user-set threshold
+    // (or a ₹100 default), computed the same load/spend way as useMetrics.
+    (state.prepaidCards || []).forEach((pc: any) => {
+      if ((pc.status || "").toLowerCase() === "closed") return;
+      const threshold = Number(pc.lowBalanceThreshold || 0) || 100;
+      const txns = pc.transactions || [];
+      const loaded = txns
+        .filter((t: any) => t.type === "load")
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const spent = txns
+        .filter((t: any) => t.type === "spend")
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const balance = loaded - spent;
+      if (balance > 0 && balance < threshold) {
+        list.push({
+          level: "warn",
+          title: `Low balance: ${pc.cardName || "Prepaid card"}`,
+          detail: `${fmtINRFull(balance)} remaining — consider topping up`,
+          tab: "credit",
+        });
+      }
+    });
+
     const ORDER = { error: 0, warn: 1, info: 2 };
     return list
       .filter((a) => {
@@ -626,6 +665,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     state.realEstateDemands,
     state.realEstatePayments,
     state.govtSchemes,
+    state.prepaidCards,
     marketData,
   ]);
 

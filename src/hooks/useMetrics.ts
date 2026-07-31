@@ -222,10 +222,18 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     (s: number, l: any) => s + Number(l.amount || 0),
     0
   );
-  const prepaidValue = (pState.prepaidCards || []).reduce(
-    (s: number, pc: any) => s + Number(pc.balance || 0),
-    0
-  );
+  const prepaidValue = (pState.prepaidCards || [])
+    .filter((pc: any) => (pc.status || "").toLowerCase() !== "closed")
+    .reduce((s: number, pc: any) => {
+      const txns = pc.transactions || [];
+      const loaded = txns
+        .filter((t: any) => t.type === "load")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const spent = txns
+        .filter((t: any) => t.type === "spend")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      return s + (loaded - spent);
+    }, 0);
   const rentedDepositAsset = (pState.rentedProperties || []).reduce(
     (s: number, p: any) => s + Number(p.securityDeposit || 0),
     0

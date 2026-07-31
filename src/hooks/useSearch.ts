@@ -161,11 +161,18 @@ export function useSearch(state: any, search: string): SearchResult[] {
     });
     // Prepaid Cards
     (state.prepaidCards || []).forEach((p: any) => {
-      if (match(p.name) || match(p.issuer)) {
+      if (match(p.cardName) || match(p.cardType) || (p.last4 || "").includes(q)) {
+        const txns = p.transactions || [];
+        const loaded = txns
+          .filter((t: any) => t.type === "load")
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+        const spent = txns
+          .filter((t: any) => t.type === "spend")
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
         results.push({
           type: "Prepaid Card",
-          name: p.name || p.issuer || "Prepaid",
-          detail: fmtINRFull(p.balance),
+          name: p.cardName || p.cardType || "Prepaid",
+          detail: `**** ${p.last4 || ""} · ${fmtINRFull(loaded - spent)}`,
           tab: "credit",
         });
       }

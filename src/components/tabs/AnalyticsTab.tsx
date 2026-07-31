@@ -1574,8 +1574,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               .filter((t: any) => t.type === "spend")
               .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
             return {
-              name: p.name || p.cardName || "Prepaid Card",
-              sub: p.cardNumber ? `****${p.cardNumber.slice(-4)}` : "Prepaid",
+              name: p.cardName || "Prepaid Card",
+              sub: p.last4 ? `****${p.last4}` : "Prepaid",
               value: loaded - spent,
             };
           })
