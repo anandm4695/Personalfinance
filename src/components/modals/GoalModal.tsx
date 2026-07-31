@@ -25,6 +25,13 @@ export function GoalModal({ initial, onClose, onSave }: any) {
         }
   );
 
+  const dateOrderInvalid = f.targetDate && f.startDate && f.targetDate < f.startDate;
+  const canSave =
+    f.name.trim().length > 0 &&
+    Number(f.targetAmount) > 0 &&
+    Number(f.currentAmount || 0) >= 0 &&
+    !dateOrderInvalid;
+
   return (
     <Modal title={initial ? "Edit Goal" : "Add Financial Goal"} onClose={onClose}>
       <Field label="Owner / Profile">
@@ -83,6 +90,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
           <input
             className="form-input"
             type="number"
+            min="0"
             value={f.targetAmount}
             onChange={(e) => setF({ ...f, targetAmount: e.target.value })}
           />
@@ -91,6 +99,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
           <input
             className="form-input"
             type="number"
+            min="0"
             value={f.currentAmount}
             onChange={(e) => setF({ ...f, currentAmount: e.target.value })}
           />
@@ -103,7 +112,10 @@ export function GoalModal({ initial, onClose, onSave }: any) {
             onChange={(e) => setF({ ...f, startDate: e.target.value })}
           />
         </Field>
-        <Field label="Target Date">
+        <Field
+          label="Target Date"
+          error={dateOrderInvalid ? "Target date can't be before the start date" : undefined}
+        >
           {f.targetDate ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
@@ -163,10 +175,9 @@ export function GoalModal({ initial, onClose, onSave }: any) {
         </Field>
       </div>
       <ModalActions
-        onSave={() =>
-          f.name && Number(f.targetAmount) > 0 && Number(f.currentAmount || 0) >= 0 && onSave(f)
-        }
+        onSave={() => onSave({ ...f, name: f.name.trim() })}
         onClose={onClose}
+        disabled={!canSave}
       />
     </Modal>
   );

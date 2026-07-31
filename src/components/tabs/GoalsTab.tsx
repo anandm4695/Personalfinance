@@ -55,11 +55,23 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   const [show, setShow] = useState(false);
   const [editGoal, setEditGoal] = useState<any>(null);
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [sortBy, setSortBy] = useState<"priority" | "deadline">("priority");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [sipExpanded, setSipExpanded] = useState<Set<string>>(new Set());
   const [sipInputs, setSipInputs] = useState<Record<string, string>>({});
   const [showInflation, setShowInflation] = useState(false);
   const [inflationRate, setInflationRate] = useState("6");
+  const [contribOpen, setContribOpen] = useState<string | null>(null);
+  const [contribValue, setContribValue] = useState("");
+
+  const addContribution = (goalId: string, currentAmount: number) => {
+    const amt = Number(contribValue);
+    if (amt > 0) {
+      updateItem("goals", goalId, { currentAmount: Number(currentAmount || 0) + amt });
+    }
+    setContribOpen(null);
+    setContribValue("");
+  };
 
   const totalTarget = state.goals.reduce((s: number, g: any) => s + Number(g.targetAmount || 0), 0);
   const totalSaved = state.goals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
@@ -125,6 +137,13 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   const sortedGoals = [...state.goals]
     .filter((g) => filterPriority === "all" || (g.priority || "Medium") === filterPriority)
     .sort((a, b) => {
+      if (sortBy === "deadline") {
+        // Goals with no target date sort last regardless of direction — there's
+        // nothing to be "soonest" or "latest" about a goal with no deadline.
+        const da = a.targetDate ? new Date(a.targetDate).getTime() : Infinity;
+        const db = b.targetDate ? new Date(b.targetDate).getTime() : Infinity;
+        return sortDir === "desc" ? db - da : da - db;
+      }
       const pa = PRIORITY_ORDER[a.priority] ?? 2;
       const pb = PRIORITY_ORDER[b.priority] ?? 2;
       return sortDir === "desc" ? pb - pa : pa - pb;
@@ -237,15 +256,18 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                   ? fmtINRFull(totalMonthlyRequired)
                   : completedCount === state.goals.length
                     ? "All done!"
-                    : state.goals.some((g: any) => g.targetDate)
-                      ? "On track"
-                      : "No deadlines"
+                    : behindCount > 0
+                      ? "Overdue"
+                      : state.goals.some((g: any) => g.targetDate)
+                        ? "On track"
+                        : "No deadlines"
               }
               icon={<Calendar />}
               color={
-                totalMonthlyRequired > 0 &&
-                monthlySavings > 0 &&
-                totalMonthlyRequired > monthlySavings
+                (totalMonthlyRequired > 0 &&
+                  monthlySavings > 0 &&
+                  totalMonthlyRequired > monthlySavings) ||
+                (totalMonthlyRequired === 0 && behindCount > 0)
                   ? THEME.rust
                   : completedCount === state.goals.length
                     ? THEME.sage
@@ -404,13 +426,36 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               </Button>
             ))}
             <div style={{ width: 1, height: 20, background: THEME.line, margin: "0 4px" }} />
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Sort:</span>
+            <Button
+              size="sm"
+              variant={sortBy === "priority" ? "accent" : "ghost"}
+              onClick={() => setSortBy("priority")}
+              style={{ height: 32 }}
+            >
+              Priority
+            </Button>
+            <Button
+              size="sm"
+              variant={sortBy === "deadline" ? "accent" : "ghost"}
+              onClick={() => setSortBy("deadline")}
+              style={{ height: 32 }}
+            >
+              Deadline
+            </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
               style={{ height: 32 }}
             >
-              {sortDir === "desc" ? "High → Low" : "Low → High"}
+              {sortBy === "deadline"
+                ? sortDir === "desc"
+                  ? "Latest → Soonest"
+                  : "Soonest → Latest"
+                : sortDir === "desc"
+                  ? "High → Low"
+                  : "Low → High"}
             </Button>
             <div style={{ width: 1, height: 20, background: THEME.line, margin: "0 4px" }} />
             <Button
@@ -570,6 +615,38 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                         BEHIND
                       </span>
                     )}
+                    {!isComplete && (
+                      <button
+                        onClick={() =>
+                          setContribOpen((prev) => {
+                            const next = prev === g.id ? null : g.id;
+                            setContribValue("");
+                            return next;
+                          })
+                        }
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: contribOpen === g.id ? "#fff" : THEME.sage,
+                          background:
+                            contribOpen === g.id
+                              ? THEME.sage
+                              : `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
+                          borderRadius: 20,
+                          padding: "3px 10px",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                        title="Add Funds"
+                        aria-expanded={contribOpen === g.id}
+                        aria-label={`Add funds to ${g.name}`}
+                      >
+                        <Plus size={11} /> Add Funds
+                      </button>
+                    )}
                     <button
                       onClick={() => setEditGoal(g)}
                       style={{
@@ -610,6 +687,74 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     </button>
                   </div>
                 </div>
+
+                {contribOpen === g.id && (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      marginBottom: 16,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      background: `color-mix(in srgb, ${THEME.sage} 5%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 18%, transparent)`,
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: THEME.muted }}>Add</span>
+                    <input
+                      autoFocus
+                      type="number"
+                      min="0"
+                      placeholder="amount"
+                      aria-label={`Amount to add to ${g.name}`}
+                      value={contribValue}
+                      onChange={(e) => setContribValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") addContribution(g.id, g.currentAmount);
+                        if (e.key === "Escape") {
+                          setContribOpen(null);
+                          setContribValue("");
+                        }
+                      }}
+                      style={{
+                        width: 110,
+                        padding: "5px 8px",
+                        borderRadius: 6,
+                        border: `1px solid ${THEME.line}`,
+                        background: "var(--surface-0)",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: THEME.ink,
+                        outline: "none",
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: THEME.muted }}>
+                      to <Prv>{fmtINRFull(g.currentAmount)}</Prv> saved
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="accent"
+                      onClick={() => addContribution(g.id, g.currentAmount)}
+                      disabled={!(Number(contribValue) > 0)}
+                      style={{ height: 30 }}
+                    >
+                      Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setContribOpen(null);
+                        setContribValue("");
+                      }}
+                      style={{ height: 30 }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
 
                 {/* Content Row: Goal Name, Start/Target Dates, Current/Target Amounts */}
                 <div
@@ -996,24 +1141,39 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                               (() => {
                                 const monthlySip = Number(sipInputs[g.id]);
                                 const r = 0.12 / 12;
-                                const monthsNeeded =
-                                  monthlySip > 0 && remaining > 0
-                                    ? Math.log(1 + (remaining * r) / monthlySip) / Math.log(1 + r)
-                                    : 0;
+                                const MAX_MONTHS = 1200;
+                                // Grows the already-saved corpus at the same rate as new
+                                // contributions (matching the "Required SIP" projection above),
+                                // instead of solving the annuity formula against a static nominal
+                                // gap — which ignored compounding on the existing balance and
+                                // overstated months-to-goal for anyone with savings already in.
+                                let monthsNeeded = 0;
+                                let balance = Number(g.currentAmount || 0);
+                                if (monthlySip > 0 && remaining > 0) {
+                                  while (balance < effectiveTarget && monthsNeeded < MAX_MONTHS) {
+                                    balance = balance * (1 + r) + monthlySip;
+                                    monthsNeeded++;
+                                  }
+                                }
+                                const reachable = balance >= effectiveTarget;
                                 // Clamp day-of-month so e.g. 31 Jan + 1mo lands on 28/29 Feb,
                                 // not overflows into March (plain setMonth() rolls over).
                                 const reachDate = (() => {
-                                  if (monthsNeeded <= 0) return null;
+                                  if (monthsNeeded <= 0 || !reachable) return null;
                                   const base = new Date();
                                   const day = base.getDate();
-                                  const total = base.getMonth() + Math.ceil(monthsNeeded);
+                                  const total = base.getMonth() + monthsNeeded;
                                   const y = base.getFullYear() + Math.floor(total / 12);
                                   const m = ((total % 12) + 12) % 12;
                                   const daysInMonth = new Date(y, m + 1, 0).getDate();
                                   return new Date(y, m, Math.min(day, daysInMonth));
                                 })();
                                 const goalDate = g.targetDate ? new Date(g.targetDate) : null;
-                                const onTime = reachDate && goalDate ? reachDate <= goalDate : null;
+                                const onTime = !reachable
+                                  ? false
+                                  : reachDate && goalDate
+                                    ? reachDate <= goalDate
+                                    : null;
                                 return (
                                   <div
                                     style={{
@@ -1041,8 +1201,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                                               : THEME.ink,
                                       }}
                                     >
-                                      Reach goal in{" "}
-                                      {monthsNeeded > 0 ? Math.ceil(monthsNeeded) : "—"} months
+                                      {!reachable
+                                        ? "Won't reach this goal within 100 years at this rate"
+                                        : `Reach goal in ${monthsNeeded} month${monthsNeeded !== 1 ? "s" : ""}`}
                                       {reachDate
                                         ? ` · ${reachDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}`
                                         : ""}
