@@ -34,7 +34,7 @@ import {
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
-import { fmtINRFull, fmtINRExact, today, uid } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, uid, getCCDueDate } from "../../utils/finance";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -1332,6 +1332,16 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                 .reduce((acc: number, c: any) => acc + Number(c.annualFee), 0);
               const feeCardCount = activeCards.filter((c: any) => Number(c.annualFee) > 0).length;
 
+              const totalRewardPoints = activeCards.reduce(
+                (acc: number, c: any) => acc + (Number(c.rewardPointsBalance) || 0),
+                0
+              );
+              const totalRewardValue = activeCards.reduce(
+                (acc: number, c: any) =>
+                  acc + (Number(c.rewardPointsBalance) || 0) * (Number(c.rewardPointValue) || 0),
+                0
+              );
+
               const statCards = [
                 {
                   label: "Total Limit",
@@ -1430,6 +1440,35 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                           >
                             <circle cx="12" cy="12" r="10" />
                             <path d="M12 6v6l4 2" />
+                          </svg>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(totalRewardPoints > 0
+                  ? [
+                      {
+                        label: "Reward Points",
+                        sub:
+                          totalRewardValue > 0
+                            ? `≈ ${fmtINRFull(totalRewardValue)} redeemable`
+                            : "Set value/point on a card to see ₹ estimate",
+                        value: <Prv>{Math.round(totalRewardPoints).toLocaleString("en-IN")}</Prv>,
+                        color: "var(--t-sage)",
+                        borderColor: "var(--t-sage)",
+                        iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
+                        icon: (
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                           </svg>
                         ),
                       },
@@ -1699,6 +1738,27 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           initial={state.creditCards.find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
           onSave={(v: any) => {
+            // If the ledger already has entries and the user hand-edited Outstanding to a
+            // different number, reconcile with an adjustment entry instead of letting the
+            // next ledger edit silently recompute Outstanding from the (now stale) ledger sum
+            // and discard the correction — see CCTransactionLedger's onUpdate.
+            const existingTxs: any[] = Array.isArray(v.transactions) ? v.transactions : [];
+            if (existingTxs.length > 0) {
+              const ledgerSum = existingTxs.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+              const diff = (Number(v.outstanding) || 0) - ledgerSum;
+              if (Math.abs(diff) >= 1) {
+                v.transactions = [
+                  ...existingTxs,
+                  {
+                    id: uid(),
+                    date: today(),
+                    merchant: "Balance Adjustment",
+                    amount: String(diff),
+                    category: "General",
+                  },
+                ];
+              }
+            }
             updateItem("creditCards", editId, v);
             setEditId(null);
           }}
@@ -2357,26 +2417,106 @@ function CCList({
           </div>
         )}
 
-        {/* Due-date countdown */}
+        {!isClosed && Number(c.rewardPointsBalance) > 0 && (
+          <div
+            style={{
+              marginTop: 12,
+              fontSize: 10.5,
+              background: "rgba(255,255,255,0.08)",
+              padding: "6px 10px",
+              borderRadius: 6,
+              color: "rgba(255,255,255,0.85)",
+              fontWeight: 500,
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <span>
+              <strong style={{ color: "#fff" }}>
+                {Math.round(Number(c.rewardPointsBalance)).toLocaleString("en-IN")}
+              </strong>{" "}
+              reward pts
+            </span>
+            {Number(c.rewardPointValue) > 0 && (
+              <span style={{ color: THEME.gold, fontWeight: 700 }}>
+                ≈ {fmtINRFull(Number(c.rewardPointsBalance) * Number(c.rewardPointValue))}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Billing cycle (statement) countdown — reuses getCCDueDate's day-of-month math
+            by handing it the statement day under the `dueDay` field it reads. */}
+        {!isClosed &&
+          c.billDate &&
+          (() => {
+            const stmtDateStr = getCCDueDate({ dueDay: c.billDate });
+            if (!stmtDateStr) return null;
+            const todayMidnight = new Date(today() + "T00:00:00").getTime();
+            const daysLeft = Math.ceil(
+              (new Date(stmtDateStr + "T00:00:00").getTime() - todayMidnight) / 86400000
+            );
+            const label =
+              daysLeft <= 0
+                ? "Statement generates today"
+                : daysLeft === 1
+                  ? "Statement generates tomorrow"
+                  : `Next statement in ${daysLeft} days`;
+            return (
+              <div
+                style={{
+                  marginTop: 12,
+                  marginRight: 6,
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  background: "rgba(255, 255, 255, 0.1)",
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: 10.5,
+                  fontWeight: 500,
+                  display: "inline-block",
+                }}
+              >
+                {label}
+              </div>
+            );
+          })()}
+
+        {/* Due-date countdown — uses the shared getCCDueDate util (same source of truth as
+            Reminders/Analytics/Alerts/Notifications) instead of a local reimplementation.
+            Cards with Autopay enabled get a calm confirmation badge instead of an urgency one. */}
         {!isClosed &&
           c.dueDay &&
           (() => {
-            const now = new Date();
-            const dd = Number(c.dueDay);
-            // Clamp to the last day of the target month so a dueDay of 29/30/31
-            // doesn't overflow into the following month (e.g. Feb 31 -> Mar 3).
-            const clampedDue = (year: number, month: number) =>
-              new Date(year, month, Math.min(dd, new Date(year, month + 1, 0).getDate()));
-            // `<=` (not `<`): when today IS the due day, this month's due date must still
-            // be used so the badge reads "Due today!" instead of jumping to next month.
-            const dueDate =
-              now.getDate() <= dd
-                ? clampedDue(now.getFullYear(), now.getMonth())
-                : clampedDue(now.getFullYear(), now.getMonth() + 1);
-            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const dueDateStr = getCCDueDate(c);
+            if (!dueDateStr) return null;
+            const todayMidnight = new Date(today() + "T00:00:00").getTime();
             const daysLeft = Math.ceil(
-              (dueDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24)
+              (new Date(dueDateStr + "T00:00:00").getTime() - todayMidnight) / 86400000
             );
+
+            if (c.autoPay) {
+              return (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    background: "rgba(34,197,94,0.18)",
+                    color: "#86efac",
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <CheckCircle2 size={11} /> Autopay ON · due{" "}
+                  {daysLeft <= 0 ? "today" : `in ${daysLeft}d`}
+                </div>
+              );
+            }
+
             const isUrgent = daysLeft <= 3;
             const isWarning = daysLeft <= 7 && daysLeft > 3;
 
@@ -2467,7 +2607,7 @@ function CCList({
               <div
                 className="progress-fill"
                 style={{
-                  width: `${Math.min(util, 100)}%`,
+                  width: `${Math.max(0, Math.min(util, 100))}%`,
                   background:
                     util > 70
                       ? "linear-gradient(90deg, var(--t-rust), color-mix(in srgb, var(--t-rust) 75%, white))"
@@ -2924,10 +3064,21 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
     setCsvPreview([]);
     setImportDone(false);
     try {
-      const lines = text
+      let lines = text
         .trim()
         .split("\n")
         .filter((l) => l.trim() && !l.trim().startsWith("#"));
+      if (!lines.length) {
+        setCsvError("No data rows found. See format below.");
+        return;
+      }
+      // Drop a literal header row (e.g. "date,merchant,amount,category") so a file this
+      // ledger's own Export CSV produced — which always includes a header — can be dropped
+      // back in via file upload/drag without a hard parse error on row 1.
+      const firstCol = lines[0].split(",")[0].trim().replace(/^"|"$/g, "");
+      if (!firstCol.match(/^\d{4}-\d{2}-\d{2}$/) && /^date$/i.test(firstCol)) {
+        lines = lines.slice(1);
+      }
       if (!lines.length) {
         setCsvError("No data rows found. See format below.");
         return;
@@ -3009,12 +3160,15 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   };
 
   const downloadCsv = () => {
-    const header = "date,merchant,category,amount";
+    // Column order must match parseCsvText()'s [date, merchant, amount, category] so a card's
+    // own exported CSV can be re-imported (e.g. into another card, or after a reset) without
+    // amount/category silently swapping places.
+    const header = "date,merchant,amount,category";
     const rows = [...txs]
       .sort((a: any, b: any) => a.date.localeCompare(b.date))
       .map(
         (t: any) =>
-          `${t.date},"${(t.merchant || "").replace(/"/g, '""')}","${(t.category || "General").replace(/"/g, '""')}",${t.amount}`
+          `${t.date},"${(t.merchant || "").replace(/"/g, '""')}",${t.amount},"${(t.category || "General").replace(/"/g, '""')}"`
       );
     const content = [header, ...rows].join("\n");
     const blob = new Blob([content], { type: "text/csv" });
@@ -6483,6 +6637,9 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) 
       closedDate: "",
       sharedGroup: "",
       sharedGroupLimit: "",
+      autoPay: false,
+      rewardPointsBalance: "",
+      rewardPointValue: "",
     }
   );
   const isClosed = (f.status || "active").toLowerCase() === "closed";
@@ -6579,6 +6736,26 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) 
           />
         </Field>
       </div>
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: THEME.ink,
+          cursor: "pointer",
+          margin: "-4px 0 4px",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={!!f.autoPay}
+          onChange={(e) => setF({ ...f, autoPay: e.target.checked })}
+          style={{ width: 16, height: 16, cursor: "pointer" }}
+        />
+        Autopay enabled — mutes due-date urgency reminders for this card
+      </label>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         <Field label="Annual Fee (₹)">
           <input
@@ -6646,6 +6823,45 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) 
           placeholder="e.g. Spend 1L in a year to waive off annual fee"
         />
       </Field>
+
+      {/* Reward Points */}
+      <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 4 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            marginBottom: 12,
+          }}
+        >
+          Reward Points (Optional)
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Points Balance">
+            <input
+              style={input}
+              type="number"
+              min="0"
+              value={f.rewardPointsBalance || ""}
+              onChange={(e) => setF({ ...f, rewardPointsBalance: e.target.value })}
+              placeholder="e.g. 12500"
+            />
+          </Field>
+          <Field label="Value per Point (₹)">
+            <input
+              style={input}
+              type="number"
+              min="0"
+              step="0.01"
+              value={f.rewardPointValue || ""}
+              onChange={(e) => setF({ ...f, rewardPointValue: e.target.value })}
+              placeholder="e.g. 0.25"
+            />
+          </Field>
+        </div>
+      </div>
 
       {/* Shared Limit Pool */}
       <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 4 }}>

@@ -93,7 +93,7 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
 
     if (cats.creditCards !== false) {
       state.creditCards
-        .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+        .filter((c: any) => (c.status || "").toLowerCase() !== "closed" && !c.autoPay)
         .forEach((c: any) => {
           const dueDate = getCCDueDate(c);
           if (!dueDate) return;

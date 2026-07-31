@@ -127,6 +127,8 @@ export const NUMERIC_COLS = new Set([
   "shared_group_limit",
   "fee_month",
   "fee_day",
+  "reward_points_balance",
+  "reward_point_value",
   "property_value",
   "target_price",
   "agreement_value",

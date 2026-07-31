@@ -74,7 +74,10 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // CC due in ≤10 days — anchor both ends to local midnight to avoid IST timezone off-by-one
     const todayMidnight = new Date(today() + "T00:00:00").getTime();
     state.creditCards
-      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+      // Autopay cards settle themselves — mirrors the same suppression already applied to
+      // recurring bills (`!b.dueDay || b.autoPay` below) so this alert doesn't nag about a
+      // payment the user has no manual action to take on.
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed" && !c.autoPay)
       .forEach((c: any) => {
         const dueDate = getCCDueDate(c);
         if (dueDate) {
@@ -202,13 +205,32 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
           });
         }
       });
-    // Credit card utilization — compute from state (unfiltered) for consistent alert coverage
-    const totalCCLimitForAlert = state.creditCards
-      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-      .reduce((s: number, c: any) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0);
-    const ccOutstandingForAlert = state.creditCards
-      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-      .reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
+    // Credit card utilization — compute from state (unfiltered) for consistent alert coverage.
+    // Shared-pool cards (sharedGroup) must count the pool limit once (max across the group),
+    // not the sum of each card's sub-limit — same dedup as useMetrics.ts/CreditTab.tsx, otherwise
+    // this alert's utilization comes out artificially low for anyone using a shared pool and can
+    // fail to fire when it should.
+    const activeCCForAlert = state.creditCards.filter(
+      (c: any) => (c.status || "").toLowerCase() !== "closed"
+    );
+    const ccGroupPoolsForAlert: Record<string, number> = {};
+    activeCCForAlert.forEach((c: any) => {
+      if (c.sharedGroup) {
+        ccGroupPoolsForAlert[c.sharedGroup] = Math.max(
+          ccGroupPoolsForAlert[c.sharedGroup] || 0,
+          Number(c.sharedGroupLimit) || 0
+        );
+      }
+    });
+    const totalCCLimitForAlert =
+      activeCCForAlert
+        .filter((c: any) => !c.sharedGroup)
+        .reduce((s: number, c: any) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0) +
+      (Object.values(ccGroupPoolsForAlert) as number[]).reduce((s: number, v: number) => s + v, 0);
+    const ccOutstandingForAlert = activeCCForAlert.reduce(
+      (s: number, c: any) => s + Number(c.outstanding || 0),
+      0
+    );
     if (totalCCLimitForAlert > 0 && ccOutstandingForAlert > 0) {
       const util = (ccOutstandingForAlert / totalCCLimitForAlert) * 100;
       if (util > 75)
