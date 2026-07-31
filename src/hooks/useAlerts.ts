@@ -146,13 +146,19 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
           tab: "tax",
         });
     });
-    // Low emergency fund
-    if (metrics.monthExpense > 0 && metrics.cashInBanks / metrics.monthExpense < 3) {
+    // Low emergency fund — uses the same liquid-assets figure (bank + near-term
+    // FDs + liquid MF + prepaid) as the dedicated Emergency Fund tab, instead of
+    // bank cash alone, so this alert doesn't fire (or stay silent) on a number
+    // the tab it links to would disagree with.
+    if (
+      metrics.emergencyFund.monthlyExpense > 0 &&
+      metrics.emergencyFund.monthsCovered < 3
+    ) {
       list.push({
         level: "warn",
         title: "Low emergency fund",
-        detail: `Only ${(metrics.cashInBanks / metrics.monthExpense).toFixed(1)} months of expenses in bank`,
-        tab: "banks",
+        detail: `Only ${metrics.emergencyFund.monthsCovered.toFixed(1)} months of expenses covered`,
+        tab: "emergencyfund",
       });
     }
     // Subscription renewals in ≤7 days — compare midnight-to-midnight to avoid IST off-by-one

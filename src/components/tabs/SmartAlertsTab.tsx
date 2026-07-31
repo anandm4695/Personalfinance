@@ -316,16 +316,20 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       }
     });
 
-    // 8. Emergency fund warning
     const monthlyExpense = metrics.monthExpense || 0;
-    const bankBalance = (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
-    if (monthlyExpense > 0 && bankBalance < monthlyExpense * 3) {
+
+    // 8. Emergency fund warning — same liquid-assets figure (bank + near-term FDs
+    // + liquid MF + prepaid) as the dedicated Emergency Fund tab, instead of raw
+    // bank balance alone.
+    const efLiquidAssets = metrics.emergencyFund.liquidAssets;
+    const efMonthlyExpense = metrics.emergencyFund.monthlyExpense;
+    if (efMonthlyExpense > 0 && metrics.emergencyFund.monthsCovered < 3) {
       alerts.push({
         id: "emergency_fund_low",
-        level: bankBalance < monthlyExpense ? "error" : "warn",
+        level: metrics.emergencyFund.monthsCovered < 1 ? "error" : "warn",
         category: "safety",
         title: "Emergency fund below 3 months",
-        detail: `Bank balance: ${fmtINRExact(bankBalance)} covers ${(bankBalance / monthlyExpense).toFixed(1)} months of expenses`,
+        detail: `Liquid assets: ${fmtINRExact(efLiquidAssets)} covers ${metrics.emergencyFund.monthsCovered.toFixed(1)} months of expenses`,
         icon: Shield,
         action: "Build up your emergency fund",
       });

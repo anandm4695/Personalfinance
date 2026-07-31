@@ -37,7 +37,12 @@ describe("SmartAlertsTab day-count math", () => {
       ],
     };
 
-    const html = renderToString(<SmartAlertsTab state={state} metrics={{}} />);
+    const html = renderToString(
+      <SmartAlertsTab
+        state={state}
+        metrics={{ emergencyFund: { liquidAssets: 0, monthlyExpense: 0, monthsCovered: 0 } }}
+      />
+    );
 
     expect(html).toContain('deadline in 1 days');
     expect(html).not.toContain('deadline in 2 days');

@@ -16,6 +16,8 @@ import {
   RefreshCw,
   ClipboardList,
   HeartPulse,
+  Lock,
+  Calendar,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
@@ -26,104 +28,22 @@ import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
-const getHealthColor = (months) => {
-  if (months >= 12) return THEME.sage;
-  if (months >= 6) return THEME.accent;
-  if (months >= 3) return THEME.gold;
-  return THEME.rust;
-};
-
-const getHealthLabel = (months) => {
-  if (months >= 12) return "Excellent";
-  if (months >= 6) return "Healthy";
-  if (months >= 3) return "Needs Improvement";
-  return "Critical";
-};
+const TIER_COLOR = { critical: THEME.rust, building: THEME.gold, healthy: THEME.accent, excellent: THEME.sage };
 
 export const EmergencyFundTab = ({ state, metrics }) => {
+  const ef = metrics.emergencyFund;
   const data = useMemo(() => {
-    // Liquid assets = bank balances + FD (if breakable) + liquid MF
-    const bankBalance = (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
-
-    const liquidMF = (state.mutualFunds || []).reduce((s, m) => {
-      const cat = (m.category || m.type || "").toLowerCase();
-      if (
-        cat.includes("liquid") ||
-        cat.includes("money market") ||
-        cat.includes("overnight") ||
-        cat.includes("ultra short")
-      ) {
-        return s + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
-      }
-      return s;
-    }, 0);
-
-    const prepaidBalance = (state.prepaidCards || []).reduce((s, c) => {
-      const txns = c.transactions || [];
-      const balance = txns.reduce((ts, t) => {
-        return t.type === "credit" ? ts + Number(t.amount || 0) : ts - Number(t.amount || 0);
-      }, 0);
-      return s + Math.max(0, balance);
-    }, 0);
-
-    const totalLiquid = bankBalance + liquidMF + prepaidBalance;
-
-    // Monthly expenses
-    const monthlyExpense = (() => {
-      // Use budget total if available.
-      // Bug fix: this previously summed EVERY budget category unconditionally,
-      // including "Investment" and "Transfer" — both valid budget categories a
-      // user can set in BudgetTab.tsx (e.g. an "Investment: ₹20,000/mo" SIP
-      // target) but neither is real spend. MonthlyReportModal.tsx already
-      // established the pattern of excluding these two from "expense" totals
-      // app-wide (see its isTransferCat/`category !== "Investment"` filters);
-      // pulling them into this tab's expense base inflated the denominator
-      // used for "months of expenses covered", understating the user's real
-      // emergency-fund runway for anyone with sizeable investment budgets.
-      const isNonExpenseBudgetCat = (cat) =>
-        ["Transfer", "Self Transfer", "Self-Transfer", "Investment"].includes(cat || "");
-      const budgetTotal = (state.budgets || [])
-        .filter((b) => !isNonExpenseBudgetCat(b.category))
-        .reduce((s, b) => s + Number(b.monthly || b.monthlyLimit || 0), 0);
-      if (budgetTotal > 0) return budgetTotal;
-
-      // Fallback: sum of EMIs + SIPs + subscriptions + recurring expenses + rent
-      const emis = (state.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
-      const sips = (state.sips || [])
-        .filter((s) => s.status !== "stopped")
-        .reduce((s, si) => s + Number(si.amount || 0), 0);
-      const subs = (state.subscriptions || [])
-        .filter((s) => !s.paused)
-        .reduce((s, sub) => {
-          const amt = Number(sub.amount || 0);
-          if (sub.cycle === "yearly") return s + amt / 12;
-          if (sub.cycle === "quarterly") return s + amt / 3;
-          return s + amt;
-        }, 0);
-      const recurring = (state.recurringExpenses || []).reduce(
-        (s, r) => s + Number(r.amount || 0),
-        0
-      );
-      const rent = (state.rentedProperties || []).reduce(
-        (s, p) => s + Number(p.monthlyRent || 0),
-        0
-      );
-      const insurance = [
-        ...(state.lic || []),
-        ...(state.termPlans || []),
-        ...(state.investmentPlans || []),
-      ].reduce((s, p) => s + Number(p.annualPremium || p.premium || 0) / 12, 0);
-      return emis + sips + subs + recurring + rent + insurance;
-    })();
-
-    // If expense calc fails, use metrics
-    const finalExpense = monthlyExpense > 0 ? monthlyExpense : metrics.monthExpense || 0;
-
-    const monthsCovered = finalExpense > 0 ? totalLiquid / finalExpense : 0;
-    const targetMonths = 6;
-    const targetAmount = finalExpense * targetMonths;
-    const gap = Math.max(0, targetAmount - totalLiquid);
-    const coveragePct = Math.min(100, (monthsCovered / targetMonths) * 100);
+    const bankBalance = ef.cashInBanks;
+    const fdValue = ef.nearTermFDValue;
+    const liquidMF = ef.liquidMFValue;
+    const prepaidBalance = Math.max(0, ef.prepaidValue);
+    const totalLiquid = ef.liquidAssets;
+    const finalExpense = ef.monthlyExpense;
+    const monthsCovered = ef.monthsCovered;
+    const targetMonths = ef.targetMonths;
+    const targetAmount = ef.targetAmount;
+    const gap = ef.gap;
+    const coveragePct = ef.coveragePct;
 
     // Expense breakdown for table
     const expenseBreakdown = [];
@@ -163,6 +83,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
     return {
       bankBalance,
+      fdValue,
       liquidMF,
       prepaidBalance,
       totalLiquid,
@@ -174,10 +95,17 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       coveragePct,
       expenseBreakdown,
     };
-  }, [state, metrics]);
+  }, [state, ef]);
 
-  const healthColor = getHealthColor(data.monthsCovered);
-  const healthLabel = getHealthLabel(data.monthsCovered);
+  const healthColor = TIER_COLOR[ef.tier];
+  const healthLabel = ef.label;
+
+  // Projected months to close the gap, based on the user's actual monthly
+  // savings (income - expense). Only shown when there's a real gap and a
+  // positive savings rate to project from — otherwise "time to target" is
+  // either moot (already funded) or unknowable (no surplus to save).
+  const monthlySurplus = Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0));
+  const monthsToTarget = data.gap > 0 && monthlySurplus > 0 ? data.gap / monthlySurplus : null;
 
   return (
     <div>
@@ -249,17 +177,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
           <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <Badge
-                variant={
-                  data.monthsCovered >= 6
-                    ? "sage"
-                    : data.monthsCovered >= 3
-                      ? "gold"
-                      : "rust"
-                }
-              >
-                {healthLabel}
-              </Badge>
+              <Badge variant={ef.badgeVariant}>{healthLabel}</Badge>
             </div>
             <div style={{ fontSize: 14, color: THEME.ink, marginBottom: 12 }}>
               Your liquid assets can cover <strong>{data.monthsCovered.toFixed(1)} months</strong>{" "}
@@ -307,7 +225,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
         <StatCard
           label="Liquid Assets"
           value={<Prv>{fmtINRFull(data.totalLiquid)}</Prv>}
-          sub="Savings bank accounts, breakable FDs & liquid funds"
+          sub="Bank accounts, FDs maturing within 90 days & liquid funds"
           icon={<IndianRupee />}
           color={THEME.sage}
         />
@@ -371,6 +289,12 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 value: data.bankBalance,
                 icon: Landmark,
                 color: THEME.accent,
+              },
+              {
+                label: "Fixed Deposits Maturing Within 90 Days",
+                value: data.fdValue,
+                icon: Calendar,
+                color: THEME.muted,
               },
               {
                 label: "Liquid / Money Market Mutual Funds",
@@ -485,11 +409,24 @@ export const EmergencyFundTab = ({ state, metrics }) => {
             >
               <PieChart size={16} style={{ color: THEME.accent }} /> Monthly Expense Allocation
             </div>
+            {(() => {
+              // Bug fix: this breakdown's line items (EMIs, rent, SIPs, subscriptions,
+              // recurring expenses, insurance) are always computed bottom-up, but the
+              // "Monthly Expenses" figure used for the months-covered calc above prefers
+              // a manually-set Budget total when one exists — the two can legitimately
+              // differ (a budget rarely itemizes every commitment 1:1). Dividing each
+              // line item by that *different* total previously produced percentages
+              // that could sum to 400%+ instead of 100%. Percentages here are now
+              // relative to the sum of the items actually shown, which always adds up.
+              const breakdownTotal = data.expenseBreakdown.reduce((s, e) => s + e.amount, 0);
+              const usesDifferentTotal =
+                Math.abs(breakdownTotal - data.monthlyExpense) > Math.max(1, data.monthlyExpense * 0.01);
+              return (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {data.expenseBreakdown
                 .sort((a, b) => b.amount - a.amount)
                 .map((e, i) => {
-                  const expPct = data.monthlyExpense ? (e.amount / data.monthlyExpense) * 100 : 0;
+                  const expPct = breakdownTotal ? (e.amount / breakdownTotal) * 100 : 0;
                   const barColor =
                     i === 0
                       ? THEME.accent
@@ -571,13 +508,21 @@ export const EmergencyFundTab = ({ state, metrics }) => {
               >
                 <IndianRupee size={16} color={THEME.ink} />
                 <span style={{ flex: 1, fontSize: 13, color: THEME.ink, fontWeight: 800 }}>
-                  Total Monthly Expenditures
+                  Sum of Tracked Commitments
                 </span>
                 <span style={{ fontWeight: 900, fontSize: 15, color: THEME.ink }}>
-                  <Prv>{fmtINRFull(data.monthlyExpense)}</Prv>
+                  <Prv>{fmtINRFull(breakdownTotal)}</Prv>
                 </span>
               </div>
+              {usesDifferentTotal && (
+                <div style={{ fontSize: 11, color: THEME.muted, padding: "0 4px" }}>
+                  The {fmtINRFull(data.monthlyExpense)} used above for months-covered comes from
+                  your Budget total, which doesn't line up 1:1 with these itemized commitments.
+                </div>
+              )}
             </div>
+              );
+            })()}
           </div>
         </Card>
       )}
@@ -774,6 +719,59 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                     <Prv>{fmtINRFull(data.gap / 12)}</Prv>/month
                   </strong>{" "}
                   for 12 months.
+                </div>
+              </div>
+            )}
+            {data.gap > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  background: "color-mix(in srgb, var(--t-sage) 4%, transparent)",
+                  border: "1px solid var(--t-line)",
+                  borderLeft: "4px solid var(--t-sage)",
+                  boxShadow: "var(--shadow-xs)",
+                }}
+              >
+                <Lock size={18} style={{ color: THEME.sage, flexShrink: 0, marginTop: 2 }} />
+                <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.4 }}>
+                  <strong
+                    style={{
+                      color: THEME.sage,
+                      textTransform: "uppercase",
+                      fontSize: 11,
+                      display: "block",
+                      marginBottom: 2,
+                    }}
+                  >
+                    At Your Current Pace
+                  </strong>
+                  {monthsToTarget !== null ? (
+                    <>
+                      You're saving <Prv>{fmtINRFull(monthlySurplus)}</Prv>/month on average. Keep
+                      that up and you'll close the gap in{" "}
+                      <strong>
+                        {monthsToTarget < 1
+                          ? "under a month"
+                          : `about ${Math.ceil(monthsToTarget)} month${Math.ceil(monthsToTarget) === 1 ? "" : "s"}`}
+                      </strong>
+                      , around{" "}
+                      <strong>
+                        {new Date(
+                          Date.now() + Math.ceil(monthsToTarget) * 30.44 * 86400000
+                        ).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
+                      </strong>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      This month's income doesn't leave a surplus over expenses, so there's nothing
+                      to project a payoff date from yet. Redirecting even a small recurring amount
+                      here will start closing the gap.
+                    </>
+                  )}
                 </div>
               </div>
             )}

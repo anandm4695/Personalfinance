@@ -304,7 +304,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "NPS_LITE", label: "NPS Lite", icon: Briefcase },
         ],
       },
-      { id: "emergencyfund", label: "Emergency Fund", icon: Flame },
+      { id: "emergencyfund", label: "Emergency Fund", icon: Shield },
     ],
   },
   {

@@ -278,11 +278,9 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     const savingsRate =
       metrics.monthIncome > 0 ? (1 - metrics.monthExpense / metrics.monthIncome) * 100 : 0;
     const debtRatio = metrics.debtToAssetRatio || 0;
-    const emergencyMonths =
-      metrics.monthExpense > 0
-        ? (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0) /
-          metrics.monthExpense
-        : 0;
+    // Same figure as the dedicated Emergency Fund tab (bank + near-term FDs +
+    // liquid MF + prepaid), not raw bank balance alone.
+    const emergencyMonths = metrics.emergencyFund.monthsCovered;
     const diversification = [
       portfolioReturns.equity.invested > 0 ? 1 : 0,
       portfolioReturns.mf.invested > 0 ? 1 : 0,
@@ -294,7 +292,13 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     return [
       { metric: "Savings Rate", score: Math.min(100, savingsRate * 2), fullMark: 100 },
       { metric: "Low Debt", score: Math.min(100, Math.max(0, 100 - debtRatio * 2)), fullMark: 100 },
-      { metric: "Emergency Fund", score: Math.min(100, emergencyMonths * 10), fullMark: 100 },
+      {
+        metric: "Emergency Fund",
+        // Scaled to the same 12-month "excellent" ceiling as the Emergency Fund
+        // tab (getEmergencyFundStatus), not an unrelated 10-month cap.
+        score: Math.min(100, (emergencyMonths / 12) * 100),
+        fullMark: 100,
+      },
       { metric: "Diversification", score: diversification * 20, fullMark: 100 },
       {
         metric: "Returns vs FD",
@@ -303,7 +307,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       },
       { metric: "Goal Progress", score: Math.min(100, metrics.overallGoalPct || 0), fullMark: 100 },
     ];
-  }, [metrics, portfolioReturns, state.bankAccounts]);
+  }, [metrics, portfolioReturns]);
 
   const overallScore = Math.round(
     healthScore.reduce((s, h) => s + h.score, 0) / healthScore.length

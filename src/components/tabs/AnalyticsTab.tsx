@@ -548,6 +548,16 @@ const BADGE_TIPS: Record<string, string> = {
   b3: "Budget 3+ spending categories (food, transport, entertainment) to unlock the Budget Pro badge.",
 };
 
+// Maps metrics.emergencyFund.tier -> display color, kept in sync with the same
+// mapping used by EmergencyFundTab so the dashboard widget and the dedicated
+// tab never disagree on what color a given "months covered" figure gets.
+const TIER_COLOR_EF: Record<string, string> = {
+  critical: THEME.rust,
+  building: THEME.gold,
+  healthy: THEME.accent,
+  excellent: THEME.sage,
+};
+
 interface AnalyticsTabProps {
   metrics: any;
   state: any;
@@ -1665,21 +1675,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     else if (metrics.totalLiabilities > 0) debtScore = 4;
     else debtScore = 0;
 
-    // Liquid reserve = bank cash + FDs maturing within 90 days (matches Emergency Fund Health card)
-    const nearTermFDsForScore = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
-      if (!fd.maturityDate) return sum;
-      // Parse at local midnight, not UTC (bare `new Date("YYYY-MM-DD")` parses as UTC
-      // midnight) — otherwise the 90-day maturity window can shift by hours vs. the
-      // local `Date.now()` comparison, mis-bucketing FDs right at the boundary.
-      const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
-      const nowMs = Date.now();
-      if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
-      return sum;
-    }, 0);
-    const emergencyMonths =
-      metrics.monthExpense > 0
-        ? (metrics.cashInBanks + nearTermFDsForScore) / metrics.monthExpense
-        : 0;
+    // Liquid reserve: uses the same metrics.emergencyFund figure as the Emergency
+    // Fund Health card (bank cash + near-term FDs + liquid MF + prepaid balance)
+    // instead of a narrower re-derivation, so this sub-score never disagrees with
+    // the dedicated tab about how many months are actually covered.
+    const emergencyMonths = metrics.emergencyFund.monthsCovered;
     if (emergencyMonths > 6) emergencyScore = 25;
     else if (emergencyMonths >= 3) emergencyScore = 18;
     else if (emergencyMonths >= 1) emergencyScore = 10;
@@ -1761,7 +1761,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 ? `color-mix(in srgb, ${THEME.gold} 45%, ${THEME.rust})`
                 : THEME.rust,
         hint:
-          metrics.monthExpense > 0
+          metrics.emergencyFund.monthlyExpense > 0
             ? `${emergencyMonths.toFixed(1)} months of expenses covered`
             : "No expense data",
       },
@@ -2286,19 +2286,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         label: `${Math.max(0, sr).toFixed(0)}% of ${nextSR[1]}%`,
       };
 
-    // Safety Net (liquid reserve = bank cash + FDs maturing within 90 days)
-    const nearTermFDsForBadge = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
-      if (!fd.maturityDate) return sum;
-      // Local-midnight parse (see nearTermFDsForScore above) to match Date.now().
-      const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
-      const nowMs = Date.now();
-      if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
-      return sum;
-    }, 0);
-    const efM =
-      metrics.monthExpense > 0
-        ? (metrics.cashInBanks + nearTermFDsForBadge) / metrics.monthExpense
-        : 0;
+    // Safety Net — same metrics.emergencyFund figure as the dashboard widget and
+    // dedicated tab (see comment on emergencyMonths above).
+    const efM = metrics.emergencyFund.monthsCovered;
     const efMiles = [
       ["ef1", 1],
       ["ef3", 3],
@@ -2653,8 +2643,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             )
           )
         : 0;
-    const efMonthsHB =
-      metrics.monthExpense > 0 ? Math.min(12, (metrics.cashInBanks + nearTermFDsForBadge) / metrics.monthExpense) : 0;
+    const efMonthsHB = Math.min(12, metrics.emergencyFund.monthsCovered);
 
     return {
       earned,
@@ -2850,19 +2839,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     );
     // 10× annual income — matches "Protected" badge criterion and Family Dashboard
     const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;
-    // Liquid reserve = bank cash + FDs maturing within 90 days (matches Emergency Fund Health card)
-    const nearTermFDsForInsight = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
-      if (!fd.maturityDate) return sum;
-      // Local-midnight parse (see nearTermFDsForScore above) to match Date.now().
-      const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
-      const nowMs = Date.now();
-      if (matMs >= nowMs && matMs <= nowMs + 90 * 86400000) return sum + Number(fd.principal || 0);
-      return sum;
-    }, 0);
-    const emergencyMonths =
-      metrics.monthExpense > 0
-        ? (metrics.cashInBanks + nearTermFDsForInsight) / metrics.monthExpense
-        : 0;
+    // Same metrics.emergencyFund figure as the Emergency Fund Health card.
+    const emergencyMonths = metrics.emergencyFund.monthsCovered;
 
     if (metrics.monthIncome > 0 && metrics.savingsRate < 10)
       insights.push({
@@ -2881,13 +2859,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         bg: `color-mix(in srgb, var(--t-sage) 7%, transparent)`,
       });
 
-    if (metrics.monthExpense > 0 && emergencyMonths < 3)
+    if (metrics.emergencyFund.monthlyExpense > 0 && emergencyMonths < 3)
       insights.push({
         icon: ShieldAlert,
         title: "Emergency Fund",
         value: `${emergencyMonths.toFixed(1)} mo liquid · need 3+`,
         color: THEME.rust,
         bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
+      });
+    else if (emergencyMonths >= 3 && emergencyMonths < 6)
+      insights.push({
+        icon: ShieldAlert,
+        title: "Emergency Fund",
+        value: `${emergencyMonths.toFixed(1)} mo — building toward 6`,
+        color: THEME.gold,
+        bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
       });
     else if (emergencyMonths >= 6)
       insights.push({
@@ -4988,31 +4974,31 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
             {/* ── Emergency Fund Health Check ── */}
             {(() => {
-              const efMonthlyExpense = metrics.monthExpense || 0;
-              // Liquid assets: bank cash + FDs maturing within 3 months
-              const nearTermFDs = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
-                if (!fd.maturityDate) return sum;
-                // Local-midnight parse (see nearTermFDsForScore above) to match Date.now().
-                const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
-                const nowMs = Date.now();
-                const threeMonthsMs = nowMs + 90 * 86400000;
-                if (matMs >= nowMs && matMs <= threeMonthsMs) {
-                  return sum + Number(fd.principal || 0);
-                }
-                return sum;
-              }, 0);
-              const efLiquidBalance = (metrics.cashInBanks || 0) + nearTermFDs;
-              const efRatio = efMonthlyExpense > 0 ? efLiquidBalance / efMonthlyExpense : 0;
-              const efTarget = efMonthlyExpense * 6;
+              // Single source of truth: metrics.emergencyFund (see finance.ts's
+              // getEmergencyFund* helpers) — this widget used to recompute its own
+              // "bank cash + near-term FDs" figure independently of the dedicated
+              // Emergency Fund tab, which also counted liquid mutual funds and
+              // prepaid balances, so the same household saw two different numbers
+              // for the same concept depending which screen they were on.
+              const efData = metrics.emergencyFund;
+              const efMonthlyExpense = efData.monthlyExpense;
+              const nearTermFDs = efData.nearTermFDValue;
+              const efLiquidBalance = efData.liquidAssets;
+              const efRatio = efData.monthsCovered;
+              const efTarget = efData.targetAmount;
+              // Unclamped (unlike efData.gap, which floors at 0) so a fully-funded
+              // household sees its actual surplus below instead of a flat ₹0.
               const efShortfall = efTarget - efLiquidBalance;
-              const efProgress =
-                efTarget > 0 ? Math.min((efLiquidBalance / efTarget) * 100, 100) : 0;
+              const efProgress = efData.coveragePct;
 
-              const efStatusColor =
-                efRatio >= 6 ? THEME.sage : efRatio >= 3 ? THEME.gold : THEME.rust;
-              const efStatusLabel =
-                efRatio >= 6 ? "Healthy" : efRatio >= 3 ? "Building" : "Critical";
-              const EfIcon = efRatio >= 6 ? CheckCircle2 : efRatio >= 3 ? Shield : AlertTriangle;
+              const efStatusColor = TIER_COLOR_EF[efData.tier];
+              const efStatusLabel = efData.label;
+              const EfIcon =
+                efData.tier === "excellent" || efData.tier === "healthy"
+                  ? CheckCircle2
+                  : efData.tier === "building"
+                    ? Shield
+                    : AlertTriangle;
 
               let efAdvice = "";
               if (efMonthlyExpense <= 0) {
@@ -5030,7 +5016,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               const filledSegments = Math.min(efRatio, 6);
 
               return (
-                <Card className="bento-col-12" style={{ padding: 24 }}>
+                <Card
+                  className="bento-col-12 card-lift"
+                  style={{ padding: 24, cursor: setTab ? "pointer" : undefined }}
+                  onClick={() => setTab && setTab("emergencyfund")}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -5274,6 +5264,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {efAdvice}
                     </div>
                   </div>
+
+                  {setTab && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        alignItems: "center",
+                        gap: 4,
+                        marginTop: 14,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: THEME.accent,
+                      }}
+                    >
+                      View full breakdown & recommendations <ArrowUpRight size={13} />
+                    </div>
+                  )}
                 </Card>
               );
             })()}

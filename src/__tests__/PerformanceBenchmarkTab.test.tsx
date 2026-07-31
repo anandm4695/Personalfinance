@@ -59,6 +59,7 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
             monthExpense: 30000,
             debtToAssetRatio: 10,
             overallGoalPct: 45,
+            emergencyFund: { monthsCovered: 1.67 },
           }}
           marketData={{}}
         />
@@ -100,7 +101,13 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
       <PrivacyProvider>
         <PerformanceBenchmarkTab
           state={goldOnlyState}
-          metrics={{ monthIncome: 0, monthExpense: 0, debtToAssetRatio: 0, overallGoalPct: 0 }}
+          metrics={{
+            monthIncome: 0,
+            monthExpense: 0,
+            debtToAssetRatio: 0,
+            overallGoalPct: 0,
+            emergencyFund: { monthsCovered: 0 },
+          }}
           marketData={{}}
         />
       </PrivacyProvider>

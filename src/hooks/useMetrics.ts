@@ -11,6 +11,10 @@ import {
   getTaxDueForDashboard,
   getGoldPricePerGram,
   GOLD_PURITY_FACTOR,
+  getEmergencyFundLiquidAssets,
+  getEmergencyFundMonthlyExpense,
+  getEmergencyFundStatus,
+  EMERGENCY_FUND_TARGET_MONTHS,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { DEFAULT_MASTER_DATA, FamilyProfile } from "../utils/masterData";
@@ -643,6 +647,31 @@ export function useMetrics(
     const monthExpense =
       txnDebitTotal + (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
 
+    // Emergency Fund: computed once here and reused everywhere it's surfaced
+    // (dedicated tab, dashboard widget, Financial Health Score, Smart Insights,
+    // gamification badges, alerts, AI assistant, peer benchmark) — see the
+    // helpers' comments in finance.ts for why this used to drift per-consumer.
+    const efMonthlyExpense = getEmergencyFundMonthlyExpense(sState, monthExpense);
+    const { liquidAssets: efLiquidAssets, nearTermFDValue: efNearTermFDValue, liquidMFValue: efLiquidMFValue } =
+      getEmergencyFundLiquidAssets(sState, cashInBanks, prepaidValue);
+    const efMonthsCovered = efMonthlyExpense > 0 ? efLiquidAssets / efMonthlyExpense : 0;
+    const efTargetAmount = efMonthlyExpense * EMERGENCY_FUND_TARGET_MONTHS;
+    const efGap = Math.max(0, efTargetAmount - efLiquidAssets);
+    const emergencyFund = {
+      liquidAssets: efLiquidAssets,
+      cashInBanks,
+      nearTermFDValue: efNearTermFDValue,
+      liquidMFValue: efLiquidMFValue,
+      prepaidValue,
+      monthlyExpense: efMonthlyExpense,
+      monthsCovered: efMonthsCovered,
+      targetMonths: EMERGENCY_FUND_TARGET_MONTHS,
+      targetAmount: efTargetAmount,
+      gap: efGap,
+      coveragePct: Math.min(100, (efMonthsCovered / EMERGENCY_FUND_TARGET_MONTHS) * 100),
+      ...getEmergencyFundStatus(efMonthsCovered),
+    };
+
     // Annual income from income ledger
     const fyStart = new Date(`${(sState.profile?.fy || getCurrentFY()).split("-")[0]}-04-01`);
     const explicitIncome = sState.income
@@ -821,6 +850,7 @@ export function useMetrics(
       stockPnL: stockValue - stockInvested,
       liquidAssets,
       lockedAssets,
+      emergencyFund,
       realEstateAsset,
       realEstateOutstanding,
       vehicleAsset,

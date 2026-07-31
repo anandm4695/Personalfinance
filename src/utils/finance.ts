@@ -67,6 +67,127 @@ export const getGoldPricePerGram = (state?: any): number => {
   return DEFAULT_GOLD_PRICE_PER_GRAM;
 };
 
+// Emergency Fund: this and the two helpers below (getEmergencyFundLiquidAssets,
+// getEmergencyFundMonthlyExpense) are the single source of truth for "months of
+// expenses covered by liquid assets" — used by useMetrics (metrics.emergencyFund)
+// and every tab/alert that surfaces this figure. Previously each consumer
+// (EmergencyFundTab, AnalyticsTab's dashboard widget, its Financial Health Score,
+// Smart Insights, gamification badges, useAlerts, AIAssistantTab, SmartAlertsTab,
+// PerformanceBenchmarkTab) recomputed its own version of "liquid assets" with
+// different asset sets (some included near-term FDs, some liquid mutual funds,
+// some prepaid cards, some none of the above) and different month thresholds for
+// the same status label — so the same household could see e.g. "2.1 months /
+// Critical" on one tab and "5.4 months / Building" on another for the exact same
+// underlying data. Centralizing here keeps every surface in sync.
+export const EMERGENCY_FUND_TARGET_MONTHS = 6;
+
+// FDs maturing within this window count as "near-liquid" for emergency-fund
+// purposes (breaking an FD outside this window still leaves the fund usable, but
+// isn't treated as instantly accessible liquidity).
+const EMERGENCY_FUND_FD_WINDOW_DAYS = 90;
+
+export type EmergencyFundTier = "critical" | "building" | "healthy" | "excellent";
+
+// Single tier→label→color mapping for the emergency-fund status badge/gauge/etc.
+// `badgeVariant` matches the `Badge` component's variant prop so callers can pass
+// it straight through without re-deriving a color.
+export const getEmergencyFundStatus = (
+  monthsCovered: number
+): { tier: EmergencyFundTier; label: string; badgeVariant: "rust" | "gold" | "accent" | "sage" } => {
+  if (monthsCovered >= 12) return { tier: "excellent", label: "Excellent", badgeVariant: "sage" };
+  if (monthsCovered >= EMERGENCY_FUND_TARGET_MONTHS)
+    return { tier: "healthy", label: "Healthy", badgeVariant: "accent" };
+  if (monthsCovered >= 3) return { tier: "building", label: "Needs Improvement", badgeVariant: "gold" };
+  return { tier: "critical", label: "Critical", badgeVariant: "rust" };
+};
+
+// Liquid assets counted toward the emergency fund: bank balances, FDs maturing
+// within EMERGENCY_FUND_FD_WINDOW_DAYS days (principal), liquid/money-market/
+// overnight/ultra-short mutual funds (current value), and prepaid card balances.
+// `prepaidValue` is passed in rather than re-derived here because the correct
+// calculation (load/spend ledger, closed-card exclusion) already lives in
+// useMetrics — re-deriving it independently is what caused prior drift (one
+// earlier version filtered on transaction types that don't exist in the data
+// model and always evaluated to zero).
+export const getEmergencyFundLiquidAssets = (
+  state: any,
+  cashInBanks: number,
+  prepaidValue: number
+): { liquidAssets: number; nearTermFDValue: number; liquidMFValue: number } => {
+  const nearTermFDValue = (state?.fixedDeposits || []).reduce((sum: number, fd: any) => {
+    if (!fd.maturityDate) return sum;
+    // Parse at local midnight, not UTC, to match the local Date.now() comparison.
+    const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
+    const nowMs = Date.now();
+    if (matMs >= nowMs && matMs <= nowMs + EMERGENCY_FUND_FD_WINDOW_DAYS * 86400000) {
+      return sum + Number(fd.principal || 0);
+    }
+    return sum;
+  }, 0);
+
+  const liquidMFValue = (state?.mutualFunds || []).reduce((sum: number, m: any) => {
+    const cat = (m.category || m.type || "").toLowerCase();
+    if (
+      cat.includes("liquid") ||
+      cat.includes("money market") ||
+      cat.includes("overnight") ||
+      cat.includes("ultra short")
+    ) {
+      return sum + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
+    }
+    return sum;
+  }, 0);
+
+  return {
+    liquidAssets: cashInBanks + nearTermFDValue + liquidMFValue + Math.max(0, prepaidValue),
+    nearTermFDValue,
+    liquidMFValue,
+  };
+};
+
+// Monthly expense base for the emergency-fund runway. Prefers the user's own
+// budget (excluding Transfer/Self Transfer/Investment categories, which are
+// budget-able but aren't real spend — see MonthlyReportModal's same exclusion),
+// then falls back to a bottom-up sum of known recurring commitments, then to
+// the transaction-derived `monthExpense` metric.
+export const getEmergencyFundMonthlyExpense = (state: any, fallbackMonthExpense: number): number => {
+  const isNonExpenseBudgetCat = (cat: string) =>
+    ["Transfer", "Self Transfer", "Self-Transfer", "Investment"].includes(cat || "");
+  const budgetTotal = (state?.budgets || [])
+    .filter((b: any) => !isNonExpenseBudgetCat(b.category))
+    .reduce((s: number, b: any) => s + Number(b.monthly || b.monthlyLimit || 0), 0);
+  if (budgetTotal > 0) return budgetTotal;
+
+  const emis = (state?.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+  const sips = (state?.sips || [])
+    .filter((s: any) => s.status !== "stopped")
+    .reduce((s: number, si: any) => s + Number(si.amount || 0), 0);
+  const subs = (state?.subscriptions || [])
+    .filter((s: any) => !s.paused)
+    .reduce((s: number, sub: any) => {
+      const amt = Number(sub.amount || 0);
+      if (sub.cycle === "yearly") return s + amt / 12;
+      if (sub.cycle === "quarterly") return s + amt / 3;
+      return s + amt;
+    }, 0);
+  const recurring = (state?.recurringExpenses || []).reduce(
+    (s: number, r: any) => s + Number(r.amount || 0),
+    0
+  );
+  const rent = (state?.rentedProperties || []).reduce(
+    (s: number, p: any) => s + Number(p.monthlyRent || 0),
+    0
+  );
+  const insurance = [
+    ...(state?.lic || []),
+    ...(state?.termPlans || []),
+    ...(state?.investmentPlans || []),
+  ].reduce((s: number, p: any) => s + Number(p.annualPremium || p.premium || 0) / 12, 0);
+  const bottomUp = emis + sips + subs + recurring + rent + insurance;
+
+  return bottomUp > 0 ? bottomUp : fallbackMonthExpense || 0;
+};
+
 export const uid = () => {
   if (typeof crypto !== "undefined" && (crypto as any).randomUUID) {
     return (crypto as any).randomUUID();

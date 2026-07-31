@@ -506,9 +506,10 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     }[] = [];
     const savingsRate = metrics.savingsRate || 0;
     const creditUtil = metrics.creditUtilization || 0;
-    const monthExpense = metrics.monthExpense || 0;
-    const cashInBanks = metrics.cashInBanks || 0;
-    const emergencyMonths = monthExpense > 0 ? cashInBanks / monthExpense : 0;
+    // Same figure as the Emergency Fund tab (bank + near-term FDs + liquid MF +
+    // prepaid balance), not bank cash alone — see metrics.emergencyFund.
+    const emergencyMonths = metrics.emergencyFund.monthsCovered;
+    const efMonthlyExpense = metrics.emergencyFund.monthlyExpense;
     // User-configurable target from Settings → Profile ("Monthly Savings Target %"),
     // defaulting to 20 to match that same field's default. Previously hardcoded to
     // 20 here regardless of what the user actually set, so this insight could fire
@@ -538,7 +539,7 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     }
 
     // Emergency fund
-    if (emergencyMonths < 3 && monthExpense > 0) {
+    if (emergencyMonths < 3 && efMonthlyExpense > 0) {
       insights.push({
         icon: Shield,
         title: "Weak Emergency Fund",
@@ -685,12 +686,9 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
         .join("\n") || "  No loans";
     const regime = state.profile?.regime === "old" ? "Old Regime" : "New Regime (FY 2025-26)";
 
-    // Emergency fund
-    const monthExpense = metrics.monthExpense || 0;
-    const cashInBanks = metrics.cashInBanks || 0;
-    const emergencyMonths = monthExpense > 0 ? cashInBanks / monthExpense : 0;
-    const emergencyStatus =
-      emergencyMonths < 3 ? "Critical" : emergencyMonths < 6 ? "Building" : "Healthy";
+    // Emergency fund — same figure as the dedicated Emergency Fund tab.
+    const emergencyMonths = metrics.emergencyFund.monthsCovered;
+    const emergencyStatus = metrics.emergencyFund.label;
 
     // Net worth trend
     const nwHistory = state.netWorthHistory || [];
