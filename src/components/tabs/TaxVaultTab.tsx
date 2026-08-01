@@ -41,6 +41,8 @@ import {
   calcTaxOldByFY,
   today,
   uid,
+  isHomeLoan,
+  loanOutstanding,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -1341,9 +1343,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
 
     // Home Loan Interest — from loansTaken type "Home", approx annual interest = outstanding × rate / 100
     const homeLoanData = (state.loansTaken || [])
-      .filter((l: any) => (l.type || "").toLowerCase() === "home")
+      .filter(isHomeLoan)
       .map((l: any) => {
-        const outstanding = Number(l.outstanding) || 0;
+        const outstanding = loanOutstanding(l);
         const rate = Number(l.rate) || 0;
         const annualInterest = Math.round((outstanding * rate) / 100);
         return { lender: l.lender || "Home Loan", annualInterest };

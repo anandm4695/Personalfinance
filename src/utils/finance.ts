@@ -779,6 +779,18 @@ export const calcTaxOldByFY = (
   };
 };
 
+// A loan's "type" is a user-editable master-data value (Settings → Loan Types),
+// so this must match the exact stored string — a substring match like
+// `.includes("home")` would also catch a custom type e.g. "Home Renovation Loan"
+// that the user never intended to be treated as a Section 24(b) home loan.
+export const isHomeLoan = (l: any): boolean => (l?.type || "").trim().toLowerCase() === "home";
+
+// Missing `outstanding` (legacy/imported rows) is treated as "not yet paid down"
+// (falls back to the original principal) rather than silently as a zero balance —
+// keep this fallback identical everywhere this figure is derived.
+export const loanOutstanding = (l: any): number =>
+  l?.outstanding != null ? Number(l.outstanding) || 0 : Number(l?.principal || 0);
+
 export interface AutoDetectedDeductions {
   d80C: number;
   d80C_sources: string | null;
@@ -877,9 +889,9 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
 
   // Home Loan Interest — from loansTaken type "Home", approx annual interest = outstanding × rate / 100
   const homeLoanData = (state.loansTaken || [])
-    .filter((l: any) => (l.type || "").toLowerCase() === "home")
+    .filter(isHomeLoan)
     .map((l: any) => {
-      const outstanding = Number(l.outstanding) || 0;
+      const outstanding = loanOutstanding(l);
       const rate = Number(l.rate) || 0;
       const annualInterest = Math.round((outstanding * rate) / 100);
       return { lender: l.lender || "Home Loan", annualInterest };

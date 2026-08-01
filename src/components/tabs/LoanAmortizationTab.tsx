@@ -1,7 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Calculator, TrendingDown, IndianRupee, Calendar, Zap, Info } from "lucide-react";
+import { Calculator, TrendingDown, IndianRupee, Calendar, Zap, Info, Download } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -15,7 +15,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fmtINRExact } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact, loanOutstanding } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
@@ -145,7 +145,10 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
 
 export const LoanAmortizationTab = ({ state }) => {
   const loans = useMemo(
-    () => [...(state.loansTaken || [])].filter((l) => Number(l.outstanding || l.principal) > 0),
+    // A loan with `outstanding` explicitly at 0 is paid off — only fall back to
+    // `principal` when `outstanding` is genuinely missing (legacy/imported rows),
+    // otherwise a settled loan reappears here as if it were still active.
+    () => [...(state.loansTaken || [])].filter((l) => loanOutstanding(l) > 0),
     [state.loansTaken]
   );
 
@@ -157,6 +160,15 @@ export const LoanAmortizationTab = ({ state }) => {
   const [showTable, setShowTable] = useState(false);
   const [useCustom, setUseCustom] = useState(false);
 
+  // Resolves to a real loan id whenever one exists — falls back to the first
+  // loan if `selectedLoan` is unset or stale (e.g. that loan was deleted
+  // elsewhere) — so the <select> below never shows blank while the
+  // calculator is actually using loans[0]'s figures underneath it.
+  const resolvedLoanId = useMemo(() => {
+    if (selectedLoan && loans.some((lo) => lo.id === selectedLoan)) return selectedLoan;
+    return loans[0]?.id || "";
+  }, [selectedLoan, loans]);
+
   const loanData = useMemo(() => {
     if (useCustom) {
       return {
@@ -166,22 +178,17 @@ export const LoanAmortizationTab = ({ state }) => {
         name: "Custom Loan",
       };
     }
-    // Fall back to the first loan whenever `selectedLoan` doesn't resolve —
-    // including a stale id left over after the loan was deleted elsewhere —
-    // so a fabricated "Sample Loan" only ever appears when there are truly
-    // no real loans to show.
-    const matched = selectedLoan ? loans.find((lo) => lo.id === selectedLoan) : null;
-    const l = matched || loans[0];
+    const l = loans.find((lo) => lo.id === resolvedLoanId);
     if (l) {
       return {
-        principal: Number(l.outstanding || l.principal || 0),
+        principal: loanOutstanding(l),
         rate: Number(l.rate || 0),
         tenure: Number(l.monthsRemaining || l.tenureMonths || 240),
         name: l.type || l.lender || "Loan",
       };
     }
     return { principal: 5000000, rate: 8.5, tenure: 240, name: "Sample Loan" };
-  }, [selectedLoan, loans, useCustom, customPrincipal, customRate, customTenure]);
+  }, [resolvedLoanId, loans, useCustom, customPrincipal, customRate, customTenure]);
 
   const baseAmort = useMemo(
     () => generateAmortization(loanData.principal, loanData.rate, loanData.tenure),
@@ -206,12 +213,15 @@ export const LoanAmortizationTab = ({ state }) => {
   }, [baseAmort, extraAmort, loanData.principal]);
 
   const chartData = useMemo(() => {
-    return baseAmort.schedule.filter(
-      (_, i) =>
-        i % Math.max(1, Math.floor(baseAmort.schedule.length / 60)) === 0 ||
-        i === baseAmort.schedule.length - 1
-    );
-  }, [baseAmort]);
+    const sampleEvery = Math.max(1, Math.floor(baseAmort.schedule.length / 60));
+    return baseAmort.schedule
+      .filter((_, i) => i % sampleEvery === 0 || i === baseAmort.schedule.length - 1)
+      .map((row) => {
+        if (!extraAmort) return row;
+        const extraRow = extraAmort.schedule.find((r) => r.month === row.month);
+        return { ...row, balanceWithPrepay: extraRow ? extraRow.balance : 0 };
+      });
+  }, [baseAmort, extraAmort]);
 
   const yearlyBreakdown = useMemo(() => {
     const years = [];
@@ -229,6 +239,20 @@ export const LoanAmortizationTab = ({ state }) => {
     return years;
   }, [baseAmort]);
 
+  const downloadScheduleCSV = () => {
+    const rows = ["Month,EMI,Principal,Interest,Outstanding Balance"];
+    baseAmort.schedule.forEach((row) => {
+      rows.push([row.month, row.emi, row.principal, row.interest, row.balance].join(","));
+    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(loanData.name || "loan").toLowerCase().replace(/\s+/g, "-")}-amortization.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div className="sub-tab-hero animate-fade-in-up">
@@ -241,8 +265,13 @@ export const LoanAmortizationTab = ({ state }) => {
           </div>
         </div>
         {loanData.principal > 0 && (
-          <div className="sub-tab-hero-badge">
-            <IndianRupee size={13} /> EMI {fmtINRExact(baseAmort.emi)}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div className="sub-tab-hero-badge" title="Loan being simulated">
+              {loanData.name}
+            </div>
+            <div className="sub-tab-hero-badge">
+              <IndianRupee size={13} /> EMI {fmtINRExact(baseAmort.emi)}
+            </div>
           </div>
         )}
       </div>
@@ -334,7 +363,7 @@ export const LoanAmortizationTab = ({ state }) => {
               </label>
               <select
                 id="loan-select-active"
-                value={selectedLoan || loans[0]?.id || ""}
+                value={resolvedLoanId}
                 onChange={(e) => setSelectedLoan(e.target.value)}
                 className="form-input"
                 style={{ padding: "10px 14px", fontSize: 13.5, fontWeight: 600 }}
@@ -368,8 +397,9 @@ export const LoanAmortizationTab = ({ state }) => {
                 <input
                   id="loan-custom-principal"
                   type="number"
+                  min="0"
                   value={customPrincipal}
-                  onChange={(e) => setCustomPrincipal(Number(e.target.value))}
+                  onChange={(e) => setCustomPrincipal(Math.max(0, Number(e.target.value)))}
                   className="form-input"
                   style={{ padding: "9px 12px", fontSize: 13.5, width: 140 }}
                 />
@@ -393,8 +423,9 @@ export const LoanAmortizationTab = ({ state }) => {
                   id="loan-custom-rate"
                   type="number"
                   step="0.1"
+                  min="0"
                   value={customRate}
-                  onChange={(e) => setCustomRate(Number(e.target.value))}
+                  onChange={(e) => setCustomRate(Math.max(0, Number(e.target.value)))}
                   className="form-input"
                   style={{ padding: "9px 12px", fontSize: 13.5, width: 100 }}
                 />
@@ -417,8 +448,9 @@ export const LoanAmortizationTab = ({ state }) => {
                 <input
                   id="loan-custom-tenure"
                   type="number"
+                  min="0"
                   value={customTenure}
-                  onChange={(e) => setCustomTenure(Number(e.target.value))}
+                  onChange={(e) => setCustomTenure(Math.max(0, Number(e.target.value)))}
                   className="form-input"
                   style={{ padding: "9px 12px", fontSize: 13.5, width: 100 }}
                 />
@@ -444,8 +476,9 @@ export const LoanAmortizationTab = ({ state }) => {
             <input
               id="loan-extra-prepayment"
               type="number"
+              min="0"
               value={extraEMI}
-              onChange={(e) => setExtraEMI(Number(e.target.value))}
+              onChange={(e) => setExtraEMI(Math.max(0, Number(e.target.value)))}
               placeholder="e.g. ₹5,000"
               className="form-input"
               style={{ padding: "9px 12px", fontSize: 13.5, width: 150 }}
@@ -693,6 +726,17 @@ export const LoanAmortizationTab = ({ state }) => {
                     strokeWidth={2.5}
                     name="Cumulative Interest"
                   />
+                  {extraAmort && (
+                    <Area
+                      type="monotone"
+                      dataKey="balanceWithPrepay"
+                      stroke={THEME.sage}
+                      strokeWidth={2.5}
+                      strokeDasharray="5 4"
+                      fill="none"
+                      name="Balance With Prepayment"
+                    />
+                  )}
                 </AreaChart>
               </ResponsiveContainer></div>
             </Card>
@@ -789,27 +833,51 @@ export const LoanAmortizationTab = ({ state }) => {
                   Month-by-month financial projection ledger
                 </div>
               </div>
-              <button
-                onClick={() => setShowTable(!showTable)}
-                className="card-lift"
-                aria-expanded={showTable}
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1.5px solid ${THEME.line}`,
-                  borderRadius: 12,
-                  padding: "8px 16px",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  color: THEME.ink,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                {showTable
-                  ? "Hide Table Ledger"
-                  : `View Table Ledger (${baseAmort.schedule.length} months)`}
-              </button>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={downloadScheduleCSV}
+                  className="card-lift"
+                  title="Download full schedule as CSV"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "var(--surface-0)",
+                    border: `1.5px solid ${THEME.line}`,
+                    borderRadius: 12,
+                    padding: "8px 16px",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  <Download size={14} /> Export CSV
+                </button>
+                <button
+                  onClick={() => setShowTable(!showTable)}
+                  className="card-lift"
+                  aria-expanded={showTable}
+                  style={{
+                    background: "var(--surface-0)",
+                    border: `1.5px solid ${THEME.line}`,
+                    borderRadius: 12,
+                    padding: "8px 16px",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  {showTable
+                    ? "Hide Table Ledger"
+                    : `View Table Ledger (${baseAmort.schedule.length} months)`}
+                </button>
+              </div>
             </div>
 
             {showTable && (
@@ -880,6 +948,14 @@ export const LoanAmortizationTab = ({ state }) => {
           icon={Calculator}
           title="No Active Loans"
           description="Add loans in the Credit & Liabilities section, or switch to Custom Loan mode to simulate any loan scenario."
+        />
+      )}
+
+      {useCustom && loanData.principal <= 0 && (
+        <EmptyState
+          icon={Calculator}
+          title="Enter a Custom Loan"
+          description="Fill in the Principal, Rate, and Tenure fields above to simulate any loan scenario."
         />
       )}
     </div>

@@ -3122,11 +3122,19 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
         >
           <Link2 size={12} style={{ verticalAlign: -2, marginRight: 2 }} /> This transaction is
           linked to a{" "}
-          {txn.linkedType === "creditCards"
-            ? "credit card"
-            : txn.linkedType === "realEstateProperties"
-              ? "real estate property"
-              : "linked"}{" "}
+          {
+            {
+              creditCards: "credit card",
+              loansTaken: "loan",
+              realEstateProperties: "real estate property",
+              rentedProperties: "rented property",
+              rentalProperties: "rental property",
+              lic: "LIC policy",
+              termPlans: "insurance policy",
+              investmentPlans: "investment plan",
+              subscriptions: "subscription",
+            }[txn.linkedType] || "linked"
+          }{" "}
           record. Changing the amount here will not update that record — delete and re-add the
           transaction instead if the amount was wrong.
         </div>

@@ -2352,6 +2352,12 @@ function FinanceDashboard() {
             .filter((t: any) => t.accountId === id)
             .map((t: any) => t.id)
         : [];
+    const orphanedTxnIdsForLoan =
+      key === "loansTaken"
+        ? (state.transactions || [])
+            .filter((t: any) => t.linkedType === "loansTaken" && t.linkedId === id)
+            .map((t: any) => t.id)
+        : [];
 
     // Reverse any side effect this transaction auto-posted into a linked module record
     // (credit card outstanding, loan balance, insurance premium ledger, rent log) so that
@@ -2461,6 +2467,16 @@ function FinanceDashboard() {
           t.accountId === id ? { ...t, accountId: null } : t
         );
       }
+      if (key === "loansTaken") {
+        // Deleting a loan directly (not via its linked bank transactions) otherwise leaves
+        // any auto-posted EMI transaction pointing at a linkedId that no longer exists —
+        // it keeps showing a 🔗 badge referencing a deleted loan forever.
+        next.transactions = (s.transactions || []).map((t: any) =>
+          t.linkedType === "loansTaken" && t.linkedId === id
+            ? { ...t, linkedType: null, linkedId: null }
+            : t
+        );
+      }
       if (key === "transactions") {
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
         const appliedIds: string[] = s.masterData?.balanceAppliedTxnIds || [];
@@ -2549,6 +2565,12 @@ function FinanceDashboard() {
               .from("transactions")
               .update({ account_id: null })
               .in("id", orphanedTxnIdsForAccount);
+          }
+          if (key === "loansTaken" && orphanedTxnIdsForLoan.length) {
+            await supabase
+              .from("transactions")
+              .update({ linked_type: null, linked_id: null })
+              .in("id", orphanedTxnIdsForLoan);
           }
           if (key === "stocks" && itemToDelete) {
             // Check if any lots of this stock remain in active portfolio OR if it's in sales history

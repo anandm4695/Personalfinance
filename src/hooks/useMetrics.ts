@@ -293,7 +293,7 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     0
   );
   const loansTakenValue = (pState.loansTaken || []).reduce(
-    (s: number, l: any) => s + Number(l.outstandingPrincipal || l.amount || 0),
+    (s: number, l: any) => s + Number(l.outstanding || 0),
     0
   );
   const rentalDepositLiability = (pState.rentalProperties || []).reduce(

@@ -5612,7 +5612,10 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
           return (
             <InvestCard
               key={l.id}
-              onRemove={() => onRemove(l.id)}
+              onRemove={() => {
+                if (window.confirm(`Delete "${l.type || l.lender || "this loan"}"? This cannot be undone.`))
+                  onRemove(l.id);
+              }}
               onEdit={() => onEdit(l.id)}
               cardStyle={{
                 borderTop: `4px solid ${isPaidOff ? "var(--t-sage)" : "var(--t-rust)"}`,
@@ -6081,7 +6084,8 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
   const totalLent = items.reduce((s: number, l: any) => s + Number(l.principal || 0), 0);
   const totalOutstanding = items.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
   const overdueItems = items.filter(
-    (l: any) => l.dueDate && new Date(l.dueDate) < now && Number(l.outstanding || 0) > 0
+    (l: any) =>
+      l.dueDate && new Date(l.dueDate + "T00:00:00") < now && Number(l.outstanding || 0) > 0
   );
 
   const [logExpanded, setLogExpanded] = useState<Set<string>>(new Set());
@@ -6214,18 +6218,19 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
           const outstanding = Number(l.outstanding) || 0;
           const rate = Number(l.rate) || 0;
 
-          const isPaidOff = outstanding === 0;
-          const isOverdue = !isPaidOff && l.dueDate && new Date(l.dueDate) < now;
+          const isPaidOff = outstanding <= 0;
+          const dueDateObj = l.dueDate ? new Date(l.dueDate + "T00:00:00") : null;
+          const isOverdue = !isPaidOff && !!dueDateObj && dueDateObj < now;
           const daysOverdue = isOverdue
-            ? Math.floor((now.getTime() - new Date(l.dueDate).getTime()) / (1000 * 60 * 60 * 24))
+            ? Math.floor((now.getTime() - dueDateObj!.getTime()) / (1000 * 60 * 60 * 24))
             : 0;
           const dueSoon =
             !isPaidOff &&
             !isOverdue &&
-            l.dueDate &&
-            Math.ceil((new Date(l.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) <= 7;
+            !!dueDateObj &&
+            Math.ceil((dueDateObj.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) <= 7;
           const daysUntilDue = dueSoon
-            ? Math.ceil((new Date(l.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+            ? Math.ceil((dueDateObj!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
             : 0;
 
           const startDate = l.date ? new Date(l.date + "T00:00:00") : null;
@@ -6266,7 +6271,10 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
           return (
             <InvestCard
               key={l.id}
-              onRemove={() => onRemove(l.id)}
+              onRemove={() => {
+                if (window.confirm(`Delete the loan given to "${l.borrower || "this person"}"? This cannot be undone.`))
+                  onRemove(l.id);
+              }}
               onEdit={() => onEdit(l.id)}
               cardStyle={{
                 borderTop: `4px solid ${isOverdue ? "var(--t-rust)" : isPaidOff ? "var(--t-sage)" : "var(--t-accent)"}`,
@@ -6461,7 +6469,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                 {[
-                  { k: "Principal", v: fmtINRExact(principal), color: "var(--t-muted)" },
+                  { k: "Principal", v: <Prv>{fmtINRExact(principal)}</Prv>, color: "var(--t-muted)" },
                   {
                     k: "Interest ROI",
                     v: rate ? `${rate.toFixed(2)}%` : "—",
@@ -6469,13 +6477,13 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                   },
                   {
                     k: "Accrued Int.",
-                    v: rate ? fmtINRExact(accruedInterest) : "—",
+                    v: rate ? <Prv>{fmtINRExact(accruedInterest)}</Prv> : "—",
                     color: rate && accruedInterest > 0 ? "var(--t-sage)" : "var(--t-muted)",
                     tooltip: "Simple interest accrued to date",
                   },
                   {
                     k: "Est. Maturity",
-                    v: rate ? fmtINRExact(maturityValue) : fmtINRExact(principal),
+                    v: <Prv>{rate ? fmtINRExact(maturityValue) : fmtINRExact(principal)}</Prv>,
                     color: rate ? "var(--t-accent)" : "var(--t-muted)",
                     tooltip: "Principal + estimated interest at maturity",
                   },
@@ -7360,6 +7368,11 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
           const outstanding = totalT - totalP;
           const isExpanded = expandedId === person.id;
           const settled = outstanding <= 0;
+          // A payment recorded larger than what was owed pushes outstanding negative —
+          // collapsing that straight into "Settled ✓ ₹0" would hide that money is
+          // actually owed back the other way, so it gets its own distinct state.
+          const overpaid = outstanding < 0;
+          const overpaidAmt = Math.abs(outstanding);
 
           const progressPct = totalT > 0 ? Math.min(100, (totalP / totalT) * 100) : 0;
           const progressColor = settled ? "var(--t-sage)" : accentColor;
@@ -7437,7 +7450,24 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       <span style={{ fontWeight: 800, fontSize: 16, color: "var(--t-ink)" }}>
                         {person.person}
                       </span>
-                      {settled && (
+                      {overpaid && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            color: "var(--t-gold)",
+                            background: "color-mix(in srgb, var(--t-gold) 12%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--t-gold) 25%, transparent)",
+                            borderRadius: 6,
+                            padding: "2px 8px",
+                            letterSpacing: "0.05em",
+                          }}
+                          title="Payments recorded exceed the amount owed"
+                        >
+                          OVERPAID
+                        </span>
+                      )}
+                      {settled && !overpaid && (
                         <span
                           style={{
                             fontSize: 9,
@@ -7526,13 +7556,13 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                     style={{
                       fontSize: 20,
                       fontWeight: 900,
-                      color: settled ? "var(--t-sage)" : accentColor,
+                      color: overpaid ? "var(--t-gold)" : settled ? "var(--t-sage)" : accentColor,
                       fontVariantNumeric: "tabular-nums",
                       letterSpacing: "-0.02em",
                       marginTop: 2,
                     }}
                   >
-                    {settled ? "₹0" : fmtINRFull(outstanding)}
+                    <Prv>{overpaid ? fmtINRFull(overpaidAmt) : settled ? "₹0" : fmtINRFull(outstanding)}</Prv>
                   </div>
                 </div>
 
@@ -7540,7 +7570,12 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onRemove(person.id);
+                      if (
+                        window.confirm(
+                          `Delete "${person.person || "this person"}" and all their loan/payment history? This cannot be undone.`
+                        )
+                      )
+                        onRemove(person.id);
                     }}
                     style={{
                       ...iconBtn,
@@ -7648,7 +7683,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                   fontVariantNumeric: "tabular-nums",
                                 }}
                               >
-                                {fmtINRExact(t.amount)}
+                                <Prv>{fmtINRExact(t.amount)}</Prv>
                               </td>
                               <td style={{ ...td, color: "var(--t-muted)" }}>{t.note || "—"}</td>
                               <td style={{ ...td, textAlign: "right" }}>
@@ -7668,6 +7703,8 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                     e.currentTarget.style.color = "var(--t-muted)";
                                   }}
                                   onClick={() => {
+                                    if (!window.confirm("Delete this loan tranche? This cannot be undone."))
+                                      return;
                                     const updated = tranches.filter((x: any) => x.id !== t.id);
                                     onUpdate(person.id, { tranches: updated });
                                   }}
@@ -7700,7 +7737,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                 fontVariantNumeric: "tabular-nums",
                               }}
                             >
-                              {fmtINRExact(totalT)}
+                              <Prv>{fmtINRExact(totalT)}</Prv>
                             </td>
                             <td colSpan={2} style={td}></td>
                           </tr>
@@ -7785,7 +7822,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                   fontVariantNumeric: "tabular-nums",
                                 }}
                               >
-                                {fmtINRExact(p.amount)}
+                                <Prv>{fmtINRExact(p.amount)}</Prv>
                               </td>
                               <td style={{ ...td, color: "var(--t-muted)" }}>{p.note || "—"}</td>
                               <td style={{ ...td, textAlign: "right" }}>
@@ -7805,6 +7842,8 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                     e.currentTarget.style.color = "var(--t-muted)";
                                   }}
                                   onClick={() => {
+                                    if (!window.confirm("Delete this payment record? This cannot be undone."))
+                                      return;
                                     const updated = payments.filter((x: any) => x.id !== p.id);
                                     onUpdate(person.id, { payments: updated });
                                   }}
@@ -7837,7 +7876,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                 fontVariantNumeric: "tabular-nums",
                               }}
                             >
-                              {fmtINRExact(totalP)}
+                              <Prv>{fmtINRExact(totalP)}</Prv>
                             </td>
                             <td colSpan={2} style={td}></td>
                           </tr>
@@ -7858,12 +7897,18 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                     <span style={{ color: "var(--t-muted)" }}>Ledger Balance: </span>
                     <span
                       style={{
-                        color: settled ? "var(--t-sage)" : accentColor,
+                        color: overpaid ? "var(--t-gold)" : settled ? "var(--t-sage)" : accentColor,
                         fontSize: 14,
                         fontWeight: 800,
                       }}
                     >
-                      {settled ? "Fully Settled ✓" : `${fmtINRFull(outstanding)} pending`}
+                      {overpaid ? (
+                        <Prv>{`Overpaid by ${fmtINRFull(overpaidAmt)}`}</Prv>
+                      ) : settled ? (
+                        "Fully Settled ✓"
+                      ) : (
+                        <Prv>{`${fmtINRFull(outstanding)} pending`}</Prv>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -8052,6 +8097,7 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             value={f.principal}
             onChange={(e) => {
               const val = e.target.value;
@@ -8070,6 +8116,7 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             value={f.outstanding}
             onChange={(e) => setF({ ...f, outstanding: e.target.value })}
           />
@@ -8078,6 +8125,7 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             value={f.emi}
             onChange={(e) => setF({ ...f, emi: e.target.value })}
           />
@@ -8086,6 +8134,7 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             step="0.01"
             value={f.rate}
             onChange={(e) => setF({ ...f, rate: e.target.value })}
@@ -8095,6 +8144,7 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             value={f.monthsRemaining}
             onChange={(e) => setF({ ...f, monthsRemaining: e.target.value })}
           />
@@ -8121,8 +8171,16 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
       </Field>
       <ModalActions
         onSave={() => {
-          if (!f.lender || !f.principal || !f.emi) return;
-          onSave({ ...f, outstanding: f.outstanding || f.principal });
+          if (
+            !f.lender?.trim() ||
+            !(Number(f.principal) > 0) ||
+            !(Number(f.emi) > 0) ||
+            f.rate === "" ||
+            f.rate == null
+          )
+            return;
+          const outstanding = f.outstanding !== "" ? f.outstanding : f.principal;
+          onSave({ ...f, outstanding: Math.max(0, Number(outstanding) || 0) });
         }}
         onClose={onClose}
       />
@@ -8172,6 +8230,7 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             value={f.principal}
             onChange={(e) => {
               const val = e.target.value;
@@ -8191,6 +8250,7 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             value={f.outstanding}
             onChange={(e) => setF({ ...f, outstanding: e.target.value })}
             placeholder={f.principal || "0.00"}
@@ -8200,6 +8260,7 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           <input
             style={input}
             type="number"
+            min="0"
             step="0.01"
             value={f.rate}
             onChange={(e) => setF({ ...f, rate: e.target.value })}
@@ -8244,8 +8305,10 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
       </div>
       <ModalActions
         onSave={() => {
-          if (!f.borrower || !f.principal) return;
-          onSave({ ...f, outstanding: f.outstanding !== "" ? f.outstanding : f.principal });
+          if (!f.borrower?.trim() || !(Number(f.principal) > 0)) return;
+          if (f.dueDate && f.date && f.dueDate < f.date) return;
+          const outstanding = f.outstanding !== "" ? f.outstanding : f.principal;
+          onSave({ ...f, outstanding: Math.max(0, Number(outstanding) || 0) });
         }}
         onClose={onClose}
       />
@@ -8256,6 +8319,8 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
 /* ══════════════════════════════════════════════════════════════════════
    DEBT PAYOFF OPTIMIZER (RELEASE 4)
    ══════════════════════════════════════════════════════════════════════ */
+const DEBT_SIM_MAX_MONTHS = 600;
+
 function DebtPayoffOptimizer({ state }: any) {
   const [extraMonthly, setExtraMonthly] = useState<number>(10000);
   const [windfall, setWindfall] = useState<string>("");
@@ -8264,6 +8329,15 @@ function DebtPayoffOptimizer({ state }: any) {
   const activeLoans = useMemo(() => {
     return (state.loansTaken || []).filter(
       (l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0
+    );
+  }, [state.loansTaken]);
+
+  // Loans with a real outstanding balance that get silently excluded above
+  // because they have no EMI on file — surfaced so the aggregated totals
+  // don't look complete when they're actually missing data.
+  const excludedLoans = useMemo(() => {
+    return (state.loansTaken || []).filter(
+      (l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) <= 0
     );
   }, [state.loansTaken]);
 
@@ -8320,7 +8394,7 @@ function DebtPayoffOptimizer({ state }: any) {
     }
 
     // Amortization loop
-    while (active.some((l) => l.outstanding > 0) && months < 600) {
+    while (active.some((l) => l.outstanding > 0) && months < DEBT_SIM_MAX_MONTHS) {
       months++;
 
       // Accrue interest monthly
@@ -8442,13 +8516,27 @@ function DebtPayoffOptimizer({ state }: any) {
   const interestSaved = Math.max(0, standardInterest - currentInterest);
   const monthsSaved = Math.max(0, standardSim.months - currentSim.months);
 
+  // Both strategies get simulated regardless of which one is selected — surface the
+  // head-to-head difference so choosing between them isn't a guess.
+  const cheaperPlan =
+    avalancheSim.totalInterestPaid <= snowballSim.totalInterestPaid ? "Avalanche" : "Snowball";
+  const cheaperSim = cheaperPlan === "Avalanche" ? avalancheSim : snowballSim;
+  const pricierSim = cheaperPlan === "Avalanche" ? snowballSim : avalancheSim;
+  const interestDiffVsOtherPlan = pricierSim.totalInterestPaid - cheaperSim.totalInterestPaid;
+  const monthsDiffVsOtherPlan = pricierSim.months - cheaperSim.months; // >0 = cheaper plan is also faster
+
   // Format payoff dates
   const getPayoffDateStr = (monthsFromNow: number) => {
     if (monthsFromNow === 0) return "Paid Today";
+    if (monthsFromNow >= DEBT_SIM_MAX_MONTHS) return "Beyond 50y";
     const date = new Date();
     date.setMonth(date.getMonth() + monthsFromNow);
     return date.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
   };
+
+  const currentSimCapped =
+    currentSim.months >= DEBT_SIM_MAX_MONTHS &&
+    activeLoans.some((l: any) => currentSim.payoffSchedule[l.id] == null);
 
   return (
     <div
@@ -8485,16 +8573,39 @@ function DebtPayoffOptimizer({ state }: any) {
                   justifyContent: "space-between",
                   alignItems: "center",
                   marginBottom: 8,
+                  gap: 12,
+                  flexWrap: "wrap",
                 }}
               >
-                <label style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                <label
+                  htmlFor="extra-monthly-repayment"
+                  style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}
+                >
                   Extra Monthly Repayment
                 </label>
-                <span style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>
-                  {fmtINRExact(extraMonthly)}/mo
-                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="500"
+                  value={extraMonthly}
+                  onChange={(e) => setExtraMonthly(Math.max(0, Number(e.target.value)))}
+                  aria-label="Extra monthly repayment amount"
+                  style={{
+                    width: 110,
+                    padding: "4px 8px",
+                    borderRadius: 8,
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "transparent",
+                    color: THEME.accent,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    textAlign: "right",
+                    outline: "none",
+                  }}
+                />
               </div>
               <input
+                id="extra-monthly-repayment"
                 type="range"
                 min="0"
                 max="100000"
@@ -8502,6 +8613,8 @@ function DebtPayoffOptimizer({ state }: any) {
                 value={extraMonthly}
                 onChange={(e) => setExtraMonthly(Number(e.target.value))}
                 className="cxo-slider"
+                aria-label="Extra monthly repayment slider"
+                aria-valuetext={`${fmtINRExact(extraMonthly)} per month`}
                 style={{
                   width: "100%",
                   accentColor: THEME.accent,
@@ -8531,9 +8644,12 @@ function DebtPayoffOptimizer({ state }: any) {
                 <input
                   className="form-input"
                   type="number"
+                  min="0"
                   placeholder="e.g. ₹1,00,000 bonus or stock sale"
                   value={windfall}
-                  onChange={(e) => setWindfall(e.target.value)}
+                  onChange={(e) =>
+                    setWindfall(e.target.value === "" ? "" : String(Math.max(0, Number(e.target.value))))
+                  }
                   style={{
                     width: "100%",
                     padding: "8px 12px",
@@ -8547,26 +8663,32 @@ function DebtPayoffOptimizer({ state }: any) {
                 />
               </Field>
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                {[25000, 50000, 100000, 250000].map((val) => (
-                  <button
-                    key={val}
-                    onClick={() => setWindfall(String(val))}
-                    className="card-lift"
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: 8,
-                      border: `1px solid ${THEME.line}`,
-                      background: "var(--surface-0)",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    +{fmtINRFull(val)}
-                  </button>
-                ))}
+                {[25000, 50000, 100000, 250000].map((val) => {
+                  const isActive = windfall === String(val);
+                  return (
+                    <button
+                      key={val}
+                      onClick={() => setWindfall(String(val))}
+                      className="card-lift"
+                      aria-pressed={isActive}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: 8,
+                        border: `1px solid ${isActive ? THEME.accent : THEME.line}`,
+                        background: isActive
+                          ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                          : "var(--surface-0)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: isActive ? THEME.accent : THEME.muted,
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      +{fmtINRFull(val)}
+                    </button>
+                  );
+                })}
                 {windfall && (
                   <button
                     onClick={() => setWindfall("")}
@@ -8631,7 +8753,7 @@ function DebtPayoffOptimizer({ state }: any) {
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {fmtINRExact(interestSaved)}
+              <Prv>{fmtINRExact(interestSaved)}</Prv>
             </div>
             <div style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", fontWeight: 600 }}>
               Debt-Free:{" "}
@@ -8667,7 +8789,7 @@ function DebtPayoffOptimizer({ state }: any) {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {fmtINRExact(standardInterest)}
+                  <Prv>{fmtINRExact(standardInterest)}</Prv>
                 </div>
               </div>
               <div>
@@ -8690,7 +8812,7 @@ function DebtPayoffOptimizer({ state }: any) {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {fmtINRExact(currentInterest)}
+                  <Prv>{fmtINRExact(currentInterest)}</Prv>
                 </div>
               </div>
             </div>
@@ -8754,13 +8876,58 @@ function DebtPayoffOptimizer({ state }: any) {
             );
           })}
         </div>
-        <Badge
-          variant="muted"
-          style={{ fontWeight: 800, fontSize: 10.5, padding: "4px 10px", borderRadius: 10 }}
-        >
-          {activeLoans.length} Liabilities Aggregated
-        </Badge>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {excludedLoans.length > 0 && (
+            <Badge
+              variant="rust"
+              title={`${excludedLoans.length} loan(s) have an outstanding balance but no EMI on file, so they're excluded from this simulation`}
+              style={{ fontWeight: 800, fontSize: 10.5, padding: "4px 10px", borderRadius: 10 }}
+            >
+              {excludedLoans.length} Excluded (No EMI)
+            </Badge>
+          )}
+          <Badge
+            variant="muted"
+            style={{ fontWeight: 800, fontSize: 10.5, padding: "4px 10px", borderRadius: 10 }}
+          >
+            {activeLoans.length} Liabilities Aggregated
+          </Badge>
+        </div>
       </div>
+
+      {activeLoans.length > 1 && interestDiffVsOtherPlan > 1 && (
+        <div
+          style={{
+            fontSize: 11.5,
+            color: THEME.muted,
+            fontWeight: 600,
+            padding: "0 4px",
+          }}
+        >
+          At this Extra Repayment + Windfall, <b style={{ color: THEME.ink }}>{cheaperPlan}</b>{" "}
+          saves <Prv>{fmtINRExact(interestDiffVsOtherPlan)}</Prv> more interest
+          {monthsDiffVsOtherPlan !== 0 &&
+            ` and clears debt ${Math.abs(monthsDiffVsOtherPlan)} month${Math.abs(monthsDiffVsOtherPlan) !== 1 ? "s" : ""} ${monthsDiffVsOtherPlan > 0 ? "sooner" : "later"}`}{" "}
+          than {cheaperPlan === "Avalanche" ? "Snowball" : "Avalanche"}.
+        </div>
+      )}
+
+      {currentSimCapped && (
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: 12,
+            border: `1.5px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
+            background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+            color: THEME.rust,
+            fontSize: 12.5,
+            fontWeight: 700,
+          }}
+        >
+          At the current extra payment, one or more loans won't be paid off within 50 years —
+          increase your Extra Monthly Repayment above to see a realistic payoff date.
+        </div>
+      )}
 
       {/* ── STEP-BY-STEP AMORTIZATION SCHEDULE ── */}
       <div
@@ -8787,11 +8954,22 @@ function DebtPayoffOptimizer({ state }: any) {
 
           <div style={{ display: "grid", gap: 12 }}>
             {activeLoans.map((l: any, idx: number) => {
+              // Absence from payoffSchedule means the loan was still unpaid when the
+              // simulation hit its horizon cap — falling back to 0 would wrongly show
+              // "Paid Today" and a bogus "Shaved" badge for a loan that never clears.
               const targetPayoffMonth =
-                currentSim.payoffSchedule[l.id] != null ? currentSim.payoffSchedule[l.id] : 0;
+                currentSim.payoffSchedule[l.id] != null
+                  ? currentSim.payoffSchedule[l.id]
+                  : currentSim.months;
               const standardPayoffMonth =
-                standardSim.payoffSchedule[l.id] || Number(l.monthsRemaining) || 0;
-              const monthsSavedOnLoan = Math.max(0, standardPayoffMonth - targetPayoffMonth);
+                standardSim.payoffSchedule[l.id] != null
+                  ? standardSim.payoffSchedule[l.id]
+                  : standardSim.months || Number(l.monthsRemaining) || 0;
+              const monthsSavedOnLoan =
+                targetPayoffMonth >= DEBT_SIM_MAX_MONTHS
+                  ? 0
+                  : Math.max(0, standardPayoffMonth - targetPayoffMonth);
+              const rolledOver = currentSim.rollOvers?.[l.id] || 0;
 
               return (
                 <div
@@ -8844,7 +9022,14 @@ function DebtPayoffOptimizer({ state }: any) {
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
                     >
-                      Balance: {fmtINRExact(l.outstanding)} &bull; EMI: {fmtINRExact(l.emi)}/mo
+                      Balance: <Prv>{fmtINRExact(l.outstanding)}</Prv> &bull; EMI:{" "}
+                      <Prv>{fmtINRExact(l.emi)}</Prv>/mo
+                      {rolledOver > 0 && (
+                        <>
+                          {" "}
+                          &bull; <span style={{ color: THEME.sage }}>+<Prv>{fmtINRExact(rolledOver)}</Prv> extra applied</span>
+                        </>
+                      )}
                     </div>
                   </div>
 

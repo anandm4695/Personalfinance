@@ -24,7 +24,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, isHomeLoan, loanOutstanding } from "../../utils/finance";
 import { getCurrentFY } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -102,9 +102,17 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           .reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0)
       );
     }, 0);
-    const homeLoanPrincipal = (state.loansTaken || [])
-      .filter((l) => (l.type || "").toLowerCase().includes("home"))
-      .reduce((s, l) => s + Number(l.emi || 0) * 12 * 0.3, 0); // ~30% of EMI is principal early on
+    const homeLoans = (state.loansTaken || []).filter(isHomeLoan);
+    // This FY's interest first (see Section 24 below), then principal repaid =
+    // annual EMI outflow minus that interest — far closer to the real amortization
+    // split than a flat "~30% of EMI" guess, without needing a loan-origination
+    // date to run a full schedule.
+    const homeLoanInterest = homeLoans.reduce(
+      (s, l) => s + loanOutstanding(l) * (Number(l.rate || 0) / 100),
+      0
+    );
+    const homeLoanAnnualEMI = homeLoans.reduce((s, l) => s + Number(l.emi || 0) * 12, 0);
+    const homeLoanPrincipal = Math.max(0, homeLoanAnnualEMI - homeLoanInterest);
     const childTuition = 0; // User can track manually
     const nscInvestment = 0;
     const sukanyaSamriddhi = 0;
@@ -168,16 +176,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     const sec80TTA_limit = 10000;
     const sec80TTA_used = Math.min(savingsInterest, sec80TTA_limit);
 
-    // Section 24 — Home loan interest
-    const homeLoanInterest = (state.loansTaken || [])
-      .filter((l) => (l.type || "").toLowerCase().includes("home"))
-      .reduce(
-        (s, l) =>
-          s +
-          Number(l.outstanding != null ? l.outstanding : l.principal || 0) *
-            (Number(l.rate || 0) / 100),
-        0
-      );
+    // Section 24 — Home loan interest (computed above, alongside homeLoanPrincipal)
     const sec24_limit = 200000;
     const sec24_used = Math.min(homeLoanInterest, sec24_limit);
     const sec24_remaining = Math.max(0, sec24_limit - homeLoanInterest);

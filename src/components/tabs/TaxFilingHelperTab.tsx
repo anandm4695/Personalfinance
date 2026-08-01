@@ -3,7 +3,14 @@ import React, { useState, useMemo } from "react";
 import { FileText, CheckCircle, Clock, IndianRupee, Calculator, Calendar } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
-import { fmtINRFull, today, calcTaxNewByFY, calcTaxOldByFY } from "../../utils/finance";
+import {
+  fmtINRFull,
+  today,
+  calcTaxNewByFY,
+  calcTaxOldByFY,
+  isHomeLoan,
+  loanOutstanding,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
@@ -224,18 +231,8 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
 
     // Home loan interest
     const homeLoanInterest = (state.loansTaken || [])
-      .filter(
-        (l) =>
-          (l.type || "").toLowerCase().includes("home") ||
-          (l.type || "").toLowerCase().includes("housing")
-      )
-      .reduce(
-        (s, l) =>
-          s +
-          Number(l.outstanding != null ? l.outstanding : l.principal || 0) *
-            (Number(l.rate || 0) / 100),
-        0
-      );
+      .filter(isHomeLoan)
+      .reduce((s, l) => s + loanOutstanding(l) * (Number(l.rate || 0) / 100), 0);
     const sec24 = Math.min(200000, homeLoanInterest);
 
     // 80TTA
