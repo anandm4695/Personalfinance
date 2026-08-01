@@ -352,11 +352,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
   const outflows = useMemo(() => {
     const sources: { name: string; monthly: number; icon: any; category: string }[] = [];
 
-    // 1. EMIs
-    const emiTotal = (state.loansTaken || []).reduce(
-      (sum: number, l: any) => sum + Number(l.emi || 0),
-      0
-    );
+    // 1. EMIs (active loans only — paid-off loans shouldn't keep projecting an outflow)
+    const emiTotal = (state.loansTaken || [])
+      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
+      .reduce((sum: number, l: any) => sum + Number(l.emi || 0), 0);
     if (emiTotal > 0)
       sources.push({ name: "Loan EMIs", monthly: emiTotal, icon: CreditCard, category: "EMI" });
 

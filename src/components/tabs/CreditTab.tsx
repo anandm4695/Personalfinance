@@ -5383,6 +5383,15 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
   );
 }
 
+function loanOrdinalSuffix(d: number) {
+  if (d >= 11 && d <= 13) return "th";
+  const r = d % 10;
+  if (r === 1) return "st";
+  if (r === 2) return "nd";
+  if (r === 3) return "rd";
+  return "th";
+}
+
 function LoanEmptyState({ type, onAdd }: any) {
   const isTaken = type === "taken";
   const Icon = isTaken ? TrendingDown : TrendingUp;
@@ -5581,11 +5590,14 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
           const principal = Number(l.principal) || 0;
           const outstanding = Number(l.outstanding) || 0;
           const emi = Number(l.emi) || 0;
-          const months = Number(l.monthsRemaining) || 0;
-          const isPaidOff = months === 0 && outstanding === 0;
+          // Outstanding is the source of truth for "paid off" — monthsRemaining can go
+          // stale (e.g. outstanding edited to 0 by hand) without being resynced, and
+          // treating that loan as still active would show a bogus "interest left" figure.
+          const isPaidOff = outstanding <= 0;
+          const months = isPaidOff ? 0 : Number(l.monthsRemaining) || 0;
           const paid = Math.max(0, principal - outstanding);
           const paidPct = principal > 0 ? Math.min(100, (paid / principal) * 100) : 0;
-          const interestRemaining = Math.max(0, emi * months - outstanding);
+          const interestRemaining = isPaidOff ? 0 : Math.max(0, emi * months - outstanding);
           const payoffDate =
             months > 0
               ? (() => {
@@ -5724,8 +5736,21 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                 {[
                   { k: "Principal", v: fmtINRExact(l.principal), color: "var(--t-muted)" },
                   { k: "EMI Amount", v: `${fmtINRExact(emi)}/mo`, color: "var(--t-accent)" },
-                  { k: "Interest Rate", v: `${l.rate}%`, color: "var(--t-muted)" },
+                  {
+                    k: "Interest Rate",
+                    v: l.rate !== "" && l.rate != null ? `${l.rate}%` : "—",
+                    color: "var(--t-muted)",
+                  },
                   { k: "Months Left", v: months > 0 ? String(months) : "—", color: "var(--t-ink)" },
+                  ...(!isPaidOff && l.dueDay
+                    ? [
+                        {
+                          k: "EMI Due Day",
+                          v: `${l.dueDay}${loanOrdinalSuffix(Number(l.dueDay))} of month`,
+                          color: "var(--t-ink)",
+                        },
+                      ]
+                    : []),
                   ...(payoffDate
                     ? [{ k: "Payoff Date", v: payoffDate, color: "var(--t-sage)" }]
                     : []),
@@ -5778,6 +5803,20 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                   </div>
                 ))}
               </div>
+
+              {l.note && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 11.5,
+                    color: "var(--t-muted)",
+                    fontStyle: "italic",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {l.note}
+                </div>
+              )}
 
               {!isPaidOff && outstanding > 0 && (
                 <div
@@ -7974,6 +8013,8 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
       emi: "",
       rate: "",
       monthsRemaining: "",
+      dueDay: "",
+      note: "",
       owner: "self",
     }
   );
@@ -8058,7 +8099,26 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
             onChange={(e) => setF({ ...f, monthsRemaining: e.target.value })}
           />
         </Field>
+        <Field label="EMI Due Day (optional)">
+          <input
+            style={input}
+            type="number"
+            min={1}
+            max={31}
+            placeholder="e.g. 5"
+            value={f.dueDay}
+            onChange={(e) => setF({ ...f, dueDay: e.target.value })}
+          />
+        </Field>
       </div>
+      <Field label="Note (optional)">
+        <input
+          style={input}
+          value={f.note}
+          placeholder="e.g. loan account number, purpose"
+          onChange={(e) => setF({ ...f, note: e.target.value })}
+        />
+      </Field>
       <ModalActions
         onSave={() => {
           if (!f.lender || !f.principal || !f.emi) return;

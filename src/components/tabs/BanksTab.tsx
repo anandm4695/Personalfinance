@@ -397,10 +397,19 @@ export function BanksTab({
     } else if (lt === "loansTaken") {
       const loan = (state.loansTaken || []).find((l: any) => l.id === lid);
       if (!loan) return;
+      // An EMI is part interest, part principal — only the principal portion should
+      // reduce the outstanding balance. Deducting the full EMI (as before) understated
+      // the true balance more and more with every payment. Store the exact principal
+      // portion applied on the transaction itself so a later delete can reverse it precisely.
+      const outstandingBefore = Number(loan.outstanding || 0);
+      const monthlyRate = Number(loan.rate || 0) / 100 / 12;
+      const interestPortion = outstandingBefore * monthlyRate;
+      const principalPortion = Math.min(outstandingBefore, Math.max(0, amt - interestPortion));
       updateItem("loansTaken", lid, {
-        outstanding: Math.max(0, Number(loan.outstanding || 0) - amt),
+        outstanding: Math.max(0, outstandingBefore - principalPortion),
         monthsRemaining: Math.max(0, Number(loan.monthsRemaining || 0) - 1),
       });
+      updateItem("transactions", txnId, { linkedPrincipalAmount: principalPortion });
     } else if (lt === "rentedProperties") {
       const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
       if (!prop) return;

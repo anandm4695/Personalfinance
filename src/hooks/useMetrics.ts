@@ -745,9 +745,11 @@ export function useMetrics(
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 
     // FOIR: total monthly EMI / monthly income -- safe lending threshold is <40%
-    // Only include active loans (monthsRemaining unset OR > 0; explicitly 0 means fully paid)
+    // Only include active loans (outstanding > 0, and monthsRemaining unset OR > 0;
+    // explicitly 0 means fully paid). Outstanding is checked too since monthsRemaining
+    // can go stale (e.g. balance edited to 0 by hand without resyncing tenure).
     const totalMonthlyEMI = (sState.loansTaken || [])
-      .filter((l: any) => Number(l.monthsRemaining ?? 1) > 0)
+      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foir = monthIncome > 0 ? (totalMonthlyEMI / monthIncome) * 100 : 0;
 

@@ -500,6 +500,16 @@ ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS property_value    
 -- subscriptions
 ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS remark text;
 
+-- loans (migration 81) — lender/borrower name already lived in lender_borrower;
+-- these were missing entirely, so new/edited loans silently failed to save.
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS due_day    integer CHECK (due_day BETWEEN 1 AND 31);
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS note       text;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS given_date date;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS due_date   date;
+
+-- transactions (migration 82) — principal portion applied by a loan-EMI-linked payment
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS linked_principal_amount numeric;
+
 -- bonds (migrations 26 + 27)
 ALTER TABLE public.bonds ADD COLUMN IF NOT EXISTS issuer                    text;
 ALTER TABLE public.bonds ADD COLUMN IF NOT EXISTS order_id                  text;

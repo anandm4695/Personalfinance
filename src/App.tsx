@@ -906,6 +906,7 @@ function FinanceDashboard() {
                   ...l,
                   borrower: l.lenderBorrower || l.borrower || "",
                   lender: l.lenderBorrower || l.lender || "",
+                  date: l.givenDate || l.date || "",
                 })),
               }
             : {}),
@@ -2004,8 +2005,10 @@ function FinanceDashboard() {
         }
         if (key === "loansGiven") {
           finalItem.lender_borrower = item.borrower || item.lender;
+          finalItem.given_date = item.date || null;
           delete finalItem.borrower;
           delete finalItem.lender;
+          delete finalItem.date;
         }
 
         const cleanItem = { ...finalItem, id: newId, user_id: userId };
@@ -2369,8 +2372,15 @@ function FinanceDashboard() {
       } else if (lt === "loansTaken") {
         const loan = (state.loansTaken || []).find((l: any) => l.id === lid);
         if (loan) {
+          // Only the principal portion of the EMI was ever deducted from outstanding
+          // (see autoPostLinkedTransaction) — reverse that exact stored amount rather
+          // than the full transaction amount, which would over-restore the balance.
+          const principalAmt =
+            txnToDelete.linkedPrincipalAmount != null
+              ? Number(txnToDelete.linkedPrincipalAmount)
+              : amt;
           updateItem("loansTaken", lid, {
-            outstanding: Number(loan.outstanding || 0) + amt,
+            outstanding: Number(loan.outstanding || 0) + principalAmt,
             monthsRemaining: Number(loan.monthsRemaining || 0) + 1,
           });
         }
@@ -2685,6 +2695,10 @@ function FinanceDashboard() {
           delete finalPatch.borrower;
           delete finalPatch.lender;
         }
+        if (key === "loansGiven" && patch.date !== undefined) {
+          finalPatch.given_date = patch.date || null;
+          delete finalPatch.date;
+        }
         if (key === "ppf" && patch.institution !== undefined) {
           finalPatch.bank = patch.institution || "";
           delete finalPatch.institution;
@@ -2960,8 +2974,19 @@ function FinanceDashboard() {
         limit: undefined,
       })),
       ...push("prepaid_cards", data.prepaidCards),
-      ...push("loans", data.loansTaken, () => ({ is_lent: false })),
-      ...push("loans", data.loansGiven, () => ({ is_lent: true })),
+      ...push("loans", data.loansTaken, (item) => ({
+        is_lent: false,
+        lender_borrower: item.lender || item.lenderBorrower || "",
+        lender: undefined,
+      })),
+      ...push("loans", data.loansGiven, (item) => ({
+        is_lent: true,
+        lender_borrower: item.borrower || item.lenderBorrower || "",
+        given_date: item.date || null,
+        borrower: undefined,
+        lender: undefined,
+        date: undefined,
+      })),
       ...push("goals", data.goals),
       ...push("budgets", data.budgets, (item) => ({
         monthly_limit: item.monthlyLimit ?? item.monthly ?? null,

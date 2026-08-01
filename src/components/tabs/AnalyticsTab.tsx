@@ -2342,7 +2342,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // Debt Smart — matches metrics.foir's active-loan filter
     const activeLoans = (state.loansTaken || []).filter(
-      (l: any) => Number(l.monthsRemaining ?? 1) > 0
+      (l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0
     );
     const totalEMI = activeLoans.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foirPct = metrics.monthIncome > 0 ? (totalEMI / metrics.monthIncome) * 100 : 0;
@@ -2629,7 +2629,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // FOIR for peer benchmarking — matches metrics.foir's active-loan filter
     const activeLoansHB = (state.loansTaken || []).filter(
-      (l: any) => Number(l.monthsRemaining ?? 1) > 0
+      (l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0
     );
     const totalEMIHB = activeLoansHB.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foirPctHB =
@@ -2927,7 +2927,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     // FOIR: Fixed Obligation to Income Ratio — healthy lending threshold is <40%
     // Only count active loans (same filter as metrics.foir) to stay consistent with the FOIR tile
     const totalEMISmart = (state.loansTaken || [])
-      .filter((l: any) => Number(l.monthsRemaining ?? 1) > 0)
+      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     if (metrics.monthIncome > 0 && totalEMISmart > 0) {
       const foirPct = (totalEMISmart / metrics.monthIncome) * 100;
@@ -5392,7 +5392,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               {/* EMI Summary */}
               {(() => {
                 const activeLoans = (state.loansTaken || []).filter(
-                  (l: any) => Number(l.monthsRemaining ?? 1) > 0
+                  (l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0
                 );
                 const totalEMI = activeLoans.reduce(
                   (s: number, l: any) => s + Number(l.emi || 0),

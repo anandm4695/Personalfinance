@@ -263,7 +263,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const totalEMIForAlert = state.loansTaken
-      .filter((l: any) => Number(l.monthsRemaining || 1) > 0)
+      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     if (unfilteredMonthlyIncome > 0 && totalEMIForAlert > 0) {
       const foirPct = (totalEMIForAlert / unfilteredMonthlyIncome) * 100;
