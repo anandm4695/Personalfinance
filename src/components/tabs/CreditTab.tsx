@@ -6089,9 +6089,11 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
     (l: any) =>
       l.dueDate && new Date(l.dueDate + "T00:00:00") < now && Number(l.outstanding || 0) > 0
   );
+  const activeCount = items.filter((l: any) => Number(l.outstanding || 0) > 0).length;
+  const settledCount = items.length - activeCount;
 
-  const [logExpanded, setLogExpanded] = useState<Set<string>>(new Set());
-  const [logInputs, setLogInputs] = useState<Record<string, string>>({});
+  const [historyExpanded, setHistoryExpanded] = useState<Set<string>>(new Set());
+  const [paymentTarget, setPaymentTarget] = useState<any>(null);
 
   const fmtLoanDate = (d: string) =>
     d
@@ -6134,7 +6136,9 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
           {
             label: "Total Lent",
             value: <Prv>{fmtINRFull(totalLent)}</Prv>,
-            sub: `${items.length} active loan${items.length !== 1 ? "s" : ""}`,
+            sub:
+              `${activeCount} active loan${activeCount !== 1 ? "s" : ""}` +
+              (settledCount > 0 ? ` · ${settledCount} settled` : ""),
             color: "var(--t-accent)",
             Icon: TrendingUp,
           },
@@ -6551,181 +6555,188 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                 </div>
               )}
 
-              {onUpdate && !isPaidOff && (
-                <div
-                  style={{ marginTop: 14, borderTop: `1px solid var(--t-line)`, paddingTop: 12 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
+              {onUpdate &&
+                (() => {
+                  const payments: any[] = l.payments || [];
+                  if (isPaidOff && payments.length === 0) return null;
+                  const isHistoryOpen = historyExpanded.has(l.id);
+                  return (
                     <div
                       style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: "var(--t-ink)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <IndianRupee size={13} /> Quick Repayment
-                    </div>
-                    <button
-                      onClick={() =>
-                        setLogExpanded((prev) => {
-                          const next = new Set(prev);
-                          next.has(l.id) ? next.delete(l.id) : next.add(l.id);
-                          return next;
-                        })
-                      }
-                      style={{
-                        fontSize: 11,
-                        color: "var(--t-accent)",
-                        background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
-                        border: "none",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        fontWeight: 800,
-                        padding: "4px 10px",
-                        transition: "background 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                          "color-mix(in srgb, var(--t-accent) 15%, transparent)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background =
-                          "color-mix(in srgb, var(--t-accent) 8%, transparent)";
-                      }}
-                    >
-                      {logExpanded.has(l.id) ? "Collapse ▲" : "Log Payment ▼"}
-                    </button>
-                  </div>
-                  {logExpanded.has(l.id) && (
-                    <div
-                      style={{
-                        marginTop: 10,
-                        padding: 12,
-                        background: "color-mix(in srgb, var(--surface-1) 30%, transparent)",
-                        borderRadius: 12,
-                        border: `1px solid var(--t-line)`,
+                        marginTop: 14,
+                        borderTop: `1px solid var(--t-line)`,
+                        paddingTop: 12,
                       }}
                     >
                       <div
                         style={{
                           display: "flex",
-                          gap: 8,
+                          justifyContent: "space-between",
                           alignItems: "center",
-                          marginBottom: 8,
+                          flexWrap: "wrap",
+                          gap: 8,
                         }}
                       >
-                        <div style={{ position: "relative", flex: 1 }}>
-                          <span
-                            style={{
-                              position: "absolute",
-                              left: 8,
-                              top: "50%",
-                              transform: "translateY(-50%)",
-                              fontSize: 12,
-                              color: "var(--t-muted)",
-                              fontWeight: 700,
-                            }}
-                          >
-                            ₹
-                          </span>
-                          <input
-                            type="number"
-                            placeholder="Amount received"
-                            value={logInputs[l.id] || ""}
-                            onChange={(e) =>
-                              setLogInputs((prev) => ({ ...prev, [l.id]: e.target.value }))
-                            }
-                            style={{
-                              width: "100%",
-                              padding: "6px 10px 6px 20px",
-                              borderRadius: 8,
-                              border: `1px solid var(--t-line)`,
-                              background: "var(--surface-0)",
-                              fontSize: 13,
-                              fontWeight: 800,
-                              color: "var(--t-ink)",
-                              outline: "none",
-                            }}
-                          />
-                        </div>
-                        <button
-                          onClick={() => {
-                            const amt = Number(logInputs[l.id]) || 0;
-                            if (amt <= 0) return;
-                            const nextOutstanding = Math.max(0, outstanding - amt);
-                            onUpdate(l.id, { outstanding: nextOutstanding });
-                            setLogInputs((prev) => ({ ...prev, [l.id]: "" }));
-                            setLogExpanded((prev) => {
-                              const next = new Set(prev);
-                              next.delete(l.id);
-                              return next;
-                            });
-                          }}
+                        <div
                           style={{
-                            background: "var(--t-sage)",
-                            color: THEME.darkInk,
-                            border: "none",
-                            borderRadius: 8,
-                            padding: "6px 14px",
                             fontSize: 12,
                             fontWeight: 800,
-                            cursor: "pointer",
+                            color: "var(--t-ink)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
                           }}
                         >
-                          Save
-                        </button>
-                      </div>
-                      {logInputs[l.id] &&
-                        Number(logInputs[l.id]) > 0 &&
-                        (() => {
-                          const val = Number(logInputs[l.id]);
-                          const nextOutstanding = Math.max(0, outstanding - val);
-                          const nextRecovered = Math.max(0, principal - nextOutstanding);
-                          const nextRecoveredPct =
-                            principal > 0 ? Math.min(100, (nextRecovered / principal) * 100) : 0;
-                          return (
-                            <div
+                          <IndianRupee size={13} /> Payment History
+                          {payments.length > 0 && (
+                            <span style={{ color: "var(--t-muted)", fontWeight: 700 }}>
+                              ({payments.length})
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {payments.length > 0 && (
+                            <button
+                              onClick={() =>
+                                setHistoryExpanded((prev) => {
+                                  const next = new Set(prev);
+                                  next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                                  return next;
+                                })
+                              }
                               style={{
                                 fontSize: 11,
-                                color: "var(--t-muted)",
-                                fontWeight: 500,
-                                lineHeight: 1.4,
+                                color: "var(--t-accent)",
+                                background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
+                                border: "none",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                fontWeight: 800,
+                                padding: "4px 10px",
                               }}
                             >
-                              New Outstanding:{" "}
-                              <strong style={{ color: "var(--t-ink)" }}>
-                                <Prv>{fmtINRFull(nextOutstanding)}</Prv>
-                              </strong>{" "}
-                              · New Progress:{" "}
-                              <strong style={{ color: "var(--t-sage)" }}>
-                                {nextRecoveredPct.toFixed(1)}%
-                              </strong>
-                              {val >= outstanding && (
-                                <span style={{ color: "var(--t-sage)", fontWeight: 700 }}>
-                                  {" "}
-                                  (Settles the loan!)
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })()}
+                              {isHistoryOpen ? "Hide ▲" : "Show ▼"}
+                            </button>
+                          )}
+                          {!isPaidOff && (
+                            <button
+                              onClick={() => setPaymentTarget(l)}
+                              style={{
+                                fontSize: 11,
+                                color: THEME.darkInk,
+                                background: "var(--t-sage)",
+                                border: "none",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                fontWeight: 800,
+                                padding: "4px 10px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <Plus size={11} /> Record Payment
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {isHistoryOpen && payments.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            padding: 4,
+                            background: "color-mix(in srgb, var(--surface-1) 30%, transparent)",
+                            borderRadius: 12,
+                            border: `1px solid var(--t-line)`,
+                          }}
+                        >
+                          {payments
+                            .slice()
+                            .sort((a: any, b: any) => (a.date < b.date ? 1 : -1))
+                            .map((p: any, idx: number, arr: any[]) => (
+                              <div
+                                key={p.id}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  padding: "8px 10px",
+                                  borderBottom:
+                                    idx < arr.length - 1 ? `1px dashed var(--t-line)` : "none",
+                                }}
+                              >
+                                <div>
+                                  <div
+                                    style={{
+                                      fontSize: 12.5,
+                                      fontWeight: 800,
+                                      color: "var(--t-sage)",
+                                    }}
+                                  >
+                                    <Prv>{fmtINRExact(p.amount)}</Prv>
+                                  </div>
+                                  <div style={{ fontSize: 10, color: "var(--t-muted)" }}>
+                                    {fmtLoanDate(p.date)}
+                                    {p.note ? ` · ${p.note}` : ""}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    if (
+                                      !window.confirm(
+                                        "Undo this payment? The amount will be added back to the outstanding balance."
+                                      )
+                                    )
+                                      return;
+                                    const updated = payments.filter((x: any) => x.id !== p.id);
+                                    const restored = outstanding + Number(p.amount || 0);
+                                    onUpdate(l.id, { payments: updated, outstanding: restored });
+                                  }}
+                                  style={{
+                                    color: "var(--t-muted)",
+                                    background: "transparent",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 4,
+                                  }}
+                                  aria-label="Undo payment"
+                                  title="Undo this payment"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                  );
+                })()}
             </InvestCard>
           );
         })}
       </Grid>
+      {paymentTarget && (
+        <Modal
+          title={`Record Payment — ${paymentTarget.borrower}`}
+          onClose={() => setPaymentTarget(null)}
+        >
+          <InformalAmountForm
+            label="Amount Received"
+            onSave={(entry: any) => {
+              const amt = Number(entry.amount) || 0;
+              if (amt <= 0) return;
+              const updatedPayments = [...(paymentTarget.payments || []), { id: uid(), ...entry }];
+              const nextOutstanding = Math.max(0, Number(paymentTarget.outstanding || 0) - amt);
+              onUpdate(paymentTarget.id, {
+                payments: updatedPayments,
+                outstanding: nextOutstanding,
+              });
+              setPaymentTarget(null);
+            }}
+            onClose={() => setPaymentTarget(null)}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
