@@ -49,7 +49,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 interface CalculatorsTabProps {
   metrics: any;
@@ -57,6 +57,7 @@ interface CalculatorsTabProps {
 }
 
 export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }) => {
+  const { privacyMode } = usePrivacy();
   const [calcTab, setCalcTab] = useState<
     | "emi"
     | "sip"
@@ -1027,8 +1028,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         isInvestBetter,
         netBenefit,
         recommendation: isInvestBetter
-          ? `Invest your surplus ₹${fmtINRFull(surplus)}/mo. The compounding return of ${invReturn}% outweighs the ${loanRate}% loan interest rate.`
-          : `Prepay your loan with the surplus ₹${fmtINRFull(surplus)}/mo. Paying off the debt saves interest and frees up ₹${fmtINRFull(Math.round(emi + surplus))}/mo earlier to reinvest.`,
+          ? `Invest your surplus ₹${privacyMode ? "••••" : fmtINRFull(surplus)}/mo. The compounding return of ${invReturn}% outweighs the ${loanRate}% loan interest rate.`
+          : `Prepay your loan with the surplus ₹${privacyMode ? "••••" : fmtINRFull(surplus)}/mo. Paying off the debt saves interest and frees up ₹${privacyMode ? "••••" : fmtINRFull(Math.round(emi + surplus))}/mo earlier to reinvest.`,
         tip: isInvestBetter
           ? "Ensure your investment vehicle matches your target risk profile, as equity returns are variable compared to guaranteed debt savings."
           : "Prepaying a loan acts as a risk-free investment offering a guaranteed post-tax yield equal to the loan interest rate.",
@@ -1080,8 +1081,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         isInvestBetter,
         netBenefit,
         recommendation: isInvestBetter
-          ? `Invest the lump sum ₹${fmtINRFull(lumpsum)}. Growth at ${invReturn}% CAGR beats prepaying the ${loanRate}% loan.`
-          : `Prepay the loan by ₹${fmtINRFull(lumpsum)} immediately. Eliminating debt early at ${loanRate}% guaranteed return is safer and yields higher value.`,
+          ? `Invest the lump sum ₹${privacyMode ? "••••" : fmtINRFull(lumpsum)}. Growth at ${invReturn}% CAGR beats prepaying the ${loanRate}% loan.`
+          : `Prepay the loan by ₹${privacyMode ? "••••" : fmtINRFull(lumpsum)} immediately. Eliminating debt early at ${loanRate}% guaranteed return is safer and yields higher value.`,
         tip: isInvestBetter
           ? "Ideal if surplus is placed in long-term index funds or high-yielding mutual funds."
           : "Prepaying saves interest immediately and provides secure, risk-free compounding value.",
@@ -1255,7 +1256,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           animation: "number-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
-        {fmtINRFull(val)}
+        <Prv>{fmtINRFull(val)}</Prv>
       </span>
     </div>
   );
@@ -1301,21 +1302,21 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         const tiles = [
           {
             label: "Current Net Worth",
-            value: fmtINRFull(metrics?.netWorth || 0),
+            value: <Prv>{fmtINRFull(metrics?.netWorth || 0)}</Prv>,
             sub: "Total assets minus liabilities",
             color: THEME.accent,
             Icon: TrendingUp,
           },
           {
             label: "Monthly Expenses",
-            value: fmtINRFull(metrics?.monthExpense || 0),
+            value: <Prv>{fmtINRFull(metrics?.monthExpense || 0)}</Prv>,
             sub: "Baseline for FIRE & runway calcs",
             color: THEME.gold,
             Icon: Wallet,
           },
           {
             label: "Est. Monthly Savings",
-            value: fmtINRFull(monthlySavings),
+            value: <Prv>{fmtINRFull(monthlySavings)}</Prv>,
             sub:
               metrics?.monthIncome > 0
                 ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate`
@@ -1325,7 +1326,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           },
           {
             label: "Total Loan EMIs",
-            value: fmtINRFull(totalEMIs),
+            value: <Prv>{fmtINRFull(totalEMIs)}</Prv>,
             sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans",
             color: totalEMIs > 0 ? THEME.rust : THEME.muted,
             Icon: Coins,
@@ -1510,7 +1511,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: any) => fmtINRFull(v)}
+                          formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
                           contentStyle={{
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,
@@ -1594,7 +1595,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: any) => fmtINRFull(v)}
+                          formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
                           contentStyle={{
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,
@@ -1663,7 +1664,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Final Corpus
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent }}>
-                    {fmtINRFull(stepSipResult.corpus)}
+                    <Prv>{fmtINRFull(stepSipResult.corpus)}</Prv>
                   </div>
                 </div>
                 <div
@@ -1687,7 +1688,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Total Invested
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                    {fmtINRFull(stepSipResult.invested)}
+                    <Prv>{fmtINRFull(stepSipResult.invested)}</Prv>
                   </div>
                 </div>
                 <div
@@ -1711,7 +1712,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Net Gains
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
-                    {fmtINRFull(stepSipResult.gains)}
+                    <Prv>{fmtINRFull(stepSipResult.gains)}</Prv>
                   </div>
                 </div>
               </div>
@@ -1745,10 +1746,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Step-Up SIP Corpus
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold }}>
-                      {fmtINRFull(stepSipResult.corpus)}
+                      <Prv>{fmtINRFull(stepSipResult.corpus)}</Prv>
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-                      Invested: {fmtINRFull(stepSipResult.invested)}
+                      Invested: <Prv>{fmtINRFull(stepSipResult.invested)}</Prv>
                     </div>
                   </div>
                   <div
@@ -1765,10 +1766,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Flat SIP Corpus
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                      {fmtINRFull(stepSipResult.flatCorpus)}
+                      <Prv>{fmtINRFull(stepSipResult.flatCorpus)}</Prv>
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-                      Invested: {fmtINRFull(stepSipResult.flatInvested)}
+                      Invested: <Prv>{fmtINRFull(stepSipResult.flatInvested)}</Prv>
                     </div>
                   </div>
                 </div>
@@ -1789,7 +1790,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <TrendingUp size={14} />
-                    Step-Up earns {fmtINRFull(stepSipResult.extraGains)} more than flat SIP over{" "}
+                    Step-Up earns <Prv>{fmtINRFull(stepSipResult.extraGains)}</Prv> more than flat SIP
+                    over{" "}
                     {stepSipYrs} years
                   </div>
                 )}
@@ -1836,7 +1838,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tick={{ fontSize: 10, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
-                        formatter={(v: any) => fmtINRFull(v)}
+                        formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
                         cursor={{ stroke: THEME.line }}
                         contentStyle={{
                           background: "var(--t-card-bg)",
@@ -1908,10 +1910,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <span style={{ color: THEME.accent, fontWeight: 700 }}>Perpetuity tip: </span>
-                    To withdraw {fmtINRFull(swpWithdrawal)}/month{" "}
+                    To withdraw <Prv>{fmtINRFull(swpWithdrawal)}</Prv>/month{" "}
                     <strong>forever</strong>, you need{" "}
                     <span style={{ color: THEME.accent, fontWeight: 700 }}>
-                      {fmtINRFull(swpResult.perpetuityCorpus)}
+                      <Prv>{fmtINRFull(swpResult.perpetuityCorpus)}</Prv>
                     </span>{" "}
                     at {swpRate}% p.a.
                   </div>
@@ -1967,7 +1969,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           : THEME.rust,
                     }}
                   >
-                    {fmtINRFull(swpResult.remainingCorpus)}
+                    <Prv>{fmtINRFull(swpResult.remainingCorpus)}</Prv>
                   </div>
                 </div>
 
@@ -1993,7 +1995,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Total Withdrawn
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                    {fmtINRFull(swpResult.totalWithdrawn)}
+                    <Prv>{fmtINRFull(swpResult.totalWithdrawn)}</Prv>
                   </div>
                 </div>
 
@@ -2094,11 +2096,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
                         Your monthly interest of{" "}
                         <strong style={{ color: THEME.ink }}>
-                          {fmtINRFull(swpResult.monthlyInterest)}
+                          <Prv>{fmtINRFull(swpResult.monthlyInterest)}</Prv>
                         </strong>{" "}
                         exceeds your withdrawal of{" "}
                         <strong style={{ color: THEME.ink }}>
-                          {fmtINRFull(swpWithdrawal)}
+                          <Prv>{fmtINRFull(swpWithdrawal)}</Prv>
                         </strong>
                         . The corpus will grow over time even after withdrawals.
                       </div>
@@ -2141,7 +2143,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             : ""}
                         </div>
                         <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
-                          At {fmtINRFull(swpWithdrawal)}/month, your corpus
+                          At <Prv>{fmtINRFull(swpWithdrawal)}</Prv>/month, your corpus
                           runs out before the {swpYears}-year planning period ends.
                         </div>
                       </div>
@@ -2166,10 +2168,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           MIN CORPUS NEEDED
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 900, color: THEME.gold }}>
-                          {fmtINRFull(swpResult.minCorpus)}
+                          <Prv>{fmtINRFull(swpResult.minCorpus)}</Prv>
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
-                          to sustain {fmtINRFull(swpWithdrawal)}/mo for{" "}
+                          to sustain <Prv>{fmtINRFull(swpWithdrawal)}</Prv>/mo for{" "}
                           {swpYears}y
                         </div>
                       </div>
@@ -2192,7 +2194,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           CORPUS SHORTFALL
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 900, color: THEME.rust }}>
-                          {fmtINRFull(swpResult.deficit)}
+                          <Prv>{fmtINRFull(swpResult.deficit)}</Prv>
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
                           additional corpus required
@@ -2227,7 +2229,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
                         Remaining corpus after {swpYears} years:{" "}
                         <strong style={{ color: THEME.ink }}>
-                          {fmtINRFull(swpResult.remainingCorpus)}
+                          <Prv>{fmtINRFull(swpResult.remainingCorpus)}</Prv>
                         </strong>
                         . Consider increasing your monthly withdrawal or extending the period.
                       </div>
@@ -2285,7 +2287,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tick={{ fontSize: 10, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
-                        formatter={(v: any) => fmtINRFull(v)}
+                        formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
                         cursor={{ stroke: THEME.line }}
                         contentStyle={{
                           background: "var(--t-card-bg)",
@@ -2639,7 +2641,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         color: fireResult.gap > 0 ? THEME.rust : THEME.sage,
                       }}
                     >
-                      {fmtINRFull(Math.abs(fireResult.gap))}
+                      <Prv>{fmtINRFull(Math.abs(fireResult.gap))}</Prv>
                     </span>
                   </div>
                 </div>
@@ -2676,10 +2678,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     <>
                       <AlertTriangle size={16} />
                       <span>
-                        To close the shortfall gap of {fmtINRFull(fireResult.gap)}, consider
+                        To close the shortfall gap of <Prv>{fmtINRFull(fireResult.gap)}</Prv>, consider
                         increasing your monthly savings by{" "}
-                        {fmtINRFull(Math.round(fireResult.gap / (fireResult.yrsToRet * 12)))}/mo or
-                        pushing retirement age out by 2-3 years.
+                        <Prv>
+                          {fmtINRFull(Math.round(fireResult.gap / (fireResult.yrsToRet * 12)))}
+                        </Prv>
+                        /mo or pushing retirement age out by 2-3 years.
                       </span>
                     </>
                   )}
@@ -2765,9 +2769,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Savings Needed to Close Gap
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold }}>
-                      {fireResult.monthlySavingsNeeded > 0
-                        ? fmtINRFull(fireResult.monthlySavingsNeeded)
-                        : "On Track"}
+                      {fireResult.monthlySavingsNeeded > 0 ? (
+                        <Prv>{fmtINRFull(fireResult.monthlySavingsNeeded)}</Prv>
+                      ) : (
+                        "On Track"
+                      )}
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted }}>
                       {fireResult.monthlySavingsNeeded > 0
@@ -2798,7 +2804,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       {fireResult.fourPctProgress}%
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted }}>
-                      Need {fmtINRFull(fireResult.fourPctCorpus)} corpus
+                      Need <Prv>{fmtINRFull(fireResult.fourPctCorpus)}</Prv> corpus
                     </div>
                     <div
                       style={{
@@ -2988,7 +2994,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: any) => fmtINRFull(v)}
+                          formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
                           contentStyle={{
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,
@@ -3200,7 +3206,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         Path A: Prepay Loan
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                        {fmtINRFull(lviResult.wealthPrepay)}
+                        <Prv>{fmtINRFull(lviResult.wealthPrepay)}</Prv>
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                         Net wealth at month {lviLoanTenure}
@@ -3220,7 +3226,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         <CheckCircle2 size={12} /> Paid off in {lviResult.monthsTaken} months
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
-                        Saved {fmtINRFull(lviResult.interestSaved)} in interest
+                        Saved <Prv>{fmtINRFull(lviResult.interestSaved)}</Prv> in interest
                       </div>
                     </div>
                   </div>
@@ -3246,7 +3252,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         Path B: Invest Surplus
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                        {fmtINRFull(lviResult.wealthInvest)}
+                        <Prv>{fmtINRFull(lviResult.wealthInvest)}</Prv>
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                         Net wealth at month {lviLoanTenure}
@@ -3288,7 +3294,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Net Benefit Difference
                   </span>
                   <span style={{ fontSize: 18, fontWeight: 900, color: THEME.sage }}>
-                    {fmtINRFull(lviResult.netBenefit)}
+                    <Prv>{fmtINRFull(lviResult.netBenefit)}</Prv>
                   </span>
                 </div>
               </Card>
@@ -3334,7 +3340,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tick={{ fontSize: 11, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
-                        formatter={(v: any) => fmtINRFull(v)}
+                        formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
                         cursor={{ stroke: THEME.line }}
                         contentStyle={{
                           background: "var(--t-card-bg)",
@@ -3377,7 +3383,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Starting Net Worth Today
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                      {fmtINRFull(nwpData[0]?.value)}
+                      <Prv>{fmtINRFull(nwpData[0]?.value)}</Prv>
                     </div>
                   </div>
                   <div
@@ -3394,7 +3400,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Projected Value in {nwpYears} Years
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage }}>
-                      {fmtINRFull(nwpData[nwpData.length - 1]?.value)}
+                      <Prv>{fmtINRFull(nwpData[nwpData.length - 1]?.value)}</Prv>
                     </div>
                   </div>
                   <div
@@ -3842,11 +3848,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <div>
                         <div style={{ fontWeight: 700, color: THEME.ink }}>{label}</div>
                         <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                          Current: {fmtINRFull(base)} · <span style={{ color }}>{hint}</span>
+                          Current: <Prv>{fmtINRFull(base)}</Prv> · <span style={{ color }}>{hint}</span>
                         </div>
                       </div>
                       <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
-                        {fmtINRFull(stressed)}
+                        <Prv>{fmtINRFull(stressed)}</Prv>
                       </span>
                     </div>
                   ))}
@@ -3864,7 +3870,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     <span style={{ color: THEME.muted }}>Total Stress-Adjusted Assets</span>
                     <span style={{ color: THEME.ink }}>
-                      {fmtINRFull(stressResult.totalLiquidAssets)}
+                      <Prv>{fmtINRFull(stressResult.totalLiquidAssets)}</Prv>
                     </span>
                   </div>
 
@@ -3880,7 +3886,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                     >
                       <span style={{ color: THEME.rust }}>Emergency Cash Outflow (-)</span>
-                      <span>{fmtINRFull(Number(oneTimeOutflow))}</span>
+                      <span>
+                        <Prv>{fmtINRFull(Number(oneTimeOutflow))}</Prv>
+                      </span>
                     </div>
                   )}
 
@@ -3897,7 +3905,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     <span style={{ color: THEME.muted }}>Net Stressed Capital Buffer</span>
                     <span style={{ color: THEME.sage, fontSize: 15 }}>
-                      {fmtINRFull(stressResult.netStressAssets)}
+                      <Prv>{fmtINRFull(stressResult.netStressAssets)}</Prv>
                     </span>
                   </div>
 
@@ -3912,14 +3920,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     <span style={{ color: THEME.muted }}>Stress-Adjusted Monthly Burn Rate</span>
                     <span style={{ color: THEME.rust, fontSize: 14 }}>
-                      {fmtINRFull(stressResult.crisisBurnRate)}/mo
+                      <Prv>{fmtINRFull(stressResult.crisisBurnRate)}</Prv>/mo
                     </span>
                   </div>
                   <div
                     style={{ fontSize: 11, color: THEME.muted, textAlign: "right", marginTop: -6 }}
                   >
-                    Expense ({fmtINRFull(stressResult.monthlyExpense)} × {burnMultiplier}x) + EMIs (
-                    {fmtINRFull(stressResult.activeEMIs)}/mo)
+                    Expense (<Prv>{fmtINRFull(stressResult.monthlyExpense)}</Prv> × {burnMultiplier}x)
+                    + EMIs (<Prv>{fmtINRFull(stressResult.activeEMIs)}</Prv>/mo)
                   </div>
                 </div>
               </Card>
@@ -4102,7 +4110,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         stroke={THEME.muted}
                         fontSize={11}
                         tickLine={false}
-                        tickFormatter={(v) => fmtINRFull(v)}
+                        tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                       />
                       <Tooltip
                         cursor={{ stroke: THEME.line }}
@@ -4115,7 +4123,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         }}
                         labelStyle={{ color: THEME.ink }}
                         itemStyle={{ color: THEME.ink }}
-                        formatter={(val) => fmtINRFull(Number(val))}
+                        formatter={(val) => (privacyMode ? "••••" : fmtINRFull(Number(val)))}
                       />
                       <Area
                         type="monotone"
@@ -4528,11 +4536,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     10-Yr Baseline Wealth
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
-                    {fmtINRFull(
-                      sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)][
-                        "Baseline Path"
-                      ]
-                    )}
+                    <Prv>
+                      {fmtINRFull(
+                        sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)][
+                          "Baseline Path"
+                        ]
+                      )}
+                    </Prv>
                   </div>
                   <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
                     Est. FI Target Age: <b>{sandboxResult.baseFIAge} yrs</b>
@@ -4559,11 +4569,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       marginTop: 4,
                     }}
                   >
-                    {fmtINRFull(
-                      sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)][
-                        "Simulated Path"
-                      ]
-                    )}
+                    <Prv>
+                      {fmtINRFull(
+                        sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)][
+                          "Simulated Path"
+                        ]
+                      )}
+                    </Prv>
                   </div>
                   <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
                     Est. FI Target Age: <b>{sandboxResult.sandFIAge} yrs</b>
@@ -4589,9 +4601,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       marginTop: 4,
                     }}
                   >
-                    {sandboxResult.oppCost > 0
-                      ? `-${fmtINRFull(Math.abs(sandboxResult.oppCost))}`
-                      : `+${fmtINRFull(Math.abs(sandboxResult.oppCost))}`}
+                    <Prv>
+                      {sandboxResult.oppCost > 0
+                        ? `-${fmtINRFull(Math.abs(sandboxResult.oppCost))}`
+                        : `+${fmtINRFull(Math.abs(sandboxResult.oppCost))}`}
+                    </Prv>
                   </div>
                   <div
                     style={{
@@ -4677,7 +4691,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         stroke={THEME.muted}
                         fontSize={11}
                         tickLine={false}
-                        tickFormatter={(v) => fmtINRFull(v)}
+                        tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                       />
                       <Tooltip
                         cursor={{ stroke: THEME.line }}
@@ -4690,7 +4704,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         }}
                         labelStyle={{ color: THEME.ink }}
                         itemStyle={{ color: THEME.ink }}
-                        formatter={(val) => fmtINRFull(Number(val))}
+                        formatter={(val) => (privacyMode ? "••••" : fmtINRFull(Number(val)))}
                       />
                       <Area
                         type="monotone"
@@ -4746,7 +4760,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       {sandboxResult.oppCost > 0 ? (
                         <>
                           Your simulated scenario has an opportunity cost of{" "}
-                          <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b>. This introduces a{" "}
+                          <b>
+                            <Prv>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</Prv>
+                          </b>
+                          . This introduces a{" "}
                           <b>{sandboxResult.fiAgeGap.toFixed(1)} year delay</b> to reaching your
                           Financial Independence target.
                           {sandboxResult.liquidityCrisisAge !== -1 ? (
@@ -4764,7 +4781,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       ) : (
                         <>
                           Your simulated venture compounds wealth{" "}
-                          <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b> above your baseline
+                          <b>
+                            <Prv>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</Prv>
+                          </b>{" "}
+                          above your baseline
                           projection! This accelerates your Financial Independence target age by{" "}
                           <b>{Math.abs(sandboxResult.fiAgeGap).toFixed(1)} years</b>, easily
                           offsetting any initial CapEx risk.
@@ -4936,7 +4956,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Capital Gain</span>
                       <span style={{ fontWeight: 700, color: THEME.ink }}>
-                        {fmtINRFull(idxResult.gainWithout)}
+                        <Prv>{fmtINRFull(idxResult.gainWithout)}</Prv>
                       </span>
                     </div>
                     <div
@@ -4949,7 +4969,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
                       <span style={{ fontWeight: 800, color: THEME.rust, fontSize: 16 }}>
-                        {fmtINRFull(idxResult.taxWithout)}
+                        <Prv>{fmtINRFull(idxResult.taxWithout)}</Prv>
                       </span>
                     </div>
                   </div>
@@ -5006,7 +5026,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Indexed Cost</span>
                       <span style={{ fontWeight: 700, color: THEME.sage }}>
-                        {fmtINRFull(idxResult.indexedCost)}
+                        <Prv>{fmtINRFull(idxResult.indexedCost)}</Prv>
                       </span>
                     </div>
                     <div
@@ -5020,7 +5040,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Indexed Gain</span>
                       <span style={{ fontWeight: 700, color: THEME.ink }}>
-                        {fmtINRFull(idxResult.gainWith)}
+                        <Prv>{fmtINRFull(idxResult.gainWith)}</Prv>
                       </span>
                     </div>
                     <div
@@ -5033,7 +5053,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
                       <span style={{ fontWeight: 800, color: THEME.sage, fontSize: 16 }}>
-                        {fmtINRFull(idxResult.taxWith)}
+                        <Prv>{fmtINRFull(idxResult.taxWith)}</Prv>
                       </span>
                     </div>
                   </div>
@@ -5061,7 +5081,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Tax Saved via Indexation
                     </div>
                     <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage }}>
-                      {fmtINRFull(idxResult.taxSaved)}
+                      <Prv>{fmtINRFull(idxResult.taxSaved)}</Prv>
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -5098,10 +5118,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tick={{ fontSize: 11, fill: THEME.muted }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v: number) => fmtINRFull(v)}
+                      tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                     />
                     <Tooltip
-                      formatter={(v: number) => fmtINRFull(v)}
+                      formatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                       cursor={{ fill: THEME.line, opacity: 0.4 }}
                       contentStyle={{
                         background: "var(--t-card-bg)",
@@ -5250,7 +5270,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           }}
                         >
                           {riResult.surplusAtRetire >= 0 ? "+" : "-"}
-                          {fmtINRFull(Math.abs(riResult.surplusAtRetire))}
+                          <Prv>{fmtINRFull(Math.abs(riResult.surplusAtRetire))}</Prv>
                         </span>
                       </div>
                       {riResult.firstDeficitAge > 0 && (
@@ -5312,12 +5332,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {fmtINRFull(riResult.corpusNeeded)}
+                          <Prv>{fmtINRFull(riResult.corpusNeeded)}</Prv>
                         </div>
                         <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
                           Start a monthly SIP of{" "}
                           <strong style={{ color: THEME.accent }}>
-                            {fmtINRFull(riResult.monthlySIPNeeded)}
+                            <Prv>{fmtINRFull(riResult.monthlySIPNeeded)}</Prv>
                           </strong>{" "}
                           at 12% return to build this corpus by retirement.
                         </div>
@@ -5392,10 +5412,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tick={{ fontSize: 11, fill: THEME.muted }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v: number) => fmtINRFull(v)}
+                      tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                     />
                     <Tooltip
-                      formatter={(v: number, name: string) => [fmtINRFull(v), name]}
+                      formatter={(v: number, name: string) => [privacyMode ? "••••" : fmtINRFull(v), name]}
                       cursor={{ stroke: THEME.line }}
                       contentStyle={{
                         background: "var(--t-card-bg)",

@@ -20,7 +20,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 const MONTH_NAMES = [
   "January",
@@ -79,6 +79,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
 };
 
 export function PaymentCalendarTab({ state }: any) {
+  const { privacyMode } = usePrivacy();
   const todayStr = today();
   const todayDate = new Date(todayStr + "T00:00:00");
 
@@ -397,13 +398,13 @@ export function PaymentCalendarTab({ state }: any) {
       >
         <StatCard
           label="Monthly Committed"
-          value={fmtINRFull(monthlyAvg)}
+          value={privacyMode ? "••••" : fmtINRFull(monthlyAvg)}
           icon={<Calendar />}
           color={THEME.accent}
         />
         <StatCard
           label="Annual Committed"
-          value={fmtINRFull(monthlyAvg * 12)}
+          value={privacyMode ? "••••" : fmtINRFull(monthlyAvg * 12)}
           icon={<IndianRupee />}
           color={THEME.rust}
         />
@@ -445,7 +446,7 @@ export function PaymentCalendarTab({ state }: any) {
                   key={i}
                   role="button"
                   tabIndex={0}
-                  aria-label={`View ${MONTH_NAMES[m.month]} ${m.year}, ${fmtINRFull(m.total)} due`}
+                  aria-label={`View ${MONTH_NAMES[m.month]} ${m.year}, ${privacyMode ? "••••" : fmtINRFull(m.total)} due`}
                   aria-pressed={isSelected}
                   style={{
                     flex: "0 0 auto",
@@ -465,7 +466,7 @@ export function PaymentCalendarTab({ state }: any) {
                   }}
                 >
                   <div
-                    title={fmtINRFull(m.total)}
+                    title={privacyMode ? "••••" : fmtINRFull(m.total)}
                     style={{
                       fontSize: 10,
                       color: THEME.muted,
@@ -634,7 +635,7 @@ export function PaymentCalendarTab({ state }: any) {
               const hasPmts = dayPmts.length > 0;
               const isSelected = selectedDay === day && hasPmts;
               const dayLabel = hasPmts
-                ? `${MONTH_NAMES[viewDate.month]} ${day}: ${dayPmts.length} payment${dayPmts.length > 1 ? "s" : ""} totalling ${fmtINRFull(dayTotal)}${isPast ? " (past due date)" : ""}`
+                ? `${MONTH_NAMES[viewDate.month]} ${day}: ${dayPmts.length} payment${dayPmts.length > 1 ? "s" : ""} totalling ${privacyMode ? "••••" : fmtINRFull(dayTotal)}${isPast ? " (past due date)" : ""}`
                 : `${MONTH_NAMES[viewDate.month]} ${day}, no payments due`;
 
               return (
@@ -710,7 +711,7 @@ export function PaymentCalendarTab({ state }: any) {
                           textOverflow: "ellipsis",
                           fontWeight: 600,
                         }}
-                        title={`${p.name} — ${fmtINRFull(p.amount)}${
+                        title={`${p.name} — ${privacyMode ? "••••" : fmtINRFull(p.amount)}${
                           isClamped
                             ? ` (normally due ${p.dueDay}${ORDINAL(p.dueDay)}; moved to the last day of this shorter month)`
                             : ""

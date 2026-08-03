@@ -1219,14 +1219,18 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         >
           Ex-showroom total:{" "}
           <strong style={{ color: "var(--text)" }}>
-            {fmtINRFull(
-              Number(f.purchaseBasicCost || 0) +
-                Number(f.purchaseCgstAmount || 0) +
-                Number(f.purchaseSgstAmount || 0)
-            )}
+            <Prv>
+              {fmtINRFull(
+                Number(f.purchaseBasicCost || 0) +
+                  Number(f.purchaseCgstAmount || 0) +
+                  Number(f.purchaseSgstAmount || 0)
+              )}
+            </Prv>
           </strong>
           {" · "}Basic + RTO + Accessories:{" "}
-          <strong style={{ color: "var(--text)" }}>{fmtINRFull(onRoadTotal)}</strong>
+          <strong style={{ color: "var(--text)" }}>
+            <Prv>{fmtINRFull(onRoadTotal)}</Prv>
+          </strong>
           {onRoadTotal > 0 && Number(f.purchasePrice || 0) !== onRoadTotal && (
             <>
               {" — "}
@@ -1634,7 +1638,7 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
           </span>
           {rec.cost > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
-              {fmtINRFull(rec.cost)}
+              <Prv>{fmtINRFull(rec.cost)}</Prv>
             </span>
           )}
           {rec.odometer > 0 && (
@@ -1915,7 +1919,9 @@ function InsuranceModal({ existing, vehicleName, onClose, onSave }: any) {
       {totalPremium > 0 && (
         <div style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", marginBottom: 16 }}>
           Total Premium:{" "}
-          <strong style={{ color: "var(--text)" }}>{fmtINRFull(totalPremium)}</strong>
+          <strong style={{ color: "var(--text)" }}>
+            <Prv>{fmtINRFull(totalPremium)}</Prv>
+          </strong>
         </div>
       )}
 
@@ -1993,7 +1999,7 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
           </span>
           {rec.totalPremium > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
-              {fmtINRFull(rec.totalPremium)}
+              <Prv>{fmtINRFull(rec.totalPremium)}</Prv>
             </span>
           )}
           {rec.policyNumber && (
@@ -2900,7 +2906,7 @@ function VehicleCard({
                               tickFormatter={(v) => `₹${v}`}
                             />
                             <Tooltip
-                              formatter={(v: any) => [fmtINRFull(v), "Spend"]}
+                              formatter={(v: any) => [<Prv>{fmtINRFull(v)}</Prv>, "Spend"]}
                               contentStyle={{
                                 background: "var(--surface-0, var(--surface))",
                                 borderColor: "var(--t-line, var(--border))",
@@ -3040,7 +3046,7 @@ function VehicleCard({
                   }}
                 >
                   ({sh.length} record{sh.length !== 1 ? "s" : ""} · Total{" "}
-                  {fmtINRFull(totalServiceCost)})
+                  <Prv>{fmtINRFull(totalServiceCost)}</Prv>)
                 </span>
               </h4>
               {lastService && (
@@ -3193,7 +3199,9 @@ function VehicleCard({
                             }}
                           />
                           <span>{st.label}:</span>
-                          <span style={{ fontWeight: 800 }}>{fmtINRFull(cost)}</span>
+                          <span style={{ fontWeight: 800 }}>
+                            <Prv>{fmtINRFull(cost)}</Prv>
+                          </span>
                         </span>
                       );
                     })
@@ -3232,7 +3240,7 @@ function VehicleCard({
                   }}
                 >
                   ({ih.length} record{ih.length !== 1 ? "s" : ""} · Total{" "}
-                  {fmtINRFull(totalInsurancePremium)})
+                  <Prv>{fmtINRFull(totalInsurancePremium)}</Prv>)
                 </span>
               </h4>
               {lastInsurance && (
@@ -3647,9 +3655,15 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
                 <>
                   <Prv>Bought for {fmtINRFull(totalPurchasePrice)}</Prv> across{" "}
                   {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""}
-                  {totalCurrentValue < totalPurchasePrice
-                    ? ` · down ${fmtINRFull(totalPurchasePrice - totalCurrentValue)} from depreciation`
-                    : ""}
+                  {totalCurrentValue < totalPurchasePrice ? (
+                    <>
+                      {" · down "}
+                      <Prv>{fmtINRFull(totalPurchasePrice - totalCurrentValue)}</Prv>
+                      {" from depreciation"}
+                    </>
+                  ) : (
+                    ""
+                  )}
                 </>
               ) : (
                 `Across ${vehicles.length} vehicle${vehicles.length !== 1 ? "s" : ""}`

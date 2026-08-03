@@ -516,7 +516,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
               </div>
               {usesDifferentTotal && (
                 <div style={{ fontSize: 11, color: THEME.muted, padding: "0 4px" }}>
-                  The {fmtINRFull(data.monthlyExpense)} used above for months-covered comes from
+                  The <Prv>{fmtINRFull(data.monthlyExpense)}</Prv> used above for months-covered comes from
                   your Budget total, which doesn't line up 1:1 with these itemized commitments.
                 </div>
               )}

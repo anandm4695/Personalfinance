@@ -49,7 +49,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
 import { EmptyState } from "../ui/EmptyState";
 
@@ -696,7 +696,7 @@ const Reconciler26AS = ({
                           {fmtINRExact(r.amountPaid)}
                         </td>
                         <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          {fmtINRFull(r.tdsDeducted)}
+                          <Prv>{fmtINRFull(r.tdsDeducted)}</Prv>
                         </td>
                         <td style={tdStyle}>
                           <Badge variant="sage">Matched</Badge>
@@ -754,7 +754,7 @@ const Reconciler26AS = ({
                           {fmtINRExact(r.amountPaid)}
                         </td>
                         <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          {fmtINRFull(r.tdsDeducted)}
+                          <Prv>{fmtINRFull(r.tdsDeducted)}</Prv>
                         </td>
                         <td style={tdStyle}>
                           <Badge variant="gold">Unmatched</Badge>
@@ -871,14 +871,14 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
           Gross Annual Income
         </span>
         <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, textAlign: "right" }}>
-          {fmtINRFull(result.grossIncome)}
+          <Prv>{fmtINRFull(result.grossIncome)}</Prv>
         </span>
 
         <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>
           {`Standard Deduction${regime === "old" ? " (Sec 16(ia))" : ""}`}
         </span>
         <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, textAlign: "right" }}>
-          - {fmtINRFull(result.stdDed)}
+          - <Prv>{fmtINRFull(result.stdDed)}</Prv>
         </span>
 
         {regime === "old" && result.extraDeds > 0 && (
@@ -887,7 +887,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
               Other Deductions (80C, 80D, HRA…)
             </span>
             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, textAlign: "right" }}>
-              - {fmtINRFull(result.extraDeds)}
+              - <Prv>{fmtINRFull(result.extraDeds)}</Prv>
             </span>
           </>
         )}
@@ -896,7 +896,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
 
         <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>Taxable Income</span>
         <span style={{ fontSize: 14, fontWeight: 900, color: accentColor, textAlign: "right" }}>
-          {fmtINRFull(result.taxable)}
+          <Prv>{fmtINRFull(result.taxable)}</Prv>
         </span>
       </div>
 
@@ -936,7 +936,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
               <div
                 style={{ textAlign: "right", fontSize: 12, color: THEME.muted, fontWeight: 600 }}
               >
-                {fmtINRFull(slab.incomeInSlab)}
+                <Prv>{fmtINRFull(slab.incomeInSlab)}</Prv>
               </div>
               <div
                 style={{
@@ -946,7 +946,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
                   color: slab.rate === 0 ? THEME.sage : THEME.ink,
                 }}
               >
-                {slab.rate === 0 ? "Nil" : fmtINRFull(slab.taxInSlab)}
+                {slab.rate === 0 ? "Nil" : <Prv>{fmtINRFull(slab.taxInSlab)}</Prv>}
               </div>
             </div>
           ))}
@@ -966,7 +966,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
           Tax on Total Income
         </span>
         <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, textAlign: "right" }}>
-          {fmtINRFull(result.tax + (result.rebateApplied ? result.rebateAmount : 0))}
+          <Prv>{fmtINRFull(result.tax + (result.rebateApplied ? result.rebateAmount : 0))}</Prv>
         </span>
 
         {result.rebateApplied && (
@@ -975,7 +975,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
               Section 87A Rebate
             </span>
             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, textAlign: "right" }}>
-              - {fmtINRFull(result.rebateAmount || result.tax + result.rebateAmount)}
+              - <Prv>{fmtINRFull(result.rebateAmount || result.tax + result.rebateAmount)}</Prv>
             </span>
           </>
         )}
@@ -984,7 +984,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
           <>
             <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>Surcharge</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, textAlign: "right" }}>
-              + {fmtINRFull(result.surcharge)}
+              + <Prv>{fmtINRFull(result.surcharge)}</Prv>
             </span>
           </>
         )}
@@ -993,7 +993,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
           Health & Education Cess (4%)
         </span>
         <span style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textAlign: "right" }}>
-          + {fmtINRFull(result.cess)}
+          + <Prv>{fmtINRFull(result.cess)}</Prv>
         </span>
 
         <div
@@ -1015,7 +1015,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
             textAlign: "right",
           }}
         >
-          {result.total === 0 ? "₹0 (Nil)" : fmtINRFull(result.total)}
+          {result.total === 0 ? "₹0 (Nil)" : <Prv>{fmtINRFull(result.total)}</Prv>}
         </span>
 
         <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted }}>
@@ -1146,13 +1146,13 @@ const HRACalculator = () => {
           >
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 13 }}>
               <span style={{ color: THEME.muted }}>A. Actual HRA Received</span>
-              <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c1)}</span>
+              <span style={{ fontWeight: 600, textAlign: "right" }}><Prv>{fmtINRFull(c1)}</Prv></span>
               <span style={{ color: THEME.muted }}>B. Rent Paid − 10% of Salary</span>
-              <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c2)}</span>
+              <span style={{ fontWeight: 600, textAlign: "right" }}><Prv>{fmtINRFull(c2)}</Prv></span>
               <span style={{ color: THEME.muted }}>
                 C. {hraMetro ? "50%" : "40%"} of Salary ({hraMetro ? "Metro" : "Non-Metro"})
               </span>
-              <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c3)}</span>
+              <span style={{ fontWeight: 600, textAlign: "right" }}><Prv>{fmtINRFull(c3)}</Prv></span>
             </div>
             <div
               style={{
@@ -1171,13 +1171,13 @@ const HRACalculator = () => {
               <span
                 style={{ fontWeight: 900, fontSize: 18, color: THEME.sage, textAlign: "right" }}
               >
-                {fmtINRFull(exempt)}
+                <Prv>{fmtINRFull(exempt)}</Prv>
               </span>
               <span style={{ color: THEME.muted, fontSize: 12 }}>Taxable HRA</span>
               <span
                 style={{ fontWeight: 600, fontSize: 13, color: THEME.rust, textAlign: "right" }}
               >
-                {fmtINRFull(taxable)}
+                <Prv>{fmtINRFull(taxable)}</Prv>
               </span>
             </div>
           </div>
@@ -1211,6 +1211,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   const [simulatedHarvestIds, setSimulatedHarvestIds] = useState<string[]>([]);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [expandedTipId, setExpandedTipId] = useState<string | null>(null);
+  const { privacyMode } = usePrivacy();
 
   /* ── FY selection (local — independent of global profile.fy) ── */
   const availableFYs = useMemo(() => {
@@ -2061,21 +2062,21 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               },
           {
             label: "Gross Tax Liability",
-            value: fmtINRFull(currentTax),
+            value: <Prv>{fmtINRFull(currentTax)}</Prv>,
             sub: `${activeRegime === "new" ? "New" : "Old"} regime · ${currentResult.effectiveRate.toFixed(1)}% eff. rate`,
             color: THEME.rust,
             Icon: Calculator,
           },
           {
             label: "Paid So Far",
-            value: fmtINRFull(totalPaidSoFar),
+            value: <Prv>{fmtINRFull(totalPaidSoFar)}</Prv>,
             sub: "TDS + Advance + Self-Assess",
             color: THEME.sage,
             Icon: CheckCircle2,
           },
           {
             label: "Balance Due",
-            value: fmtINRFull(remainingAdvance),
+            value: <Prv>{fmtINRFull(remainingAdvance)}</Prv>,
             sub: remainingAdvance <= 0 ? "Fully settled" : "Still to pay",
             color: remainingAdvance > 0 ? THEME.gold : THEME.sage,
             Icon: AlertTriangle,
@@ -2299,13 +2300,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           letterSpacing: "-0.03em",
                         }}
                       >
-                        {fmtINRFull(taxNewResult.total)}
+                        <Prv>{fmtINRFull(taxNewResult.total)}</Prv>
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-                        {fmtINRFull(getNewStdDed(fyStartYear))} std ded · No other
+                        <Prv>{fmtINRFull(getNewStdDed(fyStartYear))}</Prv> std ded · No other
                         deductions
                         <br />
-                        Taxable: {fmtINRFull(taxNewResult.taxable)} ·{" "}
+                        Taxable: <Prv>{fmtINRFull(taxNewResult.taxable)}</Prv> ·{" "}
                         {taxNewResult.effectiveRate.toFixed(1)}% eff. rate
                       </div>
                       {taxNewResult.rebateApplied && (
@@ -2384,12 +2385,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           letterSpacing: "-0.03em",
                         }}
                       >
-                        {fmtINRFull(taxOldResult.total)}
+                        <Prv>{fmtINRFull(taxOldResult.total)}</Prv>
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-                        Total deductions: {fmtINRFull(totalOldDeductions)}
+                        Total deductions: <Prv>{fmtINRFull(totalOldDeductions)}</Prv>
                         <br />
-                        Taxable: {fmtINRFull(taxOldResult.taxable)} ·{" "}
+                        Taxable: <Prv>{fmtINRFull(taxOldResult.taxable)}</Prv> ·{" "}
                         {taxOldResult.effectiveRate.toFixed(1)}% eff. rate
                       </div>
                       {taxOldResult.rebateApplied && (
@@ -2431,7 +2432,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             fontWeight: 900,
                           }}
                         >
-                          {fmtINRFull(regimeVerdict.saving)}
+                          <Prv>{fmtINRFull(regimeVerdict.saving)}</Prv>
                         </span>{" "}
                         in tax this year.
                         {regimeVerdict.better === "old" && (
@@ -2580,8 +2581,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                               </span>
                             </div>
                             <div style={{ fontSize: 12, fontWeight: 600 }}>
-                              {fmtINRFull(d.used)}
-                              {d.limit ? ` / ${fmtINRFull(d.limit)}` : ""}
+                              <Prv>{fmtINRFull(d.used)}</Prv>
+                              {d.limit ? (
+                                <>
+                                  {" / "}
+                                  <Prv>{fmtINRFull(d.limit)}</Prv>
+                                </>
+                              ) : (
+                                ""
+                              )}
                             </div>
                           </div>
                           <div className="progress-track">
@@ -2592,7 +2600,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           </div>
                           {d.limit && remaining > 0 && (
                             <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-                              Room to invest: {fmtINRFull(remaining)}
+                              Room to invest: <Prv>{fmtINRFull(remaining)}</Prv>
                             </div>
                           )}
                         </div>
@@ -2639,7 +2647,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     letterSpacing: "-0.03em",
                   }}
                 >
-                  {fmtINRFull(remainingAdvance)}
+                  <Prv>{fmtINRFull(remainingAdvance)}</Prv>
                 </div>
                 <div
                   style={{
@@ -2651,8 +2659,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     fontWeight: 500,
                   }}
                 >
-                  <Shield size={14} /> Total tax: {fmtINRFull(currentTax)} · TDS credited:{" "}
-                  {fmtINRFull(totalTDS)}
+                  <Shield size={14} /> Total tax: <Prv>{fmtINRFull(currentTax)}</Prv> · TDS credited:{" "}
+                  <Prv>{fmtINRFull(totalTDS)}</Prv>
                 </div>
               </div>
               <div style={{ marginTop: 32 }}>
@@ -2700,7 +2708,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       TDS Deducted
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>
-                      {fmtINRFull(totalTDS)}
+                      <Prv>{fmtINRFull(totalTDS)}</Prv>
                     </div>
                   </div>
                   <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
@@ -2715,7 +2723,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       Advance Paid
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>
-                      {fmtINRFull(totalAdvancePaid)}
+                      <Prv>{fmtINRFull(totalAdvancePaid)}</Prv>
                     </div>
                   </div>
                   {totalSelfAssessment > 0 && (
@@ -2732,7 +2740,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           Self-Assessment
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>
-                          {fmtINRFull(totalSelfAssessment)}
+                          <Prv>{fmtINRFull(totalSelfAssessment)}</Prv>
                         </div>
                       </div>
                     </>
@@ -2796,7 +2804,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           {inst.q} · <span style={{ color: THEME.muted }}>By {inst.due}</span>
                         </div>
                         <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                          Cumulative {inst.pct}% · {fmtINRFull(inst.amt)}
+                          Cumulative {inst.pct}% · <Prv>{fmtINRFull(inst.amt)}</Prv>
                         </div>
                       </div>
                       {isPaid && (
@@ -2890,8 +2898,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         All advance tax payments on track!
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                        FY {fy} — {fmtINRFull(totalAdvancePaid)} paid of {fmtINRFull(netLiability)}{" "}
-                        net liability
+                        FY {fy} — <Prv>{fmtINRFull(totalAdvancePaid)}</Prv> paid of{" "}
+                        <Prv>{fmtINRFull(netLiability)}</Prv> net liability
                       </div>
                     </div>
                   </Card>
@@ -2984,15 +2992,19 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     {[
                       {
                         label: "Amount Due Now",
-                        value: fmtINRFull(Math.max(0, target.cumAmt - totalAdvancePaid)),
+                        value: <Prv>{fmtINRFull(Math.max(0, target.cumAmt - totalAdvancePaid))}</Prv>,
                         color: countColor,
                       },
                       {
                         label: "Already Paid",
-                        value: fmtINRFull(totalAdvancePaid),
+                        value: <Prv>{fmtINRFull(totalAdvancePaid)}</Prv>,
                         color: THEME.sage,
                       },
-                      { label: "Net Liability", value: fmtINRFull(netLiability), color: THEME.ink },
+                      {
+                        label: "Net Liability",
+                        value: <Prv>{fmtINRFull(netLiability)}</Prv>,
+                        color: THEME.ink,
+                      },
                     ].map(({ label, value, color }) => (
                       <div
                         key={label}
@@ -3132,7 +3144,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           Income Recorded ({monthsElapsed}m)
                         </div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent }}>
-                          {fmtINRFull(incomeThisYear)}
+                          <Prv>{fmtINRFull(incomeThisYear)}</Prv>
                         </div>
                       </div>
                       <div
@@ -3147,7 +3159,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           Projected Annual Income
                         </div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage }}>
-                          {fmtINRFull(projectedAnnualIncome)}
+                          <Prv>{fmtINRFull(projectedAnnualIncome)}</Prv>
                         </div>
                       </div>
                       <div
@@ -3162,7 +3174,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           Projected Tax ({activeRegime} regime)
                         </div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold }}>
-                          {fmtINRFull(projectedTax)}
+                          <Prv>{fmtINRFull(projectedTax)}</Prv>
                         </div>
                       </div>
                       {totalPenalty234C > 0 && (
@@ -3178,7 +3190,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             Sec 234C Interest
                           </div>
                           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>
-                            {fmtINRFull(totalPenalty234C)}
+                            <Prv>{fmtINRFull(totalPenalty234C)}</Prv>
                           </div>
                           <div style={{ fontSize: 10, color: THEME.muted }}>
                             1% per month on quarterly shortfall
@@ -3231,7 +3243,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                                 })}
                               </div>
                               <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>
-                                {fmtINRFull(required)}
+                                <Prv>{fmtINRFull(required)}</Prv>
                               </div>
                               <div style={{ fontSize: 10, color: THEME.muted }}>
                                 {q.pct}% cumulative
@@ -3504,7 +3516,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   type="number"
                   placeholder={
                     detectedIncome > 0
-                      ? `Auto: ${fmtINRFull(Math.round(detectedIncome))}`
+                      ? `Auto: ${privacyMode ? "••••" : fmtINRFull(Math.round(detectedIncome))}`
                       : "Enter annual income"
                   }
                   value={incomeOverride}
@@ -3522,12 +3534,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
                   {incomeOverride !== "" ? (
                     <span style={{ color: THEME.gold, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <Zap size={12} /> Using manual override: {fmtINRFull(Number(incomeOverride) || 0)}/yr
+                      <Zap size={12} /> Using manual override:{" "}
+                      <Prv>{fmtINRFull(Number(incomeOverride) || 0)}</Prv>/yr
                     </span>
                   ) : detectedIncome > 0 ? (
                     <span>
                       Auto-detected:{" "}
-                      <b style={{ color: THEME.ink }}>{fmtINRFull(detectedIncome)}/yr</b>
+                      <b style={{ color: THEME.ink }}>
+                        <Prv>{fmtINRFull(detectedIncome)}</Prv>/yr
+                      </b>
                     </span>
                   ) : (
                     <span style={{ color: THEME.rust }}>
@@ -3553,13 +3568,21 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 </div>
                 {annualIncome > 0 && (
                   <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: THEME.sage }}>
-                    {activeRegime === "new"
-                      ? taxNewResult.rebateApplied && taxNewResult.total === 0
-                        ? "✓ 87A rebate: ₹0 tax (income within threshold)"
-                        : `New regime taxable: ${fmtINRFull(taxNewResult.taxable)}`
-                      : taxOldResult.rebateApplied && taxOldResult.total === 0
-                        ? "✓ 87A rebate: ₹0 tax after deductions"
-                        : `Old regime taxable: ${fmtINRFull(taxOldResult.taxable)}`}
+                    {activeRegime === "new" ? (
+                      taxNewResult.rebateApplied && taxNewResult.total === 0 ? (
+                        "✓ 87A rebate: ₹0 tax (income within threshold)"
+                      ) : (
+                        <>
+                          New regime taxable: <Prv>{fmtINRFull(taxNewResult.taxable)}</Prv>
+                        </>
+                      )
+                    ) : taxOldResult.rebateApplied && taxOldResult.total === 0 ? (
+                      "✓ 87A rebate: ₹0 tax after deductions"
+                    ) : (
+                      <>
+                        Old regime taxable: <Prv>{fmtINRFull(taxOldResult.taxable)}</Prv>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -3652,12 +3675,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         }}
                       >
                         <span style={{ color: barColor }}>
-                          {pct.toFixed(0)}% utilized · {fmtINRFull(used)} of ₹1.5L
+                          {pct.toFixed(0)}% utilized · <Prv>{fmtINRFull(used)}</Prv> of ₹1.5L
                         </span>
                         <span>
-                          {remaining > 0
-                            ? `${fmtINRFull(remaining)} room left`
-                            : "Fully utilized ✓"}
+                          {remaining > 0 ? (
+                            <>
+                              <Prv>{fmtINRFull(remaining)}</Prv> room left
+                            </>
+                          ) : (
+                            "Fully utilized ✓"
+                          )}
                         </span>
                       </div>
                       <div className="progress-track" style={{ height: 5 }}>
@@ -3678,7 +3705,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             gap: 4,
                           }}
                         >
-                          <Zap size={10} /> Auto-detected: {autoDetected.d80C_sources}
+                          <Zap size={10} /> Auto-detected: <Prv>{autoDetected.d80C_sources}</Prv>
                         </div>
                       )}
                     </div>
@@ -3877,7 +3904,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 />
               </Field>
               <Field
-                label={`Standard Deduction (Old Regime — ${fmtINRFull(stdDedOld)})`}
+                label={`Standard Deduction (Old Regime — ${privacyMode ? "••••" : fmtINRFull(stdDedOld)})`}
                 style={{ marginBottom: 0 }}
               >
                 <input className="form-input" type="number" value={stdDedOld} disabled />
@@ -3917,12 +3944,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         : "Both Regimes — Same Tax"}
                     </div>
                     <div style={{ fontSize: 32, fontWeight: 900, color: THEME.sage }}>
-                      {fmtINRFull(regimeVerdict ? regimeVerdict.saving : 0)}
+                      <Prv>{fmtINRFull(regimeVerdict ? regimeVerdict.saving : 0)}</Prv>
                     </div>
                     <div
                       style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginTop: 4 }}
                     >
-                      New: {fmtINRFull(taxNewResult.total)} · Old: {fmtINRFull(taxOldResult.total)}
+                      New: <Prv>{fmtINRFull(taxNewResult.total)}</Prv> · Old:{" "}
+                      <Prv>{fmtINRFull(taxOldResult.total)}</Prv>
                     </div>
                   </>
                 ) : (
@@ -3940,7 +3968,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       Tax Liability (Old Regime)
                     </div>
                     <div style={{ fontSize: 32, fontWeight: 900, color: THEME.rust }}>
-                      {fmtINRFull(taxOldResult.total)}
+                      <Prv>{fmtINRFull(taxOldResult.total)}</Prv>
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
                       Effective rate: {taxOldResult.effectiveRate.toFixed(2)}%
@@ -4022,7 +4050,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             }}
                           >
                             <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
-                              {tip.title}
+                              <Prv>{tip.title}</Prv>
                             </span>
                             <Badge
                               variant={
@@ -4044,7 +4072,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                                   : "New Regime"}
                             </Badge>
                           </div>
-                          <div style={{ fontSize: 12, color: THEME.muted }}>{tip.shortDesc}</div>
+                          <div style={{ fontSize: 12, color: THEME.muted }}>
+                            <Prv>{tip.shortDesc}</Prv>
+                          </div>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           {tip.saving != null && tip.saving > 0 && (
@@ -4061,7 +4091,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                                 Potential Saving
                               </div>
                               <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>
-                                ~{fmtINRFull(tip.saving)}
+                                ~<Prv>{fmtINRFull(tip.saving)}</Prv>
                               </div>
                             </div>
                           )}
@@ -4096,7 +4126,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                               {tip.section}
                             </div>
                             <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.7 }}>
-                              {tip.fullDesc}
+                              <Prv>{tip.fullDesc}</Prv>
                             </div>
                             {tip.maxBenefit != null && tip.maxBenefit > 0 && (
                               <div
@@ -4111,7 +4141,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                                 }}
                               >
                                 <Zap size={13} />
-                                Maximum annual tax saving: {fmtINRFull(tip.maxBenefit)}
+                                Maximum annual tax saving: <Prv>{fmtINRFull(tip.maxBenefit)}</Prv>
                               </div>
                             )}
                             {tip.utilizedPct > 0 && (
@@ -4322,7 +4352,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     textShadow: "0 0 20px color-mix(in srgb, var(--t-sage) 40%, transparent)",
                   }}
                 >
-                  {fmtINRFull(taxCalculations.totalSaved)}
+                  <Prv>{fmtINRFull(taxCalculations.totalSaved)}</Prv>
                 </div>
                 <div
                   style={{
@@ -4334,8 +4364,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     fontWeight: 500,
                   }}
                 >
-                  <Percent size={14} /> Actual: {fmtINRFull(taxCalculations.actual.totalTax)} ·
-                  Simulated: {fmtINRFull(taxCalculations.simulated.totalTax)}
+                  <Percent size={14} /> Actual:{" "}
+                  <Prv>{fmtINRFull(taxCalculations.actual.totalTax)}</Prv> · Simulated:{" "}
+                  <Prv>{fmtINRFull(taxCalculations.simulated.totalTax)}</Prv>
                 </div>
               </div>
               <div style={{ marginTop: 32 }}>
@@ -4391,9 +4422,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       Net STCG (Actual)
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
-                      {fmtINRFull(taxCalculations.actual.netSTCG)}{" "}
+                      <Prv>{fmtINRFull(taxCalculations.actual.netSTCG)}</Prv>{" "}
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
-                        (Tax: {fmtINRFull(taxCalculations.actual.taxSTCG)})
+                        (Tax: <Prv>{fmtINRFull(taxCalculations.actual.taxSTCG)}</Prv>)
                       </span>
                     </div>
                   </div>
@@ -4409,9 +4440,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       Net LTCG (Actual)
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
-                      {fmtINRFull(taxCalculations.actual.netLTCG)}{" "}
+                      <Prv>{fmtINRFull(taxCalculations.actual.netLTCG)}</Prv>{" "}
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
-                        (Tax: {fmtINRFull(taxCalculations.actual.taxLTCG)})
+                        (Tax: <Prv>{fmtINRFull(taxCalculations.actual.taxLTCG)}</Prv>)
                       </span>
                     </div>
                   </div>
@@ -4472,11 +4503,19 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     },
                     {
                       label: "Simulated STCL Applied",
-                      value: `-${fmtINRFull(taxCalculations.simulated.stcLossesAdded)}`,
+                      value: (
+                        <>
+                          -<Prv>{fmtINRFull(taxCalculations.simulated.stcLossesAdded)}</Prv>
+                        </>
+                      ),
                     },
                     {
                       label: "Simulated LTCL Applied",
-                      value: `-${fmtINRFull(taxCalculations.simulated.ltcLossesAdded)}`,
+                      value: (
+                        <>
+                          -<Prv>{fmtINRFull(taxCalculations.simulated.ltcLossesAdded)}</Prv>
+                        </>
+                      ),
                     },
                   ].map(({ label, value }) => (
                     <div
@@ -4514,7 +4553,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         color: taxCalculations.simulated.totalTax > 0 ? THEME.gold : THEME.sage,
                       }}
                     >
-                      {fmtINRFull(taxCalculations.simulated.totalTax)}
+                      <Prv>{fmtINRFull(taxCalculations.simulated.totalTax)}</Prv>
                     </span>
                   </div>
                 </div>
@@ -4655,7 +4694,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
                       >
                         Bought: {cand.buyDate || "—"} · Qty: {cand.qty.toFixed(2)} · Cost:{" "}
-                        {fmtINRFull(cand.invested)} · Market Val: {fmtINRFull(cand.currentVal)}
+                        <Prv>{fmtINRFull(cand.invested)}</Prv> · Market Val:{" "}
+                        <Prv>{fmtINRFull(cand.currentVal)}</Prv>
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -4673,12 +4713,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       <div
                         style={{ fontSize: 16, fontWeight: 900, color: THEME.rust, marginTop: 2 }}
                       >
-                        {fmtINRFull(cand.loss)}
+                        <Prv>{fmtINRFull(cand.loss)}</Prv>
                       </div>
                       <div
                         style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, marginTop: 2 }}
                       >
-                        Offsets ~{fmtINRFull(taxSavedEst)} tax
+                        Offsets ~<Prv>{fmtINRFull(taxSavedEst)}</Prv> tax
                       </div>
                     </div>
                   </div>
@@ -5004,10 +5044,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           {sell.days} Days
                         </td>
                         <td style={{ padding: "14px 20px", textAlign: "right", fontWeight: 600 }}>
-                          {fmtINRFull(sell.buyPrice)}
+                          <Prv>{fmtINRFull(sell.buyPrice)}</Prv>
                         </td>
                         <td style={{ padding: "14px 20px", textAlign: "right", fontWeight: 600 }}>
-                          {fmtINRFull(sell.sellPrice)}
+                          <Prv>{fmtINRFull(sell.sellPrice)}</Prv>
                         </td>
                         <td
                           style={{
@@ -5018,7 +5058,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           }}
                         >
                           {isProfit ? "+" : ""}
-                          {fmtINRFull(sell.profit)}
+                          <Prv>{fmtINRFull(sell.profit)}</Prv>
                         </td>
                       </tr>
                     );

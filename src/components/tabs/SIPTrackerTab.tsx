@@ -28,7 +28,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { MFLogo } from "./InvestmentsTab";
 
@@ -64,6 +64,7 @@ const FUND_COLORS: Record<string, string> = {
 };
 
 export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics }: any) {
+  const { privacyMode } = usePrivacy();
   const [show, setShow] = useState(false);
   const [editSip, setEditSip] = useState<any>(null);
   const [sipProjRate, setSipProjRate] = useState("12");
@@ -295,7 +296,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
           value={totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—"}
           sub={
             totalGains > 0
-              ? `+${fmtINRFull(totalGains)} total return`
+              ? `+${privacyMode ? "••••" : fmtINRFull(totalGains)} total return`
               : "Returns after first installment"
           }
           icon={<TrendingUp />}
@@ -380,7 +381,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                           {type}
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted }}>
-                          {fmtINRFull(amt)}/mo · {pct.toFixed(0)}%
+                          <Prv>{fmtINRFull(amt)}</Prv>/mo · {pct.toFixed(0)}%
                         </div>
                       </div>
                     </div>
@@ -629,11 +630,11 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => fmtINRFull(v)}
+                    tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                     width={72}
                   />
                   <Tooltip
-                    formatter={(v: any) => fmtINRFull(v)}
+                    formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
                     cursor={{ stroke: THEME.line }}
                     contentStyle={{
                       background: "var(--surface-0)",
@@ -939,7 +940,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
             /{sip.frequency === "quarterly" ? "qtr" : "mo"}
           </span>
           <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginLeft: 8 }}>
-            · {fmtINRFull(annualAmt)}/yr
+            · <Prv>{fmtINRFull(annualAmt)}</Prv>/yr
           </span>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -980,11 +981,11 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
       {/* Corpus tinted tiles */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
         {[
-          { k: "Invested", v: fmtINRFull(sip.totalInvested), color: THEME.muted },
-          { k: "Est. Value", v: fmtINRFull(sip.currentCorpus), color: THEME.sage },
+          { k: "Invested", v: <Prv>{fmtINRFull(sip.totalInvested)}</Prv>, color: THEME.muted },
+          { k: "Est. Value", v: <Prv>{fmtINRFull(sip.currentCorpus)}</Prv>, color: THEME.sage },
           {
             k: sip.isCompleted ? "Final" : "Projected",
-            v: fmtINRFull(sip.projectedCorpus),
+            v: <Prv>{fmtINRFull(sip.projectedCorpus)}</Prv>,
             color: THEME.gold,
           },
         ].map(({ k, v, color }) => (
@@ -1040,11 +1041,15 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
             color: sip.estimatedGains > 0 ? THEME.sage : THEME.muted,
           }}
         >
-          {sip.estimatedGains > 0
-            ? `+${fmtINRFull(sip.estimatedGains)} (${sip.gainPct.toFixed(1)}% total return)`
-            : sip.paid === 0
-              ? "Not started"
-              : "—"}
+          {sip.estimatedGains > 0 ? (
+            <>
+              +<Prv>{fmtINRFull(sip.estimatedGains)}</Prv> ({sip.gainPct.toFixed(1)}% total return)
+            </>
+          ) : sip.paid === 0 ? (
+            "Not started"
+          ) : (
+            "—"
+          )}
         </div>
         {!sip.isCompleted && nextLabel && !isOverdue && !isDueSoon && (
           <div
@@ -1213,7 +1218,7 @@ function SIPModal({ onClose, onSave, initial }: any) {
           {durationYears === 0 && durationMonths === 0 && "< 1 month"}
           <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>
           <strong style={{ color: THEME.ink }}>Total Commitment: </strong>
-          {fmtINRFull(totalCommitment)}
+          <Prv>{fmtINRFull(totalCommitment)}</Prv>
         </div>
       )}
 

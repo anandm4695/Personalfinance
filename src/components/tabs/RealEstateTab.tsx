@@ -29,7 +29,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // Sentinel owner id for a co-owner who isn't one of this household's tracked
 // family profiles (e.g. a parent on the property papers who isn't part of
@@ -1019,6 +1019,7 @@ function DemandModal({ existing, propertyName, onClose, onSave }: any) {
 // ─── Payment Modal ────────────────────────────────────────────────────────────
 
 function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any) {
+  const { privacyMode } = usePrivacy();
   const isEdit = !!existing;
   const [f, setF] = useState(
     existing || {
@@ -1090,7 +1091,7 @@ function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any)
               {demands.map((d: any) => (
                 <option key={d.id} value={d.id}>
                   {d.milestone || "Demand"} — {fmtDate(d.demandDate)} —{" "}
-                  {fmtINRFull(d.totalAmount || d.amount || 0)}
+                  {privacyMode ? "••••" : fmtINRFull(d.totalAmount || d.amount || 0)}
                 </option>
               ))}
             </select>

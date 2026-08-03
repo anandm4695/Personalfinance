@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CalculatorsTab } from "../components/tabs/CalculatorsTab";
+import { PrivacyProvider } from "../context/PrivacyContext";
 
 // Simple mock for recharts ResponsiveContainer (jsdom has no layout engine, so
 // recharts renders nothing useful / can throw on zero-size containers).
@@ -34,7 +35,11 @@ beforeEach(() => {
   document.body.appendChild(container);
   act(() => {
     root = createRoot(container);
-    root.render(<CalculatorsTab metrics={baseMetrics} state={{}} />);
+    root.render(
+      <PrivacyProvider>
+        <CalculatorsTab metrics={baseMetrics} state={{}} />
+      </PrivacyProvider>
+    );
   });
 });
 

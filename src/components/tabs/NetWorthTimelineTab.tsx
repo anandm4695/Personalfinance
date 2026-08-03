@@ -30,7 +30,7 @@ import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../uti
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
 const MONTH_NAMES = [
@@ -199,6 +199,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile = "all" }) => {
+  const { privacyMode } = usePrivacy();
   const [projectionYears, setProjectionYears] = useState(5);
   const [selectedPreset, setSelectedPreset] = useState(1);
   const [monthlySavings, setMonthlySavings] = useState(
@@ -874,7 +875,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 tickLine={false}
               />
               <YAxis
-                tickFormatter={(v) => fmtINRFull(v)}
+                tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
@@ -950,7 +951,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 tickLine={false}
               />
               <YAxis
-                tickFormatter={(v) => fmtINRFull(v)}
+                tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
@@ -989,7 +990,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 tickLine={false}
               />
               <YAxis
-                tickFormatter={(v) => fmtINRFull(v)}
+                tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
@@ -1214,7 +1215,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   tickLine={false}
                 />
                 <YAxis
-                  tickFormatter={(v) => fmtINRFull(v)}
+                  tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                   tick={{ fontSize: 11, fill: THEME.muted }}
                   axisLine={false}
                   tickLine={false}

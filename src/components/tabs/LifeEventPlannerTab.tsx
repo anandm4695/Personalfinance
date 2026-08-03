@@ -35,7 +35,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 const EVENT_TYPES = [
   {
@@ -84,6 +84,7 @@ const EMPTY_EVENT = {
 };
 
 export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updateItem }) => {
+  const { privacyMode } = usePrivacy();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_EVENT });
@@ -246,11 +247,11 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: THEME.muted }} />
               <YAxis
-                tickFormatter={(v) => fmtINRFull(v)}
+                tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                 tick={{ fontSize: 11, fill: THEME.muted }}
               />
               <Tooltip
-                formatter={(v) => fmtINRFull(v)}
+                formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
                 cursor={{ fill: "var(--t-line)", opacity: 0.4 }}
                 contentStyle={tooltipStyle()}
                 labelStyle={{ color: "var(--t-ink)" }}

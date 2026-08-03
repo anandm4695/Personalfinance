@@ -406,8 +406,8 @@ Return only the JSON, no explanation.`;
         </div>
         {computed.grossSalary > 0 && computed.totalDeductions > 0 && (
           <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 6, fontWeight: 500 }}>
-            Gross: {fmtINRFull(Number(computed.grossSalary))} &bull; Deductions:{" "}
-            {fmtINRFull(Number(computed.totalDeductions))}
+            Gross: <Prv>{fmtINRFull(Number(computed.grossSalary))}</Prv> &bull; Deductions:{" "}
+            <Prv>{fmtINRFull(Number(computed.totalDeductions))}</Prv>
           </div>
         )}
       </div>
@@ -605,7 +605,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                     tickLine={false}
                   />
                   <Tooltip
-                    formatter={(v: number, name: string) => [fmtINRFull(v), name]}
+                    formatter={(v: number, name: string) => [<Prv>{fmtINRFull(v)}</Prv>, name]}
                     content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
                     cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />

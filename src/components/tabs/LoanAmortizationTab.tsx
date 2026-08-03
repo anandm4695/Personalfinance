@@ -19,7 +19,7 @@ import { fmtINR, fmtINRFull, fmtINRExact, loanOutstanding } from "../../utils/fi
 import { Card } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 const th: React.CSSProperties = {
   padding: "14px 16px",
@@ -144,6 +144,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
 };
 
 export const LoanAmortizationTab = ({ state }) => {
+  const { privacyMode } = usePrivacy();
   const loans = useMemo(
     // A loan with `outstanding` explicitly at 0 is paid off — only fall back to
     // `principal` when `outstanding` is genuinely missing (legacy/imported rows),
@@ -370,7 +371,8 @@ export const LoanAmortizationTab = ({ state }) => {
               >
                 {loans.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.type || l.lender || "Loan"} — {fmtINRFull(l.outstanding || l.principal)}
+                    {l.type || l.lender || "Loan"} —{" "}
+                    {privacyMode ? "••••" : fmtINRFull(l.outstanding || l.principal)}
                   </option>
                 ))}
               </select>
@@ -693,14 +695,14 @@ export const LoanAmortizationTab = ({ state }) => {
                     tickLine={false}
                   />
                   <YAxis
-                    tickFormatter={(v) => fmtINRFull(v)}
+                    tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                     tick={{ fontSize: 11, fill: THEME.muted }}
                     axisLine={false}
                     tickLine={false}
                     width={85}
                   />
                   <Tooltip
-                    formatter={(v) => fmtINRFull(v)}
+                    formatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                     content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
                     cursor={{ stroke: THEME.line }}
                   />
@@ -769,14 +771,14 @@ export const LoanAmortizationTab = ({ state }) => {
                     axisLine={false}
                   />
                   <YAxis
-                    tickFormatter={(v) => fmtINRFull(v)}
+                    tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                     tick={{ fontSize: 11, fill: THEME.muted }}
                     axisLine={false}
                     tickLine={false}
                     width={85}
                   />
                   <Tooltip
-                    formatter={(v) => fmtINRFull(v)}
+                    formatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                     content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
                     cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />

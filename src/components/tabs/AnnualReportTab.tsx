@@ -45,7 +45,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { isLongTerm, isEquityMF } from "./CapitalGainsTab";
 import { computeNetWorthAsOf } from "../../utils/netWorthAsOf";
 
@@ -479,6 +479,7 @@ const PremiumStatCard = ({
    ══════════════════════════════════════════════════════════════════ */
 
 export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "all" }: any) => {
+  const { privacyMode } = usePrivacy();
   // ── Inject print styles ────────────────────────────────────────
   useEffect(() => {
     const style = document.createElement("style");
@@ -1672,7 +1673,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.muted }} />
                     <YAxis
                       tick={{ fontSize: 11, fill: THEME.muted }}
-                      tickFormatter={(v: number) => fmtINRFull(v)}
+                      tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                       width={65}
                     />
                     <Tooltip
@@ -1793,7 +1794,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       <XAxis dataKey="month" tick={{ fontSize: 9, fill: THEME.muted }} />
                       <YAxis
                         tick={{ fontSize: 9, fill: THEME.muted }}
-                        tickFormatter={(v: number) => fmtINRFull(v)}
+                        tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                         width={50}
                       />
                       <Tooltip
@@ -1915,9 +1916,11 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                           dominantBaseline="middle"
                           style={{ fontSize: 13, fontWeight: 800, fill: THEME.ink }}
                         >
-                          {fmtINRFull(
-                            hoveredExpense ? hoveredExpense.value : expenseData.totalExpense
-                          )}
+                          {privacyMode
+                            ? "••••"
+                            : fmtINRFull(
+                                hoveredExpense ? hoveredExpense.value : expenseData.totalExpense
+                              )}
                         </text>
                       </PieChart>
                     </ResponsiveContainer></div>
@@ -2072,7 +2075,9 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                           dominantBaseline="middle"
                           style={{ fontSize: 13, fontWeight: 800, fill: THEME.ink }}
                         >
-                          {fmtINRFull(hoveredAsset ? hoveredAsset.value : assetAllocation.total)}
+                          {privacyMode
+                            ? "••••"
+                            : fmtINRFull(hoveredAsset ? hoveredAsset.value : assetAllocation.total)}
                         </text>
                       </PieChart>
                     </ResponsiveContainer></div>
@@ -2267,7 +2272,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       <AlertTriangle size={14} style={{ flexShrink: 0 }} />
                       <span>
                         Coverage is {insuranceData.adequacyRatio.toFixed(1)}x annual income.
-                        Recommended: at least 10x ({fmtINRFull(incomeData.totalIncome * 10)}).
+                        Recommended: at least 10x (
+                        <Prv>{fmtINRFull(incomeData.totalIncome * 10)}</Prv>).
                       </span>
                     </div>
                   )}

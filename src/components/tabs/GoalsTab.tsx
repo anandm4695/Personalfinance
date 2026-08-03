@@ -376,9 +376,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted }}>
                         <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                          {fmtINRFull(p.saved)}
+                          <Prv>{fmtINRFull(p.saved)}</Prv>
                         </span>
-                        <span style={{ opacity: 0.6 }}> / {fmtINRFull(p.target)}</span>
+                        <span style={{ opacity: 0.6 }}>
+                          {" "}
+                          / <Prv>{fmtINRFull(p.target)}</Prv>
+                        </span>
                       </div>
                     </div>
                   );
@@ -990,7 +993,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                           <div style={{ fontSize: 12, color: THEME.muted }}>
                             Monthly needed:{" "}
                             <span style={{ fontWeight: 800, color: THEME.ink }}>
-                              {fmtINRFull(monthlyNeeded)}
+                              <Prv>{fmtINRFull(monthlyNeeded)}</Prv>
                             </span>
                             <span style={{ fontSize: 10 }}> /mo</span>
                           </div>
@@ -1084,7 +1087,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                                     <div
                                       style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}
                                     >
-                                      {fmtINRFull(sip)}/mo
+                                      <Prv>{fmtINRFull(sip)}</Prv>/mo
                                     </div>
                                   </div>
                                 );

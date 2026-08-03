@@ -28,7 +28,7 @@ import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
 const th: React.CSSProperties = {
@@ -110,6 +110,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
 };
 
 export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
+  const { privacyMode } = usePrivacy();
   const [forecastMonths, setForecastMonths] = useState(6);
 
   // Historical monthly expenses by category
@@ -399,7 +400,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
               axisLine={{ stroke: THEME.line }}
             />
             <YAxis
-              tickFormatter={(v) => fmtINRFull(v)}
+              tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
@@ -476,7 +477,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
               axisLine={{ stroke: THEME.line }}
             />
             <YAxis
-              tickFormatter={(v) => fmtINRFull(v)}
+              tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}

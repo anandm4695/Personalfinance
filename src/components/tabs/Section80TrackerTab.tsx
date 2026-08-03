@@ -52,8 +52,12 @@ const ProgressBar = ({ used, limit, color }: { used: number; limit: number; colo
         marginBottom: 4,
       }}
     >
-      <span>{fmtINRFull(used)} used</span>
-      <span>{fmtINRFull(Math.max(0, limit - used))} remaining</span>
+      <span>
+        <Prv>{fmtINRFull(used)}</Prv> used
+      </span>
+      <span>
+        <Prv>{fmtINRFull(Math.max(0, limit - used))}</Prv> remaining
+      </span>
     </div>
     <div className="progress-track">
       <div
@@ -318,7 +322,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v) => fmtINRFull(v)}
+                  formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
                   contentStyle={{
                     background: "var(--surface-0)",
                     border: `1px solid ${THEME.line}`,
@@ -430,7 +434,8 @@ export const Section80TrackerTab = ({ state, metrics }) => {
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>Self & Family</span>
               <span style={{ fontWeight: 600, color: THEME.text }}>
-                <Prv>{fmtINRFull(data.sec80D.self)}</Prv> / {fmtINRFull(data.sec80D.selfLimit)}
+                <Prv>{fmtINRFull(data.sec80D.self)}</Prv> /{" "}
+                <Prv>{fmtINRFull(data.sec80D.selfLimit)}</Prv>
               </span>
             </div>
             <ProgressBar used={data.sec80D.self} limit={data.sec80D.selfLimit} color={THEME.pink} />
@@ -438,7 +443,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>Parents</span>
               <span style={{ fontWeight: 600, color: THEME.text }}>
                 <Prv>{fmtINRFull(data.sec80D.parents)}</Prv> /{" "}
-                {fmtINRFull(data.sec80D.parentsLimit)}
+                <Prv>{fmtINRFull(data.sec80D.parentsLimit)}</Prv>
               </span>
             </div>
             <ProgressBar
@@ -488,7 +493,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
               HRA Exemption
             </h4>
             <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
-              Based on rent paid: {fmtINRFull(data.hra.annualRent)}/year
+              Based on rent paid: <Prv>{fmtINRFull(data.hra.annualRent)}</Prv>/year
             </div>
             <div style={{ fontSize: 13, color: THEME.textSecondary }}>
               Enter full HRA details in Tax Tools for exact calculation.

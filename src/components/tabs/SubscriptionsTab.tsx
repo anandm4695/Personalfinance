@@ -24,7 +24,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 const SUB_LOGOS: Record<string, string> = {
   netflix: "netflix.com",
@@ -193,6 +193,7 @@ const fmtDate = (dateStr: string) => {
 };
 
 export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
+  const { privacyMode } = usePrivacy();
   const [show, setShow] = useState(false);
   const [editSub, setEditSub] = useState<any>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
@@ -326,7 +327,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           pausedMonthlySavings > 0
             ? {
                 label: "Paused Savings",
-                value: fmtINRFull(pausedMonthlySavings),
+                value: privacyMode ? "••••" : fmtINRFull(pausedMonthlySavings),
                 sub: `${pausedSubs.length} paused service${pausedSubs.length !== 1 ? "s" : ""} · /mo equiv`,
                 color: THEME.muted,
                 Icon: Pause,
@@ -355,11 +356,11 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             `}</style>
             <StatCard
               label="Monthly Equivalent"
-              value={fmtINRFull(totalMonthly)}
+              value={privacyMode ? "••••" : fmtINRFull(totalMonthly)}
               sub={
                 metrics?.monthIncome > 0
-                  ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income · ${fmtINRFull(totalAnnual)}/yr`
-                  : `Projected monthly spend · ${fmtINRFull(totalAnnual)}/yr`
+                  ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income · ${privacyMode ? "••••" : fmtINRFull(totalAnnual)}/yr`
+                  : `Projected monthly spend · ${privacyMode ? "••••" : fmtINRFull(totalAnnual)}/yr`
               }
               color={THEME.gold}
               icon={<Wallet />}
@@ -373,7 +374,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             />
             <StatCard
               label="Annual Cost"
-              value={fmtINRFull(totalAnnual)}
+              value={privacyMode ? "••••" : fmtINRFull(totalAnnual)}
               sub={
                 metrics?.annualIncome > 0
                   ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income`
@@ -410,9 +411,11 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             </span>
             <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
               (
-              {fmtINRFull(
-                upcomingSubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0)
-              )}{" "}
+              <Prv>
+                {fmtINRFull(
+                  upcomingSubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0)
+                )}
+              </Prv>{" "}
               total)
             </span>
           </div>
@@ -503,7 +506,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                   )}
                   <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>{cat}</span>
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                    {subs.length} service{subs.length !== 1 ? "s" : ""} · {fmtINRFull(catMonthly)}
+                    {subs.length} service{subs.length !== 1 ? "s" : ""} ·{" "}
+                    <Prv>{fmtINRFull(catMonthly)}</Prv>
                     /mo
                   </span>
                 </button>
@@ -752,7 +756,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                 <span style={{ fontWeight: 800, fontSize: 13, color: THEME.muted }}>Paused</span>
                 <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                   {pausedSubs.length} service{pausedSubs.length !== 1 ? "s" : ""} ·{" "}
-                  {fmtINRFull(pausedMonthlySavings)}/mo saved
+                  <Prv>{fmtINRFull(pausedMonthlySavings)}</Prv>/mo saved
                 </span>
               </div>
               <div

@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 import { Section80TrackerTab } from "../components/tabs/Section80TrackerTab";
 import { getCurrentFY } from "../utils/appConstants";
+import { PrivacyProvider } from "../context/PrivacyContext";
 
 // Simple mock for recharts ResponsiveContainer (same pattern as SalarySlipTab.test.tsx)
 vi.mock("recharts", async () => {
@@ -26,7 +27,11 @@ describe("Section80TrackerTab — PPF 80C contribution source", () => {
         { date: `${fyStartYear - 1}-06-15`, amount: 99999, type: "deposit" },
       ],
     };
-    const html = renderToString(<Section80TrackerTab state={state} metrics={{}} />);
+    const html = renderToString(
+      <PrivacyProvider>
+        <Section80TrackerTab state={state} metrics={{}} />
+      </PrivacyProvider>
+    );
     expect(html).toContain("60,000");
   });
 
@@ -35,7 +40,11 @@ describe("Section80TrackerTab — PPF 80C contribution source", () => {
       ppf: [{ thisYearContribution: 40000 }],
       ppfLedger: [],
     };
-    const html = renderToString(<Section80TrackerTab state={state} metrics={{}} />);
+    const html = renderToString(
+      <PrivacyProvider>
+        <Section80TrackerTab state={state} metrics={{}} />
+      </PrivacyProvider>
+    );
     expect(html).toContain("40,000");
   });
 });

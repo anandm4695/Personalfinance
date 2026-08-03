@@ -25,14 +25,15 @@ import {
   ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, computeFireTarget } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 const SWR_DEFAULT = 4; // Safe Withdrawal Rate
 
 export const FIREPlannerTab = ({ state, metrics }) => {
+  const { privacyMode } = usePrivacy();
   const [monthlyExpense, setMonthlyExpense] = useState(Math.round(metrics.monthExpense || 50000));
   const [inflationRate, setInflationRate] = useState(6);
   const [returnRate, setReturnRate] = useState(12);
@@ -52,7 +53,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
 
     // FIRE number = Annual expense at retirement / SWR
     const expenseAtRetirement = annualExpense * Math.pow(1 + inflationRate / 100, yearsToFIRE);
-    const fireNumber = expenseAtRetirement / (swr / 100);
+    const fireNumber = computeFireTarget(annualExpense, yearsToFIRE, swr, inflationRate);
 
     // Coast FIRE: amount needed today that grows to FIRE number by target age with no further savings
     const coastFIRE = fireNumber / Math.pow(1 + returnRate / 100, yearsToFIRE);
@@ -61,13 +62,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     const baristaNumber = fireNumber / 2;
 
     // Lean FIRE: 60% of current expenses
-    const leanFIREExpense = annualExpense * 0.6;
-    const leanFIRE =
-      (leanFIREExpense * Math.pow(1 + inflationRate / 100, yearsToFIRE)) / (swr / 100);
+    const leanFIRE = computeFireTarget(annualExpense * 0.6, yearsToFIRE, swr, inflationRate);
 
     // Fat FIRE: 150% of current expenses
-    const fatFIREExpense = annualExpense * 1.5;
-    const fatFIRE = (fatFIREExpense * Math.pow(1 + inflationRate / 100, yearsToFIRE)) / (swr / 100);
+    const fatFIRE = computeFireTarget(annualExpense * 1.5, yearsToFIRE, swr, inflationRate);
 
     // Current progress
     const currentNW = metrics.netWorth || 0;
@@ -81,14 +79,12 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     let monthsToFIRE = 0;
     const maxMonths = 600; // 50 years cap
     while (monthsToFIRE < maxMonths) {
-      const dynamicFireTarget =
-        (annualExpense * Math.pow(1 + inflationRate / 100, monthsToFIRE / 12)) / (swr / 100);
+      const dynamicFireTarget = computeFireTarget(annualExpense, monthsToFIRE / 12, swr, inflationRate);
       if (corpus >= dynamicFireTarget) break;
       corpus = corpus * (1 + monthlyRet) + monthlySavings;
       monthsToFIRE++;
     }
-    const finalDynamicTarget =
-      (annualExpense * Math.pow(1 + inflationRate / 100, monthsToFIRE / 12)) / (swr / 100);
+    const finalDynamicTarget = computeFireTarget(annualExpense, monthsToFIRE / 12, swr, inflationRate);
     const reachedFIRE = corpus >= finalDynamicTarget;
     const yearsToFIREActual = monthsToFIRE / 12;
     const fireAge = currentAge + yearsToFIREActual;
@@ -577,7 +573,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               <Prv>{fmtINRFull(fireCalc.expenseAtRetirement / 12)}</Prv>/mo
             </div>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              {fmtINRFull(fireCalc.expenseAtRetirement)}/year (inflation adjusted)
+              <Prv>{fmtINRFull(fireCalc.expenseAtRetirement)}</Prv>/year (inflation adjusted)
             </div>
           </div>
           {fireCalc.pensionIncome > 0 && (
@@ -612,12 +608,12 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
             <YAxis
-              tickFormatter={(v) => fmtINRFull(v)}
+              tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
               tick={{ fontSize: 11, fill: THEME.textSecondary }}
               width={85}
             />
             <Tooltip
-              formatter={(v) => fmtINRFull(v)}
+              formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
               cursor={{ stroke: THEME.line }}
               contentStyle={{
                 background: THEME.card,
@@ -648,7 +644,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               stroke={THEME.rust}
               strokeDasharray="3 3"
               label={{
-                value: `FIRE: ${fmtINRFull(fireCalc.fireNumber)}`,
+                value: `FIRE: ${privacyMode ? "••••" : fmtINRFull(fireCalc.fireNumber)}`,
                 fill: THEME.rust,
                 fontSize: 11,
               }}
@@ -668,12 +664,12 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <YAxis
-                tickFormatter={(v) => fmtINRFull(v)}
+                tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                 tick={{ fontSize: 11, fill: THEME.textSecondary }}
                 width={85}
               />
               <Tooltip
-                formatter={(v) => fmtINRFull(v)}
+                formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
                 cursor={{ stroke: THEME.line }}
                 contentStyle={{
                   background: THEME.card,
@@ -697,9 +693,17 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             </AreaChart>
           </ResponsiveContainer></div>
           <div style={{ marginTop: 12, fontSize: 13, color: THEME.textSecondary }}>
-            {fireCalc.drawdown[fireCalc.drawdown.length - 1]?.corpus > 0
-              ? `Your corpus lasts through age ${lifeExpectancy} with ${fmtINRFull(fireCalc.drawdown[fireCalc.drawdown.length - 1].corpus)} remaining.`
-              : "Warning: Your corpus runs out before life expectancy. Consider increasing savings or reducing SWR."}
+            {fireCalc.drawdown[fireCalc.drawdown.length - 1]?.corpus > 0 ? (
+              <>
+                Your corpus lasts through age {lifeExpectancy} with{" "}
+                <Prv>
+                  {fmtINRFull(fireCalc.drawdown[fireCalc.drawdown.length - 1].corpus)}
+                </Prv>{" "}
+                remaining.
+              </>
+            ) : (
+              "Warning: Your corpus runs out before life expectancy. Consider increasing savings or reducing SWR."
+            )}
           </div>
         </Card>
       )}

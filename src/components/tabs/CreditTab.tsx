@@ -43,7 +43,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // Bank logo domains for Clearbit / Google Favicon API
 const BANK_LOGO_DOMAINS: Record<string, string> = {
@@ -1242,6 +1242,7 @@ function CreditScoreTracker() {
 }
 
 export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSubTabChange }: any) {
+  const { privacyMode } = usePrivacy();
   const [sub, setSub] = useState(subTab || "cc");
   const [modal, setModal] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -1423,7 +1424,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                   ? [
                       {
                         label: "Annual Fees / yr",
-                        sub: `${feeCardCount} card${feeCardCount !== 1 ? "s" : ""} · ${fmtINRFull(Math.round(totalAnnualFees / 12))}/mo`,
+                        sub: `${feeCardCount} card${feeCardCount !== 1 ? "s" : ""} · ${privacyMode ? "••••" : fmtINRFull(Math.round(totalAnnualFees / 12))}/mo`,
                         value: <Prv>{fmtINRFull(totalAnnualFees)}</Prv>,
                         color: "var(--t-gold)",
                         borderColor: "var(--t-gold)",
@@ -1452,7 +1453,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                         label: "Reward Points",
                         sub:
                           totalRewardValue > 0
-                            ? `≈ ${fmtINRFull(totalRewardValue)} redeemable`
+                            ? `≈ ${privacyMode ? "••••" : fmtINRFull(totalRewardValue)} redeemable`
                             : "Set value/point on a card to see ₹ estimate",
                         value: <Prv>{Math.round(totalRewardPoints).toLocaleString("en-IN")}</Prv>,
                         color: "var(--t-sage)",
@@ -2441,7 +2442,7 @@ function CCList({
             </span>
             {Number(c.rewardPointValue) > 0 && (
               <span style={{ color: THEME.gold, fontWeight: 700 }}>
-                ≈ {fmtINRFull(Number(c.rewardPointsBalance) * Number(c.rewardPointValue))}
+                ≈ <Prv>{fmtINRFull(Number(c.rewardPointsBalance) * Number(c.rewardPointValue))}</Prv>
               </span>
             )}
           </div>
@@ -2894,7 +2895,7 @@ function CCList({
                     Pool Limit
                   </div>
                   <div style={{ fontWeight: 800, color: THEME.ink }}>
-                    {groupLimit > 0 ? fmtINRFull(groupLimit) : "Not set"}
+                    {groupLimit > 0 ? <Prv>{fmtINRFull(groupLimit)}</Prv> : "Not set"}
                   </div>
                 </div>
                 <div>
@@ -2911,7 +2912,7 @@ function CCList({
                     Combined Used
                   </div>
                   <div style={{ fontWeight: 800, color: barColor }}>
-                    {fmtINRFull(groupOutstanding)}
+                    <Prv>{fmtINRFull(groupOutstanding)}</Prv>
                   </div>
                 </div>
                 <div>
@@ -2928,7 +2929,7 @@ function CCList({
                     Available
                   </div>
                   <div style={{ fontWeight: 800, color: THEME.sage }}>
-                    {groupLimit > 0 ? fmtINRFull(groupAvailable) : "—"}
+                    {groupLimit > 0 ? <Prv>{fmtINRFull(groupAvailable)}</Prv> : "—"}
                   </div>
                 </div>
               </div>
@@ -3786,7 +3787,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
           }}
         >
-          {fmtINRFull(totalOutstanding)}
+          <Prv>{fmtINRFull(totalOutstanding)}</Prv>
         </div>
       </div>
     </Modal>
@@ -5984,7 +5985,8 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                   Full Loan Settlement
                                 </strong>
                                 You will completely close this loan today, saving **
-                                {fmtINRFull(interestRemaining)}** in estimated remaining interest!
+                                <Prv>{fmtINRFull(interestRemaining)}</Prv>** in estimated remaining
+                                interest!
                                 </span>
                               </div>
                             );
@@ -6019,7 +6021,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                 },
                                 {
                                   label: "Interest Saved",
-                                  value: fmtINRFull(interestSaved),
+                                  value: <Prv>{fmtINRFull(interestSaved)}</Prv>,
                                   color: "var(--t-sage)",
                                 },
                                 {
@@ -6701,7 +6703,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                             >
                               New Outstanding:{" "}
                               <strong style={{ color: "var(--t-ink)" }}>
-                                {fmtINRFull(nextOutstanding)}
+                                <Prv>{fmtINRFull(nextOutstanding)}</Prv>
                               </strong>{" "}
                               · New Progress:{" "}
                               <strong style={{ color: "var(--t-sage)" }}>
@@ -8685,7 +8687,7 @@ function DebtPayoffOptimizer({ state }: any) {
                         transition: "all 0.2s ease",
                       }}
                     >
-                      +{fmtINRFull(val)}
+                      +<Prv>{fmtINRFull(val)}</Prv>
                     </button>
                   );
                 })}

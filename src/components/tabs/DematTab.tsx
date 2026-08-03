@@ -2312,7 +2312,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {fmtINRFull(dematInvested)}
+                          <Prv>{fmtINRFull(dematInvested)}</Prv>
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
@@ -2336,7 +2336,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {fmtINRFull(dematValue)}
+                          <Prv>{fmtINRFull(dematValue)}</Prv>
                         </div>
                       </div>
                     </div>
@@ -2355,7 +2355,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         >
                           {dematPnl >= 0 ? "▲" : "▼"} {dematPnlPct.toFixed(2)}% &nbsp;(
                           {dematPnl >= 0 ? "+" : ""}
-                          {fmtINRFull(dematPnl)})
+                          <Prv>{fmtINRFull(dematPnl)}</Prv>)
                         </span>
                       ) : (
                         <span style={{ fontSize: 12, color: THEME.muted }}>No holdings</span>

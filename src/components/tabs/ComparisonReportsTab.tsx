@@ -27,7 +27,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
 const printStyles = `@media print {
@@ -266,6 +266,7 @@ const ComparisonSplitCard = ({
 };
 
 export const ComparisonReportsTab = ({ state, metrics }) => {
+  const { privacyMode } = usePrivacy();
   // ── Inject print styles (scoped to this tab, cleaned up on unmount) ──
   useEffect(() => {
     const style = document.createElement("style");
@@ -828,7 +829,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} horizontal={false} />
               <XAxis
                 type="number"
-                tickFormatter={(v) => fmtINRFull(v)}
+                tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}

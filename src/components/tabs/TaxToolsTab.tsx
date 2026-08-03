@@ -29,7 +29,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { FormField } from "../ui/Form";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // Escapes user-controlled free-text before it's interpolated into an HTML
 // string handed to document.write() (used by printReceipts below) — without
@@ -446,6 +446,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 // ── HRA Rent Receipt Generator (B4) ─────────────────────────────────────────
 
 const HraReceiptSection = ({ state }) => {
+  const { privacyMode } = usePrivacy();
   const [selectedProperty, setSelectedProperty] = useState("");
   const [months, setMonths] = useState([]);
   const [landlordName, setLandlordName] = useState("");
@@ -656,7 +657,8 @@ const HraReceiptSection = ({ state }) => {
                     <option value="">— Select —</option>
                     {rentedProps.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name || p.address || "Property"} — {fmtINRFull(p.monthlyRent)}/mo
+                        {p.name || p.address || "Property"} —{" "}
+                        {privacyMode ? "••••" : fmtINRFull(p.monthlyRent)}/mo
                       </option>
                     ))}
                   </select>
@@ -808,7 +810,7 @@ const HraReceiptSection = ({ state }) => {
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{m.label}</div>
                       {rent > 0 && (
                         <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                          {fmtINRFull(rent)}
+                          <Prv>{fmtINRFull(rent)}</Prv>
                         </div>
                       )}
                     </button>

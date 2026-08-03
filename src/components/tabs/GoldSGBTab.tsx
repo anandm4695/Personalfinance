@@ -46,7 +46,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 const GOLD_TYPES = [
   { id: "physical", label: "Physical Gold", color: THEME.gold },
@@ -78,6 +78,7 @@ const SORT_OPTIONS = [
 
 export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSettings }) => {
   const { familyProfiles } = useMasterData();
+  const { privacyMode } = usePrivacy();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_GOLD });
@@ -340,7 +341,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
               <span
                 role="button"
                 tabIndex={0}
-                aria-label={`Gold price ${fmtINRFull(goldPrice)} per gram. Click to edit.`}
+                aria-label={`Gold price ${privacyMode ? "••••" : fmtINRFull(goldPrice)} per gram. Click to edit.`}
                 onClick={() => {
                   setDraftPrice(goldPrice);
                   setManualPrice(true);
@@ -354,7 +355,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 }}
                 style={{ fontSize: 13, fontWeight: 600, color: THEME.gold, cursor: "pointer" }}
               >
-                {fmtINRFull(goldPrice)}/g
+                <Prv>{fmtINRFull(goldPrice)}</Prv>/g
               </span>
             )}
           </div>
@@ -514,7 +515,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v) => fmtINRFull(v)}
+                  formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
                   contentStyle={{
                     background: "var(--surface-0)",
                     border: `1px solid ${THEME.line}`,

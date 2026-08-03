@@ -45,7 +45,7 @@ import { Field } from "../ui/Form";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
@@ -86,6 +86,7 @@ const fmtDate = (dateStr: string) => {
 };
 
 export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _metrics }: any) {
+  const { privacyMode } = usePrivacy();
   const [activeSubTab, setActiveSubTab] = useState("budget"); // "budget" or "recurring"
   const [selectedMonth, setSelectedMonth] = useState(() => today().slice(0, 7)); // YYYY-MM
   const [showAddBudget, setShowAddBudget] = useState(false);
@@ -740,7 +741,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {fmtINRFull(totalBudget)}
+                        <Prv>{fmtINRFull(totalBudget)}</Prv>
                       </div>
                     </div>
                     <div>
@@ -762,7 +763,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {fmtINRFull(totalSpent)}
+                        <Prv>{fmtINRFull(totalSpent)}</Prv>
                       </div>
                     </div>
                     <div>
@@ -784,9 +785,11 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {totalSpent > totalBudget
-                          ? `-${fmtINRFull(totalSpent - totalBudget)}`
-                          : fmtINRFull(remaining)}
+                        <Prv>
+                          {totalSpent > totalBudget
+                            ? `-${fmtINRFull(totalSpent - totalBudget)}`
+                            : fmtINRFull(remaining)}
+                        </Prv>
                       </div>
                     </div>
                     <div>
@@ -939,7 +942,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                     sub:
                       `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used` +
                       (totalUnbudgetedSpent > 0
-                        ? ` · ${fmtINRFull(totalUnbudgetedSpent)} unbudgeted`
+                        ? ` · ${privacyMode ? "••••" : fmtINRFull(totalUnbudgetedSpent)} unbudgeted`
                         : ""),
                     color: totalSpent > totalBudget ? THEME.rust : THEME.accent,
                     Icon: Receipt,
@@ -956,7 +959,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                     value: String(budgetsToUse.length),
                     sub:
                       totalUnbudgetedSpent > 0
-                        ? `+${fmtINRFull(totalUnbudgetedSpent)} unbudgeted`
+                        ? `+${privacyMode ? "••••" : fmtINRFull(totalUnbudgetedSpent)} unbudgeted`
                         : "Budgeted categories",
                     color: THEME.muted,
                     Icon: BarChart2,
@@ -966,7 +969,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                     value: savingsRate !== null ? `${savingsRate.toFixed(1)}%` : "—",
                     sub:
                       selectedMonthIncome > 0
-                        ? `Income: ${fmtINRFull(selectedMonthIncome)}`
+                        ? `Income: ${privacyMode ? "••••" : fmtINRFull(selectedMonthIncome)}`
                         : "Add income data",
                     color: savingsColor,
                     Icon: TrendingUp,
@@ -1087,18 +1090,26 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             label: "Month progress",
                             val: monthElapsedPct.toFixed(0) + "%",
                             color: THEME.muted,
+                            isCurrency: false,
                           },
                           {
                             label: "Budget spent",
                             val: spentPct.toFixed(0) + "%",
                             color: burnColor,
+                            isCurrency: false,
                           },
-                          { label: "Spent so far", val: fmtINRFull(totalSpent), color: THEME.ink },
+                          {
+                            label: "Spent so far",
+                            val: fmtINRFull(totalSpent),
+                            color: THEME.ink,
+                            isCurrency: true,
+                          },
                           {
                             label: "Daily average",
                             val:
                               fmtINRFull(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day",
                             color: THEME.muted,
+                            isCurrency: true,
                           },
                           {
                             label: "Projected month-end",
@@ -1106,8 +1117,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                               daysPassed > 0 ? (totalSpent / daysPassed) * daysInMonth : 0
                             ),
                             color: burnColor,
+                            isCurrency: true,
                           },
-                        ].map(({ label, val, color }) => (
+                        ].map(({ label, val, color, isCurrency }) => (
                           <div
                             key={label}
                             style={{
@@ -1121,7 +1133,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             <span
                               style={{ fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}
                             >
-                              {val}
+                              {isCurrency ? <Prv>{val}</Prv> : val}
                             </span>
                           </div>
                         ))}
@@ -1195,7 +1207,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 const statusBadge = (() => {
                   if (over) {
                     return {
-                      label: `Over by ${fmtINRFull(spent - budget)}`,
+                      label: `Over by ${privacyMode ? "••••" : fmtINRFull(spent - budget)}`,
                       color: THEME.rust,
                       icon: AlertCircle,
                       variant: "danger" as const,
@@ -1322,13 +1334,15 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           </div>
                         </div>
                         <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                          {fmtINRFull(spent)}{" "}
+                          <Prv>{fmtINRFull(spent)}</Prv>{" "}
                           <span style={{ fontWeight: 400, opacity: 0.7 }}>of</span>{" "}
-                          {fmtINRFull(budget)}
+                          <Prv>{fmtINRFull(budget)}</Prv>
                           <span style={{ marginLeft: 8, color: over ? THEME.rust : THEME.sage }}>
-                            {over
-                              ? `(${fmtINRFull(spent - budget)} over)`
-                              : `(${fmtINRFull(budget - spent)} left)`}
+                            <Prv>
+                              {over
+                                ? `(${fmtINRFull(spent - budget)} over)`
+                                : `(${fmtINRFull(budget - spent)} left)`}
+                            </Prv>
                           </span>
                         </div>
                       </div>
@@ -1382,7 +1396,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         }}
                       >
                         <span>
-                          Day {daysPassed}/{daysInMonth} · Projected {fmtINRFull(projected)}
+                          Day {daysPassed}/{daysInMonth} · Projected{" "}
+                          <Prv>{fmtINRFull(projected)}</Prv>
                         </span>
                         <span style={{ color: projectedPct > 105 ? THEME.rust : THEME.sage }}>
                           {projectedPct.toFixed(0)}% expected
@@ -1409,9 +1424,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       >
                         <Target size={12} />
                         <span>
-                          At this pace, you'll spend {fmtINRFull(projected)}{" "}
+                          At this pace, you'll spend <Prv>{fmtINRFull(projected)}</Prv>{" "}
                           <span style={{ fontWeight: 800 }}>
-                            ({fmtINRFull(projected - budget)} over budget)
+                            (<Prv>{fmtINRFull(projected - budget)}</Prv> over budget)
                           </span>
                         </span>
                       </div>
@@ -1436,10 +1451,10 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                             <span>
                               {isUp ? "+" : ""}
-                              {fmtINRFull(Math.abs(delta))} vs last month
+                              <Prv>{fmtINRFull(Math.abs(delta))}</Prv> vs last month
                             </span>
                             <span style={{ color: THEME.muted, fontWeight: 400, marginLeft: 2 }}>
-                              ({fmtINRFull(prevSpent)} last month)
+                              (<Prv>{fmtINRFull(prevSpent)}</Prv> last month)
                             </span>
                           </div>
                         );
@@ -1473,7 +1488,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <AlertTriangle size={16} color={THEME.gold} />
                   <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
-                    Unbudgeted Spending — {fmtINRFull(totalUnbudgetedSpent)}
+                    Unbudgeted Spending — <Prv>{fmtINRFull(totalUnbudgetedSpent)}</Prv>
                   </span>
                 </div>
                 <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
@@ -1505,7 +1520,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       >
                         <Icon size={13} color={THEME.gold} />
                         <span>{cat}</span>
-                        <span style={{ color: THEME.gold }}>{fmtINRFull(amt as number)}</span>
+                        <span style={{ color: THEME.gold }}>
+                          <Prv>{fmtINRFull(amt as number)}</Prv>
+                        </span>
                       </div>
                     );
                   })}
@@ -1576,14 +1593,14 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               {
                 label: "Paid This Month",
                 value: `${recurringStats.paidCount} / ${activeRecurringExpenses.filter((x: any) => x.isActive).length}`,
-                sub: `Recorded: ${fmtINRFull(recurringStats.paidTotal)}`,
+                sub: `Recorded: ${privacyMode ? "••••" : fmtINRFull(recurringStats.paidTotal)}`,
                 color: THEME.sage,
                 Icon: CheckCircle2,
               },
               {
                 label: "Overdue / Unpaid",
                 value: String(recurringStats.overdueCount),
-                sub: `Pending: ${fmtINRFull(recurringStats.overdueTotal)}`,
+                sub: `Pending: ${privacyMode ? "••••" : fmtINRFull(recurringStats.overdueTotal)}`,
                 color: recurringStats.overdueCount > 0 ? THEME.rust : THEME.sage,
                 Icon: AlertCircle,
               },
@@ -1748,7 +1765,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           }}
                         >
                           <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                            {fmtINRFull(re.amount)}
+                            <Prv>{fmtINRFull(re.amount)}</Prv>
                           </span>
                           <span style={{ opacity: 0.4 }}>·</span>
                           <span style={{ textTransform: "capitalize" }}>
@@ -1820,7 +1837,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                               style={{ textDecoration: "underline", cursor: "pointer" }}
                               title={`Recorded on ${match.date}: ${match.note}`}
                             >
-                              {fmtINRFull(match.amount)} on {fmtDate(match.date)}
+                              <Prv>{fmtINRFull(match.amount)}</Prv> on {fmtDate(match.date)}
                             </span>
                           </div>
                         )}
@@ -1950,11 +1967,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       selectedMonth <= curMonthStr &&
                       (selectedMonth < curMonthStr || now.getDate() > dueDay);
                     const statusColor = isPaid ? THEME.sage : isOverdue ? THEME.rust : THEME.gold;
+                    const rentDisplay = (n: number) => (privacyMode ? "••••" : fmtINRFull(n));
                     const statusText = isPaid
-                      ? `Paid · ${fmtINRFull(paidThisMonth)}`
+                      ? `Paid · ${rentDisplay(paidThisMonth)}`
                       : isOverdue
-                        ? `Overdue · ${fmtINRFull(effectiveRent)} due`
-                        : `Due on ${dueDay}${dueDay % 10 === 1 && dueDay !== 11 ? "st" : dueDay % 10 === 2 && dueDay !== 12 ? "nd" : dueDay % 10 === 3 && dueDay !== 13 ? "rd" : "th"} · ${fmtINRFull(effectiveRent)}`;
+                        ? `Overdue · ${rentDisplay(effectiveRent)} due`
+                        : `Due on ${dueDay}${dueDay % 10 === 1 && dueDay !== 11 ? "st" : dueDay % 10 === 2 && dueDay !== 12 ? "nd" : dueDay % 10 === 3 && dueDay !== 13 ? "rd" : "th"} · ${rentDisplay(effectiveRent)}`;
 
                     // Tier info
                     const tiers = p.escalationTiers;
@@ -2017,7 +2035,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             {p.landlordName || p.landlords?.[0]?.name || "Landlord"}
                             {tierIdx >= 0 && tiers && (
                               <span style={{ marginLeft: 6, color: THEME.accent, fontWeight: 700 }}>
-                                · Y{tierIdx + 1}: {fmtINRFull(tiers[tierIdx].amount)}/mo
+                                · Y{tierIdx + 1}: <Prv>{fmtINRFull(tiers[tierIdx].amount)}</Prv>/mo
                               </span>
                             )}
                           </div>
@@ -2040,7 +2058,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                                 marginTop: 2,
                               }}
                             >
-                              Paid {fmtINRFull(paidThisMonth - effectiveRent)} extra this month
+                              Paid <Prv>{fmtINRFull(paidThisMonth - effectiveRent)}</Prv> extra this
+                              month
                             </div>
                           )}
                         </div>

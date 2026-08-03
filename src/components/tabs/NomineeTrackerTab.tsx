@@ -704,7 +704,7 @@ export const NomineeTrackerTab = ({
           />
           <NomineeStatCard
             label="Value at Risk"
-            value={fmtINRFull(valueAtRisk)}
+            value={<Prv>{fmtINRFull(valueAtRisk)}</Prv>}
             sub="Without nominee protection"
             icon={<AlertTriangle size={16} />}
             color={THEME.gold}
@@ -1461,7 +1461,7 @@ export const NomineeTrackerTab = ({
             </div>
             {assignModal.identifier && (
               <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>
-                {assignModal.identifier}
+                <Prv>{assignModal.identifier}</Prv>
               </div>
             )}
             <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 700, marginTop: 8 }}>

@@ -67,6 +67,31 @@ export const getGoldPricePerGram = (state?: any): number => {
   return DEFAULT_GOLD_PRICE_PER_GRAM;
 };
 
+// FIRE (Financial Independence): single source of truth for the "corpus
+// needed" formula (annual expense, inflation-projected to `yearsOut`, divided
+// by the safe withdrawal rate). Previously AnalyticsTab's dashboard widget,
+// AnalyticsTab's Planning projection chart, and the standalone FIREPlannerTab
+// each reimplemented this independently — the dashboard/chart hardcoded a flat
+// 25x multiplier (implying a fixed 4% SWR) while the Planner exposed SWR as a
+// user-adjustable input, so the same household could see disagreeing FIRE
+// targets across tabs with no explanation. Centralizing the formula here means
+// every consumer computes the same number for the same inputs; the Dashboard/
+// chart intentionally still pass the fixed default SWR (a quick heuristic),
+// while FIREPlannerTab passes the user's chosen SWR (a tunable model) — that
+// difference is by design, but the underlying math can never drift apart again.
+export const DEFAULT_FIRE_SWR = 4; // Safe Withdrawal Rate %, i.e. a flat 25x rule
+
+export const computeFireTarget = (
+  annualExpense: number,
+  yearsOut: number = 0,
+  swrPercent: number = DEFAULT_FIRE_SWR,
+  inflationPercent: number = 0
+): number => {
+  const infl = Math.pow(1 + inflationPercent / 100, yearsOut);
+  const swr = swrPercent > 0 ? swrPercent : DEFAULT_FIRE_SWR;
+  return (Math.max(0, annualExpense) * infl) / (swr / 100);
+};
+
 // Emergency Fund: this and the two helpers below (getEmergencyFundLiquidAssets,
 // getEmergencyFundMonthlyExpense) are the single source of truth for "months of
 // expenses covered by liquid assets" — used by useMetrics (metrics.emergencyFund)

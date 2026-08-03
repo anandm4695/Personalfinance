@@ -37,7 +37,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -204,6 +204,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) => {
+  const { privacyMode } = usePrivacy();
   const isDark = state.settings?.darkMode ?? false;
   const [forecastMonths, setForecastMonths] = useState<3 | 6>(6);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -1219,7 +1220,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => fmtINRFull(v)}
+              tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
               width={70}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />

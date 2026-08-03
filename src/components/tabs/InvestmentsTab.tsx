@@ -451,7 +451,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
             >
               <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
               <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
-                {fmtINRFull(fdMaturity(Number(fd.principal), Number(fd.rate), Number(fd.years)))}
+                <Prv>{fmtINRFull(fdMaturity(Number(fd.principal), Number(fd.rate), Number(fd.years)))}</Prv>
               </span>
             </div>
           )}
@@ -737,7 +737,9 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
                       >
                         {lbl}
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{val}</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                        <Prv>{val}</Prv>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1160,7 +1162,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
                     <div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
                       <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-                        {fmtINRFull(autoInvested)}
+                        <Prv>{fmtINRFull(autoInvested)}</Prv>
                       </div>
                     </div>
                   )}
@@ -1168,7 +1170,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
                     <div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
                       <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
-                        {fmtINRFull(currentValue)}
+                        <Prv>{fmtINRFull(currentValue)}</Prv>
                       </div>
                     </div>
                   )}
@@ -1478,19 +1480,21 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         {[
           {
             label: "Total Invested",
-            value: fmtINRFull(totalPrincipal),
+            value: <Prv>{fmtINRFull(totalPrincipal)}</Prv>,
             color: THEME.accent,
             Icon: IndianRupee,
           },
           {
             label: "Current Value",
-            value: fmtINRFull(totalCurrent),
+            value: <Prv>{fmtINRFull(totalCurrent)}</Prv>,
             color: THEME.sage,
             Icon: TrendingUp,
           },
           {
             label: "Net Returns",
-            value: `${netGain >= 0 ? "+" : "-"}${fmtINRFull(Math.abs(netGain))}`,
+            value: (
+              <Prv>{`${netGain >= 0 ? "+" : "-"}${fmtINRFull(Math.abs(netGain))}`}</Prv>
+            ),
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: netGain >= 0 ? TrendingUp : TrendingDown,
           },
@@ -1939,7 +1943,9 @@ function EditBondModal({ bond: initial, onClose, onSave }: any) {
               >
                 {lbl}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{val}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                <Prv>{val}</Prv>
+              </div>
             </div>
           ))}
         </div>
@@ -2070,7 +2076,7 @@ function EditFDModal({ fd: initial, onClose, onSave }: any) {
         >
           <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
           <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
-            {fmtINRFull(maturity)}
+            <Prv>{fmtINRFull(maturity)}</Prv>
           </span>
         </div>
       )}
@@ -2154,7 +2160,7 @@ function EditRDModal({ rd: initial, onClose, onSave }: any) {
         >
           <span style={{ fontSize: 11, color: THEME.muted }}>Projected Maturity</span>
           <span style={{ fontWeight: 900, color: THEME.cyan, fontSize: 15 }}>
-            {fmtINRFull(maturity)}
+            <Prv>{fmtINRFull(maturity)}</Prv>
           </span>
         </div>
       )}
@@ -2325,14 +2331,14 @@ function EditMFModal({ mf: initial, onClose, onSave, activeProfile = "all" }: an
           <div>
             <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
             <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-              {fmtINRFull(costBasis)}
+              <Prv>{fmtINRFull(costBasis)}</Prv>
             </div>
           </div>
           {currentValue > 0 && (
             <div>
               <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
               <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
-                {fmtINRFull(currentValue)}
+                <Prv>{fmtINRFull(currentValue)}</Prv>
               </div>
             </div>
           )}
@@ -2738,13 +2744,13 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
             {[
               {
                 label: "Total Invested",
-                value: fmtINRFull(totalInvested),
+                value: <Prv>{fmtINRFull(totalInvested)}</Prv>,
                 color: FD_AMBER,
                 Icon: IndianRupee,
               },
               {
                 label: "Total Maturity",
-                value: fmtINRFull(totalMaturity),
+                value: <Prv>{fmtINRFull(totalMaturity)}</Prv>,
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
@@ -3017,7 +3023,7 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                       </div>
                       <div style={{ fontSize: 10, color: gain >= 0 ? THEME.sage : THEME.rust }}>
                         {gain >= 0 ? "+" : ""}
-                        {fmtINRFull(gain)} · {gainPct.toFixed(1)}%
+                        <Prv>{fmtINRFull(gain)}</Prv> · {gainPct.toFixed(1)}%
                       </div>
                     </div>
                     <div>
@@ -3120,19 +3126,19 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                 {[
                   {
                     label: "Monthly SIP Total",
-                    value: fmtINRFull(totalMonthly),
+                    value: <Prv>{fmtINRFull(totalMonthly)}</Prv>,
                     color: RD_BLUE,
                     Icon: Repeat,
                   },
                   {
                     label: "Total Deposited",
-                    value: fmtINRFull(totalDeposited),
+                    value: <Prv>{fmtINRFull(totalDeposited)}</Prv>,
                     color: THEME.accent,
                     Icon: IndianRupee,
                   },
                   {
                     label: "Projected Maturity",
-                    value: fmtINRFull(totalMaturity),
+                    value: <Prv>{fmtINRFull(totalMaturity)}</Prv>,
                     color: THEME.sage,
                     Icon: TrendingUp,
                   },
@@ -3294,7 +3300,7 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                       letterSpacing: "-0.02em",
                     }}
                   >
-                    {fmtINRFull(Number(r.monthly))}
+                    <Prv>{fmtINRFull(Number(r.monthly))}</Prv>
                     <span style={{ fontSize: 14, color: THEME.muted }}>/mo</span>
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14 }}>
@@ -3365,7 +3371,7 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                         <Prv>{fmtINRFull(deposited)}</Prv>
                       </div>
                       <div style={{ fontSize: 10, color: THEME.sage }}>
-                        +{fmtINRFull(gain)} interest
+                        +<Prv>{fmtINRFull(gain)}</Prv> interest
                       </div>
                     </div>
                     <div>
@@ -3630,7 +3636,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                   </div>
                   {couponEarned > 0 && (
                     <div style={{ fontSize: 10, color: THEME.sage, marginBottom: 16 }}>
-                      +{fmtINRFull(couponEarned)} coupon earned to date ·{" "}
+                      +<Prv>{fmtINRFull(couponEarned)}</Prv> coupon earned to date ·{" "}
                       <Prv>{fmtINRFull(currentVal)}</Prv> current value
                     </div>
                   )}
@@ -3648,7 +3654,10 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       ["Coupon", b.coupon ? `${b.coupon}%` : "—"],
                       ["YTM", b.ytmRate ? `${b.ytmRate}%` : "—"],
                       ["Units", b.numberOfUnits || "—"],
-                      ["FV/Unit", b.faceValuePerUnit ? fmtINRFull(b.faceValuePerUnit) : "—"],
+                      [
+                        "FV/Unit",
+                        b.faceValuePerUnit ? <Prv>{fmtINRFull(b.faceValuePerUnit)}</Prv> : "—",
+                      ],
                     ].map(([l, v]) => (
                       <div
                         key={l}
@@ -3699,7 +3708,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                     <div>
                       <div style={lbl}>Annual Income</div>
                       <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
-                        {annualCoupon > 0 ? fmtINRFull(annualCoupon) : "—"}
+                        {annualCoupon > 0 ? <Prv>{fmtINRFull(annualCoupon)}</Prv> : "—"}
                       </div>
                       {b.interestPaymentDate && (
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
@@ -3764,7 +3773,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       <div key={label as string}>
                         <div style={lbl}>{label}</div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink }}>
-                          {val ? fmtINRFull(val) : "—"}
+                          {val ? <Prv>{fmtINRFull(val)}</Prv> : "—"}
                         </div>
                       </div>
                     ))}
@@ -3792,7 +3801,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       <span style={{ fontSize: 10, color: THEME.muted }}>
                         Charges:{" "}
                         <span style={{ color: THEME.ink, fontWeight: 600 }}>
-                          {fmtINRFull(charges)}
+                          <Prv>{fmtINRFull(charges)}</Prv>
                         </span>
                       </span>
                     )}
@@ -4385,7 +4394,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.units}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.currentNav}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>
-                      {fmtINRFull(Number(r.invested))}
+                      <Prv>{fmtINRFull(Number(r.invested))}</Prv>
                     </td>
                     <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.owner || "self"}</td>
                   </tr>
@@ -4754,7 +4763,9 @@ function PPFCsvPanel({ onImport }: any) {
                         {r.type}
                       </span>
                     </td>
-                    <td style={{ padding: "6px 10px", fontWeight: 700 }}>{fmtINRFull(r.amount)}</td>
+                    <td style={{ padding: "6px 10px", fontWeight: 700 }}>
+                      <Prv>{fmtINRFull(r.amount)}</Prv>
+                    </td>
                     <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
                   </tr>
                 ))}
@@ -4972,7 +4983,9 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
               >
                 <Icon size={10} color={color} /> {label}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color }}>{fmtINRFull(value)}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color }}>
+                <Prv>{fmtINRFull(value)}</Prv>
+              </div>
               <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
                 {
                   txs.filter((t) =>
@@ -5094,7 +5107,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
                       }}
                     >
                       {t.type === "withdrawal" ? "-" : "+"}
-                      {fmtINRFull(t.amount)}
+                      <Prv>{fmtINRFull(t.amount)}</Prv>
                     </td>
                     <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.note || "—"}</td>
                     <td style={{ padding: "8px 10px", textAlign: "right" as const }}>
@@ -5413,11 +5426,11 @@ function NPSTransactionModal({ onClose, onSave, initial }: any) {
             fontWeight: 700,
           }}
         >
-          Total: {fmtINRFull(empAmt + erAmt)}
+          Total: <Prv>{fmtINRFull(empAmt + erAmt)}</Prv>
           {empAmt > 0 && erAmt > 0 && (
             <span style={{ color: THEME.muted, fontWeight: 500 }}>
               {" "}
-              (Employee: {fmtINRFull(empAmt)} + Employer: {fmtINRFull(erAmt)})
+              (Employee: <Prv>{fmtINRFull(empAmt)}</Prv> + Employer: <Prv>{fmtINRFull(erAmt)}</Prv>)
             </span>
           )}
         </div>
@@ -5787,10 +5800,10 @@ function NPSCsvPanel({ onImport }: any) {
                       {r.uploadedBy || "—"}
                     </td>
                     <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.accent }}>
-                      {r.employeeAmount > 0 ? fmtINRFull(r.employeeAmount) : "—"}
+                      {r.employeeAmount > 0 ? <Prv>{fmtINRFull(r.employeeAmount)}</Prv> : "—"}
                     </td>
                     <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.cyan }}>
-                      {r.employerAmount > 0 ? fmtINRFull(r.employerAmount) : "—"}
+                      {r.employerAmount > 0 ? <Prv>{fmtINRFull(r.employerAmount)}</Prv> : "—"}
                     </td>
                   </tr>
                 ))}
@@ -6071,7 +6084,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
       {/* Annual contribution from account fields */}
       {annualTotal > 0 && totalContributed === 0 && (
         <div style={{ marginTop: 8, fontSize: 10, color: THEME.cyan, fontWeight: 600 }}>
-          Annual estimate: {fmtINRFull(annualTotal)}/yr
+          Annual estimate: <Prv>{fmtINRFull(annualTotal)}</Prv>/yr
           {Number(n.employerContribution) > 0 ? " (incl. employer — 80CCD(2))" : ""}
         </div>
       )}
@@ -6241,7 +6254,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                             color: t.employeeAmount > 0 ? THEME.accent : THEME.muted,
                           }}
                         >
-                          {t.employeeAmount > 0 ? fmtINRFull(t.employeeAmount) : "—"}
+                          {t.employeeAmount > 0 ? <Prv>{fmtINRFull(t.employeeAmount)}</Prv> : "—"}
                         </td>
                         <td
                           style={{
@@ -6251,7 +6264,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                             color: t.employerAmount > 0 ? THEME.cyan : THEME.muted,
                           }}
                         >
-                          {t.employerAmount > 0 ? fmtINRFull(t.employerAmount) : "—"}
+                          {t.employerAmount > 0 ? <Prv>{fmtINRFull(t.employerAmount)}</Prv> : "—"}
                         </td>
                         <td style={{ padding: "8px 12px", whiteSpace: "nowrap" as const }}>
                           <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
@@ -6301,7 +6314,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                           color: THEME.accent,
                         }}
                       >
-                        {fmtINRFull(totalEmployee)}
+                        <Prv>{fmtINRFull(totalEmployee)}</Prv>
                       </td>
                       <td
                         style={{
@@ -6311,7 +6324,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                           color: THEME.cyan,
                         }}
                       >
-                        {fmtINRFull(totalEmployer)}
+                        <Prv>{fmtINRFull(totalEmployer)}</Prv>
                       </td>
                       <td />
                     </tr>
@@ -6406,7 +6419,7 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
             {[
               {
                 label: "Total NPS Corpus",
-                value: fmtINRFull(totalCorpus),
+                value: <Prv>{fmtINRFull(totalCorpus)}</Prv>,
                 color: NPS_ORANGE,
                 Icon: PiggyBank,
               },
@@ -6414,13 +6427,13 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
                 ? [
                     {
                       label: "Employee Contributions",
-                      value: fmtINRFull(totalEmployee),
+                      value: <Prv>{fmtINRFull(totalEmployee)}</Prv>,
                       color: THEME.accent,
                       Icon: TrendingUp,
                     },
                     {
                       label: "Employer Contributions",
-                      value: fmtINRFull(totalEmployer),
+                      value: <Prv>{fmtINRFull(totalEmployer)}</Prv>,
                       color: THEME.cyan,
                       Icon: Briefcase,
                     },
@@ -7190,7 +7203,7 @@ function EPFCsvPanel({ onImport }: any) {
                         </span>
                       </td>
                       <td style={{ padding: "6px 10px", fontWeight: 700 }}>
-                        {fmtINRFull(r.amount)}
+                        <Prv>{fmtINRFull(r.amount)}</Prv>
                       </td>
                       <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
                     </tr>
@@ -8193,7 +8206,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                 {s.label}
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>
-                {fmtINRFull(s.value)}
+                <Prv>{fmtINRFull(s.value)}</Prv>
               </div>
             </div>
           ))}
@@ -8546,9 +8559,11 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  {!isIntRow && !isTransferRow && t.epfWages
-                                    ? fmtINRFull(t.epfWages)
-                                    : "—"}
+                                  {!isIntRow && !isTransferRow && t.epfWages ? (
+                                    <Prv>{fmtINRFull(t.epfWages)}</Prv>
+                                  ) : (
+                                    "—"
+                                  )}
                                 </td>
                                 <td
                                   style={{
@@ -8557,9 +8572,11 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  {!isIntRow && !isTransferRow && t.epsWages
-                                    ? fmtINRFull(t.epsWages)
-                                    : "—"}
+                                  {!isIntRow && !isTransferRow && t.epsWages ? (
+                                    <Prv>{fmtINRFull(t.epsWages)}</Prv>
+                                  ) : (
+                                    "—"
+                                  )}
                                 </td>
                                 <td
                                   style={{
@@ -8569,7 +8586,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                     color: numColor(THEME.accent),
                                   }}
                                 >
-                                  {fmtINRFull(empVal)}
+                                  <Prv>{fmtINRFull(empVal)}</Prv>
                                 </td>
                                 <td
                                   style={{
@@ -8579,7 +8596,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                     color: numColor(THEME.cyan),
                                   }}
                                 >
-                                  {fmtINRFull(erVal)}
+                                  <Prv>{fmtINRFull(erVal)}</Prv>
                                 </td>
                                 <td
                                   style={{
@@ -8589,7 +8606,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                     color: isIntRow || isTransferRow ? THEME.muted : THEME.gold,
                                   }}
                                 >
-                                  {fmtINRFull(penVal)}
+                                  <Prv>{fmtINRFull(penVal)}</Prv>
                                 </td>
                                 <td style={{ padding: "6px 10px" }}>
                                   <div
@@ -8663,11 +8680,13 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 fontWeight: 800,
                               }}
                             >
-                              {fmtINRFull(
-                                passbookRows
-                                  .filter((t) => t.type === "monthly_contribution")
-                                  .reduce((s, t) => s + Number(t.epfWages || 0), 0)
-                              )}
+                              <Prv>
+                                {fmtINRFull(
+                                  passbookRows
+                                    .filter((t) => t.type === "monthly_contribution")
+                                    .reduce((s, t) => s + Number(t.epfWages || 0), 0)
+                                )}
+                              </Prv>
                             </td>
                             <td
                               style={{
@@ -8676,11 +8695,13 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 fontWeight: 800,
                               }}
                             >
-                              {fmtINRFull(
-                                passbookRows
-                                  .filter((t) => t.type === "monthly_contribution")
-                                  .reduce((s, t) => s + Number(t.epsWages || 0), 0)
-                              )}
+                              <Prv>
+                                {fmtINRFull(
+                                  passbookRows
+                                    .filter((t) => t.type === "monthly_contribution")
+                                    .reduce((s, t) => s + Number(t.epsWages || 0), 0)
+                                )}
+                              </Prv>
                             </td>
                             <td
                               style={{
@@ -8690,25 +8711,27 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 color: THEME.accent,
                               }}
                             >
-                              {fmtINRFull(
-                                passbookRows.reduce((s, t) => {
-                                  if (t.type === "interest_credit")
-                                    return (
-                                      s +
-                                      Number(
-                                        t.employeeShare !== undefined
-                                          ? t.employeeShare
-                                          : t.amount || 0
-                                      )
-                                    );
-                                  if (t.type === "transfer_in") {
-                                    const erT = Number(t.employerShare || 0);
-                                    const penT = Number(t.pensionShare || 0);
-                                    return s + (Number(t.amount || 0) - erT - penT);
-                                  }
-                                  return s + Number(t.employeeShare || 0);
-                                }, 0)
-                              )}
+                              <Prv>
+                                {fmtINRFull(
+                                  passbookRows.reduce((s, t) => {
+                                    if (t.type === "interest_credit")
+                                      return (
+                                        s +
+                                        Number(
+                                          t.employeeShare !== undefined
+                                            ? t.employeeShare
+                                            : t.amount || 0
+                                        )
+                                      );
+                                    if (t.type === "transfer_in") {
+                                      const erT = Number(t.employerShare || 0);
+                                      const penT = Number(t.pensionShare || 0);
+                                      return s + (Number(t.amount || 0) - erT - penT);
+                                    }
+                                    return s + Number(t.employeeShare || 0);
+                                  }, 0)
+                                )}
+                              </Prv>
                             </td>
                             <td
                               style={{
@@ -8718,9 +8741,11 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 color: THEME.cyan,
                               }}
                             >
-                              {fmtINRFull(
-                                passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0)
-                              )}
+                              <Prv>
+                                {fmtINRFull(
+                                  passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0)
+                                )}
+                              </Prv>
                             </td>
                             <td
                               style={{
@@ -8730,11 +8755,13 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 color: THEME.gold,
                               }}
                             >
-                              {fmtINRFull(
-                                passbookRows
-                                  .filter((t) => t.type === "monthly_contribution")
-                                  .reduce((s, t) => s + Number(t.pensionShare || 0), 0)
-                              )}
+                              <Prv>
+                                {fmtINRFull(
+                                  passbookRows
+                                    .filter((t) => t.type === "monthly_contribution")
+                                    .reduce((s, t) => s + Number(t.pensionShare || 0), 0)
+                                )}
+                              </Prv>
                             </td>
                             <td />
                           </tr>
@@ -8806,7 +8833,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                             }}
                           >
                             {isOut ? "-" : "+"}
-                            {fmtINRFull(t.amount)}
+                            <Prv>{fmtINRFull(t.amount)}</Prv>
                           </td>
                           <td
                             style={{
@@ -9434,7 +9461,9 @@ const MFInsightsBarList = ({ rows }: { rows: Array<{ name: string; value: number
               >
                 {r.pct.toFixed(1)}%
               </span>
-              <span style={{ fontWeight: 700, color: THEME.muted }}>{fmtINRFull(r.value)}</span>
+              <span style={{ fontWeight: 700, color: THEME.muted }}>
+                <Prv>{fmtINRFull(r.value)}</Prv>
+              </span>
             </div>
           </div>
           <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
@@ -9698,7 +9727,7 @@ function MFInsights({ items, getLiveNav }: any) {
             </div>
             <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 340 }}>
               Across {schemeWeights.length} fund{schemeWeights.length === 1 ? "" : "s"} worth{" "}
-              {fmtINRFull(totalValue)}.
+              <Prv>{fmtINRFull(totalValue)}</Prv>.
             </div>
           </div>
         </div>
@@ -10180,27 +10209,31 @@ function MFSection({
             {[
               {
                 label: "Total Invested",
-                value: fmtINRFull(totalInvested),
+                value: <Prv>{fmtINRFull(totalInvested)}</Prv>,
                 color: THEME.accent,
                 Icon: IndianRupee,
               },
               {
                 label: "Current Value",
-                value: fmtINRFull(totalCurrent),
+                value: <Prv>{fmtINRFull(totalCurrent)}</Prv>,
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
               {
                 label: "Day's P&L",
-                value: hasDaysPnLData
-                  ? `${totalDaysPnL >= 0 ? "+" : ""}${fmtINRFull(totalDaysPnL)} (${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}%)`
-                  : "—",
+                value: hasDaysPnLData ? (
+                  <Prv>{`${totalDaysPnL >= 0 ? "+" : ""}${fmtINRFull(totalDaysPnL)} (${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}%)`}</Prv>
+                ) : (
+                  "—"
+                ),
                 color: !hasDaysPnLData ? THEME.muted : totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
                 Icon: Activity,
               },
               {
                 label: "Overall P&L",
-                value: `${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`,
+                value: (
+                  <Prv>{`${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`}</Prv>
+                ),
                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                 Icon: totalPnl >= 0 ? TrendingUp : TrendingDown,
               },
@@ -10699,12 +10732,14 @@ function MFSection({
                                     <span style={{ color: THEME.muted, fontWeight: 600 }}>
                                       Invested:{" "}
                                       <b style={{ color: THEME.ink }}>
-                                        {fmtINRFull(sectionInvested)}
+                                        <Prv>{fmtINRFull(sectionInvested)}</Prv>
                                       </b>
                                     </span>
                                     <span style={{ color: THEME.muted, fontWeight: 600 }}>
                                       Value:{" "}
-                                      <b style={{ color: THEME.ink }}>{fmtINRFull(sectionValue)}</b>
+                                      <b style={{ color: THEME.ink }}>
+                                        <Prv>{fmtINRFull(sectionValue)}</Prv>
+                                      </b>
                                     </span>
                                     <span
                                       style={{
@@ -10713,7 +10748,7 @@ function MFSection({
                                       }}
                                     >
                                       {sectionPnl >= 0 ? "+" : ""}
-                                      {fmtINRFull(sectionPnl)} ({sectionPnlPct >= 0 ? "+" : ""}
+                                      <Prv>{fmtINRFull(sectionPnl)}</Prv> ({sectionPnlPct >= 0 ? "+" : ""}
                                       {sectionPnlPct.toFixed(2)}%)
                                     </span>
                                   </div>
@@ -10984,7 +11019,7 @@ function MFSection({
                                             }}
                                           >
                                             {dayPnl >= 0 ? "+" : ""}
-                                            {fmtINRFull(dayPnl)}
+                                            <Prv>{fmtINRFull(dayPnl)}</Prv>
                                           </div>
                                           <div
                                             style={{
@@ -11012,7 +11047,7 @@ function MFSection({
                                           }}
                                         >
                                           {grpPnl >= 0 ? "+" : ""}
-                                          {fmtINRFull(grpPnl)}
+                                          <Prv>{fmtINRFull(grpPnl)}</Prv>
                                         </div>
                                         <div
                                           style={{
@@ -11638,7 +11673,7 @@ function MFSection({
                                                               }}
                                                             >
                                                               {lotPnl >= 0 ? "+" : ""}
-                                                              {fmtINRFull(lotPnl)}
+                                                              <Prv>{fmtINRFull(lotPnl)}</Prv>
                                                             </div>
                                                             {cagr !== null && (
                                                               <div
@@ -11672,7 +11707,7 @@ function MFSection({
                                                           fontWeight: 800,
                                                         }}
                                                       >
-                                                        {fmtINRFull(lotCurr)}
+                                                        <Prv>{fmtINRFull(lotCurr)}</Prv>
                                                         {lotStale && (
                                                           <div
                                                             style={{
@@ -11968,7 +12003,7 @@ function MFSection({
                         {[
                           {
                             label: "Total Annual Cost",
-                            value: fmtINRFull(totalAnnualCost),
+                            value: <Prv>{fmtINRFull(totalAnnualCost)}</Prv>,
                             color: THEME.rust,
                           },
                           {
@@ -11983,7 +12018,7 @@ function MFSection({
                           },
                           {
                             label: "Annual Savings Possible",
-                            value: fmtINRFull(totalAnnualSaving),
+                            value: <Prv>{fmtINRFull(totalAnnualSaving)}</Prv>,
                             color: THEME.accent,
                           },
                         ].map(({ label, value, color }) => (
@@ -13451,7 +13486,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                       <Prv>{fmtINRFull(data.amount)}</Prv>
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted }}>
-                      TDS: {fmtINRFull(data.tds)} · {data.count} records
+                      TDS: <Prv>{fmtINRFull(data.tds)}</Prv> · {data.count} records
                     </div>
                   </div>
                 ))}
@@ -13927,24 +13962,26 @@ const YieldTracker = ({ state }: any) => {
         {[
           {
             label: "Annual Yield",
-            value: fmtINRFull(totalAnnual),
+            value: <Prv>{fmtINRFull(totalAnnual)}</Prv>,
             sub:
-              estimatedAnnual > 0
-                ? `${fmtINRFull(contractualAnnual)} contractual + ${fmtINRFull(estimatedAnnual)} est. NPS growth`
-                : "Interest, coupons & dividends combined",
+              estimatedAnnual > 0 ? (
+                <Prv>{`${fmtINRFull(contractualAnnual)} contractual + ${fmtINRFull(estimatedAnnual)} est. NPS growth`}</Prv>
+              ) : (
+                "Interest, coupons & dividends combined"
+              ),
             color: THEME.accent,
             Icon: IndianRupee,
           },
           {
             label: "Monthly Income",
-            value: fmtINRFull(totalMonthly),
+            value: <Prv>{fmtINRFull(totalMonthly)}</Prv>,
             sub: "Average cash flow / month",
             color: THEME.sage,
             Icon: Receipt,
           },
           {
             label: "Daily Passive",
-            value: fmtINRFull(totalAnnual / 365),
+            value: <Prv>{fmtINRFull(totalAnnual / 365)}</Prv>,
             sub: "₹ earned every day",
             color: THEME.gold,
             Icon: Zap,
@@ -14081,7 +14118,7 @@ const YieldTracker = ({ state }: any) => {
                     </div>
                     <div style={{ textAlign: "right" as const }}>
                       <div style={{ fontSize: 14, fontWeight: 900, color }}>
-                        {fmtINRFull(value)}
+                        <Prv>{fmtINRFull(value)}</Prv>
                       </div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>
                         {sharePct.toFixed(1)}% share
@@ -14134,7 +14171,7 @@ const YieldTracker = ({ state }: any) => {
                 Total Annual Yield
               </div>
               <div style={{ fontSize: 24, fontWeight: 900, color: THEME.accent }}>
-                {fmtINRFull(totalAnnual)}
+                <Prv>{fmtINRFull(totalAnnual)}</Prv>
               </div>
             </div>
             <div style={{ textAlign: "right" as const }}>
@@ -14150,7 +14187,7 @@ const YieldTracker = ({ state }: any) => {
                 Monthly Avg.
               </div>
               <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
-                {fmtINRFull(totalMonthly)}
+                <Prv>{fmtINRFull(totalMonthly)}</Prv>
               </div>
             </div>
           </div>

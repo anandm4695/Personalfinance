@@ -691,7 +691,7 @@ export function MonthlyReportModal({
                   className="tabular-nums"
                   style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}
                 >
-                  {fmtINRFull(displayNetWorth)}
+                  <Prv>{fmtINRFull(displayNetWorth)}</Prv>
                 </div>
                 {nwDelta !== 0 && (
                   <div
@@ -706,14 +706,14 @@ export function MonthlyReportModal({
                       marginTop: 4,
                     }}
                   >
-                    {nwDelta > 0 ? "▲" : "▼"} {fmtINRFull(Math.abs(nwDelta))} vs{" "}
+                    {nwDelta > 0 ? "▲" : "▼"} <Prv>{fmtINRFull(Math.abs(nwDelta))}</Prv> vs{" "}
                     {prevDate.toLocaleString("en-IN", { month: "short" })}
                   </div>
                 )}
                 {displayAssets !== null && (
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
-                    Assets {fmtINRFull(displayAssets)} · Liabilities{" "}
-                    {fmtINRFull(displayLiabilities)}
+                    Assets <Prv>{fmtINRFull(displayAssets)}</Prv> · Liabilities{" "}
+                    <Prv>{fmtINRFull(displayLiabilities)}</Prv>
                   </div>
                 )}
               </>
@@ -767,7 +767,7 @@ export function MonthlyReportModal({
               >
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>{label}</div>
                 <div className="tabular-nums" style={{ fontSize: 16, fontWeight: 800, color }}>
-                  {fmtINRFull(value)}
+                  <Prv>{fmtINRFull(value)}</Prv>
                 </div>
                 <div style={{ marginTop: 5 }}>
                   <DeltaBadge current={value} prev={prev} higherIsBetter={higherIsBetter} />
@@ -925,7 +925,7 @@ export function MonthlyReportModal({
           {investTxns.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <SectionLabel>
-                Investment Activity · {fmtINRFull(totalInvested)} invested
+                Investment Activity · <Prv>{fmtINRFull(totalInvested)}</Prv> invested
               </SectionLabel>
               {investTxns.slice(0, 6).map((t: any, i: number) => (
                 <div
@@ -941,7 +941,7 @@ export function MonthlyReportModal({
                 >
                   <span style={{ color: THEME.ink }}>{t.note || t.category}</span>
                   <span style={{ fontWeight: 700, color: THEME.accent }}>
-                    {fmtINRFull(Number(t.amount || 0))}
+                    <Prv>{fmtINRFull(Number(t.amount || 0))}</Prv>
                   </span>
                 </div>
               ))}
@@ -982,8 +982,13 @@ export function MonthlyReportModal({
                     />
                   </div>
                   <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
-                    {fmtINRFull(g.current)} saved of {fmtINRFull(g.target)}
-                    {!g.done && ` · ${fmtINRFull(g.target - g.current)} remaining`}
+                    <Prv>{fmtINRFull(g.current)}</Prv> saved of <Prv>{fmtINRFull(g.target)}</Prv>
+                    {!g.done && (
+                      <>
+                        {" "}
+                        · <Prv>{fmtINRFull(g.target - g.current)}</Prv> remaining
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -994,7 +999,7 @@ export function MonthlyReportModal({
           {subsThisMonth.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <SectionLabel>
-                Subscriptions This Month · {fmtINRFull(totalSubsThisMonth)}
+                Subscriptions This Month · <Prv>{fmtINRFull(totalSubsThisMonth)}</Prv>
               </SectionLabel>
               {subsThisMonth.map((s, i) => (
                 <div
@@ -1022,7 +1027,9 @@ export function MonthlyReportModal({
                     </span>
                     {s.name}
                   </span>
-                  <span style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(s.amount)}</span>
+                  <span style={{ fontWeight: 700, color: THEME.rust }}>
+                    <Prv>{fmtINRFull(s.amount)}</Prv>
+                  </span>
                 </div>
               ))}
             </div>
@@ -1065,7 +1072,9 @@ export function MonthlyReportModal({
                     }}
                   >
                     <span style={{ color: THEME.muted }}>{label}</span>
-                    <span style={{ fontWeight: 700 }}>{fmtINRFull(val)}</span>
+                    <span style={{ fontWeight: 700 }}>
+                      <Prv>{fmtINRFull(val)}</Prv>
+                    </span>
                   </div>
                 ))}
             </div>
@@ -1287,7 +1296,7 @@ export function MonthlyReportModal({
               return (
                 <div style={{ marginBottom: 16 }}>
                   <SectionLabel>
-                    Upcoming Renewals (30 days) · {fmtINRFull(totalRenewals)}
+                    Upcoming Renewals (30 days) · <Prv>{fmtINRFull(totalRenewals)}</Prv>
                   </SectionLabel>
                   {renewals.map((r, i) => (
                     <div
@@ -1312,7 +1321,7 @@ export function MonthlyReportModal({
                       </span>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontWeight: 700, color: THEME.gold }}>
-                          {fmtINRFull(r.amount)}
+                          <Prv>{fmtINRFull(r.amount)}</Prv>
                         </div>
                         <div style={{ fontSize: 11, color: THEME.muted }}>Due {r.date}</div>
                       </div>
@@ -1339,7 +1348,9 @@ export function MonthlyReportModal({
                 >
                   <span>{d.label}</span>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(d.amount)}</div>
+                    <div style={{ fontWeight: 700, color: THEME.rust }}>
+                      <Prv>{fmtINRFull(d.amount)}</Prv>
+                    </div>
                     <div style={{ fontSize: 11, color: THEME.muted }}>{d.date}</div>
                   </div>
                 </div>

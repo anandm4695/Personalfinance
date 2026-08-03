@@ -42,7 +42,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 /* ─── STYLES ──────────────────────────────────────────────────────────────── */
 
@@ -302,6 +302,7 @@ const PremiumStatCard = ({ label, value, color, icon: Icon, sub, subColor }: any
 /* ─── MAIN COMPONENT ──────────────────────────────────────────────────────── */
 
 export const ExpenseTrendsTab = ({ state, metrics }: any) => {
+  const { privacyMode } = usePrivacy();
   const [period, setPeriod] = useState<Period>("6m");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -770,7 +771,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => fmtINRFull(v)}
+              tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
             />
             <Tooltip content={<ChartTooltip />} cursor={{ stroke: THEME.line }} />
             <Legend
@@ -784,7 +785,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               stroke={THEME.muted}
               strokeDasharray="6 4"
               label={{
-                value: `Avg: ${fmtINRFull(avgSpend)}`,
+                value: `Avg: ${privacyMode ? "••••" : fmtINRFull(avgSpend)}`,
                 position: "insideTopRight",
                 fill: THEME.muted,
                 fontSize: 10,
@@ -1034,7 +1035,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   tick={{ fontSize: 11, fill: THEME.muted }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(v: number) => fmtINRFull(v)}
+                  tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                 />
                 <Tooltip content={<ChartTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                 <Legend
@@ -1347,7 +1348,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => fmtINRFull(v)}
+                tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
               />
               <YAxis
                 type="category"
@@ -1535,7 +1536,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => fmtINRFull(v)}
+              tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
             />
             <YAxis
               yAxisId="right"

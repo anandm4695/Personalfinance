@@ -25,7 +25,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS & HELPERS
@@ -416,6 +416,7 @@ const TransactionTable = ({
    ══════════════════════════════════════════════════════════════════ */
 
 export const CapitalGainsTab = ({ state }: { state: any }) => {
+  const { privacyMode } = usePrivacy();
   const fyOptions = useMemo(
     () => buildFYOptions(state.stockSells || [], state.mfSells || []),
     [state.stockSells, state.mfSells]
@@ -842,7 +843,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         of buying it and the profit is <b style={{ color: THEME.ink }}>Short-Term (STCG)</b>, taxed
         at {stcgRate * 100}%. Hold it longer and it's{" "}
         <b style={{ color: THEME.ink }}>Long-Term (LTCG)</b>, taxed at only {ltcgRate * 100}% — and
-        the first {fmtINRFull(ltcgExemptionLimit)} of LTCG each financial year is tax-free
+        the first <Prv>{fmtINRFull(ltcgExemptionLimit)}</Prv> of LTCG each financial year is
+        tax-free
         (Section 112A exemption).
       </div>
 
@@ -857,7 +859,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <StatCard
           icon={<TrendingUp />}
           label="Total Realized P&L"
-          value={fmtINRFull(totalRealizedPL)}
+          value={privacyMode ? "••••" : fmtINRFull(totalRealizedPL)}
           sub={`${classified.length} transactions in ${fyLabel}`}
           subColor={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
           color={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
@@ -865,14 +867,14 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <StatCard
           icon={<IndianRupee />}
           label="Estimated Tax"
-          value={fmtINRFull(totalTax)}
+          value={privacyMode ? "••••" : fmtINRFull(totalTax)}
           sub="Across all gain categories"
           color={THEME.rust}
         />
         <StatCard
           icon={<Shield />}
           label="LTCG Exemption Used"
-          value={fmtINRFull(ltcgExemptionUsed)}
+          value={privacyMode ? "••••" : fmtINRFull(ltcgExemptionUsed)}
           sub={`of ${fmtINRFull(ltcgExemptionLimit)} (Sec 112A)`}
           subColor={ltcgExemptionUsed >= ltcgExemptionLimit ? THEME.sage : undefined}
           color={THEME.sage}
@@ -880,7 +882,11 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <StatCard
           icon={<Scissors />}
           label="Harvesting Potential"
-          value={fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))}
+          value={
+            privacyMode
+              ? "••••"
+              : fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))
+          }
           sub={`${harvestingSuggestions.length} opportunities`}
           color={THEME.gold}
         />

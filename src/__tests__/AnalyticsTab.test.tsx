@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { AnalyticsTab } from "../components/tabs/AnalyticsTab";
 import { useMetrics } from "../hooks/useMetrics";
+import { PrivacyProvider } from "../context/PrivacyContext";
 
 // jsdom has no layout engine, so recharts' ResponsiveContainer renders zero-size
 // and drops its children — swap it for a plain div like the other tab tests do.
@@ -74,13 +75,15 @@ function emptyState(overrides: any = {}) {
 function Harness({ state }: { state: any }) {
   const { metrics, assetBreakdown, trendData } = useMetrics(state, "all", {});
   return (
-    <AnalyticsTab
-      state={state}
-      metrics={metrics}
-      assetBreakdown={assetBreakdown}
-      trendData={trendData}
-      setState={() => {}}
-    />
+    <PrivacyProvider>
+      <AnalyticsTab
+        state={state}
+        metrics={metrics}
+        assetBreakdown={assetBreakdown}
+        trendData={trendData}
+        setState={() => {}}
+      />
+    </PrivacyProvider>
   );
 }
 
@@ -173,14 +176,16 @@ describe("AnalyticsTab Net Worth Growth chart", () => {
     function ProfileHarness() {
       const { filteredState, metrics, assetBreakdown, trendData } = useMetrics(state, "self", {});
       return (
-        <AnalyticsTab
-          state={filteredState}
-          metrics={metrics}
-          assetBreakdown={assetBreakdown}
-          trendData={trendData}
-          setState={() => {}}
-          activeProfile="self"
-        />
+        <PrivacyProvider>
+          <AnalyticsTab
+            state={filteredState}
+            metrics={metrics}
+            assetBreakdown={assetBreakdown}
+            trendData={trendData}
+            setState={() => {}}
+            activeProfile="self"
+          />
+        </PrivacyProvider>
       );
     }
 
