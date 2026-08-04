@@ -67,6 +67,7 @@ const DATA_SECTIONS = [
   { key: "billPaymentHistory", label: "Bill Payments" },
   { key: "govtSchemes", label: "Govt Schemes" },
   { key: "salarySlips", label: "Salary Slips" },
+  { key: "form26as", label: "Form 26AS Entries" },
   { key: "recurringExpenses", label: "Recurring Expenses" },
   { key: "ppfLedger", label: "PPF Ledger" },
 ];

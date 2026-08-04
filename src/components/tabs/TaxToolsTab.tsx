@@ -8,14 +8,12 @@ import {
   CheckCircle2,
   Home,
   Printer,
-  ChevronDown,
-  ChevronUp,
+  Download,
   Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
-  fmtINR,
   fmtINRFull,
   today,
   calcTaxNewByFY,
@@ -28,7 +26,6 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
-import { FormField } from "../ui/Form";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // Escapes user-controlled free-text before it's interpolated into an HTML
@@ -188,13 +185,49 @@ const AdvanceTaxSection = ({ state, metrics }) => {
   const remaining = Math.max(0, netTaxDue - totalPaid);
 
   const todayStr = today();
-  const currentQ = (() => {
-    const m = new Date(todayStr).getMonth();
-    if (m >= 3 && m <= 5) return 0;
-    if (m >= 6 && m <= 8) return 1;
-    if (m >= 9 && m <= 11) return 2;
-    return 3;
-  })();
+
+  // Bug fix: this previously derived "current quarter" from today's real
+  // calendar month alone (e.g. Aug → Q2), regardless of which FY was
+  // selected in the FYSelector above. That made every quarter in a *past*
+  // FY after the first one render as "current" (blue highlight) instead of
+  // "past" (green check), and every quarter in a *future* FY render with a
+  // bogus "Overdue!"/days-left figure. Instead, compute each quarter's real
+  // deadline date for the *selected* fy and derive past/current from that.
+  const schedule = useMemo(() => {
+    const rows = ADVANCE_TAX_DEADLINES.map((q, idx) => {
+      const qAmount = (netTaxDue * q.cumPct) / 100;
+      const prevCum = idx > 0 ? (netTaxDue * ADVANCE_TAX_DEADLINES[idx - 1].cumPct) / 100 : 0;
+      const installment = qAmount - prevCum;
+      const deadlineYear = q.date.startsWith("03") ? fyStart + 1 : fyStart;
+      const deadlineFull = `${deadlineYear}-${q.date}`;
+      const daysLeft = Math.ceil(
+        (new Date(deadlineFull).getTime() - new Date(todayStr).getTime()) / 86400000
+      );
+      return { ...q, idx, installment, deadlineFull, daysLeft, isPast: daysLeft < 0 };
+    });
+    // The "current" quarter is the first one whose deadline hasn't passed yet.
+    // If every deadline for this FY has already passed (fully past FY), none
+    // is "current" — they should all render with the past/checked styling.
+    const currentIdx = rows.findIndex((r) => !r.isPast);
+    return rows.map((r) => ({ ...r, isCurrent: r.idx === currentIdx }));
+  }, [netTaxDue, fyStart, todayStr]);
+
+  const exportScheduleCSV = () => {
+    const rows = ["Quarter,Due Date,Cumulative %,Installment Due,Status"];
+    schedule.forEach((q) => {
+      const status = q.isPast ? "Past" : q.isCurrent ? "Current" : "Upcoming";
+      rows.push(
+        [q.label.replace(",", " "), q.deadlineFull, `${q.cumPct}%`, q.installment.toFixed(2), status].join(",")
+      );
+    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `advance-tax-schedule-FY${fy}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div>
@@ -334,23 +367,24 @@ const AdvanceTaxSection = ({ state, metrics }) => {
       {/* Quarterly Schedule */}
       <Card style={{ marginTop: 16 }}>
         <div style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>
-            Quarterly Payment Schedule
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 14,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
+              Quarterly Payment Schedule
+            </div>
+            <Button onClick={exportScheduleCSV} variant="secondary" size="sm">
+              <Download size={14} style={{ marginRight: 4 }} /> Export CSV
+            </Button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {ADVANCE_TAX_DEADLINES.map((q, idx) => {
-              const qAmount = (netTaxDue * q.cumPct) / 100;
-              const prevCum =
-                idx > 0 ? (netTaxDue * ADVANCE_TAX_DEADLINES[idx - 1].cumPct) / 100 : 0;
-              const installment = qAmount - prevCum;
-              const isPast = idx < currentQ;
-              const isCurrent = idx === currentQ;
-
-              const deadlineYear = q.date.startsWith("03") ? fyStart + 1 : fyStart;
-              const deadlineFull = `${deadlineYear}-${q.date}`;
-              const daysLeft = Math.ceil(
-                (new Date(deadlineFull).getTime() - new Date(todayStr).getTime()) / 86400000
-              );
+            {schedule.map((q) => {
+              const { idx, installment, daysLeft, isPast, isCurrent } = q;
 
               return (
                 <div
@@ -600,36 +634,11 @@ const HraReceiptSection = ({ state }) => {
       </div>
 
       {rentedProps.length === 0 ? (
-        <Card style={{ padding: "40px 24px", textAlign: "center" }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 14px",
-            }}
-          >
-            <Home size={22} style={{ color: THEME.accent }} />
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
-            No Rented Properties Yet
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: THEME.muted,
-              maxWidth: 340,
-              margin: "0 auto",
-              lineHeight: 1.6,
-            }}
-          >
-            Add a rented property in the Rental Details tab to start generating HRA rent receipts.
-          </div>
-        </Card>
+        <EmptyState
+          icon={Home}
+          title="No Rented Properties Yet"
+          description="Add a rented property in the Rental Details tab to start generating HRA rent receipts."
+        />
       ) : (
         <>
           <Card>
@@ -930,32 +939,16 @@ const HraReceiptSection = ({ state }) => {
 
 // ── Form 26AS Reconciliation (B2) ───────────────────────────────────────────
 
-// Form 26AS entries aren't part of the central Supabase-synced state shape
-// (that would need a new DB table + migration). Persist them to a dedicated
-// localStorage key instead, so they survive a tab switch/reload — matching
-// the pattern used for credit scores in CreditTab.tsx.
-const FORM26AS_STORAGE_KEY = "finance_form26as";
-
-function loadForm26ASEntries() {
-  try {
-    const raw = localStorage.getItem(FORM26AS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveForm26ASEntries(entries) {
-  try {
-    localStorage.setItem(FORM26AS_STORAGE_KEY, JSON.stringify(entries));
-  } catch {
-    // ignore quota/serialization errors — best-effort persistence
-  }
-}
-
-const Form26ASSection = ({ state }) => {
-  const [entries, setEntries] = useState(() => loadForm26ASEntries());
+const Form26ASSection = ({ state, addItem, removeItem }) => {
+  // Form 26AS entries now live in state.form26as — a real Supabase-synced,
+  // per-profile-owner-filtered array (see database/84_form26as.sql and the
+  // addItem/removeItem plumbing in App.tsx). This used to be a raw
+  // localStorage key that never synced across devices, was excluded from
+  // Export/Import backups, and wasn't scoped per family profile — the exact
+  // same bug class already fixed once before for tax_payments.
+  const entries = state.form26as || [];
   const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [newEntry, setNewEntry] = useState({
     deductor: "",
     tan: "",
@@ -973,26 +966,32 @@ const Form26ASSection = ({ state }) => {
     return (state.taxPayments || []).filter((t) => t.fy === fy);
   }, [state.taxPayments, fy]);
 
-  const addEntry = () => {
-    if (!newEntry.deductor || !newEntry.amount) return;
-    const updated = [
-      ...entries,
-      { ...newEntry, id: Date.now().toString(), fy, amount: Number(newEntry.amount) },
-    ];
-    setEntries(updated);
-    saveForm26ASEntries(updated);
-    setNewEntry({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
-    setShowAdd(false);
+  const addEntry = async () => {
+    if (!newEntry.deductor || !newEntry.amount || saving) return;
+    setSaving(true);
+    try {
+      await addItem("form26as", {
+        deductor: newEntry.deductor,
+        tan: newEntry.tan || null,
+        amount: Number(newEntry.amount),
+        dateOfPayment: newEntry.dateOfPayment || null,
+        section: newEntry.section,
+        fy,
+      });
+      setNewEntry({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
+      setShowAdd(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const deleteEntry = (id) => {
-    const updated = entries.filter((x) => x.id !== id);
-    setEntries(updated);
-    saveForm26ASEntries(updated);
+    removeItem("form26as", id);
   };
 
-  // Entries created before this fix have no `fy` field — fall back to
-  // deriving FY from dateOfPayment so old entries still scope correctly.
+  // Entries created before the Supabase migration (imported/legacy data)
+  // may have no `fy` field — fall back to deriving FY from dateOfPayment so
+  // those entries still scope correctly instead of disappearing.
   const entryFY = (e: any): string | null => {
     if (e.fy) return e.fy;
     if (!e.dateOfPayment) return null;
@@ -1003,11 +1002,19 @@ const Form26ASSection = ({ state }) => {
   };
   const entriesForFY = entries.filter((e) => entryFY(e) === fy);
   const total26AS = entriesForFY.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const totalApp = taxPayments
+  const appTdsAmounts = taxPayments
     .filter((t) => t.taxType === "TDS" || t.type === "TDS")
-    .reduce((s, t) => s + Number(t.amount || 0), 0);
+    .map((t) => Number(t.amount || 0));
+  const totalApp = appTdsAmounts.reduce((s, a) => s + a, 0);
   const mismatch = Math.abs(total26AS - totalApp);
   const isMatch = mismatch < 100;
+
+  // Best-effort per-entry reconciliation: flag a 26AS entry as "Matched" if
+  // there's an app-side TDS payment for the same FY with the same amount
+  // (within a ₹1 rounding tolerance). Purely a computed UI hint — no new
+  // column/state needed, and never blocks editing/deleting.
+  const isEntryMatched = (amount: number) =>
+    appTdsAmounts.some((a) => Math.abs(a - Number(amount || 0)) < 1);
 
   const SECTIONS = [
     "192",
@@ -1245,8 +1252,29 @@ const Form26ASSection = ({ state }) => {
                     ))}
                   </select>
                 </div>
-                <Button onClick={addEntry} size="sm">
-                  Add
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "block",
+                      marginBottom: 3,
+                    }}
+                  >
+                    Date of Payment
+                  </label>
+                  <input
+                    type="date"
+                    value={newEntry.dateOfPayment}
+                    onChange={(e) => setNewEntry({ ...newEntry, dateOfPayment: e.target.value })}
+                    aria-label="Date of payment"
+                    className="form-input"
+                    style={{ padding: "7px 10px", fontSize: 13 }}
+                  />
+                </div>
+                <Button onClick={addEntry} size="sm" disabled={saving}>
+                  {saving ? "Adding…" : "Add"}
                 </Button>
               </div>
             </div>
@@ -1262,7 +1290,7 @@ const Form26ASSection = ({ state }) => {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
-                    {["Deductor", "TAN", "Section", "Amount", ""].map((h) => (
+                    {["Deductor", "TAN", "Section", "Amount", "Status", ""].map((h) => (
                       <th
                         key={h}
                         style={{
@@ -1301,8 +1329,19 @@ const Form26ASSection = ({ state }) => {
                         <Prv>{fmtINRFull(e.amount)}</Prv>
                       </td>
                       <td style={{ padding: "8px 10px" }}>
+                        {isEntryMatched(e.amount) ? (
+                          <Badge variant="sage">
+                            <CheckCircle2 size={11} style={{ marginRight: 3, verticalAlign: -1 }} />
+                            Matched
+                          </Badge>
+                        ) : (
+                          <Badge variant="muted">Unmatched</Badge>
+                        )}
+                      </td>
+                      <td style={{ padding: "8px 10px" }}>
                         <button
                           onClick={() => deleteEntry(e.id)}
+                          aria-label={`Remove 26AS entry from ${e.deductor || "deductor"}`}
                           style={{
                             background: "none",
                             border: "none",
@@ -1393,7 +1432,7 @@ const Form26ASSection = ({ state }) => {
 
 // ── Main Tab ─────────────────────────────────────────────────────────────────
 
-export const TaxToolsTab = ({ state, metrics }) => {
+export const TaxToolsTab = ({ state, metrics, addItem, removeItem, updateItem }) => {
   const [activeSection, setActiveSection] = useState("advance");
 
   const sections = [
@@ -1441,7 +1480,9 @@ export const TaxToolsTab = ({ state, metrics }) => {
       </div>
 
       {activeSection === "advance" && <AdvanceTaxSection state={state} metrics={metrics} />}
-      {activeSection === "26as" && <Form26ASSection state={state} />}
+      {activeSection === "26as" && (
+        <Form26ASSection state={state} addItem={addItem} removeItem={removeItem} />
+      )}
       {activeSection === "hra" && <HraReceiptSection state={state} />}
     </div>
   );

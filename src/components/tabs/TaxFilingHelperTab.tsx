@@ -1,6 +1,17 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { FileText, CheckCircle, Clock, IndianRupee, Calculator, Calendar } from "lucide-react";
+import {
+  FileText,
+  CheckCircle,
+  Clock,
+  IndianRupee,
+  Calculator,
+  Calendar,
+  AlertTriangle,
+  Info,
+  Download,
+  TrendingUp,
+} from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
@@ -13,16 +24,28 @@ import {
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
 
 /** Card section header — icon + label, matching the convention used across
  * the app's other Card-based sections (e.g. NetWorthTimelineTab's "Net Worth
  * History"), so this tab's cards read as part of the same family instead of
- * plain unlabelled text headers. */
-const CardHeading = ({ icon: Icon, children }: any) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-    <Icon size={18} style={{ color: THEME.accent }} />
-    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>{children}</h3>
+ * plain unlabelled text headers. An optional `hint` renders a short muted
+ * explainer line beneath the title — this tab exists to demystify filing for
+ * a non-technical user, so jargon-heavy sections (TDS, 80C, advance tax)
+ * get a one-line plain-English gloss instead of assuming prior knowledge. */
+const CardHeading = ({ icon: Icon, children, hint }: any) => (
+  <div style={{ marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <Icon size={18} style={{ color: THEME.accent }} />
+      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>{children}</h3>
+    </div>
+    {hint && (
+      <div style={{ fontSize: 12, color: THEME.textSecondary, marginTop: 4, marginLeft: 26 }}>
+        {hint}
+      </div>
+    )}
   </div>
 );
 
@@ -117,11 +140,29 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       return s + (principal * rate) / 100;
     }, 0);
 
-    // Rental income
-    const rentalIncome = (state.rentedProperties || []).reduce(
-      (s, p) => s + Number(p.monthlyRent || 0) * 12,
+    // Rental income — Bug fix: this previously read `state.rentedProperties`,
+    // which is the app's TENANT-side ledger (rent the user PAYS someone
+    // else, used for HRA relief — see Section80TrackerTab.tsx/EmergencyFundTab.tsx
+    // reading the same field for rent expense/HRA). It was therefore showing
+    // the user's own rent payments as if they were taxable rental income
+    // received, while silently ignoring `state.rentalProperties` — the
+    // LANDLORD-side ledger (property_type "out" / "Rental Property (Given)"
+    // in App.tsx) that actually represents rent the user earns. Ledger
+    // receipts (this FY) take priority over the monthlyRent×12 estimate for
+    // active properties, same actual-over-projected fallback pattern used
+    // for PPF/EPF below and in RentalTab.tsx's own FY total.
+    const rentalReceiptsLedger = (state.rentalProperties || []).reduce(
+      (s, p) =>
+        s +
+        (p.receipts || [])
+          .filter((r) => inFY(r.date))
+          .reduce((ss, r) => ss + Number(r.amount || 0), 0),
       0
     );
+    const rentalIncomeEstimate = (state.rentalProperties || [])
+      .filter((p) => p.isActive !== false)
+      .reduce((s, p) => s + Number(p.monthlyRent || 0) * 12, 0);
+    const rentalIncome = rentalReceiptsLedger > 0 ? rentalReceiptsLedger : rentalIncomeEstimate;
 
     // Dividend income
     const dividendIncome = (state.dividends || [])
@@ -129,12 +170,17 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       .reduce((s, d) => s + Number(d.amount || 0), 0);
 
     // Capital gains
-    const stockGains = (state.stockSells || [])
-      .filter((s) => inFY(s.sellDate || s.date))
-      .reduce((s, t) => s + Number(t.profit || 0), 0);
-    const mfGains = (state.mfSells || [])
-      .filter((s) => inFY(s.sellDate || s.date))
-      .reduce((s, t) => s + Number(t.profit || 0), 0);
+    const stockSellsThisFY = (state.stockSells || []).filter((s) => inFY(s.sellDate || s.date));
+    const mfSellsThisFY = (state.mfSells || []).filter((s) => inFY(s.sellDate || s.date));
+    const stockGains = stockSellsThisFY.reduce((s, t) => s + Number(t.profit || 0), 0);
+    const mfGains = mfSellsThisFY.reduce((s, t) => s + Number(t.profit || 0), 0);
+    // Presence of any sale record (profit or loss) — not just a net-positive
+    // gain — is what actually triggers the Schedule CG / ITR-2 requirement,
+    // so this is tracked separately from the totalIncome figure below (which
+    // reasonably floors capital gains at 0 rather than letting a net loss
+    // reduce gross taxable income, since losses only carry forward/offset
+    // under specific CG-vs-CG rules, not against salary/other heads).
+    const hasCapitalGainRecords = stockSellsThisFY.length > 0 || mfSellsThisFY.length > 0;
 
     const totalIncome =
       salaryIncome +
@@ -152,6 +198,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       dividendIncome,
       stockGains,
       mfGains,
+      hasCapitalGainRecords,
       totalIncome,
     };
   }, [state, selectedFY]);
@@ -221,12 +268,41 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     // combined ₹75,000 pool the way the previous code assumed, which let a
     // large self-only premium (with no parents plan at all) claim up to
     // 3x its real ₹25,000 entitlement.
-    const selfHealthPremium = (state.termPlans || [])
-      .filter((t) => (t.type || "").toLowerCase() !== "parents")
-      .reduce((s, t) => s + Number(t.annualPremium || t.premium || 0), 0);
-    const parentsHealthPremium = (state.termPlans || [])
-      .filter((t) => (t.type || "").toLowerCase() === "parents")
-      .reduce((s, t) => s + Number(t.annualPremium || t.premium || 0), 0);
+    //
+    // Bug fix: this previously read from state.termPlans, which is the "pure
+    // protection term plans" table (TERM LIFE insurance cover — see
+    // InsuranceSummaryTab.tsx), not health/mediclaim insurance. Term life
+    // premiums are already 80C-eligible, not 80D-eligible, so this
+    // double-dipped a life-insurance premium into the 80D bucket while
+    // ignoring the app's actual health insurance data. Source from
+    // state.healthInsurance instead, annualizing premium/premiumFrequency
+    // the same way Section80TrackerTab.tsx / HealthInsuranceTab.tsx do, and
+    // inferring self vs. parents from insured-member relations (same
+    // heuristic as Section80TrackerTab.tsx, for consistency across tabs).
+    const HEALTH_PREMIUM_MULT: Record<string, number> = {
+      monthly: 12,
+      quarterly: 4,
+      semi_annual: 2,
+      annual: 1,
+    };
+    const toAnnualHealthPremium = (amount: any, freq: string) =>
+      Number(amount || 0) * (HEALTH_PREMIUM_MULT[freq] || 1);
+    const PARENT_RELATION_RE = /parent|father|mother|dad|mom|papa|mummy|-in-law/i;
+    const isParentsPolicy = (p: any) =>
+      (p.insuredMembers || []).some((m: any) => PARENT_RELATION_RE.test(m?.relation || ""));
+    const healthPolicies = state.healthInsurance || [];
+    const selfHealthPremium = healthPolicies
+      .filter((p: any) => !isParentsPolicy(p))
+      .reduce(
+        (s: number, p: any) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"),
+        0
+      );
+    const parentsHealthPremium = healthPolicies
+      .filter(isParentsPolicy)
+      .reduce(
+        (s: number, p: any) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"),
+        0
+      );
     const sec80D = Math.min(25000, selfHealthPremium) + Math.min(25000, parentsHealthPremium);
 
     // Home loan interest
@@ -308,39 +384,242 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     });
   }, [selectedFY, incomeSummary, deductions, state.profile]);
 
+  // ITR filing deadline — computed dynamically from the selected FY's
+  // Assessment Year (AY = FY + 1) rather than a hardcoded calendar year, so
+  // this never goes stale the way past "2025-26" hardcodes elsewhere in the
+  // app did. Statutory default for individuals with no tax-audit requirement
+  // is 31 July of the AY; CBDT sometimes extends this in practice, and it's
+  // 31 October instead for anyone with an audit requirement (business/
+  // professional income over the audit threshold) — this app doesn't track
+  // business income, so both caveats are surfaced to the user rather than
+  // silently assumed away.
+  const filingDeadline = useMemo(() => {
+    const [startYear] = selectedFY.split("-").map(Number);
+    const ayStart = startYear + 1;
+    const ay = `${ayStart}-${String(ayStart + 1).slice(-2)}`;
+    const dueDate = `${ayStart}-07-31`;
+    const belatedDate = `${ayStart}-12-31`;
+    const now = today();
+    const daysLeft = Math.round(
+      (new Date(dueDate + "T00:00:00").getTime() - new Date(now + "T00:00:00").getTime()) /
+        86400000
+    );
+    return {
+      ay,
+      dueDate,
+      belatedDate,
+      daysLeft,
+      isPastDue: now > dueDate,
+      isPastBelated: now > belatedDate,
+    };
+  }, [selectedFY]);
+
+  // ITR form guide — a conservative heuristic built only from what this app
+  // can actually observe in `state`, not a full determination. Real ITR-1
+  // eligibility also depends on being a company director, holding unlisted
+  // shares, or having foreign assets/income — none of which this app tracks
+  // — and business/professional income (which routes to ITR-3, or ITR-4 for
+  // presumptive 44AD/44ADA/44AE income) isn't recorded as a distinct income
+  // type here either. Rather than guessing at those, every recommendation is
+  // shown with its triggering reasons plus an explicit caveat, so it reads as
+  // a helpful starting point and not an authoritative filing determination
+  // (this is the "don't oversimplify to the point of being wrong" case the
+  // ITR-1-despite-capital-gains failure mode would fall into).
+  const itrGuide = useMemo(() => {
+    const reasons: string[] = [];
+    if (incomeSummary.totalIncome > 5000000) {
+      reasons.push("Total income is above ₹50 lakh");
+    }
+    if (incomeSummary.hasCapitalGainRecords) {
+      reasons.push("You have capital gains/losses from stocks or mutual funds this FY");
+    }
+    const ownedCount = (state.realEstateProperties || []).filter(
+      (p) => p.status !== "sold"
+    ).length;
+    const letOutCount = (state.rentalProperties || []).filter((p) => p.isActive !== false).length;
+    const housePropertyCount = Math.max(ownedCount, letOutCount);
+    if (housePropertyCount > 1) {
+      reasons.push(`You have ${housePropertyCount} house properties on record`);
+    }
+    const form = reasons.length > 0 ? "ITR-2" : "ITR-1 (Sahaj)";
+    return { form, reasons, housePropertyCount };
+  }, [incomeSummary.totalIncome, incomeSummary.hasCapitalGainRecords, state.realEstateProperties, state.rentalProperties]);
+
   const checklistProgress = ITR_CHECKLIST.filter((item) => checkedItems[item.id]).length;
+  const checklistPct = Math.round((checklistProgress / ITR_CHECKLIST.length) * 100);
   const categories = [...new Set(ITR_CHECKLIST.map((i) => i.category))];
+
+  const fmtDateLong = (iso: string) => {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  };
+
+  // Downloadable filing-readiness summary — a plain-text snapshot of
+  // everything on this tab for the selected FY (income, deductions, tax
+  // paid, advance-tax schedule, ITR guide, checklist state), useful to keep
+  // on hand or hand off to a CA. Built client-side via a Blob download, same
+  // pattern used for CSV exports elsewhere in the app (e.g. RentalTab.tsx).
+  const downloadSummary = () => {
+    const lines: string[] = [];
+    lines.push(`INCOME TAX FILING SUMMARY — FY ${selectedFY} (AY ${filingDeadline.ay})`);
+    lines.push(`Generated: ${fmtDateLong(today())}`);
+    lines.push("");
+    lines.push("-- INCOME SUMMARY --");
+    lines.push(`Salary Income: ${fmtINRFull(incomeSummary.salaryIncome)}`);
+    lines.push(`Rental Income: ${fmtINRFull(incomeSummary.rentalIncome)}`);
+    lines.push(`Bank/FD Interest: ${fmtINRFull(incomeSummary.bankInterest)}`);
+    lines.push(`Dividend Income: ${fmtINRFull(incomeSummary.dividendIncome)}`);
+    lines.push(`Capital Gains (Stocks): ${fmtINRFull(incomeSummary.stockGains)}`);
+    lines.push(`Capital Gains (MF): ${fmtINRFull(incomeSummary.mfGains)}`);
+    lines.push(`Other Income: ${fmtINRFull(incomeSummary.otherIncome)}`);
+    lines.push(`Gross Total Income: ${fmtINRFull(incomeSummary.totalIncome)}`);
+    lines.push("");
+    lines.push("-- DEDUCTIONS --");
+    lines.push(`Section 80C (max 1.5L): ${fmtINRFull(deductions.sec80C)}`);
+    lines.push(`Section 80CCD(1B) — NPS (max 50K): ${fmtINRFull(deductions.sec80CCD1B)}`);
+    lines.push(`Section 80D — Health Insurance: ${fmtINRFull(deductions.sec80D)}`);
+    lines.push(`Section 24 — Home Loan Interest (max 2L): ${fmtINRFull(deductions.sec24)}`);
+    lines.push(`Total Deductions: ${fmtINRFull(deductions.totalDeductions)}`);
+    lines.push("");
+    lines.push("-- TAX PAID --");
+    lines.push(`TDS Deducted: ${fmtINRFull(taxPaid.tds)}`);
+    lines.push(`Advance Tax Paid: ${fmtINRFull(taxPaid.advanceTax)}`);
+    lines.push(`Total Tax Paid: ${fmtINRFull(taxPaid.total)}`);
+    lines.push("");
+    lines.push("-- ADVANCE TAX SCHEDULE --");
+    advanceTaxSchedule.forEach((d) => {
+      lines.push(`${d.label} (${d.pct}% cumulative): ${fmtINRFull(d.due)}${d.isPast ? " [past]" : ""}`);
+    });
+    lines.push("");
+    lines.push("-- ITR FORM GUIDE (indicative only) --");
+    lines.push(`Suggested: ${itrGuide.form}`);
+    if (itrGuide.reasons.length) lines.push(`Reasons: ${itrGuide.reasons.join("; ")}`);
+    lines.push("Note: business/professional income, director status, unlisted shares and foreign");
+    lines.push("assets are not tracked by this app — confirm your actual form independently.");
+    lines.push("");
+    lines.push("-- FILING DEADLINE --");
+    lines.push(`Due date (no audit): ${fmtDateLong(filingDeadline.dueDate)}`);
+    lines.push(`Belated return deadline: ${fmtDateLong(filingDeadline.belatedDate)}`);
+    lines.push("");
+    lines.push("-- CHECKLIST --");
+    ITR_CHECKLIST.forEach((item) => {
+      lines.push(`[${checkedItems[item.id] ? "x" : " "}] ${item.label} (${item.category})`);
+    });
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Tax_Filing_Summary_FY${selectedFY}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <SectionTitle sub="Pre-filled summary, checklist & advance tax tracker">
           Income Tax Filing Helper
         </SectionTitle>
-        <select
-          value={selectedFY}
-          onChange={(e) => setSelectedFY(e.target.value)}
-          aria-label="Select financial year"
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <select
+            value={selectedFY}
+            onChange={(e) => setSelectedFY(e.target.value)}
+            aria-label="Select financial year"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: `1px solid ${THEME.border}`,
+              background: THEME.card,
+              color: THEME.text,
+              fontSize: 14,
+            }}
+          >
+            {availableFYs.map((fy) => (
+              <option key={fy} value={fy}>
+                FY {fy}
+              </option>
+            ))}
+          </select>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Download size={14} />}
+            onClick={downloadSummary}
+          >
+            Download Summary
+          </Button>
+        </div>
+      </div>
+
+      {/* Filing Deadline */}
+      <Card style={{ padding: 24 }}>
+        <CardHeading
+          icon={Calendar}
+          hint="When your return is legally due for this FY, and what happens if you miss it."
+        >
+          Filing Deadline — AY {filingDeadline.ay}
+        </CardHeading>
+        <div
           style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            border: `1px solid ${THEME.border}`,
-            background: THEME.card,
-            color: THEME.text,
-            fontSize: 14,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            padding: "14px 16px",
+            borderRadius: 12,
+            background: filingDeadline.isPastDue
+              ? "color-mix(in srgb, var(--t-rust) 10%, transparent)"
+              : "color-mix(in srgb, var(--t-accent) 8%, transparent)",
+            border: `1px solid ${
+              filingDeadline.isPastDue
+                ? "color-mix(in srgb, var(--t-rust) 30%, transparent)"
+                : "color-mix(in srgb, var(--t-accent) 30%, transparent)"
+            }`,
           }}
         >
-          {availableFYs.map((fy) => (
-            <option key={fy} value={fy}>
-              FY {fy}
-            </option>
-          ))}
-        </select>
-      </div>
+          {filingDeadline.isPastDue ? (
+            <AlertTriangle size={20} color={THEME.rust} style={{ flexShrink: 0 }} />
+          ) : (
+            <Clock size={20} color={THEME.accent} style={{ flexShrink: 0 }} />
+          )}
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: THEME.text }}>
+              {filingDeadline.isPastBelated
+                ? `The original and belated filing windows for FY ${selectedFY} have both closed.`
+                : filingDeadline.isPastDue
+                  ? `The ${fmtDateLong(filingDeadline.dueDate)} deadline has passed.`
+                  : `Due ${fmtDateLong(filingDeadline.dueDate)}${
+                      filingDeadline.daysLeft >= 0 ? ` — ${filingDeadline.daysLeft} days left` : ""
+                    }`}
+            </div>
+            <div style={{ fontSize: 12, color: THEME.textSecondary, marginTop: 3 }}>
+              {filingDeadline.isPastBelated
+                ? "Filing now requires condoning the delay with the Assessing Officer — a CA can advise on next steps."
+                : filingDeadline.isPastDue
+                  ? `You can still file a belated return until ${fmtDateLong(filingDeadline.belatedDate)}, with a late fee under Section 234F (up to ₹5,000) and interest on any unpaid tax.`
+                  : "This is the statutory due date for individuals without a tax-audit requirement — CBDT sometimes extends it, and it moves to 31 October if you have business/professional income requiring an audit."}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* ITR Summary */}
       <Card style={{ padding: 24 }}>
-        <CardHeading icon={IndianRupee}>Income Summary — FY {selectedFY}</CardHeading>
+        <CardHeading
+          icon={IndianRupee}
+          hint="Estimated from income, rent, interest, dividends and capital gains already logged elsewhere in the app for this FY."
+        >
+          Income Summary — FY {selectedFY}
+        </CardHeading>
         {incomeSummary.totalIncome === 0 ? (
           <div
             style={{
@@ -358,6 +637,27 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
           </div>
         ) : (
         <>
+        {incomeSummary.hasCapitalGainRecords && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 14px",
+              borderRadius: 10,
+              marginBottom: 14,
+              background: "color-mix(in srgb, var(--t-violet) 8%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--t-violet) 25%, transparent)",
+              fontSize: 12.5,
+              color: THEME.textSecondary,
+            }}
+          >
+            <TrendingUp size={15} color={THEME.violet} style={{ flexShrink: 0 }} />
+            You have stock/mutual fund sales recorded this FY — these must be reported under
+            Schedule CG. See the Capital Gains tab for the full LTCG/STCG breakdown and applicable
+            exemptions.
+          </div>
+        )}
         <div
           style={{
             display: "grid",
@@ -424,7 +724,12 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
 
       {/* Deductions */}
       <Card style={{ padding: 24 }}>
-        <CardHeading icon={Calculator}>Deductions</CardHeading>
+        <CardHeading
+          icon={Calculator}
+          hint="Investments and payments that reduce your taxable income — each has its own yearly cap."
+        >
+          Deductions
+        </CardHeading>
         <div
           style={{
             display: "grid",
@@ -540,7 +845,12 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         }}
       >
         <Card style={{ padding: 24 }}>
-          <CardHeading icon={CheckCircle}>Tax Already Paid</CardHeading>
+          <CardHeading
+            icon={CheckCircle}
+            hint="TDS = tax your employer/bank already deducted and deposited on your behalf; Advance Tax = tax you paid directly during the year."
+          >
+            Tax Already Paid
+          </CardHeading>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: THEME.textSecondary }}>TDS Deducted</span>
@@ -571,7 +881,12 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         </Card>
 
         <Card style={{ padding: 24 }}>
-          <CardHeading icon={Calendar}>Advance Tax Schedule</CardHeading>
+          <CardHeading
+            icon={Calendar}
+            hint="If your total tax due (after TDS) exceeds ₹10,000, it's payable in these 4 installments instead of at filing time."
+          >
+            Advance Tax Schedule
+          </CardHeading>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {advanceTaxSchedule.map((d) => (
               <div
@@ -615,6 +930,53 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         </Card>
       </div>
 
+      {/* ITR Form Guide */}
+      <Card style={{ padding: 24 }}>
+        <CardHeading
+          icon={FileText}
+          hint="A starting point based on data already in the app — not a substitute for confirming with a CA or the official ITR utility."
+        >
+          Which ITR Form?
+        </CardHeading>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+            padding: "14px 16px",
+            borderRadius: 12,
+            background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-accent) 30%, transparent)",
+          }}
+        >
+          <Badge variant="accent" style={{ flexShrink: 0, marginTop: 2 }}>
+            {itrGuide.form}
+          </Badge>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            {itrGuide.reasons.length > 0 ? (
+              <ul style={{ margin: "0 0 8px", paddingLeft: 18, fontSize: 13, color: THEME.text }}>
+                {itrGuide.reasons.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ fontSize: 13, color: THEME.text, marginBottom: 8 }}>
+                Based on your data: salary/other income only, no capital gains, and at most one
+                house property.
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <Info size={13} color={THEME.textSecondary} style={{ marginTop: 2, flexShrink: 0 }} />
+              <span style={{ fontSize: 11.5, color: THEME.textSecondary, lineHeight: 1.5 }}>
+                This app doesn't track business/professional income, company directorships,
+                unlisted shares, or foreign assets — any of those would change your form (e.g. to
+                ITR-3, or ITR-4 for presumptive income) regardless of the above.
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* Filing Checklist */}
       <Card style={{ padding: 24 }}>
         <div
@@ -622,7 +984,9 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 16,
+            flexWrap: "wrap",
+            gap: 8,
+            marginBottom: 6,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -632,14 +996,14 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             </h3>
           </div>
           <span style={{ fontSize: 13, color: THEME.textSecondary }}>
-            {checklistProgress} / {ITR_CHECKLIST.length} completed
+            {checklistProgress} / {ITR_CHECKLIST.length} completed ({checklistPct}%)
           </span>
         </div>
+        <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 16 }}>
+          Tick items off as you gather them — your progress is saved automatically.
+        </div>
         <div className="progress-track" style={{ marginBottom: 20 }}>
-          <div
-            className="progress-fill"
-            style={{ width: `${(checklistProgress / ITR_CHECKLIST.length) * 100}%` }}
-          />
+          <div className="progress-fill" style={{ width: `${checklistPct}%` }} />
         </div>
 
         {categories.map((cat) => (

@@ -108,6 +108,7 @@ export function getFilteredStateForProfile(state: any, profileId: string) {
       (h: any) => ownedBillIds.has(h.billId)
     ),
     salarySlips: filterByOwner(state.salarySlips || []),
+    form26as: filterByOwner(state.form26as || []),
     // wishlists / wishlistItems are intentionally NOT owner-filtered here: they are
     // account-wide stock watchlists (no `owner` field exists anywhere in their
     // schema — see WishlistModal/WishlistItemModal in DematTab.tsx and migration

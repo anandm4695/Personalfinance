@@ -41,7 +41,12 @@ describe("TaxFilingHelperTab — deductions are scoped to the selected FY", () =
   it("caps parents' Section 80D premium at ₹25,000 separately from self, not a shared ₹75,000 pool", () => {
     const state = {
       profile: { fy: "2025-26" },
-      termPlans: [{ type: "self", annualPremium: 60000 }], // no parents plan at all
+      // 80D must be sourced from healthInsurance policies, not termPlans
+      // (termPlans is TERM LIFE cover, already 80C-eligible — see the bug
+      // fix note above sec80D in TaxFilingHelperTab.tsx).
+      healthInsurance: [
+        { premium: 60000, premiumFrequency: "annual", insuredMembers: [{ relation: "Self" }] },
+      ], // no parents plan at all
     };
     const html = renderToString(
       <PrivacyProvider>

@@ -693,7 +693,7 @@ const Reconciler26AS = ({
                         <td style={tdStyle}>{r.deductor}</td>
                         <td style={{ ...tdStyle, color: THEME.muted }}>{r.section}</td>
                         <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          {fmtINRExact(r.amountPaid)}
+                          <Prv>{fmtINRExact(r.amountPaid)}</Prv>
                         </td>
                         <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
                           <Prv>{fmtINRFull(r.tdsDeducted)}</Prv>
@@ -751,7 +751,7 @@ const Reconciler26AS = ({
                         <td style={tdStyle}>{r.deductor}</td>
                         <td style={{ ...tdStyle, color: THEME.muted }}>{r.section}</td>
                         <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          {fmtINRExact(r.amountPaid)}
+                          <Prv>{fmtINRExact(r.amountPaid)}</Prv>
                         </td>
                         <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
                           <Prv>{fmtINRFull(r.tdsDeducted)}</Prv>
@@ -806,7 +806,7 @@ const Reconciler26AS = ({
                         <td style={tdStyle}>{r.note || "—"}</td>
                         <td style={{ ...tdStyle, color: THEME.muted }}>{r.item.date || "—"}</td>
                         <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          {fmtINRExact(r.amount)}
+                          <Prv>{fmtINRExact(r.amount)}</Prv>
                         </td>
                         <td style={tdStyle}>
                           <Badge variant="rust">Missing</Badge>
@@ -975,7 +975,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
               Section 87A Rebate
             </span>
             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, textAlign: "right" }}>
-              - <Prv>{fmtINRFull(result.rebateAmount || result.tax + result.rebateAmount)}</Prv>
+              - <Prv>{fmtINRFull(result.rebateAmount)}</Prv>
             </span>
           </>
         )}
@@ -1259,6 +1259,20 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     }
   }, [state.profile?.regime, hasNewRegime]);
 
+  // Bug fix: activeRegime is only set to "old" when hasNewRegime is false at
+  // mount. If the user later switches the FY selector to a pre-FY2020-21 year
+  // (when the new tax regime didn't exist) while "New Regime" was active, the
+  // component kept showing a "new regime" figure computed by calcTaxNewByFY
+  // for a year that never had one (that shared helper has no guard against
+  // being called with an out-of-range FY) — a materially wrong, misleading
+  // tax number. Force it back to "old" whenever the selected FY doesn't
+  // support the new regime.
+  useEffect(() => {
+    if (!hasNewRegime && activeRegime !== "old") {
+      setActiveRegime("old");
+    }
+  }, [hasNewRegime, activeRegime]);
+
   const handleRegimeChange = (regime: "new" | "old") => {
     setActiveRegime(regime);
     if (updateProfile) {
@@ -1383,6 +1397,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   const [deductions, setDeductions] = useState(() => ({
     d80C: overrides.d80C !== undefined ? overrides.d80C : autoDetected.d80C,
     d80D: overrides.d80D !== undefined ? overrides.d80D : 0,
+    // Sec 80D cap is ₹25K normally, ₹50K if the insured (self or parents) is a
+    // senior citizen — previously hardcoded to ₹25K everywhere, undercounting
+    // a common real-world deduction.
+    d80DSenior: overrides.d80DSenior !== undefined ? !!overrides.d80DSenior : false,
     hra: overrides.hra !== undefined ? overrides.hra : autoDetected.hra,
     homeLoan: overrides.homeLoan !== undefined ? overrides.homeLoan : autoDetected.homeLoan,
     nps: overrides.nps !== undefined ? overrides.nps : 0,
@@ -1398,6 +1416,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     setDeductions({
       d80C: ov.d80C !== undefined ? ov.d80C : autoDetected.d80C,
       d80D: ov.d80D !== undefined ? ov.d80D : 0,
+      d80DSenior: ov.d80DSenior !== undefined ? !!ov.d80DSenior : false,
       hra: ov.hra !== undefined ? ov.hra : autoDetected.hra,
       homeLoan: ov.homeLoan !== undefined ? ov.homeLoan : autoDetected.homeLoan,
       nps: ov.nps !== undefined ? ov.nps : 0,
@@ -1433,16 +1452,30 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     }
   };
 
+  const toggleD80DSenior = () => {
+    const newVal = !deductions.d80DSenior;
+    setDeductions((prev) => ({ ...prev, d80DSenior: newVal }));
+    if (updateMasterData) {
+      const currentOverrides = state.masterData?.taxDeductions?.[fy] || {};
+      updateMasterData("taxDeductions", {
+        ...(state.masterData?.taxDeductions || {}),
+        [fy]: { ...currentOverrides, d80DSenior: newVal },
+      });
+    }
+  };
+
   /* ── Income ─────────────────────────────────────────────────── */
   const detectedIncome = metrics.annualIncome || (metrics.monthIncome || 0) * 12;
   const annualIncome = incomeOverride !== "" ? Number(incomeOverride) || 0 : detectedIncome;
 
   /* ── Tax computation (FY-aware) ─────────────────────────────── */
   const stdDedOld = getOldStdDed(fyStartYear);
+  // Sec 80D cap: ₹25K normally, ₹50K if the insured (self or parents) is a senior citizen.
+  const d80DCap = deductions.d80DSenior ? 50_000 : 25_000;
   const totalOldDeductions =
     stdDedOld +
     Math.min(deductions.d80C, 150_000) +
-    Math.min(deductions.d80D, 25_000) +
+    Math.min(deductions.d80D, d80DCap) +
     deductions.hra +
     Math.min(deductions.homeLoan, 200_000) +
     Math.min(deductions.nps, 50_000) +
@@ -1525,9 +1558,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
       });
     }
 
-    // 80D — health insurance
-    const used80D = Math.min(Number(deductions.d80D) || 0, 25_000);
-    const gap80D = Math.max(0, 25_000 - used80D);
+    // 80D — health insurance (cap ₹25K, or ₹50K if self/parents senior citizen)
+    const used80D = Math.min(Number(deductions.d80D) || 0, d80DCap);
+    const gap80D = Math.max(0, d80DCap - used80D);
     if (gap80D > 0 && showOldTips) {
       const saving = Math.round(gap80D * margRate * 1.04);
       tips.push({
@@ -1540,8 +1573,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         fullDesc: `Section 80D allows deduction of health insurance premium paid for self, spouse, children (up to ₹25,000) and separately for parents (up to ₹25,000 or ₹50,000 if parents are senior citizens). Even preventive health check-up costs up to ₹5,000 within this limit are deductible. Not available in the new regime.`,
         saving,
         regime: "old",
-        maxBenefit: Math.round(25_000 * margRate * 1.04),
-        utilizedPct: (used80D / 25_000) * 100,
+        maxBenefit: Math.round(d80DCap * margRate * 1.04),
+        utilizedPct: (used80D / d80DCap) * 100,
       });
     }
 
@@ -1834,23 +1867,17 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     return candidates.sort((a, b) => b.loss - a.loss);
   }, [state.stocks, state.mutualFunds]);
 
+  // Bug fix: this used to hardcode the new regime's FY2025-26 slab thresholds
+  // (₹4L/8L/12L/16L/20L/24L) regardless of which FY was actually selected —
+  // wrong for e.g. FY2024-25 (₹3L/7L/10L/12L/15L) or FY2023-24 (different
+  // thresholds again). Deriving it from `result.slabs` reuses the already
+  // FY-aware slab table computed by calcTaxNewByFY/calcTaxOldByFY (finance.ts)
+  // instead of duplicating — and going stale relative to — that logic here.
   const marginalRate = useMemo(() => {
     const r = activeRegime === "new" ? taxNewResult : taxOldResult;
-    const taxable = r.taxable || 0;
-    if (activeRegime === "new") {
-      if (taxable <= 400000) return 0;
-      if (taxable <= 800000) return 0.05;
-      if (taxable <= 1200000) return 0.1;
-      if (taxable <= 1600000) return 0.15;
-      if (taxable <= 2000000) return 0.2;
-      if (taxable <= 2400000) return 0.25;
-      return 0.3;
-    } else {
-      if (taxable <= 250000) return 0;
-      if (taxable <= 500000) return 0.05;
-      if (taxable <= 1000000) return 0.2;
-      return 0.3;
-    }
+    const applicableSlabs = (r.slabs || []).filter((s: any) => s.incomeInSlab > 0);
+    if (applicableSlabs.length === 0) return 0;
+    return applicableSlabs[applicableSlabs.length - 1].rate;
   }, [activeRegime, taxNewResult, taxOldResult]);
 
   const taxCalculations = useMemo(() => {
@@ -1920,9 +1947,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           const pad = " ".repeat(Math.max(0, 30 - s.label.length));
           return `  ${s.label} (${s.range})${pad}: ${fmtINRFull(s.taxInSlab)}`;
         }),
-      r.rebateApplied
-        ? `  Section 87A Rebate        : - ${fmtINRExact(r.rebateAmount || r.tax)}`
-        : "",
+      r.rebateApplied ? `  Section 87A Rebate        : - ${fmtINRExact(r.rebateAmount)}` : "",
       r.surcharge > 0 ? `  Surcharge                 : ${fmtINRFull(r.surcharge)}` : "",
       `  Health & Education Cess  : ${fmtINRFull(r.cess)}`,
       `  NET TAX LIABILITY        : ${fmtINRFull(r.total)}`,
@@ -2249,11 +2274,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     )}
                   </div>
 
-                  {/* Side-by-side comparison */}
+                  {/* Side-by-side comparison — flex-wrap so the two panels stack
+                      on narrow phone widths instead of squeezing into a fixed
+                      3-column grid (was "1fr auto 1fr", unusable under ~380px) */}
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto 1fr",
+                      display: "flex",
+                      flexWrap: "wrap",
                       gap: 16,
                       alignItems: "center",
                     }}
@@ -2261,6 +2288,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     {/* New Regime */}
                     <div
                       style={{
+                        flex: "1 1 220px",
+                        minWidth: 0,
                         padding: "16px 20px",
                         borderRadius: 12,
                         background:
@@ -2321,6 +2350,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     {/* VS divider */}
                     <div
                       style={{
+                        flex: "0 0 auto",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
@@ -2346,6 +2376,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     {/* Old Regime */}
                     <div
                       style={{
+                        flex: "1 1 220px",
+                        minWidth: 0,
                         padding: "16px 20px",
                         borderRadius: 12,
                         background:
@@ -2507,9 +2539,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     },
                     {
                       label: "Sec 80D",
-                      used: Number(deductions.d80D) || 0,
-                      limit: 25000,
-                      desc: "Health Insurance Premium",
+                      used: Math.min(Number(deductions.d80D) || 0, d80DCap),
+                      limit: d80DCap,
+                      desc: deductions.d80DSenior
+                        ? "Health Insurance Premium (senior citizen)"
+                        : "Health Insurance Premium",
                     },
                     {
                       label: "HRA",
@@ -3103,6 +3137,19 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   1,
                   Math.round((now.getTime() - fyStart.getTime()) / (30.44 * 86400000))
                 );
+                // Bug fix: this block referenced a module-level `quarters` variable
+                // that is actually a local const scoped inside calcSection234CPenalty
+                // (not exported, not in this closure) — every render of this section
+                // (i.e. whenever netLiability >= ₹10K, a very common case) threw an
+                // uncaught "quarters is not defined" ReferenceError and crashed the
+                // Advance Tax Projector. Defining it locally with the same statutory
+                // due dates fixes the crash.
+                const quarters = [
+                  { q: "Q1", due: new Date(fyStartYear, 5, 15), pct: 15 },
+                  { q: "Q2", due: new Date(fyStartYear, 8, 15), pct: 45 },
+                  { q: "Q3", due: new Date(fyStartYear, 11, 15), pct: 75 },
+                  { q: "Q4", due: new Date(fyStartYear + 1, 2, 15), pct: 100 },
+                ];
                 const incomeThisYear = (state.income || [])
                   .filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr)
                   .reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
@@ -3411,7 +3458,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: hasNewRegime ? "1fr 1fr" : "1fr",
+                      gridTemplateColumns: hasNewRegime
+                        ? "repeat(auto-fit, minmax(280px, 1fr))"
+                        : "1fr",
                       gap: 32,
                     }}
                   >
@@ -3482,7 +3531,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     }}
                   >
                     <Info size={12} style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }} />{" "}
-                    Surcharge (10%–37%) applies only for income above ₹50 lakh. Health &
+                    Surcharge ({activeRegime === "new" ? "10%–25%" : "10%–37%"}) applies only for
+                    income above ₹50 lakh
+                    {activeRegime === "new" ? " (capped at 25% in the new regime)" : ""}. Health &
                     Education Cess @ 4% is mandatory on tax + surcharge.
                   </div>
                 )}
@@ -3503,7 +3554,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                 gap: 16,
                 marginBottom: 24,
                 paddingBottom: 24,
@@ -3714,7 +3765,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               </div>
 
               <div>
-                <Field label="80D — Health Insurance (max ₹25K)" style={{ marginBottom: 0 }}>
+                <Field
+                  label={`80D — Health Insurance (max ₹${d80DCap / 1000}K)`}
+                  style={{ marginBottom: 0 }}
+                >
                   <input
                     className="form-input"
                     type="number"
@@ -3729,6 +3783,26 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     }
                   />
                 </Field>
+                <label
+                  style={{
+                    marginTop: 6,
+                    fontSize: 10,
+                    color: THEME.muted,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!deductions.d80DSenior}
+                    onChange={toggleD80DSenior}
+                    style={{ width: 13, height: 13, accentColor: "var(--t-accent)", cursor: "pointer" }}
+                  />
+                  Self or parents insured is a senior citizen (60+) — raises cap to ₹50K
+                </label>
                 <div
                   style={{
                     marginTop: 5,
@@ -4249,7 +4323,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}
                       >
                         <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink }}>
-                          {fmtINRExact(p.amount)}
+                          <Prv>{fmtINRExact(p.amount)}</Prv>
                         </span>
                         <Badge variant="muted" style={{ fontSize: 9 }}>
                           {p.type}
@@ -4750,7 +4824,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               marginBottom: 24,
             }}
           >
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 24,
+              }}
+            >
               <div>
                 <div
                   style={{

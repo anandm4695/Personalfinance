@@ -103,6 +103,7 @@ export interface AppState {
   billPaymentHistory: any[];
   govtSchemes: any[];
   salarySlips: any[];
+  form26as: any[];
   dismissedAlerts: DismissedAlerts;
   masterData: MasterData;
   settings: Settings;

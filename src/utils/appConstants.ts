@@ -230,6 +230,7 @@ export const TABLE_MAP: Record<string, string> = {
   billPaymentHistory: "bill_payment_history",
   govtSchemes: "govt_schemes",
   salarySlips: "salary_slips",
+  form26as: "form_26as",
 };
 
 export const camelToSnake = (obj: any) => {

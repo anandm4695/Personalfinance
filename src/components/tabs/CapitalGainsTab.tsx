@@ -19,7 +19,7 @@ import {
   Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, exportArrayToCSV } from "../../utils/finance";
+import { fmtINRFull, today, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -104,15 +104,27 @@ export const isLongTerm = (buyDate: string, sellDate: string, monthsThreshold: n
   return sell > anniversary;
 };
 
+// NOTE: every date comparison below goes through parseLocalDate (never the
+// bare `new Date(dateStr)` constructor) — see the comment on parseLocalDate
+// above for why: a raw `new Date("YYYY-MM-DD")` parses as UTC midnight, and
+// reading local getters off it (or comparing it against a locally-built
+// Date) can silently shift the effective calendar day depending on the
+// runtime's timezone.
 const fmtDate = (d: string) => {
   if (!d) return "-";
-  const dt = new Date(d);
+  const dt = parseLocalDate(d);
   return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
 
 const dateToFYStart = (d: string): number => {
-  const dt = new Date(d);
+  const dt = parseLocalDate(d);
   return dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1;
+};
+
+// FY (April→March) that "today" falls in.
+const getCurrentFYStartYear = (): number => {
+  const now = new Date();
+  return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
 };
 
 const buildFYOptions = (
@@ -120,9 +132,7 @@ const buildFYOptions = (
   mfSells: any[]
 ): { label: string; startYear: number }[] => {
   const fySet = new Set<number>();
-  const now = new Date();
-  const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  fySet.add(currentFYStart);
+  fySet.add(getCurrentFYStartYear());
 
   for (const s of stockSells) {
     if (s.sellDate) fySet.add(dateToFYStart(s.sellDate));
@@ -140,18 +150,50 @@ const buildFYOptions = (
 
 const isInFY = (dateStr: string, fyStartYear: number): boolean => {
   if (!dateStr) return false;
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   const fyStart = new Date(fyStartYear, 3, 1);
   const fyEnd = new Date(fyStartYear + 1, 2, 31, 23, 59, 59);
   return d >= fyStart && d <= fyEnd;
 };
 
-/* ── Tax Rate helpers (FY-aware: Budget 2024 rates from FY 2024-25) ── */
-const getEquitySTCGRate = (fy: number) => (fy >= 2024 ? 0.2 : 0.15);
-const getEquityLTCGRate = (fy: number) => (fy >= 2024 ? 0.125 : 0.1);
+/* ── Tax Rate helpers ──────────────────────────────────────────────
+   Budget 2024 raised equity STCG/LTCG rates effective a specific
+   TRANSACTION date — 23-Jul-2024 — not at the start of FY2024-25
+   (01-Apr-2024). FY2024-25 straddles the change: a sale on, say,
+   15-May-2024 must still be taxed at the OLD rate even though it falls in
+   the same financial year as a sale made after 23-Jul-2024, which gets the
+   NEW rate. So these two rate lookups are keyed off the actual sell date,
+   NOT the selected/filed financial year (fixing a bug where the whole of
+   FY2024-25 was previously taxed at the new rate, including pre-23-Jul
+   sales).
+   The LTCG exemption limit is the one exception that legitimately stays
+   FY-keyed: per CBDT's Budget 2024 clarification, the enhanced ₹1.25L
+   exemption applies to the ENTIRE FY2024-25 (it is not prorated/split at
+   23-Jul), unlike the tax rate itself. */
+const EQUITY_RATE_CHANGE_DATE = "2024-07-23";
+const DEBT_INDEXATION_CUTOFF_DATE = "2023-04-01";
+
+const isOnOrAfterEquityRateChange = (dateStr: string): boolean =>
+  parseLocalDate(dateStr) >= parseLocalDate(EQUITY_RATE_CHANGE_DATE);
+
+const getEquitySTCGRate = (sellDate: string) =>
+  isOnOrAfterEquityRateChange(sellDate) ? 0.2 : 0.15;
+const getEquityLTCGRate = (sellDate: string) =>
+  isOnOrAfterEquityRateChange(sellDate) ? 0.125 : 0.1;
 const getEquityLTCGExemption = (fy: number) => (fy >= 2024 ? 125000 : 100000);
 const DEBT_STCG_SLAB_RATE = 0.3;
 const DEBT_LTCG_RATE = 0.2;
+
+// For display-only "headline" rate figures (glossary banner, category cards,
+// disclaimer) where a single scalar rate is shown for a whole FY: use
+// today's rate if the FY is still open/ongoing, or the rate as of that FY's
+// last day if it's a closed, past FY. Per-transaction figures (the ledger
+// table, tax totals) never use this — they use each row's own sell-date-based
+// rate via getEquitySTCGRate/getEquityLTCGRate above.
+const referenceDateForFY = (fyStartYear: number): string => {
+  if (fyStartYear >= getCurrentFYStartYear()) return today();
+  return `${fyStartYear + 1}-03-31`;
+};
 
 /* ── Classification Types ──────────────────────────────────────── */
 type GainType = "EQUITY_STCG" | "EQUITY_LTCG" | "DEBT_STCG" | "DEBT_LTCG";
@@ -181,8 +223,193 @@ interface UnrealizedHolding {
   unrealizedPL: number;
   wouldBeType: GainType;
   assetType: "Stock" | "Mutual Fund";
-  monthsToLTCG: number | null;
+  // number = months remaining to LTCG; null = already LTCG; "never" = this
+  // lot can NEVER become LTCG regardless of holding period (debt MF units
+  // bought on/after 1-Apr-2023 — no indexation/LTCG benefit exists for them).
+  monthsToLTCG: number | null | "never";
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   SELL CLASSIFICATION & TAX-TOTAL COMPUTATION (pure, FY-parameterized)
+   Pulled out of the component so the same logic can be run twice: once
+   for whichever FY the user has selected in the ledger dropdown, and
+   once — independently — for the CURRENT FY, which the tax-loss
+   harvesting section below always needs regardless of which FY the user
+   is browsing (see the comment above harvestingSuggestions).
+   ══════════════════════════════════════════════════════════════════ */
+
+const classifySells = (
+  stockSells: any[],
+  mfSells: any[],
+  fyStartYear: number
+): ClassifiedSell[] => {
+  const result: ClassifiedSell[] = [];
+
+  for (const s of stockSells || []) {
+    if (!isInFY(s.sellDate, fyStartYear)) continue;
+    const months = getHoldingMonths(s.buyDate, s.sellDate);
+    const qty = Number(s.qty) || 0;
+    const buyTotal = (Number(s.buyPrice) || 0) * qty;
+    const sellTotal = (Number(s.sellPrice) || 0) * qty;
+    const profit = s.profit != null ? Number(s.profit) : sellTotal - buyTotal;
+    const isLTCG = isLongTerm(s.buyDate, s.sellDate, 12);
+    const gainType: GainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
+    // Rate keyed to the actual sell date (see comment above getEquitySTCGRate).
+    const taxRate = isLTCG ? getEquityLTCGRate(s.sellDate) : getEquitySTCGRate(s.sellDate);
+
+    result.push({
+      name: s.symbol || s.name || "Unknown Stock",
+      buyDate: s.buyDate,
+      buyPrice: buyTotal,
+      sellDate: s.sellDate,
+      sellPrice: sellTotal,
+      qty,
+      holdingMonths: months,
+      profit,
+      taxRate,
+      estimatedTax: 0,
+      gainType,
+      assetType: "Stock",
+    });
+  }
+
+  for (const m of mfSells || []) {
+    if (!isInFY(m.sellDate, fyStartYear)) continue;
+    const months = getHoldingMonths(m.buyDate, m.sellDate);
+    const units = Number(m.units || m.qty) || 0;
+    const buyTotal = (Number(m.buyNav || m.buyPrice) || 0) * units;
+    const sellTotal = (Number(m.sellNav || m.sellPrice) || 0) * units;
+    const profit = m.profit != null ? Number(m.profit) : sellTotal - buyTotal;
+    const equity = isEquityMF(m);
+
+    let gainType: GainType;
+    let taxRate: number;
+
+    if (equity) {
+      const isLTCG = isLongTerm(m.buyDate, m.sellDate, 12);
+      gainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
+      taxRate = isLTCG ? getEquityLTCGRate(m.sellDate) : getEquitySTCGRate(m.sellDate);
+    } else {
+      const postApr2023 =
+        parseLocalDate(m.buyDate) >= parseLocalDate(DEBT_INDEXATION_CUTOFF_DATE);
+      if (postApr2023) {
+        gainType = "DEBT_STCG";
+        taxRate = DEBT_STCG_SLAB_RATE;
+      } else {
+        const isLTCG = isLongTerm(m.buyDate, m.sellDate, 36);
+        gainType = isLTCG ? "DEBT_LTCG" : "DEBT_STCG";
+        taxRate = isLTCG ? DEBT_LTCG_RATE : DEBT_STCG_SLAB_RATE;
+      }
+    }
+
+    result.push({
+      name: m.name || m.scheme || "Unknown MF",
+      buyDate: m.buyDate,
+      buyPrice: buyTotal,
+      sellDate: m.sellDate,
+      sellPrice: sellTotal,
+      qty: units,
+      holdingMonths: months,
+      profit,
+      taxRate,
+      estimatedTax: 0,
+      gainType,
+      assetType: "Mutual Fund",
+    });
+  }
+
+  return result;
+};
+
+const computeGainTotals = (classified: ClassifiedSell[], fyStartYear: number) => {
+  const groups: Record<GainType, ClassifiedSell[]> = {
+    EQUITY_STCG: [],
+    EQUITY_LTCG: [],
+    DEBT_STCG: [],
+    DEBT_LTCG: [],
+  };
+  for (const c of classified) groups[c.gainType].push(c);
+
+  const totals: Record<GainType, number> = {
+    EQUITY_STCG: groups.EQUITY_STCG.reduce((s, r) => s + r.profit, 0),
+    EQUITY_LTCG: groups.EQUITY_LTCG.reduce((s, r) => s + r.profit, 0),
+    DEBT_STCG: groups.DEBT_STCG.reduce((s, r) => s + r.profit, 0),
+    DEBT_LTCG: groups.DEBT_LTCG.reduce((s, r) => s + r.profit, 0),
+  };
+
+  const ltcgExemptionLimit = getEquityLTCGExemption(fyStartYear);
+  const refDate = referenceDateForFY(fyStartYear);
+  const stcgRate = getEquitySTCGRate(refDate);
+  const ltcgRate = getEquityLTCGRate(refDate);
+
+  // Section 70 Loss Set-Off Rules (equity only — see report for the
+  // debt-cross-asset-class limitation this simplification carries):
+  // 1. STCL (Short Term Loss) can set off STCG and LTCG.
+  // 2. LTCL (Long Term Loss) can only set off LTCG.
+  const rawEqSTCG = totals.EQUITY_STCG;
+  const rawEqLTCG = totals.EQUITY_LTCG;
+  const rawDebtSTCG = totals.DEBT_STCG;
+  const rawDebtLTCG = totals.DEBT_LTCG;
+
+  // Calculate net STCG after absorbing short-term losses
+  let netSTCG = Math.max(0, rawEqSTCG);
+  let stclRemaining = rawEqSTCG < 0 ? Math.abs(rawEqSTCG) : 0;
+
+  // Calculate net LTCG after absorbing long-term losses
+  let netEqLTCG = Math.max(0, rawEqLTCG);
+
+  // Apply remaining STCL against Equity LTCG (u/s 70)
+  if (stclRemaining > 0 && netEqLTCG > 0) {
+    const offset = Math.min(stclRemaining, netEqLTCG);
+    netEqLTCG -= offset;
+    stclRemaining -= offset;
+  }
+
+  // Apply Section 112A exemption (1.25L / 1L) to net Equity LTCG
+  const exemptionUsed = Math.min(netEqLTCG, ltcgExemptionLimit);
+  const taxableEquityLTCG = Math.max(0, netEqLTCG - exemptionUsed);
+  const taxableEquitySTCG = netSTCG;
+  const taxableDebtSTCG = Math.max(0, rawDebtSTCG);
+  const taxableDebtLTCG = Math.max(0, rawDebtLTCG);
+
+  // Distribute each taxable pool back across its member rows, proportional
+  // to each row's own profit share, using each ROW'S OWN tax rate — not a
+  // single blended FY rate. This matters now that equity rates can differ
+  // transaction-to-transaction within FY2024-25 (see getEquitySTCGRate). It
+  // also fixes a prior bug where a row's "Est. Tax" ignored other losses in
+  // the same bucket (a profitable STCG row showed tax on its full gross
+  // profit even when a loss elsewhere in the same STCG bucket had already
+  // reduced the group's true net taxable amount).
+  const distributeTax = (rows: ClassifiedSell[], taxablePool: number) => {
+    const grossPositive = rows.filter((r) => r.profit > 0).reduce((s, r) => s + r.profit, 0);
+    for (const r of rows) {
+      r.estimatedTax =
+        r.profit > 0 && grossPositive > 0
+          ? Math.round(taxablePool * (r.profit / grossPositive) * r.taxRate)
+          : 0;
+    }
+  };
+  distributeTax(groups.EQUITY_STCG, taxableEquitySTCG);
+  distributeTax(groups.EQUITY_LTCG, taxableEquityLTCG);
+  distributeTax(groups.DEBT_STCG, taxableDebtSTCG);
+  distributeTax(groups.DEBT_LTCG, taxableDebtLTCG);
+
+  const totalTax = Math.round(
+    groups.EQUITY_STCG.reduce((s, r) => s + r.estimatedTax, 0) +
+      groups.EQUITY_LTCG.reduce((s, r) => s + r.estimatedTax, 0) +
+      groups.DEBT_STCG.reduce((s, r) => s + r.estimatedTax, 0) +
+      groups.DEBT_LTCG.reduce((s, r) => s + r.estimatedTax, 0)
+  );
+
+  return {
+    byType: { groups, totals },
+    totalTax,
+    ltcgExemptionUsed: exemptionUsed,
+    ltcgExemptionLimit,
+    stcgRate,
+    ltcgRate,
+  };
+};
 
 /* ══════════════════════════════════════════════════════════════════
    SHARED TABLE STYLES (matching TaxVaultTab / AnnualReportTab)
@@ -422,179 +649,48 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
     [state.stockSells, state.mfSells]
   );
 
-  const [fyStartYear, setFyStartYear] = useState(() => {
-    const now = new Date();
-    return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  });
+  const [fyStartYear, setFyStartYear] = useState(getCurrentFYStartYear);
   const [activeDetailTab, setActiveDetailTab] = useState<GainType>("EQUITY_STCG");
   const [showUnrealized, setShowUnrealized] = useState(true);
   const [showHarvesting, setShowHarvesting] = useState(true);
 
-  /* ── Classify Sells ──────────────────────────────────────────── */
-  const classified = useMemo(() => {
-    const result: ClassifiedSell[] = [];
+  const currentFYStartYear = getCurrentFYStartYear();
 
-    const stockSells = state.stockSells || [];
-    for (const s of stockSells) {
-      if (!isInFY(s.sellDate, fyStartYear)) continue;
-      const months = getHoldingMonths(s.buyDate, s.sellDate);
-      const qty = Number(s.qty) || 0;
-      const buyTotal = (Number(s.buyPrice) || 0) * qty;
-      const sellTotal = (Number(s.sellPrice) || 0) * qty;
-      const profit = s.profit != null ? Number(s.profit) : sellTotal - buyTotal;
-      const isLTCG = isLongTerm(s.buyDate, s.sellDate, 12);
-      const gainType: GainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
-      const taxRate = isLTCG ? getEquityLTCGRate(fyStartYear) : getEquitySTCGRate(fyStartYear);
+  /* ── Classify Sells (for whichever FY is selected in the dropdown) ── */
+  const classified = useMemo(
+    () => classifySells(state.stockSells || [], state.mfSells || [], fyStartYear),
+    [state.stockSells, state.mfSells, fyStartYear]
+  );
 
-      result.push({
-        name: s.symbol || s.name || "Unknown Stock",
-        buyDate: s.buyDate,
-        buyPrice: buyTotal,
-        sellDate: s.sellDate,
-        sellPrice: sellTotal,
-        qty,
-        holdingMonths: months,
-        profit,
-        taxRate,
-        estimatedTax: 0,
-        gainType,
-        assetType: "Stock",
-      });
-    }
+  /* ── Compute Totals by Type (for the selected FY) ──────────────── */
+  const { byType, totalTax, ltcgExemptionUsed, ltcgExemptionLimit, stcgRate, ltcgRate } = useMemo(
+    () => computeGainTotals(classified, fyStartYear),
+    [classified, fyStartYear]
+  );
 
-    const mfSells = state.mfSells || [];
-    for (const m of mfSells) {
-      if (!isInFY(m.sellDate, fyStartYear)) continue;
-      const months = getHoldingMonths(m.buyDate, m.sellDate);
-      const units = Number(m.units || m.qty) || 0;
-      const buyTotal = (Number(m.buyNav || m.buyPrice) || 0) * units;
-      const sellTotal = (Number(m.sellNav || m.sellPrice) || 0) * units;
-      const profit = m.profit != null ? Number(m.profit) : sellTotal - buyTotal;
-      const equity = isEquityMF(m);
-
-      let gainType: GainType;
-      let taxRate: number;
-
-      if (equity) {
-        const isLTCG = isLongTerm(m.buyDate, m.sellDate, 12);
-        gainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
-        taxRate = isLTCG ? getEquityLTCGRate(fyStartYear) : getEquitySTCGRate(fyStartYear);
-      } else {
-        const buyDate = new Date(m.buyDate);
-        const postApr2023 = buyDate >= new Date(2023, 3, 1);
-        if (postApr2023) {
-          gainType = "DEBT_STCG";
-          taxRate = DEBT_STCG_SLAB_RATE;
-        } else {
-          const isLTCG = isLongTerm(m.buyDate, m.sellDate, 36);
-          gainType = isLTCG ? "DEBT_LTCG" : "DEBT_STCG";
-          taxRate = isLTCG ? DEBT_LTCG_RATE : DEBT_STCG_SLAB_RATE;
-        }
-      }
-
-      result.push({
-        name: m.name || m.scheme || "Unknown MF",
-        buyDate: m.buyDate,
-        buyPrice: buyTotal,
-        sellDate: m.sellDate,
-        sellPrice: sellTotal,
-        qty: units,
-        holdingMonths: months,
-        profit,
-        taxRate,
-        estimatedTax: 0,
-        gainType,
-        assetType: "Mutual Fund",
-      });
-    }
-
-    return result;
-  }, [state.stockSells, state.mfSells, fyStartYear]);
-
-  /* ── Compute Totals by Type ──────────────────────────────────── */
-  const { byType, totalTax, ltcgExemptionUsed, ltcgExemptionLimit, stcgRate, ltcgRate } =
-    useMemo(() => {
-      const groups: Record<GainType, ClassifiedSell[]> = {
-        EQUITY_STCG: [],
-        EQUITY_LTCG: [],
-        DEBT_STCG: [],
-        DEBT_LTCG: [],
-      };
-      for (const c of classified) groups[c.gainType].push(c);
-
-      const totals: Record<GainType, number> = {
-        EQUITY_STCG: groups.EQUITY_STCG.reduce((s, r) => s + r.profit, 0),
-        EQUITY_LTCG: groups.EQUITY_LTCG.reduce((s, r) => s + r.profit, 0),
-        DEBT_STCG: groups.DEBT_STCG.reduce((s, r) => s + r.profit, 0),
-        DEBT_LTCG: groups.DEBT_LTCG.reduce((s, r) => s + r.profit, 0),
-      };
-
-      const ltcgExemptionLimit = getEquityLTCGExemption(fyStartYear);
-      const stcgRate = getEquitySTCGRate(fyStartYear);
-      const ltcgRate = getEquityLTCGRate(fyStartYear);
-
-      // Section 70 Loss Set-Off Rules:
-      // 1. STCL (Short Term Loss) can set off STCG and LTCG.
-      // 2. LTCL (Long Term Loss) can only set off LTCG.
-      const rawEqSTCG = totals.EQUITY_STCG;
-      const rawEqLTCG = totals.EQUITY_LTCG;
-      const rawDebtSTCG = totals.DEBT_STCG;
-      const rawDebtLTCG = totals.DEBT_LTCG;
-
-      // Calculate net STCG after absorbing short-term losses
-      let netSTCG = Math.max(0, rawEqSTCG);
-      let stclRemaining = rawEqSTCG < 0 ? Math.abs(rawEqSTCG) : 0;
-
-      // Calculate net LTCG after absorbing long-term losses
-      let netEqLTCG = Math.max(0, rawEqLTCG);
-
-      // Apply remaining STCL against Equity LTCG (u/s 70)
-      if (stclRemaining > 0 && netEqLTCG > 0) {
-        const offset = Math.min(stclRemaining, netEqLTCG);
-        netEqLTCG -= offset;
-        stclRemaining -= offset;
-      }
-
-      // Apply Section 112A exemption (1.25L / 1L) to net Equity LTCG
-      const exemptionUsed = Math.min(netEqLTCG, ltcgExemptionLimit);
-      const taxableEquityLTCG = Math.max(0, netEqLTCG - exemptionUsed);
-      const taxableEquitySTCG = netSTCG;
-      const taxableDebtSTCG = Math.max(0, rawDebtSTCG);
-      const taxableDebtLTCG = Math.max(0, rawDebtLTCG);
-
-      const totalEqLTCGProfit = groups.EQUITY_LTCG
-        .filter((r) => r.profit > 0)
-        .reduce((s, r) => s + r.profit, 0);
-
-      for (const r of classified) {
-        if (r.gainType === "EQUITY_LTCG" && r.profit > 0 && totalEqLTCGProfit > 0) {
-          const share = r.profit / totalEqLTCGProfit;
-          r.estimatedTax = Math.round(taxableEquityLTCG * share * ltcgRate);
-        } else if (r.gainType === "EQUITY_STCG" && r.profit > 0) {
-          r.estimatedTax = Math.round(r.profit * stcgRate);
-        } else if (r.profit > 0) {
-          r.estimatedTax = Math.round(r.profit * r.taxRate);
-        } else {
-          r.estimatedTax = 0;
-        }
-      }
-
-      const total = Math.round(
-        taxableEquitySTCG * stcgRate +
-          taxableEquityLTCG * ltcgRate +
-          taxableDebtSTCG * DEBT_STCG_SLAB_RATE +
-          taxableDebtLTCG * DEBT_LTCG_RATE
-      );
-
-      return {
-        byType: { groups, totals },
-        totalTax: total,
-        ltcgExemptionUsed: exemptionUsed,
-        ltcgExemptionLimit,
-        stcgRate,
-        ltcgRate,
-      };
-    }, [classified, fyStartYear]);
+  // Tax-loss harvesting concerns a hypothetical sale made TODAY, to offset
+  // whatever realized gains exist in the CURRENTLY OPEN financial year — it
+  // is independent of whichever FY the user happens to be browsing in the
+  // ledger dropdown above. Recompute totals against the current FY
+  // specifically (reusing `classified`/`byType` when the dropdown already
+  // is on the current FY, to avoid duplicate work) so switching the FY
+  // filter to review old, closed years doesn't silently change the
+  // harvesting savings estimate to stale numbers from a past year.
+  const isViewingCurrentFY = fyStartYear === currentFYStartYear;
+  const currentFYClassified = useMemo(
+    () =>
+      isViewingCurrentFY
+        ? classified
+        : classifySells(state.stockSells || [], state.mfSells || [], currentFYStartYear),
+    [isViewingCurrentFY, classified, state.stockSells, state.mfSells, currentFYStartYear]
+  );
+  const currentFYTotals = useMemo(
+    () =>
+      isViewingCurrentFY
+        ? { byType, ltcgExemptionLimit, stcgRate, ltcgRate }
+        : computeGainTotals(currentFYClassified, currentFYStartYear),
+    [isViewingCurrentFY, byType, ltcgExemptionLimit, stcgRate, ltcgRate, currentFYClassified, currentFYStartYear]
+  );
 
   /* ── Unrealized Gains ────────────────────────────────────────── */
   const unrealized = useMemo(() => {
@@ -635,14 +731,28 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       const unrealizedPL = (currentNav - buyNav) * units;
       const equity = isEquityMF(m);
       const ltcgThreshold = equity ? 12 : 36;
-      const isLTCG = isLongTerm(bd, todayStr, ltcgThreshold);
 
       let wouldBeType: GainType;
+      let monthsToLTCG: number | null | "never";
       if (equity) {
+        const isLTCG = isLongTerm(bd, todayStr, ltcgThreshold);
         wouldBeType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
+        monthsToLTCG = isLTCG ? null : ltcgThreshold - months;
       } else {
-        const postApr2023 = new Date(bd) >= new Date(2023, 3, 1);
-        wouldBeType = postApr2023 ? "DEBT_STCG" : isLTCG ? "DEBT_LTCG" : "DEBT_STCG";
+        const postApr2023 = parseLocalDate(bd) >= parseLocalDate(DEBT_INDEXATION_CUTOFF_DATE);
+        if (postApr2023) {
+          // Units bought on/after 1-Apr-2023 can NEVER qualify for LTCG or
+          // indexation, no matter how long they're held — always slab rate.
+          // (Previously this fell through to the isLTCG check below, which
+          // could hit >36 months and wrongly show a green "LTCG" badge —
+          // implying a tax benefit that does not exist for these units.)
+          wouldBeType = "DEBT_STCG";
+          monthsToLTCG = "never";
+        } else {
+          const isLTCG = isLongTerm(bd, todayStr, ltcgThreshold);
+          wouldBeType = isLTCG ? "DEBT_LTCG" : "DEBT_STCG";
+          monthsToLTCG = isLTCG ? null : ltcgThreshold - months;
+        }
       }
 
       result.push({
@@ -655,7 +765,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         unrealizedPL,
         wouldBeType,
         assetType: "Mutual Fund",
-        monthsToLTCG: isLTCG ? null : ltcgThreshold - months,
+        monthsToLTCG,
       });
     }
 
@@ -663,10 +773,17 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
   }, [state.stocks, state.mutualFunds]);
 
   /* ── Tax-Loss Harvesting Suggestions ─────────────────────────── */
+  // Deliberately pulls its offset pool + rates from `currentFYTotals` (always
+  // the CURRENT financial year), not from `byType`/`stcgRate`/`ltcgRate`
+  // (whichever FY the ledger dropdown above is set to) — see the comment on
+  // currentFYTotals above.
   const harvestingSuggestions = useMemo(() => {
     const losses = unrealized.filter((h) => h.unrealizedPL < 0);
-    let remainingSTCG = Math.max(0, byType.totals.EQUITY_STCG);
-    let remainingLTCG = Math.max(0, byType.totals.EQUITY_LTCG - ltcgExemptionLimit);
+    let remainingSTCG = Math.max(0, currentFYTotals.byType.totals.EQUITY_STCG);
+    let remainingLTCG = Math.max(
+      0,
+      currentFYTotals.byType.totals.EQUITY_LTCG - currentFYTotals.ltcgExemptionLimit
+    );
 
     // Harvest largest losses first so the shared, finite realized-gains pool
     // is depleted across suggestions rather than reused by each independently
@@ -679,7 +796,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       .map((h) => {
         const absLoss = Math.abs(h.unrealizedPL);
         const isSTCG = h.wouldBeType === "EQUITY_STCG" || h.wouldBeType === "DEBT_STCG";
-        const rate = isSTCG ? stcgRate : ltcgRate;
+        const rate = isSTCG ? currentFYTotals.stcgRate : currentFYTotals.ltcgRate;
         let usableLoss: number;
         if (isSTCG) {
           // STCG losses can offset either realized STCG or LTCG gains.
@@ -698,42 +815,53 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       })
       .filter((h) => h.potentialSaving > 0)
       .sort((a, b) => b.potentialSaving - a.potentialSaving);
-  }, [unrealized, byType.totals, ltcgExemptionLimit, stcgRate, ltcgRate]);
+  }, [unrealized, currentFYTotals]);
 
   /* ── CSV Export ──────────────────────────────────────────────── */
   const handleExport = () => {
+    if (!classified.length) return;
     const allRows = classified.map((r) => ({
-      "Asset Name": r.name,
-      "Asset Type": r.assetType,
-      "Gain Category": r.gainType.replace("_", " "),
-      "Buy Date": r.buyDate,
-      "Buy Value": Math.round(r.buyPrice),
-      "Sell Date": r.sellDate,
-      "Sell Value": Math.round(r.sellPrice),
-      Qty: r.qty,
-      "Holding (Months)": r.holdingMonths,
-      "Profit/Loss": Math.round(r.profit),
-      "Tax Rate": `${(r.taxRate * 100).toFixed(1)}%`,
-      "Estimated Tax": r.estimatedTax,
+      assetName: r.name,
+      assetType: r.assetType,
+      gainCategory: r.gainType.replace("_", " "),
+      buyDate: r.buyDate,
+      buyValue: Math.round(r.buyPrice),
+      sellDate: r.sellDate,
+      sellValue: Math.round(r.sellPrice),
+      qty: r.qty,
+      holdingMonths: r.holdingMonths,
+      profitLoss: Math.round(r.profit),
+      taxRate: `${(r.taxRate * 100).toFixed(1)}%`,
+      estimatedTax: r.estimatedTax,
     }));
-    if (!allRows.length) return;
-    const headers = Object.keys(allRows[0]);
-    const csv = [
-      headers.join(","),
-      ...allRows.map((r) => headers.map((h) => `"${r[h] ?? ""}"`).join(",")),
-    ].join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `Capital_Gains_FY${fyStartYear}-${String(fyStartYear + 1).slice(2)}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    // Reuse the shared, already-tested CSV exporter (it correctly escapes
+    // embedded quotes/commas in fund names — the previous hand-rolled
+    // version here did not) instead of duplicating that logic.
+    exportArrayToCSV(
+      allRows,
+      [
+        { key: "assetName", label: "Asset Name" },
+        { key: "assetType", label: "Asset Type" },
+        { key: "gainCategory", label: "Gain Category" },
+        { key: "buyDate", label: "Buy Date" },
+        { key: "buyValue", label: "Buy Value" },
+        { key: "sellDate", label: "Sell Date" },
+        { key: "sellValue", label: "Sell Value" },
+        { key: "qty", label: "Qty" },
+        { key: "holdingMonths", label: "Holding (Months)" },
+        { key: "profitLoss", label: "Profit/Loss" },
+        { key: "taxRate", label: "Tax Rate" },
+        { key: "estimatedTax", label: "Estimated Tax" },
+      ],
+      `Capital_Gains_FY${fyStartYear}-${String(fyStartYear + 1).slice(2)}.csv`
+    );
   };
 
   /* ── Derived ─────────────────────────────────────────────────── */
   const hasSells = classified.length > 0;
   const hasHoldings = unrealized.length > 0;
   const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(2)}`;
+  const currentFYLabel = `FY ${currentFYStartYear}-${String(currentFYStartYear + 1).slice(2)}`;
   const totalRealizedPL = classified.reduce((s, r) => s + r.profit, 0);
 
   const detailTabs: { key: GainType; label: string; color: string }[] = [
@@ -875,7 +1003,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           icon={<Shield />}
           label="LTCG Exemption Used"
           value={privacyMode ? "••••" : fmtINRFull(ltcgExemptionUsed)}
-          sub={`of ${fmtINRFull(ltcgExemptionLimit)} (Sec 112A)`}
+          sub={privacyMode ? "of •••• (Sec 112A)" : `of ${fmtINRFull(ltcgExemptionLimit)} (Sec 112A)`}
           subColor={ltcgExemptionUsed >= ltcgExemptionLimit ? THEME.sage : undefined}
           color={THEME.sage}
         />
@@ -887,7 +1015,11 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
               ? "••••"
               : fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))
           }
-          sub={`${harvestingSuggestions.length} opportunities`}
+          sub={
+            isViewingCurrentFY
+              ? `${harvestingSuggestions.length} opportunities`
+              : `${harvestingSuggestions.length} opportunities (current FY, not ${fyLabel})`
+          }
           color={THEME.gold}
         />
       </div>
@@ -1035,7 +1167,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
               <Prv>{fmtINRFull(ltcgExemptionUsed)}</Prv>
             </span>
             <span style={{ fontSize: 12, color: THEME.muted, marginLeft: 4 }}>
-              / {fmtINRFull(ltcgExemptionLimit)}
+              / <Prv>{fmtINRFull(ltcgExemptionLimit)}</Prv>
             </span>
           </div>
         </div>
@@ -1265,7 +1397,13 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                         </Badge>
                       </td>
                       <td style={{ ...tdStyle, color: THEME.muted, whiteSpace: "nowrap" }}>
-                        {h.monthsToLTCG != null ? (
+                        {h.monthsToLTCG === "never" ? (
+                          <span
+                            title="Debt fund units bought on/after 1-Apr-2023 never qualify for LTCG or indexation, no matter how long they're held — always taxed at slab rate"
+                          >
+                            <Badge variant="muted">No LTCG (slab)</Badge>
+                          </span>
+                        ) : h.monthsToLTCG != null ? (
                           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                             <Clock size={11} />
                             {h.monthsToLTCG} mo
@@ -1345,7 +1483,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                       {fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))}
                     </Prv>
                   </strong>{" "}
-                  in taxes by offsetting realized gains.
+                  in taxes by offsetting your realized gains in {currentFYLabel}
+                  {!isViewingCurrentFY ? ` (the currently open FY, not the ${fyLabel} shown above)` : ""}.
                 </span>
               </div>
 
@@ -1448,10 +1587,21 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
         <span>
           <strong>Disclaimer:</strong> Tax estimates are approximate. For {fyLabel}: Equity STCG at{" "}
-          {stcgRate * 100}%, Equity LTCG at {ltcgRate * 100}% above {fmtINRFull(ltcgExemptionLimit)}{" "}
-          exemption. Debt MFs purchased after 1 Apr 2023 are taxed at slab rate regardless of
-          holding period. Actual liability may vary based on your income slab, surcharge, cess, and
-          indexation benefits. Consult a tax professional for ITR filing.
+          {stcgRate * 100}%, Equity LTCG at {ltcgRate * 100}% above{" "}
+          <Prv>{fmtINRFull(ltcgExemptionLimit)}</Prv> exemption. Debt MFs purchased after 1 Apr 2023
+          are taxed at slab rate regardless of holding period, with no LTCG or indexation benefit
+          ever, no matter how long they are held. Actual liability may vary based on your income
+          slab, surcharge, cess, and indexation benefits. Consult a tax professional for ITR
+          filing.
+          {fyStartYear === 2024 && (
+            <>
+              {" "}
+              Note: FY2024-25 straddled the 23-Jul-2024 Budget rate change — sales before that
+              date were taxed at 15% (STCG) / 10% (LTCG); sales on/after at 20% (STCG) / 12.5%
+              (LTCG). Each transaction in the ledger above is taxed at its own correct rate based
+              on its actual sale date.
+            </>
+          )}
         </span>
       </div>
     </div>

@@ -184,6 +184,7 @@ const DEFAULT_STATE = {
   billPaymentHistory: [],
   govtSchemes: [],
   salarySlips: [],
+  form26as: [],
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
   settings: {
@@ -658,6 +659,7 @@ function FinanceDashboard() {
         billPaymentHistoryQ,
         govtSchemesQ,
         salarySlipsQ,
+        form26asQ,
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -706,6 +708,7 @@ function FinanceDashboard() {
         supabase.from("bill_payment_history").select("*").eq("user_id", userId),
         supabase.from("govt_schemes").select("*").eq("user_id", userId),
         supabase.from("salary_slips").select("*").eq("user_id", userId),
+        supabase.from("form_26as").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -761,6 +764,7 @@ function FinanceDashboard() {
         billPaymentHistoryQ,
         govtSchemesQ,
         salarySlipsQ,
+        form26asQ,
       ].some((r) => r?.data && r.data.length > 0);
 
       // Backfill categories added after initial release ("Credit Card", "Real Estate") into a
@@ -1043,6 +1047,9 @@ function FinanceDashboard() {
             : {}),
           ...(!salarySlipsQ?.error && salarySlipsQ?.data != null
             ? { salarySlips: snakeToCamel(salarySlipsQ.data) }
+            : {}),
+          ...(!form26asQ?.error && form26asQ?.data != null
+            ? { form26as: snakeToCamel(form26asQ.data) }
             : {}),
         };
       });
@@ -1822,6 +1829,7 @@ function FinanceDashboard() {
       billPaymentHistory: "Bill Payment",
       govtSchemes: "Govt Scheme",
       salarySlips: "Salary Slip",
+      form26as: "Form 26AS Entry",
     };
     const label = LABEL_MAP[key] || key;
     if (!item) return label;
@@ -3055,6 +3063,7 @@ function FinanceDashboard() {
       ...push("bill_payment_history", data.billPaymentHistory),
       ...push("govt_schemes", data.govtSchemes),
       ...push("salary_slips", data.salarySlips),
+      ...push("form_26as", data.form26as),
       ...(data.netWorthHistory || []).map((entry) =>
         supabase.from("net_worth_history").upsert(
           {
@@ -5006,7 +5015,15 @@ function FinanceDashboard() {
               )}
               {tab === "paycal" && <PaymentCalendarTab state={filteredState} metrics={metrics} />}
               {tab === "capitalgains" && <CapitalGainsTab state={filteredState} />}
-              {tab === "taxtools" && <TaxToolsTab state={filteredState} metrics={metrics} />}
+              {tab === "taxtools" && (
+                <TaxToolsTab
+                  state={filteredState}
+                  metrics={metrics}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
+              )}
               {tab === "annualreport" && (
                 <AnnualReportTab
                   state={filteredState}
