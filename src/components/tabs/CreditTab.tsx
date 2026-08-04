@@ -1682,6 +1682,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
             onAddPerson={(v: any) => addItem("informalBorrowed", v)}
             onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)}
             onRemove={(id: any) => removeItem("informalBorrowed", id)}
+            onEdit={setEditId}
           />
         )}
         {sub === "lent" && (
@@ -1691,6 +1692,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
             onAddPerson={(v: any) => addItem("informalLent", v)}
             onUpdate={(id: any, patch: any) => updateItem("informalLent", id, patch)}
             onRemove={(id: any) => removeItem("informalLent", id)}
+            onEdit={setEditId}
           />
         )}
         {sub === "optimizer" && <DebtPayoffOptimizer state={state} />}
@@ -1796,6 +1798,32 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
             setEditId(null);
           }}
         />
+      )}
+      {editId && sub === "borrowed" && (
+        <Modal title="Edit Lender" onClose={() => setEditId(null)}>
+          <InformalPersonForm
+            personLabel="Lender"
+            initial={(state.informalBorrowed || []).find((x: any) => x.id === editId)}
+            onSave={(v: any) => {
+              updateItem("informalBorrowed", editId, v);
+              setEditId(null);
+            }}
+            onClose={() => setEditId(null)}
+          />
+        </Modal>
+      )}
+      {editId && sub === "lent" && (
+        <Modal title="Edit Borrower" onClose={() => setEditId(null)}>
+          <InformalPersonForm
+            personLabel="Borrower"
+            initial={(state.informalLent || []).find((x: any) => x.id === editId)}
+            onSave={(v: any) => {
+              updateItem("informalLent", editId, v);
+              setEditId(null);
+            }}
+            onClose={() => setEditId(null)}
+          />
+        </Modal>
       )}
     </div>
   );
@@ -7224,7 +7252,8 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
   );
 }
 
-function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }: any) {
+function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, onEdit }: any) {
+  const { familyProfiles } = useMasterData();
   const isBorrowed = direction === "borrowed";
   const personLabel = isBorrowed ? "Lender" : "Borrower";
   const accentColor = isBorrowed ? "var(--t-rust)" : "var(--t-accent)";
@@ -7232,6 +7261,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
   const [addPersonOpen, setAddPersonOpen] = useState(false);
   const [trancheTarget, setTrancheTarget] = useState<any>(null);
   const [paymentTarget, setPaymentTarget] = useState<any>(null);
+  const now = new Date();
 
   const totalBorrowed = items.reduce(
     (s: number, p: any) =>
@@ -7244,6 +7274,45 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
     0
   );
   const totalOutstanding = totalBorrowed - totalPaid;
+
+  // Enrich once so the summary tiles and the row list agree on the same numbers —
+  // computing settlement/overdue state twice (once for tiles, once per row) risks drift.
+  const enrichedItems = items.map((person: any) => {
+    const tranches: any[] = person.tranches || [];
+    const payments: any[] = person.payments || [];
+    const totalT = tranches.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const totalP = payments.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const outstanding = totalT - totalP;
+    const hasActivity = totalT > 0 || totalP > 0;
+    const settled = hasActivity && outstanding <= 0;
+    const overpaid = outstanding < 0;
+    const nextDueDate = tranches
+      .map((t: any) => t.dueDate)
+      .filter(Boolean)
+      .sort()[0];
+    const dueDateObj = nextDueDate ? new Date(nextDueDate + "T00:00:00") : null;
+    const isOverdue = !settled && !overpaid && !!dueDateObj && dueDateObj < now;
+    const daysOverdue = isOverdue
+      ? Math.floor((now.getTime() - dueDateObj!.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    const ownerProfile = familyProfiles.find((x: any) => x.id === person.owner);
+    const ownerLabel = ownerProfile ? ownerProfile.name : "Self";
+    return {
+      person,
+      tranches,
+      payments,
+      totalT,
+      totalP,
+      outstanding,
+      settled,
+      overpaid,
+      nextDueDate,
+      isOverdue,
+      daysOverdue,
+      ownerLabel,
+    };
+  });
+  const overdueCount = enrichedItems.filter((x) => x.isOverdue).length;
 
   const fmtD = (d: string) =>
     d
@@ -7299,6 +7368,13 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
             sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled",
             color: totalOutstanding > 0 ? accentColor : "var(--t-sage)",
             Icon: Wallet,
+          },
+          {
+            label: "Overdue",
+            value: String(overdueCount),
+            sub: overdueCount > 0 ? "Require follow-up" : "All on schedule",
+            color: overdueCount > 0 ? "var(--t-rust)" : "var(--t-sage)",
+            Icon: AlertCircle,
           },
         ].map(({ label, value, sub, color, Icon }) => (
           <div
@@ -7373,18 +7449,24 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
         <InformalEmptyState isBorrowed={isBorrowed} onAdd={() => setAddPersonOpen(true)} />
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {items.map((person: any) => {
-          const tranches: any[] = person.tranches || [];
-          const payments: any[] = person.payments || [];
-          const totalT = tranches.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-          const totalP = payments.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-          const outstanding = totalT - totalP;
+        {enrichedItems.map(
+          ({
+            person,
+            tranches,
+            payments,
+            totalT,
+            totalP,
+            outstanding,
+            settled,
+            overpaid,
+            isOverdue,
+            daysOverdue,
+            ownerLabel,
+          }: any) => {
           const isExpanded = expandedId === person.id;
-          const settled = outstanding <= 0;
           // A payment recorded larger than what was owed pushes outstanding negative —
           // collapsing that straight into "Settled ✓ ₹0" would hide that money is
           // actually owed back the other way, so it gets its own distinct state.
-          const overpaid = outstanding < 0;
           const overpaidAmt = Math.abs(outstanding);
 
           const progressPct = totalT > 0 ? Math.min(100, (totalP / totalT) * 100) : 0;
@@ -7496,6 +7578,22 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                           SETTLED
                         </span>
                       )}
+                      {isOverdue && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            color: THEME.darkInk,
+                            background: "var(--t-rust)",
+                            borderRadius: 6,
+                            padding: "2px 8px",
+                            letterSpacing: "0.05em",
+                          }}
+                          title="A loan due date has passed with an outstanding balance"
+                        >
+                          {daysOverdue}D OVERDUE
+                        </span>
+                      )}
                     </div>
                     <div
                       style={{
@@ -7506,7 +7604,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       }}
                     >
                       {tranches.length} loan{tranches.length !== 1 ? "s" : ""} · {payments.length}{" "}
-                      payment{payments.length !== 1 ? "s" : ""}
+                      payment{payments.length !== 1 ? "s" : ""} · {ownerLabel}
                       {person.note && (
                         <span style={{ color: "var(--t-muted)", fontStyle: "italic" }}>
                           {" "}
@@ -7580,6 +7678,28 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                 </div>
 
                 <div style={{ display: "flex", gap: 4, flexShrink: 0, paddingLeft: 8 }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(person.id);
+                    }}
+                    style={{
+                      ...iconBtn,
+                      color: "var(--t-muted)",
+                      background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
+                      border: "1px solid var(--t-line)",
+                      borderRadius: 8,
+                      width: 28,
+                      height: 28,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.2s ease",
+                    }}
+                    title="Edit person"
+                  >
+                    <Edit3 size={13} />
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -7682,10 +7802,25 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                           </tr>
                         </thead>
                         <tbody>
-                          {tranches.map((t: any) => (
+                          {tranches.map((t: any) => {
+                            const tDueOverdue =
+                              t.dueDate && outstanding > 0 && new Date(t.dueDate + "T00:00:00") < now;
+                            return (
                             <tr key={t.id} style={{ borderBottom: `1px dashed var(--t-line)` }}>
                               <td style={{ ...td, paddingLeft: 0, color: "var(--t-muted)" }}>
                                 {fmtD(t.date)}
+                                {t.dueDate && (
+                                  <div
+                                    style={{
+                                      fontSize: 10,
+                                      marginTop: 2,
+                                      fontWeight: tDueOverdue ? 800 : 500,
+                                      color: tDueOverdue ? "var(--t-rust)" : "var(--t-muted)",
+                                    }}
+                                  >
+                                    Due {fmtD(t.dueDate)}
+                                  </div>
+                                )}
                               </td>
                               <td
                                 style={{
@@ -7727,7 +7862,8 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                         <tfoot>
                           <tr>
@@ -7946,6 +8082,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
         <Modal title={`Add Loan — ${trancheTarget.person}`} onClose={() => setTrancheTarget(null)}>
           <InformalAmountForm
             label={isBorrowed ? "Amount Borrowed" : "Amount Lent"}
+            showDueDate
             onSave={(entry: any) => {
               const updated = [
                 ...(trancheTarget.tranches || []),
@@ -7981,9 +8118,16 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
   );
 }
 
-function InformalPersonForm({ personLabel, onSave, onClose }: any) {
+function InformalPersonForm({ personLabel, initial = null, onSave, onClose }: any) {
   const { familyProfiles } = useMasterData();
-  const [f, setF] = useState({ owner: "self", person: "", note: "", tranches: [], payments: [] });
+  // Edit mode intentionally omits tranches/payments from local state — onSave below
+  // sends only {owner, person, note} so the patch merge in updateItem can't clobber
+  // the person's existing loan/payment history with an empty array.
+  const [f, setF] = useState(
+    initial
+      ? { owner: initial.owner || "self", person: initial.person || "", note: initial.note || "" }
+      : { owner: "self", person: "", note: "", tranches: [], payments: [] }
+  );
   return (
     <>
       <Field label="Owner / Profile">
@@ -8015,13 +8159,17 @@ function InformalPersonForm({ personLabel, onSave, onClose }: any) {
           onChange={(e) => setF({ ...f, note: e.target.value })}
         />
       </Field>
-      <ModalActions onSave={() => f.person && onSave({ ...f })} onClose={onClose} saveLabel="Add" />
+      <ModalActions
+        onSave={() => f.person && onSave({ ...f })}
+        onClose={onClose}
+        saveLabel={initial ? "Save" : "Add"}
+      />
     </>
   );
 }
 
-function InformalAmountForm({ label, onSave, onClose }: any) {
-  const [f, setF] = useState({ amount: "", date: today(), note: "" });
+function InformalAmountForm({ label, showDueDate = false, onSave, onClose }: any) {
+  const [f, setF] = useState({ amount: "", date: today(), dueDate: "", note: "" });
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -8043,6 +8191,16 @@ function InformalAmountForm({ label, onSave, onClose }: any) {
           />
         </Field>
       </div>
+      {showDueDate && (
+        <Field label="Repayment Due Date (optional)">
+          <input
+            style={input}
+            type="date"
+            value={f.dueDate}
+            onChange={(e) => setF({ ...f, dueDate: e.target.value })}
+          />
+        </Field>
+      )}
       <Field label="Note (optional)">
         <input
           style={input}
@@ -8052,7 +8210,10 @@ function InformalAmountForm({ label, onSave, onClose }: any) {
         />
       </Field>
       <ModalActions
-        onSave={() => Number(f.amount) > 0 && onSave(f)}
+        onSave={() =>
+          Number(f.amount) > 0 &&
+          onSave(showDueDate ? f : { amount: f.amount, date: f.date, note: f.note })
+        }
         onClose={onClose}
         saveLabel="Save"
       />

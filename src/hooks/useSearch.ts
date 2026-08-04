@@ -155,7 +155,7 @@ export function useSearch(state: any, search: string): SearchResult[] {
           type: "Credit Card",
           name: c.issuer,
           detail: `**** ${c.last4} · ${fmtINRFull(c.outstanding)}`,
-          tab: "credit",
+          tab: "cc",
         });
       }
     });
@@ -173,7 +173,7 @@ export function useSearch(state: any, search: string): SearchResult[] {
           type: "Prepaid Card",
           name: p.cardName || p.cardType || "Prepaid",
           detail: `**** ${p.last4 || ""} · ${fmtINRFull(loaded - spent)}`,
-          tab: "credit",
+          tab: "prepaid",
         });
       }
     });
@@ -184,44 +184,44 @@ export function useSearch(state: any, search: string): SearchResult[] {
           type: "Loan Taken",
           name: l.lender,
           detail: `${l.type} · ${fmtINRFull(l.outstanding)}`,
-          tab: "credit",
+          tab: "taken",
         });
       }
     });
     // Loans Given
     (state.loansGiven || []).forEach((l: any) => {
-      if (match(l.lender) || match(l.name)) {
+      if (match(l.borrower)) {
         results.push({
           type: "Loan Given",
-          name: l.lender || l.name,
+          name: l.borrower,
           detail: fmtINRFull(l.outstanding),
-          tab: "credit",
+          tab: "given",
         });
       }
     });
-    // Informal Borrowed
+    // Informal Borrowed (From People)
     (state.informalBorrowed || []).forEach((p: any) => {
-      if (match(p.name)) {
+      if (match(p.person)) {
         const total = (p.tranches || []).reduce(
           (s: number, t: any) => s + Number(t.amount || 0),
           0
         );
         results.push({
           type: "Borrowed From",
-          name: p.name,
+          name: p.person,
           detail: fmtINRFull(total),
-          tab: "credit",
+          tab: "borrowed",
         });
       }
     });
-    // Informal Lent
+    // Informal Lent (To People)
     (state.informalLent || []).forEach((p: any) => {
-      if (match(p.name)) {
+      if (match(p.person)) {
         const total = (p.tranches || []).reduce(
           (s: number, t: any) => s + Number(t.amount || 0),
           0
         );
-        results.push({ type: "Lent To", name: p.name, detail: fmtINRFull(total), tab: "credit" });
+        results.push({ type: "Lent To", name: p.person, detail: fmtINRFull(total), tab: "lent" });
       }
     });
     // Subscriptions
