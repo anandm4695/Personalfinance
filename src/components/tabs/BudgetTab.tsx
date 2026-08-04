@@ -85,8 +85,18 @@ const fmtDate = (dateStr: string) => {
   }
 };
 
-export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _metrics }: any) {
+export function BudgetTab({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  metrics: _metrics,
+  activeProfile = "all",
+}: any) {
   const { privacyMode } = usePrivacy();
+  const { familyProfiles } = useMasterData();
+  const getOwnerName = (ownerId: string) =>
+    familyProfiles.find((p: any) => p.id === ownerId)?.name || ownerId || "Self";
   const [activeSubTab, setActiveSubTab] = useState("budget"); // "budget" or "recurring"
   const [selectedMonth, setSelectedMonth] = useState(() => today().slice(0, 7)); // YYYY-MM
   const [showAddBudget, setShowAddBudget] = useState(false);
@@ -232,6 +242,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
         category: b.category,
         monthly: b.monthly || b.monthlyLimit || 0,
         budgetMonth: selectedMonth,
+        rollover: !!b.rollover,
       });
     });
   };
@@ -252,6 +263,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
             category: otherB.category,
             monthly: otherB.monthly || otherB.monthlyLimit || 0,
             budgetMonth: selectedMonth,
+            rollover: !!otherB.rollover,
           });
         }
       });
@@ -260,7 +272,36 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
     }
   };
 
-  const totalBudget = budgetsToUse.reduce((s: number, b: any) => s + Number(b.monthly || 0), 0);
+  // Rollover: when a category has `rollover` enabled, unused budget from the
+  // immediately preceding month's explicit record carries forward into this
+  // month's effective limit. Intentionally a single-month lookback (not a
+  // compounding chain across many months) — keeps the math easy to audit from
+  // the UI and avoids silently accumulating unbounded credit across a long gap
+  // where the user forgot to set a budget.
+  const getRolloverAmount = (b: any) => {
+    if (!b.rollover) return 0;
+    const [y, m] = selectedMonth.split("-").map(Number);
+    let pm = m - 1,
+      py = y;
+    if (pm < 1) {
+      pm = 12;
+      py = y - 1;
+    }
+    const prevMonthStr = `${py}-${String(pm).padStart(2, "0")}`;
+    const prevBudget = state.budgets.find(
+      (x: any) =>
+        x.budgetMonth === prevMonthStr &&
+        x.category === b.category &&
+        (x.owner || "self") === (b.owner || "self")
+    );
+    if (!prevBudget) return 0;
+    const prevLimit = Number(prevBudget.monthly || 0);
+    const prevSpent = prevMonthSpending[b.category] || 0;
+    return Math.max(0, prevLimit - prevSpent);
+  };
+  const getEffectiveBudget = (b: any) => Number(b.monthly || 0) + getRolloverAmount(b);
+
+  const totalBudget = budgetsToUse.reduce((s: number, b: any) => s + getEffectiveBudget(b), 0);
   const totalSpent = budgetsToUse.reduce(
     (s: number, b: any) => s + (monthSpending[b.category] || 0),
     0
@@ -270,12 +311,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 
   const overBudgetCount = budgetsToUse.filter((b: any) => {
     const spent = monthSpending[b.category] || 0;
-    return spent > Number(b.monthly || 0);
+    return spent > getEffectiveBudget(b);
   }).length;
 
   const approachingBudgetCount = budgetsToUse.filter((b: any) => {
     const spent = monthSpending[b.category] || 0;
-    const budget = Number(b.monthly || 0);
+    const budget = getEffectiveBudget(b);
     if (budget <= 0) return false;
     const pct = (spent / budget) * 100;
     return pct > 80 && pct <= 100;
@@ -289,7 +330,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
     // Find the first over-budget or approaching-limit category and scroll to it
     const firstAlert = budgetsToUse.find((b: any) => {
       const spent = monthSpending[b.category] || 0;
-      const budget = Number(b.monthly || 0);
+      const budget = getEffectiveBudget(b);
       if (budget <= 0) return false;
       return (spent / budget) * 100 > 80;
     });
@@ -342,22 +383,41 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
     });
   }, [state.recurringExpenses, selectedMonth]);
 
-  // Match actual transaction to detect if a recurring expense was paid in the selected month
-  const detectPaymentTransaction = (expense: any) => {
-    const nameLower = expense.name.toLowerCase();
-    const cat = expense.category;
-    const amount = Number(expense.amount);
-    if (amount <= 0) return undefined; // guard: avoid division by zero in amtMatches
+  // Match actual transactions to recurring expenses for the selected month.
+  // Computed once (memoized) and shared by both the stats tally and the per-card
+  // status badge below — each transaction is consumed by at most one recurring
+  // expense (tracked via `usedTxnIds`). Previously each card ran its own
+  // independent `find()` over all transactions, so two recurring items sharing
+  // a category and similar amount (e.g. two EMIs both categorized "EMI") could
+  // both match — and both count as "Paid" against — the SAME single transaction,
+  // double-counting `paidTotal` and showing a false "Paid" badge on an expense
+  // that was never actually recorded.
+  const recurringPaymentMatches = useMemo(() => {
+    const usedTxnIds = new Set<string>();
+    const map: Record<string, any> = {};
+    activeRecurringExpenses.forEach((re: any) => {
+      if (!re.isActive) return;
+      const nameLower = (re.name || "").toLowerCase();
+      const cat = re.category;
+      const amount = Number(re.amount);
+      if (amount <= 0) return; // guard: avoid division by zero in amtMatches
 
-    return state.transactions.find((t: any) => {
-      if (!t.date || !t.date.startsWith(selectedMonth) || t.type !== "debit") return false;
-      const noteMatches = t.note && t.note.toLowerCase().includes(nameLower);
-      const catMatches = t.category === cat;
-      const tAmt = Number(t.amount);
-      const amtMatches = Math.abs(tAmt - amount) / amount <= 0.05; // ±5% tolerance
-      return (noteMatches || catMatches) && amtMatches;
+      const match = state.transactions.find((t: any) => {
+        if (usedTxnIds.has(t.id)) return false;
+        if (!t.date || !t.date.startsWith(selectedMonth) || t.type !== "debit") return false;
+        const noteMatches = t.note && t.note.toLowerCase().includes(nameLower);
+        const catMatches = t.category === cat;
+        const tAmt = Number(t.amount);
+        const amtMatches = Math.abs(tAmt - amount) / amount <= 0.05; // ±5% tolerance
+        return (noteMatches || catMatches) && amtMatches;
+      });
+      if (match) {
+        usedTxnIds.add(match.id);
+        map[re.id] = match;
+      }
     });
-  };
+    return map;
+  }, [activeRecurringExpenses, state.transactions, selectedMonth]);
 
   // Compute stats for recurring expenses
   const recurringStats = useMemo(() => {
@@ -385,7 +445,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 
     list.forEach((re: any) => {
       if (!re.isActive) return;
-      const match = detectPaymentTransaction(re);
+      const match = recurringPaymentMatches[re.id];
       if (match) {
         paidCount++;
         paidTotal += Number(match.amount || re.amount);
@@ -415,7 +475,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       overdueTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRecurringExpenses, state.transactions, selectedMonth]);
+  }, [activeRecurringExpenses, state.transactions, selectedMonth, recurringPaymentMatches]);
 
   // One-click Record Payment (Quick Post)
   const handleQuickPostTransaction = async (expense: any) => {
@@ -447,10 +507,13 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 
   const downloadCSV = () => {
     const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const rows = ["Category,Budget (₹),Spent (₹),Remaining (₹),% Used,MoM Change (₹),Status"];
+    const rows = [
+      "Category,Owner,Budget (₹),Rolled Over (₹),Spent (₹),Remaining (₹),% Used,MoM Change (₹),Status",
+    ];
     budgetsToUse.forEach((b: any) => {
       const spent = monthSpending[b.category] || 0;
-      const budget = Number(b.monthly || 0);
+      const rolledOver = getRolloverAmount(b);
+      const budget = getEffectiveBudget(b);
       const remaining = budget - spent;
       const pctUsed = budget > 0 ? ((spent / budget) * 100).toFixed(1) : "0";
       const prev = prevMonthSpending[b.category] || 0;
@@ -461,7 +524,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       rows.push(
         [
           q(b.category),
+          q(getOwnerName(b.owner || "self")),
           q(budget),
+          q(rolledOver ? rolledOver.toFixed(0) : ""),
           q(spent.toFixed(0)),
           q(remaining.toFixed(0)),
           q(pctUsed + "%"),
@@ -475,7 +540,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
         rows.push(
           [
             q(cat),
+            q(""),
             q("No Budget"),
+            q(""),
             q((amt as number).toFixed(0)),
             q("N/A"),
             q("N/A"),
@@ -1186,7 +1253,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               {budgetsToUse.map((b: any) => {
                 const spent = monthSpending[b.category] || 0;
                 const prevSpent = prevMonthSpending[b.category] || 0;
-                const budget = Number(b.monthly || 0);
+                const rolledOver = getRolloverAmount(b);
+                const budget = getEffectiveBudget(b);
                 const pct = budget > 0 ? (spent / budget) * 100 : 0;
                 const over = pct > 100;
                 const barColor = over ? THEME.rust : pct > 90 ? THEME.gold : THEME.sage;
@@ -1233,11 +1301,18 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 const isHighlighted = highlightedCategory === b.category;
 
                 return (
-                  <Card
+                  // `Card` is a plain function component (no forwardRef), so a `ref` passed
+                  // directly to it is silently dropped by React — that previously left
+                  // `categoryRefs` permanently empty and made "click to scroll to flagged
+                  // categories" (scrollToAlertCategories) a dead feature. Carrying the ref on
+                  // this wrapper div instead fixes the scroll-into-view + highlight pulse.
+                  <div
                     key={b.id}
                     ref={(el: HTMLDivElement | null) => {
                       categoryRefs.current[b.category] = el;
                     }}
+                  >
+                  <Card
                     style={{
                       padding: "18px 20px",
                       borderTop: `3px solid ${barColor}`,
@@ -1302,6 +1377,14 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                                 INHERITED
                               </Badge>
                             )}
+                            {/* Owner tag — only meaningful when viewing the combined "All"
+                                family profile, where budgets from multiple members are mixed
+                                together in the same category list. */}
+                            {activeProfile === "all" && (
+                              <Badge variant="muted" style={{ fontSize: 9 }}>
+                                {getOwnerName(b.owner || "self")}
+                              </Badge>
+                            )}
                             {/* Per-Category Warning Badge */}
                             <span
                               style={{
@@ -1345,6 +1428,22 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             </Prv>
                           </span>
                         </div>
+                        {rolledOver > 0 && (
+                          <div
+                            style={{
+                              fontSize: 10.5,
+                              color: THEME.accent,
+                              fontWeight: 700,
+                              marginTop: 2,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Repeat size={10} />
+                            <Prv>{fmtINRFull(rolledOver)}</Prv> rolled over from last month
+                          </div>
+                        )}
                       </div>
 
                       {/* Actions */}
@@ -1460,6 +1559,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         );
                       })()}
                   </Card>
+                  </div>
                 );
               })}
             </div>
@@ -1627,7 +1727,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               }}
             >
               {activeRecurringExpenses.map((re: any) => {
-                const match = detectPaymentTransaction(re);
+                const match = recurringPaymentMatches[re.id];
                 const hasPaid = !!match;
 
                 const now = new Date();
@@ -1750,6 +1850,11 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           >
                             {statusText}
                           </span>
+                          {activeProfile === "all" && (
+                            <Badge variant="muted" style={{ fontSize: 9 }}>
+                              {getOwnerName(re.owner || "self")}
+                            </Badge>
+                          )}
                         </div>
 
                         <div
@@ -2065,7 +2170,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontSize: 16, fontWeight: 800, color: statusColor }}>
-                            {fmtINRFull(effectiveRent)}
+                            <Prv>{fmtINRFull(effectiveRent)}</Prv>
                           </div>
                           <div
                             style={{
@@ -2106,7 +2211,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         Total rental commitment this month
                       </span>
                       <span style={{ fontSize: 14, fontWeight: 800, color: THEME.rust }}>
-                        {fmtINRFull(total)}
+                        <Prv>{fmtINRFull(total)}</Prv>
                       </span>
                     </div>
                   );
@@ -2124,6 +2229,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       {showAddBudget && (
         <BudgetModal
           existing={budgetsToUse.map((b: any) => b.category)}
+          activeProfile={activeProfile}
           onClose={() => setShowAddBudget(false)}
           onSave={(v: any) => {
             addItem("budgets", { ...v, budgetMonth: selectedMonth });
@@ -2139,6 +2245,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
             .filter((b: any) => b.id !== editBudget.id)
             .map((b: any) => b.category)}
           initialValues={editBudget}
+          activeProfile={activeProfile}
           onClose={() => setEditBudget(null)}
           onSave={(v: any) => {
             const isInheritedItem = editBudget.budgetMonth !== selectedMonth;
@@ -2161,6 +2268,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       {showAddRecurring && (
         <RecurringModal
           accounts={state.bankAccounts}
+          activeProfile={activeProfile}
           onClose={() => setShowAddRecurring(false)}
           onSave={(v: any) => {
             addItem("recurringExpenses", v);
@@ -2174,6 +2282,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
         <RecurringModal
           accounts={state.bankAccounts}
           initialValues={editRecurring}
+          activeProfile={activeProfile}
           onClose={() => setEditRecurring(null)}
           onSave={(v: any) => {
             updateItem("recurringExpenses", editRecurring.id, v);
@@ -2186,18 +2295,30 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 }
 
 // ── BUDGET MODAL COMPONENT ──
-export function BudgetModal({ onClose, onSave, initialValues = null, existing = [] }: any) {
+export function BudgetModal({
+  onClose,
+  onSave,
+  initialValues = null,
+  existing = [],
+  activeProfile = "all",
+}: any) {
   const { transactionCategories: allCats, familyProfiles } = useMasterData();
   const availableCats = allCats.filter((c: string) => !existing.includes(c));
   const defaultCat = initialValues?.category || availableCats[0] || allCats[0];
+  // Default the owner to whichever family profile is currently active, so a budget
+  // added while viewing e.g. "Wife" doesn't silently get owner="self" and vanish
+  // from that member's filtered view (the per-profile filter in useMetrics.ts
+  // matches on exact owner id).
+  const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
     initialValues
       ? {
           owner: initialValues.owner || "self",
           category: initialValues.category,
           monthly: initialValues.monthly || "",
+          rollover: !!initialValues.rollover,
         }
-      : { owner: "self", category: defaultCat, monthly: "" }
+      : { owner: defaultOwner, category: defaultCat, monthly: "", rollover: false }
   );
 
   return (
@@ -2244,6 +2365,26 @@ export function BudgetModal({ onClose, onSave, initialValues = null, existing = 
           autoFocus
         />
       </Field>
+      <Field label="Rollover">
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 8,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={f.rollover}
+            onChange={(e) => setF({ ...f, rollover: e.target.checked })}
+          />
+          <span style={{ fontSize: 13 }}>
+            Carry over unused amount into next month's budget
+          </span>
+        </label>
+      </Field>
       <ModalActions
         onSave={() => f.monthly && Number(f.monthly) > 0 && onSave(f)}
         onClose={onClose}
@@ -2255,8 +2396,17 @@ export function BudgetModal({ onClose, onSave, initialValues = null, existing = 
 }
 
 // ── RECURRING EXPENSES MODAL COMPONENT ──
-export function RecurringModal({ onClose, onSave, initialValues = null, accounts = [] }: any) {
+export function RecurringModal({
+  onClose,
+  onSave,
+  initialValues = null,
+  accounts = [],
+  activeProfile = "all",
+}: any) {
   const { transactionCategories: cats, familyProfiles } = useMasterData();
+  // Default the owner to whichever family profile is currently active — matches
+  // the fix in BudgetModal above (see comment there for why this matters).
+  const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
     initialValues
       ? {
@@ -2280,7 +2430,7 @@ export function RecurringModal({ onClose, onSave, initialValues = null, accounts
           startDate: today(),
           endDate: "",
           accountId: accounts[0]?.id || "",
-          owner: "self",
+          owner: defaultOwner,
           isActive: true,
         }
   );

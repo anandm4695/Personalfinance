@@ -4997,6 +4997,7 @@ function FinanceDashboard() {
                   removeItem={removeItem}
                   updateItem={updateItem}
                   metrics={metrics}
+                  activeProfile={activeProfile}
                 />
               )}
               {tab === "ai" && <AIAssistantTab state={filteredState} metrics={metrics} />}
