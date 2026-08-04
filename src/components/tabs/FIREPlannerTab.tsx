@@ -200,7 +200,12 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     const monthlyInflAdj = inflationRate / 100 / 12;
     const monthlyPostReturn = postRetireReturn / 100 / 12;
     let monthlyWithdraw = expenseAtRetirement / 12;
-    for (let m = 0; m <= retirementYears * 12 && drawCorpus > 0; m++) {
+    // Cap at 100 years regardless of the raw input — the Life Expectancy field
+    // has no upper clamp on direct typing (only its slider is bounded), so a
+    // stray extra digit would otherwise spin this loop for thousands of
+    // simulated years and lock up the tab.
+    const drawdownMonths = Math.min(retirementYears, 100) * 12;
+    for (let m = 0; m <= drawdownMonths && drawCorpus > 0; m++) {
       if (m % 12 === 0) {
         drawdown.push({
           year: targetAge + Math.floor(m / 12),
@@ -228,11 +233,15 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     const savingsRate = metrics.monthIncome > 0 ? (monthlySavings / metrics.monthIncome) * 100 : 0;
 
     // Monthly pension: NPS mandates annuitizing 40% of the corpus on exit, which
-    // pays out as a monthly pension (~6% annuity rate assumed). EPF, by
+    // pays out as a monthly pension (~6% annuity rate assumed). Projected
+    // forward to retirement age using the same pre-retire return assumption as
+    // the rest of the plan — using today's balance directly (as this used to)
+    // massively understated the pension for anyone more than a few years from
+    // retiring, since it ignored all growth between now and exit. EPF, by
     // contrast, is fully withdrawable as a lump sum with no forced annuity, so
     // it never converts into "pension income" here — it's already counted
     // inside currentNW/fireNumber like any other asset instead.
-    const npsCorpus = (state.nps || []).reduce((s: number, n: any) => {
+    const npsCorpusToday = (state.nps || []).reduce((s: number, n: any) => {
       const bal = Number(n.balance) || 0;
       if (bal > 0) return s + bal;
       return (
@@ -244,7 +253,8 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         )
       );
     }, 0);
-    const pensionIncome = (npsCorpus * 0.4 * 0.06) / 12;
+    const npsCorpusAtRetirement = npsCorpusToday * Math.pow(1 + returnRate / 100, yearsToFIRE);
+    const pensionIncome = (npsCorpusAtRetirement * 0.4 * 0.06) / 12;
 
     // Milestones: 25/50/75/100% checkpoints toward the FIRE number, each
     // showing the corpus needed and whether it's already been crossed —
@@ -344,6 +354,35 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       deltaYears: row.fireAge == null ? null : row.fireAge - baseFireAge,
     }));
   }, [monthlyExpense, swr, inflationRate, returnRate, monthlySavings, currentAge, fireCalc.fireAge, fireCalc.currentNW]);
+
+  // Reached-by age for each alternate FIRE scenario. Previously these four
+  // cards (Coast/Lean/Fat/Barista) showed only a corpus figure with no sense
+  // of *when* — reusing the same solver as the headline number and What-If
+  // table keeps these in lockstep with the corpus figures shown right above
+  // them instead of becoming a second drifting implementation.
+  const scenarioAges = useMemo(() => {
+    const annualExpense = monthlyExpense * 12;
+    const ageFor = (expenseMultiplier: number) => {
+      const { monthsToFIRE, reachedFIRE } = yearsToFireForAssumptions(
+        annualExpense * expenseMultiplier,
+        swr,
+        inflationRate,
+        returnRate,
+        fireCalc.currentNW,
+        monthlySavings
+      );
+      return reachedFIRE ? currentAge + monthsToFIRE / 12 : null;
+    };
+    return {
+      lean: ageFor(0.6),
+      fat: ageFor(1.5),
+      // Barista FIRE's corpus is exactly half the main FIRE number, which
+      // (since computeFireTarget is linear in annual expense) is the same as
+      // solving for half the annual expense — so this stays derived from the
+      // same formula rather than a parallel one.
+      barista: ageFor(0.5),
+    };
+  }, [monthlyExpense, swr, inflationRate, returnRate, monthlySavings, currentAge, fireCalc.currentNW]);
 
   const progressColor =
     fireCalc.progress >= 100
@@ -530,7 +569,18 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                   value={value}
                   aria-label={label}
                   step={step}
+                  min={min}
+                  max={max}
                   onChange={(e) => set(Number(e.target.value))}
+                  onBlur={(e) => {
+                    // Only the paired range slider enforces min/max while
+                    // typing; clamp on blur (not on every keystroke, which
+                    // would fight the user mid-type) so a fat-fingered value
+                    // like age 9999 can't linger and feed the charts below.
+                    if (typeof min !== "number" || typeof max !== "number") return;
+                    const n = Number(e.target.value);
+                    if (Number.isFinite(n)) set(Math.min(max, Math.max(min, n)));
+                  }}
                   className="form-input"
                   style={{
                     padding: "8px 10px",
@@ -616,24 +666,44 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         <StatCard
           label="Coast FIRE"
           value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>}
+          sub={
+            fireCalc.coastProgress >= 100
+              ? "Reached — you could stop saving today"
+              : `${fireCalc.coastProgress.toFixed(0)}% of the way there`
+          }
           icon={<Shield />}
           color={THEME.violet}
         />
         <StatCard
           label="Lean FIRE"
           value={<Prv>{fmtINRFull(fireCalc.leanFIRE)}</Prv>}
+          sub={
+            scenarioAges.lean != null
+              ? `By age ${scenarioAges.lean.toFixed(1)} · 60% of your spend`
+              : "Not reached within 50 years"
+          }
           icon={<Target />}
           color={THEME.gold}
         />
         <StatCard
           label="Fat FIRE"
           value={<Prv>{fmtINRFull(fireCalc.fatFIRE)}</Prv>}
+          sub={
+            scenarioAges.fat != null
+              ? `By age ${scenarioAges.fat.toFixed(1)} · 150% of your spend`
+              : "Not reached within 50 years"
+          }
           icon={<Zap />}
           color={THEME.sage}
         />
         <StatCard
           label="Barista FIRE"
           value={<Prv>{fmtINRFull(fireCalc.baristaNumber)}</Prv>}
+          sub={
+            scenarioAges.barista != null
+              ? `By age ${scenarioAges.barista.toFixed(1)} · half from part-time work`
+              : "Not reached within 50 years"
+          }
           icon={<TrendingUp />}
           color={THEME.accent}
         />

@@ -1417,7 +1417,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           { id: "step-sip", label: "Step-Up SIP", icon: Sparkles },
           { id: "swp", label: "SWP Calculator", icon: Wallet },
           { id: "cagr", label: "CAGR Calculator", icon: BarChart2 },
-          { id: "fire", label: "FIRE Planner", icon: Flame },
+          { id: "fire", label: "Retirement Shortfall", icon: Flame },
           { id: "fdrd", label: "FD & RD Maturity", icon: Coins },
           { id: "loan-invest", label: "Loan vs Invest", icon: ArrowRightLeft },
           { id: "projection", label: "Wealth Projection", icon: Briefcase },
@@ -2418,6 +2418,31 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         {/* ── 4. FIRE RETIREMENT PLANNER ── */}
         {calcTab === "fire" && (
           <>
+            <div
+              className="bento-col-12"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 14px",
+                marginBottom: 4,
+                borderRadius: "var(--radius-md)",
+                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+                color: THEME.textSecondary,
+                fontSize: 12,
+                fontWeight: 500,
+              }}
+            >
+              <Flame size={13} color={THEME.accent} style={{ flexShrink: 0 }} />
+              <span>
+                This tool funds a fixed number of retirement years using an inflation-adjusted
+                annuity — a different method from the perpetual safe-withdrawal-rate model in the
+                full <strong>FIRE Planner</strong> under Life Planning, which adds Lean/Coast/Fat/
+                Barista scenarios and milestone tracking. The two won&apos;t show identical
+                numbers by design.
+              </span>
+            </div>
             <div className="bento-col-5">
               <Card style={{ padding: 24 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>

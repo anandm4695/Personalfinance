@@ -112,8 +112,8 @@ describe("CalculatorsTab formula correctness", () => {
     expect(emiValue).not.toContain("Infinity");
   });
 
-  it("FIRE Planner: projects a valid FIRE year (not stuck on N/A) when post-retirement yield exactly equals inflation (real return = 0)", () => {
-    clickButtonWithText("FIRE Planner");
+  it("Retirement Shortfall: projects a valid FIRE year (not stuck on N/A) when post-retirement yield exactly equals inflation (real return = 0)", () => {
+    clickButtonWithText("Retirement Shortfall");
 
     // Bug (fixed): when realPostReturn === (1+postRet)/(1+infl) - 1 === 0,
     // the "Projected FIRE Year" loop computed
