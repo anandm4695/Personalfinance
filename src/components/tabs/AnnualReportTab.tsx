@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   FileText,
   Printer,
@@ -22,6 +22,7 @@ import {
   Unlock,
   Flame,
   Info,
+  Download,
 } from "lucide-react";
 import {
   AreaChart,
@@ -508,6 +509,13 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         fySet.add(m >= 4 ? y : y - 1);
       }
     });
+    // Also scan investment/tax/loan activity dates — a FY where the user only bought stocks/MFs
+    // or paid tax, without logging any income/transaction/net-worth entry, previously had no way
+    // to appear in this picker at all (its data was invisible and unreachable in the report).
+    (state.stocks || []).forEach((s: any) => addDate(s.buyDate));
+    (state.mutualFunds || []).forEach((m: any) => addDate(m.buyDate));
+    (state.fixedDeposits || []).forEach((fd: any) => addDate(fd.startDate));
+    (state.taxPayments || []).forEach((p: any) => addDate(p.date));
     const now = new Date();
     const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
     fySet.add(currentFYStart);
@@ -515,7 +523,15 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     return Array.from(fySet)
       .sort((a, b) => b - a)
       .map((y) => `${y}-${String(y + 1).slice(-2)}`);
-  }, [state.income, state.transactions, state.netWorthHistory]);
+  }, [
+    state.income,
+    state.transactions,
+    state.netWorthHistory,
+    state.stocks,
+    state.mutualFunds,
+    state.fixedDeposits,
+    state.taxPayments,
+  ]);
 
   const [selectedFY, setSelectedFY] = useState(availableFYs[0] || getCurrentFY());
   const { start: fyStart, end: fyEnd } = getFYDates(selectedFY);
@@ -561,13 +577,38 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     const debitTxns = (state.transactions || []).filter(
       (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type === "debit"
     );
+    // Also treat investment/tax activity dated within the FY as "data" — otherwise a year where
+    // the user only bought stocks/MFs/FDs or paid tax (without logging income/transactions) fell
+    // through to the "No Data" empty state even though there was real activity to report.
+    const hasInvestmentActivity =
+      (state.stocks || []).some((s: any) => s.buyDate && s.buyDate >= fyStart && s.buyDate <= fyEnd) ||
+      (state.mutualFunds || []).some(
+        (m: any) => m.buyDate && m.buyDate >= fyStart && m.buyDate <= fyEnd
+      ) ||
+      (state.fixedDeposits || []).some(
+        (fd: any) => fd.startDate && fd.startDate >= fyStart && fd.startDate <= fyEnd
+      ) ||
+      (state.taxPayments || []).some(
+        (p: any) => p.date && p.date >= fyStart && p.date <= fyEnd
+      );
     return (
       incomeLedger.length > 0 ||
       creditTxns.length > 0 ||
       debitTxns.length > 0 ||
+      hasInvestmentActivity ||
       (state.netWorthHistory || []).length > 0
     );
-  }, [state.income, state.transactions, state.netWorthHistory, fyStart, fyEnd]);
+  }, [
+    state.income,
+    state.transactions,
+    state.netWorthHistory,
+    state.stocks,
+    state.mutualFunds,
+    state.fixedDeposits,
+    state.taxPayments,
+    fyStart,
+    fyEnd,
+  ]);
 
   useEffect(() => {
     if (!hasAnyData) return;
@@ -617,39 +658,43 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   /* ═══════════════════════════════════════════════════════════════
      (a) NET WORTH SUMMARY
      ═══════════════════════════════════════════════════════════════ */
-  const netWorthData = useMemo(() => {
-    const history = (state.netWorthHistory || [])
-      .filter((h: any) => h.month)
-      .sort((a: any, b: any) => a.month.localeCompare(b.month));
+  // Reconstruct a month's net worth from each asset's own dated records (same helper
+  // NetWorthTimelineTab/MonthlyReportModal use) instead of ONLY reading frozen monthly
+  // snapshots. Two real gaps in the old snapshot-only approach:
+  // 1. `getFilteredStateForProfile` (useMetrics.ts) always returns `netWorthHistory: []` for
+  //    any profile other than "All" — there is no per-family-member snapshot to read, so the
+  //    entire Net Worth section (and this chart) silently showed ₹0 / stayed empty whenever a
+  //    specific family member was selected via the header's profile switcher.
+  // 2. The snapshot is only ever written for whichever month the app happened to be open in
+  //    (App.tsx's debounced auto-snapshot effect) — any month you didn't open the app leaves a
+  //    permanent gap, and the old code's `.filter(d => d.value > 0)` silently dropped those
+  //    months from the chart, compressing the x-axis and distorting the visible trend/slope.
+  // For "All" + a month with a real recorded snapshot, still prefer that snapshot — it captured
+  // the actual historical stock/MF/gold price at the time, which computeNetWorthAsOf can't
+  // (it always reconstructs holdings at TODAY's price, per its own documented limitation).
+  // Hoisted out of netWorthData so the Year-over-Year comparison section below can reuse the
+  // exact same reconstruction instead of duplicating it (and risking the two figures diverging).
+  const nwForMonth = useCallback(
+    (ym: string): number => {
+      const todayYM = today().slice(0, 7);
+      if (ym > todayYM) return 0; // can't reconstruct a month that hasn't happened yet
+      if (activeProfile === "all") {
+        const entry = (state.netWorthHistory || [])
+          .filter((h: any) => h.month)
+          .find((h: any) => h.month === ym);
+        if (entry) return Number(entry.netWorth || 0);
+      }
+      return computeNetWorthAsOf(state, ym, marketData, activeProfile).netWorth;
+    },
+    [state, marketData, activeProfile]
+  );
 
+  const netWorthData = useMemo(() => {
     const aprilKey = `${fyStartYear}-04`;
     const marchKey = `${fyStartYear + 1}-03`;
     const openingMarchKey = `${fyStartYear}-03`; // last month of the PREVIOUS FY = opening balance of this FY
     const todayYM = today().slice(0, 7);
     const isCurrentFY = todayYM >= aprilKey && todayYM <= marchKey;
-
-    // Reconstruct a month's net worth from each asset's own dated records (same helper
-    // NetWorthTimelineTab/MonthlyReportModal use) instead of ONLY reading frozen monthly
-    // snapshots. Two real gaps in the old snapshot-only approach:
-    // 1. `getFilteredStateForProfile` (useMetrics.ts) always returns `netWorthHistory: []` for
-    //    any profile other than "All" — there is no per-family-member snapshot to read, so the
-    //    entire Net Worth section (and this chart) silently showed ₹0 / stayed empty whenever a
-    //    specific family member was selected via the header's profile switcher.
-    // 2. The snapshot is only ever written for whichever month the app happened to be open in
-    //    (App.tsx's debounced auto-snapshot effect) — any month you didn't open the app leaves a
-    //    permanent gap, and the old code's `.filter(d => d.value > 0)` silently dropped those
-    //    months from the chart, compressing the x-axis and distorting the visible trend/slope.
-    // For "All" + a month with a real recorded snapshot, still prefer that snapshot — it captured
-    // the actual historical stock/MF/gold price at the time, which computeNetWorthAsOf can't
-    // (it always reconstructs holdings at TODAY's price, per its own documented limitation).
-    const nwForMonth = (ym: string): number => {
-      if (ym > todayYM) return 0; // can't reconstruct a month that hasn't happened yet
-      if (activeProfile === "all") {
-        const entry = history.find((h: any) => h.month === ym);
-        if (entry) return Number(entry.netWorth || 0);
-      }
-      return computeNetWorthAsOf(state, ym, marketData, activeProfile).netWorth;
-    };
 
     const openingNW = nwForMonth(openingMarchKey);
     const closingNW =
@@ -668,10 +713,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
     return { openingNW, closingNW, change, changePct, chartData, isCurrentFY };
   }, [
-    state,
+    nwForMonth,
     metrics.netWorth,
-    marketData,
-    activeProfile,
     selectedFY,
     fyMonths,
     fyStartYear,
@@ -860,7 +903,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
     const mfBuys = (state.mutualFunds || [])
       .filter((m: any) => m.buyDate && m.buyDate >= fyStart && m.buyDate <= fyEnd)
-      .reduce((sum: number, m: any) => sum + Number(m.invested || m.investedAmount || 0), 0);
+      .reduce((sum: number, m: any) => sum + Number(m.invested || m.investedValue || 0), 0);
 
     const fdAdds = (state.fixedDeposits || [])
       .filter((fd: any) => fd.startDate && fd.startDate >= fyStart && fd.startDate <= fyEnd)
@@ -959,6 +1002,102 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   }, [selectedFY, incomeData.monthlyChart, expenseData.monthlyMap, fyMonths]);
 
   /* ═══════════════════════════════════════════════════════════════
+     YEAR-OVER-YEAR COMPARISON — same income/expense rules as (b)/(c) above,
+     applied to the FY immediately before the selected one.
+     ═══════════════════════════════════════════════════════════════ */
+  const yoyData = useMemo(() => {
+    const isTransfer = (cat: string) =>
+      cat === "Transfer" || cat === "Self Transfer" || cat === "Self-Transfer";
+
+    const prevIncomeLedger = (state.income || []).filter(
+      (i: any) => i.date && i.date >= prevFyStart && i.date <= prevFyEnd
+    );
+    const prevLedgerTotal = prevIncomeLedger.reduce(
+      (s: number, i: any) => s + Number(i.amount || 0),
+      0
+    );
+    const prevCreditTxns = (state.transactions || []).filter(
+      (t: any) =>
+        t.date &&
+        t.date >= prevFyStart &&
+        t.date <= prevFyEnd &&
+        t.type === "credit" &&
+        !isTransfer(t.category)
+    );
+    const prevCreditTotal = prevCreditTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+
+    const prevRentalReceipts = (state.rentalProperties || []).flatMap((p: any) =>
+      (p.receipts || []).filter((r: any) => r.date && r.date >= prevFyStart && r.date <= prevFyEnd)
+    );
+    const prevRentalIncome = (
+      prevLedgerTotal > 0
+        ? prevRentalReceipts
+        : prevRentalReceipts.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+    ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
+    const prevIncome = (prevLedgerTotal > 0 ? prevLedgerTotal : prevCreditTotal) + prevRentalIncome;
+
+    const prevDebitTxns = (state.transactions || []).filter(
+      (t: any) =>
+        t.date && t.date >= prevFyStart && t.date <= prevFyEnd && t.type === "debit" && !isTransfer(t.category)
+    );
+    const prevTxnExpense = prevDebitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const prevRentPaid = (state.rentedProperties || []).reduce(
+      (sum: number, p: any) =>
+        sum +
+        (p.payments || [])
+          .filter(
+            (pay: any) =>
+              pay.date &&
+              pay.date >= prevFyStart &&
+              pay.date <= prevFyEnd &&
+              !String(pay.id || "").startsWith("bank-")
+          )
+          .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0),
+      0
+    );
+    const prevExpense = prevTxnExpense + prevRentPaid;
+
+    // The previous FY's closing net worth is, by definition, this FY's opening net worth —
+    // reuse it instead of recomputing, so the two figures can never drift apart.
+    const prevClosingNW = netWorthData.openingNW;
+    const prevOpeningNW = nwForMonth(`${fyStartYear - 1}-03`);
+    const prevNWChange = prevClosingNW - prevOpeningNW;
+
+    const hasPrevData =
+      prevIncomeLedger.length > 0 || prevCreditTxns.length > 0 || prevDebitTxns.length > 0;
+
+    const pctDelta = (curr: number, prev: number) =>
+      prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : curr > 0 ? 100 : 0;
+
+    return {
+      hasPrevData,
+      prevIncome,
+      prevExpense,
+      prevSavings: prevIncome - prevExpense,
+      prevNWChange,
+      incomeDeltaPct: pctDelta(incomeData.totalIncome, prevIncome),
+      expenseDeltaPct: pctDelta(expenseData.totalExpense, prevExpense),
+      savingsDeltaPct: pctDelta(savingsData.savings, prevIncome - prevExpense),
+      nwChangeDeltaPct: pctDelta(netWorthData.change, prevNWChange),
+    };
+  }, [
+    state.income,
+    state.transactions,
+    state.rentalProperties,
+    state.rentedProperties,
+    prevFyStart,
+    prevFyEnd,
+    fyStartYear,
+    nwForMonth,
+    netWorthData.openingNW,
+    netWorthData.change,
+    incomeData.totalIncome,
+    expenseData.totalExpense,
+    savingsData.savings,
+  ]);
+
+  /* ═══════════════════════════════════════════════════════════════
      (e) ASSET ALLOCATION
      ═══════════════════════════════════════════════════════════════ */
   const assetAllocation = useMemo(() => {
@@ -1041,12 +1180,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
     const total = alloc.reduce((s, a) => s + a.value, 0);
 
-    const prevMarchKey = `${fyStartYear}-03`;
-    const prevEntry = (state.netWorthHistory || []).find((h: any) => h.month === prevMarchKey);
-    const prevNW = prevEntry ? Number(prevEntry.netWorth || 0) : 0;
-
-    return { alloc, total, prevNW };
-  }, [metrics, state.netWorthHistory, state.mutualFunds, selectedFY, fyStartYear]);
+    return { alloc, total };
+  }, [metrics, state.mutualFunds]);
 
   /* ═══════════════════════════════════════════════════════════════
      (f) DEBT SUMMARY
@@ -1225,7 +1360,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       .filter((m: any) => m.buyDate && m.buyDate >= fyStart && m.buyDate <= fyEnd)
       .forEach((m: any) =>
         allInvestments.push({
-          amount: Number(m.invested || m.investedAmount || 0),
+          amount: Number(m.invested || m.investedValue || 0),
           name: m.name || m.scheme || "MF",
         })
       );
@@ -1267,7 +1402,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       return { name: s.name || s.symbol || "Stock", gain, gainPct };
     });
     const mfPnLs = (state.mutualFunds || []).map((m: any) => {
-      const invested = Number(m.invested || m.investedAmount || 0);
+      const invested = Number(m.invested || m.investedValue || 0);
       // Same bug as stocks above — the real field is `currentNav`, not `nav`.
       const current = Number(m.currentValue || (m.currentNav || 0) * (m.units || 0) || 0);
       const gain = current - invested;
@@ -1354,6 +1489,93 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         : THEME.rust;
   const nwTrendData = netWorthData.chartData.map((d) => d.value);
 
+  const handleExportCSV = () => {
+    const q = (v: any) => {
+      const val = typeof v === "number" ? Math.round(v) : v;
+      return `"${String(val ?? "").replace(/"/g, '""')}"`;
+    };
+    const rows: string[] = [`Annual Report — ${fyLabel}`, ""];
+    const section = (title: string, entries: [string, any][]) => {
+      rows.push(q(title));
+      entries.forEach(([label, value]) => rows.push(`${q(label)},${q(value)}`));
+      rows.push("");
+    };
+
+    section("Net Worth", [
+      ["Opening Net Worth", netWorthData.openingNW],
+      ["Closing Net Worth", netWorthData.closingNW],
+      ["Change", netWorthData.change],
+      ["Change %", `${netWorthData.changePct.toFixed(1)}%`],
+    ]);
+    section("Income", [
+      ["Total Income", incomeData.totalIncome],
+      ...incomeData.breakdown.map((c) => [c.name, c.value] as [string, any]),
+    ]);
+    section("Expenses", [
+      ["Total Expenses", expenseData.totalExpense],
+      ["Monthly Average", expenseData.avgMonthly],
+      ...expenseData.breakdown.map((c) => [c.name, c.value] as [string, any]),
+    ]);
+    section("Savings & Investment", [
+      ["Net Savings", savingsData.savings],
+      ["Savings Rate", `${savingsData.savingsRate.toFixed(1)}%`],
+      ["New Investments", savingsData.totalNewInvestments],
+      ["STCG", savingsData.stcg],
+      ["LTCG", savingsData.ltcg],
+    ]);
+    section(
+      "Asset Allocation",
+      assetAllocation.alloc.map((a) => [a.name, a.value] as [string, any])
+    );
+    if (debtData.loanCount > 0 || debtData.ccOutstanding > 0) {
+      section("Debt", [
+        ["Active Loans", debtData.loanCount],
+        ["Total Outstanding", debtData.totalOutstanding],
+        ["Annual EMI", debtData.annualEMI],
+        ["Credit Card Outstanding", debtData.ccOutstanding],
+      ]);
+    }
+    if (insuranceData.licCount > 0 || insuranceData.termCount > 0) {
+      section("Insurance", [
+        ["Total Life Cover", insuranceData.totalLifeCover],
+        ["Annual Premiums", insuranceData.totalPremiums],
+        ["Coverage Ratio", `${insuranceData.adequacyRatio.toFixed(1)}x`],
+      ]);
+    }
+    if (taxData.totalTaxPaid > 0) {
+      section("Tax", [
+        ["Total Tax Paid", taxData.totalTaxPaid],
+        ["Effective Rate", `${taxData.effectiveRate.toFixed(1)}%`],
+        ...Object.entries(taxData.byType).map(([t, a]) => [t, a] as [string, any]),
+      ]);
+    }
+    if (goalsData.totalGoals > 0) {
+      section("Goals", [
+        ["Total Goals", goalsData.totalGoals],
+        ["Completed", goalsData.completed],
+        ["Overall Progress", `${goalsData.overallPct.toFixed(0)}%`],
+      ]);
+    }
+    if (yoyData.hasPrevData) {
+      section(`vs ${getFYLabel(prevFY)}`, [
+        ["Income", incomeData.totalIncome],
+        [`Income (${getFYLabel(prevFY)})`, yoyData.prevIncome],
+        ["Expenses", expenseData.totalExpense],
+        [`Expenses (${getFYLabel(prevFY)})`, yoyData.prevExpense],
+        ["Net Savings", savingsData.savings],
+        [`Net Savings (${getFYLabel(prevFY)})`, yoyData.prevSavings],
+      ]);
+    }
+
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `annual-report-${selectedFY}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="annual-report">
       {/* Header */}
@@ -1374,6 +1596,11 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                 </option>
               ))}
             </select>
+            {hasAnyData && (
+              <Button variant="ghost" icon={<Download size={16} />} onClick={handleExportCSV}>
+                CSV
+              </Button>
+            )}
             <Button variant="accent" icon={<Printer size={16} />} onClick={() => window.print()}>
               Print / PDF
             </Button>
@@ -1523,6 +1750,102 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
               </div>
             </div>
           </Card>
+
+          {/* ─── Year-over-Year Comparison ───────────────────────────── */}
+          {yoyData.hasPrevData && (
+            <Card style={{ padding: 24, marginBottom: 24 }}>
+              <CardHeading icon={TrendingUp} title={`vs ${getFYLabel(prevFY)}`} />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {[
+                  {
+                    label: "Income",
+                    curr: incomeData.totalIncome,
+                    prev: yoyData.prevIncome,
+                    deltaPct: yoyData.incomeDeltaPct,
+                    higherIsBetter: true,
+                  },
+                  {
+                    label: "Expenses",
+                    curr: expenseData.totalExpense,
+                    prev: yoyData.prevExpense,
+                    deltaPct: yoyData.expenseDeltaPct,
+                    higherIsBetter: false,
+                  },
+                  {
+                    label: "Net Savings",
+                    curr: savingsData.savings,
+                    prev: yoyData.prevSavings,
+                    deltaPct: yoyData.savingsDeltaPct,
+                    higherIsBetter: true,
+                  },
+                  {
+                    label: "Net Worth Growth",
+                    curr: netWorthData.change,
+                    prev: yoyData.prevNWChange,
+                    deltaPct: yoyData.nwChangeDeltaPct,
+                    higherIsBetter: true,
+                  },
+                ].map((m) => {
+                  const improved = m.higherIsBetter ? m.deltaPct >= 0 : m.deltaPct <= 0;
+                  const deltaColor = m.deltaPct === 0 ? THEME.muted : improved ? THEME.sage : THEME.rust;
+                  return (
+                    <div
+                      key={m.label}
+                      style={{
+                        padding: "14px 16px",
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: THEME.muted,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                          marginBottom: 6,
+                        }}
+                      >
+                        {m.label}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 800,
+                          color: THEME.ink,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        <Prv>{fmtINRFull(m.curr)}</Prv>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
+                        {m.deltaPct >= 0 ? (
+                          <ArrowUpRight size={12} style={{ color: deltaColor }} />
+                        ) : (
+                          <ArrowDownRight size={12} style={{ color: deltaColor }} />
+                        )}
+                        <span style={{ fontSize: 12, fontWeight: 700, color: deltaColor }}>
+                          {m.deltaPct >= 0 ? "+" : ""}
+                          {m.deltaPct.toFixed(0)}%
+                        </span>
+                        <span style={{ fontSize: 10, color: THEME.muted }}>
+                          vs <Prv>{fmtINRFull(m.prev)}</Prv>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {/* ─── Interactive Scrollspy Tab Navigation ──────────────── */}
           <div
@@ -1978,7 +2301,12 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                 { label: "Mutual Funds", value: savingsData.mfBuys },
                 { label: "Fixed Deposits", value: savingsData.fdAdds },
                 { label: "PPF", value: savingsData.ppfAdds },
-                { label: "Active SIPs (annual)", value: savingsData.sipTotal },
+                // Reflects TODAY's active SIP mandates annualized, not what actually ran during
+                // the selected FY — only meaningful as a forward run-rate for the ongoing FY, so
+                // it's hidden for past (closed) FYs where it would misrepresent history.
+                ...(netWorthData.isCurrentFY
+                  ? [{ label: "Active SIPs (run-rate)", value: savingsData.sipTotal }]
+                  : []),
               ]
                 .filter((r) => r.value > 0)
                 .map((r) => (
@@ -2516,7 +2844,10 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       : incomeData.totalIncome > 0 &&
                           debtData.annualEMI / incomeData.totalIncome < 0.3
                         ? THEME.sage
-                        : THEME.gold,
+                        : incomeData.totalIncome > 0 &&
+                            debtData.annualEMI / incomeData.totalIncome < 0.5
+                          ? THEME.gold
+                          : THEME.rust,
                   pct:
                     incomeData.totalIncome > 0
                       ? Math.min(100, (debtData.annualEMI / incomeData.totalIncome) * 100)
