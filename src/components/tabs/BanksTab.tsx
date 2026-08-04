@@ -28,7 +28,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, today, autoCateg, getLocalDateString } from "../../utils/finance";
+import {
+  fmtINRFull,
+  fmtINRExact,
+  today,
+  autoCateg,
+  getLocalDateString,
+  addMonthsToDateStr,
+} from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -475,13 +482,16 @@ export function BanksTab({
     } else if (lt === "subscriptions") {
       const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
       if (!sub || !sub.renewalDate) return;
-      const base = new Date(sub.renewalDate + "T00:00:00");
-      if (isNaN(base.getTime())) return;
-      const next = new Date(base);
-      if (sub.cycle === "monthly") next.setMonth(next.getMonth() + 1);
-      else if (sub.cycle === "quarterly") next.setMonth(next.getMonth() + 3);
-      else next.setFullYear(next.getFullYear() + 1);
-      updateItem("subscriptions", lid, { renewalDate: getLocalDateString(next) });
+      // addMonthsToDateStr clamps the day-of-month to the target month's length —
+      // plain Date.setMonth overflows short months (e.g. Jan 31 monthly would land
+      // on Mar 3 instead of Feb 28).
+      const step = sub.cycle === "monthly" ? 1 : sub.cycle === "quarterly" ? 3 : 12;
+      // Track the pre-renewal cost so the tab can flag a price hike if the amount
+      // recorded here differs from what's on the subscription the next time it's edited.
+      updateItem("subscriptions", lid, {
+        renewalDate: addMonthsToDateStr(sub.renewalDate, step),
+        lastPaidAmount: amt,
+      });
     }
   };
 
