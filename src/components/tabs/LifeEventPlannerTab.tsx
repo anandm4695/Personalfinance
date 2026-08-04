@@ -238,7 +238,9 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div className="sub-tab-hero animate-fade-in-up" style={{ flexWrap: "wrap" }}>
-        <div className="sub-tab-hero-icon">🎯</div>
+        <div className="sub-tab-hero-icon">
+          <GraduationCap size={28} />
+        </div>
         <div className="sub-tab-hero-body">
           <div className="sub-tab-hero-title">Life Event Planner</div>
           <div className="sub-tab-hero-desc">

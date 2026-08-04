@@ -396,7 +396,9 @@ export const FIREPlannerTab = ({ state, metrics }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div className="sub-tab-hero animate-fade-in-up">
-        <div className="sub-tab-hero-icon">🔥</div>
+        <div className="sub-tab-hero-icon">
+          <Flame size={28} />
+        </div>
         <div className="sub-tab-hero-body">
           <div className="sub-tab-hero-title">FIRE Planner</div>
           <div className="sub-tab-hero-desc">

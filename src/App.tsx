@@ -3234,7 +3234,7 @@ function FinanceDashboard() {
             fontFamily: "'Inter', sans-serif",
           }}
         >
-          <div style={{ fontSize: 40, marginBottom: 8 }}>⚙️</div>
+          <Settings size={40} style={{ marginBottom: 8, opacity: 0.85 }} />
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>
             Backend Connection Required
           </h2>

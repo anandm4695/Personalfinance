@@ -257,7 +257,9 @@ export const LoanAmortizationTab = ({ state }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div className="sub-tab-hero animate-fade-in-up">
-        <div className="sub-tab-hero-icon">🏦</div>
+        <div className="sub-tab-hero-icon">
+          <Calculator size={28} />
+        </div>
         <div className="sub-tab-hero-body">
           <div className="sub-tab-hero-title">Loan Amortization</div>
           <div className="sub-tab-hero-desc">
