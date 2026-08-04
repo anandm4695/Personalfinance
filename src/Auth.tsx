@@ -1,7 +1,7 @@
 // @ts-nocheck
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { supabase } from "./supabaseClient";
+import { supabase, capturedUrlHash } from "./supabaseClient";
 import {
   Eye,
   EyeOff,
@@ -46,7 +46,19 @@ function friendlyError(msg: string): string {
     return "Please enter a valid email address.";
   if (m.includes("signup is disabled"))
     return "New sign-ups are currently disabled. Please contact the admin.";
+  if (m.includes("expired") || m.includes("invalid or has expired"))
+    return "This link has expired or was already used. Please request a new one.";
   return msg;
+}
+
+/* ─── Reads Supabase's error hash (#error=...&error_code=...&error_description=...),
+   sent when a recovery/confirmation link is expired, already used, or malformed.
+   Without this, a dead link silently drops the user on a blank login screen. ───── */
+function parseHashError(hash: string): string | null {
+  if (!hash || !hash.includes("error")) return null;
+  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  const desc = params.get("error_description");
+  return desc ? desc.replace(/\+/g, " ") : "This link is invalid or has expired.";
 }
 
 /* ─── Password strength ───────────────────────────────────────────────── */
@@ -78,7 +90,7 @@ export default function Auth({
 }) {
   // Detect password-recovery link in the URL hash (Supabase sends #access_token=...&type=recovery)
   const [mode, setMode] = useState<"login" | "signup" | "forgot" | "reset">(() => {
-    if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
+    if (capturedUrlHash.includes("type=recovery")) {
       return "reset";
     }
     return "login";
@@ -99,7 +111,10 @@ export default function Auth({
   const [showConfirmNewPass, setShowConfirmNewPass] = useState(false);
   const [rememberMe, setRememberMe] = useState(!!savedEmail);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const hashErr = parseHashError(capturedUrlHash);
+    return hashErr ? friendlyError(hashErr) : null;
+  });
   const [msg, setMsg] = useState<string | null>(null);
   const [slideDir, setSlideDir] = useState(1); // 1 = forward (slide in from right), -1 = back (from left)
   const shouldReduceMotion = useReducedMotion();
@@ -133,7 +148,17 @@ export default function Auth({
   const isReset = mode === "reset";
 
   // ── Auto-clear error when user starts typing ──────────────────────────
+  // Only clears once a field's value actually differs from the last render —
+  // not merely "this effect ran". A plain skip-the-first-run ref breaks under
+  // StrictMode (which double-invokes effects on mount), and effects otherwise
+  // fire once on mount regardless of deps — both would wipe out the error we
+  // seed from an expired-link hash (see capturedUrlHash above) on page load.
+  const prevFieldsRef = useRef([email, password, confirmPassword, displayName, newPassword, confirmNewPassword]);
   useEffect(() => {
+    const current = [email, password, confirmPassword, displayName, newPassword, confirmNewPassword];
+    const changed = current.some((v, i) => v !== prevFieldsRef.current[i]);
+    prevFieldsRef.current = current;
+    if (!changed) return;
     if (error) setError(null);
     if (showResendLink) setShowResendLink(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,6 +170,14 @@ export default function Auth({
     const t = setTimeout(() => setMsg(null), 6000);
     return () => clearTimeout(t);
   }, [msg]);
+
+  // ── Strip a #error=... hash (dead recovery/confirmation link) from the URL
+  // once we've read it, so refreshing the page doesn't keep re-showing it ────
+  useEffect(() => {
+    if (capturedUrlHash.includes("error") && window.location.hash) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Inline validation messages
   const emailErr =
@@ -169,6 +202,7 @@ export default function Auth({
   // ── Handle submit ──────────────────────────────────────────────────────
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // guards against Enter-key spam firing duplicate requests
     setEmailTouched(true);
 
     if (isReset) {
@@ -479,6 +513,7 @@ export default function Auth({
                     />
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setShowNewPass((v) => !v)}
                       className="af-eye-btn"
                       aria-label={showNewPass ? "Hide password" : "Show password"}
@@ -553,6 +588,7 @@ export default function Auth({
                     />
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setShowConfirmNewPass((v) => !v)}
                       className="af-eye-btn"
                       aria-label={showConfirmNewPass ? "Hide" : "Show"}
@@ -700,6 +736,7 @@ export default function Auth({
                         />
                         <button
                           type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setShowPass((v) => !v)}
                           className="af-eye-btn"
                           aria-label={showPass ? "Hide password" : "Show password"}
@@ -784,6 +821,7 @@ export default function Auth({
                         />
                         <button
                           type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setShowConfirmPass((v) => !v)}
                           className="af-eye-btn"
                           aria-label={showConfirmPass ? "Hide" : "Show"}

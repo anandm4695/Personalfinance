@@ -29,6 +29,7 @@ import {
   isDemoDbReady,
   signInToDemo,
   signOutOfDemo,
+  capturedUrlHash,
 } from "./supabaseClient";
 import Auth from "./Auth";
 import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
@@ -225,7 +226,11 @@ function FinanceDashboard() {
   // onRecoveryComplete after updateUser succeeds).
   const [recoveryMode, setRecoveryMode] = useState<boolean>(() => {
     try {
-      return typeof window !== "undefined" && window.location.hash.includes("type=recovery");
+      // Read the hash captured at module load (supabaseClient.ts), not the live
+      // window.location.hash — Supabase's own client init reads and strips the
+      // #type=recovery hash asynchronously, and can win the race against this
+      // first render, silently dropping the user into the normal dashboard.
+      return capturedUrlHash.includes("type=recovery");
     } catch {
       return false;
     }

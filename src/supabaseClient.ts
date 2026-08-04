@@ -1,5 +1,12 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+// Captured synchronously, before createBrowserClient() below constructs the
+// GoTrueClient — its own init (detectSessionInUrl) reads and strips any
+// #access_token/#error hash from the URL asynchronously, so anything that reads
+// window.location.hash later (e.g. Auth.tsx, on the first React render) can lose
+// the race and see it already gone. Read it once, here, first.
+export const capturedUrlHash = typeof window !== "undefined" ? window.location.hash : "";
+
 const LIVE_URL = import.meta.env.VITE_SUPABASE_URL ?? "";
 const LIVE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 const DEMO_URL = import.meta.env.VITE_SUPABASE_DEMO_URL ?? "";
