@@ -11,6 +11,7 @@ import {
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { SCHEME_RULES } from "../utils/govtSchemes";
+import { dueStatus } from "../components/tabs/BillPaymentTab";
 
 export type Alert = {
   level: "error" | "warn" | "info";
@@ -529,15 +530,21 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       }
     });
 
-    // Bill payment due alerts (5 days, skip auto-pay)
+    // Bill payment due alerts (5 days, skip auto-pay, skip if already paid this cycle).
+    // Reuses BillPaymentTab's dueStatus() instead of a second hand-rolled date calc —
+    // the previous inline version compared a midnight due-date against a full "now"
+    // timestamp (`billDue.getTime() < n.getTime()`), which is true for essentially any
+    // time after 00:00:00 on the due day itself, so a bill due *today* always looked
+    // "already passed" and silently got pushed a whole month out — it never alerted.
+    // It also didn't clamp dueDay to the last day of shorter months (Feb, 30-day months).
     (state.billPayments || []).forEach((b: any) => {
       if (!b.dueDay || b.autoPay) return;
-      const dueDay = Number(b.dueDay);
-      const n = new Date();
-      let billDue = new Date(n.getFullYear(), n.getMonth(), dueDay);
-      if (billDue.getTime() < n.getTime())
-        billDue = new Date(n.getFullYear(), n.getMonth() + 1, dueDay);
-      const days = Math.ceil((billDue.getTime() - n.getTime()) / 86400000);
+      const billHist = (state.billPaymentHistory || [])
+        .filter((h: any) => h.billId === b.id)
+        .sort((a: any, c: any) => (c.paidDate || "").localeCompare(a.paidDate || ""));
+      const status = dueStatus(Number(b.dueDay), billHist[0]?.paidDate);
+      if (status.paid) return;
+      const days = status.daysLeft;
       if (days >= 0 && days <= 5) {
         list.push({
           level: days <= 2 ? "error" : "warn",
@@ -661,6 +668,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     state.wishlistItems,
     state.healthInsurance,
     state.billPayments,
+    state.billPaymentHistory,
     state.realEstateProperties,
     state.realEstateDemands,
     state.realEstatePayments,

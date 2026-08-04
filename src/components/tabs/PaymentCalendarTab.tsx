@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  Receipt,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact, today } from "../../utils/finance";
@@ -75,6 +76,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
   insurance: { label: "Insurance", color: THEME.pink, icon: Heart },
   rent: { label: "Rent", color: THEME.gold, icon: Building2 },
   health: { label: "Health Ins.", color: THEME.sage, icon: Shield },
+  bill: { label: "Utility Bill", color: THEME.rust, icon: Receipt },
   other: { label: "Other", color: THEME.muted, icon: Wallet },
 };
 
@@ -188,6 +190,25 @@ export function PaymentCalendarTab({ state }: any) {
     addInsurance(state.termPlans, "Term", "insurance");
     addInsurance(state.investmentPlans, "Inv. Plan", "insurance");
     addInsurance(state.healthInsurance, "Health", "health");
+
+    // Utility bills (electricity, gas, water, broadband, mobile, etc.) — this is
+    // exactly the same kind of recurring monthly due-date commitment as EMIs/SIPs/
+    // subscriptions above, but was previously missing from this calendar entirely.
+    // Included regardless of auto-pay: it's still real money going out each month,
+    // auto-pay only changes who initiates it.
+    (state.billPayments || []).forEach((b: any) => {
+      if (!b.amount || Number(b.amount) <= 0 || !b.dueDay) return;
+      items.push({
+        id: `bill-${b.id}`,
+        name: b.nickname || b.provider || "Bill",
+        type: "bill",
+        amount: Number(b.amount),
+        frequency: "monthly",
+        dueDay: Number(b.dueDay),
+        owner: b.owner,
+        monthsLeft: 9999,
+      });
+    });
 
     // Rent paid (rented-in properties)
     (state.rentedProperties || []).forEach((p: any) => {
@@ -357,7 +378,7 @@ export function PaymentCalendarTab({ state }: any) {
   if (payments.length === 0) {
     return (
       <div>
-        <SectionTitle sub="All EMIs, SIPs, subscriptions & premiums by date">
+        <SectionTitle sub="All EMIs, SIPs, subscriptions, bills & premiums by date">
           Payment Calendar
         </SectionTitle>
         <EmptyState
@@ -365,8 +386,8 @@ export function PaymentCalendarTab({ state }: any) {
           gradient={`linear-gradient(135deg, ${THEME.violet} 0%, color-mix(in srgb, ${THEME.violet} 55%, white) 100%)`}
           dotColor={THEME.violet}
           title="No Recurring Payments"
-          description="This calendar plots every EMI, SIP, RD, subscription and insurance premium you track elsewhere in the app onto a monthly view — add one to see it show up here by due date."
-          pills={["Loan EMIs", "SIPs & RDs", "Subscriptions", "Insurance Premiums"]}
+          description="This calendar plots every EMI, SIP, RD, subscription, utility bill and insurance premium you track elsewhere in the app onto a monthly view — add one to see it show up here by due date."
+          pills={["Loan EMIs", "SIPs & RDs", "Subscriptions", "Utility Bills", "Insurance Premiums"]}
         />
       </div>
     );
@@ -383,7 +404,7 @@ export function PaymentCalendarTab({ state }: any) {
           .paycal-pill { font-size: 8px !important; padding: 1px 2px !important; }
         }
       `}</style>
-      <SectionTitle sub="Every recurring outflow — EMIs, SIPs, RDs, subscriptions & insurance premiums plotted by date">
+      <SectionTitle sub="Every recurring outflow — EMIs, SIPs, RDs, subscriptions, bills & insurance premiums plotted by date">
         Payment Calendar
       </SectionTitle>
 

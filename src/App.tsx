@@ -2468,6 +2468,15 @@ function FinanceDashboard() {
           (p: any) => p.propertyId !== id
         );
       }
+      if (key === "billPayments") {
+        // The DB side already cascades (bill_payment_history.bill_id ON DELETE
+        // CASCADE), but local state didn't mirror that — orphaned payment-history
+        // rows for the deleted bill stuck around in memory until the next full
+        // reload, same class of bug fixed above for realEstateProperties.
+        next.billPaymentHistory = (s.billPaymentHistory || []).filter(
+          (h: any) => h.billId !== id
+        );
+      }
       if (key === "bankAccounts") {
         // Transactions keep their history but lose the (now-invalid) account reference,
         // matching the delete-confirmation copy shown to the user.
