@@ -31,6 +31,7 @@ import {
   today,
   getCCDueDate,
   getLocalDateString,
+  getEffectiveRent,
 } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -503,9 +504,15 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       const lastDay = new Date(year, month + 1, 0).getDate();
       return new Date(year, month, Math.min(day, lastDay));
     };
+    const ordinalSuffix = (n: number) => ["st", "nd", "rd"][((((n + 90) % 100) - 10) % 10) - 1] || "th";
     (state.rentedProperties || [])
-      .filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0)
+      .filter((p: any) => p.isActive !== false && getEffectiveRent(p) > 0)
       .forEach((p: any) => {
+        // Use the escalation-aware effective rent, not the static `monthlyRent`
+        // field — that field is only ever set once at creation and never updated
+        // as escalation tiers advance, so a property past its first tier boundary
+        // was silently reminding at a stale (too-low) rent amount.
+        const rentAmt = getEffectiveRent(p);
         const dueDay = p.dueDay ? parseInt(p.dueDay, 10) : 5;
         const currentYear = todayD.getFullYear();
         const currentMonth = todayD.getMonth();
@@ -519,14 +526,14 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           list.push({
             id: "rent-" + p.id,
             title: `${p.propertyName || "Rent"} — Monthly Rent`,
-            subtitle: `Rent: ${fmtINRExact(p.monthlyRent)} · Due on ${dueDay}${["st", "nd", "rd"][((((dueDay + 90) % 100) - 10) % 10) - 1] || "th"} of month`,
+            subtitle: `Rent: ${fmtINRExact(rentAmt)} · Due on ${dueDay}${ordinalSuffix(dueDay)} of month`,
             date: getLocalDateString(
               dueDay >= todayD.getDate()
                 ? dueDate
                 : clampedRentDate(currentYear, currentMonth + 1, dueDay)
             ),
             type: "Rent",
-            amount: Number(p.monthlyRent || 0),
+            amount: rentAmt,
             isOutflow: true,
           });
         } else {
@@ -543,11 +550,67 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             list.push({
               id: "rent-next-" + p.id,
               title: `${p.propertyName || "Rent"} — Monthly Rent`,
-              subtitle: `Rent: ${fmtINRExact(p.monthlyRent)} · This month already paid ✓`,
+              subtitle: `Rent: ${fmtINRExact(rentAmt)} · This month already paid ✓`,
               date: getLocalDateString(nextDueDate),
               type: "Rent",
-              amount: Number(p.monthlyRent || 0),
+              amount: rentAmt,
               isOutflow: true,
+            });
+          }
+        }
+      });
+
+    // ── 9b. RENTAL PROPERTIES (Rented Out) — Rent Receivable Dues ──
+    // Mirrors block 9 above but for the landlord side: reminds when a tenant's
+    // rent hasn't been logged as received yet for the current/next cycle. This
+    // side previously had zero due-date coverage anywhere in the app even
+    // though the DB (`rental_properties.due_day`, migration 25) already
+    // supports it for both directions.
+    (state.rentalProperties || [])
+      .filter((p: any) => p.isActive !== false && getEffectiveRent(p) > 0)
+      .forEach((p: any) => {
+        const rentAmt = getEffectiveRent(p);
+        const dueDay = p.dueDay ? parseInt(p.dueDay, 10) : 5;
+        const currentYear = todayD.getFullYear();
+        const currentMonth = todayD.getMonth();
+        const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+        const receivedCurrent = (p.receipts || []).some(
+          (r: any) => r.date && r.date.startsWith(currentMonthStr)
+        );
+
+        if (!receivedCurrent) {
+          const dueDate = clampedRentDate(currentYear, currentMonth, dueDay);
+          list.push({
+            id: "rent-recv-" + p.id,
+            title: `${p.propertyName || "Rent"} — Rent Receivable`,
+            subtitle: `Expected: ${fmtINRExact(rentAmt)} · Due on ${dueDay}${ordinalSuffix(dueDay)} of month`,
+            date: getLocalDateString(
+              dueDay >= todayD.getDate()
+                ? dueDate
+                : clampedRentDate(currentYear, currentMonth + 1, dueDay)
+            ),
+            type: "Rent",
+            amount: rentAmt,
+            isOutflow: false,
+          });
+        } else {
+          const nextMonth = currentMonth + 1;
+          const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
+          const nextMonthNorm = nextMonth > 11 ? 0 : nextMonth;
+          const nextMonthStr = `${nextYear}-${String(nextMonthNorm + 1).padStart(2, "0")}`;
+          const receivedNext = (p.receipts || []).some(
+            (r: any) => r.date && r.date.startsWith(nextMonthStr)
+          );
+          if (!receivedNext) {
+            const nextDueDate = clampedRentDate(nextYear, nextMonthNorm, dueDay);
+            list.push({
+              id: "rent-recv-next-" + p.id,
+              title: `${p.propertyName || "Rent"} — Rent Receivable`,
+              subtitle: `Expected: ${fmtINRExact(rentAmt)} · This month already received ✓`,
+              date: getLocalDateString(nextDueDate),
+              type: "Rent",
+              amount: rentAmt,
+              isOutflow: false,
             });
           }
         }
