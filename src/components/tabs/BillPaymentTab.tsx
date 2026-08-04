@@ -30,7 +30,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // Bill category colors — fixed THEME tokens instead of raw hex so tags stay
 // theme-aware in dark mode and never coincidentally match a user-selectable
@@ -54,7 +54,10 @@ function catIcon(cat: string, size = 18) {
   return <Icon size={size} color={color} />;
 }
 
-export function dueStatus(dueDayOfMonth: number): { label: string; color: string; daysLeft: number } {
+export function dueStatus(
+  dueDayOfMonth: number,
+  lastPaidDate?: string | null
+): { label: string; color: string; daysLeft: number; paid: boolean } {
   const now = new Date();
   // Clamp to the last day of the target month so a dueDay of 29/30/31 doesn't
   // overflow into the following month (e.g. Feb 31 -> Mar 3) when the target
@@ -70,11 +73,24 @@ export function dueStatus(dueDayOfMonth: number): { label: string; color: string
   if (target.getTime() < todayMidnight.getTime()) {
     target = clampedDue(now.getFullYear(), now.getMonth() + 1);
   }
+  // If a payment was logged after the due date that opened the current billing
+  // cycle (one clamped due-day occurrence before `target`), this bill is already
+  // settled for this cycle — surface "Paid" instead of nagging with a due-in-Nd
+  // countdown all the way until next month's due date rolls around. Without this,
+  // a bill paid on the 1st still showed "Due in 12d" (etc.) and kept appearing in
+  // the urgent "Due This Week" list/banner right up until the following cycle.
+  if (lastPaidDate) {
+    const cycleStart = clampedDue(target.getFullYear(), target.getMonth() - 1);
+    const paidAt = new Date(lastPaidDate + "T00:00:00");
+    if (!isNaN(paidAt.getTime()) && paidAt.getTime() > cycleStart.getTime()) {
+      return { label: "Paid", color: THEME.success, daysLeft: Infinity, paid: true };
+    }
+  }
   const days = Math.ceil((target.getTime() - todayMidnight.getTime()) / 86400000);
-  if (days <= 0) return { label: "Due Today", color: THEME.danger, daysLeft: 0 };
-  if (days <= 3) return { label: `Due in ${days}d`, color: THEME.danger, daysLeft: days };
-  if (days <= 7) return { label: `Due in ${days}d`, color: THEME.warning, daysLeft: days };
-  return { label: `Due in ${days}d`, color: THEME.success, daysLeft: days };
+  if (days <= 0) return { label: "Due Today", color: THEME.danger, daysLeft: 0, paid: false };
+  if (days <= 3) return { label: `Due in ${days}d`, color: THEME.danger, daysLeft: days, paid: false };
+  if (days <= 7) return { label: `Due in ${days}d`, color: THEME.warning, daysLeft: days, paid: false };
+  return { label: `Due in ${days}d`, color: THEME.success, daysLeft: days, paid: false };
 }
 
 const EMPTY_BILL = {
@@ -303,6 +319,7 @@ function PaymentForm({ bill, onSave, onClose }: any) {
 }
 
 export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) {
+  const { privacyMode } = usePrivacy();
   const bills: any[] = state.billPayments || [];
   const history: any[] = state.billPaymentHistory || [];
   const [modal, setModal] = useState<any>(null);
@@ -311,10 +328,20 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
 
   const totalMonthly = bills.reduce((s, b) => s + Number(b.amount || 0), 0);
 
+  const billHistory = (billId: string) =>
+    history
+      .filter((h) => h.billId === billId)
+      .sort((a, b) => (b.paidDate || "").localeCompare(a.paidDate || ""));
+
+  // Auto-pay bills are debited automatically, so they're excluded from the urgent
+  // "Due This Week" widget/banner — matching the same skip already applied to the
+  // global alerts bell (useAlerts.ts) for this exact reason. A bill already paid for
+  // its current cycle (dueStatus returns paid:true / daysLeft:Infinity) is likewise
+  // excluded so it doesn't keep nagging for a "Pay Now" that's already been logged.
   const upcomingDue = bills
-    .filter((b) => b.dueDay)
-    .map((b) => ({ ...b, ...dueStatus(Number(b.dueDay)) }))
-    .filter((b) => b.daysLeft <= 7)
+    .filter((b) => b.dueDay && !b.autoPay)
+    .map((b) => ({ ...b, ...dueStatus(Number(b.dueDay), billHistory(b.id)[0]?.paidDate) }))
+    .filter((b) => !b.paid && b.daysLeft <= 7)
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
   const saveBill = (data: any) => {
@@ -330,11 +357,6 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
     addItem("billPaymentHistory", data);
     setPayModal(null);
   };
-
-  const billHistory = (billId: string) =>
-    history
-      .filter((h) => h.billId === billId)
-      .sort((a, b) => (b.paidDate || "").localeCompare(a.paidDate || ""));
 
   return (
     <div>
@@ -363,7 +385,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
             <StatCard
               label="Monthly Bills"
               value={<Prv>{fmtINRFull(totalMonthly)}</Prv>}
-              sub={`${bills.length} bill${bills.length === 1 ? "" : "s"} tracked · ${fmtINRFull(totalMonthly * 12)}/yr`}
+              sub={`${bills.length} bill${bills.length === 1 ? "" : "s"} tracked · ${privacyMode ? "••••" : fmtINRFull(totalMonthly * 12)}/yr`}
               icon={<IndianRupee size={18} />}
               color={THEME.primary}
             />
@@ -437,10 +459,10 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {bills.map((b: any) => {
             const cat = CAT_MAP[b.category] || CAT_MAP.other;
-            const status = b.dueDay ? dueStatus(Number(b.dueDay)) : null;
             const bHistory = billHistory(b.id);
             const isExpanded = expanded === b.id;
             const lastPaid = bHistory[0];
+            const status = b.dueDay ? dueStatus(Number(b.dueDay), lastPaid?.paidDate) : null;
 
             return (
               <Card key={b.id} style={{ borderLeft: `4px solid ${cat.color}` }}>
@@ -473,12 +495,21 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>
                       {b.dueDay ? `Due on ${b.dueDay}${ordinal(Number(b.dueDay))}` : ""}
+                      {lastPaid
+                        ? ` · Paid ${new Date(lastPaid.paidDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}`
+                        : ""}
                     </div>
                   </div>
                   {status && (
                     <Badge
                       variant={
-                        status.daysLeft <= 3 ? "rust" : status.daysLeft <= 7 ? "gold" : "sage"
+                        status.paid
+                          ? "sage"
+                          : status.daysLeft <= 3
+                            ? "rust"
+                            : status.daysLeft <= 7
+                              ? "gold"
+                              : "sage"
                       }
                     >
                       {status.label}
