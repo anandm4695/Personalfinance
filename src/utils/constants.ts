@@ -28,6 +28,14 @@ export const THEME = {
   violet: "var(--t-violet)",
   pink: "var(--t-pink)",
   cyan: "var(--t-cyan)",
+  // Validated 6-slot colorblind-safe categorical sequence for charts with a
+  // fixed category axis (see --t-chart-N in styles.css). Keep in this order.
+  chart1: "var(--t-chart-1)",
+  chart2: "var(--t-chart-2)",
+  chart3: "var(--t-chart-3)",
+  chart4: "var(--t-chart-4)",
+  chart5: "var(--t-chart-5)",
+  chart6: "var(--t-chart-6)",
 };
 
 // 11 corporate accent colors — one per theme preset (perfect 1:1 mapping).

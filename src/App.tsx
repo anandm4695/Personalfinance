@@ -43,6 +43,7 @@ import {
   loadState,
   saveStateLocal,
   getLocalDateString,
+  addMonthsToDateStr,
 } from "./utils/finance";
 import {
   getCurrentFY,
@@ -1644,28 +1645,33 @@ function FinanceDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
-  // Auto-advance overdue subscription renewal dates based on their billing cycle
+  // Auto-advance overdue subscription renewal dates based on their billing cycle.
+  // Compares/advances on plain "YYYY-MM-DD" strings throughout (ISO date strings sort
+  // lexicographically, so string `<` is a safe stand-in for calendar-date comparison) —
+  // avoids ever mixing UTC-parsed and local-parsed `Date` instants, which previously
+  // could misjudge a renewal landing exactly "today" as still overdue in IST.
   useEffect(() => {
     if (!loaded) return;
-    const todayD = new Date(today());
+    const todayStr = today();
     const toAdvance = state.subscriptions.filter((s: any) => {
       if (!s.renewalDate || s.paused) return false;
-      return new Date(s.renewalDate) < todayD;
+      return s.renewalDate < todayStr;
     });
     if (toAdvance.length === 0) return;
     (async () => {
       await Promise.all(
         toAdvance.map(async (s: any) => {
-          let d = new Date(s.renewalDate);
-          // Advance until the renewal date is in the future
-          while (d < todayD) {
-            if (s.cycle === "yearly") d = new Date(d.getFullYear() + 1, d.getMonth(), d.getDate());
-            else if (s.cycle === "quarterly")
-              d = new Date(d.getFullYear(), d.getMonth() + 3, d.getDate());
-            else d = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
+          // Advance in whole cycle steps via addMonthsToDateStr, which clamps the
+          // day-of-month to the target month's length (e.g. Jan 31 monthly -> Feb 28,
+          // not Mar 3) — plain Date.setMonth/constructor math overflows short months.
+          let dateStr = s.renewalDate;
+          const step = s.cycle === "yearly" ? 12 : s.cycle === "quarterly" ? 3 : 1;
+          let guard = 0;
+          while (dateStr < todayStr && guard < 1200) {
+            dateStr = addMonthsToDateStr(dateStr, step);
+            guard++;
           }
-          const newDate = getLocalDateString(d);
-          await updateItem("subscriptions", s.id, { renewalDate: newDate });
+          await updateItem("subscriptions", s.id, { renewalDate: dateStr });
         })
       );
     })();
@@ -2439,16 +2445,15 @@ function FinanceDashboard() {
         // transaction is added — roll it back the same amount so deleting the payment
         // truly undoes it (previously this branch was missing, so the renewal date stayed
         // advanced forever after a linked subscription payment was deleted).
+        // Uses addMonthsToDateStr (day-of-month clamped to the target month's length)
+        // instead of Date.setMonth, which silently overflows short months — e.g. rolling
+        // back a monthly cycle from Mar 31 must land on Feb 28, not overflow to Mar 2/3.
         const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
         if (sub && sub.renewalDate) {
-          const base = new Date(sub.renewalDate + "T00:00:00");
-          if (!isNaN(base.getTime())) {
-            const prev = new Date(base);
-            if (sub.cycle === "monthly") prev.setMonth(prev.getMonth() - 1);
-            else if (sub.cycle === "quarterly") prev.setMonth(prev.getMonth() - 3);
-            else prev.setFullYear(prev.getFullYear() - 1);
-            updateItem("subscriptions", lid, { renewalDate: getLocalDateString(prev) });
-          }
+          const step = sub.cycle === "yearly" ? -12 : sub.cycle === "quarterly" ? -3 : -1;
+          updateItem("subscriptions", lid, {
+            renewalDate: addMonthsToDateStr(sub.renewalDate, step),
+          });
         }
       }
     }

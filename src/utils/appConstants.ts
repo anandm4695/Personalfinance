@@ -152,6 +152,7 @@ export const NUMERIC_COLS = new Set([
   "interest_rate",
   "estimated_cost",
   "current_saved",
+  "last_paid_amount",
   // health_insurance
   "sum_insured",
   "premium",

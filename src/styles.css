@@ -25,6 +25,18 @@
   --t-pink: #ec4899;
   --t-cyan: #0891b2;
 
+  /* Chart categorical slots — a validated 6-color colorblind-safe sequence
+     (adjacent-pair CVD + normal-vision floors pass in both light/dark, see
+     dataviz skill reference palette) for charts needing a fixed, ordered
+     category axis (e.g. Subscriptions category-breakdown donut). Also not
+     theme-preset-driven — keep the ordering stable, don't reshuffle. */
+  --t-chart-1: #2a78d6; /* blue */
+  --t-chart-2: #eb6834; /* orange */
+  --t-chart-3: #1baf7a; /* aqua */
+  --t-chart-4: #eda100; /* yellow */
+  --t-chart-5: #e87ba4; /* magenta */
+  --t-chart-6: #008300; /* green */
+
   /* Surface hierarchy — subtle warm tint */
   --surface-0: #ffffff;
   --surface-1: #f1f5f9;
@@ -129,6 +141,13 @@
   --t-violet: #a78bfa;
   --t-pink: #f472b6;
   --t-cyan: #22d3ee;
+
+  --t-chart-1: #3987e5;
+  --t-chart-2: #d95926;
+  --t-chart-3: #199e70;
+  --t-chart-4: #c98500;
+  --t-chart-5: #d55181;
+  --t-chart-6: #008300;
 }
 
 /* ── Base Reset ────────────────────────────────────────────────── */

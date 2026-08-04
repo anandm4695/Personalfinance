@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import {
   Plus,
   Play,
@@ -14,6 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   MessageSquare,
+  TrendingUp,
+  PieChart as PieIcon,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact } from "../../utils/finance";
@@ -25,6 +28,20 @@ import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+
+// Fixed, validated colorblind-safe order (see THEME.chart1..6 / --t-chart-N in
+// styles.css) — "Other" gets the neutral muted gray, a deliberate exception
+// (not part of the 6-color categorical sequence) since it's a catch-all, not
+// a real identity.
+const CATEGORY_COLORS: Record<string, string> = {
+  Entertainment: THEME.chart1,
+  Productivity: THEME.chart2,
+  "Storage/Cloud": THEME.chart3,
+  "News/Media": THEME.chart4,
+  Fitness: THEME.chart5,
+  Utilities: THEME.chart6,
+  Other: THEME.muted,
+};
 
 const SUB_LOGOS: Record<string, string> = {
   netflix: "netflix.com",
@@ -257,6 +274,35 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     return Object.entries(groups).filter(([, subs]) => subs.length > 0);
   }, [activeSubs]);
 
+  // Category → monthly-equivalent spend, for the breakdown donut chart. Reuses the
+  // exact same category grouping as the accordion above so the two never disagree.
+  const categoryBreakdown = useMemo(
+    () =>
+      groupedSubs
+        .map(([cat, subs]) => ({
+          category: cat,
+          monthly: (subs as any[]).reduce((acc: number, s: any) => {
+            const amount = Number(s.amount) || 0;
+            if (s.cycle === "yearly") return acc + amount / 12;
+            if (s.cycle === "quarterly") return acc + amount / 3;
+            return acc + amount;
+          }, 0),
+          count: (subs as any[]).length,
+          color: CATEGORY_COLORS[cat] || THEME.muted,
+        }))
+        .filter((c) => c.monthly > 0)
+        .sort((a, b) => b.monthly - a.monthly),
+    [groupedSubs]
+  );
+
+  // Subscriptions where the last bank-linked auto-posted payment (`lastPaidAmount`,
+  // set by BanksTab's autoPostLinkedTransaction) differs from the tracked cost —
+  // i.e. the service actually charged more/less than what's recorded here.
+  const priceChanged = (s: any) =>
+    s.lastPaidAmount != null &&
+    Number(s.lastPaidAmount) > 0 &&
+    Math.round(Number(s.lastPaidAmount) * 100) !== Math.round(Number(s.amount) * 100);
+
   const toggleCategory = (cat: string) => {
     setCollapsedCategories((prev) => {
       const next = new Set(prev);
@@ -394,6 +440,111 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
         );
       })()}
 
+      {/* ── Category Breakdown Donut ── */}
+      {categoryBreakdown.length > 1 && (
+        <Card
+          style={{
+            marginBottom: 24,
+            padding: "18px 20px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 24,
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "0 0 auto" }}>
+            <div style={{ width: 150, height: 150, position: "relative", flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <PieChart>
+                  <Pie
+                    data={categoryBreakdown}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={68}
+                    paddingAngle={2}
+                    dataKey="monthly"
+                    nameKey="category"
+                    stroke="var(--t-paper)"
+                    strokeWidth={2}
+                  >
+                    {categoryBreakdown.map((c) => (
+                      <Cell key={c.category} fill={c.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: any, name: any) => [
+                      privacyMode ? "••••" : fmtINRFull(Number(value)),
+                      name,
+                    ]}
+                    contentStyle={{
+                      background: "var(--t-paper)",
+                      border: `1px solid ${THEME.line}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: THEME.ink,
+                    }}
+                    labelStyle={{ color: THEME.ink }}
+                    itemStyle={{ color: THEME.ink }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                <PieIcon size={13} color={THEME.muted} style={{ marginBottom: 2 }} />
+                <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>By category</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginBottom: 10 }}>
+              Category Breakdown
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {categoryBreakdown.map((c) => (
+                <div
+                  key={c.category}
+                  style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}
+                >
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: 3,
+                      background: c.color,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ color: THEME.ink, fontWeight: 700, flex: 1 }}>{c.category}</span>
+                  <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>
+                    {c.count} · {((c.monthly / totalMonthly) * 100).toFixed(0)}%
+                  </span>
+                  <span
+                    style={{
+                      color: THEME.ink,
+                      fontWeight: 800,
+                      minWidth: 64,
+                      textAlign: "right",
+                    }}
+                  >
+                    <Prv>{fmtINRFull(c.monthly)}</Prv>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* ── Upcoming Renewals Section ── */}
       {upcomingSubs.length > 0 && (
         <Card
@@ -445,7 +596,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                         : days < 0
                           ? `${Math.abs(days)}d overdue`
                           : `${days}d`}{" "}
-                      · {fmtINRExact(s.amount)}
+                      · <Prv>{fmtINRExact(s.amount)}</Prv>
                     </div>
                   </div>
                 </div>
@@ -575,7 +726,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                 }}
                               >
                                 <span style={{ color: THEME.accent, whiteSpace: "nowrap" }}>
-                                  {fmtINRExact(s.amount)}
+                                  <Prv>{fmtINRExact(s.amount)}</Prv>
                                 </span>
                                 <span style={{ opacity: 0.4 }}>·</span>
                                 <span style={{ textTransform: "capitalize", whiteSpace: "nowrap" }}>
@@ -629,11 +780,49 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                   </span>
                                 </div>
                               )}
+                              {priceChanged(s) && (
+                                <div
+                                  style={{
+                                    fontSize: 10.5,
+                                    color: THEME.rust,
+                                    marginTop: 5,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    fontWeight: 700,
+                                  }}
+                                  title={`Last bank-linked payment was ${fmtINRExact(s.lastPaidAmount)}, but the tracked cost is ${fmtINRExact(s.amount)}`}
+                                >
+                                  <TrendingUp size={11} style={{ flexShrink: 0 }} />
+                                  <span>
+                                    Price {Number(s.lastPaidAmount) > Number(s.amount) ? "increased" : "changed"}
+                                    {" "}to <Prv>{fmtINRExact(s.lastPaidAmount)}</Prv>
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateItem("subscriptions", s.id, { amount: s.lastPaidAmount })
+                                    }
+                                    aria-label={`Update ${s.name} tracked cost to last paid amount`}
+                                    style={{
+                                      border: "none",
+                                      background: "none",
+                                      color: THEME.accent,
+                                      fontWeight: 800,
+                                      fontSize: 10.5,
+                                      cursor: "pointer",
+                                      padding: 0,
+                                      textDecoration: "underline",
+                                    }}
+                                  >
+                                    Update tracked cost
+                                  </button>
+                                </div>
+                              )}
                             </div>
 
                             <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
                               <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                                {fmtINRExact(monthly)}
+                                <Prv>{fmtINRExact(monthly)}</Prv>
                               </div>
                               <div
                                 style={{
@@ -664,7 +853,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                     RENEWAL:
                                   </span>
                                   <span style={{ color: THEME.accent }}>
-                                    {fmtINRExact(s.amount)}
+                                    <Prv>{fmtINRExact(s.amount)}</Prv>
                                   </span>
                                 </div>
                               )}
@@ -804,12 +993,12 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             </Badge>
                           </div>
                           <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                            {fmtINRExact(s.amount)} · {s.cycle}
+                            <Prv>{fmtINRExact(s.amount)}</Prv> · {s.cycle}
                           </div>
                         </div>
                         <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.muted }}>
-                            {fmtINRExact(monthly)}/mo
+                            <Prv>{fmtINRExact(monthly)}</Prv>/mo
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
