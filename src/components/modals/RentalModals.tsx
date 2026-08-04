@@ -431,6 +431,7 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
     isActive: initial?.isActive !== false,
     municipalTax: initial?.municipalTax || "",
     propertyValue: initial?.propertyValue || "",
+    dueDay: initial?.dueDay || 5,
   });
 
   const [tenants, setTenants] = useState<any[]>(initTenants);
@@ -537,6 +538,20 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
             <option value="active">Active</option>
             <option value="ended">Ended</option>
           </select>
+        </Field>
+        <Field label="Monthly Due Day (1-31)">
+          <input
+            style={input}
+            type="number"
+            min="1"
+            max="31"
+            value={f.dueDay}
+            onChange={(e) => {
+              const val = Math.min(31, Math.max(1, parseInt(e.target.value, 10) || 5));
+              setF({ ...f, dueDay: val });
+            }}
+            placeholder="5"
+          />
         </Field>
         <Field label="Security Deposit Agreed (₹)">
           <input
@@ -1573,7 +1588,14 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
    RentalDepositTxModal — for logging partial security deposits
    (received or paid, YYYY-MM-DD + amount + description)
    ══════════════════════════════════════════════════════════════════ */
-export function RentalDepositTxModal({ title, saveLabel, onClose, onSave, initial }: any) {
+export function RentalDepositTxModal({
+  title,
+  saveLabel,
+  amountLabel,
+  onClose,
+  onSave,
+  initial,
+}: any) {
   const [f, setF] = useState({
     amount: initial?.amount ? String(initial.amount) : "",
     date: initial?.date || today(),
@@ -1582,7 +1604,7 @@ export function RentalDepositTxModal({ title, saveLabel, onClose, onSave, initia
   return (
     <Modal title={title || "Log Deposit Transaction"} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Amount (₹)" style={{ gridColumn: "1 / -1" }}>
+        <Field label={amountLabel || "Amount (₹)"} style={{ gridColumn: "1 / -1" }}>
           <input
             style={input}
             type="number"

@@ -76,7 +76,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   // Ledger state
   const [expandedLedger, setExpandedLedger] = useState<string | null>(null);
   const [showLogModal, setShowLogModal] = useState<{
-    type: "payment" | "receipt" | "deduction" | "deposit_in" | "deposit_out";
+    type:
+      | "payment"
+      | "receipt"
+      | "deduction"
+      | "deposit_in"
+      | "deposit_out"
+      | "deposit_return_out"
+      | "deposit_return_in";
     property: any;
     editing?: any;
   } | null>(null);
@@ -122,6 +129,39 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     return total;
   };
 
+  // Quote-aware CSV field split — a naive `line.split(",")` breaks the moment
+  // a note field contains a comma (e.g. "Paid, part cash part UPI"), even
+  // though downloadPropertyCsv below fully quotes such fields on export. This
+  // walks the line char-by-char so a comma inside a "..." field doesn't end
+  // the field, and an escaped "" inside quotes becomes a literal quote.
+  const splitCsvRow = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else if (ch === '"') {
+          inQuotes = false;
+        } else {
+          cur += ch;
+        }
+      } else if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        out.push(cur.trim());
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur.trim());
+    return out;
+  };
+
   const parseCsvText = (text: string, _type: "payment" | "receipt") => {
     setCsvError("");
     setCsvPreview([]);
@@ -132,7 +172,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         .filter((l) => l.trim() && !l.trim().startsWith("#"));
       if (!lines.length) return;
       const rows = lines.map((line, i) => {
-        const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
+        const parts = splitCsvRow(line);
         if (parts.length < 2) throw new Error(`Row ${i + 1}: need at least month, amount`);
         const [month, amount, date, note] = parts;
         if (!month.match(/^\d{4}-\d{2}$/))
@@ -389,6 +429,27 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const handleRemoveDepositOut = (p: any, depositId: string) => {
     const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
     updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
+  };
+
+  // Deposit RETURN handlers — closes the deposit lifecycle (Received →
+  // Deductions → Returned). `depositReturned` is a running cumulative total
+  // (not a ledger array, matching how every net-worth calc already reads it),
+  // so each logged return is additive on top of whatever was returned before.
+  // This lets a partial/staggered refund be logged over multiple visits, same
+  // as partial deposit receipts.
+  const handleReturnDepositOut = (p: any, data: any) => {
+    updateItem("rentalProperties", p.id, {
+      ...p,
+      depositReturned: Number(p.depositReturned || 0) + Number(data.amount || 0),
+    });
+    setShowLogModal(null);
+  };
+  const handleReturnDepositIn = (p: any, data: any) => {
+    updateItem("rentedProperties", p.id, {
+      ...p,
+      depositReturned: Number(p.depositReturned || 0) + Number(data.amount || 0),
+    });
+    setShowLogModal(null);
   };
 
   return (
@@ -732,6 +793,10 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 {p.escalationTiers.length}
                               </span>
                             )}
+                            {" · "}
+                            <span style={{ color: THEME.gold }}>
+                              Due: {getOrdinal(p.dueDay ?? 5)} of month
+                            </span>
                           </div>
                           {/* Escalation schedule pills */}
                           {p.escalationTiers?.length > 1 && (
@@ -1484,9 +1549,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                                 padding: "6px 10px",
                                                 fontWeight: 700,
                                                 color: THEME.sage,
-                                              }}
+                              }}
                                             >
-                                              +{fmtINRExact(r.amount)}
+                                              +<Prv>{fmtINRExact(r.amount)}</Prv>
                                             </td>
                                             <td style={{ padding: "6px 10px", color: THEME.muted }}>
                                               {r.note || "—"}
@@ -1555,7 +1620,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       <span
                                         style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}
                                       >
-                                        +{fmtINRExact(r.amount)}
+                                        +<Prv>{fmtINRExact(r.amount)}</Prv>
                                       </span>
                                       <button
                                         onClick={() =>
@@ -1673,15 +1738,50 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
                               Deposit Receipts Ledger
                             </span>
-                            <Button
-                              variant="accent"
-                              size="sm"
-                              style={{ padding: "4px 10px", fontSize: 11, background: THEME.gold }}
-                              onClick={() => setShowLogModal({ type: "deposit_out", property: p })}
-                            >
-                              <Plus size={10} style={{ marginRight: 4 }} /> Log Deposit
-                            </Button>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                style={{
+                                  padding: "4px 10px",
+                                  fontSize: 11,
+                                  color: THEME.rust,
+                                  border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
+                                }}
+                                onClick={() =>
+                                  setShowLogModal({ type: "deposit_return_out", property: p })
+                                }
+                              >
+                                <Plus size={10} style={{ marginRight: 4 }} /> Return Deposit
+                              </Button>
+                              <Button
+                                variant="accent"
+                                size="sm"
+                                style={{ padding: "4px 10px", fontSize: 11, background: THEME.gold }}
+                                onClick={() => setShowLogModal({ type: "deposit_out", property: p })}
+                              >
+                                <Plus size={10} style={{ marginRight: 4 }} /> Log Deposit
+                              </Button>
+                            </div>
                           </div>
+
+                          {Number(p.depositReturned || 0) > 0 && (
+                            <div
+                              style={{
+                                marginBottom: 10,
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: THEME.rust,
+                                background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
+                              }}
+                            >
+                              Returned to tenant so far:{" "}
+                              <Prv>{fmtINRExact(p.depositReturned)}</Prv>
+                            </div>
+                          )}
 
                           {(p.depositTransactions || []).length === 0 ? (
                             <div
@@ -1732,7 +1832,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}
                                     >
-                                      +{fmtINRExact(r.amount)}
+                                      +<Prv>{fmtINRExact(r.amount)}</Prv>
                                     </span>
                                     <button
                                       onClick={() => handleRemoveDepositOut(p, r.id)}
@@ -1822,7 +1922,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}
                                     >
-                                      -{fmtINRExact(r.amount)}
+                                      -<Prv>{fmtINRExact(r.amount)}</Prv>
                                     </span>
                                     <button
                                       onClick={() =>
@@ -2870,7 +2970,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                                 color: THEME.rust,
                                               }}
                                             >
-                                              -{fmtINRExact(r.amount)}
+                                              -<Prv>{fmtINRExact(r.amount)}</Prv>
                                             </td>
                                             <td style={{ padding: "6px 10px", color: THEME.muted }}>
                                               {r.note || "—"}
@@ -2939,7 +3039,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       <span
                                         style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}
                                       >
-                                        -{fmtINRExact(r.amount)}
+                                        -<Prv>{fmtINRExact(r.amount)}</Prv>
                                       </span>
                                       <button
                                         onClick={() =>
@@ -3057,15 +3157,49 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
                               Deposit Payments Ledger
                             </span>
-                            <Button
-                              variant="accent"
-                              size="sm"
-                              style={{ padding: "4px 10px", fontSize: 11, background: THEME.sage }}
-                              onClick={() => setShowLogModal({ type: "deposit_in", property: p })}
-                            >
-                              <Plus size={10} style={{ marginRight: 4 }} /> Log Deposit
-                            </Button>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                style={{
+                                  padding: "4px 10px",
+                                  fontSize: 11,
+                                  color: THEME.sage,
+                                  border: `1px solid color-mix(in srgb, ${THEME.sage} 27%, transparent)`,
+                                }}
+                                onClick={() =>
+                                  setShowLogModal({ type: "deposit_return_in", property: p })
+                                }
+                              >
+                                <Plus size={10} style={{ marginRight: 4 }} /> Log Refund Received
+                              </Button>
+                              <Button
+                                variant="accent"
+                                size="sm"
+                                style={{ padding: "4px 10px", fontSize: 11, background: THEME.sage }}
+                                onClick={() => setShowLogModal({ type: "deposit_in", property: p })}
+                              >
+                                <Plus size={10} style={{ marginRight: 4 }} /> Log Deposit
+                              </Button>
+                            </div>
                           </div>
+
+                          {Number(p.depositReturned || 0) > 0 && (
+                            <div
+                              style={{
+                                marginBottom: 10,
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: THEME.sage,
+                                background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+                              }}
+                            >
+                              Refunded to you so far: <Prv>{fmtINRExact(p.depositReturned)}</Prv>
+                            </div>
+                          )}
 
                           {(p.depositTransactions || []).length === 0 ? (
                             <div
@@ -3116,7 +3250,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}
                                     >
-                                      -{fmtINRExact(r.amount)}
+                                      -<Prv>{fmtINRExact(r.amount)}</Prv>
                                     </span>
                                     <button
                                       onClick={() =>
@@ -3332,6 +3466,28 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           saveLabel="Log Deposit Receipt"
           onClose={() => setShowLogModal(null)}
           onSave={(data) => handleAddDepositOut(showLogModal.property, data)}
+        />
+      )}
+
+      {/* Log Deposit Return Modal (Rented Out — landlord refunding tenant) */}
+      {showLogModal && showLogModal.type === "deposit_return_out" && (
+        <RentalDepositTxModal
+          title="Log Deposit Return to Tenant"
+          amountLabel="Amount Returned (₹)"
+          saveLabel="Log Return"
+          onClose={() => setShowLogModal(null)}
+          onSave={(data: any) => handleReturnDepositOut(showLogModal.property, data)}
+        />
+      )}
+
+      {/* Log Deposit Return Modal (Rented In — landlord refunding you) */}
+      {showLogModal && showLogModal.type === "deposit_return_in" && (
+        <RentalDepositTxModal
+          title="Log Deposit Refund Received"
+          amountLabel="Amount Refunded to You (₹)"
+          saveLabel="Log Refund"
+          onClose={() => setShowLogModal(null)}
+          onSave={(data: any) => handleReturnDepositIn(showLogModal.property, data)}
         />
       )}
     </div>

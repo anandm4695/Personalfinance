@@ -1848,8 +1848,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     });
     // Rent dues for active rented property agreements (1-31 recurring monthly, defaults to 5th)
     (state.rentedProperties || [])
-      .filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0)
+      .filter((p: any) => p.isActive !== false && getEffectiveRent(p) > 0)
       .forEach((p: any) => {
+        // Escalation-aware effective rent, not the static `monthlyRent` field —
+        // that field is set once at creation and never updated as escalation
+        // tiers advance, so this widget was showing a stale (too-low) amount
+        // for any property past its first tier boundary.
+        const rentAmt = getEffectiveRent(p);
         const dueDay = p.dueDay ? parseInt(p.dueDay, 10) : 5;
         const today = new Date();
         const currentYear = today.getFullYear();
@@ -1866,7 +1871,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           if (ms <= plus30Ms) {
             dues.push({
               name: `${p.propertyName || "Rent"} Rent`,
-              amount: Number(p.monthlyRent),
+              amount: rentAmt,
               daysLeft,
               // .toISOString() converts to UTC — for IST that rolls local midnight back
               // to the previous calendar day. Format from the local fields instead.
@@ -1889,7 +1894,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             if (ms <= plus30Ms && daysLeft >= 0) {
               dues.push({
                 name: `${p.propertyName || "Rent"} Rent`,
-                amount: Number(p.monthlyRent),
+                amount: rentAmt,
                 daysLeft,
                 // .toISOString() would convert to UTC and roll local midnight back a day.
                 date: `${nextYear}-${String(nextMonthNorm + 1).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`,

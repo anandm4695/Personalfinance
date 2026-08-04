@@ -235,16 +235,32 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
         .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       return s + (loaded - spent);
     }, 0);
-  const rentedDepositAsset = (pState.rentedProperties || []).reduce(
-    (s: number, p: any) => s + Number(p.securityDeposit || 0),
-    0
-  );
+  // Deposit asset must reflect the actual amount received via the partial
+  // depositTransactions ledger (falling back to the agreed lump securityDeposit
+  // only when no ledger entries exist), minus anything already returned —
+  // matching the main useMetrics hook (below) and netWorthAsOf.ts. This function
+  // previously used the raw agreed `securityDeposit` unconditionally, so a
+  // property with logged partial deposit installments or a logged deposit
+  // return understated/overstated this profile's net worth silently.
+  const rentedDepositAsset = (pState.rentedProperties || []).reduce((s: number, p: any) => {
+    const actualDeposit =
+      p.depositTransactions && p.depositTransactions.length > 0
+        ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
+        : Number(p.securityDeposit || 0);
+    const returned = Number(p.depositReturned || 0);
+    return s + Math.max(0, actualDeposit - returned);
+  }, 0);
   const informalLentValue = (pState.informalLent || []).reduce(
     (s: number, l: any) => s + Number(l.amount || 0),
     0
   );
+  // Rental property market value is stored as `propertyValue` (see
+  // RentalPropertyModal / migration 45_rental_property_value.sql) — this used to
+  // read the non-existent `marketValue`/`value` fields, so a landlord's rental
+  // property asset was always counted as ₹0 in every specific family member's
+  // net worth (only "All" profiles, which skips this function, ever showed it).
   const rentalPropertiesAsset = (pState.rentalProperties || []).reduce(
-    (s: number, r: any) => s + Number(r.marketValue || r.value || 0),
+    (s: number, r: any) => s + Number(r.propertyValue || 0),
     0
   );
   const realEstateAsset = (pState.realEstateProperties || [])
@@ -297,10 +313,23 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     (s: number, l: any) => s + Number(l.outstanding || 0),
     0
   );
-  const rentalDepositLiability = (pState.rentalProperties || []).reduce(
-    (s: number, r: any) => s + Number(r.securityDeposit || 0),
-    0
-  );
+  // Same fix as rentedDepositAsset above: use the actual received-deposit ledger
+  // (depositTransactions) minus deductions and any amount already returned to
+  // the tenant, instead of the raw agreed securityDeposit — otherwise this
+  // profile's deposit liability stayed at the full agreed amount forever, even
+  // after the deposit was fully refunded and the property marked ended.
+  const rentalDepositLiability = (pState.rentalProperties || []).reduce((s: number, r: any) => {
+    const actualDeposit =
+      r.depositTransactions && r.depositTransactions.length > 0
+        ? r.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
+        : Number(r.securityDeposit || 0);
+    const deducted = (r.depositDeductions || []).reduce(
+      (a: number, d: any) => a + Number(d.amount || 0),
+      0
+    );
+    const returned = Number(r.depositReturned || 0);
+    return s + Math.max(0, actualDeposit - deducted - returned);
+  }, 0);
   const informalBorrowedValue = (pState.informalBorrowed || []).reduce(
     (s: number, b: any) => s + Number(b.amount || 0),
     0
