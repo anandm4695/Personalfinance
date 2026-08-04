@@ -1859,9 +1859,10 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
               position: "sticky",
               top: 0,
               zIndex: 100,
-              background: "color-mix(in srgb, var(--surface-0) 70%, transparent)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
+              // Solid background, not translucent — this bar sits flush against the app
+              // header with no gap, so cards scrolling underneath it were visibly bleeding
+              // through the old 70%-opacity + blur fill, reading as a rendering glitch.
+              background: "var(--surface-0)",
               padding: "12px 8px",
               borderRadius: 16,
               border: `1px solid ${THEME.line}`,
@@ -1892,10 +1893,17 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                   key={s.id}
                   onClick={() => {
                     const el = document.getElementById(s.id);
-                    if (el) {
+                    // The page scrolls inside `.app-main-content`, not `window` — scrolling
+                    // window here was a no-op since that element never scrolls.
+                    const container = el?.closest(".app-main-content") as HTMLElement | null;
+                    if (el && container) {
                       const yOffset = -80;
-                      const y = el.getBoundingClientRect().top + window.scrollY + yOffset;
-                      window.scrollTo({ top: y, behavior: "smooth" });
+                      const y =
+                        el.getBoundingClientRect().top -
+                        container.getBoundingClientRect().top +
+                        container.scrollTop +
+                        yOffset;
+                      container.scrollTo({ top: y, behavior: "smooth" });
                     }
                   }}
                   aria-current={isActive ? "true" : undefined}
