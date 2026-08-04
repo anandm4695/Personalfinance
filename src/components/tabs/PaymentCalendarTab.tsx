@@ -14,14 +14,24 @@ import {
   ChevronRight,
   Shield,
   Receipt,
+  Landmark,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fmtINRExact, today } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact, today, getCCDueDate, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
+import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+// Reuses BillPaymentTab's exact "is this bill paid for its current cycle" formula
+// (cross-referenced against billPaymentHistory) instead of re-deriving a second,
+// inevitably-divergent version of the same logic here. This is the same shared
+// import the app-wide useAlerts hook already uses for the identical reason.
+import { dueStatus } from "./BillPaymentTab";
 
 const MONTH_NAMES = [
   "January",
@@ -69,7 +79,8 @@ const ORDINAL = (d: number) => {
 // Fixed THEME tokens (not raw hex) so every category dot stays theme-aware in
 // dark mode and never coincidentally matches a user-selectable accent preset.
 const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  emi: { label: "Loan EMI", color: THEME.rust, icon: CreditCard },
+  emi: { label: "Loan EMI", color: THEME.rust, icon: Landmark },
+  creditcard: { label: "Credit Card Bill", color: THEME.rust, icon: CreditCard },
   sip: { label: "SIP", color: THEME.violet, icon: Activity },
   rd: { label: "RD Instalment", color: THEME.accent, icon: Repeat },
   subscription: { label: "Subscription", color: THEME.cyan, icon: Zap },
@@ -80,7 +91,16 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
   other: { label: "Other", color: THEME.muted, icon: Wallet },
 };
 
-export function PaymentCalendarTab({ state }: any) {
+// Item types that can carry a reliable "does this need a manual action right now"
+// signal (an `autoPay` flag and/or a payment ledger to check against). EMIs/SIPs/RDs
+// are bank/broker auto-debit mandates by nature and insurance/rent have no such
+// tracked field in this app, so they intentionally fall back to the old, calmer
+// "past due date" treatment instead of a false-confidence "Overdue" alert.
+const MANUAL_ATTENTION_TYPES = new Set(["bill", "creditcard"]);
+const needsManualAttention = (p: any) =>
+  MANUAL_ATTENTION_TYPES.has(p.type) && !p.autoPay && !p.paidThisCycle;
+
+export function PaymentCalendarTab({ state, addItem, showToast }: any) {
   const { privacyMode } = usePrivacy();
   const todayStr = today();
   const todayDate = new Date(todayStr + "T00:00:00");
@@ -90,6 +110,34 @@ export function PaymentCalendarTab({ state }: any) {
     month: todayDate.getMonth(),
   });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  // Tracks the billId currently being logged via "Mark Paid" so that button
+  // shows a spinner and can't be double-clicked into two ledger entries.
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+
+  // Writes a same-day payment record to billPaymentHistory (the exact ledger
+  // BillPaymentTab's own "Log" action writes to), so a bill paid from this
+  // calendar shows up as paid everywhere else in the app too — Bill Payment
+  // Tracker, the Smart Alerts "Due This Week" list, and next time this tab
+  // computes dueStatus for the same bill. Gated on `addItem` being provided:
+  // if the parent hasn't wired it up yet, the action is hidden entirely rather
+  // than rendering a button that silently does nothing when clicked.
+  const markBillPaid = async (p: any) => {
+    if (!addItem || !p.billId || markingPaidId) return;
+    setMarkingPaidId(p.billId);
+    try {
+      await addItem("billPaymentHistory", {
+        id: uid(),
+        billId: p.billId,
+        paidDate: todayStr,
+        amount: p.amount,
+      });
+      showToast?.(`Marked "${p.name}" as paid`, "success");
+    } catch (e: any) {
+      showToast?.(`Couldn't save payment: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setMarkingPaidId(null);
+    }
+  };
 
   // ── Collect all recurring payment items ──────────────────────────────
   const payments = useMemo(() => {
@@ -166,10 +214,23 @@ export function PaymentCalendarTab({ state }: any) {
       });
     });
 
-    // Insurance Premiums — LIC / Term / Investment Plans
+    // Insurance Premiums — LIC / Term / Investment Plans / Health
+    const PREMIUM_FREQ_MULT: Record<string, number> = {
+      monthly: 12,
+      quarterly: 4,
+      semi_annual: 2,
+      annual: 1,
+    };
     const addInsurance = (policies: any[], tag: string, typeKey: string) => {
       (policies || []).forEach((p: any) => {
-        const premium = Number(p.annualPremium || p.premium || 0);
+        // LIC/Term/Investment-plan records carry a pre-annualized `annualPremium`.
+        // Health-insurance records don't — they only have `premium` + `premiumFrequency`
+        // (e.g. monthly), so using the raw `premium` as-is understated this calendar's
+        // health-premium entry by up to 12x for monthly-billed policies. Annualize using
+        // the same frequency multiplier the Health Insurance tab itself uses.
+        const premium = p.annualPremium
+          ? Number(p.annualPremium)
+          : Number(p.premium || 0) * (PREMIUM_FREQ_MULT[p.premiumFrequency] || 1);
         if (!premium) return;
         const startDate = p.commencementDate || p.startDate;
         const dueDay = startDate ? new Date(startDate + "T00:00:00").getDate() : 1;
@@ -195,11 +256,20 @@ export function PaymentCalendarTab({ state }: any) {
     // exactly the same kind of recurring monthly due-date commitment as EMIs/SIPs/
     // subscriptions above, but was previously missing from this calendar entirely.
     // Included regardless of auto-pay: it's still real money going out each month,
-    // auto-pay only changes who initiates it.
+    // auto-pay only changes who initiates it. `autoPay` and `paidThisCycle` (via
+    // the shared `dueStatus` helper, cross-referenced against billPaymentHistory)
+    // are carried onto the item so the calendar can tell "already handled" apart
+    // from "genuinely needs your action" instead of dimming every past date alike.
+    const billHistory = state.billPaymentHistory || [];
     (state.billPayments || []).forEach((b: any) => {
       if (!b.amount || Number(b.amount) <= 0 || !b.dueDay) return;
+      const hist = billHistory
+        .filter((h: any) => h.billId === b.id)
+        .sort((x: any, y: any) => (y.paidDate || "").localeCompare(x.paidDate || ""));
+      const status = dueStatus(Number(b.dueDay), hist[0]?.paidDate);
       items.push({
         id: `bill-${b.id}`,
+        billId: b.id,
         name: b.nickname || b.provider || "Bill",
         type: "bill",
         amount: Number(b.amount),
@@ -207,6 +277,39 @@ export function PaymentCalendarTab({ state }: any) {
         dueDay: Number(b.dueDay),
         owner: b.owner,
         monthsLeft: 9999,
+        autoPay: !!b.autoPay,
+        paidThisCycle: status.paid,
+      });
+    });
+
+    // Credit Card statement dues — uses the exact same `getCCDueDate` formula as
+    // CreditTab and the global useAlerts hook (single source of truth for CC
+    // due-date math), instead of the generic dueDay-clamping every other item
+    // type above uses. Unlike EMIs/SIPs (fixed recurring amounts), a card's
+    // outstanding balance is only known for its CURRENT cycle — next month's
+    // statement total doesn't exist yet — so this resolves to exactly the one
+    // upcoming due date getCCDueDate returns (this month or next) rather than
+    // being projected forward across the whole 12-month window like the others.
+    (state.creditCards || []).forEach((c: any) => {
+      if ((c.status || "active").toLowerCase() === "closed") return;
+      if (!c.dueDay) return;
+      const outstanding = Number(c.outstanding || 0);
+      if (outstanding <= 0) return;
+      const dueDateStr = getCCDueDate(c, todayDate);
+      if (!dueDateStr) return;
+      const [dY, dM, dD] = dueDateStr.split("-").map(Number);
+      items.push({
+        id: `cc-${c.id}`,
+        name: `${c.issuer || "Card"} •${c.last4 || "····"}`,
+        type: "creditcard",
+        amount: outstanding,
+        frequency: "monthly",
+        dueDay: dD,
+        dueYear: dY,
+        dueMonth: dM - 1,
+        owner: c.owner,
+        monthsLeft: 9999,
+        autoPay: !!c.autoPay,
       });
     });
 
@@ -242,7 +345,7 @@ export function PaymentCalendarTab({ state }: any) {
       });
 
     return items;
-  }, [state, todayStr]);
+  }, [state, todayStr, todayDate]);
 
   // ── Check if a payment falls in a given (year, 0-based month) ────────
   const isActiveInMonth = (p: any, year: number, month: number): boolean => {
@@ -251,6 +354,13 @@ export function PaymentCalendarTab({ state }: any) {
 
     // Check maturityDate / renewalDate expiry
     if (p.maturityDate && new Date(p.maturityDate + "T00:00:00") < monthStart) return false;
+
+    // Credit card items resolve to exactly one known due month (see the payments
+    // useMemo above, via getCCDueDate) instead of recurring indefinitely like
+    // EMIs/SIPs/bills — a future month's statement amount isn't knowable yet.
+    if (p.type === "creditcard") {
+      return year === p.dueYear && month === p.dueMonth;
+    }
 
     // For EMIs: check months remaining from today
     if (p.type === "emi" && p.monthsLeft !== undefined) {
@@ -347,6 +457,26 @@ export function PaymentCalendarTab({ state }: any) {
     return s + p.amount;
   }, 0);
 
+  // Real "this month" total (independent of month navigation below) — always
+  // index 0 of the 12-month overview — so the top stat row stays a stable
+  // answer to "what do I actually owe this month" even while browsing ahead.
+  const thisMonthTotal = monthlySummary[0]?.total ?? 0;
+
+  // Bills/credit cards past due (or due today) with no autopay and no logged
+  // payment for the current cycle — the same "genuinely needs your action"
+  // signal used for the day-cell Overdue styling below, rolled up into a
+  // single at-a-glance count. Clamps dueDay to the real length of the current
+  // month first (e.g. a "31st" bill in a 28/29/30-day month is actually due on
+  // the last day), matching how the calendar grid itself places these pills.
+  const daysInCurrentMonth = new Date(
+    todayDate.getFullYear(),
+    todayDate.getMonth() + 1,
+    0
+  ).getDate();
+  const attentionItems = getMonthPayments(todayDate.getFullYear(), todayDate.getMonth()).filter(
+    (p: any) => needsManualAttention(p) && Math.min(p.dueDay, daysInCurrentMonth) <= todayDate.getDate()
+  );
+
   // Months between the viewed month and the current month (0 = this month).
   // Navigation is bounded to this range because past months have no due-date
   // history to show (isActiveInMonth excludes monthsDiff < 0 for EMIs/SIPs),
@@ -378,7 +508,7 @@ export function PaymentCalendarTab({ state }: any) {
   if (payments.length === 0) {
     return (
       <div>
-        <SectionTitle sub="All EMIs, SIPs, subscriptions, bills & premiums by date">
+        <SectionTitle sub="All EMIs, SIPs, subscriptions, bills, credit cards & premiums by date">
           Payment Calendar
         </SectionTitle>
         <EmptyState
@@ -386,8 +516,15 @@ export function PaymentCalendarTab({ state }: any) {
           gradient={`linear-gradient(135deg, ${THEME.violet} 0%, color-mix(in srgb, ${THEME.violet} 55%, white) 100%)`}
           dotColor={THEME.violet}
           title="No Recurring Payments"
-          description="This calendar plots every EMI, SIP, RD, subscription, utility bill and insurance premium you track elsewhere in the app onto a monthly view — add one to see it show up here by due date."
-          pills={["Loan EMIs", "SIPs & RDs", "Subscriptions", "Utility Bills", "Insurance Premiums"]}
+          description="This calendar plots every EMI, SIP, RD, subscription, utility bill, credit card statement and insurance premium you track elsewhere in the app onto a monthly view — add one to see it show up here by due date."
+          pills={[
+            "Loan EMIs",
+            "Credit Card Bills",
+            "SIPs & RDs",
+            "Subscriptions",
+            "Utility Bills",
+            "Insurance Premiums",
+          ]}
         />
       </div>
     );
@@ -404,7 +541,7 @@ export function PaymentCalendarTab({ state }: any) {
           .paycal-pill { font-size: 8px !important; padding: 1px 2px !important; }
         }
       `}</style>
-      <SectionTitle sub="Every recurring outflow — EMIs, SIPs, RDs, subscriptions, bills & insurance premiums plotted by date">
+      <SectionTitle sub="Every recurring outflow — EMIs, SIPs, RDs, subscriptions, bills, credit cards & insurance premiums plotted by date">
         Payment Calendar
       </SectionTitle>
 
@@ -418,10 +555,17 @@ export function PaymentCalendarTab({ state }: any) {
         }}
       >
         <StatCard
-          label="Monthly Committed"
-          value={privacyMode ? "••••" : fmtINRFull(monthlyAvg)}
+          label="Due This Month"
+          value={privacyMode ? "••••" : fmtINRFull(thisMonthTotal)}
+          sub={`${monthlySummary[0]?.count ?? 0} payment${(monthlySummary[0]?.count ?? 0) === 1 ? "" : "s"}`}
           icon={<Calendar />}
           color={THEME.accent}
+        />
+        <StatCard
+          label="Monthly Committed (avg)"
+          value={privacyMode ? "••••" : fmtINRFull(monthlyAvg)}
+          icon={<Repeat />}
+          color={THEME.violet}
         />
         <StatCard
           label="Annual Committed"
@@ -430,10 +574,12 @@ export function PaymentCalendarTab({ state }: any) {
           color={THEME.rust}
         />
         <StatCard
-          label="Active Commitments"
-          value={String(payments.length)}
-          icon={<Repeat />}
-          color={THEME.gold}
+          label="Needs Attention"
+          value={String(attentionItems.length)}
+          sub={attentionItems.length > 0 ? "Unpaid & past due" : "All clear"}
+          subColor={attentionItems.length > 0 ? THEME.rust : THEME.sage}
+          icon={attentionItems.length > 0 ? <AlertTriangle /> : <CheckCircle2 />}
+          color={attentionItems.length > 0 ? THEME.rust : THEME.sage}
         />
       </div>
 
@@ -655,8 +801,21 @@ export function PaymentCalendarTab({ state }: any) {
               const dayTotal = dayPmts.reduce((s: number, p: any) => s + p.amount, 0);
               const hasPmts = dayPmts.length > 0;
               const isSelected = selectedDay === day && hasPmts;
+              // Genuinely overdue: a bill/credit card with no autopay and no logged
+              // payment, on a date that's already passed (or is today). Everything
+              // else that's merely "past" (an EMI/SIP auto-debit, a paid bill, an
+              // autopay card) keeps the old calm dimmed treatment instead of a
+              // false-urgency red alert.
+              const attentionPmts = dayPmts.filter(needsManualAttention);
+              const isOverdue = isCurrentMonth && (isPast || isToday) && attentionPmts.length > 0;
               const dayLabel = hasPmts
-                ? `${MONTH_NAMES[viewDate.month]} ${day}: ${dayPmts.length} payment${dayPmts.length > 1 ? "s" : ""} totalling ${privacyMode ? "••••" : fmtINRFull(dayTotal)}${isPast ? " (past due date)" : ""}`
+                ? `${MONTH_NAMES[viewDate.month]} ${day}: ${dayPmts.length} payment${dayPmts.length > 1 ? "s" : ""} totalling ${privacyMode ? "••••" : fmtINRFull(dayTotal)}${
+                    isOverdue
+                      ? `, ${attentionPmts.length} unpaid and ${isToday ? "due today" : "overdue"}`
+                      : isPast
+                        ? " (past due date)"
+                        : ""
+                  }`
                 : `${MONTH_NAMES[viewDate.month]} ${day}, no payments due`;
 
               return (
@@ -682,48 +841,67 @@ export function PaymentCalendarTab({ state }: any) {
                     minHeight: 60,
                     borderRadius: 8,
                     border: `1.5px solid ${
-                      isSelected
-                        ? THEME.accent
-                        : isToday
+                      isOverdue
+                        ? THEME.rust
+                        : isSelected
                           ? THEME.accent
-                          : hasPmts
-                            ? THEME.line
-                            : "transparent"
+                          : isToday
+                            ? THEME.accent
+                            : hasPmts
+                              ? THEME.line
+                              : "transparent"
                     }`,
-                    background: isSelected
-                      ? `color-mix(in srgb, ${THEME.accent} 14%, transparent)`
-                      : isToday
-                        ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
-                        : hasPmts
-                          ? "color-mix(in srgb, var(--t-accent) 3%, transparent)"
-                          : "transparent",
+                    background: isOverdue
+                      ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)`
+                      : isSelected
+                        ? `color-mix(in srgb, ${THEME.accent} 14%, transparent)`
+                        : isToday
+                          ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                          : hasPmts
+                            ? "color-mix(in srgb, var(--t-accent) 3%, transparent)"
+                            : "transparent",
                     padding: "5px 4px",
                     cursor: hasPmts ? "pointer" : "default",
-                    opacity: isPast && !isSelected ? 0.55 : 1,
+                    // Overdue items stay fully opaque even on past dates — they need
+                    // to stand out, not fade into the background like a settled item.
+                    opacity: isPast && !isSelected && !isOverdue ? 0.55 : 1,
                   }}
                 >
                   <div
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
                       fontWeight: isToday ? 800 : hasPmts ? 700 : 500,
                       fontSize: 12,
-                      color: isToday ? THEME.accent : hasPmts ? THEME.ink : THEME.muted,
+                      color: isOverdue ? THEME.rust : isToday ? THEME.accent : hasPmts ? THEME.ink : THEME.muted,
                       marginBottom: 3,
                       lineHeight: 1,
                     }}
                   >
                     {day}
+                    {isOverdue && <AlertTriangle size={9} style={{ flexShrink: 0 }} />}
                   </div>
                   {dayPmts.slice(0, 2).map((p, pi) => {
                     const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
                     const isClamped = p.dueDay > calendarData.daysInMonth;
+                    // Paid pills switch to the success color regardless of category —
+                    // "handled" is the more useful signal than "which type" once a
+                    // bill is actually settled for its cycle.
+                    const pillColor = p.paidThisCycle ? THEME.sage : cfg.color;
+                    const statusSuffix = p.paidThisCycle
+                      ? " (Paid this cycle)"
+                      : p.autoPay
+                        ? " (Autopay — no action needed)"
+                        : "";
                     return (
                       <div
                         key={pi}
                         className="paycal-pill"
                         style={{
                           fontSize: 9,
-                          color: cfg.color,
-                          background: `color-mix(in srgb, ${cfg.color} 14%, transparent)`,
+                          color: pillColor,
+                          background: `color-mix(in srgb, ${pillColor} 14%, transparent)`,
                           borderRadius: 3,
                           padding: "1px 3px",
                           marginBottom: 2,
@@ -732,13 +910,14 @@ export function PaymentCalendarTab({ state }: any) {
                           textOverflow: "ellipsis",
                           fontWeight: 600,
                         }}
-                        title={`${p.name} — ${privacyMode ? "••••" : fmtINRFull(p.amount)}${
+                        title={`${p.name} — ${privacyMode ? "••••" : fmtINRFull(p.amount)}${statusSuffix}${
                           isClamped
                             ? ` (normally due ${p.dueDay}${ORDINAL(p.dueDay)}; moved to the last day of this shorter month)`
                             : ""
                         }`}
                       >
                         {p.name}
+                        {p.paidThisCycle ? " ✓" : ""}
                         {isClamped ? "*" : ""}
                       </div>
                     );
@@ -794,9 +973,15 @@ export function PaymentCalendarTab({ state }: any) {
                 {ORDINAL(selectedDay)} — {calendarData.dayMap[selectedDay].length} payment
                 {calendarData.dayMap[selectedDay].length > 1 ? "s" : ""}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {calendarData.dayMap[selectedDay].map((p: any, i: number) => {
                   const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
+                  const canMarkPaid =
+                    p.type === "bill" &&
+                    !p.autoPay &&
+                    !p.paidThisCycle &&
+                    monthsFromToday === 0 &&
+                    !!addItem;
                   return (
                     <div
                       key={i}
@@ -805,6 +990,7 @@ export function PaymentCalendarTab({ state }: any) {
                         alignItems: "center",
                         gap: 8,
                         fontSize: 12,
+                        flexWrap: "wrap",
                       }}
                     >
                       <cfg.icon size={13} style={{ color: cfg.color, flexShrink: 0 }} />
@@ -812,9 +998,30 @@ export function PaymentCalendarTab({ state }: any) {
                       {p.owner && p.owner !== "self" && (
                         <span style={{ color: THEME.muted, fontSize: 11 }}>({p.owner})</span>
                       )}
+                      {p.paidThisCycle && (
+                        <Badge variant="sage" size="xs">
+                          Paid
+                        </Badge>
+                      )}
+                      {p.autoPay && !p.paidThisCycle && (
+                        <Badge variant="accent" size="xs">
+                          Autopay
+                        </Badge>
+                      )}
                       <span style={{ marginLeft: "auto", color: cfg.color, fontWeight: 700 }}>
                         <Prv>{fmtINRExact(p.amount)}</Prv>
                       </span>
+                      {canMarkPaid && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          loading={markingPaidId === p.billId}
+                          onClick={() => markBillPaid(p)}
+                          style={{ fontSize: 11, padding: "3px 10px" }}
+                        >
+                          Mark Paid
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
@@ -927,98 +1134,152 @@ export function PaymentCalendarTab({ state }: any) {
                       <Prv>{fmtINRExact(typeTotal)}</Prv>
                     </span>
                   </div>
-                  {typePayments.map((p, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "8px 12px",
-                        borderRadius: 8,
-                        background: `color-mix(in srgb, ${cfg.color} 8%, transparent)`,
-                        marginBottom: 4,
-                        fontSize: 13,
-                      }}
-                    >
-                      <div>
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            color: THEME.ink,
-                          }}
-                        >
-                          {p.name}
-                        </span>
-                        {p.owner && p.owner !== "self" && (
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: THEME.muted,
-                              marginLeft: 6,
-                            }}
-                          >
-                            ({p.owner})
-                          </span>
-                        )}
-                        {p.frequency === "monthly" && p.dueDay && (
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: THEME.muted,
-                              marginLeft: 6,
-                            }}
-                          >
-                            • {p.dueDay}
-                            {ORDINAL(p.dueDay)} of month
-                          </span>
-                        )}
-                        {p.frequency === "yearly" && (
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: THEME.muted,
-                              marginLeft: 6,
-                            }}
-                          >
-                            • annual
-                          </span>
-                        )}
-                        {p.frequency === "quarterly" && (
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: THEME.muted,
-                              marginLeft: 6,
-                            }}
-                          >
-                            • quarterly
-                          </span>
-                        )}
-                        {p.type === "emi" && p.monthsLeft && (
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: THEME.muted,
-                              marginLeft: 6,
-                            }}
-                          >
-                            • {p.monthsLeft} months left
-                          </span>
-                        )}
-                      </div>
+                  {typePayments.map((p, i) => {
+                    const canMarkPaid =
+                      p.type === "bill" &&
+                      !p.autoPay &&
+                      !p.paidThisCycle &&
+                      monthsFromToday === 0 &&
+                      !!addItem;
+                    const daysInThisMonth = new Date(
+                      viewDate.year,
+                      viewDate.month + 1,
+                      0
+                    ).getDate();
+                    const isOverdueRow =
+                      monthsFromToday === 0 &&
+                      needsManualAttention(p) &&
+                      Math.min(p.dueDay, daysInThisMonth) <= todayDate.getDate();
+                    return (
                       <div
+                        key={i}
                         style={{
-                          fontWeight: 700,
-                          color: cfg.color,
-                          whiteSpace: "nowrap",
-                          fontVariantNumeric: "tabular-nums",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 8,
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          background: isOverdueRow
+                            ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)`
+                            : `color-mix(in srgb, ${cfg.color} 8%, transparent)`,
+                          border: isOverdueRow
+                            ? `1px solid color-mix(in srgb, ${THEME.rust} 35%, transparent)`
+                            : "1px solid transparent",
+                          marginBottom: 4,
+                          fontSize: 13,
                         }}
                       >
-                        <Prv>{fmtINRExact(p.amount)}</Prv>
+                        <div>
+                          <span
+                            style={{
+                              fontWeight: 600,
+                              color: THEME.ink,
+                            }}
+                          >
+                            {p.name}
+                          </span>
+                          {p.owner && p.owner !== "self" && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                marginLeft: 6,
+                              }}
+                            >
+                              ({p.owner})
+                            </span>
+                          )}
+                          {p.frequency === "monthly" && p.dueDay && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                marginLeft: 6,
+                              }}
+                            >
+                              • {p.dueDay}
+                              {ORDINAL(p.dueDay)} of month
+                            </span>
+                          )}
+                          {p.frequency === "yearly" && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                marginLeft: 6,
+                              }}
+                            >
+                              • annual
+                            </span>
+                          )}
+                          {p.frequency === "quarterly" && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                marginLeft: 6,
+                              }}
+                            >
+                              • quarterly
+                            </span>
+                          )}
+                          {p.type === "emi" && p.monthsLeft && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                marginLeft: 6,
+                              }}
+                            >
+                              • {p.monthsLeft} months left
+                            </span>
+                          )}
+                          {isOverdueRow && (
+                            <Badge variant="rust" size="xs" style={{ marginLeft: 6 }}>
+                              {todayDate.getDate() === Math.min(p.dueDay, daysInThisMonth)
+                                ? "Due Today"
+                                : "Overdue"}
+                            </Badge>
+                          )}
+                          {p.paidThisCycle && (
+                            <Badge variant="sage" size="xs" style={{ marginLeft: 6 }}>
+                              Paid
+                            </Badge>
+                          )}
+                          {p.autoPay && !p.paidThisCycle && (
+                            <Badge variant="accent" size="xs" style={{ marginLeft: 6 }}>
+                              Autopay
+                            </Badge>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              color: cfg.color,
+                              whiteSpace: "nowrap",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            <Prv>{fmtINRExact(p.amount)}</Prv>
+                          </div>
+                          {canMarkPaid && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              loading={markingPaidId === p.billId}
+                              onClick={() => markBillPaid(p)}
+                              style={{ fontSize: 11, padding: "3px 10px" }}
+                            >
+                              Mark Paid
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })}

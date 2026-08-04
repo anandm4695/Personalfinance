@@ -5026,9 +5026,20 @@ function FinanceDashboard() {
               {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}
               {tab === "cashflow" && <CashFlowTab state={filteredState} metrics={metrics} />}
               {tab === "calendar" && (
-                <FinancialCalendarTab state={filteredState} metrics={metrics} />
+                <FinancialCalendarTab
+                  state={filteredState}
+                  metrics={metrics}
+                  onNavigateToTab={setTab}
+                />
               )}
-              {tab === "paycal" && <PaymentCalendarTab state={filteredState} metrics={metrics} />}
+              {tab === "paycal" && (
+                <PaymentCalendarTab
+                  state={filteredState}
+                  metrics={metrics}
+                  addItem={addItem}
+                  showToast={showToast}
+                />
+              )}
               {tab === "capitalgains" && <CapitalGainsTab state={filteredState} />}
               {tab === "taxtools" && (
                 <TaxToolsTab

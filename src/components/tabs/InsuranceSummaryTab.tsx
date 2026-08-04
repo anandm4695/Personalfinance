@@ -220,8 +220,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
   });
 
   const handleFieldChange = (field: string, val: any) => {
+    setFormError("");
     setLic((prev) => {
-      let nextLic = { ...prev, [field]: val };
+      const nextLic = { ...prev, [field]: val };
       if (
         (field === "commencementDate" || field === "policyTerm") &&
         nextLic.commencementDate &&
@@ -242,8 +243,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
   };
 
   const handleTermFieldChange = (field: string, val: any) => {
+    setFormError("");
     setTerm((prev) => {
-      let nextTerm = { ...prev, [field]: val };
+      const nextTerm = { ...prev, [field]: val };
       if ((field === "startDate" || field === "term") && nextTerm.startDate && nextTerm.term) {
         const commDate = new Date(nextTerm.startDate);
         const termYears = parseInt(nextTerm.term, 10);
@@ -260,8 +262,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
   };
 
   const handleInvestFieldChange = (field: string, val: any) => {
+    setFormError("");
     setInvest((prev) => {
-      let nextInvest = { ...prev, [field]: val };
+      const nextInvest = { ...prev, [field]: val };
       if (
         (field === "commencementDate" || field === "policyTerm") &&
         nextInvest.commencementDate &&
@@ -349,6 +352,11 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
 
   const [newTxDate, setNewTxDate] = useState(todayStr);
   const [newTxAmount, setNewTxAmount] = useState("");
+  // Previously the Save button's validation guard (`if (!x) return;`) failed
+  // silently — an incomplete form just did nothing with zero feedback, leaving
+  // the user unsure whether the click registered at all. Surface the specific
+  // missing/invalid field instead.
+  const [formError, setFormError] = useState("");
 
   const inp = "form-input";
 
@@ -538,15 +546,34 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
 
   const handleSave = () => {
     if (sub === "lic") {
-      if (!lic.planName || !(Number(lic.sumAssured) > 0)) return;
+      if (!lic.planName.trim()) {
+        setFormError("Plan Name is required.");
+        return;
+      }
+      if (!(Number(lic.sumAssured) > 0)) {
+        setFormError("Sum Assured must be a number greater than 0.");
+        return;
+      }
+      setFormError("");
       const calculatedPremiumPaid = (lic.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
       );
       onSave("lic", { ...lic, premiumPaid: calculatedPremiumPaid, id: lic.id || uid() }, !!policy);
     } else if (sub === "invest") {
-      if (!invest.insurer || !invest.planName || !(Number(invest.expectedMaturityAmount) > 0))
+      if (!invest.insurer.trim()) {
+        setFormError("Insurer / Company is required.");
         return;
+      }
+      if (!invest.planName.trim()) {
+        setFormError("Plan Name is required.");
+        return;
+      }
+      if (!(Number(invest.expectedMaturityAmount) > 0)) {
+        setFormError("Expected Maturity Amount must be a number greater than 0.");
+        return;
+      }
+      setFormError("");
       const calculatedPremiumPaid = (invest.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
@@ -557,7 +584,15 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         !!policy
       );
     } else {
-      if (!term.insurer || !(Number(term.coverAmount) > 0)) return;
+      if (!term.insurer.trim()) {
+        setFormError("Insurer / Company is required.");
+        return;
+      }
+      if (!(Number(term.coverAmount) > 0)) {
+        setFormError("Cover Amount must be a number greater than 0.");
+        return;
+      }
+      setFormError("");
       const calculatedPremiumPaid = (term.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
@@ -577,6 +612,27 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
       title={`${isEdit ? "Edit" : "Add"} ${sub === "lic" ? "LIC Policy" : sub === "invest" ? "Investment Plan" : "Term Plan"}`}
       onClose={onClose}
     >
+      {formError && (
+        <div
+          role="alert"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
+            color: THEME.rust,
+            fontSize: 12,
+            fontWeight: 700,
+            marginBottom: 14,
+          }}
+        >
+          <AlertCircle size={14} style={{ flexShrink: 0 }} />
+          {formError}
+        </div>
+      )}
       {sub === "lic" ? (
         <>
           <Field label="Owner / Profile">
@@ -724,7 +780,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          {fmtINRExact(t.amount)}
+                          <Prv>{fmtINRExact(t.amount)}</Prv>
                         </span>
                         <Button
                           variant="ghost"
@@ -1049,7 +1105,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          {fmtINRExact(t.amount)}
+                          <Prv>{fmtINRExact(t.amount)}</Prv>
                         </span>
                         <Button
                           variant="ghost"
@@ -1361,7 +1417,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          {fmtINRExact(t.amount)}
+                          <Prv>{fmtINRExact(t.amount)}</Prv>
                         </span>
                         <Button
                           variant="ghost"
@@ -1757,6 +1813,70 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     { name: "Investment Maturity", value: totalInvestMaturity, color: THEME.sage },
   ].filter((d) => d.value > 0);
 
+  // Consolidated "what's due soon" view across all three policy types — previously
+  // a next-premium-due reminder only surfaced buried inside each individual policy
+  // card, so with more than a couple of policies there was no single place to see
+  // what's coming up next. The paid/expectedTotal/isPaid math here intentionally
+  // mirrors the identical per-card calc further below for each policy type (LIC,
+  // Term, Investment) so this list never disagrees with what the card itself shows.
+  const upcomingPremiums = [
+    ...state.lic.map((l: any) => {
+      const paid =
+        (l.transactions || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0) ||
+        Number(l.premiumPaid || 0);
+      const expectedTotal =
+        l.annualPremium && l.policyTerm ? Number(l.annualPremium) * parseInt(l.policyTerm, 10) : 0;
+      return {
+        id: l.id,
+        name: l.planName || "LIC Policy",
+        typeLabel: "LIC",
+        typeColor: THEME.rust,
+        owner: l.owner,
+        premium: l.annualPremium,
+        isPaid: Math.max(0, expectedTotal - paid) <= 0,
+        nextDue: getNextPremiumDue(l.commencementDate, l.maturityDate),
+      };
+    }),
+    ...state.termPlans.map((t: any) => {
+      const paid =
+        (t.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
+        Number(t.premiumPaid || 0);
+      const expectedTotal =
+        t.annualPremium && (t.premiumPayingTerm || t.term)
+          ? Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)
+          : 0;
+      return {
+        id: t.id,
+        name: t.planName || "Term Plan",
+        typeLabel: "Term",
+        typeColor: THEME.accent,
+        owner: t.owner,
+        premium: t.annualPremium,
+        isPaid: Math.max(0, expectedTotal - paid) <= 0,
+        nextDue: getNextPremiumDue(t.startDate, t.expiryDate),
+      };
+    }),
+    ...(state.investmentPlans || []).map((ip: any) => {
+      const paid =
+        (ip.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
+        Number(ip.premiumPaid || 0);
+      const expectedTotal =
+        Number(ip.annualPremium || 0) * Number(ip.premiumPayingTerm || ip.policyTerm || 0);
+      return {
+        id: ip.id,
+        name: ip.planName || "Investment Plan",
+        typeLabel: "Invest",
+        typeColor: THEME.sage,
+        owner: ip.owner,
+        premium: ip.annualPremium,
+        isPaid: Math.max(0, expectedTotal - paid) <= 0,
+        nextDue: getNextPremiumDue(ip.commencementDate, ip.maturityDate),
+      };
+    }),
+  ]
+    .filter((p) => p.nextDue && !p.isPaid && p.nextDue.days <= 90)
+    .sort((a, b) => a.nextDue.days - b.nextDue.days);
+
   return (
     <div className="tab-content-enter">
       <SectionTitle
@@ -1851,6 +1971,105 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           color={adequacyColor}
         />
       </div>
+
+      {upcomingPremiums.length > 0 && (
+        <Card style={{ marginBottom: 24, padding: "18px 22px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 14,
+              fontSize: 11,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: THEME.muted,
+              fontWeight: 800,
+            }}
+          >
+            <Clock size={13} />
+            Upcoming Premiums · Next 90 Days
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {upcomingPremiums.map((p) => {
+              const isOverdue = p.nextDue.days <= 0;
+              const urgencyColor = isOverdue
+                ? THEME.rust
+                : p.nextDue.days <= 30
+                  ? THEME.rust
+                  : p.nextDue.days <= 60
+                    ? THEME.gold
+                    : THEME.muted;
+              return (
+                <div
+                  key={`${p.typeLabel}-${p.id}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    borderLeft: `3px solid ${urgencyColor}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: "2px 6px",
+                        borderRadius: 6,
+                        background: `color-mix(in srgb, ${p.typeColor} 12%, transparent)`,
+                        color: p.typeColor,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {p.typeLabel}
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 12.5,
+                        color: THEME.ink,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {p.name}
+                    </span>
+                    <OwnerBadge owner={p.owner} />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ color: THEME.muted }}>
+                      <Prv>{fmtINRExact(p.premium)}</Prv>
+                    </span>
+                    <span style={{ color: urgencyColor }}>
+                      {isOverdue
+                        ? `Overdue ${Math.abs(p.nextDue.days)}d`
+                        : `Due in ${p.nextDue.days}d`}{" "}
+                      · {fmtDate(p.nextDue.date)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {hasPolicies && (
         <Card style={{ marginBottom: 24, padding: 24 }}>
@@ -2100,7 +2319,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        {fmtINRExact(l.annualPremium)}
+                        <Prv>{fmtINRExact(l.annualPremium)}</Prv>
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>
@@ -2427,7 +2646,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        {fmtINRExact(t.annualPremium)}
+                        <Prv>{fmtINRExact(t.annualPremium)}</Prv>
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>
@@ -2760,7 +2979,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        {fmtINRExact(ip.annualPremium)}
+                        <Prv>{fmtINRExact(ip.annualPremium)}</Prv>
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>

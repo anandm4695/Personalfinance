@@ -17,7 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, today } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, monthsBetween } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -257,16 +257,24 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       }
     });
 
-    // 5. SIP monitoring
+    // 5. SIP monitoring — this alert was permanently dead: SIP records carry
+    // `startDate`/`totalInstallments`/`frequency`/`scheme`, never `endDate`/`name`/`fund`,
+    // so the old condition and detail text could never fire/read correctly. Derive
+    // completion the same way SIPTrackerTab.tsx does (monthsElapsed >= totalInstallments).
     (state.sips || []).forEach((sip) => {
       if (sip.status === "stopped" || sip.status === "paused") return;
-      if (sip.endDate && sip.endDate < todayStr) {
+      const totalInst = Number(sip.totalInstallments || 0);
+      if (totalInst <= 0 || !sip.startDate) return;
+      const isQuarterly = sip.frequency === "quarterly";
+      const monthsElapsed = Math.max(0, monthsBetween(sip.startDate, todayStr));
+      const installmentsElapsed = isQuarterly ? Math.floor(monthsElapsed / 3) : monthsElapsed;
+      if (installmentsElapsed >= totalInst) {
         alerts.push({
           id: `sip_ended_${sip.id}`,
           level: "info",
           category: "investments",
           title: "SIP completed",
-          detail: `${sip.name || sip.fund || "SIP"} has ended. Consider renewing or starting a new one.`,
+          detail: `${sip.scheme || "SIP"} has completed its ${totalInst}-installment run. Consider renewing or starting a new one.`,
           icon: CheckCircle,
           action: "Review SIP tracker",
         });
@@ -312,6 +320,28 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           detail: `Progress: ${progress.toFixed(0)}% — Need ${fmtINRExact(Number(g.targetAmount) - Number(g.currentAmount))} more`,
           icon: Target,
           action: "Accelerate savings",
+        });
+      }
+    });
+
+    // 7b. Life event deadlines approaching — same shape/threshold as the goal-deadline
+    // alert above (life events and financial goals are structurally similar: a target
+    // amount + date + progress). Previously life events surfaced no alert anywhere.
+    (state.lifeEvents || []).forEach((e) => {
+      if (!e.targetDate) return;
+      const days = daysUntil(e.targetDate);
+      const progress = Number(e.estimatedCost)
+        ? (Number(e.currentSaved) / Number(e.estimatedCost)) * 100
+        : 0;
+      if (days >= 0 && days <= 90 && progress < 80) {
+        alerts.push({
+          id: `life_event_deadline_${e.id}`,
+          level: days <= 30 ? "error" : "warn",
+          category: "goals",
+          title: `Life event "${e.name}" in ${days} days`,
+          detail: `Progress: ${progress.toFixed(0)}% — Need ${fmtINRExact(Math.max(0, Number(e.estimatedCost) - Number(e.currentSaved)))} more`,
+          icon: Calendar,
+          action: "Review Life Event Planner",
         });
       }
     });

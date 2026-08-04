@@ -14,6 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  FileText,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -65,6 +68,67 @@ function annualPremium(amount: number, freq: string): number {
   return amount * (mult[freq] || 1);
 }
 
+// Same self-vs-parents heuristic used by Section80TrackerTab.tsx / TaxFilingHelperTab.tsx
+// for their Sec 80D calculation — kept identical here (rather than re-deriving it) so the
+// "eligible for 80D" figure shown on this tab always agrees with the Tax tools' numbers.
+// A policy is treated as a "parents" policy if any insured member's relation looks like
+// a parent; there's no dedicated field for it in the data model.
+const PARENT_RELATION_RE = /parent|father|mother|dad|mom|papa|mummy|-in-law/i;
+function isParentsPolicy(p: any): boolean {
+  return (p.insuredMembers || []).some((m: any) => PARENT_RELATION_RE.test(m?.relation || ""));
+}
+const SEC80D_SELF_LIMIT = 25000;
+const SEC80D_PARENTS_LIMIT = 25000; // stays at the non-senior-citizen cap — see Section80TrackerTab.tsx
+
+// Waiting period (e.g. for pre-existing disease cover) counted in whole months from the
+// policy start date. Parses startDate with an explicit local-midnight time component
+// (`+"T00:00:00"`) rather than the bare `new Date("YYYY-MM-DD")` form — the bare form is
+// parsed as UTC per the ECMA-262 date-only grammar, which can silently roll the displayed/
+// compared date back a day in timezones behind UTC. Matches the `dateStr + "T00:00:00"`
+// convention already used elsewhere in the app (BudgetTab, CashFlowTab, BanksTab, etc.).
+function waitingPeriodInfo(
+  p: any
+): { totalMonths: number; elapsedMonths: number; remainingMonths: number; done: boolean } | null {
+  const years = Number(p.waitingPeriodYears);
+  if (!(years > 0) || !p.startDate) return null;
+  const start = new Date(p.startDate + "T00:00:00");
+  if (isNaN(start.getTime())) return null;
+  const now = new Date(today() + "T00:00:00");
+  const totalMonths = Math.round(years * 12);
+  const elapsedMonthsRaw =
+    (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const elapsedMonths = Math.min(totalMonths, Math.max(0, elapsedMonthsRaw));
+  return {
+    totalMonths,
+    elapsedMonths,
+    remainingMonths: totalMonths - elapsedMonths,
+    done: elapsedMonths >= totalMonths,
+  };
+}
+
+// A room-rent sub-limit (e.g. "1% of SI/day", "Single Private AC Room") caps the daily room
+// rent a policy will pay for — going over it usually triggers a "proportionate deduction"
+// clause that also shrinks reimbursement of the rest of the hospital bill, not just the
+// room charge. Anything other than an explicit "no limit" is worth flagging.
+function hasRoomRentCap(p: any): boolean {
+  const v = (p.roomRentLimit || "").trim();
+  if (!v) return false;
+  return !/^(no\s*(sub-?)?limit|none|nil|n\/?a|unlimited)/i.test(v);
+}
+
+// Rough coverage-adequacy heuristic: flag base health policies (not top-ups, which are
+// meant to stack on a base policy, and not critical-illness, which is a lump-sum payout
+// product) whose sum insured works out to under ₹5L per insured member — a commonly cited
+// rule-of-thumb minimum for a metro/tier-1 hospitalisation today.
+const ADEQUACY_PER_MEMBER_MIN = 500000;
+function coverageAdequacyNote(p: any): string | null {
+  if (["top_up", "super_top_up", "critical_illness"].includes(p.policyType)) return null;
+  const members = Math.max(1, p.insuredMembers?.length || 1);
+  const perMember = Number(p.sumInsured || 0) / members;
+  if (perMember >= ADEQUACY_PER_MEMBER_MIN) return null;
+  return `~${fmtINRFull(perMember)}/member — consider a top-up`;
+}
+
 const EMPTY: any = {
   insurer: "",
   policyName: "",
@@ -82,7 +146,9 @@ const EMPTY: any = {
   preExistingCovered: false,
   waitingPeriodYears: "",
   noClaimBonus: "",
+  roomRentLimit: "",
   notes: "",
+  claims: [],
 };
 
 function PolicyForm({ initial, onSave, onClose }: any) {
@@ -93,8 +159,12 @@ function PolicyForm({ initial, onSave, onClose }: any) {
   );
   const [memberName, setMemberName] = useState("");
   const [memberRelation, setMemberRelation] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+  const set = (k: string, v: any) => {
+    setForm((f: any) => ({ ...f, [k]: v }));
+    if (errors[k]) setErrors((e) => ({ ...e, [k]: "" }));
+  };
 
   const addMember = () => {
     if (!memberName.trim()) return;
@@ -109,8 +179,17 @@ function PolicyForm({ initial, onSave, onClose }: any) {
   const removeMember = (i: number) => setMembers((m) => m.filter((_, idx) => idx !== i));
 
   const save = () => {
-    if (!form.insurer.trim() || !(Number(form.sumInsured) > 0) || !(Number(form.premium) > 0))
+    // Was previously a silent no-op: an incomplete form (missing insurer, or a zero/blank
+    // sum insured or premium) just did nothing when "Save" was clicked, with no error
+    // shown, so it looked like the app had frozen or the click hadn't registered.
+    const next: Record<string, string> = {};
+    if (!form.insurer.trim()) next.insurer = "Insurer name is required.";
+    if (!(Number(form.sumInsured) > 0)) next.sumInsured = "Enter a sum insured greater than ₹0.";
+    if (!(Number(form.premium) > 0)) next.premium = "Enter a premium greater than ₹0.";
+    if (Object.keys(next).length > 0) {
+      setErrors(next);
       return;
+    }
     onSave({ ...form, insuredMembers: members, id: initial?.id || uid() });
   };
 
@@ -124,7 +203,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
     >
       <ModalSection title="Policy Details" first />
       <div className="form-grid-2" style={g2}>
-        <Field label="Insurer / Company *">
+        <Field label="Insurer / Company *" error={errors.insurer}>
           <input
             className="form-input"
             value={form.insurer}
@@ -178,7 +257,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
 
       <ModalSection title="Coverage & Premium" />
       <div className="form-grid-2" style={g2}>
-        <Field label="Sum Insured (₹) *">
+        <Field label="Sum Insured (₹) *" error={errors.sumInsured}>
           <input
             className="form-input"
             type="number"
@@ -187,7 +266,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
             placeholder="e.g. 500000"
           />
         </Field>
-        <Field label="Premium (₹) *">
+        <Field label="Premium (₹) *" error={errors.premium}>
           <input
             className="form-input"
             type="number"
@@ -255,7 +334,14 @@ function PolicyForm({ initial, onSave, onClose }: any) {
             placeholder="Current NCB amount"
           />
         </Field>
-        <div />
+        <Field label="Room Rent Sub-limit">
+          <input
+            className="form-input"
+            value={form.roomRentLimit}
+            onChange={(e) => set("roomRentLimit", e.target.value)}
+            placeholder="e.g. No Limit, 1% of SI/day"
+          />
+        </Field>
         <Field label="Cashless Available">
           <label
             style={{
@@ -356,9 +442,86 @@ function PolicyForm({ initial, onSave, onClose }: any) {
   );
 }
 
+// Lightweight "log a claim" modal, separate from the full policy-edit form — filing a
+// claim happens far more often than editing policy details, so it shouldn't require
+// opening the whole Edit Policy modal (same reasoning as Loans Given's dedicated
+// "Add Payment" modal vs. its full loan-edit form). Appends to the policy's `claims`
+// jsonb array (column already exists — see database/64_health_insurance.sql).
+function ClaimForm({ policy, onSave, onClose }: any) {
+  const [date, setDate] = useState(today());
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [settled, setSettled] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const save = () => {
+    const next: Record<string, string> = {};
+    if (!date) next.date = "Select a claim date.";
+    if (!(Number(amount) > 0)) next.amount = "Enter a claim amount greater than ₹0.";
+    if (Object.keys(next).length > 0) {
+      setErrors(next);
+      return;
+    }
+    onSave([
+      ...(policy.claims || []),
+      { id: uid(), date, description: description.trim(), amount: Number(amount), settled },
+    ]);
+  };
+
+  return (
+    <Modal
+      title={`Log Claim — ${policy.insurer}${policy.policyName ? ` · ${policy.policyName}` : ""}`}
+      onClose={onClose}
+      maxWidth={480}
+    >
+      <Field label="Claim Date *" error={errors.date}>
+        <input
+          className="form-input"
+          type="date"
+          value={date}
+          onChange={(e) => {
+            setDate(e.target.value);
+            if (errors.date) setErrors((er) => ({ ...er, date: "" }));
+          }}
+        />
+      </Field>
+      <Field label="Description">
+        <input
+          className="form-input"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g. Hospitalisation — appendix surgery"
+        />
+      </Field>
+      <Field label="Claim Amount (₹) *" error={errors.amount}>
+        <input
+          className="form-input"
+          type="number"
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            if (errors.amount) setErrors((er) => ({ ...er, amount: "" }));
+          }}
+          placeholder="Amount claimed"
+        />
+      </Field>
+      <Field label="Status">
+        <label
+          style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, cursor: "pointer" }}
+        >
+          <input type="checkbox" checked={settled} onChange={(e) => setSettled(e.target.checked)} />
+          <span style={{ fontSize: 13 }}>Settled / paid out</span>
+        </label>
+      </Field>
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Log Claim" />
+    </Modal>
+  );
+}
+
 export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: any) {
   const policies = state.healthInsurance || [];
   const [modal, setModal] = useState<any>(null);
+  const [claimModal, setClaimModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const totalCover = policies.reduce((s: number, p: any) => s + Number(p.sumInsured || 0), 0);
@@ -373,6 +536,28 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
     return days !== null && days >= 0 && days <= 30;
   });
 
+  // Sec 80D eligibility estimate — same formula/limits as Section80TrackerTab.tsx &
+  // TaxFilingHelperTab.tsx (see PARENT_RELATION_RE above) so this tab's number never
+  // drifts from what the Tax tools actually claim as deductible.
+  const selfHealthPremium = policies
+    .filter((p: any) => !isParentsPolicy(p))
+    .reduce(
+      (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
+      0
+    );
+  const parentsHealthPremium = policies
+    .filter(isParentsPolicy)
+    .reduce(
+      (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
+      0
+    );
+  const sec80DEstimate =
+    Math.min(selfHealthPremium, SEC80D_SELF_LIMIT) + Math.min(parentsHealthPremium, SEC80D_PARENTS_LIMIT);
+
+  const allClaims = policies.flatMap((p: any) => (p.claims || []).map((c: any) => ({ ...c, policy: p })));
+  const totalClaimedAmount = allClaims.reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
+  const pendingClaims = allClaims.filter((c: any) => !c.settled).length;
+
   const save = (data: any) => {
     if (data.id && policies.find((p: any) => p.id === data.id)) {
       updateItem("healthInsurance", data.id, data);
@@ -380,6 +565,20 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
       addItem("healthInsurance", data);
     }
     setModal(null);
+  };
+
+  const saveClaim = (claims: any[]) => {
+    if (!claimModal) return;
+    updateItem("healthInsurance", claimModal.id, { ...claimModal, claims });
+    setClaimModal(null);
+  };
+
+  const removeClaim = (policy: any, claimId: string) => {
+    if (!window.confirm("Delete this claim record?")) return;
+    updateItem("healthInsurance", policy.id, {
+      ...policy,
+      claims: (policy.claims || []).filter((c: any) => c.id !== claimId),
+    });
   };
 
   return (
@@ -414,6 +613,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
           <StatCard
             label="Annual Premium"
             value={<Prv>{fmtINRFull(totalAnnualPremium)}</Prv>}
+            sub={sec80DEstimate > 0 ? <Prv>{`≈ ${fmtINRFull(sec80DEstimate)} eligible for 80D`}</Prv> : undefined}
             icon={<Heart size={18} />}
             color={THEME.danger}
           />
@@ -429,6 +629,25 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
             icon={<Calendar size={18} />}
             color={renewingSoon.length > 0 ? THEME.warning : THEME.textMuted}
           />
+        </div>
+      )}
+
+      {/* Claims summary */}
+      {allClaims.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            color: THEME.textMuted,
+            marginBottom: 16,
+          }}
+        >
+          <FileText size={12} />
+          {allClaims.length} claim{allClaims.length !== 1 ? "s" : ""} filed ·{" "}
+          <Prv>{fmtINRFull(totalClaimedAmount)}</Prv> total claimed
+          {pendingClaims > 0 ? ` · ${pendingClaims} pending settlement` : ""}
         </div>
       )}
 
@@ -482,6 +701,10 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
             const isExpanded = expanded === p.id;
             const annual = annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual");
             const typeColor = TYPE_COLORS[p.policyType] || THEME.primary;
+            const adequacyNote = coverageAdequacyNote(p);
+            const waiting = waitingPeriodInfo(p);
+            const roomRentCapped = hasRoomRentCap(p);
+            const claims = p.claims || [];
 
             return (
               <Card key={p.id} style={{ borderLeft: `4px solid ${typeColor}` }}>
@@ -518,6 +741,22 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                       <Prv>{fmtINRFull(Number(p.sumInsured || 0))}</Prv>
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>cover</div>
+                    {adequacyNote && (
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: THEME.warning,
+                          marginTop: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 3,
+                          justifyContent: "flex-end",
+                        }}
+                        title="Rough rule-of-thumb: ₹5L+ cover per insured member for a metro/tier-1 hospitalisation"
+                      >
+                        <AlertTriangle size={10} /> {adequacyNote}
+                      </div>
+                    )}
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>
@@ -531,6 +770,23 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                     </Badge>
                   )}
                   <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      onClick={() => setClaimModal(p)}
+                      aria-label={`Log a claim for ${p.insurer} policy`}
+                      title="Log a claim"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.textMuted,
+                        padding: 6,
+                        display: "flex",
+                        alignItems: "center",
+                        transition: "background 0.15s ease, color 0.15s ease",
+                      }}
+                    >
+                      <FileText size={14} />
+                    </button>
                     <button
                       onClick={() => setExpanded(isExpanded ? null : p.id)}
                       aria-label={isExpanded ? "Collapse policy details" : "Expand policy details"}
@@ -632,8 +888,26 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                       )}
                       {Number(p.waitingPeriodYears) > 0 && (
                         <div style={{ fontSize: 12, color: THEME.textMuted }}>
-                          Waiting period: {p.waitingPeriodYears} yr
-                          {p.waitingPeriodYears !== 1 ? "s" : ""}
+                          <div>
+                            Waiting period: {p.waitingPeriodYears} yr
+                            {p.waitingPeriodYears !== 1 ? "s" : ""}
+                          </div>
+                          {waiting && (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                marginTop: 2,
+                                color: waiting.done ? THEME.success : THEME.warning,
+                              }}
+                            >
+                              <Clock size={11} />
+                              {waiting.done
+                                ? "Fully vested"
+                                : `${waiting.remainingMonths} mo remaining`}
+                            </div>
+                          )}
                         </div>
                       )}
                       {Number(p.noClaimBonus) > 0 && (
@@ -646,10 +920,24 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                           Network: {p.hospitalNetwork}
                         </div>
                       )}
+                      {p.roomRentLimit && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: roomRentCapped ? THEME.warning : THEME.textMuted,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          {roomRentCapped && <AlertTriangle size={11} />}
+                          Room rent: {p.roomRentLimit}
+                        </div>
+                      )}
                       {p.startDate && (
                         <div style={{ fontSize: 12, color: THEME.textMuted }}>
                           Start:{" "}
-                          {new Date(p.startDate).toLocaleDateString("en-IN", {
+                          {new Date(p.startDate + "T00:00:00").toLocaleDateString("en-IN", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
@@ -659,7 +947,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                       {p.renewalDate && (
                         <div style={{ fontSize: 12, color: THEME.textMuted }}>
                           Renewal:{" "}
-                          {new Date(p.renewalDate).toLocaleDateString("en-IN", {
+                          {new Date(p.renewalDate + "T00:00:00").toLocaleDateString("en-IN", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
@@ -692,6 +980,75 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                         </div>
                       </div>
                     )}
+                    {claims.length > 0 && (
+                      <div style={{ marginTop: 12 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: THEME.textMuted,
+                            marginBottom: 6,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          Claim History
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {[...claims]
+                            .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""))
+                            .map((c: any) => (
+                              <div
+                                key={c.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  fontSize: 12,
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <span style={{ color: THEME.textMuted, minWidth: 70 }}>
+                                  {c.date
+                                    ? new Date(c.date + "T00:00:00").toLocaleDateString("en-IN", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "2-digit",
+                                      })
+                                    : "—"}
+                                </span>
+                                <span style={{ fontWeight: 600 }}>
+                                  <Prv>{fmtINRFull(Number(c.amount || 0))}</Prv>
+                                </span>
+                                {c.description && (
+                                  <span style={{ color: THEME.textMuted, flex: 1, minWidth: 0 }}>
+                                    {c.description}
+                                  </span>
+                                )}
+                                <Badge variant={c.settled ? "sage" : "gold"} size="xs">
+                                  {c.settled ? "Settled" : "Pending"}
+                                </Badge>
+                                <button
+                                  onClick={() => removeClaim(p, c.id)}
+                                  aria-label={`Delete claim from ${c.date}`}
+                                  title="Delete claim"
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    color: THEME.danger,
+                                    padding: 4,
+                                    display: "flex",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                     {p.notes && (
                       <div
                         style={{
@@ -718,6 +1075,10 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
           onSave={save}
           onClose={() => setModal(null)}
         />
+      )}
+
+      {claimModal !== null && (
+        <ClaimForm policy={claimModal} onSave={saveClaim} onClose={() => setClaimModal(null)} />
       )}
     </div>
   );

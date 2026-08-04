@@ -11,6 +11,10 @@ import {
   AlertCircle,
   IndianRupee,
   TrendingUp,
+  Pause,
+  PlayCircle,
+  StopCircle,
+  Sparkles,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -73,9 +77,16 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 
   const sipsWithCalc = useMemo(() => {
     return (state.sips || []).map((sip: any) => {
+      const status = sip.status || "active";
+      const isStopped = status === "stopped";
+      const isPaused = status === "paused";
+      const stepUpPct = Math.max(0, Number(sip.stepUpPct || 0)) / 100;
+      const baseAmount = Number(sip.amount || 0);
+
       if (!sip.startDate) {
         return {
           ...sip,
+          status,
           paid: 0,
           totalInvested: 0,
           remaining: Number(sip.totalInstallments || 0),
@@ -85,15 +96,18 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
           gainPct: 0,
           progress: 0,
           isCompleted: false,
-          monthlyEquivalent: Number(sip.amount || 0),
+          isInactive: isStopped || isPaused,
+          monthlyEquivalent: 0,
+          currentInstallmentAmt: baseAmount,
           nextDueDateStr: null,
           daysUntilDue: null,
         };
       }
       const isQuarterly = sip.frequency === "quarterly";
       const periodMonths = isQuarterly ? 3 : 1;
+      const periodsPerYear = isQuarterly ? 4 : 12;
       const annualRate = Number(sipProjRate) || 12;
-      const r = annualRate / (isQuarterly ? 4 : 12) / 100;
+      const r = annualRate / periodsPerYear / 100;
       const monthsElapsed = Math.max(0, monthsBetween(sip.startDate, todayStr));
       const totalInst = Number(sip.totalInstallments || 0);
       // Open-ended SIPs (no fixed tenure) accrue installments indefinitely;
@@ -102,34 +116,62 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
         totalInst > 0
           ? Math.min(Math.floor(monthsElapsed / periodMonths), totalInst)
           : Math.floor(monthsElapsed / periodMonths);
-      const totalInvested = paid * Number(sip.amount || 0);
-      const remaining = totalInst > 0 ? Math.max(0, totalInst - paid) : 0;
-      const m = Number(sip.amount || 0);
+      // A stopped SIP never gets new installments; a paused one is assumed to
+      // resume, so it still projects forward (but is excluded from "due soon"
+      // alerts and current monthly-outgo totals below).
+      const remainingRaw = totalInst > 0 ? Math.max(0, totalInst - paid) : 0;
+      const remaining = isStopped ? 0 : remainingRaw;
 
-      const currentCorpus =
-        paid === 0
-          ? 0
-          : r === 0
-            ? totalInvested
-            : ((m * (Math.pow(1 + r, paid) - 1)) / r) * (1 + r);
+      // Step-up SIPs increase the per-installment amount by `stepUpPct` at
+      // every anniversary (every `periodsPerYear` installments), compounding
+      // year-over-year off the PREVIOUS year's stepped amount (not the
+      // original base each time) — amount(yearIdx) = base * (1+step)^yearIdx.
+      // Corpus is built with a running ordinary-annuity recurrence
+      // (corpus = corpus*(1+r) + installment) so a varying installment
+      // amount is handled correctly; multiplying the final total by (1+r)
+      // once converts it from "ordinary" (deposit at period end) to
+      // "annuity-due" (deposit at period start) basis — this scaling is
+      // uniform regardless of how many periods ran, so it's valid to apply
+      // it once at the end even when installment amounts vary by year.
+      // With stepUpPct = 0 this reduces to the plain flat-SIP FV of annuity-due.
+      let ordinaryFV = 0;
+      let totalInvested = 0;
+      for (let i = 0; i < paid; i++) {
+        const yearIdx = Math.floor(i / periodsPerYear);
+        const amt = baseAmount * Math.pow(1 + stepUpPct, yearIdx);
+        ordinaryFV = ordinaryFV * (1 + r) + amt;
+        totalInvested += amt;
+      }
+      const currentCorpus = paid === 0 ? 0 : ordinaryFV * (1 + r);
 
-      const projectedCorpus =
-        remaining === 0
-          ? currentCorpus
-          : r === 0
-            ? currentCorpus + m * remaining
-            : currentCorpus * Math.pow(1 + r, remaining) +
-              ((m * (Math.pow(1 + r, remaining) - 1)) / r) * (1 + r);
+      let ordinaryFVProjected = ordinaryFV;
+      for (let i = paid; i < paid + remaining; i++) {
+        const yearIdx = Math.floor(i / periodsPerYear);
+        const amt = baseAmount * Math.pow(1 + stepUpPct, yearIdx);
+        ordinaryFVProjected = ordinaryFVProjected * (1 + r) + amt;
+      }
+      const projectedCorpus = remaining === 0 ? currentCorpus : ordinaryFVProjected * (1 + r);
+
+      // The installment amount that would apply RIGHT NOW (i.e. on the next
+      // due date), reflecting any step-ups already elapsed.
+      const currentInstallmentAmt = baseAmount * Math.pow(1 + stepUpPct, Math.floor(paid / periodsPerYear));
 
       const estimatedGains = Math.max(0, currentCorpus - totalInvested);
       const gainPct = totalInvested > 0 ? (estimatedGains / totalInvested) * 100 : 0;
       const progress = totalInst > 0 ? (paid / totalInst) * 100 : 0;
-      const isCompleted = totalInst > 0 && remaining === 0 && paid > 0;
-      const monthlyEquivalent = isQuarterly ? m / 3 : m;
+      const isCompleted = totalInst > 0 && remainingRaw === 0 && paid > 0;
+      const isInactive = isCompleted || isStopped || isPaused;
+      // Monthly-equivalent outgo only counts SIPs actively contributing right
+      // now, at their current (post-step-up) installment amount.
+      const monthlyEquivalent = isInactive
+        ? 0
+        : isQuarterly
+          ? currentInstallmentAmt / 3
+          : currentInstallmentAmt;
 
       let nextDueDateStr: string | null = null;
       let daysUntilDue: number | null = null;
-      if (!isCompleted && remaining > 0 && sip.startDate) {
+      if (!isCompleted && !isStopped && !isPaused && remaining > 0 && sip.startDate) {
         const startD = new Date(sip.startDate + "T00:00:00");
         // Date.setMonth() overflows past month-end (e.g. Jan 31 + 1mo -> Mar 3, since
         // Feb 31 doesn't exist) instead of clamping, silently shifting the due date for
@@ -148,15 +190,18 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 
       return {
         ...sip,
+        status,
         paid,
         totalInvested,
         remaining,
         currentCorpus,
         projectedCorpus,
+        currentInstallmentAmt,
         estimatedGains,
         gainPct,
         progress,
         isCompleted,
+        isInactive,
         monthlyEquivalent,
         nextDueDateStr,
         daysUntilDue,
@@ -164,8 +209,8 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
     });
   }, [state.sips, todayStr, sipProjRate]);
 
-  const activeSips = sipsWithCalc.filter((s: any) => !s.isCompleted);
-  const completedSips = sipsWithCalc.filter((s: any) => s.isCompleted);
+  const activeSips = sipsWithCalc.filter((s: any) => !s.isInactive);
+  const completedSips = sipsWithCalc.filter((s: any) => s.isInactive);
 
   const totalMonthlyEquivalent = activeSips.reduce(
     (s: number, sip: any) => s + sip.monthlyEquivalent,
@@ -216,8 +261,13 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
     for (let year = 1; year <= 10; year++) {
       for (let month = 1; month <= 12; month++) {
         for (const sip of sipsWithCalc) {
-          if (sip.isCompleted) continue;
+          // A stopped SIP contributes no further installments; a paused one
+          // is assumed to eventually resume, so it still projects forward.
+          if (sip.isCompleted || sip.status === "stopped") continue;
           const isQuarterly = sip.frequency === "quarterly";
+          const periodsPerYear = isQuarterly ? 4 : 12;
+          const stepUpPct = Math.max(0, Number(sip.stepUpPct || 0)) / 100;
+          const baseAmount = Number(sip.amount || 0);
           const totalInst = Number(sip.totalInstallments || 0);
           const elapsed = monthsBetween(sip.startDate, todayStr);
           const totalMonthsAtPoint = elapsed + (year - 1) * 12 + month;
@@ -225,13 +275,16 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
           if (isQuarterly) {
             const instNum = Math.floor(totalMonthsAtPoint / 3);
             if ((totalInst === 0 || instNum < totalInst) && totalMonthsAtPoint % 3 === 0) {
-              currentInvested += Number(sip.amount || 0);
-              currentWealth += Number(sip.amount || 0);
+              const amt = baseAmount * Math.pow(1 + stepUpPct, Math.floor((instNum - 1) / periodsPerYear));
+              currentInvested += amt;
+              currentWealth += amt;
             }
           } else {
             if (totalInst === 0 || totalMonthsAtPoint <= totalInst) {
-              currentInvested += Number(sip.amount || 0);
-              currentWealth += Number(sip.amount || 0);
+              const amt =
+                baseAmount * Math.pow(1 + stepUpPct, Math.floor((totalMonthsAtPoint - 1) / periodsPerYear));
+              currentInvested += amt;
+              currentWealth += amt;
             }
           }
         }
@@ -246,8 +299,8 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
     return chartPoints;
   }, [sipsWithCalc, sipProjRate, totalInvested, todayStr]);
 
-  const sortedActive = sortedSips.filter((s: any) => !s.isCompleted);
-  const sortedCompleted = sortedSips.filter((s: any) => s.isCompleted);
+  const sortedActive = sortedSips.filter((s: any) => !s.isInactive);
+  const sortedCompleted = sortedSips.filter((s: any) => s.isInactive);
 
   return (
     <div className="tab-content-enter">
@@ -275,7 +328,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       >
         <StatCard
           label="Monthly SIP"
-          value={fmtINRFull(totalMonthlyEquivalent)}
+          value={privacyMode ? "••••" : fmtINRFull(totalMonthlyEquivalent)}
           sub={
             metrics?.monthIncome > 0
               ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
@@ -286,7 +339,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
         />
         <StatCard
           label="Total Invested"
-          value={fmtINRFull(totalInvested)}
+          value={privacyMode ? "••••" : fmtINRFull(totalInvested)}
           sub="Cumulative capital deployed"
           icon={<IndianRupee />}
           color={THEME.sage}
@@ -304,8 +357,8 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
         />
         <StatCard
           label="Projected Corpus"
-          value={fmtINRFull(totalProjected)}
-          sub={`@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} done` : ""}`}
+          value={privacyMode ? "••••" : fmtINRFull(totalProjected)}
+          sub={`@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} inactive` : ""}`}
           icon={<Activity />}
           color={THEME.accent}
         />
@@ -405,8 +458,8 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
             <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
               {sipsWithCalc.length} SIP{sipsWithCalc.length !== 1 ? "s" : ""}
               {completedSips.length > 0 && (
-                <span style={{ marginLeft: 8, fontSize: 11, color: THEME.sage, fontWeight: 700 }}>
-                  · {completedSips.length} completed
+                <span style={{ marginLeft: 8, fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
+                  · {completedSips.length} inactive
                 </span>
               )}
             </div>
@@ -499,14 +552,21 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                     key={sip.id}
                     sip={sip}
                     onEdit={() => setEditSip(sip)}
-                    onRemove={() => removeItem("sips", sip.id)}
+                    onRemove={() => {
+                      if (window.confirm(`Delete "${sip.scheme || "this SIP"}"? This cannot be undone.`)) {
+                        removeItem("sips", sip.id);
+                      }
+                    }}
+                    onStatusChange={(newStatus: string) =>
+                      updateItem("sips", sip.id, { status: newStatus })
+                    }
                   />
                 ))}
               </div>
             </>
           )}
 
-          {/* ── Completed SIPs ── */}
+          {/* ── Inactive SIPs (completed / paused / stopped) ── */}
           {sortedCompleted.length > 0 && (
             <>
               <div
@@ -519,7 +579,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                   marginBottom: 12,
                 }}
               >
-                Completed · {sortedCompleted.length}
+                Inactive · {sortedCompleted.length}
               </div>
               <div
                 style={{
@@ -534,7 +594,14 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                     key={sip.id}
                     sip={sip}
                     onEdit={() => setEditSip(sip)}
-                    onRemove={() => removeItem("sips", sip.id)}
+                    onRemove={() => {
+                      if (window.confirm(`Delete "${sip.scheme || "this SIP"}"? This cannot be undone.`)) {
+                        removeItem("sips", sip.id);
+                      }
+                    }}
+                    onStatusChange={(newStatus: string) =>
+                      updateItem("sips", sip.id, { status: newStatus })
+                    }
                   />
                 ))}
               </div>
@@ -713,17 +780,23 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 }
 
 // ── SIP Card ─────────────────────────────────────────────────────────────────
-function SIPCard({ sip, onEdit, onRemove }: any) {
+function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
   const { familyProfiles } = useMasterData();
+  const isPaused = sip.status === "paused";
+  const isStopped = sip.status === "stopped";
   const isOverdue = sip.daysUntilDue !== null && sip.daysUntilDue < 0;
   const isDueSoon = sip.daysUntilDue !== null && sip.daysUntilDue >= 0 && sip.daysUntilDue <= 7;
   const statusColor = sip.isCompleted
     ? THEME.muted
-    : isOverdue
+    : isStopped
       ? THEME.rust
-      : isDueSoon
+      : isPaused
         ? THEME.gold
-        : THEME.sage;
+        : isOverdue
+          ? THEME.rust
+          : isDueSoon
+            ? THEME.gold
+            : THEME.sage;
   const fundColor = FUND_COLORS[sip.fundType] || THEME.muted;
   const alertColor = isOverdue ? THEME.rust : THEME.gold;
 
@@ -732,8 +805,12 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
     ownerProfile?.name ||
     (sip.owner ? sip.owner.charAt(0).toUpperCase() + sip.owner.slice(1) : null);
 
-  const annualAmt =
-    sip.frequency === "quarterly" ? Number(sip.amount) * 4 : Number(sip.amount) * 12;
+  const currentAmt = Number(sip.currentInstallmentAmt ?? sip.amount ?? 0);
+  const annualAmt = sip.frequency === "quarterly" ? currentAmt * 4 : currentAmt * 12;
+  // Show the step-up badge whenever the SIP has one configured; show the
+  // "started at ₹X" note only once the amount has actually risen.
+  const hasStepUpConfigured = Number(sip.stepUpPct || 0) > 0;
+  const hasSteppedUp = Math.abs(currentAmt - Number(sip.amount || 0)) >= 1;
 
   let nextLabel: string | null = null;
   if (!sip.isCompleted && sip.nextDueDateStr) {
@@ -860,6 +937,61 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
                 ✓ Completed
               </span>
             )}
+            {!sip.isCompleted && isPaused && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: THEME.gold,
+                  background: `color-mix(in srgb, ${THEME.gold} 7%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.gold} 15%, transparent)`,
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em",
+                }}
+              >
+                ⏸ Paused
+              </span>
+            )}
+            {!sip.isCompleted && isStopped && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: THEME.rust,
+                  background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em",
+                }}
+              >
+                ■ Stopped
+              </span>
+            )}
+            {hasStepUpConfigured && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: THEME.violet,
+                  background: `color-mix(in srgb, ${THEME.violet} 7%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.violet} 15%, transparent)`,
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em",
+                }}
+                title={`Started at ${fmtINRExact(sip.amount)}, now ${fmtINRExact(currentAmt)} after step-up`}
+              >
+                <Sparkles size={9} /> {sip.stepUpPct}% step-up
+              </span>
+            )}
           </div>
           {startedLabel && (
             <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 500 }}>
@@ -869,6 +1001,50 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
         </div>
 
         <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+          {!sip.isCompleted && !isPaused && !isStopped && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onStatusChange?.("paused")}
+              style={{ padding: 6, color: THEME.gold }}
+              title="Pause SIP"
+              aria-label="Pause SIP"
+            >
+              <Pause size={13} />
+            </Button>
+          )}
+          {!sip.isCompleted && (isPaused || isStopped) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onStatusChange?.("active")}
+              style={{ padding: 6, color: THEME.sage }}
+              title="Resume SIP"
+              aria-label="Resume SIP"
+            >
+              <PlayCircle size={13} />
+            </Button>
+          )}
+          {!sip.isCompleted && !isStopped && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Stop "${sip.scheme || "this SIP"}"? It will no longer count toward your monthly SIP total or show due-date reminders. You can resume it any time.`
+                  )
+                ) {
+                  onStatusChange?.("stopped");
+                }
+              }}
+              style={{ padding: 6, color: THEME.rust }}
+              title="Stop SIP"
+              aria-label="Stop SIP"
+            >
+              <StopCircle size={13} />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -934,7 +1110,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {fmtINRExact(sip.amount)}
+            <Prv>{fmtINRExact(currentAmt)}</Prv>
           </span>
           <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginLeft: 4 }}>
             /{sip.frequency === "quarterly" ? "qtr" : "mo"}
@@ -942,6 +1118,11 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
           <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginLeft: 8 }}>
             · <Prv>{fmtINRFull(annualAmt)}</Prv>/yr
           </span>
+          {hasSteppedUp && (
+            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500, marginTop: 3 }}>
+              Started at <Prv>{fmtINRExact(sip.amount)}</Prv>
+            </div>
+          )}
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
@@ -984,7 +1165,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
           { k: "Invested", v: <Prv>{fmtINRFull(sip.totalInvested)}</Prv>, color: THEME.muted },
           { k: "Est. Value", v: <Prv>{fmtINRFull(sip.currentCorpus)}</Prv>, color: THEME.sage },
           {
-            k: sip.isCompleted ? "Final" : "Projected",
+            k: sip.isCompleted || isStopped ? "Final" : "Projected",
             v: <Prv>{fmtINRFull(sip.projectedCorpus)}</Prv>,
             color: THEME.gold,
           },
@@ -1089,6 +1270,8 @@ function SIPModal({ onClose, onSave, initial }: any) {
           startDate: initial.startDate || today(),
           totalInstallments: String(initial.totalInstallments || "12"),
           broker: initial.broker || "",
+          stepUpPct: String(initial.stepUpPct || "0"),
+          status: initial.status || "active",
         }
       : {
           owner: "self",
@@ -1099,15 +1282,27 @@ function SIPModal({ onClose, onSave, initial }: any) {
           startDate: today(),
           totalInstallments: "12",
           broker: "",
+          stepUpPct: "0",
+          status: "active",
         }
   );
 
   const instNum = Number(f.totalInstallments) || 0;
   const amt = Number(f.amount) || 0;
-  const totalCommitment = instNum * amt;
+  const stepUpPctNum = Math.max(0, Number(f.stepUpPct) || 0) / 100;
+  const periodsPerYear = f.frequency === "quarterly" ? 4 : 12;
+  // Step-up SIPs raise the installment amount by stepUpPctNum every
+  // `periodsPerYear` installments, so the flat instNum*amt estimate would
+  // understate the real commitment — sum each stepped installment instead.
+  let totalCommitment = 0;
+  for (let i = 0; i < instNum; i++) {
+    const yearIdx = Math.floor(i / periodsPerYear);
+    totalCommitment += amt * Math.pow(1 + stepUpPctNum, yearIdx);
+  }
   const durationYears =
     f.frequency === "quarterly" ? Math.floor(instNum / 4) : Math.floor(instNum / 12);
   const durationMonths = f.frequency === "quarterly" ? (instNum % 4) * 3 : instNum % 12;
+  const isValid = f.scheme.trim().length > 0 && amt > 0;
 
   return (
     <Modal title={initial ? "Edit SIP" : "Add SIP"} onClose={onClose}>
@@ -1199,6 +1394,38 @@ function SIPModal({ onClose, onSave, initial }: any) {
           />
         </Field>
       </div>
+      <div style={{ display: "grid", gridTemplateColumns: initial ? "1fr 1fr" : "1fr", gap: 12 }}>
+        <Field label="Annual Step-Up (%)">
+          <input
+            className="form-input"
+            type="number"
+            min={0}
+            max={100}
+            value={f.stepUpPct}
+            onChange={(e) => setF({ ...f, stepUpPct: e.target.value })}
+            placeholder="0"
+          />
+        </Field>
+        {initial && (
+          <Field label="Status">
+            <select
+              className="form-input"
+              value={f.status}
+              onChange={(e) => setF({ ...f, status: e.target.value })}
+            >
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+              <option value="stopped">Stopped</option>
+            </select>
+          </Field>
+        )}
+      </div>
+      {Number(f.stepUpPct) > 0 && (
+        <div style={{ fontSize: 11, color: THEME.muted, marginTop: -10, marginBottom: 16 }}>
+          Installment amount increases by {f.stepUpPct}% every year — e.g. a &ldquo;raise-with-salary&rdquo;
+          SIP.
+        </div>
+      )}
 
       {instNum > 0 && amt > 0 && (
         <div
@@ -1222,10 +1449,16 @@ function SIPModal({ onClose, onSave, initial }: any) {
         </div>
       )}
 
+      {!isValid && (
+        <div style={{ fontSize: 11, color: THEME.rust, marginTop: -6, marginBottom: 4 }}>
+          Enter a scheme name and an amount greater than 0 to save.
+        </div>
+      )}
       <ModalActions
-        onSave={() => f.scheme && f.amount && onSave(f)}
+        onSave={() => isValid && onSave(f)}
         onClose={onClose}
         saveLabel={initial ? "Save Changes" : "Add SIP"}
+        disabled={!isValid}
       />
     </Modal>
   );

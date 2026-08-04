@@ -4,7 +4,6 @@ import {
   today,
   monthsBetween,
   getCCDueDate,
-  getLocalDateString,
   calcTaxNewByFY,
   calcTaxOldByFY,
   nextAnnualOccurrence,
@@ -350,18 +349,14 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       });
     }
     // Insurance premium due within 30 days
-    // Compute next annual due date from the policy start date's anniversary
-    const getNextAnniversary = (startDateStr: string): string | null => {
-      if (!startDateStr) return null;
-      const start = new Date(startDateStr);
-      if (isNaN(start.getTime())) return null;
-      const thisYear = new Date(now.getFullYear(), start.getMonth(), start.getDate());
-      const candidate =
-        thisYear <= now
-          ? new Date(now.getFullYear() + 1, start.getMonth(), start.getDate())
-          : thisYear;
-      return getLocalDateString(candidate);
-    };
+    // Compute next annual due date from the policy start date's anniversary.
+    // Uses the shared, local-safe, leap-day-clamping `nextAnnualOccurrence`
+    // helper (same one FinancialCalendarTab uses) instead of a hand-rolled
+    // `new Date(startDateStr)` + `setFullYear` version — the old version
+    // parsed the date-only start string as UTC midnight and compared it
+    // against `now` (a real timestamp), which in IST (+5:30) could compute
+    // the wrong anniversary date/day-count depending on time of day.
+    const todayStr = today();
     const allPolicies = [
       ...(state.lic || []).map((p: any) => ({
         name: p.planName || "LIC Policy",
@@ -382,12 +377,15 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
         expiry: p.maturityDate,
       })),
     ];
+    const todayMidnightMsForPolicies = new Date(todayStr + "T00:00:00").getTime();
     allPolicies.forEach((pol) => {
       if (!pol.premium || Number(pol.premium) <= 0) return;
-      if (pol.expiry && new Date(pol.expiry) < now) return; // expired policy
-      const nextDue = getNextAnniversary(pol.start);
-      if (!nextDue) return;
-      const daysToRenew = Math.ceil((new Date(nextDue).getTime() - now.getTime()) / 86400000);
+      if (pol.expiry && pol.expiry < todayStr) return; // expired policy (plain ISO string compare)
+      if (!pol.start) return;
+      const nextDue = nextAnnualOccurrence(pol.start, todayStr);
+      const daysToRenew = Math.ceil(
+        (new Date(nextDue + "T00:00:00").getTime() - todayMidnightMsForPolicies) / 86400000
+      );
       if (daysToRenew >= 0 && daysToRenew <= 30) {
         const lvl = daysToRenew <= 7 ? "error" : "warn";
         list.push({
@@ -517,8 +515,12 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // Health insurance renewal alerts (30 days)
     (state.healthInsurance || []).forEach((p: any) => {
       if (!p.renewalDate) return;
+      // Both sides must parse the same way (local midnight) — `renewalDate` alone parsed as
+      // UTC midnight while the right side was local midnight, an inconsistent-operand bug that
+      // made a policy renewing "today" report "renews in 1d" instead of "renews today" in IST.
       const days = Math.ceil(
-        (new Date(p.renewalDate).getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000
+        (new Date(p.renewalDate + "T00:00:00").getTime() - new Date(today() + "T00:00:00").getTime()) /
+          86400000
       );
       if (days >= 0 && days <= 30) {
         list.push({
