@@ -20,6 +20,16 @@ import {
   Download,
   CalendarCheck2,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact, today, getCCDueDate, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
@@ -101,6 +111,39 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
 const MANUAL_ATTENTION_TYPES = new Set(["bill", "creditcard"]);
 const needsManualAttention = (p: any) =>
   MANUAL_ATTENTION_TYPES.has(p.type) && !p.autoPay && !p.paidThisCycle;
+
+// Same custom-tooltip shell used by every other recharts chart in this app
+// (LoanAmortizationTab etc.) — kept local since this is the only chart in
+// this file, but intentionally matches that styling exactly for consistency.
+const BarTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const p = payload[0];
+  if (p.value == null) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 4, letterSpacing: "-0.01em" }}>
+        {label}
+      </div>
+      <div style={{ color: THEME.muted, fontWeight: 500 }}>
+        <span style={{ fontWeight: 700, color: THEME.accent }}>
+          {formatter ? formatter(p.value) : p.value}
+        </span>{" "}
+        due · {p.payload.count} payment{p.payload.count === 1 ? "" : "s"}
+      </div>
+    </div>
+  );
+};
 
 export function PaymentCalendarTab({ state, addItem, showToast }: any) {
   const { privacyMode } = usePrivacy();
@@ -618,7 +661,12 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
     );
   }
 
-  const maxBar = Math.max(...monthlySummary.map((m) => m.total), 1);
+  // Recharts data shape — `label` disambiguates the year only when it isn't
+  // the current year (matching the old two-line month/year bar labels).
+  const chartData = monthlySummary.map((m) => ({
+    ...m,
+    label: `${SHORT_MONTHS[m.month]}${m.year !== todayDate.getFullYear() ? ` '${String(m.year).slice(2)}` : ""}`,
+  }));
 
   return (
     <div className="tab-content-enter">
@@ -711,87 +759,50 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
           >
             Monthly Outflows — Next 12 Months
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 6,
-              alignItems: "flex-end",
-              overflowX: "auto",
-              paddingBottom: 4,
-            }}
-          >
-            {monthlySummary.map((m, i) => {
-              const barH = Math.max(8, (m.total / maxBar) * 84);
-              const isSelected = m.year === viewDate.year && m.month === viewDate.month;
-              return (
-                <div
-                  key={i}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`View ${MONTH_NAMES[m.month]} ${m.year}, ${privacyMode ? "••••" : fmtINRFull(m.total)} due`}
-                  aria-pressed={isSelected}
-                  style={{
-                    flex: "0 0 auto",
-                    width: 56,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 4,
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setViewDate({ year: m.year, month: m.month })}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setViewDate({ year: m.year, month: m.month });
-                    }
-                  }}
+          <div style={{ width: "100%", height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: THEME.muted }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tickFormatter={(v) => (privacyMode ? "••••" : fmtINR(v))}
+                  tick={{ fontSize: 11, fill: THEME.muted }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={48}
+                />
+                <Tooltip
+                  cursor={{ fill: THEME.line, opacity: 0.4 }}
+                  content={<BarTooltip formatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))} />}
+                />
+                <Bar
+                  dataKey="total"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={40}
+                  onClick={(d) => setViewDate({ year: d.payload.year, month: d.payload.month })}
+                  style={{ cursor: "pointer" }}
                 >
-                  <div
-                    title={privacyMode ? "••••" : fmtINRFull(m.total)}
-                    style={{
-                      fontSize: 10,
-                      color: THEME.muted,
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      maxWidth: 56,
-                    }}
-                  >
-                    <Prv>{fmtINR(m.total)}</Prv>
-                  </div>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: barH,
-                      borderRadius: "4px 4px 0 0",
-                      background: isSelected
-                        ? THEME.accent
-                        : `color-mix(in srgb, ${THEME.accent} 44%, transparent)`,
-                      transition: "all 0.2s",
-                    }}
-                  />
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: isSelected ? THEME.accent : THEME.muted,
-                      fontWeight: isSelected ? 700 : 500,
-                      textAlign: "center",
-                    }}
-                  >
-                    {SHORT_MONTHS[m.month]}
-                    <br />
-                    <span style={{ fontSize: 10, opacity: 0.7 }}>
-                      {m.year !== todayDate.getFullYear() ? m.year : ""}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                  {chartData.map((m, i) => (
+                    <Cell
+                      key={i}
+                      fill={
+                        m.year === viewDate.year && m.month === viewDate.month
+                          ? THEME.accent
+                          : `color-mix(in srgb, ${THEME.accent} 44%, transparent)`
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 8 }}>
-            Click a month bar to see day-level detail below
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+            Click a bar to see day-level detail below
           </div>
         </div>
       </Card>
