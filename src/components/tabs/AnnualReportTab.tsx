@@ -1856,18 +1856,17 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
               flexWrap: "wrap",
               justifyContent: "center",
               marginBottom: 24,
-              position: "sticky",
-              top: 0,
-              zIndex: 100,
-              // Solid background, not translucent — this bar sits flush against the app
-              // header with no gap, so cards scrolling underneath it were visibly bleeding
-              // through the old 70%-opacity + blur fill, reading as a rendering glitch.
+              // Deliberately NOT position:sticky — this row sits directly inline between
+              // dense stat cards with no reserved gutter for it. A pinned bar here always
+              // ends up parked on top of whatever card row happens to scroll to that exact
+              // height (e.g. covering the NET SAVINGS/NEW INVESTMENTS stat boxes), which
+              // reads as broken no matter how opaque its background is. A normal in-flow
+              // row that scrolls away with the page avoids ever covering content.
               background: "var(--surface-0)",
               padding: "12px 8px",
               borderRadius: 16,
               border: `1px solid ${THEME.line}`,
-              boxShadow: "var(--shadow-md)",
-              transition: "all 0.3s ease",
+              boxShadow: "var(--shadow-card)",
             }}
           >
             {[
