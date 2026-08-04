@@ -17,6 +17,8 @@ import {
   Landmark,
   AlertTriangle,
   CheckCircle2,
+  Download,
+  CalendarCheck2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact, today, getCCDueDate, uid } from "../../utils/finance";
@@ -113,6 +115,12 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
   // Tracks the billId currently being logged via "Mark Paid" so that button
   // shows a spinner and can't be double-clicked into two ledger entries.
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  // "all" or a TYPE_CONFIG key. Only narrows what the calendar grid, day
+  // detail panel, breakdown list and .ics export show — the top stat row
+  // (Due This Month / Needs Attention / etc.) deliberately stays unfiltered
+  // so it always answers "what do I actually owe" truthfully, even while
+  // the user is focused on browsing just one category below.
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   // Writes a same-day payment record to billPaymentHistory (the exact ledger
   // BillPaymentTab's own "Log" action writes to), so a bill paid from this
@@ -208,9 +216,18 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
         amount: Number(s.amount),
         frequency: s.cycle || "monthly",
         dueDay,
-        owner: null,
+        owner: s.owner,
         monthsLeft: 9999,
         renewalDate: s.renewalDate,
+        // isActiveInMonth's quarterly branch anchors its every-3rd-month pattern
+        // off `startDate`. Subscriptions only ever carried `renewalDate`, so a
+        // quarterly-cycle subscription had no startDate to match on, fell through
+        // to the unconditional `return true`, and appeared (at full amount) in
+        // every single month instead of every 3rd — inflating "Due This Month"
+        // and the 12-month bar overview by up to 3x. Reusing renewalDate as the
+        // anchor fixes quarterly without changing yearly/monthly, which already
+        // keyed off renewalDate/fallthrough respectively.
+        startDate: s.renewalDate,
       });
     });
 
@@ -401,10 +418,25 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
     return true;
   };
 
-  const getMonthPayments = (year: number, month: number) =>
-    payments.filter((p) => isActiveInMonth(p, year, month));
+  // Category chip filter. Only narrows the bar overview / grid / breakdown /
+  // .ics export below — never the top stat row, which stays a truthful
+  // "what do I actually owe" answer regardless of what the user is browsing.
+  const displayPayments = useMemo(
+    () => (typeFilter === "all" ? payments : payments.filter((p) => p.type === typeFilter)),
+    [payments, typeFilter]
+  );
 
-  // ── 12-month overview bars ───────────────────────────────────────────
+  // Only offer chips for categories the user actually has, in TYPE_CONFIG's
+  // fixed display order, instead of a fixed list that's mostly empty chips.
+  const availableTypes = useMemo(() => {
+    const present = new Set(payments.map((p) => p.type));
+    return Object.keys(TYPE_CONFIG).filter((t) => present.has(t));
+  }, [payments]);
+
+  const getMonthPayments = (year: number, month: number) =>
+    displayPayments.filter((p) => isActiveInMonth(p, year, month));
+
+  // ── 12-month overview bars (respects the category filter) ────────────
   const monthlySummary = useMemo(() => {
     const now = todayDate;
     return Array.from({ length: 12 }).map((_, i) => {
@@ -419,7 +451,7 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
       });
       return { year, month, total, breakdown, count: active.length };
     });
-  }, [payments, todayStr]);
+  }, [displayPayments, todayStr]);
 
   // ── Calendar grid for selected month ────────────────────────────────
   const calendarData = useMemo(() => {
@@ -428,28 +460,73 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const activePayments = getMonthPayments(year, month);
 
+    // Yearly/quarterly items carry a real `dueDay` just like every other type,
+    // so they're plotted on their actual cell instead of being demoted to a
+    // vague "also due this month" list with no date — an insurance premium or
+    // quarterly SIP is often the single largest item in its month and deserves
+    // the same precision as a monthly EMI pill.
     const dayMap: Record<number, any[]> = {};
     activePayments.forEach((p) => {
-      if (p.frequency === "yearly" || p.frequency === "quarterly") return;
       const day = Math.min(p.dueDay, daysInMonth);
       if (!dayMap[day]) dayMap[day] = [];
       dayMap[day].push(p);
     });
 
-    const annualThisMonth = activePayments.filter((p) => p.frequency === "yearly");
-    const quarterlyThisMonth = activePayments.filter((p) => p.frequency === "quarterly");
-
     return {
       firstDay,
       daysInMonth,
       dayMap,
-      annualThisMonth,
-      quarterlyThisMonth,
     };
-  }, [viewDate, payments, todayStr]);
+  }, [viewDate, displayPayments, todayStr]);
 
   const selectedMonthPayments = getMonthPayments(viewDate.year, viewDate.month);
   const selectedMonthTotal = selectedMonthPayments.reduce((s: number, p: any) => s + p.amount, 0);
+
+  // One VEVENT per payment due in the currently-viewed month (respecting the
+  // category chip filter, same as the grid it sits above), so due dates can
+  // be dropped into a phone's native calendar app — same pattern as
+  // FinancialCalendarTab's "Export .ics".
+  const exportMonthICS = () => {
+    if (selectedMonthPayments.length === 0) {
+      showToast?.("No payments to export for this month", "error");
+      return;
+    }
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const stamp = (d: Date) =>
+      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+    const escapeText = (s: string) => String(s || "").replace(/([,;])/g, "\\$1");
+    const daysInViewMonth = new Date(viewDate.year, viewDate.month + 1, 0).getDate();
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Personal Finance//Payment Calendar//EN",
+      "CALSCALE:GREGORIAN",
+    ];
+    selectedMonthPayments.forEach((p: any) => {
+      const day = Math.min(p.dueDay, daysInViewMonth);
+      const dt = `${viewDate.year}${pad(viewDate.month + 1)}${pad(day)}`;
+      const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:${p.id}-${viewDate.year}${pad(viewDate.month + 1)}@payment-calendar`,
+        `DTSTAMP:${stamp(new Date())}`,
+        `DTSTART;VALUE=DATE:${dt}`,
+        `SUMMARY:${escapeText(p.name)}`,
+        `DESCRIPTION:${escapeText(`${cfg.label} • ${fmtINRExact(p.amount)}`)}`,
+        "END:VEVENT"
+      );
+    });
+    lines.push("END:VCALENDAR");
+    const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `payment-calendar-${MONTH_NAMES[viewDate.month].toLowerCase()}-${viewDate.year}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const monthlyAvg = payments.reduce((s: number, p: any) => {
     if (p.frequency === "yearly") return s + p.amount / 12;
@@ -457,10 +534,15 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
     return s + p.amount;
   }, 0);
 
-  // Real "this month" total (independent of month navigation below) — always
-  // index 0 of the 12-month overview — so the top stat row stays a stable
-  // answer to "what do I actually owe this month" even while browsing ahead.
-  const thisMonthTotal = monthlySummary[0]?.total ?? 0;
+  // Real "this month" total — computed from the full unfiltered `payments`
+  // list (not `monthlySummary`, which now respects the category chip filter)
+  // so the top stat row stays a stable, truthful answer to "what do I
+  // actually owe this month" even while the user is filtered down to one
+  // category below.
+  const thisMonthPaymentsAll = payments.filter((p) =>
+    isActiveInMonth(p, todayDate.getFullYear(), todayDate.getMonth())
+  );
+  const thisMonthTotal = thisMonthPaymentsAll.reduce((s: number, p: any) => s + p.amount, 0);
 
   // Bills/credit cards past due (or due today) with no autopay and no logged
   // payment for the current cycle — the same "genuinely needs your action"
@@ -468,12 +550,13 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
   // single at-a-glance count. Clamps dueDay to the real length of the current
   // month first (e.g. a "31st" bill in a 28/29/30-day month is actually due on
   // the last day), matching how the calendar grid itself places these pills.
+  // Deliberately reads unfiltered `payments`, not the category-filtered list.
   const daysInCurrentMonth = new Date(
     todayDate.getFullYear(),
     todayDate.getMonth() + 1,
     0
   ).getDate();
-  const attentionItems = getMonthPayments(todayDate.getFullYear(), todayDate.getMonth()).filter(
+  const attentionItems = thisMonthPaymentsAll.filter(
     (p: any) => needsManualAttention(p) && Math.min(p.dueDay, daysInCurrentMonth) <= todayDate.getDate()
   );
 
@@ -503,6 +586,11 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
       }
       return { year: y, month: m };
     });
+  };
+
+  const goToToday = () => {
+    setSelectedDay(null);
+    setViewDate({ year: todayDate.getFullYear(), month: todayDate.getMonth() });
   };
 
   if (payments.length === 0) {
@@ -557,7 +645,7 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
         <StatCard
           label="Due This Month"
           value={privacyMode ? "••••" : fmtINRFull(thisMonthTotal)}
-          sub={`${monthlySummary[0]?.count ?? 0} payment${(monthlySummary[0]?.count ?? 0) === 1 ? "" : "s"}`}
+          sub={`${thisMonthPaymentsAll.length} payment${thisMonthPaymentsAll.length === 1 ? "" : "s"}`}
           icon={<Calendar />}
           color={THEME.accent}
         />
@@ -581,6 +669,33 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
           icon={attentionItems.length > 0 ? <AlertTriangle /> : <CheckCircle2 />}
           color={attentionItems.length > 0 ? THEME.rust : THEME.sage}
         />
+      </div>
+
+      {/* Category filter — narrows the bar overview, calendar grid, day
+          detail, breakdown list and .ics export below; the stat row above
+          stays unfiltered on purpose (see typeFilter comment). */}
+      <div className="chip-row" style={{ marginBottom: 16 }}>
+        <button
+          className={`chip ${typeFilter === "all" ? "active" : ""}`}
+          aria-pressed={typeFilter === "all"}
+          onClick={() => setTypeFilter("all")}
+        >
+          All ({payments.length})
+        </button>
+        {availableTypes.map((t) => {
+          const cfg = TYPE_CONFIG[t];
+          const count = payments.filter((p) => p.type === t).length;
+          return (
+            <button
+              key={t}
+              className={`chip ${typeFilter === t ? "active" : ""}`}
+              aria-pressed={typeFilter === t}
+              onClick={() => setTypeFilter(t)}
+            >
+              {cfg.label} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {/* 12-month bar overview */}
@@ -752,6 +867,32 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
             >
               <ChevronRight size={16} />
             </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 8,
+              marginBottom: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            {monthsFromToday !== 0 && (
+              <Button size="sm" variant="secondary" onClick={goToToday}>
+                <CalendarCheck2 size={13} style={{ marginRight: 5 }} />
+                Today
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={exportMonthICS}
+              title="Download this month's payment due dates as .ics for your calendar app"
+            >
+              <Download size={13} style={{ marginRight: 5 }} />
+              Export .ics
+            </Button>
           </div>
 
           {/* Day names */}
@@ -1029,58 +1170,6 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
             </div>
           )}
 
-          {/* Yearly/quarterly items shown below grid */}
-          {(calendarData.annualThisMonth.length > 0 ||
-            calendarData.quarterlyThisMonth.length > 0) && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 14px",
-                borderRadius: 8,
-                background: "color-mix(in srgb, var(--t-accent) 5%, transparent)",
-                border: `1px solid ${THEME.line}`,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: THEME.muted,
-                  fontWeight: 600,
-                  marginBottom: 8,
-                }}
-              >
-                Also due this month (annual / quarterly):
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 6,
-                }}
-              >
-                {[...calendarData.annualThisMonth, ...calendarData.quarterlyThisMonth].map(
-                  (p, i) => {
-                    const cfg = TYPE_CONFIG[p.type] || TYPE_CONFIG.other;
-                    return (
-                      <div
-                        key={i}
-                        style={{
-                          fontSize: 11,
-                          color: cfg.color,
-                          background: `color-mix(in srgb, ${cfg.color} 14%, transparent)`,
-                          borderRadius: 6,
-                          padding: "3px 8px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {p.name} — <Prv>{fmtINRFull(p.amount)}</Prv>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </Card>
 
