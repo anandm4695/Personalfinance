@@ -31,6 +31,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, uid, today } from "../../utils/finance";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Card } from "../ui/Card";
+import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -237,30 +238,25 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div className="sub-tab-hero animate-fade-in-up" style={{ flexWrap: "wrap" }}>
-        <div className="sub-tab-hero-icon">
-          <GraduationCap size={28} />
-        </div>
-        <div className="sub-tab-hero-body">
-          <div className="sub-tab-hero-title">Life Event Planner</div>
-          <div className="sub-tab-hero-desc">
-            Plan for major financial milestones — education, home, wedding and more — with
-            inflation-adjusted targets
-          </div>
-        </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => {
-            setSaveError(null);
-            setForm({ ...EMPTY_EVENT });
-            setEditingId(null);
-            setShowModal(true);
-          }}
-        >
-          <Plus size={16} /> Add Event
-        </Button>
-      </div>
+      <SectionTitle
+        sub="Plan for major financial milestones — education, home, wedding and more — with inflation-adjusted targets"
+        rightElement={
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setSaveError(null);
+              setForm({ ...EMPTY_EVENT });
+              setEditingId(null);
+              setShowModal(true);
+            }}
+          >
+            <Plus size={16} /> Add Event
+          </Button>
+        }
+      >
+        Life Event Planner
+      </SectionTitle>
 
       {events.length > 0 && (
         <div

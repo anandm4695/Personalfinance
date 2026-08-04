@@ -17,6 +17,8 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact, loanOutstanding } from "../../utils/finance";
 import { Card } from "../ui/Card";
+import { SectionTitle } from "../ui/SectionTitle";
+import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
@@ -256,28 +258,21 @@ export const LoanAmortizationTab = ({ state }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div className="sub-tab-hero animate-fade-in-up">
-        <div className="sub-tab-hero-icon">
-          <Calculator size={28} />
-        </div>
-        <div className="sub-tab-hero-body">
-          <div className="sub-tab-hero-title">Loan Amortization</div>
-          <div className="sub-tab-hero-desc">
-            Detailed EMI breakdown with a prepayment simulator — see exactly how extra payments
-            cut interest and tenure
-          </div>
-        </div>
-        {loanData.principal > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <div className="sub-tab-hero-badge" title="Loan being simulated">
-              {loanData.name}
-            </div>
-            <div className="sub-tab-hero-badge">
-              <IndianRupee size={13} /> EMI {fmtINRExact(baseAmort.emi)}
-            </div>
-          </div>
-        )}
-      </div>
+      <SectionTitle
+        sub="Detailed EMI breakdown with a prepayment simulator — see exactly how extra payments cut interest and tenure"
+        rightElement={
+          loanData.principal > 0 && (
+            <>
+              <Badge variant="muted">{loanData.name}</Badge>
+              <Badge variant="accent">
+                <IndianRupee size={13} /> EMI {fmtINRExact(baseAmort.emi)}
+              </Badge>
+            </>
+          )
+        }
+      >
+        Loan Amortization
+      </SectionTitle>
 
       {/* Loan Selector */}
       <Card style={{ padding: 24 }}>

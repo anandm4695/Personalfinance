@@ -27,6 +27,8 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, computeFireTarget } from "../../utils/finance";
 import { Card } from "../ui/Card";
+import { SectionTitle } from "../ui/SectionTitle";
+import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
@@ -392,31 +394,27 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         : fireCalc.progress >= 25
           ? THEME.gold
           : THEME.rust;
+  const progressVariant =
+    fireCalc.progress >= 100
+      ? "sage"
+      : fireCalc.progress >= 50
+        ? "accent"
+        : fireCalc.progress >= 25
+          ? "gold"
+          : "rust";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div className="sub-tab-hero animate-fade-in-up">
-        <div className="sub-tab-hero-icon">
-          <Flame size={28} />
-        </div>
-        <div className="sub-tab-hero-body">
-          <div className="sub-tab-hero-title">FIRE Planner</div>
-          <div className="sub-tab-hero-desc">
-            Financial Independence, Retire Early — model your path across Lean, Coast, Fat and
-            Barista FIRE scenarios
-          </div>
-        </div>
-        <div
-          className="sub-tab-hero-badge"
-          style={{
-            background: `color-mix(in srgb, ${progressColor} 14%, transparent)`,
-            color: progressColor,
-            borderColor: `color-mix(in srgb, ${progressColor} 25%, transparent)`,
-          }}
-        >
-          <Flame size={13} /> {Math.min(100, fireCalc.progress).toFixed(0)}% to FIRE
-        </div>
-      </div>
+      <SectionTitle
+        sub="Financial Independence, Retire Early — model your path across Lean, Coast, Fat and Barista FIRE scenarios"
+        rightElement={
+          <Badge variant={progressVariant}>
+            <Flame size={13} /> {Math.min(100, fireCalc.progress).toFixed(0)}% to FIRE
+          </Badge>
+        }
+      >
+        FIRE Planner
+      </SectionTitle>
 
       {/* Input Panel */}
       <Card style={{ padding: 24 }}>
