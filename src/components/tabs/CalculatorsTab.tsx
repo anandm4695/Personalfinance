@@ -1,7 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
-  Calculator,
   TrendingUp,
   Clock,
   Briefcase,
@@ -49,6 +48,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
+import { SectionTitle } from "../ui/SectionTitle";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 interface CalculatorsTabProps {
@@ -287,295 +287,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   const [firePostReturn, setFirePostReturn] = useState("8");
   const [fireLifeExp, setFireLifeExp] = useState("85");
 
-  /* ══════════════════════════════════════════════════════════════════════
-     MONTE CARLO RETIREMENT SIMULATOR (RELEASE 5)
-     ══════════════════════════════════════════════════════════════════════ */
-  const monteCarloResult = useMemo(() => {
-    if (calcTab !== "monte-carlo") return null;
-
-    const startAge = Number(fireRetireAge) || 55;
-    const endAge = Number(fireLifeExp) || 85;
-    const yrsInRet = Math.max(1, endAge - startAge);
-
-    const initialCorpus = Number(firePortfolio) || Number(metrics?.netWorth) || 1000000;
-    const startMonthlyExpense = Number(fireExpense) || 50000;
-    const annualInflation = (Number(fireInflation) || 6) / 100;
-    const avgPostReturn = (Number(firePostReturn) || 8) / 100;
-    const portfolioVol = (Number(monteVolatility) || 10) / 100;
-
-    const numSimulations = 500;
-    const years = yrsInRet;
-
-    const balances: number[][] = Array.from({ length: years + 1 }, () => []);
-
-    for (let s = 0; s < numSimulations; s++) {
-      balances[0].push(initialCorpus);
-    }
-
-    let successCount = 0;
-
-    const getGaussianRandom = () => {
-      let u = 0,
-        v = 0;
-      while (u === 0) u = Math.random();
-      while (v === 0) v = Math.random();
-      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-    };
-
-    for (let s = 0; s < numSimulations; s++) {
-      let corpus = initialCorpus;
-      let monthlyExpense = startMonthlyExpense;
-
-      for (let y = 1; y <= years; y++) {
-        monthlyExpense = monthlyExpense * (1 + annualInflation);
-        const annualExpense = monthlyExpense * 12;
-
-        if (corpus > 0) {
-          const normalRand = getGaussianRandom();
-          const annualReturn = avgPostReturn + portfolioVol * normalRand;
-          corpus = Math.max(0, (corpus - annualExpense) * (1 + annualReturn));
-        } else {
-          corpus = 0;
-        }
-
-        balances[y].push(corpus);
-      }
-
-      if (corpus > 0) {
-        successCount++;
-      }
-    }
-
-    const successProbability = (successCount / numSimulations) * 100;
-
-    const chartData = [];
-    for (let y = 0; y <= years; y++) {
-      const yearBalances = [...balances[y]];
-      yearBalances.sort((a, b) => a - b);
-
-      const p10Idx = Math.floor(numSimulations * 0.1);
-      const p50Idx = Math.floor(numSimulations * 0.5);
-      const p90Idx = Math.floor(numSimulations * 0.9);
-
-      chartData.push({
-        year: startAge + y,
-        "Worst Case (10th %)": Math.round(yearBalances[p10Idx]),
-        "Expected Case (50th %)": Math.round(yearBalances[p50Idx]),
-        "Best Case (90th %)": Math.round(yearBalances[p90Idx]),
-      });
-    }
-
-    let totalYearsLasted = 0;
-    for (let s = 0; s < numSimulations; s++) {
-      let zeroYear = years;
-      for (let y = 0; y <= years; y++) {
-        if (balances[y][s] <= 0) {
-          zeroYear = y;
-          break;
-        }
-      }
-      totalYearsLasted += zeroYear;
-    }
-    const avgYearsLasted = totalYearsLasted / numSimulations;
-
-    return {
-      successProbability,
-      avgYearsLasted,
-      chartData,
-      yrsInRet,
-    };
-  }, [
-    calcTab,
-    fireRetireAge,
-    fireLifeExp,
-    firePortfolio,
-    fireExpense,
-    fireInflation,
-    firePostReturn,
-    monteVolatility,
-    metrics?.netWorth,
-  ]);
-
-  /* ══════════════════════════════════════════════════════════════════════
-     EXECUTIVE WEALTH SCENARIO PLANNER & LIFESTYLE SANDBOX (RELEASE 6)
-     ══════════════════════════════════════════════════════════════════════ */
-  const sandboxResult = useMemo(() => {
-    if (calcTab !== "scenario-sandbox") return null;
-
-    const startAge = Number(fireAge) || 30;
-    const years = Math.max(5, Math.min(40, Number(sandboxYears) || 15));
-    const expectedReturn = (Number(sandboxReturn) || 12) / 100;
-    const baseSavings = Number(sandboxSavings) || 50000;
-    const initialWealth = Number(firePortfolio) || Number(metrics?.netWorth) || 1000000;
-
-    // Sabbatical
-    const sActive = sabActive;
-    const sAge = Number(sabAge) || 35;
-    const sDur = Number(sabDur) || 2;
-    const sIncPct = (Number(sabInc) || 0) / 100;
-    const sExpExtra = Number(sabExp) || 20000;
-
-    // Startup Venture
-    const stActive = startupActive;
-    const stAge = Number(startupAge) || 37;
-    const stCapEx = Number(startupCapEx) || 500000;
-    const stLossYrs = Number(startupLoss) || 3;
-    const stPayoutAge = Number(startupPayoutAge) || 42;
-    const stPayout = Number(startupPayout) || 2500000;
-
-    // Property Purchase
-    const pActiveVal = propActive;
-    const pAge = Number(propAge) || 40;
-    const pDownPay = Number(propDown) || 1500000;
-    const pCarryCost = Number(propCarry) || 60000;
-
-    const chartData = [];
-    let baseWealth = initialWealth;
-    let sandWealth = initialWealth;
-    let liquidityCrisisYear = -1;
-
-    chartData.push({
-      year: 0,
-      age: startAge,
-      "Baseline Path": Math.round(baseWealth),
-      "Simulated Path": Math.round(sandWealth),
-    });
-
-    for (let t = 1; t <= years; t++) {
-      const curAge = startAge + t;
-
-      // 1. BASELINE CALCULATIONS
-      const annualBaseSavings = baseSavings * 12;
-      baseWealth = baseWealth * (1 + expectedReturn) + annualBaseSavings;
-
-      // 2. SANDBOX CALCULATIONS
-      let yearlySandSavings = baseSavings * 12;
-      let oneTimeOutflows = 0;
-      let oneTimeInflows = 0;
-
-      // Check Sabbatical
-      if (sActive && curAge >= sAge && curAge < sAge + sDur) {
-        const monthlySandSavings = baseSavings * sIncPct - sExpExtra;
-        yearlySandSavings = monthlySandSavings * 12;
-      }
-
-      // Check Startup Venture
-      if (stActive) {
-        if (curAge >= stAge && curAge < stAge + stLossYrs) {
-          yearlySandSavings = 0;
-        }
-        if (curAge === stAge) {
-          oneTimeOutflows += stCapEx;
-        }
-        if (curAge === stPayoutAge) {
-          oneTimeInflows += stPayout;
-        }
-      }
-
-      // Check Property Purchase
-      if (pActiveVal) {
-        if (curAge === pAge) {
-          oneTimeOutflows += pDownPay;
-        }
-        if (curAge >= pAge) {
-          yearlySandSavings -= pCarryCost * 12;
-        }
-      }
-
-      // Compound Sandbox Wealth
-      sandWealth =
-        (sandWealth - oneTimeOutflows) * (1 + expectedReturn) + yearlySandSavings + oneTimeInflows;
-      if (sandWealth < 0) {
-        sandWealth = 0;
-        if (liquidityCrisisYear === -1) {
-          liquidityCrisisYear = curAge;
-        }
-      }
-
-      chartData.push({
-        year: t,
-        age: curAge,
-        "Baseline Path": Math.round(baseWealth),
-        "Simulated Path": Math.round(sandWealth),
-      });
-    }
-
-    const endBase = baseWealth;
-    const endSand = sandWealth;
-    const oppCostVal = endBase - endSand;
-
-    const targetCorpus = Number(firePortfolio) || 15000000;
-
-    const getYearsToTarget = (startNW, annualSave, target) => {
-      if (startNW >= target) return 0;
-      let cw = startNW;
-      for (let y = 1; y <= 50; y++) {
-        cw = cw * (1 + expectedReturn) + annualSave;
-        if (cw >= target) return y;
-      }
-      return 50;
-    };
-
-    const baseYearsNeeded = getYearsToTarget(initialWealth, baseSavings * 12, targetCorpus);
-    const baseFIAge = startAge + baseYearsNeeded;
-
-    let sandYearsNeeded = baseYearsNeeded;
-    if (endSand < targetCorpus) {
-      let cw = endSand;
-      let extraY = 0;
-      for (let y = 1; y <= 50; y++) {
-        cw = cw * (1 + expectedReturn) + baseSavings * 12;
-        if (cw >= targetCorpus) {
-          extraY = y;
-          break;
-        }
-      }
-      sandYearsNeeded = years + extraY;
-    } else {
-      for (let i = 0; i < chartData.length; i++) {
-        if (chartData[i]["Simulated Path"] >= targetCorpus) {
-          sandYearsNeeded = chartData[i].year;
-          break;
-        }
-      }
-    }
-    const sandFIAge = startAge + sandYearsNeeded;
-
-    return {
-      chartData,
-      oppCost: oppCostVal,
-      endBase,
-      endSand,
-      liquidityCrisisAge: liquidityCrisisYear,
-      baseFIAge,
-      sandFIAge,
-      fiAgeGap: sandFIAge - baseFIAge,
-    };
-  }, [
-    calcTab,
-    fireAge,
-    sandboxSavings,
-    sandboxReturn,
-    sandboxYears,
-    firePortfolio,
-    metrics?.netWorth,
-    sabActive,
-    sabAge,
-    sabDur,
-    sabInc,
-    sabExp,
-    startupActive,
-    startupAge,
-    startupCapEx,
-    startupLoss,
-    startupPayoutAge,
-    startupPayout,
-    propActive,
-    propAge,
-    propDown,
-    propCarry,
-  ]);
-
   const fireResult = useMemo(() => {
     const curAge = Math.max(1, Number(fireAge) || 30);
     const retAge = Math.max(curAge + 1, Number(fireRetireAge) || 55);
@@ -693,6 +404,311 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     fireLifeExp,
   ]);
 
+  /* ══════════════════════════════════════════════════════════════════════
+     EXECUTIVE WEALTH SCENARIO PLANNER & LIFESTYLE SANDBOX (RELEASE 6)
+     ══════════════════════════════════════════════════════════════════════ */
+  const sandboxResult = useMemo(() => {
+    if (calcTab !== "scenario-sandbox") return null;
+
+    const startAge = Number(fireAge) || 30;
+    const years = Math.max(5, Math.min(40, Number(sandboxYears) || 15));
+    const expectedReturn = (Number(sandboxReturn) || 12) / 100;
+    const baseSavings = Number(sandboxSavings) || 50000;
+    const initialWealth = Number(firePortfolio) || Number(metrics?.netWorth) || 1000000;
+
+    // Sabbatical
+    const sActive = sabActive;
+    const sAge = Number(sabAge) || 35;
+    const sDur = Number(sabDur) || 2;
+    const sIncPct = (Number(sabInc) || 0) / 100;
+    const sExpExtra = Number(sabExp) || 20000;
+
+    // Startup Venture
+    const stActive = startupActive;
+    const stAge = Number(startupAge) || 37;
+    const stCapEx = Number(startupCapEx) || 500000;
+    const stLossYrs = Number(startupLoss) || 3;
+    const stPayoutAge = Number(startupPayoutAge) || 42;
+    // When Sabbatical and Startup loss-years overlap, the Startup's
+    // zero-savings assumption takes precedence for those years (you can't
+    // draw sabbatical income from a job you've also left to run a startup)
+    // — flagged in the UI so this isn't a silent overwrite.
+    const sabStartupOverlap = sActive && stActive && sAge < stAge + stLossYrs && stAge < sAge + sDur;
+    const stPayout = Number(startupPayout) || 2500000;
+
+    // Property Purchase
+    const pActiveVal = propActive;
+    const pAge = Number(propAge) || 40;
+    const pDownPay = Number(propDown) || 1500000;
+    const pCarryCost = Number(propCarry) || 60000;
+
+    const chartData = [];
+    let baseWealth = initialWealth;
+    let sandWealth = initialWealth;
+    let liquidityCrisisYear = -1;
+
+    chartData.push({
+      year: 0,
+      age: startAge,
+      "Baseline Path": Math.round(baseWealth),
+      "Simulated Path": Math.round(sandWealth),
+    });
+
+    for (let t = 1; t <= years; t++) {
+      const curAge = startAge + t;
+
+      // 1. BASELINE CALCULATIONS
+      const annualBaseSavings = baseSavings * 12;
+      baseWealth = baseWealth * (1 + expectedReturn) + annualBaseSavings;
+
+      // 2. SANDBOX CALCULATIONS
+      let yearlySandSavings = baseSavings * 12;
+      let oneTimeOutflows = 0;
+      let oneTimeInflows = 0;
+
+      // Check Sabbatical
+      if (sActive && curAge >= sAge && curAge < sAge + sDur) {
+        const monthlySandSavings = baseSavings * sIncPct - sExpExtra;
+        yearlySandSavings = monthlySandSavings * 12;
+      }
+
+      // Check Startup Venture
+      if (stActive) {
+        if (curAge >= stAge && curAge < stAge + stLossYrs) {
+          yearlySandSavings = 0;
+        }
+        if (curAge === stAge) {
+          oneTimeOutflows += stCapEx;
+        }
+        if (curAge === stPayoutAge) {
+          oneTimeInflows += stPayout;
+        }
+      }
+
+      // Check Property Purchase
+      if (pActiveVal) {
+        if (curAge === pAge) {
+          oneTimeOutflows += pDownPay;
+        }
+        if (curAge >= pAge) {
+          yearlySandSavings -= pCarryCost * 12;
+        }
+      }
+
+      // Compound Sandbox Wealth
+      sandWealth =
+        (sandWealth - oneTimeOutflows) * (1 + expectedReturn) + yearlySandSavings + oneTimeInflows;
+      if (sandWealth < 0) {
+        sandWealth = 0;
+        if (liquidityCrisisYear === -1) {
+          liquidityCrisisYear = curAge;
+        }
+      }
+
+      chartData.push({
+        year: t,
+        age: curAge,
+        "Baseline Path": Math.round(baseWealth),
+        "Simulated Path": Math.round(sandWealth),
+      });
+    }
+
+    const endBase = baseWealth;
+    const endSand = sandWealth;
+    const oppCostVal = endBase - endSand;
+
+    // Use the Retirement Shortfall calculator's own required corpus as the
+    // FI target — previously this reused `firePortfolio` (current wealth)
+    // as BOTH the starting point AND the target, so `startNW >= target` was
+    // always true and "Est. FI Target Age" collapsed to the current age.
+    const targetCorpus = fireResult.reqCorpus || 15000000;
+
+    const getYearsToTarget = (startNW, annualSave, target) => {
+      if (startNW >= target) return 0;
+      let cw = startNW;
+      for (let y = 1; y <= 50; y++) {
+        cw = cw * (1 + expectedReturn) + annualSave;
+        if (cw >= target) return y;
+      }
+      return 50;
+    };
+
+    const baseYearsNeeded = getYearsToTarget(initialWealth, baseSavings * 12, targetCorpus);
+    const baseFIAge = startAge + baseYearsNeeded;
+
+    let sandYearsNeeded = baseYearsNeeded;
+    if (endSand < targetCorpus) {
+      let cw = endSand;
+      let extraY = 0;
+      for (let y = 1; y <= 50; y++) {
+        cw = cw * (1 + expectedReturn) + baseSavings * 12;
+        if (cw >= targetCorpus) {
+          extraY = y;
+          break;
+        }
+      }
+      sandYearsNeeded = years + extraY;
+    } else {
+      for (let i = 0; i < chartData.length; i++) {
+        if (chartData[i]["Simulated Path"] >= targetCorpus) {
+          sandYearsNeeded = chartData[i].year;
+          break;
+        }
+      }
+    }
+    const sandFIAge = startAge + sandYearsNeeded;
+
+    return {
+      chartData,
+      oppCost: oppCostVal,
+      endBase,
+      endSand,
+      liquidityCrisisAge: liquidityCrisisYear,
+      baseFIAge,
+      sandFIAge,
+      fiAgeGap: sandFIAge - baseFIAge,
+      sabStartupOverlap,
+    };
+  }, [
+    calcTab,
+    fireAge,
+    sandboxSavings,
+    sandboxReturn,
+    sandboxYears,
+    firePortfolio,
+    fireResult.reqCorpus,
+    metrics?.netWorth,
+    sabActive,
+    sabAge,
+    sabDur,
+    sabInc,
+    sabExp,
+    startupActive,
+    startupAge,
+    startupCapEx,
+    startupLoss,
+    startupPayoutAge,
+    startupPayout,
+    propActive,
+    propAge,
+    propDown,
+    propCarry,
+  ]);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     MONTE CARLO RETIREMENT SIMULATOR (RELEASE 5)
+     ══════════════════════════════════════════════════════════════════════ */
+  const monteCarloResult = useMemo(() => {
+    if (calcTab !== "monte-carlo") return null;
+
+    const startAge = Number(fireRetireAge) || 55;
+    const endAge = Number(fireLifeExp) || 85;
+    const yrsInRet = Math.max(1, endAge - startAge);
+
+    // Use the FIRE calculator's own projected corpus at retirement (current
+    // portfolio + monthly savings grown at the pre-retirement return) rather
+    // than the raw "current portfolio" figure — otherwise years of savings
+    // between now and retirement are silently ignored by the simulation.
+    const initialCorpus = fireResult.projectedCorpus || Number(metrics?.netWorth) || 1000000;
+    const startMonthlyExpense = Number(fireExpense) || 50000;
+    const annualInflation = (Number(fireInflation) || 6) / 100;
+    const avgPostReturn = (Number(firePostReturn) || 8) / 100;
+    const portfolioVol = (Number(monteVolatility) || 10) / 100;
+
+    const numSimulations = 500;
+    const years = yrsInRet;
+
+    const balances: number[][] = Array.from({ length: years + 1 }, () => []);
+
+    for (let s = 0; s < numSimulations; s++) {
+      balances[0].push(initialCorpus);
+    }
+
+    let successCount = 0;
+
+    const getGaussianRandom = () => {
+      let u = 0,
+        v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    };
+
+    for (let s = 0; s < numSimulations; s++) {
+      let corpus = initialCorpus;
+      let monthlyExpense = startMonthlyExpense;
+
+      for (let y = 1; y <= years; y++) {
+        monthlyExpense = monthlyExpense * (1 + annualInflation);
+        const annualExpense = monthlyExpense * 12;
+
+        if (corpus > 0) {
+          const normalRand = getGaussianRandom();
+          const annualReturn = avgPostReturn + portfolioVol * normalRand;
+          corpus = Math.max(0, (corpus - annualExpense) * (1 + annualReturn));
+        } else {
+          corpus = 0;
+        }
+
+        balances[y].push(corpus);
+      }
+
+      if (corpus > 0) {
+        successCount++;
+      }
+    }
+
+    const successProbability = (successCount / numSimulations) * 100;
+
+    const chartData = [];
+    for (let y = 0; y <= years; y++) {
+      const yearBalances = [...balances[y]];
+      yearBalances.sort((a, b) => a - b);
+
+      const p10Idx = Math.floor(numSimulations * 0.1);
+      const p50Idx = Math.floor(numSimulations * 0.5);
+      const p90Idx = Math.floor(numSimulations * 0.9);
+
+      chartData.push({
+        year: startAge + y,
+        "Worst Case (10th %)": Math.round(yearBalances[p10Idx]),
+        "Expected Case (50th %)": Math.round(yearBalances[p50Idx]),
+        "Best Case (90th %)": Math.round(yearBalances[p90Idx]),
+      });
+    }
+
+    let totalYearsLasted = 0;
+    for (let s = 0; s < numSimulations; s++) {
+      let zeroYear = years;
+      for (let y = 0; y <= years; y++) {
+        if (balances[y][s] <= 0) {
+          zeroYear = y;
+          break;
+        }
+      }
+      totalYearsLasted += zeroYear;
+    }
+    const avgYearsLasted = totalYearsLasted / numSimulations;
+
+    return {
+      successProbability,
+      avgYearsLasted,
+      chartData,
+      yrsInRet,
+      initialCorpus,
+    };
+  }, [
+    calcTab,
+    fireRetireAge,
+    fireLifeExp,
+    fireResult.projectedCorpus,
+    fireExpense,
+    fireInflation,
+    firePostReturn,
+    monteVolatility,
+    metrics?.netWorth,
+  ]);
+
   // ── 5. FD & RD MATURITY STATE & LOGIC ──
   const [fdrdType, setFdrdType] = useState<"fd" | "rd">("fd");
   const [fdAmt, setFdAmt] = useState("100000");
@@ -808,8 +824,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       taxWith: Math.round(taxWith),
       taxSaved: Math.round(taxSaved),
       effectiveTaxRate,
+      // Debt MF units are always slab-taxed with no indexation benefit,
+      // regardless of purchase/sale date — the comparison below doesn't
+      // actually apply to this asset type even though it still computes it.
+      indexationApplicable: idxAssetType !== "Debt MF",
     };
-  }, [idxPurchasePrice, idxSalePrice, idxPurchaseYear, idxSaleYear]);
+  }, [idxPurchasePrice, idxSalePrice, idxPurchaseYear, idxSaleYear, idxAssetType]);
 
   const idxBarData = useMemo(
     () => [
@@ -973,6 +993,31 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const rLoan = loanRate / 12 / 100;
     const rInv = invReturn / 12 / 100;
 
+    // No outstanding loan — prepayment is meaningless, so just show pure
+    // investment growth instead of a nonsensical "prepay" recommendation.
+    if (loanBal <= 0) {
+      const wealthOnly =
+        lviMode === "sip"
+          ? rInv === 0
+            ? surplus * N
+            : surplus * ((Math.pow(1 + rInv, N) - 1) / rInv) * (1 + rInv)
+          : surplus * Math.pow(1 + rInv, N);
+
+      return {
+        emi: 0,
+        normalInterest: 0,
+        monthsTaken: 0,
+        interestSaved: 0,
+        wealthPrepay: 0,
+        wealthInvest: wealthOnly,
+        isInvestBetter: true,
+        netBenefit: wealthOnly,
+        noActiveLoan: true,
+        recommendation: `You have no outstanding loan balance to prepay — invest the full ₹${privacyMode ? "••••" : fmtINRFull(surplus)}${lviMode === "sip" ? "/mo" : ""} instead. At ${invReturn}% CAGR this could grow to ₹${privacyMode ? "••••" : fmtINRFull(Math.round(wealthOnly))}.`,
+        tip: "This tool compares prepaying a loan against investing — enter an outstanding loan balance above to see a real prepay-vs-invest comparison.",
+      };
+    }
+
     // EMI for the outstanding loan balance
     const emi =
       rLoan === 0
@@ -1037,6 +1082,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     } else {
       // LUMPSUM MODE: prepay lumpsum immediately vs invest lumpsum immediately
       const lumpsum = surplus;
+      // If the lump sum exceeds the loan balance, the excess is left over
+      // after clearing the loan and should still be invested immediately —
+      // otherwise it silently vanishes from Path A's wealth calculation.
+      const excessCash = Math.max(0, lumpsum - loanBal);
 
       // Path A: prepay lumpsum immediately (reduces principal)
       const balanceAfterLumpsum = Math.max(0, loanBal - lumpsum);
@@ -1064,6 +1113,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             ? emi * monthsFreed
             : emi * ((Math.pow(1 + rInv, monthsFreed) - 1) / rInv) * (1 + rInv);
       }
+      // Any cash left over after fully clearing the loan is invested immediately for the full period
+      wealthPrepayPath += excessCash * Math.pow(1 + rInv, N);
 
       // Path B: Keep loan, invest lumpsum immediately for N months
       const wealthInvestPath = lumpsum * Math.pow(1 + rInv, N);
@@ -1121,22 +1172,33 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   const [oneTimeOutflow, setOneTimeOutflow] = useState("");
 
   const stressResult = useMemo(() => {
-    const baseEquity = Number(metrics?.mfValue || 0) + Number(metrics?.stockValue || 0);
+    // Market-linked, sellable-anytime assets: MF, stocks, Gold/SGBs, and the
+    // Hybrid/International-MF "Other Investments" bucket. Previously this
+    // silently omitted Gold/investmentValue, understating true liquidity.
+    const baseEquity =
+      Number(metrics?.mfValue || 0) +
+      Number(metrics?.stockValue || 0) +
+      Number(metrics?.goldValue || 0) +
+      Number(metrics?.investmentValue || 0);
 
-    // Fixed Income assets (excluding EPF, as it is locked until retirement and cannot be liquid cash buffer)
+    // Fixed/locked-in-return assets (excluding EPF, as it is locked until
+    // retirement and cannot be liquid cash buffer). Govt Schemes and LIC
+    // policies were previously omitted here too.
     const baseFI =
       Number(metrics?.fdValue || 0) +
       Number(metrics?.rdValue || 0) +
       Number(metrics?.bondValue || 0) +
       Number(metrics?.ppfValue || 0) +
-      Number(metrics?.npsValue || 0);
+      Number(metrics?.npsValue || 0) +
+      Number(metrics?.govtSchemesValue || 0) +
+      Number(metrics?.licValue || 0);
     const baseCash = Number(metrics?.cashInBanks || 0);
 
-    // Loans EMI (drawn directly from loansTaken state)
-    const activeEMIs = (state?.loansTaken || []).reduce(
-      (sum: number, l: any) => sum + Number(l.emi || 0),
-      0
-    );
+    // Loans EMI (drawn directly from loansTaken state) — only loans still
+    // outstanding count toward the crisis burn rate; a paid-off loan has no EMI.
+    const activeEMIs = (state?.loansTaken || [])
+      .filter((l: any) => Number(l.outstanding || 0) > 0)
+      .reduce((sum: number, l: any) => sum + Number(l.emi || 0), 0);
     const monthlyExpense = Number(metrics?.monthExpense || 0);
 
     // Stress deductions
@@ -1264,30 +1326,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   return (
     <div className="tab-content-enter">
       {/* ── HEADER ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            background: THEME.line,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: THEME.accent,
-          }}
-        >
-          <Calculator size={24} />
-        </div>
-        <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
-            Financial Calculators
-          </h2>
-          <p style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
-            Interactive planning suite for growth projection, liabilities, and retirement targeting
-          </p>
-        </div>
-      </div>
+      <SectionTitle sub="Interactive planning suite for growth projection, liabilities, and retirement targeting">
+        Financial Calculators
+      </SectionTitle>
 
       {/* ── CONTEXT TILE STRIP ── */}
       {(() => {
@@ -1834,7 +1875,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tickFormatter={(v) => `Y${v}`}
                       />
                       <YAxis
-                        tickFormatter={fmtINRFull}
+                        tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                         tick={{ fontSize: 10, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
@@ -2231,7 +2272,22 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         <strong style={{ color: THEME.ink }}>
                           <Prv>{fmtINRFull(swpResult.remainingCorpus)}</Prv>
                         </strong>
-                        . Consider increasing your monthly withdrawal or extending the period.
+                        {swpResult.surplus > 0 && swpResult.minCorpus > 0 && (
+                          <>
+                            {" "}
+                            You have room to withdraw up to{" "}
+                            <strong style={{ color: THEME.gold }}>
+                              <Prv>
+                                {fmtINRFull(
+                                  (swpResult.surplus * (Number(swpWithdrawal) || 0)) /
+                                    swpResult.minCorpus
+                                )}
+                              </Prv>
+                            </strong>{" "}
+                            more per month and still have the corpus last the full period.
+                          </>
+                        )}{" "}
+                        Or simply extend the withdrawal period.
                       </div>
                     </div>
                   </div>
@@ -2283,7 +2339,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tickFormatter={(v) => `Y${v}`}
                       />
                       <YAxis
-                        tickFormatter={fmtINRFull}
+                        tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                         tick={{ fontSize: 10, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
@@ -3361,7 +3417,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
                       <XAxis dataKey="year" tick={{ fontSize: 11, fill: "var(--t-muted)" }} />
                       <YAxis
-                        tickFormatter={fmtINRFull}
+                        tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
                         tick={{ fontSize: 11, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
@@ -3591,7 +3647,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         fontWeight: 600,
                       }}
                     >
-                      <span style={{ color: THEME.muted }}>Equity Haircut (Stocks & MFs)</span>
+                      <span style={{ color: THEME.muted }}>
+                        Equity Haircut (Stocks, MFs, Gold, Other Investments)
+                      </span>
                       <span style={{ color: THEME.rust, fontWeight: 800 }}>{eqHaircut}%</span>
                     </div>
                     <input
@@ -3616,7 +3674,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                     >
                       <span style={{ color: THEME.muted }}>
-                        Fixed Income Penalty (FD/Bond cashout)
+                        Fixed Income Penalty (FD/Bond/PPF/NPS/Govt Scheme/LIC cashout)
                       </span>
                       <span style={{ color: THEME.gold, fontWeight: 800 }}>{fiHaircut}%</span>
                     </div>
@@ -3845,14 +3903,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       hint: "No haircut",
                     },
                     {
-                      label: "Stress-Adjusted Fixed Income (FD/Bonds)",
+                      label: "Stress-Adjusted Fixed Income (FD/Bonds/PPF/NPS/Govt/LIC)",
                       base: stressResult.baseFI,
                       stressed: stressResult.stressFI,
                       color: THEME.gold,
                       hint: `-${fiHaircut}% early-withdraw penalty`,
                     },
                     {
-                      label: "Stress-Adjusted Equities (Stocks/MFs)",
+                      label: "Stress-Adjusted Equities (Stocks/MFs/Gold/Other)",
                       base: stressResult.baseEquity,
                       stressed: stressResult.stressEquity,
                       color: THEME.accent,
@@ -3974,7 +4032,31 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   {inpRow("Retirement Age", fireRetireAge, setFireRetireAge)}
                 </div>
                 {inpRow("Current Expenses (₹/mo)", fireExpense, setFireExpense)}
-                {inpRow("Retirement Corpus (₹)", firePortfolio, setFirePortfolio)}
+                <div style={{ marginBottom: 14 }}>
+                  <label
+                    style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                  >
+                    Projected Corpus at Retirement
+                  </label>
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                      border: `1px solid ${THEME.line}`,
+                      fontWeight: 800,
+                      fontSize: 15,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    <Prv>{fmtINRFull(fireResult.projectedCorpus)}</Prv>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
+                    Grown from your current portfolio + monthly savings on the{" "}
+                    <b>Retirement Shortfall</b> tab. Adjust Current Portfolio, Monthly Savings, or
+                    Pre-Retirement Return there to change this simulation’s starting corpus.
+                  </div>
+                </div>
 
                 <div className="divider" style={{ margin: "20px 0 16px" }} />
                 <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>
@@ -4093,6 +4175,32 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </Card>
                 );
               })()}
+
+              {/* COMPARISON WITH DETERMINISTIC FIRE CALCULATION */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                  border: `1px solid ${THEME.line}`,
+                  fontSize: 12.5,
+                  color: THEME.muted,
+                  lineHeight: 1.5,
+                }}
+              >
+                <Info size={14} color={THEME.accent} style={{ marginTop: 1, flexShrink: 0 }} />
+                <div>
+                  The <b>Retirement Shortfall</b> tab’s fixed-return calculation puts you{" "}
+                  <b style={{ color: THEME.ink }}>{fireResult.percentOnTrack}% on track</b> to your
+                  required corpus. This simulator stress-tests that same plan against{" "}
+                  <b>500 randomized market sequences</b> instead of one average return, which is
+                  why the two numbers usually differ — sequence-of-returns risk (bad markets early
+                  in retirement) can sink a plan even when the average return looks fine on paper.
+                </div>
+              </div>
 
               {/* DYNAMIC PROBABILITY BAND CHART */}
               <Card style={{ padding: 24 }}>
@@ -4238,9 +4346,33 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {inpRow("Current Age", fireAge, setFireAge)}
-                  {inpRow("Target Corpus (₹)", firePortfolio, setFirePortfolio)}
+                  {inpRow("Current Portfolio (₹)", firePortfolio, setFirePortfolio)}
                 </div>
                 {inpRow("Base Monthly Savings (₹)", sandboxSavings, setSandboxSavings)}
+                <div style={{ marginBottom: 14 }}>
+                  <label
+                    style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                  >
+                    FI Target Corpus
+                  </label>
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                      border: `1px solid ${THEME.line}`,
+                      fontWeight: 800,
+                      fontSize: 15,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    <Prv>{fmtINRFull(fireResult.reqCorpus)}</Prv>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
+                    Pulled from the <b>Retirement Shortfall</b> tab’s required corpus. Adjust
+                    Retirement Age, Expenses, or Life Expectancy there to change this target.
+                  </div>
+                </div>
 
                 <div className="divider" style={{ margin: "16px 0" }} />
 
@@ -4447,6 +4579,35 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     </div>
                   )}
                 </div>
+
+                {sandboxResult.sabStartupOverlap && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+                      border: `1px solid ${THEME.gold}`,
+                      fontSize: 11.5,
+                      color: THEME.muted,
+                      lineHeight: 1.5,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <AlertTriangle
+                      size={13}
+                      color={THEME.gold}
+                      style={{ marginTop: 1, flexShrink: 0 }}
+                    />
+                    <div>
+                      Your Sabbatical and Startup Venture age ranges overlap. For those overlapping
+                      years, the simulation assumes the Startup’s zero-savings loss period takes
+                      precedence over the Sabbatical’s partial income — the two don’t stack.
+                    </div>
+                  </div>
+                )}
 
                 {/* Preset 3: Real Estate Purchase Accordion Card */}
                 <div
@@ -4952,6 +5113,33 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 >
                   Indexation Benefit Analysis
                 </div>
+
+                {!idxResult.indexationApplicable && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                      padding: "12px 14px",
+                      marginBottom: 20,
+                      background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
+                      borderRadius: 10,
+                    }}
+                  >
+                    <AlertTriangle
+                      size={15}
+                      color={THEME.rust}
+                      style={{ marginTop: 1, flexShrink: 0 }}
+                    />
+                    <div style={{ fontSize: 12, color: THEME.ink, lineHeight: 1.5 }}>
+                      <b>Not applicable to Debt Mutual Funds.</b> Debt MF units are always taxed at
+                      your income slab rate with no indexation benefit, regardless of purchase or
+                      sale date. The comparison below is illustrative only — switch Asset Type to
+                      Property, Gold/Bonds, or Other to see a real indexation comparison.
+                    </div>
+                  </div>
+                )}
 
                 {/* Side-by-side comparison cards */}
                 <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
@@ -5630,7 +5818,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                               aria-label={`${src.name || "Income source"} monthly amount`}
                               onChange={(e) => {
                                 const next = [...riSources];
-                                next[idx] = { ...next[idx], monthly: Number(e.target.value) || 0 };
+                                next[idx] = {
+                                  ...next[idx],
+                                  monthly: Math.max(0, Number(e.target.value) || 0),
+                                };
                                 setRiSources(next);
                               }}
                               style={{
@@ -5652,7 +5843,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                               aria-label={`${src.name || "Income source"} start age`}
                               onChange={(e) => {
                                 const next = [...riSources];
-                                next[idx] = { ...next[idx], startAge: Number(e.target.value) || 0 };
+                                const startAge = Math.max(0, Number(e.target.value) || 0);
+                                next[idx] = {
+                                  ...next[idx],
+                                  startAge,
+                                  endAge: Math.max(startAge, next[idx].endAge),
+                                };
                                 setRiSources(next);
                               }}
                               style={{
@@ -5674,7 +5870,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                               aria-label={`${src.name || "Income source"} end age`}
                               onChange={(e) => {
                                 const next = [...riSources];
-                                next[idx] = { ...next[idx], endAge: Number(e.target.value) || 0 };
+                                const endAge = Math.max(next[idx].startAge, Number(e.target.value) || 0);
+                                next[idx] = { ...next[idx], endAge };
                                 setRiSources(next);
                               }}
                               style={{
@@ -5723,7 +5920,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                                 padding: 4,
                               }}
                               title="Remove source"
-                              aria-label={`Remove ${src.label || "income source"}`}
+                              aria-label={`Remove ${src.name || "income source"}`}
                             >
                               <Trash2 size={14} />
                             </button>

@@ -2084,6 +2084,23 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
   scrollbar-width: none; /* Hide scrollbar for clean look */
   -webkit-overflow-scrolling: touch;
+  /* Fade the edges so a row with more pills than fit on screen (e.g. the
+     14-item Financial Calculators bar) visibly hints it's scrollable,
+     instead of looking like it simply stops. */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 20px,
+    black calc(100% - 20px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 20px,
+    black calc(100% - 20px),
+    transparent 100%
+  );
 }
 
 .demat-portfolio-bar::-webkit-scrollbar {
