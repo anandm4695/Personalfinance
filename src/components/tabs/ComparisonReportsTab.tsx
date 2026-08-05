@@ -3,13 +3,13 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   BarChart3,
-  Calendar,
-  TrendingUp,
-  TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeftRight,
   Minus,
   Printer,
+  Search,
+  Download,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -22,7 +22,8 @@ import {
   Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINRFull, exportArrayToCSV } from "../../utils/finance";
+import { computeNetWorthAsOf } from "../../utils/netWorthAsOf";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -265,7 +266,7 @@ const ComparisonSplitCard = ({
   );
 };
 
-export const ComparisonReportsTab = ({ state, metrics }) => {
+export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activeProfile = "all" }) => {
   const { privacyMode } = usePrivacy();
   // ── Inject print styles (scoped to this tab, cleaned up on unmount) ──
   useEffect(() => {
@@ -493,6 +494,35 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
     return map;
   }, [state.transactions]);
 
+  // Per-category income breakdown, kept separate from the ledger-vs-txn totals above
+  // so the category table can mirror whichever source (manual ledger or credit
+  // transactions) won for that month's total, instead of double-counting both.
+  const monthlyIncomeCatLedger = useMemo(() => {
+    const map = {};
+    (state.income || [])
+      .filter((i) => i.date)
+      .forEach((i) => {
+        const ym = i.date.slice(0, 7);
+        const cat = i.category || i.source || "Other";
+        if (!map[ym]) map[ym] = {};
+        map[ym][cat] = (map[ym][cat] || 0) + Number(i.amount || 0);
+      });
+    return map;
+  }, [state.income]);
+
+  const monthlyIncomeCatTxn = useMemo(() => {
+    const map = {};
+    (state.transactions || [])
+      .filter((t) => t.type === "credit" && t.date && !isTransferCat(t.category))
+      .forEach((t) => {
+        const ym = t.date.slice(0, 7);
+        const cat = t.category || "Uncategorized";
+        if (!map[ym]) map[ym] = {};
+        map[ym][cat] = (map[ym][cat] || 0) + Number(t.amount || 0);
+      });
+    return map;
+  }, [state.transactions]);
+
   const availableMonths = useMemo(() => {
     const set = new Set([
       ...Object.keys(monthlyExpense),
@@ -532,54 +562,79 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
     const aggregate = (key) => {
       const months = monthsForPeriod(compMode, key);
       let total = 0;
-      let incomeLedger = 0;
-      let incomeTxn = 0;
-      const cats = {};
+      let incomeLedgerTotal = 0;
+      let incomeTxnTotal = 0;
+      const expenseCats = {};
+      const incomeCats = {};
       months.forEach((ym) => {
         const e = monthlyExpense[ym];
         if (e) {
           total += e.total;
           Object.entries(e.cats).forEach(([cat, amt]: any) => {
-            cats[cat] = (cats[cat] || 0) + amt;
+            expenseCats[cat] = (expenseCats[cat] || 0) + amt;
           });
         }
-        incomeLedger += monthlyIncomeLedger[ym] || 0;
-        incomeTxn += monthlyIncomeTxn[ym] || 0;
+        const monthLedgerTotal = monthlyIncomeLedger[ym] || 0;
+        incomeLedgerTotal += monthLedgerTotal;
+        incomeTxnTotal += monthlyIncomeTxn[ym] || 0;
+        // Same ledger-over-txn preference as the total above, applied per-month so the
+        // category split never mixes both sources for the same month's income.
+        const catSource = monthLedgerTotal > 0 ? monthlyIncomeCatLedger[ym] : monthlyIncomeCatTxn[ym];
+        if (catSource) {
+          Object.entries(catSource).forEach(([cat, amt]: any) => {
+            incomeCats[cat] = (incomeCats[cat] || 0) + amt;
+          });
+        }
       });
-      const income = incomeLedger > 0 ? incomeLedger : incomeTxn;
-      return { total, income, cats };
+      const income = incomeLedgerTotal > 0 ? incomeLedgerTotal : incomeTxnTotal;
+      return { total, income, expenseCats, incomeCats };
     };
 
     const current = aggregate(periodA);
     const previous = aggregate(periodB);
 
-    const allCats = new Set([...Object.keys(current.cats), ...Object.keys(previous.cats)]);
-    const categoryComps = [...allCats]
-      .map((cat) => {
-        const curr = current.cats[cat] || 0;
-        const prev = previous.cats[cat] || 0;
-        const delta = curr - prev;
-        const pctChange = prev > 0 ? (delta / prev) * 100 : curr > 0 ? 100 : 0;
-        return {
-          category: cat,
-          current: Math.round(curr),
-          previous: Math.round(prev),
-          delta: Math.round(delta),
-          pctChange,
-        };
-      })
-      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    const buildCategoryComps = (currCats, prevCats) => {
+      const allCats = new Set([...Object.keys(currCats), ...Object.keys(prevCats)]);
+      return [...allCats]
+        .map((cat) => {
+          const curr = currCats[cat] || 0;
+          const prev = prevCats[cat] || 0;
+          const delta = curr - prev;
+          const isNew = prev === 0 && curr > 0;
+          const pctChange = prev > 0 ? (delta / prev) * 100 : curr > 0 ? 100 : 0;
+          return {
+            category: cat,
+            current: Math.round(curr),
+            previous: Math.round(prev),
+            delta: Math.round(delta),
+            pctChange,
+            isNew,
+          };
+        })
+        .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    };
 
-    // Net worth: use live net worth if the period includes the current month,
-    // otherwise the latest snapshot on record within that period.
+    const expenseCategoryComps = buildCategoryComps(current.expenseCats, previous.expenseCats);
+    const incomeCategoryComps = buildCategoryComps(current.incomeCats, previous.incomeCats);
+
+    // Net worth: reconstructed from each asset's own dated records (same helper
+    // AnnualReportTab/NetWorthTimelineTab/MonthlyReportModal use) rather than only reading
+    // frozen state.netWorthHistory snapshots — those are always empty for any profile other
+    // than "All" (getFilteredStateForProfile in useMetrics.ts never writes per-member
+    // snapshots) and are otherwise only ever written for months the app happened to be open
+    // in, silently zeroing this card for family-member views or any un-snapshotted month.
     const nwHistory = state.netWorthHistory || [];
-    const findNW = (months) => {
-      if (months.includes(currentYM)) return metrics.netWorth || 0;
-      for (let i = months.length - 1; i >= 0; i--) {
-        const entry = nwHistory.find((h) => h.month === months[i]);
+    const nwForMonth = (ym) => {
+      if (ym === currentYM) return metrics.netWorth || 0;
+      if (activeProfile === "all") {
+        const entry = nwHistory.find((h) => h.month === ym);
         if (entry) return entry.netWorth || 0;
       }
-      return 0;
+      return computeNetWorthAsOf(state, ym, marketData, activeProfile).netWorth;
+    };
+    const findNW = (months) => {
+      if (months.includes(currentYM)) return metrics.netWorth || 0;
+      return nwForMonth(months[months.length - 1]);
     };
     const currentNW = findNW(monthsForPeriod(compMode, periodA));
     const previousNW = findNW(monthsForPeriod(compMode, periodB));
@@ -596,18 +651,70 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       currentNW,
       previousNW,
       nwDelta: currentNW - previousNW,
-      categoryComps,
+      expenseCategoryComps,
+      incomeCategoryComps,
     };
-  }, [compMode, periodA, periodB, monthlyExpense, monthlyIncomeLedger, monthlyIncomeTxn, state.netWorthHistory, metrics, currentYM]);
+  }, [
+    compMode,
+    periodA,
+    periodB,
+    monthlyExpense,
+    monthlyIncomeLedger,
+    monthlyIncomeTxn,
+    monthlyIncomeCatLedger,
+    monthlyIncomeCatTxn,
+    state,
+    metrics,
+    currentYM,
+    marketData,
+    activeProfile,
+  ]);
+
+  const [categoryView, setCategoryView] = useState("expense"); // "expense" | "income"
+  const [catSearch, setCatSearch] = useState("");
+
+  const activeCategoryComps = categoryView === "expense" ? comp.expenseCategoryComps : comp.incomeCategoryComps;
+
+  const filteredCategoryComps = useMemo(() => {
+    const q = catSearch.trim().toLowerCase();
+    return q ? activeCategoryComps.filter((c) => c.category.toLowerCase().includes(q)) : activeCategoryComps;
+  }, [activeCategoryComps, catSearch]);
 
   // Chart data for category comparison
   const chartData = useMemo(() => {
-    return comp.categoryComps.slice(0, 10).map((c) => ({
+    return filteredCategoryComps.slice(0, 10).map((c) => ({
       category: c.category.length > 12 ? c.category.slice(0, 12) + "…" : c.category,
       [comp.currentLabel]: c.current,
       [comp.previousLabel]: c.previous,
     }));
-  }, [comp]);
+  }, [filteredCategoryComps, comp.currentLabel, comp.previousLabel]);
+
+  const handleExportCSV = () => {
+    const rows = filteredCategoryComps.map((c) => ({
+      category: c.category,
+      current: c.current,
+      previous: c.previous,
+      delta: c.delta,
+      pct: c.isNew ? "New" : `${c.pctChange > 0 ? "+" : ""}${c.pctChange.toFixed(1)}%`,
+    }));
+    const safe = (s) => String(s).replace(/[^a-zA-Z0-9]+/g, "_");
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "category", label: "Category" },
+        { key: "current", label: comp.currentLabel },
+        { key: "previous", label: comp.previousLabel },
+        { key: "delta", label: "Change" },
+        { key: "pct", label: "% Change" },
+      ],
+      `Comparison_${categoryView}_${safe(comp.currentLabel)}_vs_${safe(comp.previousLabel)}.csv`
+    );
+  };
+
+  const handleSwapPeriods = () => {
+    setPeriodA(periodB);
+    setPeriodB(periodA);
+  };
 
   const DeltaIndicator = ({ value, showAmount = true }) => {
     if (!value || Math.abs(value) < 1) {
@@ -719,6 +826,26 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               ))}
           </select>
         </div>
+        <button
+          onClick={handleSwapPeriods}
+          aria-label="Swap periods"
+          title="Swap periods"
+          className="card-lift"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            border: `1px solid ${THEME.line}`,
+            background: "var(--surface-0)",
+            color: THEME.muted,
+            cursor: "pointer",
+          }}
+        >
+          <ArrowLeftRight size={13} />
+        </button>
         <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>with</span>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {/* Same period can't appear in both sides — it collapses the two
@@ -789,7 +916,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
             deltaIndicator={<DeltaIndicator value={comp.incomeDelta} showAmount={false} />}
           />
 
-          {compMode === "year" && comp.previousNW > 0 && (
+          {(comp.currentNW !== 0 || comp.previousNW !== 0) && (
             <ComparisonSplitCard
               label="Net Worth"
               currentLabel={comp.currentLabel}
@@ -797,13 +924,102 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               currentValue={comp.currentNW}
               previousValue={comp.previousNW}
               delta={comp.nwDelta}
-              percentChange={comp.previousNW > 0 ? (comp.nwDelta / comp.previousNW) * 100 : undefined}
+              percentChange={
+                comp.previousNW !== 0 ? (comp.nwDelta / Math.abs(comp.previousNW)) * 100 : undefined
+              }
               isNetWorth={true}
               deltaIndicator={<DeltaIndicator value={comp.nwDelta} showAmount={false} />}
             />
           )}
         </div>
       </Card>
+
+      {/* Category Controls: Expense/Income toggle, search, CSV export */}
+      {(comp.expenseCategoryComps.length > 0 || comp.incomeCategoryComps.length > 0) && (
+        <div
+          className="no-print"
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              background: "var(--surface-0)",
+              border: `1.5px solid ${THEME.line}`,
+              padding: 4,
+              borderRadius: 12,
+            }}
+          >
+            {[
+              { id: "expense", label: "Expenses" },
+              { id: "income", label: "Income" },
+            ].map((v) => {
+              const active = categoryView === v.id;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setCategoryView(v.id)}
+                  aria-pressed={active}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 8,
+                    background: active ? THEME.accent : "transparent",
+                    border: "none",
+                    color: active ? "#fff" : THEME.ink,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ position: "relative" }}>
+              <Search
+                size={13}
+                style={{
+                  position: "absolute",
+                  left: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: THEME.muted,
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="text"
+                value={catSearch}
+                onChange={(e) => setCatSearch(e.target.value)}
+                placeholder="Search category…"
+                aria-label="Search categories"
+                style={{
+                  border: `1px solid ${THEME.line}`,
+                  borderRadius: 8,
+                  padding: "6px 10px 6px 28px",
+                  fontSize: 12,
+                  color: THEME.ink,
+                  background: "var(--surface-0)",
+                  width: 160,
+                }}
+              />
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Download size={13} />}
+              onClick={handleExportCSV}
+              disabled={!filteredCategoryComps.length}
+            >
+              Export CSV
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Category Chart */}
       {chartData.length > 0 && (
@@ -818,7 +1034,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
                 letterSpacing: "-0.015em",
               }}
             >
-              Category Comparison (Top 10)
+              {categoryView === "expense" ? "Expense" : "Income"} Category Comparison (Top 10)
             </h3>
             <div style={{ fontSize: 11, color: THEME.muted }}>
               Distribution comparison across selected periods
@@ -861,7 +1077,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       )}
 
       {/* Detailed Category Table */}
-      {comp.categoryComps.length > 0 && (
+      {activeCategoryComps.length > 0 && (
         <Card style={{ padding: 24 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
             <h3
@@ -873,76 +1089,90 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
                 letterSpacing: "-0.015em",
               }}
             >
-              Category Detail
+              {categoryView === "expense" ? "Expense" : "Income"} Category Detail
             </h3>
             <div style={{ fontSize: 11, color: THEME.muted }}>
-              Period-over-period comparative analysis by spending category
+              Period-over-period comparative analysis by {categoryView === "expense" ? "spending" : "income"} category
             </div>
           </div>
-          <div className="mobile-table-wrap">
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ ...th, paddingLeft: 16 }}>Category</th>
-                  <th style={{ ...th, textAlign: "right" }}>{comp.currentLabel}</th>
-                  <th style={{ ...th, textAlign: "right" }}>{comp.previousLabel}</th>
-                  <th style={{ ...th, textAlign: "right" }}>Change</th>
-                  <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comp.categoryComps.map((c) => (
-                  <tr
-                    key={c.category}
-                    style={{ borderBottom: `1px solid ${THEME.line}` }}
-                    className="table-row-hover"
-                  >
-                    <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
-                      {c.category}
-                    </td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                      <Prv>{fmtINRFull(c.current)}</Prv>
-                    </td>
-                    <td style={{ ...td, textAlign: "right", color: THEME.muted, fontWeight: 500 }}>
-                      <Prv>{fmtINRFull(c.previous)}</Prv>
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        textAlign: "right",
-                        fontWeight: 700,
-                        color: c.delta > 0 ? THEME.rust : c.delta < 0 ? THEME.sage : THEME.muted,
-                      }}
-                    >
-                      {c.delta > 0 ? "+" : ""}
-                      <Prv>{fmtINRFull(c.delta)}</Prv>
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        textAlign: "right",
-                        fontWeight: 700,
-                        paddingRight: 16,
-                        color:
-                          c.pctChange > 0 ? THEME.rust : c.pctChange < 0 ? THEME.sage : THEME.muted,
-                      }}
-                    >
-                      {c.pctChange > 0 ? "+" : ""}
-                      {c.pctChange.toFixed(0)}%
-                    </td>
+          {filteredCategoryComps.length > 0 ? (
+            <div className="mobile-table-wrap">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...th, paddingLeft: 16 }}>Category</th>
+                    <th style={{ ...th, textAlign: "right" }}>{comp.currentLabel}</th>
+                    <th style={{ ...th, textAlign: "right" }}>{comp.previousLabel}</th>
+                    <th style={{ ...th, textAlign: "right" }}>Change</th>
+                    <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>%</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredCategoryComps.map((c) => (
+                    <tr
+                      key={c.category}
+                      style={{ borderBottom: `1px solid ${THEME.line}` }}
+                      className="table-row-hover"
+                    >
+                      <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                        {c.category}
+                      </td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
+                        <Prv>{fmtINRFull(c.current)}</Prv>
+                      </td>
+                      <td style={{ ...td, textAlign: "right", color: THEME.muted, fontWeight: 500 }}>
+                        <Prv>{fmtINRFull(c.previous)}</Prv>
+                      </td>
+                      <td
+                        style={{
+                          ...td,
+                          textAlign: "right",
+                          fontWeight: 700,
+                          color: c.delta > 0 ? THEME.rust : c.delta < 0 ? THEME.sage : THEME.muted,
+                        }}
+                      >
+                        {c.delta > 0 ? "+" : ""}
+                        <Prv>{fmtINRFull(c.delta)}</Prv>
+                      </td>
+                      <td
+                        style={{
+                          ...td,
+                          textAlign: "right",
+                          fontWeight: 700,
+                          paddingRight: 16,
+                          color: c.isNew
+                            ? THEME.accent
+                            : c.pctChange > 0
+                              ? THEME.rust
+                              : c.pctChange < 0
+                                ? THEME.sage
+                                : THEME.muted,
+                        }}
+                      >
+                        {c.isNew ? "New" : `${c.pctChange > 0 ? "+" : ""}${c.pctChange.toFixed(0)}%`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div style={{ padding: "24px 0", textAlign: "center", fontSize: 13, color: THEME.muted }}>
+              No categories match “{catSearch}”.
+            </div>
+          )}
         </Card>
       )}
 
-      {comp.categoryComps.length === 0 && (
+      {activeCategoryComps.length === 0 && (
         <EmptyState
           icon={BarChart3}
           title="Not Enough Data"
-          description="Add transactions across multiple months to see comparison reports."
+          description={
+            categoryView === "expense"
+              ? "Add transactions across multiple months to see comparison reports."
+              : "Add income entries across multiple months to see income comparison reports."
+          }
         />
       )}
     </div>

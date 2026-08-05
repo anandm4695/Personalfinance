@@ -5143,7 +5143,12 @@ function FinanceDashboard() {
                 />
               )}
               {tab === "comparison" && (
-                <ComparisonReportsTab state={filteredState} metrics={metrics} />
+                <ComparisonReportsTab
+                  state={filteredState}
+                  metrics={metrics}
+                  marketData={marketData}
+                  activeProfile={activeProfile}
+                />
               )}
               {tab === "sec80" && <Section80TrackerTab state={filteredState} metrics={metrics} />}
               {tab === "gold" && (
