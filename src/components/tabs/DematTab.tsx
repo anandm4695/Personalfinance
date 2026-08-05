@@ -45,6 +45,7 @@ import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv } from "../../context/PrivacyContext";
 import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
+import { INDEX_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
 // Shared with CapitalGainsTab so the sell-preview LTCG/STCG split always agrees with the
 // actual tax report — see the isLongTerm/getHoldingMonths doc comments there for the
 // Section 2(42A) anniversary-date rules (day-of-month aware, strict >, not raw day-count).
@@ -4772,41 +4773,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 const absoluteReturnPct =
                   totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested) * 100 : 0;
 
-                // Illustrative long-run averages, not live index data (no historical
-                // index-return API is wired up yet) — surfaced with an "as of" +
-                // disclaimer label below so it doesn't read as authoritative live data.
-                const BENCHMARK_DATA_ASOF = "Mar 2026";
+                // Sourced from the shared benchmarkData module (single source of truth
+                // also used by PerformanceBenchmarkTab) so the two tabs never disagree
+                // on what "Nifty 50 1Y return" means. See BENCHMARK_DATA_ASOF disclaimer
+                // rendered below — these are illustrative long-run averages, not live data.
                 const benchmarks = [
+                  { name: INDEX_BENCHMARKS.nifty50.label, ...INDEX_BENCHMARKS.nifty50, color: THEME.accent },
+                  { name: INDEX_BENCHMARKS.sensex.label, ...INDEX_BENCHMARKS.sensex, color: THEME.muted },
                   {
-                    name: "Nifty 50",
-                    "1Y": 8.5,
-                    "3Y": 11.2,
-                    "5Y": 14.8,
-                    "10Y": 12.1,
-                    color: THEME.accent,
-                  },
-                  {
-                    name: "Sensex",
-                    "1Y": 8.2,
-                    "3Y": 10.9,
-                    "5Y": 14.5,
-                    "10Y": 12.0,
-                    color: THEME.muted,
-                  },
-                  {
-                    name: "Nifty Midcap",
-                    "1Y": 15.3,
-                    "3Y": 18.7,
-                    "5Y": 19.2,
-                    "10Y": 16.5,
+                    name: INDEX_BENCHMARKS.niftyMidcap.label,
+                    ...INDEX_BENCHMARKS.niftyMidcap,
                     color: THEME.violet,
                   },
                   {
-                    name: "Nifty Smallcap",
-                    "1Y": 12.1,
-                    "3Y": 20.5,
-                    "5Y": 18.9,
-                    "10Y": 15.8,
+                    name: INDEX_BENCHMARKS.niftySmallcap.label,
+                    ...INDEX_BENCHMARKS.niftySmallcap,
                     color: THEME.gold,
                   },
                 ];

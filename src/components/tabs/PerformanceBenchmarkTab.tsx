@@ -6,10 +6,10 @@ import {
   TrendingUp,
   TrendingDown,
   Target,
-  Award,
   IndianRupee,
   Info,
   Shield,
+  Download,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -28,48 +28,72 @@ import {
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import {
-  fmtINR,
   fmtINRFull,
   calcCAGR,
   getGoldPricePerGram,
   GOLD_PURITY_FACTOR,
+  exportArrayToCSV,
 } from "../../utils/finance";
+import { INDEX_BENCHMARKS, OTHER_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 
-// Indian market benchmark returns (approximate)
+// Indian market benchmark returns, sourced from the shared benchmarkData module
+// (single source of truth also used by DematTab's "Portfolio vs Benchmark" card) —
+// see BENCHMARK_DATA_ASOF disclaimer rendered below the comparison chart.
 const BENCHMARKS = {
-  nifty50: { label: "Nifty 50", return1Y: 15, return3Y: 12, return5Y: 14, color: THEME.accent },
+  nifty50: {
+    label: INDEX_BENCHMARKS.nifty50.label,
+    return1Y: INDEX_BENCHMARKS.nifty50["1Y"],
+    return3Y: INDEX_BENCHMARKS.nifty50["3Y"],
+    return5Y: INDEX_BENCHMARKS.nifty50["5Y"],
+    color: THEME.accent,
+  },
   niftyMidcap: {
-    label: "Nifty Midcap 150",
-    return1Y: 22,
-    return3Y: 18,
-    return5Y: 20,
+    label: INDEX_BENCHMARKS.niftyMidcap.label,
+    return1Y: INDEX_BENCHMARKS.niftyMidcap["1Y"],
+    return3Y: INDEX_BENCHMARKS.niftyMidcap["3Y"],
+    return5Y: INDEX_BENCHMARKS.niftyMidcap["5Y"],
     color: THEME.sage,
   },
   fdRate: {
-    label: "FD Rate (SBI)",
-    return1Y: 7.1,
-    return3Y: 6.5,
-    return5Y: 6.8,
+    label: OTHER_BENCHMARKS.fdRate.label,
+    return1Y: OTHER_BENCHMARKS.fdRate["1Y"],
+    return3Y: OTHER_BENCHMARKS.fdRate["3Y"],
+    return5Y: OTHER_BENCHMARKS.fdRate["5Y"],
     color: THEME.gold,
   },
   inflation: {
-    label: "Inflation (CPI)",
-    return1Y: 5.5,
-    return3Y: 5.8,
-    return5Y: 5.5,
+    label: OTHER_BENCHMARKS.inflation.label,
+    return1Y: OTHER_BENCHMARKS.inflation["1Y"],
+    return3Y: OTHER_BENCHMARKS.inflation["3Y"],
+    return5Y: OTHER_BENCHMARKS.inflation["5Y"],
     color: THEME.rust,
   },
   // Gold & PPF reuse the fixed chart-extension tokens (not the user-selectable
   // accent) so all six benchmark series stay visually distinguishable on the
   // same chart legend even if the active accent theme happens to be purple.
-  gold: { label: "Gold", return1Y: 18, return3Y: 13, return5Y: 12, color: THEME.violet },
-  ppf: { label: "PPF Rate", return1Y: 7.1, return3Y: 7.1, return5Y: 7.6, color: THEME.pink },
+  gold: {
+    label: OTHER_BENCHMARKS.gold.label,
+    return1Y: OTHER_BENCHMARKS.gold["1Y"],
+    return3Y: OTHER_BENCHMARKS.gold["3Y"],
+    return5Y: OTHER_BENCHMARKS.gold["5Y"],
+    color: THEME.violet,
+  },
+  ppf: {
+    label: OTHER_BENCHMARKS.ppf.label,
+    return1Y: OTHER_BENCHMARKS.ppf["1Y"],
+    return3Y: OTHER_BENCHMARKS.ppf["3Y"],
+    return5Y: OTHER_BENCHMARKS.ppf["5Y"],
+    color: THEME.pink,
+  },
 };
+// PPF pays one government-declared rate to every account — reuse the same
+// canonical figure everywhere in this file instead of a separately hardcoded 7.1.
+const PPF_STATED_RATE = OTHER_BENCHMARKS.ppf["1Y"];
 
 /* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
 const ChartTooltip = ({ active, payload, label, formatter }: any) => {
@@ -213,7 +237,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       { rate: equityReturn, value: equityCurrent },
       { rate: mfReturn, value: mfCurrent },
       { rate: avgFDRate, value: fdValue },
-      { rate: 7.1, value: ppfValue },
+      { rate: PPF_STATED_RATE, value: ppfValue },
       { rate: goldReturn, value: goldValue },
     ].filter((p) => p.value > 0);
     const overallReturn =
@@ -225,7 +249,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       equity: { invested: equityInvested, current: equityCurrent, return: equityReturn },
       mf: { invested: mfInvested, current: mfCurrent, return: mfReturn },
       fd: { value: fdValue, rate: avgFDRate },
-      ppf: { value: ppfValue, rate: 7.1 },
+      ppf: { value: ppfValue, rate: PPF_STATED_RATE },
       gold: { invested: goldInvested, value: goldValue, return: goldReturn },
       overall: { invested: totalInvested, current: totalCurrent, return: overallReturn },
     };
@@ -246,34 +270,39 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     return items;
   }, [portfolioReturns, period]);
 
-  // Asset class comparison
+  // Asset class comparison — benchmark side must track the same 1Y/3Y/5Y period
+  // toggle as comparisonData above, otherwise the two charts silently disagree
+  // (e.g. selecting "3 Years" moved the top chart's Nifty bar but left this one
+  // showing the 1Y figure).
   const assetComparison = useMemo(() => {
+    const key = period === "3y" ? "return3Y" : period === "5y" ? "return5Y" : "return1Y";
     return [
       {
         category: "Equity",
         yours: portfolioReturns.equity.return,
-        benchmark: BENCHMARKS.nifty50.return1Y,
+        benchmark: BENCHMARKS.nifty50[key],
       },
       {
         category: "Mutual Funds",
         yours: portfolioReturns.mf.return,
-        benchmark: BENCHMARKS.nifty50.return1Y,
+        benchmark: BENCHMARKS.nifty50[key],
       },
       {
         category: "Fixed Deposits",
         yours: portfolioReturns.fd.rate,
-        benchmark: BENCHMARKS.fdRate.return1Y,
+        benchmark: BENCHMARKS.fdRate[key],
       },
-      { category: "PPF", yours: portfolioReturns.ppf.rate, benchmark: BENCHMARKS.ppf.return1Y },
+      { category: "PPF", yours: portfolioReturns.ppf.rate, benchmark: BENCHMARKS.ppf[key] },
       {
         category: "Gold",
         yours: portfolioReturns.gold.return,
-        benchmark: BENCHMARKS.gold.return1Y,
+        benchmark: BENCHMARKS.gold[key],
       },
     ].filter((a) => a.yours !== 0 || a.benchmark !== 0);
-  }, [portfolioReturns]);
+  }, [portfolioReturns, period]);
 
   // Financial health radar
+  const fdReferenceRate = portfolioReturns.fd.rate > 0 ? portfolioReturns.fd.rate : BENCHMARKS.fdRate.return1Y;
   const healthScore = useMemo(() => {
     const savingsRate =
       metrics.monthIncome > 0 ? (1 - metrics.monthExpense / metrics.monthIncome) * 100 : 0;
@@ -301,13 +330,20 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       },
       { metric: "Diversification", score: diversification * 20, fullMark: 100 },
       {
+        // Reuse the same FD reference rate as the rest of this file (the user's
+        // actual average FD rate if they hold any, else the BENCHMARKS.fdRate
+        // figure) instead of an unrelated hardcoded "7" that used to silently
+        // diverge from both.
         metric: "Returns vs FD",
-        score: Math.min(100, Math.max(0, (portfolioReturns.overall.return / 7) * 50)),
+        score: Math.min(
+          100,
+          Math.max(0, (portfolioReturns.overall.return / fdReferenceRate) * 50)
+        ),
         fullMark: 100,
       },
       { metric: "Goal Progress", score: Math.min(100, metrics.overallGoalPct || 0), fullMark: 100 },
     ];
-  }, [metrics, portfolioReturns]);
+  }, [metrics, portfolioReturns, fdReferenceRate]);
 
   const overallScore = Math.round(
     healthScore.reduce((s, h) => s + h.score, 0) / healthScore.length
@@ -412,47 +448,102 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
             <div style={{ fontSize: 11, color: THEME.muted }}>
               Comparative performance mapping against market benchmarks
             </div>
+            <div
+              style={{
+                fontSize: 10.5,
+                color: THEME.muted,
+                fontStyle: "italic",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                marginTop: 2,
+              }}
+              title="Index, FD, gold, inflation and PPF figures are illustrative long-run averages, not live-updated market data."
+            >
+              <Info size={11} style={{ flexShrink: 0 }} />
+              Illustrative long-run averages, as of {BENCHMARK_DATA_ASOF} — not live-updated
+            </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 6,
-              background: "var(--surface-0)",
-              border: `1.5px solid ${THEME.line}`,
-              padding: "4px",
-              borderRadius: 16,
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
-            {[
-              { id: "1y", label: "1 Year" },
-              { id: "3y", label: "3 Years" },
-              { id: "5y", label: "5 Years" },
-            ].map((p) => {
-              const active = period === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setPeriod(p.id)}
-                  className="card-lift"
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 12,
-                    background: active ? "var(--accent)" : "transparent",
-                    border: "none",
-                    color: active ? THEME.darkInk : THEME.ink,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <button
+              onClick={() =>
+                exportArrayToCSV(
+                  comparisonData.map((d) => ({ name: d.name, returnPct: d.return.toFixed(1) })),
+                  [
+                    { key: "name", label: "Series" },
+                    { key: "returnPct", label: `Return % (${period.toUpperCase()})` },
+                  ],
+                  `performance-benchmark-${period}.csv`
+                )
+              }
+              className="card-lift"
+              title="Export this comparison as CSV"
+              aria-label="Export benchmark comparison as CSV"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 12px",
+                borderRadius: 12,
+                background: "var(--surface-0)",
+                border: `1.5px solid ${THEME.line}`,
+                color: THEME.ink,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <Download size={13} />
+              CSV
+            </button>
+
+            <div
+              role="tablist"
+              aria-label="Benchmark comparison period"
+              style={{
+                display: "flex",
+                gap: 6,
+                background: "var(--surface-0)",
+                border: `1.5px solid ${THEME.line}`,
+                padding: "4px",
+                borderRadius: 16,
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              {[
+                { id: "1y", label: "1 Year" },
+                { id: "3y", label: "3 Years" },
+                { id: "5y", label: "5 Years" },
+              ].map((p) => {
+                const active = period === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    role="tab"
+                    aria-selected={active}
+                    aria-pressed={active}
+                    onClick={() => setPeriod(p.id)}
+                    className="card-lift"
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 12,
+                      background: active ? "var(--accent)" : "transparent",
+                      border: "none",
+                      color: active ? THEME.darkInk : THEME.ink,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -521,7 +612,8 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
               Asset Class Performance
             </h3>
             <div style={{ fontSize: 11, color: THEME.muted }}>
-              Side-by-side returns breakdown by asset class
+              Side-by-side returns breakdown by asset class ·{" "}
+              {period === "3y" ? "3 Year" : period === "5y" ? "5 Year" : "1 Year"} benchmark
             </div>
           </div>
           <div style={{ width: "100%", height: 300, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -607,6 +699,10 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
                 fill="var(--accent)"
                 fillOpacity={0.15}
                 strokeWidth={2.5}
+              />
+              <Tooltip
+                formatter={(v: number) => `${Math.round(v)}/100`}
+                content={<ChartTooltip formatter={(v: number) => `${Math.round(v)}/100`} />}
               />
             </RadarChart>
           </ResponsiveContainer></div>
