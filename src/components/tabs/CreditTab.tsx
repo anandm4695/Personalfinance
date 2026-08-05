@@ -35,7 +35,7 @@ import {
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
-import { fmtINRFull, fmtINRExact, today, uid, getCCDueDate } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, uid, getCCDueDate, loanOutstanding } from "../../utils/finance";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -43,6 +43,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // Bank logo domains for Clearbit / Google Favicon API
@@ -8494,24 +8495,88 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
    DEBT PAYOFF OPTIMIZER (RELEASE 4)
    ══════════════════════════════════════════════════════════════════════ */
 const DEBT_SIM_MAX_MONTHS = 600;
+// Standard Indian card-issuer convention: minimum due ≈ 5% of outstanding, floored at ₹500.
+// Used as a stand-in "EMI" so revolving credit card debt can be simulated by the same
+// fixed-monthly-payment engine as term loans — it's an estimate, surfaced as such in the UI.
+const CC_MIN_DUE_RATE = 0.05;
+const CC_MIN_DUE_FLOOR = 500;
+const CC_DEFAULT_APR = 36;
 
 function DebtPayoffOptimizer({ state }: any) {
   const [extraMonthly, setExtraMonthly] = useState<number>(10000);
   const [windfall, setWindfall] = useState<string>("");
   const [selectedPlan, setSelectedPlan] = useState<"snowball" | "avalanche">("avalanche");
+  const [includeCC, setIncludeCC] = useState<boolean>(true);
 
-  const activeLoans = useMemo(() => {
-    return (state.loansTaken || []).filter(
-      (l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0
-    );
+  // Term loans — normalized once here (rather than re-derived per simulation call) so the
+  // same shape feeds the simulator, the timeline render, and the CSV export identically.
+  const normalizedLoans = useMemo(() => {
+    return (state.loansTaken || [])
+      .map((l: any) => {
+        const outstanding = loanOutstanding(l);
+        return {
+          id: `loan-${l.id}`,
+          lender: l.lender || "Loan",
+          type: l.type || "Loan",
+          outstanding,
+          emi: Number(l.emi) || 0,
+          rate: l.rate != null && l.rate !== "" ? Number(l.rate) : 8.5,
+          monthsRemaining: Number(l.monthsRemaining) || 0,
+          principal: Number(l.principal) || outstanding,
+          isCard: false,
+          emiIsEstimate: false,
+        };
+      })
+      .filter((l: any) => l.outstanding > 0 && l.emi > 0);
   }, [state.loansTaken]);
+
+  // Credit cards carry no fixed EMI, so a standard-issuer minimum-due estimate stands
+  // in for one — surfaced with an "Est." badge below so it doesn't read as real data.
+  const normalizedCards = useMemo(() => {
+    if (!includeCC) return [];
+    return (state.creditCards || [])
+      .filter((c: any) => (c.status || "active").toLowerCase() !== "closed")
+      .map((c: any) => {
+        const outstanding = Number(c.outstanding) || 0;
+        const rate =
+          c.interestRate != null && c.interestRate !== "" ? Number(c.interestRate) : CC_DEFAULT_APR;
+        const minDue = Math.min(outstanding, Math.max(outstanding * CC_MIN_DUE_RATE, CC_MIN_DUE_FLOOR));
+        return {
+          id: `cc-${c.id}`,
+          lender: c.issuer || "Credit Card",
+          type: "Credit Card",
+          outstanding,
+          emi: Math.round(minDue),
+          rate,
+          monthsRemaining: 0,
+          principal: outstanding,
+          isCard: true,
+          emiIsEstimate: true,
+        };
+      })
+      .filter((c: any) => c.outstanding > 0);
+  }, [state.creditCards, includeCC]);
+
+  const activeLoans = useMemo(
+    () => [...normalizedLoans, ...normalizedCards],
+    [normalizedLoans, normalizedCards]
+  );
+
+  // True only when there is genuinely nothing recorded anywhere (not just filtered out
+  // by the Include Credit Card Debt toggle) — drives the full "go add a loan" empty state
+  // vs. a lighter "nothing included right now" message that keeps the toggle reachable.
+  const hasAnyRawDebt =
+    (state.loansTaken || []).some((l: any) => loanOutstanding(l) > 0) ||
+    (state.creditCards || []).some(
+      (c: any) => (c.status || "active").toLowerCase() !== "closed" && Number(c.outstanding) > 0
+    );
 
   // Loans with a real outstanding balance that get silently excluded above
   // because they have no EMI on file — surfaced so the aggregated totals
   // don't look complete when they're actually missing data.
   const excludedLoans = useMemo(() => {
     return (state.loansTaken || []).filter(
-      (l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) <= 0
+      (l: any) => loanOutstanding(l) > 0 && Number(l.emi || 0) <= 0
     );
   }, [state.loansTaken]);
 
@@ -8522,21 +8587,9 @@ function DebtPayoffOptimizer({ state }: any) {
     strategy: "standard" | "snowball" | "avalanche",
     windfallAmt: number
   ) => {
-    let active = loans
-      .map((l) => ({
-        id: l.id,
-        lender: l.lender,
-        type: l.type || "Loan",
-        outstanding: Number(l.outstanding) || 0,
-        emi: Number(l.emi) || 0,
-        rate: (() => {
-          const v = l.rate ?? l.roi ?? l.interestRate;
-          return v != null && v !== "" ? Number(v) : 8.5;
-        })(),
-        monthsRemaining: Number(l.monthsRemaining) || 0,
-        principal: Number(l.principal) || Number(l.outstanding) || 0,
-      }))
-      .filter((l) => l.outstanding > 0);
+    // Inputs are already normalized (see normalizedLoans/normalizedCards) — a fresh
+    // shallow copy per call is still needed since this loop mutates `outstanding`.
+    let active = loans.map((l) => ({ ...l })).filter((l) => l.outstanding > 0);
 
     if (active.length === 0)
       return { months: 0, totalInterestPaid: 0, payoffSchedule: {}, rollOvers: {} };
@@ -8640,7 +8693,7 @@ function DebtPayoffOptimizer({ state }: any) {
     [activeLoans, extraMonthly, windfall]
   );
 
-  if (activeLoans.length === 0) {
+  if (!hasAnyRawDebt) {
     return (
       <Card style={{ padding: "48px 32px", textAlign: "center" }}>
         <div
@@ -8677,9 +8730,54 @@ function DebtPayoffOptimizer({ state }: any) {
             lineHeight: 1.6,
           }}
         >
-          Add your active home, car, or personal bank loans under the <b>Loans Taken</b> tab to feed
-          the optimizer! Once entered, you can compare snowball and avalanche schedules.
+          Add your active home, car, or personal bank loans under the <b>Loans Taken</b> tab, or a
+          credit card under <b>Credit Cards</b>, to feed the optimizer! Once entered, you can
+          compare snowball and avalanche schedules.
         </div>
+      </Card>
+    );
+  }
+
+  // Only reachable when Include Credit Card Debt is toggled off and there are no term
+  // loans on file — keep the toggle reachable here instead of falling through to the
+  // "go add a loan" empty state above, which would be wrong (debt does exist, it's hidden).
+  if (activeLoans.length === 0) {
+    return (
+      <Card style={{ padding: "40px 32px", textAlign: "center" }}>
+        <CreditCard size={30} color={THEME.accent} style={{ marginBottom: 16 }} />
+        <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
+          Nothing Included Right Now
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            color: THEME.muted,
+            maxWidth: 380,
+            margin: "0 auto 20px",
+            lineHeight: 1.6,
+          }}
+        >
+          You have credit card debt on file, but it's currently excluded from this simulation.
+        </div>
+        <label
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 13,
+            fontWeight: 700,
+            color: THEME.ink,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={includeCC}
+            onChange={(e) => setIncludeCC(e.target.checked)}
+            style={{ width: 16, height: 16, cursor: "pointer" }}
+          />
+          Include Credit Card Debt (Est. Min Due)
+        </label>
       </Card>
     );
   }
@@ -8712,11 +8810,104 @@ function DebtPayoffOptimizer({ state }: any) {
     currentSim.months >= DEBT_SIM_MAX_MONTHS &&
     activeLoans.some((l: any) => currentSim.payoffSchedule[l.id] == null);
 
+  // Standard (no-extra) baseline never actually paying off a loan means its EMI doesn't
+  // cover monthly interest — the loop still returns a finite number by hitting the 50y
+  // cap, but that number is a simulation artifact, not a real "what you'd pay" figure.
+  // Left unflagged, "Total Interest Saved" reads as a real comparison when it isn't.
+  const standardCapped =
+    standardSim.months >= DEBT_SIM_MAX_MONTHS &&
+    activeLoans.some((l: any) => standardSim.payoffSchedule[l.id] == null);
+
+  // Total debt snapshot — an at-a-glance view of everything the optimizer is aggregating.
+  const totalOutstandingDebt = activeLoans.reduce((s: number, l: any) => s + l.outstanding, 0);
+  const totalMonthlyCommitment = activeLoans.reduce((s: number, l: any) => s + l.emi, 0);
+  const blendedRate =
+    totalOutstandingDebt > 0
+      ? activeLoans.reduce((s: number, l: any) => s + l.rate * l.outstanding, 0) / totalOutstandingDebt
+      : 0;
+
+  // Shared by both the timeline render and the CSV export so payoff-date math lives in
+  // exactly one place. Sorted by actual payoff month — the section is titled
+  // "Chronological Payoff Timeline", so raw activeLoans insertion order (which is just
+  // loans-then-cards) would mislabel a loan clearing in 2033 as "#1" ahead of a card
+  // that's actually gone in 2026.
+  const timelineRows = activeLoans
+    .map((l: any) => {
+      // Absence from payoffSchedule means the loan was still unpaid when the simulation
+      // hit its horizon cap — falling back to 0 would wrongly show "Paid Today".
+      const targetPayoffMonth =
+        currentSim.payoffSchedule[l.id] != null ? currentSim.payoffSchedule[l.id] : currentSim.months;
+      const standardPayoffMonth =
+        standardSim.payoffSchedule[l.id] != null
+          ? standardSim.payoffSchedule[l.id]
+          : standardSim.months || Number(l.monthsRemaining) || 0;
+      const monthsSavedOnLoan =
+        targetPayoffMonth >= DEBT_SIM_MAX_MONTHS ? 0 : Math.max(0, standardPayoffMonth - targetPayoffMonth);
+      const rolledOver = currentSim.rollOvers?.[l.id] || 0;
+      return { ...l, targetPayoffMonth, monthsSavedOnLoan, rolledOver };
+    })
+    .sort((a, b) => a.targetPayoffMonth - b.targetPayoffMonth);
+
+  const exportScheduleCsv = () => {
+    const header =
+      "Lender,Type,Rate (%),Outstanding,Monthly Payment,EMI Basis,Payoff Date,Months Saved vs Standard";
+    const rows = timelineRows.map(
+      (r: any) =>
+        `"${(r.lender || "").replace(/"/g, '""')}","${r.type}",${r.rate.toFixed(2)},${r.outstanding.toFixed(0)},${r.emi.toFixed(0)},${r.emiIsEstimate ? "Est. Min Due" : "EMI"},"${getPayoffDateStr(r.targetPayoffMonth)}",${r.monthsSavedOnLoan}`
+    );
+    const content = [header, ...rows].join("\n");
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `debt_payoff_schedule_${selectedPlan}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div
       className="tab-content-enter"
       style={{ display: "flex", flexDirection: "column", gap: 24 }}
     >
+      {/* ── TOTAL DEBT SNAPSHOT ── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))",
+          gap: 16,
+        }}
+      >
+        <StatCard
+          label="Total Outstanding Debt"
+          value={fmtINRExact(totalOutstandingDebt)}
+          sub={`${activeLoans.length} liabilit${activeLoans.length === 1 ? "y" : "ies"} aggregated`}
+          icon={<Wallet />}
+          color={THEME.rust}
+        />
+        <StatCard
+          label="Monthly Commitment"
+          value={fmtINRExact(totalMonthlyCommitment)}
+          sub="Base EMIs + est. min dues"
+          icon={<Calendar />}
+          color={THEME.gold}
+        />
+        <StatCard
+          label="Blended Avg Rate"
+          value={`${blendedRate.toFixed(2)}%`}
+          sub="Weighted by outstanding"
+          icon={<Calculator />}
+          color={THEME.accent}
+        />
+        <StatCard
+          label="Debt-Free Target"
+          value={getPayoffDateStr(currentSim.months)}
+          sub={`${selectedPlan === "avalanche" ? "Avalanche" : "Snowball"} plan`}
+          icon={<Sparkles />}
+          color={THEME.sage}
+        />
+      </div>
+
       {/* ── INTERACTIVE SURPLUS & WINDFALL CONSOLE ── */}
       <div
         style={{
@@ -8728,15 +8919,48 @@ function DebtPayoffOptimizer({ state }: any) {
         <Card style={{ padding: 24 }}>
           <div
             style={{
-              fontSize: 10.5,
-              fontWeight: 800,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: THEME.muted,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               marginBottom: 20,
+              flexWrap: "wrap",
+              gap: 8,
             }}
           >
-            Liabilities Control Console
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: THEME.muted,
+              }}
+            >
+              Liabilities Control Console
+            </div>
+            {(state.creditCards || []).some(
+              (c: any) => (c.status || "active").toLowerCase() !== "closed" && Number(c.outstanding) > 0
+            ) && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: THEME.ink,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={includeCC}
+                  onChange={(e) => setIncludeCC(e.target.checked)}
+                  style={{ width: 14, height: 14, cursor: "pointer" }}
+                />
+                Include Credit Cards
+              </label>
+            )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
@@ -9103,6 +9327,31 @@ function DebtPayoffOptimizer({ state }: any) {
         </div>
       )}
 
+      {standardCapped && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            padding: "12px 16px",
+            borderRadius: 12,
+            border: `1.5px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
+            background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+            color: THEME.rust,
+            fontSize: 12.5,
+            fontWeight: 700,
+          }}
+        >
+          <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            At least one debt's minimum payment doesn't cover its own monthly interest — under
+            standard (no-extra) repayment it would never actually clear. The "Total Interest
+            Saved" figure above is capped at our 50-year simulation horizon, not a true
+            payoff comparison — treat it as a floor, not a real number.
+          </span>
+        </div>
+      )}
+
       {/* ── STEP-BY-STEP AMORTIZATION SCHEDULE ── */}
       <div
         style={{
@@ -9115,35 +9364,50 @@ function DebtPayoffOptimizer({ state }: any) {
         <Card style={{ padding: 24 }}>
           <div
             style={{
-              fontSize: 10.5,
-              fontWeight: 800,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: THEME.muted,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               marginBottom: 20,
+              flexWrap: "wrap",
+              gap: 8,
             }}
           >
-            Chronological Payoff Timeline ({selectedPlan.toUpperCase()})
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: THEME.muted,
+              }}
+            >
+              Chronological Payoff Timeline ({selectedPlan.toUpperCase()})
+            </div>
+            <button
+              onClick={exportScheduleCsv}
+              className="card-lift"
+              title="Export this payoff schedule as CSV"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 10px",
+                borderRadius: 8,
+                border: `1px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: THEME.muted,
+                cursor: "pointer",
+              }}
+            >
+              <Download size={12} /> Export CSV
+            </button>
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
-            {activeLoans.map((l: any, idx: number) => {
-              // Absence from payoffSchedule means the loan was still unpaid when the
-              // simulation hit its horizon cap — falling back to 0 would wrongly show
-              // "Paid Today" and a bogus "Shaved" badge for a loan that never clears.
-              const targetPayoffMonth =
-                currentSim.payoffSchedule[l.id] != null
-                  ? currentSim.payoffSchedule[l.id]
-                  : currentSim.months;
-              const standardPayoffMonth =
-                standardSim.payoffSchedule[l.id] != null
-                  ? standardSim.payoffSchedule[l.id]
-                  : standardSim.months || Number(l.monthsRemaining) || 0;
-              const monthsSavedOnLoan =
-                targetPayoffMonth >= DEBT_SIM_MAX_MONTHS
-                  ? 0
-                  : Math.max(0, standardPayoffMonth - targetPayoffMonth);
-              const rolledOver = currentSim.rollOvers?.[l.id] || 0;
+            {timelineRows.map((l: any, idx: number) => {
+              const { targetPayoffMonth, monthsSavedOnLoan, rolledOver } = l;
 
               return (
                 <div
@@ -9189,15 +9453,27 @@ function DebtPayoffOptimizer({ state }: any) {
                       <Badge variant="muted" style={{ fontSize: 9.5 }}>
                         {l.type || "Loan"}
                       </Badge>
-                      <Badge variant="gold" style={{ fontSize: 9.5 }}>
-                        {Number(l.rate || l.roi || l.interestRate || 8.5).toFixed(2)}% ROI
+                      <Badge
+                        variant={l.rate >= 20 ? "rust" : l.rate >= 10 ? "gold" : "sage"}
+                        style={{ fontSize: 9.5 }}
+                      >
+                        {l.rate.toFixed(2)}% p.a.
                       </Badge>
+                      {l.emiIsEstimate && (
+                        <Badge
+                          variant="muted"
+                          title="Estimated at 5% of outstanding (standard issuer minimum due), floored at ₹500 — not a fixed figure from your card"
+                          style={{ fontSize: 9.5 }}
+                        >
+                          Est. Min Due
+                        </Badge>
+                      )}
                     </div>
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
                     >
-                      Balance: <Prv>{fmtINRExact(l.outstanding)}</Prv> &bull; EMI:{" "}
-                      <Prv>{fmtINRExact(l.emi)}</Prv>/mo
+                      Balance: <Prv>{fmtINRExact(l.outstanding)}</Prv> &bull;{" "}
+                      {l.emiIsEstimate ? "Est. Min Due" : "EMI"}: <Prv>{fmtINRExact(l.emi)}</Prv>/mo
                       {rolledOver > 0 && (
                         <>
                           {" "}
