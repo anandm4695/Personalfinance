@@ -5068,6 +5068,7 @@ function FinanceDashboard() {
                   state={filteredState}
                   metrics={metrics}
                   marketData={marketData}
+                  activeProfile={activeProfile}
                 />
               )}
               {tab === "expensetrends" && (

@@ -4,19 +4,20 @@ import React, { useState, useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   Printer,
+  Download,
   FileText,
   TrendingUp,
-  TrendingDown,
-  Calendar,
   ChevronDown,
   ChevronRight,
   Briefcase,
   Shield,
   Coins,
   BarChart3,
-  Building2,
-  PiggyBank,
+  Gem,
+  Home,
   Heart,
+  Search,
+  X,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -28,6 +29,9 @@ import {
   rdMaturity,
   monthsBetween,
   calculateEpfBalance,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
+  exportArrayToCSV,
 } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
@@ -84,19 +88,33 @@ const tdBold: React.CSSProperties = { ...td, fontWeight: 700 };
 const tdBoldRight: React.CSSProperties = { ...tdRight, fontWeight: 700 };
 
 /* ── Color palette for pie chart ───────────────────────────────────── */
-// Maps to the same semantic tokens RebalancingTab's allocation pie uses for
-// the equivalent buckets (accent/sage/gold + a fixed extension hue), so
-// "Equity"/"Debt" read as the same color across both tabs and adapt to the
-// user's selected accent theme instead of being stuck on indigo/purple.
-// pieData only ever emits these 4 categories (see pieData below) — kept the
-// array exactly this length so no unused/hardcoded hex slots can drift out
-// of sync with the accent-preset palette.
+// Fixed-order validated 6-slot colorblind-safe categorical sequence (see
+// THEME.chart1..6 / --t-chart-N in constants.ts/styles.css — same palette
+// SubscriptionsTab/FinancialCalendarTab use). pieData always emits these 6
+// categories in this exact order (see pieData below), so hue assignment
+// stays stable even as buckets are added/removed by a user's holdings.
 const PIE_COLORS = [
-  THEME.accent, // Equity
-  THEME.sage, // Debt
-  THEME.gold, // Retirement
-  THEME.violet, // Insurance
+  THEME.chart1, // Equity
+  THEME.chart2, // Debt
+  THEME.chart3, // Gold
+  THEME.chart4, // Retirement
+  THEME.chart5, // Insurance
+  THEME.chart6, // Real Estate
 ];
+
+// Named lookup (not positional index) so a category's color stays fixed even
+// when pieData drops zero-value buckets — with 6 optional categories now
+// instead of 4, indexing by post-filter position would repaint the survivors
+// whenever a user simply doesn't hold one asset class (e.g. no Gold this
+// month shifts Retirement/Insurance/Real Estate into the wrong hues).
+const PIE_COLOR_BY_NAME: Record<string, string> = {
+  Equity: PIE_COLORS[0],
+  Debt: PIE_COLORS[1],
+  Gold: PIE_COLORS[2],
+  Retirement: PIE_COLORS[3],
+  Insurance: PIE_COLORS[4],
+  "Real Estate": PIE_COLORS[5],
+};
 
 /* ── P&L color helper ──────────────────────────────────────────────── */
 const plColor = (v: number) => (v > 0 ? THEME.sage : v < 0 ? THEME.rust : THEME.muted);
@@ -106,6 +124,34 @@ const plSign = (v: number) => (v > 0 ? "+" : "");
 /* ── Format percent ────────────────────────────────────────────────── */
 const fmtPct = (v: number | null | undefined) =>
   v == null || isNaN(v) ? "--" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+
+/* ── Real-estate ownership share helpers ─────────────────────────────
+   Mirrors realEstateTrackedShare/realEstateShareForOwner in RealEstateTab.tsx
+   / useMetrics.ts / netWorthAsOf.ts (intentionally duplicated per this
+   codebase's existing convention — kept in sync across all four copies) so
+   a jointly-owned property contributes only the household's tracked share
+   to this statement, not its full value. */
+const EXTERNAL_OWNER_ID = "external";
+
+const realEstateTrackedShare = (property: any): number => {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    return (
+      property.owners.reduce(
+        (s: number, o: any) => (o?.id !== EXTERNAL_OWNER_ID ? s + Number(o.sharePct || 0) : s),
+        0
+      ) / 100
+    );
+  }
+  return 1;
+};
+
+const realEstateShareForOwner = (property: any, profileId: string): number => {
+  if (Array.isArray(property.owners) && property.owners.length > 0) {
+    const match = property.owners.find((o: any) => o?.id === profileId);
+    return match ? Number(match.sharePct || 0) / 100 : 0;
+  }
+  return property.owner === profileId ? 1 : 0;
+};
 
 /* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
 const ChartTooltip = ({ active, payload, label, formatter }: any) => {
@@ -219,10 +265,12 @@ export const InvestmentStatementTab = ({
   state,
   metrics,
   marketData,
+  activeProfile,
 }: {
   state: any;
   metrics: any;
   marketData: any;
+  activeProfile?: string;
 }) => {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     stocks: true,
@@ -233,10 +281,15 @@ export const InvestmentStatementTab = ({
     ppf: true,
     nps: true,
     epf: true,
+    gold: true,
+    realestate: true,
     insurance: true,
   });
 
   const [activePieIndex, setActivePieIndex] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const matchesSearch = (text: string) =>
+    !searchQuery || (text || "").toLowerCase().includes(searchQuery.toLowerCase());
 
   const toggleSection = (key: string) =>
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -274,7 +327,7 @@ export const InvestmentStatementTab = ({
   // accrual approach above. Capped at the bond's own tenure so a matured bond
   // doesn't keep compounding past its maturity date.
   const bondCurrentValue = (x: any) => {
-    const principal = Number(x.totalInvestmentAmount || x.faceValue) || 0;
+    const principal = Number(x.totalInvestmentAmount || x.totalPrincipalAmount || x.faceValue) || 0;
     const rate = Number(x.ytmRate || x.coupon) || 0;
     if (!principal) return 0;
     if (!rate || !x.orderDate) return principal;
@@ -321,6 +374,10 @@ export const InvestmentStatementTab = ({
     const epfs = state.epf || [];
     const licPolicies = state.lic || [];
     const investmentPlans = state.investmentPlans || [];
+    const goldHoldings = state.goldHoldings || [];
+    const realEstateProperties = (state.realEstateProperties || []).filter(
+      (p: any) => p.status !== "sold"
+    );
 
     /* ── Equity - Stocks ──────────────────────────────────────────── */
     const stockInvested = stocks.reduce(
@@ -405,18 +462,14 @@ export const InvestmentStatementTab = ({
         : 0;
 
     /* ── Debt - Bonds ─────────────────────────────────────────────── */
-    const bondInvested = bonds.reduce(
-      (s: number, x: any) => s + (Number(x.totalInvestmentAmount || x.faceValue) || 0),
-      0
-    );
+    const bondPrincipal = (x: any) =>
+      Number(x.totalInvestmentAmount || x.totalPrincipalAmount || x.faceValue) || 0;
+    const bondInvested = bonds.reduce((s: number, x: any) => s + bondPrincipal(x), 0);
     const bondCurrent = bonds.reduce((s: number, x: any) => s + bondCurrentValue(x), 0);
     const bondAvgYTM =
       bondInvested > 0
         ? bonds.reduce(
-            (s: number, x: any) =>
-              s +
-              (Number(x.ytmRate || x.coupon) || 0) *
-                (Number(x.totalInvestmentAmount || x.faceValue) || 0),
+            (s: number, x: any) => s + (Number(x.ytmRate || x.coupon) || 0) * bondPrincipal(x),
             0
           ) / bondInvested
         : 0;
@@ -509,6 +562,54 @@ export const InvestmentStatementTab = ({
     );
     const insurancePremiums = licPremiums + investPremiums;
     const insuranceValue = licValue + investValue;
+
+    /* ── Gold & SGBs ──────────────────────────────────────────────── */
+    // Mirrors GoldSGBTab.tsx's own `enriched` calc (grams * live gram price *
+    // purity multiplier for physical), including its "no purchase price on
+    // record → invested falls back to current value" rule so an untracked
+    // cost basis contributes 0 P&L here instead of a fabricated loss/gain.
+    const goldPrice = getGoldPricePerGram(state);
+    let goldInvested = 0;
+    let goldCurrent = 0;
+    const goldDates: string[] = [];
+    goldHoldings.forEach((h: any) => {
+      const grams = Number(h.grams || 0);
+      const purchasePrice = Number(h.purchasePrice || 0);
+      const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
+      const currentValue = grams * goldPrice * purityMul;
+      const invested = purchasePrice > 0 ? purchasePrice : currentValue;
+      goldInvested += invested;
+      goldCurrent += currentValue;
+      if (purchasePrice > 0 && h.purchaseDate) goldDates.push(h.purchaseDate);
+    });
+    const goldCAGR =
+      goldDates.length && goldInvested > 0
+        ? calcCAGR(goldInvested, goldCurrent, goldDates.sort()[0])
+        : null;
+
+    /* ── Real Estate ──────────────────────────────────────────────── */
+    // Scoped to the active profile's ownership share (mirrors RealEstateTab.tsx's
+    // `shareOf`/portfolio stats) — a jointly-owned property contributes only this
+    // household/profile's tracked share, not its full market value. Sold
+    // properties are already excluded via the `realEstateProperties` filter above.
+    let reInvested = 0;
+    let reCurrent = 0;
+    const reDates: string[] = [];
+    realEstateProperties.forEach((p: any) => {
+      const share =
+        activeProfile && activeProfile !== "all"
+          ? realEstateShareForOwner(p, activeProfile)
+          : realEstateTrackedShare(p);
+      const cost =
+        (Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsAmount || 0)) *
+        share;
+      const value = Number(p.marketValue || p.agreementValue || 0) * share;
+      reInvested += cost;
+      reCurrent += value;
+      if (cost > 0 && p.purchaseDate) reDates.push(p.purchaseDate);
+    });
+    const reCAGR =
+      reDates.length && reInvested > 0 ? calcCAGR(reInvested, reCurrent, reDates.sort()[0]) : null;
 
     /* ── Debt MFs row ─────────────────────────────────────────────── */
     const debtMFDates = debtMFs.filter((m: any) => m.buyDate).map((m: any) => m.buyDate);
@@ -611,16 +712,39 @@ export const InvestmentStatementTab = ({
             ? `${(((insuranceValue - insurancePremiums) / insurancePremiums) * 100).toFixed(1)}%`
             : "--",
       },
+      {
+        label: "Gold & SGBs",
+        invested: goldInvested,
+        current: goldCurrent,
+        gain: goldCurrent - goldInvested,
+        rate: goldCAGR,
+        rateLabel: goldCAGR != null ? `${goldCAGR.toFixed(1)}%` : "--",
+      },
+      {
+        label: "Real Estate",
+        invested: reInvested,
+        current: reCurrent,
+        gain: reCurrent - reInvested,
+        rate: reCAGR,
+        rateLabel: reCAGR != null ? `${reCAGR.toFixed(1)}%` : "--",
+      },
     ];
 
     const totalInvested = rows.reduce((s, r) => s + r.invested, 0);
     const totalCurrent = rows.reduce((s, r) => s + r.current, 0);
     const totalGain = totalCurrent - totalInvested;
 
+    // Renormalize by the *rate-bearing* rows' own current value, not totalCurrent —
+    // rows with rate:null (e.g. LIC/Insurance, whose "return" isn't a comparable
+    // annualized rate) are excluded from the weighted average entirely, so the
+    // weights of the included rows must sum to 1 on their own. Dividing by the
+    // full totalCurrent instead would silently dilute the blended CAGR by
+    // whatever share of the portfolio those excluded rows hold.
     const weightedRows = rows.filter((r) => r.rate != null && r.current > 0);
+    const weightedBase = weightedRows.reduce((s, r) => s + r.current, 0);
     const weightedCAGR =
-      totalCurrent > 0 && weightedRows.length > 0
-        ? weightedRows.reduce((s, r) => s + (r.rate || 0) * (r.current / totalCurrent), 0)
+      weightedBase > 0
+        ? weightedRows.reduce((s, r) => s + (r.rate || 0) * (r.current / weightedBase), 0)
         : null;
 
     const rowsWithAlloc = rows.map((r) => ({
@@ -628,17 +752,21 @@ export const InvestmentStatementTab = ({
       allocation: totalCurrent > 0 ? (r.current / totalCurrent) * 100 : 0,
     }));
 
-    /* ── Pie chart data ───────────────────────────────────────────── */
+    /* ── Pie chart data (order fixed to match PIE_COLORS) ───────────── */
     const equityTotal = stockCurrent + eqMFCurrent;
     const debtTotal = fdCurrent + rdCurr + bondCurrent + debtMFCurrent;
+    const goldTotal = goldCurrent;
     const retirementTotal = ppfBalance + npsBalance + epfBalance;
     const insuranceTotal = insuranceValue;
+    const realEstateTotal = reCurrent;
 
     const pieData = [
       { name: "Equity", value: equityTotal },
       { name: "Debt", value: debtTotal },
+      { name: "Gold", value: goldTotal },
       { name: "Retirement", value: retirementTotal },
       { name: "Insurance", value: insuranceTotal },
+      { name: "Real Estate", value: realEstateTotal },
     ].filter((d) => d.value > 0);
 
     return {
@@ -650,10 +778,12 @@ export const InvestmentStatementTab = ({
       pieData,
       equityTotal,
       debtTotal,
+      goldTotal,
       retirementTotal,
       insuranceTotal,
+      realEstateTotal,
     };
-  }, [state, marketData]);
+  }, [state, marketData, activeProfile]);
 
   /* ── Stock groups (same logic as DematTab) ───────────────────────── */
   const stockGroups = useMemo(() => {
@@ -676,6 +806,12 @@ export const InvestmentStatementTab = ({
     return Object.values(groups);
   }, [state.stocks]);
 
+  /* ── Real estate properties still held (excludes sold) ──────────── */
+  const realEstateActiveProperties = useMemo(
+    () => (state.realEstateProperties || []).filter((p: any) => p.status !== "sold"),
+    [state.realEstateProperties]
+  );
+
   /* ── Check if any data exists ────────────────────────────────────── */
   const hasAnyData =
     (state.stocks?.length || 0) +
@@ -687,7 +823,9 @@ export const InvestmentStatementTab = ({
       (state.nps?.length || 0) +
       (state.epf?.length || 0) +
       (state.lic?.length || 0) +
-      (state.investmentPlans?.length || 0) >
+      (state.investmentPlans?.length || 0) +
+      (state.goldHoldings?.length || 0) +
+      (state.realEstateProperties?.length || 0) >
     0;
 
   if (!hasAnyData) {
@@ -701,8 +839,8 @@ export const InvestmentStatementTab = ({
           gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
           dotColor={THEME.accent}
           title="No Investments Yet"
-          description="Add investments across Fixed Deposits, Mutual Funds, Stocks, PPF, NPS, EPF and more to see your consolidated statement."
-          pills={["Stocks", "Mutual Funds", "FDs", "PPF", "NPS", "EPF"]}
+          description="Add investments across Fixed Deposits, Mutual Funds, Stocks, PPF, NPS, EPF, Gold and Real Estate to see your consolidated statement."
+          pills={["Stocks", "Mutual Funds", "FDs", "PPF", "NPS", "EPF", "Gold", "Real Estate"]}
         />
       </div>
     );
@@ -715,6 +853,39 @@ export const InvestmentStatementTab = ({
     year: "numeric",
   });
 
+  const handleExportCSV = () => {
+    const exportRows = summary.rows
+      .filter((r: any) => r.invested !== 0 || r.current !== 0)
+      .map((r: any) => ({
+        assetClass: r.label,
+        invested: Math.round(r.invested),
+        current: Math.round(r.current),
+        gain: Math.round(r.gain),
+        rate: r.rateLabel,
+        allocationPct: `${r.allocation.toFixed(1)}%`,
+      }));
+    exportRows.push({
+      assetClass: "Total",
+      invested: Math.round(summary.totalInvested),
+      current: Math.round(summary.totalCurrent),
+      gain: Math.round(summary.totalGain),
+      rate: summary.weightedCAGR != null ? `${summary.weightedCAGR.toFixed(1)}%` : "--",
+      allocationPct: "100%",
+    });
+    exportArrayToCSV(
+      exportRows,
+      [
+        { key: "assetClass", label: "Asset Class" },
+        { key: "invested", label: "Invested" },
+        { key: "current", label: "Current Value" },
+        { key: "gain", label: "Gain / Loss" },
+        { key: "rate", label: "CAGR" },
+        { key: "allocationPct", label: "Allocation %" },
+      ],
+      `investment-statement_${todayStr}.csv`
+    );
+  };
+
   return (
     <div
       className="investment-statement"
@@ -723,11 +894,74 @@ export const InvestmentStatementTab = ({
       <style>{printStyles}</style>
 
       {/* ── 1. Statement Header ─────────────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <SectionTitle sub={`As of ${formattedDate}`}>
           Consolidated Investment Statement
         </SectionTitle>
-        <div className="no-print">
+        <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", position: "relative", alignItems: "center" }}>
+            <Search
+              size={16}
+              color={THEME.muted}
+              style={{ position: "absolute", left: 14, pointerEvents: "none" }}
+            />
+            <input
+              type="text"
+              aria-label="Search holdings"
+              placeholder="Search holdings..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: 200,
+                padding: `9px ${searchQuery ? 36 : 12}px 9px 38px`,
+                borderRadius: 12,
+                border: `1.5px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 13,
+                boxShadow: "var(--shadow-sm)",
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setSearchQuery("")}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--surface-2)",
+                  color: THEME.muted,
+                  cursor: "pointer",
+                }}
+              >
+                <X size={11} />
+              </button>
+            )}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Download size={14} />}
+            onClick={handleExportCSV}
+          >
+            CSV
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -738,6 +972,11 @@ export const InvestmentStatementTab = ({
           </Button>
         </div>
       </div>
+      {searchQuery && (
+        <div style={{ fontSize: 12, color: THEME.muted, marginTop: -14 }} className="no-print">
+          Filtering holdings tables by "{searchQuery}" — summary and allocation totals are unaffected.
+        </div>
+      )}
 
       {/* ── 1b. Hero Total — "what's my portfolio worth right now" is the one
            number this whole statement answers, so it gets top billing above
@@ -900,7 +1139,7 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {stockGroups.map((g) => {
+                    {stockGroups.filter((g) => matchesSearch(g.base)).map((g) => {
                       const totalQty = g.lots.reduce(
                         (s: number, l: any) => s + (Number(l.qty) || 0),
                         0
@@ -1004,7 +1243,9 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {state.mutualFunds.map((mf: any) => {
+                    {state.mutualFunds
+                      .filter((mf: any) => matchesSearch(mf.schemeName || mf.name))
+                      .map((mf: any) => {
                       const units = Number(mf.units) || 0;
                       const buyNav = Number(mf.buyNav) || 0;
                       const currentNav = Number(mf.currentNav) || 0;
@@ -1116,7 +1357,9 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {state.fixedDeposits.map((fd: any) => {
+                    {state.fixedDeposits
+                      .filter((fd: any) => matchesSearch(fd.bank))
+                      .map((fd: any) => {
                       const principal = Number(fd.principal) || 0;
                       const rate = Number(fd.rate) || 0;
                       const years = Number(fd.years) || 0;
@@ -1192,7 +1435,9 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {state.recurringDeposits.map((rd: any) => {
+                    {state.recurringDeposits
+                      .filter((rd: any) => matchesSearch(rd.bank))
+                      .map((rd: any) => {
                       const monthly = Number(rd.monthly) || 0;
                       const months = Number(rd.tenureMonths) || 0;
                       const rate = Number(rd.rate) || 0;
@@ -1249,8 +1494,12 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {state.bonds.map((b: any) => {
-                      const faceValue = Number(b.totalInvestmentAmount || b.faceValue) || 0;
+                    {state.bonds
+                      .filter((b: any) => matchesSearch(b.name))
+                      .map((b: any) => {
+                      const faceValue =
+                        Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue) ||
+                        0;
                       const coupon = Number(b.coupon) || 0;
                       const ytm = Number(b.ytmRate) || 0;
 
@@ -1303,7 +1552,9 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {state.ppf.map((p: any) => {
+                    {state.ppf
+                      .filter((p: any) => matchesSearch(p.institution))
+                      .map((p: any) => {
                       const balance = Number(p.balance) || 0;
                       const currentFY =
                         new Date().getMonth() >= 3
@@ -1372,7 +1623,9 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {state.nps.map((n: any) => (
+                    {state.nps
+                      .filter((n: any) => matchesSearch(n.fundManager))
+                      .map((n: any) => (
                       <tr
                         key={n.id}
                         className="table-row-hover"
@@ -1440,7 +1693,9 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {state.epf.map((e: any) => (
+                    {state.epf
+                      .filter((e: any) => matchesSearch(e.employer))
+                      .map((e: any) => (
                       <tr
                         key={e.id}
                         className="table-row-hover"
@@ -1487,7 +1742,9 @@ export const InvestmentStatementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {(state.lic || []).map((l: any) => (
+                    {(state.lic || [])
+                      .filter((l: any) => matchesSearch(l.planName))
+                      .map((l: any) => (
                       <tr
                         key={l.id}
                         className="table-row-hover"
@@ -1525,7 +1782,9 @@ export const InvestmentStatementTab = ({
                         <td style={{ ...td, paddingRight: 16 }}>{l.maturityDate || "--"}</td>
                       </tr>
                     ))}
-                    {(state.investmentPlans || []).map((ip: any) => (
+                    {(state.investmentPlans || [])
+                      .filter((ip: any) => matchesSearch(ip.planName || ip.insurer))
+                      .map((ip: any) => (
                       <tr
                         key={ip.id}
                         className="table-row-hover"
@@ -1565,6 +1824,197 @@ export const InvestmentStatementTab = ({
                         <td style={{ ...td, paddingRight: 16 }}>{ip.maturityDate || "--"}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Gold & SGBs */}
+      {(state.goldHoldings?.length || 0) > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <SectionHeader
+            icon={Gem}
+            title="Gold & SGBs"
+            count={state.goldHoldings.length}
+            expanded={!!expandedSections.gold}
+            onToggle={() => toggleSection("gold")}
+          />
+          {expandedSections.gold && (
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={{ ...tbl, minWidth: 760 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Holding</th>
+                      <th style={th}>Type</th>
+                      <th style={thRight}>Grams</th>
+                      <th style={thRight}>Invested</th>
+                      <th style={thRight}>Current Value</th>
+                      <th style={thRight}>P&L</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>P&L %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.goldHoldings
+                      .filter((h: any) => matchesSearch(h.name))
+                      .map((h: any) => {
+                        const grams = Number(h.grams) || 0;
+                        const purchasePrice = Number(h.purchasePrice) || 0;
+                        const purityMul =
+                          h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
+                        const currentValue =
+                          grams * getGoldPricePerGram(state) * purityMul;
+                        const invested = purchasePrice > 0 ? purchasePrice : currentValue;
+                        const pl = currentValue - invested;
+                        const plPct = invested > 0 ? (pl / invested) * 100 : 0;
+
+                        return (
+                          <tr key={h.id} className="table-row-hover">
+                            <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                              {h.name || "--"}
+                            </td>
+                            <td style={td}>
+                              <Badge
+                                variant={h.type === "sgb" ? "sage" : "gold"}
+                                style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6 }}
+                              >
+                                {h.type === "sgb"
+                                  ? "SGB"
+                                  : h.type === "digital"
+                                    ? "Digital"
+                                    : h.type === "etf"
+                                      ? "ETF"
+                                      : h.type === "mf"
+                                        ? "Gold MF"
+                                        : "Physical"}
+                              </Badge>
+                            </td>
+                            <td style={{ ...tdRight, fontWeight: 600 }}>
+                              {grams > 0 ? grams.toFixed(2) : "--"}
+                            </td>
+                            <td style={tdRight}>
+                              <Prv>{fmtINRFull(invested)}</Prv>
+                            </td>
+                            <td style={{ ...tdRight, fontWeight: 700 }}>
+                              <Prv>{fmtINRFull(currentValue)}</Prv>
+                            </td>
+                            <td style={{ ...tdRight, color: plColor(pl), fontWeight: 700 }}>
+                              <Prv>
+                                {plSign(pl)}
+                                {fmtINRFull(pl)}
+                              </Prv>
+                            </td>
+                            <td
+                              style={{
+                                ...tdRight,
+                                paddingRight: 16,
+                                color: plColor(plPct),
+                                fontWeight: 700,
+                              }}
+                            >
+                              {fmtPct(plPct)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Real Estate */}
+      {realEstateActiveProperties.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <SectionHeader
+            icon={Home}
+            title="Real Estate"
+            count={realEstateActiveProperties.length}
+            expanded={!!expandedSections.realestate}
+            onToggle={() => toggleSection("realestate")}
+          />
+          {expandedSections.realestate && (
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={{ ...tbl, minWidth: 820 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Property</th>
+                      <th style={th}>Location</th>
+                      <th style={thRight}>Your Share</th>
+                      <th style={thRight}>Invested</th>
+                      <th style={thRight}>Current Value</th>
+                      <th style={thRight}>Gain</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>Gain %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {realEstateActiveProperties
+                      .filter((p: any) => matchesSearch(p.name))
+                      .map((p: any) => {
+                        const share =
+                          activeProfile && activeProfile !== "all"
+                            ? realEstateShareForOwner(p, activeProfile)
+                            : realEstateTrackedShare(p);
+                        const invested =
+                          (Number(p.agreementValue || 0) +
+                            Number(p.stampDuty || 0) +
+                            Number(p.tdsAmount || 0)) *
+                          share;
+                        const currentValue = Number(p.marketValue || p.agreementValue || 0) * share;
+                        const gain = currentValue - invested;
+                        const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
+
+                        return (
+                          <tr key={p.id} className="table-row-hover">
+                            <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                              {p.name || "--"}
+                            </td>
+                            <td
+                              style={{
+                                ...td,
+                                fontSize: 12,
+                                color: THEME.muted,
+                                maxWidth: 160,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {p.location || "--"}
+                            </td>
+                            <td style={{ ...tdRight, fontWeight: 600 }}>
+                              {(share * 100).toFixed(0)}%
+                            </td>
+                            <td style={tdRight}>
+                              <Prv>{fmtINRFull(invested)}</Prv>
+                            </td>
+                            <td style={{ ...tdRight, fontWeight: 700 }}>
+                              <Prv>{fmtINRFull(currentValue)}</Prv>
+                            </td>
+                            <td style={{ ...tdRight, color: plColor(gain), fontWeight: 700 }}>
+                              <Prv>
+                                {plSign(gain)}
+                                {fmtINRFull(gain)}
+                              </Prv>
+                            </td>
+                            <td
+                              style={{
+                                ...tdRight,
+                                paddingRight: 16,
+                                color: plColor(gainPct),
+                                fontWeight: 700,
+                              }}
+                            >
+                              {fmtPct(gainPct)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1620,7 +2070,7 @@ export const InvestmentStatementTab = ({
                     {summary.pieData.map((d: any, i: number) => (
                       <Cell
                         key={`cell-${i}`}
-                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        fill={PIE_COLOR_BY_NAME[d.name] || PIE_COLORS[i % PIE_COLORS.length]}
                         style={{
                           filter:
                             activePieIndex === i
@@ -1735,7 +2185,7 @@ export const InvestmentStatementTab = ({
                         width: 12,
                         height: 12,
                         borderRadius: 4,
-                        background: PIE_COLORS[i % PIE_COLORS.length],
+                        background: PIE_COLOR_BY_NAME[d.name] || PIE_COLORS[i % PIE_COLORS.length],
                         flexShrink: 0,
                       }}
                     />
