@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -13,6 +13,11 @@ import {
   Briefcase,
   Activity,
   Info,
+  Search,
+  X,
+  Download,
+  Trophy,
+  AlertTriangle,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -24,13 +29,30 @@ import {
   fdMaturity,
   rdMaturity,
   getLocalDateString,
+  exportArrayToCSV,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
+import { Button } from "../ui/Button";
 import { Prv } from "../../context/PrivacyContext";
+
+// Canonical section order — keeps the per-type table ordering stable across
+// renders. Grouping straight off the XIRR-sorted `rows` list (as before) meant
+// the section a user scans to first could silently swap places whenever a
+// different asset type's return overtook another's, which is disorienting.
+const TYPE_ORDER = [
+  "Fixed Deposit",
+  "Recurring Deposit",
+  "Mutual Fund",
+  "Stocks",
+  "PPF",
+  "EPF",
+  "NPS",
+  "Bonds",
+];
 
 const th: React.CSSProperties = {
   padding: "14px 16px",
@@ -139,6 +161,7 @@ export function XIRRReportTab({ state }: any) {
         startDate: fd.startDate,
         endDate,
         xirr,
+        cashFlows,
         status: isMature ? "matured" : "active",
         owner: fd.owner,
       });
@@ -179,6 +202,7 @@ export function XIRRReportTab({ state }: any) {
         startDate: rd.startDate,
         endDate,
         xirr,
+        cashFlows,
         status: isMature ? "matured" : "active",
         owner: rd.owner,
       });
@@ -206,6 +230,7 @@ export function XIRRReportTab({ state }: any) {
         startDate: mf.buyDate,
         endDate: todayStr,
         xirr,
+        cashFlows,
         status: "active",
         owner: mf.owner,
       });
@@ -234,6 +259,7 @@ export function XIRRReportTab({ state }: any) {
         startDate: buyDate,
         endDate: todayStr,
         xirr,
+        cashFlows,
         status: "active",
         owner: s.owner,
       });
@@ -266,6 +292,7 @@ export function XIRRReportTab({ state }: any) {
           startDate: txns[0]?.date,
           endDate: todayStr,
           xirr,
+          cashFlows,
           status: "active",
           owner: p.owner,
         });
@@ -296,6 +323,7 @@ export function XIRRReportTab({ state }: any) {
           startDate: txns[0]?.date,
           endDate: todayStr,
           xirr,
+          cashFlows,
           status: "active",
           owner: p.owner,
         });
@@ -316,6 +344,7 @@ export function XIRRReportTab({ state }: any) {
           startDate: p.startDate,
           endDate: todayStr,
           xirr,
+          cashFlows,
           status: "active",
           owner: p.owner,
         });
@@ -350,6 +379,7 @@ export function XIRRReportTab({ state }: any) {
           startDate: txns[0]?.date,
           endDate: todayStr,
           xirr,
+          cashFlows,
           status: "active",
           owner: p.owner,
         });
@@ -370,6 +400,7 @@ export function XIRRReportTab({ state }: any) {
           startDate,
           endDate: todayStr,
           xirr,
+          cashFlows,
           status: "active",
           owner: p.owner,
         });
@@ -423,6 +454,7 @@ export function XIRRReportTab({ state }: any) {
         startDate: purchaseDate,
         endDate: b.maturityDate || todayStr,
         xirr,
+        cashFlows,
         status: isMature ? "matured" : "active",
         owner: b.owner,
       });
@@ -431,20 +463,27 @@ export function XIRRReportTab({ state }: any) {
     return results.sort((a, b) => (b.xirr ?? -Infinity) - (a.xirr ?? -Infinity));
   }, [state, todayStr]);
 
-  // Portfolio-level blended XIRR
+  // Portfolio-level blended (money-weighted) XIRR.
+  //
+  // Bug fix: this previously collapsed every instrument's `invested` total into a
+  // single lump-sum outflow on its `startDate`. That's correct for a one-shot FD/MF/
+  // Stock buy, but RD, PPF, EPF, NPS and Bond coupons all contribute money across many
+  // dates — treating e.g. 60 months of RD deposits as if the full sum left on day 1
+  // pretends the capital was locked up far longer than it really was, systematically
+  // skewing the headline "Portfolio XIRR" stat. Fixed by reusing each row's actual
+  // per-cash-flow dates (every row now carries its own `cashFlows`) and dropping only
+  // the trailing mark-to-market entry each block appends, replacing it with one
+  // combined current-value inflow at `todayStr` — consistent with the "Current Value"
+  // stat card and avoiding double-counting an instrument's terminal value.
   const portfolioXIRR = useMemo(() => {
     if (rows.length === 0) return null;
-    const flowMap = new Map<string, number>();
+    const flows: { date: string; amount: number }[] = [];
     rows.forEach((r) => {
-      if (!r.startDate || !r.invested) return;
-      flowMap.set(r.startDate, (flowMap.get(r.startDate) || 0) - r.invested);
+      const rowFlows: { date: string; amount: number }[] = r.cashFlows || [];
+      flows.push(...rowFlows.slice(0, -1));
     });
     const totalCurrent = rows.reduce((s: number, r) => s + (r.currentValue || 0), 0);
-    flowMap.set(todayStr, (flowMap.get(todayStr) || 0) + totalCurrent);
-    const flows = Array.from(flowMap.entries()).map(([date, amount]) => ({
-      date,
-      amount,
-    }));
+    flows.push({ date: todayStr, amount: totalCurrent });
     return calcXIRR(flows);
   }, [rows, todayStr]);
 
@@ -452,14 +491,64 @@ export function XIRRReportTab({ state }: any) {
   const totalCurrent = rows.reduce((s: number, r) => s + (r.currentValue || 0), 0);
   const totalGain = totalCurrent - totalInvested;
 
+  // Best/worst performer — computed off the full (unfiltered) portfolio so it stays
+  // a stable orientation point regardless of what the search box is doing.
+  const { bestRow, worstRow } = useMemo(() => {
+    const ranked = rows.filter((r) => r.xirr !== null);
+    if (ranked.length < 2) return { bestRow: null, worstRow: null };
+    return { bestRow: ranked[0], worstRow: ranked[ranked.length - 1] };
+  }, [rows]);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) =>
+      [r.name, r.type, r.owner].some((v) => (v || "").toLowerCase().includes(q))
+    );
+  }, [rows, searchQuery]);
+
   const typeGroups = useMemo(() => {
     const groups: Record<string, any[]> = {};
-    rows.forEach((r) => {
+    filteredRows.forEach((r) => {
       if (!groups[r.type]) groups[r.type] = [];
       groups[r.type].push(r);
     });
-    return groups;
-  }, [rows]);
+    return Object.entries(groups).sort(([a], [b]) => {
+      const ia = TYPE_ORDER.indexOf(a);
+      const ib = TYPE_ORDER.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+  }, [filteredRows]);
+
+  const handleExportCSV = () => {
+    const exportRows = filteredRows.map((r) => ({
+      name: r.name,
+      type: r.type,
+      owner: r.owner || "self",
+      invested: Math.round(r.invested || 0),
+      currentValue: Math.round(r.currentValue || 0),
+      gain: Math.round((r.currentValue || 0) - (r.invested || 0)),
+      period: holdingLabel(r.startDate, r.endDate),
+      xirr: r.xirr !== null ? `${r.xirr.toFixed(2)}%` : "N/A",
+      status: r.status,
+    }));
+    exportArrayToCSV(
+      exportRows,
+      [
+        { key: "name", label: "Name" },
+        { key: "type", label: "Type" },
+        { key: "owner", label: "Owner" },
+        { key: "invested", label: "Invested" },
+        { key: "currentValue", label: "Current Value" },
+        { key: "gain", label: "Gain / Loss" },
+        { key: "period", label: "Period" },
+        { key: "xirr", label: "XIRR" },
+        { key: "status", label: "Status" },
+      ],
+      `xirr-report_${todayStr}.csv`
+    );
+  };
 
   if (rows.length === 0) {
     return (
@@ -481,9 +570,81 @@ export function XIRRReportTab({ state }: any) {
       className="tab-content-enter"
       style={{ display: "flex", flexDirection: "column", gap: 24 }}
     >
-      <SectionTitle sub="True annualised return accounting for actual cash flow timing — the only metric that compares across all investment types">
-        XIRR Report
-      </SectionTitle>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        <SectionTitle sub="True annualised return accounting for actual cash flow timing — the only metric that compares across all investment types">
+          XIRR Report
+        </SectionTitle>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", position: "relative", alignItems: "center" }}>
+            <Search
+              size={16}
+              color={THEME.muted}
+              style={{ position: "absolute", left: 14, pointerEvents: "none" }}
+            />
+            <input
+              type="text"
+              aria-label="Search holdings"
+              placeholder="Search name, type, owner..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: 220,
+                padding: `9px ${searchQuery ? 36 : 12}px 9px 38px`,
+                borderRadius: 12,
+                border: `1.5px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 13,
+                boxShadow: "var(--shadow-sm)",
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setSearchQuery("")}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--surface-2)",
+                  color: THEME.muted,
+                  cursor: "pointer",
+                }}
+              >
+                <X size={11} />
+              </button>
+            )}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Download size={14} />}
+            onClick={handleExportCSV}
+          >
+            CSV
+          </Button>
+        </div>
+      </div>
+      {searchQuery && filteredRows.length === 0 && (
+        <div style={{ fontSize: 12, color: THEME.muted, marginTop: -14 }}>
+          No holdings match "{searchQuery}".
+        </div>
+      )}
 
       {/* Summary Bento Cards Grid */}
       <div
@@ -527,8 +688,116 @@ export function XIRRReportTab({ state }: any) {
         />
       </div>
 
+      {/* Best / Worst Performer insight strip */}
+      {bestRow && worstRow && bestRow !== worstRow && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 16,
+          }}
+        >
+          <Card
+            style={{
+              border: `1.5px solid ${THEME.line}`,
+              borderLeft: `3px solid ${THEME.sage}`,
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.sage} 14%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.sage,
+                flexShrink: 0,
+              }}
+            >
+              <Trophy size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Best Performer
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {bestRow.name} <span style={{ color: THEME.muted, fontWeight: 500 }}>· {bestRow.type}</span>
+              </div>
+            </div>
+            <span
+              style={{
+                marginLeft: "auto",
+                fontWeight: 800,
+                fontSize: 14,
+                color: xirrColor(bestRow.xirr),
+                background: `color-mix(in srgb, ${xirrColor(bestRow.xirr)} 12%, transparent)`,
+                padding: "5px 12px",
+                borderRadius: 8,
+                flexShrink: 0,
+              }}
+            >
+              {xirrLabel(bestRow.xirr)}
+            </span>
+          </Card>
+          <Card
+            style={{
+              border: `1.5px solid ${THEME.line}`,
+              borderLeft: `3px solid ${THEME.rust}`,
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.rust} 14%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.rust,
+                flexShrink: 0,
+              }}
+            >
+              <AlertTriangle size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Needs Attention
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {worstRow.name} <span style={{ color: THEME.muted, fontWeight: 500 }}>· {worstRow.type}</span>
+              </div>
+            </div>
+            <span
+              style={{
+                marginLeft: "auto",
+                fontWeight: 800,
+                fontSize: 14,
+                color: xirrColor(worstRow.xirr),
+                background: `color-mix(in srgb, ${xirrColor(worstRow.xirr)} 12%, transparent)`,
+                padding: "5px 12px",
+                borderRadius: 8,
+                flexShrink: 0,
+              }}
+            >
+              {xirrLabel(worstRow.xirr)}
+            </span>
+          </Card>
+        </div>
+      )}
+
       {/* Per-type tables */}
-      {Object.entries(typeGroups).map(([type, items]) => {
+      {typeGroups.map(([type, items]) => {
         const typeInvested = items.reduce((s: number, r) => s + (r.invested || 0), 0);
         const typeCurrent = items.reduce((s: number, r) => s + (r.currentValue || 0), 0);
         const typeGain = typeCurrent - typeInvested;
