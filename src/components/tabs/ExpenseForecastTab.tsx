@@ -10,6 +10,8 @@ import {
   ArrowDown,
   Minus,
   Info,
+  Search,
+  Download,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -22,9 +24,10 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
+  ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -112,6 +115,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
 export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   const { privacyMode } = usePrivacy();
   const [forecastMonths, setForecastMonths] = useState(6);
+  const [catFilter, setCatFilter] = useState("");
 
   // Historical monthly expenses by category
   const historicalData = useMemo(() => {
@@ -144,25 +148,44 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   }, [state.transactions]);
 
   // Category averages & trends
+  // Each category's series is zero-filled across every month in historicalData so that
+  // "Monthly Avg" is a true per-calendar-month average (an annual premium paid once won't
+  // read as if it recurs every month) and "Recent (3m)" reflects the actual last 3 calendar
+  // months rather than the last 3 months the category happened to have any spend in.
   const categoryStats = useMemo(() => {
-    const catMonthly = {};
+    const allCats = new Set();
     historicalData.forEach((m) => {
-      Object.entries(m).forEach(([key, val]) => {
+      Object.keys(m).forEach((key) => {
         if (key === "month" || key === "label" || key === "total") return;
-        if (!catMonthly[key]) catMonthly[key] = [];
-        catMonthly[key].push(val);
+        allCats.add(key);
       });
     });
 
-    return Object.entries(catMonthly)
-      .map(([cat, vals]) => {
-        const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
-        const recent3 = vals.slice(-3);
-        const recentAvg =
-          recent3.length > 0 ? recent3.reduce((s, v) => s + v, 0) / recent3.length : avg;
-        const trend = recentAvg > avg * 1.15 ? "up" : recentAvg < avg * 0.85 ? "down" : "stable";
-        const max = Math.max(...vals);
-        const min = Math.min(...vals);
+    const N = historicalData.length;
+
+    return Array.from(allCats)
+      .map((cat) => {
+        const series = historicalData.map((m) => Number(m[cat] || 0));
+        const avg = series.reduce((s, v) => s + v, 0) / N;
+
+        const recentCount = Math.min(3, N);
+        const recentSlice = series.slice(-recentCount);
+        const recentAvg = recentSlice.reduce((s, v) => s + v, 0) / recentCount;
+
+        // Trend compares the recent window against the months BEFORE it, so a category
+        // can't be forced to "Stable" just because the recent window is its whole history.
+        const olderSlice = series.slice(0, N - recentCount);
+        let trend = "new";
+        if (olderSlice.length > 0) {
+          const olderAvg = olderSlice.reduce((s, v) => s + v, 0) / olderSlice.length;
+          trend =
+            recentAvg > olderAvg * 1.15 ? "up" : recentAvg < olderAvg * 0.85 ? "down" : "stable";
+        }
+
+        const nonZero = series.filter((v) => v > 0);
+        const max = nonZero.length ? Math.max(...nonZero) : 0;
+        const min = nonZero.length ? Math.min(...nonZero) : 0;
+
         return {
           category: cat,
           avg: Math.round(avg),
@@ -170,52 +193,95 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
           trend,
           max: Math.round(max),
           min: Math.round(min),
-          months: vals.length,
+          activeMonths: nonZero.length,
+          totalMonths: N,
         };
       })
       .sort((a, b) => b.avg - a.avg);
   }, [historicalData]);
 
-  // Forecast
+  const filteredCategoryStats = useMemo(() => {
+    if (!catFilter.trim()) return categoryStats;
+    const q = catFilter.trim().toLowerCase();
+    return categoryStats.filter((c) => c.category.toLowerCase().includes(q));
+  }, [categoryStats, catFilter]);
+
+  const handleExportForecast = () => {
+    const trendLabel = { up: "Rising", down: "Falling", stable: "Stable", new: "New" };
+    const rows = categoryStats.map((c) => ({
+      category: c.category,
+      monthlyAvg: c.avg,
+      recent3m: c.recentAvg,
+      trend: trendLabel[c.trend],
+      min: c.min,
+      max: c.max,
+    }));
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "category", label: "Category" },
+        { key: "monthlyAvg", label: "Monthly Avg" },
+        { key: "recent3m", label: "Recent (3m)" },
+        { key: "trend", label: "Trend" },
+        { key: "min", label: "Min" },
+        { key: "max", label: "Max" },
+      ],
+      `Expense_Forecast_Category_Trends_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+  };
+
+  // Builds one future month's forecast point using the seasonal-blend model. Shared by the
+  // chart's selectable horizon and the fixed 12-month projection used for headline stats, so
+  // the two never disagree about methodology.
+  const buildForecastPoint = (monthsAhead) => {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() + monthsAhead, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const targetMonth = d.getMonth();
+
+    const sameMonthData = historicalData.filter(
+      (h) => parseInt(h.month.split("-")[1]) - 1 === targetMonth
+    );
+    const recentData = historicalData.slice(-6);
+
+    const seasonalAvg =
+      sameMonthData.length >= 2
+        ? sameMonthData.reduce((s, h) => s + h.total, 0) / sameMonthData.length
+        : null;
+    const recentAvg = recentData.reduce((s, h) => s + h.total, 0) / recentData.length;
+
+    const predicted = seasonalAvg
+      ? Math.round(seasonalAvg * 0.6 + recentAvg * 0.4)
+      : Math.round(recentAvg);
+    const lower = Math.round(predicted * 0.8);
+    const upper = Math.round(predicted * 1.2);
+
+    return {
+      month: ym,
+      label: `${MONTH_NAMES[targetMonth]} '${String(d.getFullYear()).slice(-2)}`,
+      predicted,
+      lower,
+      upper,
+      isForecast: true,
+    };
+  };
+
+  // Forecast (drives the chart; length follows the user's selected horizon)
   const forecast = useMemo(() => {
     if (historicalData.length < 3) return [];
-    const now = new Date();
     const points = [];
-
-    for (let i = 1; i <= forecastMonths; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const targetMonth = d.getMonth();
-
-      const sameMonthData = historicalData.filter(
-        (h) => parseInt(h.month.split("-")[1]) - 1 === targetMonth
-      );
-      const recentData = historicalData.slice(-6);
-
-      const seasonalAvg =
-        sameMonthData.length >= 2
-          ? sameMonthData.reduce((s, h) => s + h.total, 0) / sameMonthData.length
-          : null;
-      const recentAvg = recentData.reduce((s, h) => s + h.total, 0) / recentData.length;
-
-      const predicted = seasonalAvg
-        ? Math.round(seasonalAvg * 0.6 + recentAvg * 0.4)
-        : Math.round(recentAvg);
-      const lower = Math.round(predicted * 0.8);
-      const upper = Math.round(predicted * 1.2);
-
-      points.push({
-        month: ym,
-        label: `${MONTH_NAMES[targetMonth]} '${String(d.getFullYear()).slice(-2)}`,
-        predicted,
-        lower,
-        upper,
-        isForecast: true,
-      });
-    }
-
+    for (let i = 1; i <= forecastMonths; i++) points.push(buildForecastPoint(i));
     return points;
   }, [historicalData, forecastMonths]);
+
+  // Always a fixed next-12-months projection, independent of the horizon dropdown, so the
+  // Annual Projection stat can't silently disagree with what the chart itself predicts.
+  const annualForecastPoints = useMemo(() => {
+    if (historicalData.length < 3) return [];
+    const points = [];
+    for (let i = 1; i <= 12; i++) points.push(buildForecastPoint(i));
+    return points;
+  }, [historicalData]);
 
   // Combine historical + forecast for chart
   const chartData = useMemo(() => {
@@ -243,13 +309,22 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
     });
   }, [historicalData]);
 
-  // Annual projection
-  const annualProjection = useMemo(() => {
-    if (historicalData.length < 3) return 0;
-    const recent6 = historicalData.slice(-6);
-    const monthlyAvg = recent6.reduce((s, h) => s + h.total, 0) / recent6.length;
-    return Math.round(monthlyAvg * 12);
-  }, [historicalData]);
+  // Annual projection — sum of the same seasonal-blend forecast shown in the chart, so this
+  // headline number is always consistent with the model rather than a separate flat estimate.
+  const annualProjection = useMemo(
+    () => annualForecastPoints.reduce((s, p) => s + p.predicted, 0),
+    [annualForecastPoints]
+  );
+
+  const nextMonth = forecast[0] || null;
+
+  const dataConfidence =
+    historicalData.length >= 12 ? "high" : historicalData.length >= 6 ? "medium" : "low";
+  const confidenceCopy = {
+    high: { label: "High Confidence", color: THEME.sage },
+    medium: { label: "Medium Confidence", color: THEME.accent },
+    low: { label: "Low Confidence", color: THEME.rust },
+  }[dataConfidence];
 
   const trendingUp = categoryStats.filter((c) => c.trend === "up").length;
   const trendingDown = categoryStats.filter((c) => c.trend === "down").length;
@@ -284,10 +359,18 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
         }}
       >
         <StatCard
+          label="Next Month Forecast"
+          value={nextMonth ? fmtINRFull(nextMonth.predicted) : "—"}
+          icon={<TrendingUp />}
+          color="var(--accent)"
+          sub={nextMonth ? `Range ${fmtINR(nextMonth.lower)} – ${fmtINR(nextMonth.upper)}` : undefined}
+        />
+        <StatCard
           label="Annual Projection"
           value={fmtINRFull(annualProjection)}
           icon={<Calendar />}
           color="var(--accent)"
+          sub="Next 12 months, forecast model"
         />
         <StatCard
           label="Monthly Average"
@@ -337,8 +420,26 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
             >
               Expense Forecast
             </h3>
-            <div style={{ fontSize: 11, color: THEME.muted }}>
-              Historical spend versus predictive model bounds
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: THEME.muted }}>
+                Historical spend versus predictive model bounds
+              </span>
+              <span
+                title={`Based on ${historicalData.length} month${historicalData.length === 1 ? "" : "s"} of history — 12+ months unlocks full seasonal accuracy`}
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  padding: "2px 8px",
+                  borderRadius: 20,
+                  color: confidenceCopy.color,
+                  background: `color-mix(in srgb, ${confidenceCopy.color} 14%, transparent)`,
+                  cursor: "default",
+                }}
+              >
+                {confidenceCopy.label}
+              </span>
             </div>
           </div>
 
@@ -406,6 +507,20 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
               tickLine={false}
             />
             <Tooltip content={<ChartTooltip />} cursor={{ stroke: THEME.line }} />
+            {historicalData.length > 0 && (
+              <ReferenceLine
+                x={historicalData[historicalData.length - 1].label}
+                stroke={THEME.muted}
+                strokeDasharray="3 3"
+                label={{
+                  value: "Today",
+                  position: "insideTopRight",
+                  fill: THEME.muted,
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              />
+            )}
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
               formatter={(value: string) => (
@@ -490,20 +605,85 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
 
       {/* Category Trends Table */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 15,
-              fontWeight: 700,
-              color: THEME.ink,
-              letterSpacing: "-0.015em",
-            }}
-          >
-            Category Trends
-          </h3>
-          <div style={{ fontSize: 11, color: THEME.muted }}>
-            Velocity analysis comparing recent spending patterns against baseline averages
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Category Trends
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Velocity analysis comparing recent spending patterns against baseline averages
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ position: "relative" }}>
+              <Search
+                size={13}
+                style={{
+                  position: "absolute",
+                  left: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: THEME.muted,
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="text"
+                value={catFilter}
+                onChange={(e) => setCatFilter(e.target.value)}
+                placeholder="Filter category…"
+                aria-label="Filter categories"
+                style={{
+                  border: `1px solid ${THEME.line}`,
+                  borderRadius: 8,
+                  padding: "6px 10px 6px 28px",
+                  fontSize: 12,
+                  color: THEME.ink,
+                  background: "var(--surface-0)",
+                  width: 150,
+                }}
+              />
+            </div>
+            <button
+              onClick={handleExportForecast}
+              disabled={!categoryStats.length}
+              className="card-lift"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: `1px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: categoryStats.length ? "pointer" : "not-allowed",
+                opacity: categoryStats.length ? 1 : 0.5,
+              }}
+            >
+              <Download size={13} />
+              Export CSV
+            </button>
           </div>
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -519,7 +699,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
               </tr>
             </thead>
             <tbody>
-              {categoryStats.slice(0, 15).map((c) => (
+              {filteredCategoryStats.slice(0, 15).map((c) => (
                 <tr
                   key={c.category}
                   style={{ borderBottom: `1px solid ${THEME.line}` }}
@@ -527,6 +707,11 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
                 >
                   <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                     {c.category}
+                    {c.activeMonths < c.totalMonths && (
+                      <div style={{ fontSize: 10, fontWeight: 500, color: THEME.muted, marginTop: 2 }}>
+                        Active {c.activeMonths}/{c.totalMonths} mo
+                      </div>
+                    )}
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
                     <Prv>{fmtINRFull(c.avg)}</Prv>
@@ -551,27 +736,39 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
                             ? "color-mix(in srgb, var(--t-rust) 16%, transparent)"
                             : c.trend === "down"
                               ? "color-mix(in srgb, var(--t-sage) 16%, transparent)"
-                              : "var(--surface-2)",
+                              : c.trend === "new"
+                                ? "color-mix(in srgb, var(--t-accent) 14%, transparent)"
+                                : "var(--surface-2)",
                         color:
                           c.trend === "up"
                             ? THEME.rust
                             : c.trend === "down"
                               ? THEME.sage
-                              : THEME.muted,
+                              : c.trend === "new"
+                                ? THEME.accent
+                                : THEME.muted,
                       }}
                     >
                       {c.trend === "up" ? (
                         <ArrowUp size={12} />
                       ) : c.trend === "down" ? (
                         <ArrowDown size={12} />
+                      ) : c.trend === "new" ? (
+                        <Info size={12} />
                       ) : (
                         <Minus size={12} />
                       )}
-                      {c.trend === "up" ? "Rising" : c.trend === "down" ? "Falling" : "Stable"}
+                      {c.trend === "up"
+                        ? "Rising"
+                        : c.trend === "down"
+                          ? "Falling"
+                          : c.trend === "new"
+                            ? "New"
+                            : "Stable"}
                     </span>
                   </td>
                   <td style={{ ...td, textAlign: "right", color: THEME.muted, fontWeight: 500 }}>
-                    {fmtINRFull(c.min)}
+                    <Prv>{fmtINRFull(c.min)}</Prv>
                   </td>
                   <td
                     style={{
@@ -582,13 +779,25 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
                       paddingRight: 16,
                     }}
                   >
-                    {fmtINRFull(c.max)}
+                    <Prv>{fmtINRFull(c.max)}</Prv>
                   </td>
                 </tr>
               ))}
+              {filteredCategoryStats.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ ...td, textAlign: "center", color: THEME.muted, padding: "24px 16px" }}>
+                    No categories match "{catFilter}"
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+        {filteredCategoryStats.length > 15 && (
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 12, textAlign: "center" }}>
+            Showing top 15 of {filteredCategoryStats.length} matching categories — refine your search to see others
+          </div>
+        )}
       </Card>
 
       {/* Disclaimer */}
@@ -610,9 +819,14 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
         <span>
           <strong>How this forecast works:</strong> Predicted values blend each category's
           same-month seasonal average with its trailing 6-month average, then apply a ±20% band
-          for the lower/upper bounds. It is a statistical projection from your own transaction
-          history, not a guarantee — one-off expenses (medical, travel, gifting) and any new
-          recurring commitments won't be reflected until they show up in past months.
+          for the lower/upper bounds. Annual Projection is the sum of this same model's next 12
+          months, so it always agrees with the chart above. "Monthly Avg" in the table below is
+          amortized across every month in your history (so an annual premium doesn't read as if
+          it recurs monthly), while Min/Max reflect only the months a category actually had
+          spend — this is why Avg can sit below Min for occasional categories. It is a
+          statistical projection from your own transaction history, not a guarantee — one-off
+          expenses (medical, travel, gifting) and any new recurring commitments won't be
+          reflected until they show up in past months.
         </span>
       </div>
     </div>
