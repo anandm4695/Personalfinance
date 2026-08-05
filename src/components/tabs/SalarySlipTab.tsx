@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Briefcase,
   Plus,
@@ -15,6 +15,9 @@ import {
   ChevronUp,
   AlertCircle,
   Loader,
+  Search,
+  Download,
+  Award,
 } from "lucide-react";
 import {
   BarChart,
@@ -30,7 +33,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { fmtINRFull, uid, today } from "../../utils/finance";
+import { fmtINRFull, uid, today, exportArrayToCSV } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { ModalSection } from "../ui/ModalSection";
@@ -41,12 +44,6 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
-
-const MONTHS = Array.from({ length: 12 }, (_, i) => {
-  const d = new Date();
-  d.setMonth(d.getMonth() - i);
-  return d.toISOString().slice(0, 7);
-});
 
 const EMPTY: any = {
   owner: "self",
@@ -72,6 +69,25 @@ const EMPTY: any = {
   notes: "",
 };
 
+const NUMERIC_KEYS = [
+  "basic",
+  "hra",
+  "da",
+  "specialAllowance",
+  "lta",
+  "bonus",
+  "otherEarnings",
+  "grossSalary",
+  "pfEmployee",
+  "pfEmployer",
+  "esiEmployee",
+  "professionalTax",
+  "tds",
+  "otherDeductions",
+  "totalDeductions",
+  "netSalary",
+];
+
 function autoCompute(
   form: any,
   netSalaryTouched?: boolean,
@@ -92,6 +108,13 @@ function autoCompute(
     totalDeductions: deductTouched ? form.totalDeductions : totalD || form.totalDeductions,
     netSalary: netSalaryTouched ? form.netSalary : net || form.netSalary,
   };
+}
+
+// Shifts a "YYYY-MM" string by `delta` months (negative goes back in time).
+function shiftMonth(ym: string, delta: number) {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 /* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
@@ -136,8 +159,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   );
 };
 
-function SlipForm({ initial, onSave, onClose, apiKey }: any) {
-  const { familyProfiles } = useMasterData();
+function SlipForm({ initial, onSave, onClose, apiKey, existingSlips, familyProfiles }: any) {
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
@@ -167,17 +189,34 @@ ${form.rawText}
 Return only the JSON, no explanation.`;
 
       const result = await model.generateContent(prompt);
-      const text = result.response.text().trim();
-      const json = JSON.parse(
-        text
-          .replace(/```json?/gi, "")
-          .replace(/```/g, "")
-          .trim()
-      );
+      const raw = result.response.text().trim();
+      // The model is asked to return only JSON, but sometimes wraps it in prose
+      // or fences anyway — strip fences, then pull out the first {...} block so
+      // a stray sentence before/after the object doesn't break JSON.parse.
+      const fenceStripped = raw.replace(/```json?/gi, "").replace(/```/g, "").trim();
+      const braceMatch = fenceStripped.match(/\{[\s\S]*\}/);
+      const json = JSON.parse(braceMatch ? braceMatch[0] : fenceStripped);
+
+      const sanitized: any = { ...json };
+      // A malformed/misformatted slipMonth would silently blank the <input type="month">
+      // (it just rejects invalid values with no visible feedback), wiping out whatever
+      // the user had entered. Only accept it if it's actually YYYY-MM.
+      if (sanitized.slipMonth && !/^\d{4}-\d{2}$/.test(String(sanitized.slipMonth))) {
+        delete sanitized.slipMonth;
+      }
+      // Coerce numeric fields even if the model ignored the "numbers only" instruction
+      // and returned "₹45,000" or "45,000" as a string.
+      NUMERIC_KEYS.forEach((k) => {
+        if (sanitized[k] != null && sanitized[k] !== "") {
+          const n = Number(String(sanitized[k]).replace(/[₹,\s]/g, ""));
+          if (!isNaN(n)) sanitized[k] = n;
+        }
+      });
+
       setForm((f: any) => ({
         ...f,
         ...Object.fromEntries(
-          Object.entries(json).filter(([, v]) => v !== undefined && v !== null && v !== "")
+          Object.entries(sanitized).filter(([, v]) => v !== undefined && v !== null && v !== "")
         ),
       }));
     } catch (e: any) {
@@ -188,9 +227,22 @@ Return only the JSON, no explanation.`;
   }, [form.rawText, apiKey]);
 
   const computed = autoCompute(form, netSalaryTouched, grossTouched, deductTouched);
+  const netExceedsGross =
+    Number(computed.netSalary) > 0 &&
+    Number(computed.grossSalary) > 0 &&
+    Number(computed.netSalary) > Number(computed.grossSalary);
+
+  // The DB enforces UNIQUE(user_id, owner, slip_month) — catch the collision here
+  // with a clear message instead of letting an opaque constraint-violation error
+  // surface (or the save silently fail) after the user hits Save.
+  const duplicate = (existingSlips || []).find(
+    (s: any) => s.owner === form.owner && s.slipMonth === form.slipMonth && s.id !== initial?.id
+  );
+  const duplicateOwnerName =
+    duplicate && (familyProfiles.find((p: any) => p.id === duplicate.owner)?.name || duplicate.owner);
 
   const save = () => {
-    if (!form.slipMonth) return;
+    if (!form.slipMonth || duplicate) return;
     onSave({ ...computed, id: initial?.id || uid() });
   };
 
@@ -208,7 +260,7 @@ Return only the JSON, no explanation.`;
       <ModalSection title="Slip Info" first />
       <div
         className="salary-slip-info-grid"
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 8 }}
       >
         <Field label="Month *">
           <input
@@ -216,6 +268,7 @@ Return only the JSON, no explanation.`;
             type="month"
             value={form.slipMonth}
             onChange={(e) => set("slipMonth", e.target.value)}
+            style={duplicate ? { borderColor: THEME.rust } : undefined}
           />
         </Field>
         <Field label="Employer">
@@ -240,6 +293,34 @@ Return only the JSON, no explanation.`;
           </select>
         </Field>
       </div>
+
+      {duplicate && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+            fontSize: 12,
+            color: THEME.rust,
+            fontWeight: 600,
+            marginBottom: 16,
+            padding: "8px 12px",
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            border: `1.5px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
+          }}
+        >
+          <AlertCircle size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+          <span>
+            A slip for {duplicateOwnerName} in{" "}
+            {new Date(form.slipMonth + "-01").toLocaleDateString("en-IN", {
+              month: "long",
+              year: "numeric",
+            })}{" "}
+            already exists. Edit that entry instead, or pick a different month.
+          </span>
+        </div>
+      )}
 
       {/* AI paste area */}
       <div
@@ -389,7 +470,7 @@ Return only the JSON, no explanation.`;
           background:
             "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)",
           border: `1.5px solid ${THEME.line}`,
-          borderLeft: `4px solid ${THEME.sage}`,
+          borderLeft: `4px solid ${netExceedsGross ? THEME.rust : THEME.sage}`,
           borderRadius: 14,
           padding: "16px 20px",
           marginBottom: 16,
@@ -400,7 +481,13 @@ Return only the JSON, no explanation.`;
           <span style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink }}>
             Net Salary (Take-Home)
           </span>
-          <span style={{ fontSize: 22, fontWeight: 900, color: THEME.sage }}>
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 900,
+              color: netExceedsGross ? THEME.rust : THEME.sage,
+            }}
+          >
             {computed.netSalary ? <Prv>{fmtINRFull(Number(computed.netSalary))}</Prv> : "—"}
           </span>
         </div>
@@ -408,6 +495,21 @@ Return only the JSON, no explanation.`;
           <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 6, fontWeight: 500 }}>
             Gross: <Prv>{fmtINRFull(Number(computed.grossSalary))}</Prv> &bull; Deductions:{" "}
             <Prv>{fmtINRFull(Number(computed.totalDeductions))}</Prv>
+          </div>
+        )}
+        {netExceedsGross && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 8,
+              fontSize: 11.5,
+              color: THEME.rust,
+              fontWeight: 600,
+            }}
+          >
+            <AlertCircle size={12} /> Net salary is higher than gross — double-check your entries.
           </div>
         )}
       </div>
@@ -431,28 +533,67 @@ Return only the JSON, no explanation.`;
 }
 
 export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
+  const { familyProfiles } = useMasterData();
   const slips: any[] = state.salarySlips || [];
   const [modal, setModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [ownerFilter, setOwnerFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const apiKey = state?.settings?.geminiApiKey || "";
 
-  const sorted = [...slips].sort((a, b) => b.slipMonth.localeCompare(a.slipMonth));
-  const latest = sorted[0];
+  const ownerName = (id: string) => familyProfiles.find((p: any) => p.id === id)?.name || id;
 
-  // Chart data — last 12 months
-  const chartData = sorted
+  const distinctOwners = useMemo(
+    () => Array.from(new Set(slips.map((s) => s.owner).filter(Boolean))),
+    [slips]
+  );
+  const isMultiOwner = distinctOwners.length > 1;
+  const showingCombined = isMultiOwner && ownerFilter === "all";
+
+  // Owner scoping applies to stats/chart (a household's mixed averages/latest-value
+  // are otherwise misleading — see card sub-labels below). Search only narrows the
+  // list underneath, matching the pattern used elsewhere (search never quietly
+  // changes the summary numbers above it).
+  const ownerFiltered =
+    ownerFilter === "all" ? slips : slips.filter((s) => s.owner === ownerFilter);
+
+  const ownerSorted = [...ownerFiltered].sort((a, b) => b.slipMonth.localeCompare(a.slipMonth));
+  const latest = ownerSorted[0];
+
+  const searchLower = search.trim().toLowerCase();
+  const searched = searchLower
+    ? ownerFiltered.filter((s) => {
+        const monthLabel = new Date(s.slipMonth + "-01")
+          .toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+          .toLowerCase();
+        return (
+          (s.employer || "").toLowerCase().includes(searchLower) ||
+          monthLabel.includes(searchLower) ||
+          s.slipMonth.includes(searchLower)
+        );
+      })
+    : ownerFiltered;
+  const listSorted = [...searched].sort((a, b) => b.slipMonth.localeCompare(a.slipMonth));
+
+  // Chart data — last 12 entries within the current owner scope. When viewing all
+  // members combined, tag each bar with the owner's first name so two people's pay
+  // for the same calendar month don't collapse into one ambiguous x-axis label.
+  const chartData = ownerSorted
     .slice(0, 12)
     .reverse()
-    .map((s) => ({
-      month: new Date(s.slipMonth + "-01").toLocaleDateString("en-IN", {
+    .map((s) => {
+      const dateLabel = new Date(s.slipMonth + "-01").toLocaleDateString("en-IN", {
         month: "short",
         year: "2-digit",
-      }),
-      Gross: Number(s.grossSalary || 0),
-      Net: Number(s.netSalary || 0),
-      TDS: Number(s.tds || 0),
-      PF: Number(s.pfEmployee || 0),
-    }));
+      });
+      return {
+        month: showingCombined ? `${dateLabel} · ${ownerName(s.owner).split(" ")[0]}` : dateLabel,
+        Gross: Number(s.grossSalary || 0),
+        Net: Number(s.netSalary || 0),
+        TDS: Number(s.tds || 0),
+        PF: Number(s.pfEmployee || 0),
+      };
+    });
 
   // Current financial year (Apr–Mar) window, used to scope the "(FY)" stat cards
   // below so they don't silently aggregate every slip ever added.
@@ -460,14 +601,47 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
   const fyStartYear = Number(currentFY.split("-")[0]);
   const fyStartMonth = `${fyStartYear}-04`;
   const fyEndMonth = `${fyStartYear + 1}-03`;
-  const fySlips = slips.filter((sl) => sl.slipMonth >= fyStartMonth && sl.slipMonth <= fyEndMonth);
+  const fySlips = ownerFiltered.filter(
+    (sl) => sl.slipMonth >= fyStartMonth && sl.slipMonth <= fyEndMonth
+  );
   const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(-2)}`;
 
   const totalTDS = fySlips.reduce((s, sl) => s + Number(sl.tds || 0), 0);
   const totalPF = fySlips.reduce((s, sl) => s + Number(sl.pfEmployee || 0), 0);
-  const avgNet = slips.length
-    ? slips.reduce((s, sl) => s + Number(sl.netSalary || 0), 0) / slips.length
+  // Scoped to the same FY window as the TDS/PF cards beside it, instead of averaging
+  // every slip ever entered — previously this mixed different years' figures into
+  // one number while the neighboring cards were FY-only.
+  const avgNet = fySlips.length
+    ? fySlips.reduce((s, sl) => s + Number(sl.netSalary || 0), 0) / fySlips.length
     : 0;
+  const allTimeAvgNet = ownerFiltered.length
+    ? ownerFiltered.reduce((s, sl) => s + Number(sl.netSalary || 0), 0) / ownerFiltered.length
+    : 0;
+  const combinedNote = showingCombined ? ` · ${distinctOwners.length} members combined` : "";
+
+  // Month-over-month change for the latest slip, compared against the same owner's
+  // previous entry (never a different family member's, even when "All" is selected).
+  const latestOwnerHistory = latest ? ownerSorted.filter((s) => s.owner === latest.owner) : [];
+  const prevSlip = latestOwnerHistory[1];
+  const momPct =
+    latest && prevSlip && Number(prevSlip.netSalary) > 0
+      ? ((Number(latest.netSalary) - Number(prevSlip.netSalary)) / Number(prevSlip.netSalary)) * 100
+      : null;
+
+  // Year-over-year change: same owner, same calendar month, ~12 months back.
+  const yoySlip = latest
+    ? latestOwnerHistory.find((s) => s.slipMonth === shiftMonth(latest.slipMonth, -12))
+    : null;
+  const yoyPct =
+    latest && yoySlip && Number(yoySlip.netSalary) > 0
+      ? ((Number(latest.netSalary) - Number(yoySlip.netSalary)) / Number(yoySlip.netSalary)) * 100
+      : null;
+
+  const lastNetSubParts: string[] = [];
+  if (showingCombined && latest) lastNetSubParts.push(ownerName(latest.owner));
+  if (momPct !== null) lastNetSubParts.push(`${momPct >= 0 ? "↑" : "↓"}${Math.abs(momPct).toFixed(1)}% MoM`);
+  const lastNetSub = lastNetSubParts.join(" · ") || undefined;
+  const lastNetSubColor = momPct !== null ? (momPct >= 0 ? THEME.sage : THEME.rust) : undefined;
 
   const save = (data: any) => {
     if (data.id && slips.find((s: any) => s.id === data.id)) {
@@ -476,6 +650,42 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
       addItem("salarySlips", data);
     }
     setModal(null);
+  };
+
+  const handleExportCSV = () => {
+    exportArrayToCSV(
+      listSorted.map((s) => ({
+        ...s,
+        ownerLabel: ownerName(s.owner),
+        monthLabel: new Date(s.slipMonth + "-01").toLocaleDateString("en-IN", {
+          month: "short",
+          year: "numeric",
+        }),
+      })),
+      [
+        { key: "monthLabel", label: "Month" },
+        { key: "ownerLabel", label: "Owner" },
+        { key: "employer", label: "Employer" },
+        { key: "basic", label: "Basic" },
+        { key: "hra", label: "HRA" },
+        { key: "da", label: "DA" },
+        { key: "specialAllowance", label: "Special Allowance" },
+        { key: "lta", label: "LTA" },
+        { key: "bonus", label: "Bonus" },
+        { key: "otherEarnings", label: "Other Earnings" },
+        { key: "grossSalary", label: "Gross Salary" },
+        { key: "pfEmployee", label: "PF (Employee)" },
+        { key: "pfEmployer", label: "PF (Employer)" },
+        { key: "esiEmployee", label: "ESI" },
+        { key: "professionalTax", label: "Professional Tax" },
+        { key: "tds", label: "TDS" },
+        { key: "otherDeductions", label: "Other Deductions" },
+        { key: "totalDeductions", label: "Total Deductions" },
+        { key: "netSalary", label: "Net Salary" },
+        { key: "notes", label: "Notes" },
+      ],
+      `Salary_Slips_${new Date().toISOString().slice(0, 10)}.csv`
+    );
   };
 
   return (
@@ -534,6 +744,89 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
         />
       ) : (
         <>
+          {/* Toolbar: owner filter (multi-profile households only), search, export */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+              {isMultiOwner && (
+                <select
+                  className="form-input"
+                  value={ownerFilter}
+                  onChange={(e) => setOwnerFilter(e.target.value)}
+                  aria-label="Filter by family member"
+                  style={{ width: 180, fontSize: 12, padding: "6px 10px" }}
+                >
+                  <option value="all">All Members</option>
+                  {familyProfiles
+                    .filter((p: any) => distinctOwners.includes(p.id))
+                    .map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
+              )}
+              <div style={{ position: "relative" }}>
+                <Search
+                  size={13}
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: THEME.muted,
+                    pointerEvents: "none",
+                  }}
+                />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search employer or month…"
+                  aria-label="Search salary slips"
+                  style={{
+                    border: `1px solid ${THEME.line}`,
+                    borderRadius: 8,
+                    padding: "6px 10px 6px 28px",
+                    fontSize: 12,
+                    color: THEME.ink,
+                    background: "var(--surface-0)",
+                    width: 190,
+                  }}
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              disabled={!listSorted.length}
+              className="card-lift"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: `1px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: listSorted.length ? "pointer" : "not-allowed",
+                opacity: listSorted.length ? 1 : 0.5,
+              }}
+            >
+              <Download size={13} />
+              Export CSV
+            </button>
+          </div>
+
           {/* Stats Summary Grid */}
           <div
             style={{
@@ -546,28 +839,42 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
               <StatCard
                 label="Last Net Salary"
                 value={fmtINRFull(Number(latest.netSalary || 0))}
+                sub={lastNetSub}
+                subColor={lastNetSubColor}
                 icon={<IndianRupee />}
                 color={THEME.sage}
               />
             )}
             <StatCard
-              label="Avg Monthly Net"
+              label={`Avg Monthly Net (${fyLabel})`}
               value={fmtINRFull(avgNet)}
+              sub={`All-time: ${fmtINRFull(allTimeAvgNet)}${combinedNote}`}
               icon={<TrendingUp />}
               color={THEME.accent}
             />
             <StatCard
               label={`Total TDS (${fyLabel})`}
               value={fmtINRFull(totalTDS)}
+              sub={showingCombined ? `${distinctOwners.length} members combined` : undefined}
               icon={<TrendingDown />}
               color={THEME.rust}
             />
             <StatCard
               label={`Total PF (${fyLabel})`}
               value={fmtINRFull(totalPF)}
+              sub={showingCombined ? `${distinctOwners.length} members combined` : undefined}
               icon={<Briefcase />}
               color={THEME.gold}
             />
+            {yoyPct !== null && (
+              <StatCard
+                label="YoY Growth"
+                value={`${yoyPct >= 0 ? "+" : ""}${yoyPct.toFixed(1)}%`}
+                sub={`vs ${new Date(yoySlip.slipMonth + "-01").toLocaleDateString("en-IN", { month: "short", year: "numeric" })}`}
+                icon={<Award />}
+                color={yoyPct >= 0 ? THEME.sage : THEME.rust}
+              />
+            )}
           </div>
 
           {/* Recharts Trend Card */}
@@ -587,6 +894,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                 </h3>
                 <div style={{ fontSize: 11, color: THEME.muted }}>
                   Visual comparison of gross incomes, take-homes, TDS, and PF
+                  {showingCombined ? " — combined across family members" : ""}
                 </div>
               </div>
               <div style={{ width: "100%", height: 260, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -605,7 +913,6 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                     tickLine={false}
                   />
                   <Tooltip
-                    formatter={(v: number, name: string) => [<Prv>{fmtINRFull(v)}</Prv>, name]}
                     content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
                     cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />
@@ -628,12 +935,26 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
           )}
 
           {/* Slip Accordion list */}
+          {listSorted.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "32px 16px",
+                color: THEME.muted,
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              No slips match your search.
+            </div>
+          ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {sorted.map((s: any) => {
+            {listSorted.map((s: any) => {
               const isExpanded = expanded === s.id;
               const net = Number(s.netSalary || 0);
               const gross = Number(s.grossSalary || 0);
               const pct = gross > 0 ? Math.round((net / gross) * 100) : 0;
+              const netAnomaly = gross > 0 && net > gross;
 
               return (
                 <Card
@@ -661,11 +982,21 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                       <Briefcase size={16} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 14.5, color: THEME.ink }}>
+                      <div style={{ fontWeight: 800, fontSize: 14.5, color: THEME.ink, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         {new Date(s.slipMonth + "-01").toLocaleDateString("en-IN", {
                           month: "long",
                           year: "numeric",
                         })}
+                        {isMultiOwner && (
+                          <Badge variant="muted" style={{ fontSize: 9.5, padding: "2px 8px" }}>
+                            {ownerName(s.owner)}
+                          </Badge>
+                        )}
+                        {netAnomaly && (
+                          <span title="Net exceeds Gross — check this entry" style={{ display: "inline-flex" }}>
+                            <AlertCircle size={13} color={THEME.rust} />
+                          </span>
+                        )}
                       </div>
                       <div
                         style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginTop: 2 }}
@@ -961,6 +1292,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
               );
             })}
           </div>
+          )}
         </>
       )}
 
@@ -970,6 +1302,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
           onSave={save}
           onClose={() => setModal(null)}
           apiKey={apiKey}
+          existingSlips={slips}
+          familyProfiles={familyProfiles}
         />
       )}
     </div>
