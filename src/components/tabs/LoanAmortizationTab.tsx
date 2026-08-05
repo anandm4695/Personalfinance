@@ -1,7 +1,17 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Calculator, TrendingDown, IndianRupee, Calendar, Zap, Info, Download } from "lucide-react";
+import {
+  Calculator,
+  TrendingDown,
+  IndianRupee,
+  Calendar,
+  Zap,
+  Info,
+  Download,
+  Search,
+  X,
+} from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -52,7 +62,13 @@ const tdCenter: React.CSSProperties = {
   fontWeight: 700,
 };
 
-export const generateAmortization = (principal, annualRate, tenureMonths, extraMonthly = 0) => {
+export const generateAmortization = (
+  principal,
+  annualRate,
+  tenureMonths,
+  extraMonthly = 0,
+  lumpSum = null
+) => {
   if (!tenureMonths || tenureMonths <= 0) {
     return { emi: 0, schedule: [], totalInterest: 0, totalMonths: 0 };
   }
@@ -74,6 +90,9 @@ export const generateAmortization = (principal, annualRate, tenureMonths, extraM
     month++;
     const interestPart = balance * monthlyRate;
     let principalPart = emi - interestPart + extraMonthly;
+    if (lumpSum && lumpSum.month === month && lumpSum.amount > 0) {
+      principalPart += lumpSum.amount;
+    }
     if (principalPart > balance) principalPart = balance;
     balance -= principalPart;
     totalInterest += interestPart;
@@ -102,6 +121,12 @@ export const generateAmortization = (principal, annualRate, tenureMonths, extraM
     totalMonths: month,
   };
 };
+
+// Projects a schedule row's calendar date from today — loans don't store a
+// disbursement date, so this is the same "starting now" anchor the rest of
+// the calculator already uses (balance = today's outstanding, tenure = months remaining).
+const addMonths = (date, n) => new Date(date.getFullYear(), date.getMonth() + n, 1);
+const formatMonthYear = (date) => date.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
 
 /* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
 const ChartTooltip = ({ active, payload, label, formatter }: any) => {
@@ -160,8 +185,13 @@ export const LoanAmortizationTab = ({ state }) => {
   const [customRate, setCustomRate] = useState(0);
   const [customTenure, setCustomTenure] = useState(0);
   const [extraEMI, setExtraEMI] = useState(0);
+  const [lumpSumAmount, setLumpSumAmount] = useState(0);
+  const [lumpSumMonth, setLumpSumMonth] = useState(12);
   const [showTable, setShowTable] = useState(false);
   const [useCustom, setUseCustom] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const today = useMemo(() => new Date(), []);
 
   // Resolves to a real loan id whenever one exists — falls back to the first
   // loan if `selectedLoan` is unset or stale (e.g. that loan was deleted
@@ -190,19 +220,55 @@ export const LoanAmortizationTab = ({ state }) => {
         name: l.type || l.lender || "Loan",
       };
     }
-    return { principal: 5000000, rate: 8.5, tenure: 240, name: "Sample Loan" };
+    // No active loan to fall back to — return an empty loan rather than a
+    // fake "Sample Loan" so this doesn't render alongside the "No Active
+    // Loans" empty state below with contradictory, made-up figures.
+    return { principal: 0, rate: 0, tenure: 0, name: "" };
   }, [resolvedLoanId, loans, useCustom, customPrincipal, customRate, customTenure]);
 
   const baseAmort = useMemo(
     () => generateAmortization(loanData.principal, loanData.rate, loanData.tenure),
     [loanData]
   );
+  const hasPrepayment = extraEMI > 0 || lumpSumAmount > 0;
   const extraAmort = useMemo(
     () =>
-      extraEMI > 0
-        ? generateAmortization(loanData.principal, loanData.rate, loanData.tenure, extraEMI)
+      hasPrepayment
+        ? generateAmortization(
+            loanData.principal,
+            loanData.rate,
+            loanData.tenure,
+            extraEMI,
+            lumpSumAmount > 0 ? { month: lumpSumMonth, amount: lumpSumAmount } : null
+          )
         : null,
-    [loanData, extraEMI]
+    [loanData, extraEMI, lumpSumAmount, lumpSumMonth, hasPrepayment]
+  );
+  // The table/CSV should reflect whatever scenario is actually configured —
+  // previously they always showed the un-prepaid schedule even while the
+  // Prepayment Impact card and chart showed the accelerated one.
+  const activeAmort = extraAmort || baseAmort;
+
+  const scheduleWithDates = useMemo(
+    () =>
+      activeAmort.schedule.map((row) => ({
+        ...row,
+        dateLabel: formatMonthYear(addMonths(today, row.month - 1)),
+      })),
+    [activeAmort, today]
+  );
+
+  const filteredSchedule = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return scheduleWithDates;
+    return scheduleWithDates.filter(
+      (row) => String(row.month).includes(q) || row.dateLabel.toLowerCase().includes(q)
+    );
+  }, [scheduleWithDates, searchQuery]);
+
+  const closureDate = useMemo(
+    () => (baseAmort.totalMonths ? formatMonthYear(addMonths(today, baseAmort.totalMonths - 1)) : null),
+    [baseAmort, today]
   );
 
   const savings = useMemo(() => {
@@ -232,26 +298,29 @@ export const LoanAmortizationTab = ({ state }) => {
       const yearMonths = baseAmort.schedule.slice(i, i + 12);
       const yearPrincipal = yearMonths.reduce((s, m) => s + m.principal, 0);
       const yearInterest = yearMonths.reduce((s, m) => s + m.interest, 0);
+      const startYear = addMonths(today, i).getFullYear();
+      const endYear = addMonths(today, i + yearMonths.length - 1).getFullYear();
       years.push({
         year: Math.floor(i / 12) + 1,
         principal: yearPrincipal,
         interest: yearInterest,
-        label: `Year ${Math.floor(i / 12) + 1}`,
+        label: startYear === endYear ? `${startYear}` : `${startYear}–'${String(endYear).slice(-2)}`,
       });
     }
     return years;
-  }, [baseAmort]);
+  }, [baseAmort, today]);
 
   const downloadScheduleCSV = () => {
-    const rows = ["Month,EMI,Principal,Interest,Outstanding Balance"];
-    baseAmort.schedule.forEach((row) => {
-      rows.push([row.month, row.emi, row.principal, row.interest, row.balance].join(","));
+    const rows = ["Month,Date,EMI,Principal,Interest,Outstanding Balance"];
+    scheduleWithDates.forEach((row) => {
+      rows.push([row.month, row.dateLabel, row.emi, row.principal, row.interest, row.balance].join(","));
     });
     const blob = new Blob([rows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${(loanData.name || "loan").toLowerCase().replace(/\s+/g, "-")}-amortization.csv`;
+    const suffix = extraAmort ? "-with-prepayment" : "";
+    a.download = `${(loanData.name || "loan").toLowerCase().replace(/\s+/g, "-")}-amortization${suffix}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -265,7 +334,7 @@ export const LoanAmortizationTab = ({ state }) => {
             <>
               <Badge variant="muted">{loanData.name}</Badge>
               <Badge variant="accent">
-                <IndianRupee size={13} /> EMI {fmtINRExact(baseAmort.emi)}
+                <IndianRupee size={13} /> EMI <Prv>{fmtINRExact(baseAmort.emi)}</Prv>
               </Badge>
             </>
           )
@@ -494,6 +563,51 @@ export const LoanAmortizationTab = ({ state }) => {
               style={{ marginTop: 10, width: 150 }}
             />
           </div>
+
+          <div>
+            <label
+              id="loan-lumpsum-label"
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: THEME.muted,
+                display: "block",
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              One-Time Lump Sum (Optional)
+            </label>
+            <div role="group" aria-labelledby="loan-lumpsum-label" style={{ display: "flex", gap: 8 }}>
+              <input
+                type="number"
+                min="0"
+                value={lumpSumAmount}
+                onChange={(e) => setLumpSumAmount(Math.max(0, Number(e.target.value)))}
+                placeholder="Amount ₹"
+                aria-label="One-time lump sum amount"
+                className="form-input"
+                style={{ padding: "9px 12px", fontSize: 13.5, width: 110 }}
+              />
+              <input
+                type="number"
+                min="1"
+                max={loanData.tenure || 360}
+                value={lumpSumMonth}
+                onChange={(e) =>
+                  setLumpSumMonth(
+                    Math.max(1, Math.min(loanData.tenure || 360, Number(e.target.value) || 1))
+                  )
+                }
+                placeholder="Month #"
+                aria-label="Month number to apply the lump sum in"
+                title="Which month number to apply the lump sum in (1 = next payment)"
+                className="form-input"
+                style={{ padding: "9px 12px", fontSize: 13.5, width: 90 }}
+              />
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -528,6 +642,7 @@ export const LoanAmortizationTab = ({ state }) => {
             <StatCard
               label="Loan Closes In"
               value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`}
+              sub={closureDate ? `Around ${closureDate}` : undefined}
               icon={<Calendar size={16} />}
               color={THEME.sage}
             />
@@ -640,6 +755,13 @@ export const LoanAmortizationTab = ({ state }) => {
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
                     {Math.floor(extraAmort.totalMonths / 12)}y {extraAmort.totalMonths % 12}m
+                    {extraAmort.totalMonths > 0 && (
+                      <span
+                        style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginLeft: 6 }}
+                      >
+                        ({formatMonthYear(addMonths(today, extraAmort.totalMonths - 1))})
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -817,22 +939,74 @@ export const LoanAmortizationTab = ({ state }) => {
               }}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: THEME.ink,
-                    letterSpacing: "-0.015em",
-                  }}
-                >
-                  Full Amortization Schedule
-                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: THEME.ink,
+                      letterSpacing: "-0.015em",
+                    }}
+                  >
+                    Full Amortization Schedule
+                  </h3>
+                  {extraAmort && <Badge variant="accent">Including Prepayment</Badge>}
+                </div>
                 <div style={{ fontSize: 11, color: THEME.muted }}>
                   Month-by-month financial projection ledger
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                {showTable && (
+                  <div style={{ display: "flex", position: "relative", alignItems: "center" }}>
+                    <Search
+                      size={14}
+                      color={THEME.muted}
+                      style={{ position: "absolute", left: 12, pointerEvents: "none" }}
+                    />
+                    <input
+                      type="text"
+                      aria-label="Search schedule by month or date"
+                      placeholder="Search month or date..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        width: 190,
+                        padding: `8px ${searchQuery ? 32 : 12}px 8px 32px`,
+                        borderRadius: 12,
+                        border: `1.5px solid ${THEME.line}`,
+                        background: "var(--surface-0)",
+                        color: THEME.ink,
+                        fontSize: 12.5,
+                        boxShadow: "var(--shadow-sm)",
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() => setSearchQuery("")}
+                        style={{
+                          position: "absolute",
+                          right: 8,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 18,
+                          height: 18,
+                          borderRadius: "50%",
+                          border: "none",
+                          background: "var(--surface-2)",
+                          color: THEME.muted,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
+                  </div>
+                )}
                 <button
                   onClick={downloadScheduleCSV}
                   className="card-lift"
@@ -874,7 +1048,7 @@ export const LoanAmortizationTab = ({ state }) => {
                 >
                   {showTable
                     ? "Hide Table Ledger"
-                    : `View Table Ledger (${baseAmort.schedule.length} months)`}
+                    : `View Table Ledger (${activeAmort.schedule.length} months)`}
                 </button>
               </div>
             </div>
@@ -900,6 +1074,7 @@ export const LoanAmortizationTab = ({ state }) => {
                       }}
                     >
                       <th style={thCenter}>Month</th>
+                      <th style={thCenter}>Date</th>
                       <th style={th}>EMI</th>
                       <th style={th}>Principal</th>
                       <th style={th}>Interest</th>
@@ -907,7 +1082,7 @@ export const LoanAmortizationTab = ({ state }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {baseAmort.schedule.map((row) => (
+                    {filteredSchedule.map((row) => (
                       <tr
                         key={row.month}
                         className="table-row-hover"
@@ -916,12 +1091,15 @@ export const LoanAmortizationTab = ({ state }) => {
                         }}
                       >
                         <td style={tdCenter}>{row.month}</td>
-                        <td style={td}>{fmtINRExact(row.emi)}</td>
+                        <td style={tdCenter}>{row.dateLabel}</td>
+                        <td style={td}>
+                          <Prv>{fmtINRExact(row.emi)}</Prv>
+                        </td>
                         <td style={{ ...td, color: THEME.sage, fontWeight: 600 }}>
-                          {fmtINRExact(row.principal)}
+                          <Prv>{fmtINRExact(row.principal)}</Prv>
                         </td>
                         <td style={{ ...td, color: THEME.rust, fontWeight: 600 }}>
-                          {fmtINRExact(row.interest)}
+                          <Prv>{fmtINRExact(row.interest)}</Prv>
                         </td>
                         <td
                           style={{
@@ -930,10 +1108,19 @@ export const LoanAmortizationTab = ({ state }) => {
                             color: THEME.ink,
                           }}
                         >
-                          {fmtINRExact(row.balance)}
+                          <Prv>{fmtINRExact(row.balance)}</Prv>
                         </td>
                       </tr>
                     ))}
+                    {filteredSchedule.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ ...td, textAlign: "center", padding: 24 }}>
+                          {searchQuery.trim()
+                            ? `No months match "${searchQuery}"`
+                            : "No schedule to display — check the loan's tenure."}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
