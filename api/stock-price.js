@@ -39,13 +39,21 @@ module.exports = async function handler(req, res) {
           yf
             .quoteSummary(
               sym,
-              { modules: ["assetProfile", "summaryDetail", "price"] },
+              { modules: ["assetProfile", "summaryDetail", "price", "calendarEvents"] },
               yfFetchOptions()
             )
             .catch(() => null),
         ]);
 
         const price = quote?.regularMarketPrice ?? quote?.postMarketPrice ?? quote?.preMarketPrice;
+
+        // exDividendDate/dividendDate come back as Date objects from yahoo-finance2
+        const toUnix = (val) => {
+          if (!val) return null;
+          if (val instanceof Date) return Math.floor(val.getTime() / 1000);
+          const n = Number(val);
+          return isNaN(n) ? null : n;
+        };
 
         if (price != null) {
           results[sym] = {
@@ -65,6 +73,16 @@ module.exports = async function handler(req, res) {
               summary?.summaryDetail?.marketCap ??
               quote?.marketCap ??
               null,
+            // Dividend fields — piggybacked onto the price poll that already runs
+            // app-wide so alerts/other tabs can read ex-dividend dates without a
+            // second Yahoo round-trip (see api/stock-exdate.js for the dedicated,
+            // higher-detail endpoint the Dividend Calendar tab still uses).
+            exDividendDate: toUnix(
+              summary?.calendarEvents?.exDividendDate ?? summary?.summaryDetail?.exDividendDate ?? null
+            ),
+            dividendDate: toUnix(summary?.calendarEvents?.dividendDate ?? null),
+            dividendRate: summary?.summaryDetail?.dividendRate ?? null,
+            dividendYield: summary?.summaryDetail?.dividendYield ?? null,
           };
         }
       } catch (err) {

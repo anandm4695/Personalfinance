@@ -1,13 +1,31 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useEffect, useMemo } from "react";
-import { Coins, TrendingUp, Calendar, RefreshCw, AlertCircle, BarChart3 } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+  Coins,
+  TrendingUp,
+  Calendar,
+  RefreshCw,
+  AlertCircle,
+  BarChart3,
+  Search,
+  X,
+  Download,
+  List,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  Landmark,
+} from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, today } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, getLocalDateString, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
+import { Button } from "../ui/Button";
 import { Prv } from "../../context/PrivacyContext";
 import { StockLogo } from "./DematTab";
 
@@ -25,6 +43,21 @@ const MONTH_NAMES = [
   "Nov",
   "Dec",
 ];
+const FULL_MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const th: React.CSSProperties = {
   padding: "14px 16px",
@@ -35,6 +68,9 @@ const th: React.CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.08em",
   borderBottom: `2px solid ${THEME.line}`,
+  cursor: "pointer",
+  userSelect: "none",
+  whiteSpace: "nowrap",
 };
 
 const td: React.CSSProperties = {
@@ -85,12 +121,40 @@ const tsToDate = (ts: number | null | undefined): string | null => {
   return new Date(Number(ts) * 1000).toISOString().slice(0, 10);
 };
 
+const SortIcon = ({ active, dir }: { active: boolean; dir: "asc" | "desc" }) => {
+  if (!active) return null;
+  const Icon = dir === "asc" ? ArrowUp : ArrowDown;
+  return <Icon size={11} style={{ marginLeft: 4, verticalAlign: -1 }} />;
+};
+
 export function DividendCalendarTab({ state, marketData }: any) {
   const todayStr = today();
   const [exData, setExData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortKey, setSortKey] = useState("estDivIncome");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = new Date(todayStr + "T00:00:00");
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  const matchesSearch = (text: string) =>
+    !searchQuery || String(text || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "symbol" ? "asc" : "desc");
+    }
+  };
 
   // Group portfolio buy-lots into one entry per symbol+exchange, and derive
   // the correct Yahoo Finance ticker (base symbol + .NS/.BO exchange suffix —
@@ -129,10 +193,18 @@ export function DividendCalendarTab({ state, marketData }: any) {
   );
 
   const fetchExDates = async () => {
-    if (symbols.length === 0) return;
+    // Guard against duplicate concurrent runs — `symbols` is rebuilt (new
+    // array reference) whenever `marketData` refreshes in the background
+    // (live-price polling elsewhere in the app), which re-fires the
+    // auto-fetch effect below on every such tick until `fetched` flips true.
+    // Without this guard, a slow first fetch could get raced by a second one,
+    // burning through the endpoint's 30-req/60s rate limit for no benefit.
+    if (fetchingRef.current || symbols.length === 0) return;
+    fetchingRef.current = true;
     setLoading(true);
     setError(null);
     const results: Record<string, any> = {};
+    const failed: string[] = [];
 
     await Promise.allSettled(
       symbols.map(async (sym) => {
@@ -141,9 +213,11 @@ export function DividendCalendarTab({ state, marketData }: any) {
           if (res.ok) {
             const data = await res.json();
             results[sym] = data;
+          } else {
+            failed.push(sym);
           }
         } catch {
-          // skip per-symbol errors silently
+          failed.push(sym);
         }
       })
     );
@@ -151,6 +225,17 @@ export function DividendCalendarTab({ state, marketData }: any) {
     setExData(results);
     setFetched(true);
     setLoading(false);
+    fetchingRef.current = false;
+    // Surface partial/total fetch failures instead of silently showing "—"
+    // for every column, which was previously indistinguishable from "this
+    // stock simply doesn't pay dividends."
+    if (failed.length > 0) {
+      setError(
+        failed.length === symbols.length
+          ? "Couldn't reach Yahoo Finance for live dividend data. Try refreshing in a minute."
+          : `Couldn't fetch live data for ${failed.length} of ${symbols.length} symbols. Try refreshing again shortly.`
+      );
+    }
   };
 
   // Auto-fetch once on mount when stocks exist
@@ -160,9 +245,10 @@ export function DividendCalendarTab({ state, marketData }: any) {
     }
   }, [symbols]);
 
-  // Build enriched rows — one per distinct stock (not per buy-lot), so a
-  // stock bought across multiple lots doesn't show up multiple times with
-  // fragmented quantities/values.
+  // Build enriched rows — one per distinct stock+exchange (not per buy-lot),
+  // so a stock bought across multiple lots doesn't show up multiple times
+  // with fragmented quantities/values, and a stock dual-listed on both NSE
+  // and BSE still gets two distinct rows.
   const stockRows = useMemo(() => {
     return stockGroups.map((g: any) => {
       const info = exData[g.yfSym] || {};
@@ -190,6 +276,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       const lastDiv = pastDivs[0] || null;
 
       return {
+        key: `${g.symbol}-${g.exchange}`,
         symbol: g.symbol,
         yfSym: g.yfSym,
         exchange: g.exchange,
@@ -214,8 +301,9 @@ export function DividendCalendarTab({ state, marketData }: any) {
     () =>
       stockRows
         .filter((r) => r.daysToEx !== null && r.daysToEx >= -7 && r.daysToEx <= 90)
+        .filter((r) => matchesSearch(r.symbol))
         .sort((a, b) => (a.daysToEx ?? 999) - (b.daysToEx ?? 999)),
-    [stockRows]
+    [stockRows, searchQuery]
   );
 
   const dividendPayers = useMemo(
@@ -227,7 +315,152 @@ export function DividendCalendarTab({ state, marketData }: any) {
   const totalPortValue = stockRows.reduce((s, r) => s + r.currentValue, 0);
   const portfolioYield = totalPortValue > 0 ? (totalEstIncome / totalPortValue) * 100 : 0;
 
-  if (symbols.length === 0) {
+  // Sorted + search-filtered rows for the holdings table
+  const tableRows = useMemo(() => {
+    const filtered = stockRows.filter((r) => matchesSearch(r.symbol));
+    const dir = sortDir === "asc" ? 1 : -1;
+    const valueOf = (r: any) => {
+      switch (sortKey) {
+        case "symbol":
+          return r.symbol;
+        case "qty":
+          return r.qty;
+        case "currentValue":
+          return r.currentValue;
+        case "divRate":
+          return r.divRate;
+        case "divYield":
+          return r.divYield;
+        case "exDate":
+          return r.exDate || "";
+        case "divPayDate":
+          return r.divPayDate || "";
+        case "lastDiv":
+          return r.lastDiv?.recordDate || r.lastDiv?.paymentDate || "";
+        case "estDivIncome":
+        default:
+          return r.estDivIncome;
+      }
+    };
+    return [...filtered].sort((a, b) => {
+      const av = valueOf(a);
+      const bv = valueOf(b);
+      if (typeof av === "string" || typeof bv === "string") {
+        return String(av).localeCompare(String(bv)) * dir;
+      }
+      return (Number(av) - Number(bv)) * dir;
+    });
+  }, [stockRows, searchQuery, sortKey, sortDir]);
+
+  // Calendar month-grid data
+  const calDays = useMemo(() => {
+    const year = calMonth.getFullYear();
+    const month = calMonth.getMonth();
+    const first = new Date(year, month, 1);
+    const startPad = first.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: (string | null)[] = [];
+    for (let i = 0; i < startPad; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(getLocalDateString(new Date(year, month, d)));
+    return cells;
+  }, [calMonth]);
+
+  const calEventsByDate = useMemo(() => {
+    const map: Record<string, { ex: any[]; pay: any[] }> = {};
+    stockRows
+      .filter((r) => matchesSearch(r.symbol))
+      .forEach((r) => {
+        if (r.exDate) {
+          if (!map[r.exDate]) map[r.exDate] = { ex: [], pay: [] };
+          map[r.exDate].ex.push(r);
+        }
+        if (r.divPayDate) {
+          if (!map[r.divPayDate]) map[r.divPayDate] = { ex: [], pay: [] };
+          map[r.divPayDate].pay.push(r);
+        }
+      });
+    return map;
+  }, [stockRows, searchQuery]);
+
+  const handleExportCSV = () => {
+    const rows = tableRows.map((r) => ({
+      symbol: r.symbol,
+      exchange: r.exchange,
+      qty: r.qty,
+      currentValue: Math.round(r.currentValue),
+      divPerShare: r.divRate ? r.divRate.toFixed(2) : "",
+      yieldPct: r.divYield ? `${r.divYield.toFixed(2)}%` : "",
+      exDate: r.exDate || "",
+      payDate: r.divPayDate || "",
+      estAnnual: r.estDivIncome ? Math.round(r.estDivIncome) : "",
+      lastReceived: r.lastDiv ? r.lastDiv.recordDate || r.lastDiv.paymentDate || "" : "",
+    }));
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "symbol", label: "Symbol" },
+        { key: "exchange", label: "Exchange" },
+        { key: "qty", label: "Qty" },
+        { key: "currentValue", label: "Current Value" },
+        { key: "divPerShare", label: "Div / Share" },
+        { key: "yieldPct", label: "Yield %" },
+        { key: "exDate", label: "Ex-date" },
+        { key: "payDate", label: "Pay Date" },
+        { key: "estAnnual", label: "Est. Annual" },
+        { key: "lastReceived", label: "Last Received" },
+      ],
+      `dividend-calendar_${todayStr}.csv`
+    );
+  };
+
+  // Mutual fund dividend / IDCW payouts — MFs don't have predictable
+  // ex-dates like stocks, so these come purely from the manually/auto
+  // logged ledger (state.dividends), not a live feed.
+  const mfDividends = useMemo(
+    () =>
+      (state.dividends || [])
+        .filter((d: any) => d.type === "mf" || (!d.symbol && d.fundName))
+        .filter((d: any) => matchesSearch(d.fundName))
+        .sort((a: any, b: any) =>
+          (b.recordDate || b.paymentDate || "").localeCompare(a.recordDate || a.paymentDate || "")
+        ),
+    [state.dividends, searchQuery]
+  );
+  const mfTotals = mfDividends.reduce(
+    (acc: any, d: any) => {
+      acc.gross += Number(d.amount || 0);
+      acc.tds += Number(d.tds || 0);
+      return acc;
+    },
+    { gross: 0, tds: 0 }
+  );
+
+  const handleExportMFCSV = () => {
+    const rows = mfDividends.map((d: any) => ({
+      fund: d.fundName || "",
+      amount: Number(d.amount || 0),
+      tds: Number(d.tds || 0),
+      net: Number(d.amount || 0) - Number(d.tds || 0),
+      recordDate: d.recordDate || "",
+      paymentDate: d.paymentDate || "",
+      fy: d.fy || "",
+    }));
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "fund", label: "Fund" },
+        { key: "amount", label: "Amount" },
+        { key: "tds", label: "TDS" },
+        { key: "net", label: "Net" },
+        { key: "recordDate", label: "Record Date" },
+        { key: "paymentDate", label: "Payment Date" },
+        { key: "fy", label: "FY" },
+      ],
+      `mf-dividends_${todayStr}.csv`
+    );
+  };
+
+  if (symbols.length === 0 && mfDividends.length === 0 && (state.dividends || []).length === 0) {
     return (
       <div>
         <SectionTitle sub="Ex-dividend dates & income projections for your stock portfolio">
@@ -241,6 +474,17 @@ export function DividendCalendarTab({ state, marketData }: any) {
       </div>
     );
   }
+
+  const renderTh = (label: string, key: string, align: "left" | "right" = "right") => (
+    <th
+      style={{ ...th, textAlign: align }}
+      onClick={() => handleSort(key)}
+      aria-sort={sortKey === key ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      {label}
+      <SortIcon active={sortKey === key} dir={sortDir} />
+    </th>
+  );
 
   return (
     <div
@@ -266,6 +510,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
             display: "flex",
             gap: 12,
             alignItems: "center",
+            flexWrap: "wrap",
           }}
         >
           {error && (
@@ -277,9 +522,10 @@ export function DividendCalendarTab({ state, marketData }: any) {
                 fontSize: 12,
                 color: THEME.rust,
                 fontWeight: 600,
+                maxWidth: 260,
               }}
             >
-              <AlertCircle size={14} />
+              <AlertCircle size={14} style={{ flexShrink: 0 }} />
               {error}
             </div>
           )}
@@ -361,8 +607,133 @@ export function DividendCalendarTab({ state, marketData }: any) {
         />
       </div>
 
-      {/* Upcoming ex-dates timeline */}
-      {upcomingExDates.length > 0 && (
+      {/* Search + view toggle */}
+      {stockRows.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", position: "relative", alignItems: "center" }}>
+            <Search
+              size={16}
+              color={THEME.muted}
+              style={{ position: "absolute", left: 14, pointerEvents: "none" }}
+            />
+            <input
+              type="text"
+              aria-label="Search holdings"
+              placeholder="Search by symbol..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: 220,
+                padding: `9px ${searchQuery ? 36 : 12}px 9px 38px`,
+                borderRadius: 12,
+                border: `1.5px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 13,
+                boxShadow: "var(--shadow-sm)",
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setSearchQuery("")}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--surface-2)",
+                  color: THEME.muted,
+                  cursor: "pointer",
+                }}
+              >
+                <X size={11} />
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                border: `1.5px solid ${THEME.line}`,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
+              <button
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 12px",
+                  border: "none",
+                  background: viewMode === "list" ? "var(--t-accent)" : "var(--surface-0)",
+                  color: viewMode === "list" ? "#fff" : THEME.muted,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                <List size={14} /> List
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                aria-label="Calendar view"
+                aria-pressed={viewMode === "calendar"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 12px",
+                  border: "none",
+                  borderLeft: `1.5px solid ${THEME.line}`,
+                  background: viewMode === "calendar" ? "var(--t-accent)" : "var(--surface-0)",
+                  color: viewMode === "calendar" ? "#fff" : THEME.muted,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                <CalendarDays size={14} /> Calendar
+              </button>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Download size={14} />}
+              onClick={handleExportCSV}
+            >
+              CSV
+            </Button>
+          </div>
+        </div>
+      )}
+      {searchQuery && stockRows.length > 0 && (
+        <div style={{ fontSize: 12, color: THEME.muted, marginTop: -14 }}>
+          Filtering by "{searchQuery}" — summary stats above are unaffected.
+        </div>
+      )}
+
+      {/* Upcoming ex-dates — list or calendar view */}
+      {viewMode === "list" && upcomingExDates.length > 0 && (
         <Card style={{ padding: 24, border: `1.5px solid ${THEME.line}` }}>
           <div
             style={{
@@ -397,7 +768,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
               const isPast = (r.daysToEx ?? 0) < 0;
               return (
                 <div
-                  key={r.symbol}
+                  key={r.key}
                   className="card-lift"
                   style={{
                     display: "flex",
@@ -433,6 +804,11 @@ export function DividendCalendarTab({ state, marketData }: any) {
                       }}
                     >
                       {r.symbol}
+                      {r.exchange && (
+                        <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginLeft: 6 }}>
+                          {r.exchange}
+                        </span>
+                      )}
                     </div>
                     <div
                       style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginTop: 3 }}
@@ -488,76 +864,226 @@ export function DividendCalendarTab({ state, marketData }: any) {
         </Card>
       )}
 
-      {/* All holdings table */}
-      <Card style={{ border: `1.5px solid ${THEME.line}` }}>
-        <div style={{ padding: 20 }}>
+      {viewMode === "list" && stockRows.length > 0 && upcomingExDates.length === 0 && (
+        <Card style={{ padding: 24, border: `1.5px solid ${THEME.line}`, textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
+            No ex-dividend dates in the next 90 days
+            {searchQuery ? ` matching "${searchQuery}"` : ""}.
+          </div>
+        </Card>
+      )}
+
+      {viewMode === "calendar" && (
+        <Card style={{ padding: 24, border: `1.5px solid ${THEME.line}` }}>
           <div
             style={{
-              fontWeight: 800,
-              fontSize: 15,
-              marginBottom: 16,
-              color: THEME.ink,
               display: "flex",
+              justifyContent: "space-between",
               alignItems: "center",
+              marginBottom: 16,
+              flexWrap: "wrap",
               gap: 10,
-              letterSpacing: "-0.015em",
             }}
           >
-            All Holdings — Dividend Details
-            {!fetched && !loading && (
-              <span
-                style={{
-                  fontSize: 11,
-                  color: THEME.muted,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
+            <div style={{ fontWeight: 800, fontSize: 15, color: THEME.ink, letterSpacing: "-0.015em" }}>
+              {FULL_MONTH_NAMES[calMonth.getMonth()]} {calMonth.getFullYear()}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                aria-label="Previous month"
+                onClick={() =>
+                  setCalMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+                }
+                style={navBtnStyle}
               >
-                <AlertCircle size={13} />
-                Click Refresh to fetch live data
-              </span>
-            )}
-            {loading && (
-              <span
-                style={{
-                  fontSize: 11,
-                  color: THEME.accent,
-                  fontWeight: 600,
+                <ChevronLeft size={15} />
+              </button>
+              <button
+                onClick={() => {
+                  const d = new Date(todayStr + "T00:00:00");
+                  setCalMonth(new Date(d.getFullYear(), d.getMonth(), 1));
                 }}
+                style={{ ...navBtnStyle, width: "auto", padding: "0 12px", fontSize: 12, fontWeight: 700 }}
               >
-                Loading…
-              </span>
-            )}
+                Today
+              </button>
+              <button
+                aria-label="Next month"
+                onClick={() =>
+                  setCalMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
+                }
+                style={navBtnStyle}
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
           </div>
-          <div style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}>
-            <table
+
+          <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: THEME.rust, display: "inline-block" }} />
+              Ex-dividend date
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: THEME.sage, display: "inline-block" }} />
+              Pay date
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+            {WEEKDAY_NAMES.map((wd) => (
+              <div
+                key={wd}
+                style={{
+                  textAlign: "center",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  padding: "4px 0",
+                }}
+              >
+                {wd}
+              </div>
+            ))}
+            {calDays.map((dateStr, i) => {
+              if (!dateStr) return <div key={`pad-${i}`} />;
+              const events = calEventsByDate[dateStr];
+              const isToday = dateStr === todayStr;
+              const dayNum = Number(dateStr.slice(8, 10));
+              const chips = [
+                ...(events?.ex || []).map((r) => ({ ...r, kind: "ex" })),
+                ...(events?.pay || []).map((r) => ({ ...r, kind: "pay" })),
+              ];
+              return (
+                <div
+                  key={dateStr}
+                  style={{
+                    minHeight: 78,
+                    borderRadius: 10,
+                    border: `1.5px solid ${isToday ? THEME.accent : THEME.line}`,
+                    background: isToday
+                      ? "color-mix(in srgb, var(--t-accent) 6%, transparent)"
+                      : "var(--surface-0)",
+                    padding: "6px 6px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 3,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: isToday ? 800 : 600,
+                      color: isToday ? THEME.accent : THEME.muted,
+                    }}
+                  >
+                    {dayNum}
+                  </div>
+                  {chips.slice(0, 2).map((c, idx) => (
+                    <div
+                      key={`${c.key}-${c.kind}-${idx}`}
+                      title={`${c.symbol} — ${c.kind === "ex" ? "Ex-date" : "Pay date"}`}
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: "1.5px 5px",
+                        borderRadius: 5,
+                        color: c.kind === "ex" ? THEME.rust : THEME.sage,
+                        background:
+                          c.kind === "ex"
+                            ? "color-mix(in srgb, var(--t-rust) 12%, transparent)"
+                            : "color-mix(in srgb, var(--t-sage) 12%, transparent)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {c.symbol}
+                    </div>
+                  ))}
+                  {chips.length > 2 && (
+                    <div style={{ fontSize: 9.5, color: THEME.muted, fontWeight: 700, paddingLeft: 5 }}>
+                      +{chips.length - 2} more
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* All holdings table */}
+      {stockRows.length > 0 && (
+        <Card style={{ border: `1.5px solid ${THEME.line}` }}>
+          <div style={{ padding: 20 }}>
+            <div
               style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 13,
+                fontWeight: 800,
+                fontSize: 15,
+                marginBottom: 16,
+                color: THEME.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                letterSpacing: "-0.015em",
               }}
             >
-              <thead>
-                <tr style={{ background: "var(--surface-1)" }}>
-                  <th style={{ ...th, textAlign: "left" }}>Symbol</th>
-                  <th style={th}>Qty</th>
-                  <th style={th}>Current Value</th>
-                  <th style={th}>Div / Share</th>
-                  <th style={th}>Yield %</th>
-                  <th style={th}>Ex-date</th>
-                  <th style={th}>Pay Date</th>
-                  <th style={th}>Est. Annual</th>
-                  <th style={th}>Last Received</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...stockRows]
-                  .sort((a, b) => b.estDivIncome - a.estDivIncome)
-                  .map((r) => (
+              All Holdings — Dividend Details
+              {!fetched && !loading && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: THEME.muted,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <AlertCircle size={13} />
+                  Click Refresh to fetch live data
+                </span>
+              )}
+              {loading && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: THEME.accent,
+                    fontWeight: 600,
+                  }}
+                >
+                  Loading…
+                </span>
+              )}
+            </div>
+            <div style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: 13,
+                }}
+              >
+                <thead>
+                  <tr style={{ background: "var(--surface-1)" }}>
+                    {renderTh("Symbol", "symbol", "left")}
+                    {renderTh("Qty", "qty")}
+                    {renderTh("Current Value", "currentValue")}
+                    {renderTh("Div / Share", "divRate")}
+                    {renderTh("Yield %", "divYield")}
+                    {renderTh("Ex-date", "exDate")}
+                    {renderTh("Pay Date", "divPayDate")}
+                    {renderTh("Est. Annual", "estDivIncome")}
+                    {renderTh("Last Received", "lastDiv")}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((r) => (
                     <tr
-                      key={r.symbol}
+                      key={r.key}
                       className="table-row-hover"
                       style={{
                         borderBottom: `1px solid ${THEME.line}`,
@@ -645,26 +1171,157 @@ export function DividendCalendarTab({ state, marketData }: any) {
                       </td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
-          </div>
+                  {tableRows.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ padding: "24px 16px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                        No holdings match "{searchQuery}".
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-          {fetched && dividendPayers.length === 0 && (
+            {fetched && dividendPayers.length === 0 && (
+              <div
+                style={{
+                  padding: "24px 0 8px",
+                  textAlign: "center",
+                  fontSize: 13,
+                  color: THEME.muted,
+                  fontWeight: 500,
+                }}
+              >
+                No dividend-paying stocks found. Many Indian growth stocks don't pay dividends — check
+                individual stock profiles for details.
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Mutual fund dividend / IDCW payouts — separate from the live stock
+          feed above since MFs don't have predictable ex-dates; this is a
+          read-only summary of what's logged in the Dividend Tracker
+          (Investments → Dividends). */}
+      {mfDividends.length > 0 && (
+        <Card style={{ border: `1.5px solid ${THEME.line}` }}>
+          <div style={{ padding: 20 }}>
             <div
               style={{
-                padding: "24px 0 8px",
-                textAlign: "center",
-                fontSize: 13,
-                color: THEME.muted,
-                fontWeight: 500,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+                gap: 12,
+                marginBottom: 4,
               }}
             >
-              No dividend-paying stocks found. Many Indian growth stocks don't pay dividends — check
-              individual stock profiles for details.
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: 15,
+                  color: THEME.ink,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  letterSpacing: "-0.015em",
+                }}
+              >
+                <Landmark size={16} color={THEME.accent} />
+                Mutual Fund Dividends / IDCW
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Download size={14} />}
+                onClick={handleExportMFCSV}
+              >
+                CSV
+              </Button>
             </div>
-          )}
-        </div>
-      </Card>
+            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14 }}>
+              Mutual funds don't have predictable ex-dates like stocks — this is your logged
+              dividend/IDCW payout history. Add or edit records from Investments → Dividends.
+            </div>
+
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Gross Received
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                  <Prv>{fmtINRExact(mfTotals.gross)}</Prv>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  TDS Deducted
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.rust }}>
+                  <Prv>{fmtINRExact(mfTotals.tds)}</Prv>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Net Received
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.sage }}>
+                  <Prv>{fmtINRExact(mfTotals.gross - mfTotals.tds)}</Prv>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "var(--surface-1)" }}>
+                    <th style={{ ...th, textAlign: "left", cursor: "default" }}>Fund</th>
+                    <th style={{ ...th, cursor: "default" }}>Amount</th>
+                    <th style={{ ...th, cursor: "default" }}>TDS</th>
+                    <th style={{ ...th, cursor: "default" }}>Net</th>
+                    <th style={{ ...th, cursor: "default" }}>Record Date</th>
+                    <th style={{ ...th, cursor: "default" }}>Payment Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mfDividends.map((d: any, idx: number) => (
+                    <tr key={d.id || idx} className="table-row-hover" style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                      <td style={{ padding: "12px 16px", fontWeight: 700, color: THEME.ink, textAlign: "left" }}>
+                        {d.fundName || "—"}
+                      </td>
+                      <td style={{ ...td, fontWeight: 700 }}>
+                        <Prv>{fmtINRExact(Number(d.amount || 0))}</Prv>
+                      </td>
+                      <td style={{ ...td, color: THEME.rust }}>
+                        <Prv>{fmtINRExact(Number(d.tds || 0))}</Prv>
+                      </td>
+                      <td style={{ ...td, fontWeight: 700, color: THEME.sage }}>
+                        <Prv>{fmtINRExact(Number(d.amount || 0) - Number(d.tds || 0))}</Prv>
+                      </td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>{formatDate(d.recordDate)}</td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>{formatDate(d.paymentDate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
+
+const navBtnStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 28,
+  height: 28,
+  borderRadius: 8,
+  border: `1.5px solid ${THEME.line}`,
+  background: "var(--surface-0)",
+  color: THEME.ink,
+  cursor: "pointer",
+};

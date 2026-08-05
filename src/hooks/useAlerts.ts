@@ -491,6 +491,42 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       });
     }
 
+    // Upcoming ex-dividend date alerts (7 days) — reuses the exDividendDate field
+    // piggybacked onto the app-wide stock-price poll (api/stock-price.js) so this
+    // doesn't cost an extra Yahoo round-trip. Miss the ex-date and you miss that
+    // payout entirely, so this is worth a heads-up alongside the other date-driven
+    // alerts (CC due, insurance renewal, etc.) rather than only surfacing inside
+    // the Dividend Calendar tab itself.
+    if (marketData && state.stocks?.length) {
+      const seenExDate = new Set<string>();
+      state.stocks.forEach((s: any) => {
+        if (!s.symbol || Number(s.qty || 0) <= 0) return;
+        const base = String(s.symbol).replace(/\.(NS|BO)$/i, "");
+        const exch = s.exchange || "NSE";
+        const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+        if (seenExDate.has(yfSym)) return;
+        seenExDate.add(yfSym);
+        const exTs = marketData[yfSym]?.exDividendDate;
+        if (!exTs) return;
+        const exDate = new Date(Number(exTs) * 1000).toISOString().slice(0, 10);
+        const days = Math.ceil(
+          (new Date(exDate + "T00:00:00").getTime() - new Date(today() + "T00:00:00").getTime()) /
+            86400000
+        );
+        if (days >= 0 && days <= 7) {
+          list.push({
+            level: days <= 1 ? "warn" : "info",
+            title: `${base} goes ex-dividend in ${days}d`,
+            detail:
+              days === 0
+                ? "Must own before market close today to receive this dividend."
+                : `Buy/hold before ${exDate} to qualify for the upcoming payout.`,
+            tab: "dividendcal",
+          });
+        }
+      });
+    }
+
     // Watchlist price target alerts
     if (marketData && state.wishlistItems?.length) {
       state.wishlistItems.forEach((it: any) => {
