@@ -18,6 +18,8 @@ import {
   ArrowUp,
   ArrowDown,
   Package,
+  Search,
+  Download,
 } from "lucide-react";
 import {
   Area,
@@ -37,7 +39,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -158,7 +160,12 @@ function getDateRange(period: Period, customStart: string, customEnd: string): [
       return [`${fyStart}-04-01`, todayStr];
     }
     case "custom": {
-      return [customStart || todayStr, customEnd || todayStr];
+      const start = customStart || todayStr;
+      const end = customEnd || todayStr;
+      // A reversed pick (start after end) isn't invalid input to reject — it's an
+      // obvious swap. Silently correcting it beats a blank "no data" screen with no
+      // hint why, which is what falls out of the date filter otherwise.
+      return start > end ? [end, start] : [start, end];
     }
     default:
       return [dateStr(new Date(now.getFullYear(), now.getMonth() - 6, 1)), todayStr];
@@ -310,6 +317,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [activePieIndex, setActivePieIndex] = useState<number | null>(null);
+  const [catFilter, setCatFilter] = useState("");
 
   const txns = state?.transactions || [];
 
@@ -396,11 +404,14 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       lowestMonth = { month: "", amount: 0 };
     }
 
-    const monthsWithData = monthlyData.filter((m) => m.expense > 0);
+    // Compare the last two calendar-adjacent months in the range (monthlyData already
+    // includes every month even ones with ₹0 spend) — NOT the last two months that merely
+    // happen to have data, which would silently compare two non-adjacent months (e.g. Feb
+    // vs Apr if Mar had no spend) while still labeling it "Month-over-Month".
     let momChange = 0;
-    if (monthsWithData.length >= 2) {
-      const curr = monthsWithData[monthsWithData.length - 1].expense;
-      const prev = monthsWithData[monthsWithData.length - 2].expense;
+    if (monthlyData.length >= 2) {
+      const curr = monthlyData[monthlyData.length - 1].expense;
+      const prev = monthlyData[monthlyData.length - 2].expense;
       momChange = prev > 0 ? ((curr - prev) / prev) * 100 : 0;
     }
 
@@ -419,19 +430,30 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
+  // Single source of truth for category → color, keyed off categoryData's spend-sorted
+  // order. Every chart below (donut, its legend, and the stacked bar) must read colors
+  // from this map rather than indexing into their own locally-ordered category lists —
+  // otherwise the same category renders in two different colors across charts that are
+  // meant to be compared side by side.
+  const categoryColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categoryData.forEach((c, i) => {
+      map[c.name] = PIE_COLORS[i % PIE_COLORS.length];
+    });
+    return map;
+  }, [categoryData]);
+
   const categoryStackedData = useMemo(() => {
-    const allCats = new Set<string>();
     const monthCatMap: Record<string, Record<string, number>> = {};
 
     expenses.forEach((t: any) => {
       const mk = getMonthKey(t.date);
       const cat = t.category || "Uncategorized";
-      allCats.add(cat);
       if (!monthCatMap[mk]) monthCatMap[mk] = {};
       monthCatMap[mk][cat] = (monthCatMap[mk][cat] || 0) + Number(t.amount || 0);
     });
 
-    const cats = Array.from(allCats);
+    const cats = categoryData.map((c) => c.name);
 
     return {
       data: monthlyData.map((m) => {
@@ -443,7 +465,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       }),
       categories: cats,
     };
-  }, [expenses, monthlyData]);
+  }, [expenses, monthlyData, categoryData]);
 
   const categoryTableData = useMemo(() => {
     // "This month" / "Last month" must be relative to the latest month
@@ -497,7 +519,12 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
   }, [expenses]);
 
   const sortedCategoryTable = useMemo(() => {
-    const sorted = [...categoryTableData].sort((a: any, b: any) => {
+    const filtered = catFilter.trim()
+      ? categoryTableData.filter((c) =>
+          c.category.toLowerCase().includes(catFilter.trim().toLowerCase())
+        )
+      : categoryTableData;
+    const sorted = [...filtered].sort((a: any, b: any) => {
       const aVal = a[sortCol] ?? 0;
       const bVal = b[sortCol] ?? 0;
       if (typeof aVal === "string")
@@ -505,7 +532,32 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       return sortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
     return sorted;
-  }, [categoryTableData, sortCol, sortDir]);
+  }, [categoryTableData, sortCol, sortDir, catFilter]);
+
+  const handleExportCategoryTable = () => {
+    const rows = sortedCategoryTable.map((r) => ({
+      category: r.category,
+      thisMonth: Math.round(r.thisMonth),
+      lastMonth: Math.round(r.lastMonth),
+      changePct: `${r.changePct.toFixed(1)}%`,
+      avg3Month: Math.round(r.avg3),
+      periodTotal: Math.round(r.periodTotal),
+      anomaly: r.isAnomaly ? "Yes" : "No",
+    }));
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "category", label: "Category" },
+        { key: "thisMonth", label: "This Month" },
+        { key: "lastMonth", label: "Last Month" },
+        { key: "changePct", label: "Change %" },
+        { key: "avg3Month", label: "3M Avg" },
+        { key: "periodTotal", label: "Period Total" },
+        { key: "anomaly", label: "Anomaly" },
+      ],
+      `Expense_Category_Breakdown_${rangeStart}_to_${rangeEnd}.csv`
+    );
+  };
 
   const topMerchants = useMemo(() => {
     const merchantMap: Record<string, number> = {};
@@ -697,7 +749,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           value={fmtINRFull(summary.totalSpend)}
           icon={Wallet}
           color={PIE_COLORS[3]}
-          sub={`${rangeStart.slice(2, 7)} to ${rangeEnd.slice(2, 7)}`}
+          sub={`${monthLabel(getMonthKey(rangeStart))} – ${monthLabel(getMonthKey(rangeEnd))}`}
         />
         <PremiumStatCard
           label="Avg Monthly"
@@ -771,7 +823,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
+              tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINR(v))}
             />
             <Tooltip content={<ChartTooltip />} cursor={{ stroke: THEME.line }} />
             <Legend
@@ -785,7 +837,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               stroke={THEME.muted}
               strokeDasharray="6 4"
               label={{
-                value: `Avg: ${privacyMode ? "••••" : fmtINRFull(avgSpend)}`,
+                value: `Avg: ${privacyMode ? "••••" : fmtINR(avgSpend)}`,
                 position: "insideTopRight",
                 fill: THEME.muted,
                 fontSize: 10,
@@ -851,10 +903,10 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     onMouseEnter={(_, index) => setActivePieIndex(index)}
                     onMouseLeave={() => setActivePieIndex(null)}
                   >
-                    {categoryData.map((_: any, i: number) => (
+                    {categoryData.map((c: any, i: number) => (
                       <Cell
                         key={i}
-                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        fill={categoryColorMap[c.name] || PIE_COLORS[i % PIE_COLORS.length]}
                         style={{
                           filter:
                             activePieIndex === i
@@ -973,7 +1025,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   marginTop: 8,
                 }}
               >
-                {categoryData.slice(0, 8).map((c: any, i: number) => (
+                {categoryData.slice(0, 8).map((c: any) => (
                   <div
                     key={c.name}
                     style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}
@@ -983,7 +1035,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         width: 8,
                         height: 8,
                         borderRadius: "50%",
-                        background: PIE_COLORS[i % PIE_COLORS.length],
+                        background: categoryColorMap[c.name],
                         display: "inline-block",
                       }}
                     />
@@ -993,6 +1045,19 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     </span>
                   </div>
                 ))}
+                {categoryData.length > 8 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                    }}
+                  >
+                    +{categoryData.length - 8} more
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -1035,7 +1100,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   tick={{ fontSize: 11, fill: THEME.muted }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
+                  tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINR(v))}
                 />
                 <Tooltip content={<ChartTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                 <Legend
@@ -1050,7 +1115,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     key={cat}
                     dataKey={cat}
                     stackId="cats"
-                    fill={PIE_COLORS[i % PIE_COLORS.length]}
+                    fill={categoryColorMap[cat] || PIE_COLORS[i % PIE_COLORS.length]}
                     radius={
                       i === categoryStackedData.categories.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]
                     }
@@ -1070,17 +1135,84 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       <Card style={{ padding: "24px 20px" }}>
         <div
           style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: THEME.ink,
-            marginBottom: 4,
-            letterSpacing: "-0.015em",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            marginBottom: 16,
           }}
         >
-          Category Deep Dive
-        </div>
-        <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
-          Click any row to see individual transactions. Anomalies are flagged with a warning badge.
+          <div>
+            <div
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                marginBottom: 4,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Category Deep Dive
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted }}>
+              Click any row to see individual transactions. Anomalies are flagged with a warning
+              badge.
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ position: "relative" }}>
+              <Search
+                size={13}
+                style={{
+                  position: "absolute",
+                  left: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: THEME.muted,
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="text"
+                value={catFilter}
+                onChange={(e) => setCatFilter(e.target.value)}
+                placeholder="Filter category…"
+                aria-label="Filter categories"
+                style={{
+                  border: `1px solid ${THEME.line}`,
+                  borderRadius: 8,
+                  padding: "6px 10px 6px 28px",
+                  fontSize: 12,
+                  color: THEME.ink,
+                  background: "var(--surface-0)",
+                  width: 150,
+                }}
+              />
+            </div>
+            <button
+              onClick={handleExportCategoryTable}
+              disabled={!sortedCategoryTable.length}
+              className="card-lift"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: `1px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: sortedCategoryTable.length ? "pointer" : "not-allowed",
+                opacity: sortedCategoryTable.length ? 1 : 0.5,
+              }}
+            >
+              <Download size={13} />
+              Export CSV
+            </button>
+          </div>
         </div>
         {sortedCategoryTable.length > 0 ? (
           <div style={{ overflowX: "auto" }}>
@@ -1314,7 +1446,9 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           </div>
         ) : (
           <div style={{ textAlign: "center", padding: 40, color: THEME.muted, fontSize: 13 }}>
-            No expense data for this period
+            {catFilter.trim() && categoryTableData.length > 0
+              ? `No category matches "${catFilter.trim()}"`
+              : "No expense data for this period"}
           </div>
         )}
       </Card>
@@ -1348,7 +1482,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
+                tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINR(v))}
               />
               <YAxis
                 type="category"
@@ -1536,7 +1670,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
+              tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINR(v))}
             />
             <YAxis
               yAxisId="right"
