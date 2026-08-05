@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   PieChart as PieIcon,
   TrendingUp,
@@ -10,6 +10,10 @@ import {
   Settings,
   Zap,
   Info,
+  Search,
+  X,
+  Download,
+  Wallet,
 } from "lucide-react";
 import {
   PieChart,
@@ -32,6 +36,7 @@ import {
   calculateEpfBalance,
   getGoldPricePerGram,
   GOLD_PURITY_FACTOR,
+  exportArrayToCSV,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -139,13 +144,46 @@ const PRESETS = {
   },
 };
 
+// Persists the user's chosen preset/custom target/drift threshold across
+// tab navigation — previously these reset to "moderate" every time the user
+// left and came back, silently discarding a custom target they'd set up.
+const REBAL_PREFS_KEY = "rebalancing_prefs_v1";
+const loadRebalPrefs = () => {
+  try {
+    const raw = localStorage.getItem(REBAL_PREFS_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 export const RebalancingTab = ({ state, metrics, marketData }) => {
-  const [selectedPreset, setSelectedPreset] = useState("moderate");
-  const [customTarget, setCustomTarget] = useState({ equity: 60, debt: 30, gold: 0, cash: 10 });
-  const [useCustom, setUseCustom] = useState(false);
+  const [savedPrefs] = useState(loadRebalPrefs);
+  const [selectedPreset, setSelectedPreset] = useState(
+    PRESETS[savedPrefs.selectedPreset] ? savedPrefs.selectedPreset : "moderate"
+  );
+  const [customTarget, setCustomTarget] = useState(
+    savedPrefs.customTarget || { equity: 60, debt: 30, gold: 0, cash: 10 }
+  );
+  const [useCustom, setUseCustom] = useState(!!savedPrefs.useCustom);
+  const [driftThreshold, setDriftThreshold] = useState(savedPrefs.driftThreshold ?? 3);
+  const [breakdownSearch, setBreakdownSearch] = useState("");
+  const [newMoneyAmount, setNewMoneyAmount] = useState("");
 
   const [activeCurrentIndex, setActiveCurrentIndex] = useState<number | null>(null);
   const [activeTargetIndex, setActiveTargetIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        REBAL_PREFS_KEY,
+        JSON.stringify({ selectedPreset, customTarget, useCustom, driftThreshold })
+      );
+    } catch {
+      /* localStorage unavailable (private mode/quota) — preference just won't persist */
+    }
+  }, [selectedPreset, customTarget, useCustom, driftThreshold]);
 
   const target = useCustom ? customTarget : PRESETS[selectedPreset];
 
@@ -168,46 +206,55 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       return s + (Number(st.qty) || 0) * price;
     }, 0);
 
-    const equityMF = (state.mutualFunds || []).reduce((s, m) => {
+    // Single pass classifier: every fund's value lands somewhere (equity,
+    // debt, or gold-MF). The old two-reduce version silently dropped any
+    // fund whose category matched neither list — which included "Hybrid"
+    // and "International", both real, selectable categories elsewhere in
+    // the app — so that money vanished from the portfolio total entirely.
+    let equityMF = 0;
+    let debtMF = 0;
+    let goldMF = 0;
+    (state.mutualFunds || []).forEach((m) => {
+      const val = (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
       const cat = (m.category || m.type || "").toLowerCase();
-      const isEquity = [
-        "equity",
-        "elss",
-        "flexi",
-        "large",
-        "mid",
-        "small",
-        "multi",
-        "focused",
-        "sectoral",
-        "thematic",
-        "index",
-      ].some((k) => cat.includes(k));
-      if (!isEquity && cat) return s;
-      return s + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
-    }, 0);
-
-    const debtMF = (state.mutualFunds || []).reduce((s, m) => {
-      const cat = (m.category || m.type || "").toLowerCase();
-      const isDebt = [
-        "debt",
-        "liquid",
-        "money market",
-        "gilt",
-        "corporate bond",
-        "banking",
-        "credit risk",
-        "dynamic bond",
-        "ultra short",
-        "low duration",
-        "medium",
-        "long duration",
-        "overnight",
-        "floater",
-      ].some((k) => cat.includes(k));
-      if (!isDebt) return s;
-      return s + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
-    }, 0);
+      const isGold = ["gold", "silver"].some((k) => cat.includes(k));
+      const isHybrid =
+        !isGold && ["hybrid", "balanced", "multi asset", "equity savings"].some((k) => cat.includes(k));
+      const isDebt =
+        !isGold &&
+        !isHybrid &&
+        [
+          "debt",
+          "liquid",
+          "money market",
+          "gilt",
+          "corporate bond",
+          "banking",
+          "credit risk",
+          "dynamic bond",
+          "ultra short",
+          "low duration",
+          "medium",
+          "long duration",
+          "overnight",
+          "floater",
+        ].some((k) => cat.includes(k));
+      if (isGold) {
+        goldMF += val;
+      } else if (isHybrid) {
+        // Hybrid/Balanced/Multi-Asset funds blend equity and debt. Split
+        // 65:35 — the minimum equity share Indian hybrid funds hold to
+        // qualify for equity taxation — instead of dropping the value.
+        equityMF += val * 0.65;
+        debtMF += val * 0.35;
+      } else if (isDebt) {
+        debtMF += val;
+      } else {
+        // Equity, ELSS, Index, "International", or any unrecognized/blank
+        // category defaults to equity rather than being excluded.
+        equityMF += val;
+      }
+    });
 
     const fd = (state.fixedDeposits || []).reduce((s, f) => s + Number(f.principal || 0), 0);
     const rd = (state.recurringDeposits || []).reduce((s, r) => {
@@ -224,7 +271,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), elapsed);
     }, 0);
     const bonds = (state.bonds || []).reduce(
-      (s, b) => s + Number(b.totalPrincipalAmount || b.faceValue || 0),
+      (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
       0
     );
     const ppf = (state.ppf || []).reduce((s, p) => s + Number(p.balance || 0), 0);
@@ -242,6 +289,22 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     }, 0);
     const epf = (state.epf || []).reduce((s, e) => s + calculateEpfBalance(e), 0);
     const cash = (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
+    const prepaidCards = (state.prepaidCards || [])
+      .filter((pc: any) => (pc.status || "").toLowerCase() !== "closed")
+      .reduce((s: number, pc: any) => {
+        const txns = pc.transactions || [];
+        const loaded = txns
+          .filter((t: any) => t.type === "load")
+          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const spent = txns
+          .filter((t: any) => t.type === "spend")
+          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        return s + (loaded - spent);
+      }, 0);
+    const govtSchemes = (state.govtSchemes || []).reduce(
+      (s, sc) => s + Number(sc.currentBalance || 0),
+      0
+    );
     const lic = (state.lic || []).reduce((s: number, l: any) => {
       const txTotal = (l.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
@@ -258,27 +321,29 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     }, 0);
 
     const goldPricePerGram = getGoldPricePerGram(state);
-    const gold = (state.goldHoldings || []).reduce((s, g) => {
+    const goldPhysical = (state.goldHoldings || []).reduce((s, g) => {
       const grams = Number(g.grams || 0);
       const purityMul = g.type === "physical" ? GOLD_PURITY_FACTOR[g.purity] || 1 : 1;
       return s + grams * goldPricePerGram * purityMul;
     }, 0);
+    const gold = goldPhysical + goldMF;
 
     const equity = equityStocks + equityMF;
-    const debt = debtMF + fd + rd + bonds + ppf + epf + lic + investPlans;
-    const total = equity + debt + gold + cash + nps;
+    const debt = debtMF + fd + rd + bonds + ppf + epf + lic + investPlans + govtSchemes;
+    const cashTotal = cash + prepaidCards;
+    const total = equity + debt + gold + cashTotal + nps;
 
     return {
       equity,
       debt,
       gold,
-      cash,
+      cash: cashTotal,
       nps,
       total,
       equityPct: total ? (equity / total) * 100 : 0,
       debtPct: total ? ((debt + nps) / total) * 100 : 0,
       goldPct: total ? (gold / total) * 100 : 0,
-      cashPct: total ? (cash / total) * 100 : 0,
+      cashPct: total ? (cashTotal / total) * 100 : 0,
       breakdown: {
         equityStocks,
         equityMF,
@@ -291,7 +356,11 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         epf,
         lic,
         investPlans,
+        govtSchemes,
+        goldPhysical,
+        goldMF,
         cash,
+        prepaidCards,
       },
     };
   }, [state, marketData]);
@@ -324,7 +393,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     classes.forEach((cls) => {
       const diff = cls.current - cls.target;
       const diffAmt = (Math.abs(diff) / 100) * allocation.total;
-      if (Math.abs(diff) > 3) {
+      if (Math.abs(diff) > driftThreshold) {
         items.push({
           asset: cls.name,
           action: diff > 0 ? "Reduce" : "Increase",
@@ -338,7 +407,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     });
 
     return items.sort((a, b) => b.diffAmt - a.diffAmt);
-  }, [allocation, target]);
+  }, [allocation, target, driftThreshold]);
 
   const deviationScore = useMemo(() => {
     if (!allocation.total) return 0;
@@ -348,6 +417,39 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     const d4 = Math.abs(allocation.cashPct - target.cash);
     return Math.max(0, 100 - (d1 + d2 + d3 + d4));
   }, [allocation, target]);
+
+  // "Deploy new money" — instead of selling overweight assets, spread a
+  // fresh lump sum (bonus, maturity payout, new SIP) across the underweight
+  // classes proportional to how far each is below target. If nothing is
+  // underweight, split proportional to target weights so the money still
+  // has somewhere sensible to go.
+  const deploymentPlan = useMemo(() => {
+    const amt = Number(newMoneyAmount) || 0;
+    if (!amt || !allocation.total) return [];
+    const newTotal = allocation.total + amt;
+    const classes = [
+      { name: "Equity", current: allocation.equity, target: target.equity },
+      { name: "Debt", current: allocation.debt + allocation.nps, target: target.debt },
+      { name: "Gold", current: allocation.gold, target: target.gold || 0 },
+      { name: "Cash", current: allocation.cash, target: target.cash },
+    ];
+    const gaps = classes.map((c) => ({
+      ...c,
+      gap: Math.max(0, (c.target / 100) * newTotal - c.current),
+    }));
+    const totalGap = gaps.reduce((s, g) => s + g.gap, 0);
+    const base = totalGap > 0 ? gaps.filter((g) => g.gap > 0) : classes.filter((c) => c.target > 0);
+    const baseTotal =
+      totalGap > 0 ? totalGap : base.reduce((s, c) => s + c.target, 0);
+    if (!baseTotal) return [];
+    return base
+      .map((c) => ({
+        name: c.name,
+        amount: ((totalGap > 0 ? c.gap : c.target) / baseTotal) * amt,
+      }))
+      .filter((c) => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+  }, [newMoneyAmount, allocation, target]);
 
   // Fixed chart-extension token (not the user-selectable accent) — Equity
   // already uses THEME.accent, so a hardcoded purple here would render as the
@@ -392,6 +494,56 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
 
   const scoreColor =
     deviationScore > 80 ? THEME.sage : deviationScore > 50 ? THEME.gold : THEME.rust;
+
+  const breakdownRowsAll = [
+    { label: "Stocks (Direct Equity)", value: allocation.breakdown.equityStocks, parent: "Equity" },
+    { label: "Equity Mutual Funds", value: allocation.breakdown.equityMF, parent: "Equity" },
+    { label: "Debt Mutual Funds", value: allocation.breakdown.debtMF, parent: "Debt" },
+    { label: "Fixed Deposits", value: allocation.breakdown.fd, parent: "Debt" },
+    { label: "Recurring Deposits", value: allocation.breakdown.rd, parent: "Debt" },
+    { label: "Bonds", value: allocation.breakdown.bonds, parent: "Debt" },
+    { label: "PPF", value: allocation.breakdown.ppf, parent: "Debt" },
+    { label: "EPF", value: allocation.breakdown.epf, parent: "Debt" },
+    { label: "NPS", value: allocation.breakdown.nps, parent: "Debt" },
+    { label: "Post Office / Govt Schemes", value: allocation.breakdown.govtSchemes, parent: "Debt" },
+    {
+      label: "LIC / Insurance",
+      value: allocation.breakdown.lic + allocation.breakdown.investPlans,
+      parent: "Debt",
+    },
+    { label: "Gold & SGBs (Physical)", value: allocation.breakdown.goldPhysical, parent: "Gold" },
+    { label: "Gold / Silver Mutual Funds", value: allocation.breakdown.goldMF, parent: "Gold" },
+    { label: "Bank Balance (Cash)", value: allocation.breakdown.cash, parent: "Cash" },
+    { label: "Prepaid Cards", value: allocation.breakdown.prepaidCards, parent: "Cash" },
+  ].filter((r) => r.value > 0);
+
+  const breakdownSearchTrimmed = breakdownSearch.trim().toLowerCase();
+  const breakdownRows = breakdownSearchTrimmed
+    ? breakdownRowsAll.filter((r) =>
+        `${r.label} ${r.parent}`.toLowerCase().includes(breakdownSearchTrimmed)
+      )
+    : breakdownRowsAll;
+
+  const handleExportBreakdownCSV = () => {
+    const rows = breakdownRows.map((r) => ({
+      assetClass: r.label,
+      category: r.parent,
+      value: Math.round(r.value),
+      percentOfPortfolio: allocation.total
+        ? `${((r.value / allocation.total) * 100).toFixed(1)}%`
+        : "0%",
+    }));
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "assetClass", label: "Asset Class" },
+        { key: "category", label: "Category" },
+        { key: "value", label: "Value" },
+        { key: "percentOfPortfolio", label: "% of Portfolio" },
+      ],
+      `smart-rebalancing-breakdown_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -988,17 +1140,55 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       <Card style={{ padding: 24 }}>
         <div
           style={{
-            fontWeight: 800,
-            fontSize: 15,
-            marginBottom: 16,
-            color: THEME.ink,
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            letterSpacing: "-0.015em",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            marginBottom: 16,
           }}
         >
-          <Zap size={16} style={{ color: THEME.gold }} /> Actionable Suggestions
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 15,
+              color: THEME.ink,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            <Zap size={16} style={{ color: THEME.gold }} /> Actionable Suggestions
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <label
+              htmlFor="drift-threshold"
+              style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}
+            >
+              Flag drift over
+            </label>
+            <select
+              id="drift-threshold"
+              value={driftThreshold}
+              onChange={(e) => setDriftThreshold(Number(e.target.value))}
+              style={{
+                padding: "5px 8px",
+                borderRadius: 8,
+                border: `1px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 12,
+                fontWeight: 700,
+                outline: "none",
+              }}
+            >
+              <option value={2}>2%</option>
+              <option value={3}>3%</option>
+              <option value={5}>5%</option>
+              <option value={10}>10%</option>
+            </select>
+          </div>
         </div>
         {suggestions.length === 0 ? (
           <div className="info-box info-box-success">
@@ -1091,22 +1281,161 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         )}
       </Card>
 
+      {/* Deploy New Money — additive rebalancing, no selling required */}
+      <Card style={{ padding: 24 }}>
+        <div
+          style={{
+            fontWeight: 800,
+            fontSize: 15,
+            marginBottom: 4,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            letterSpacing: "-0.015em",
+          }}
+        >
+          <Wallet size={16} style={{ color: THEME.sage }} /> Deploy New Money
+        </div>
+        <div style={{ fontSize: 11.5, color: THEME.muted, marginBottom: 16, fontWeight: 500 }}>
+          Got a bonus, maturity payout, or fresh SIP amount? See how to split it to move toward
+          target without selling anything.
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 700 }}>₹</span>
+            <input
+              type="number"
+              min={0}
+              inputMode="decimal"
+              aria-label="Amount to deploy"
+              placeholder="e.g. 100000"
+              value={newMoneyAmount}
+              onChange={(e) => setNewMoneyAmount(e.target.value)}
+              style={{
+                width: 160,
+                padding: "8px 12px",
+                borderRadius: 10,
+                border: `1.5px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 13,
+                fontWeight: 700,
+                outline: "none",
+              }}
+            />
+          </div>
+        </div>
+        {Number(newMoneyAmount) > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 18 }}>
+            {deploymentPlan.map((d) => (
+              <div
+                key={d.name}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "color-mix(in srgb, var(--t-sage) 6%, var(--surface-0))",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{d.name}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 900, color: THEME.sage }}>
+                  <Prv>{fmtINRFull(d.amount)}</Prv>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* Detailed Breakdown Table */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 15,
-              fontWeight: 700,
-              color: THEME.ink,
-              letterSpacing: "-0.015em",
-            }}
-          >
-            Detailed Breakdown
-          </h3>
-          <div style={{ fontSize: 11, color: THEME.muted }}>
-            Individual asset components and their portfolio shares
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Detailed Breakdown
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Individual asset components and their portfolio shares
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", position: "relative", alignItems: "center" }}>
+              <Search
+                size={14}
+                color={THEME.muted}
+                style={{ position: "absolute", left: 12, pointerEvents: "none" }}
+              />
+              <input
+                type="text"
+                aria-label="Search breakdown"
+                placeholder="Search..."
+                value={breakdownSearch}
+                onChange={(e) => setBreakdownSearch(e.target.value)}
+                style={{
+                  width: 160,
+                  padding: `7px ${breakdownSearch ? 30 : 10}px 7px 32px`,
+                  borderRadius: 10,
+                  border: `1.5px solid ${THEME.line}`,
+                  background: "var(--surface-0)",
+                  color: THEME.ink,
+                  fontSize: 12.5,
+                }}
+              />
+              {breakdownSearch && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setBreakdownSearch("")}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "var(--surface-2)",
+                    color: THEME.muted,
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={10} />
+                </button>
+              )}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Download size={13} />}
+              onClick={handleExportBreakdownCSV}
+              disabled={!breakdownRows.length}
+            >
+              CSV
+            </Button>
           </div>
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -1119,66 +1448,36 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               </tr>
             </thead>
             <tbody>
-              {[
-                {
-                  label: "Stocks (Direct Equity)",
-                  value: allocation.breakdown.equityStocks,
-                  parent: "Equity",
-                },
-                {
-                  label: "Equity Mutual Funds",
-                  value: allocation.breakdown.equityMF,
-                  parent: "Equity",
-                },
-                {
-                  label: "Debt Mutual Funds",
-                  value: allocation.breakdown.debtMF,
-                  parent: "Debt",
-                },
-                { label: "Fixed Deposits", value: allocation.breakdown.fd, parent: "Debt" },
-                { label: "Recurring Deposits", value: allocation.breakdown.rd, parent: "Debt" },
-                { label: "Bonds", value: allocation.breakdown.bonds, parent: "Debt" },
-                { label: "PPF", value: allocation.breakdown.ppf, parent: "Debt" },
-                { label: "EPF", value: allocation.breakdown.epf, parent: "Debt" },
-                { label: "NPS", value: allocation.breakdown.nps, parent: "Debt" },
-                {
-                  label: "LIC / Insurance",
-                  value: allocation.breakdown.lic + allocation.breakdown.investPlans,
-                  parent: "Debt",
-                },
-                { label: "Gold & SGBs", value: allocation.gold, parent: "Gold" },
-                {
-                  label: "Bank Balance (Cash)",
-                  value: allocation.breakdown.cash,
-                  parent: "Cash",
-                },
-              ]
-                .filter((r) => r.value > 0)
-                .map((row, i) => (
-                  <tr
-                    key={i}
-                    className="table-row-hover"
-                    style={{ borderBottom: `1px solid ${THEME.line}` }}
-                  >
-                    <td style={{ ...td, paddingLeft: 16, color: THEME.ink, fontWeight: 700 }}>
-                      {row.label}
-                      <Badge
-                        variant="muted"
-                        style={{ marginLeft: 8, fontSize: 10, padding: "2px 6px" }}
-                      >
-                        {row.parent}
-                      </Badge>
-                    </td>
-                    <td style={{ ...tdRight, fontWeight: 700 }}>
-                      <Prv>{fmtINRFull(row.value)}</Prv>
-                    </td>
-                    <td
-                      style={{ ...tdRight, paddingRight: 16, color: THEME.muted, fontWeight: 600 }}
+              {breakdownRows.map((row, i) => (
+                <tr
+                  key={i}
+                  className="table-row-hover"
+                  style={{ borderBottom: `1px solid ${THEME.line}` }}
+                >
+                  <td style={{ ...td, paddingLeft: 16, color: THEME.ink, fontWeight: 700 }}>
+                    {row.label}
+                    <Badge
+                      variant="muted"
+                      style={{ marginLeft: 8, fontSize: 10, padding: "2px 6px" }}
                     >
-                      {allocation.total ? ((row.value / allocation.total) * 100).toFixed(1) : 0}%
-                    </td>
-                  </tr>
-                ))}
+                      {row.parent}
+                    </Badge>
+                  </td>
+                  <td style={{ ...tdRight, fontWeight: 700 }}>
+                    <Prv>{fmtINRFull(row.value)}</Prv>
+                  </td>
+                  <td style={{ ...tdRight, paddingRight: 16, color: THEME.muted, fontWeight: 600 }}>
+                    {allocation.total ? ((row.value / allocation.total) * 100).toFixed(1) : 0}%
+                  </td>
+                </tr>
+              ))}
+              {!breakdownRows.length && (
+                <tr>
+                  <td colSpan={3} style={{ ...td, textAlign: "center", color: THEME.muted }}>
+                    No holdings match "{breakdownSearch}".
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
