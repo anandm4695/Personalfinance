@@ -12,6 +12,7 @@ import {
   TrendingUp,
   TrendingDown,
   Package,
+  X,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
@@ -200,6 +201,8 @@ const SectionHeader = ({ icon: Icon, title, count, color = THEME.accent, subText
   </div>
 );
 
+const searchSuffix = (query: string) => (query ? ` matching "${query}"` : "");
+
 const TxnHistoryEmptyState = ({ message }: { message: string }) => (
   <Card style={{ padding: 48, textAlign: "center" }}>
     <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
@@ -209,24 +212,72 @@ const TxnHistoryEmptyState = ({ message }: { message: string }) => (
   </Card>
 );
 
+type SortDir = "asc" | "desc";
+
+/* Clickable column header — toggles sort on the given key, shows an arrow when active.
+   Keeps rows in date-desc order (the original default) until the user opts into a sort. */
+const SortableTh = ({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  onClick,
+}: {
+  label: string;
+  sortKey: string;
+  activeKey?: string;
+  dir?: SortDir;
+  onClick: (key: string) => void;
+}) => {
+  const active = activeKey === sortKey;
+  return (
+    <th
+      style={{ ...th, textAlign: "right", cursor: "pointer", userSelect: "none" }}
+      onClick={() => onClick(sortKey)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick(sortKey);
+        }
+      }}
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      {label}
+      <span style={{ opacity: active ? 1 : 0.3, marginLeft: 4 }}>
+        {active ? (dir === "asc" ? "▲" : "▼") : "⇅"}
+      </span>
+    </th>
+  );
+};
+
 const SoldTable = ({
   rows,
   type,
   removeItem,
   fmtDate,
   fyLabel,
+  searchQuery,
+  sortKey,
+  sortDir,
+  onSort,
 }: {
   rows: any[];
   type: "stock" | "mf";
   removeItem: (collection: string, id: string) => void;
   fmtDate: (d: string) => string;
   fyLabel: string;
+  searchQuery: string;
+  sortKey?: string;
+  sortDir?: SortDir;
+  onSort: (key: string) => void;
 }) => {
   const total = rows.reduce((s: number, r: any) => s + Number(r.profit || 0), 0);
   if (rows.length === 0)
     return (
       <TxnHistoryEmptyState
-        message={`No ${type === "stock" ? "stock sales" : "MF redemptions"} recorded in ${fyLabel}`}
+        message={`No ${type === "stock" ? "stock sales" : "MF redemptions"} recorded in ${fyLabel}${searchSuffix(searchQuery)}`}
       />
     );
   return (
@@ -241,11 +292,23 @@ const SoldTable = ({
                 {type === "stock" ? "Buy Price" : "Buy NAV"}
               </th>
               <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Qty" : "Units"}</th>
-              <th style={{ ...th, textAlign: "right" }}>Sell Date</th>
+              <SortableTh
+                label="Sell Date"
+                sortKey="date"
+                activeKey={sortKey}
+                dir={sortDir}
+                onClick={onSort}
+              />
               <th style={{ ...th, textAlign: "right" }}>
                 {type === "stock" ? "Sell Price" : "Sell NAV"}
               </th>
-              <th style={{ ...th, textAlign: "right" }}>Profit / Loss</th>
+              <SortableTh
+                label="Profit / Loss"
+                sortKey="amount"
+                activeKey={sortKey}
+                dir={sortDir}
+                onClick={onSort}
+              />
               <th style={{ ...th, textAlign: "right" }}>Broker</th>
               <th style={th}></th>
             </tr>
@@ -302,7 +365,7 @@ const SoldTable = ({
                     {fmtDate(s.buyDate)}
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                    ₹{buyP.toFixed(type === "mf" ? 4 : 2)}
+                    <Prv>₹{buyP.toFixed(type === "mf" ? 4 : 2)}</Prv>
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
                     {type === "stock" ? s.qty : Number(s.units).toFixed(3)}
@@ -312,7 +375,9 @@ const SoldTable = ({
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
                     <span style={{ color: sellP >= buyP ? THEME.sage : THEME.rust }}>
-                      ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
+                      <Prv>
+                        ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
+                      </Prv>
                     </span>
                   </td>
                   <td
@@ -324,8 +389,10 @@ const SoldTable = ({
                       fontSize: 14,
                     }}
                   >
-                    {profit >= 0 ? "+" : ""}₹
-                    {Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    <Prv>
+                      {profit >= 0 ? "+" : ""}₹
+                      {Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    </Prv>
                   </td>
                   <td
                     style={{
@@ -377,8 +444,10 @@ const SoldTable = ({
                   fontSize: 15,
                 }}
               >
-                {total >= 0 ? "+" : ""}₹
-                {Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                <Prv>
+                  {total >= 0 ? "+" : ""}₹
+                  {Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </Prv>
               </td>
               <td colSpan={2} style={td}></td>
             </tr>
@@ -401,6 +470,26 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   >("all");
   const [txnDematId, setTxnDematId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortState, setSortState] = useState<Record<string, { key: string; dir: SortDir }>>({});
+
+  const toggleSort = useCallback((section: string, key: string) => {
+    setSortState((prev) => {
+      const cur = prev[section];
+      const dir: SortDir = cur && cur.key === key && cur.dir === "desc" ? "asc" : "desc";
+      return { ...prev, [section]: { key, dir } };
+    });
+  }, []);
+
+  const sortRows = useCallback(
+    <T,>(rows: T[], section: string, accessors: Record<string, (row: T) => number>): T[] => {
+      const cfg = sortState[section];
+      const getter = cfg && accessors[cfg.key];
+      if (!cfg || !getter) return rows;
+      const sign = cfg.dir === "asc" ? 1 : -1;
+      return [...rows].sort((a, b) => (getter(a) - getter(b)) * sign);
+    },
+    [sortState]
+  );
 
   // Plain "YYYY-MM-DD" string bounds — comparing ISO date strings lexicographically avoids the
   // Date-object timezone trap where a date-only string ("2026-04-01") parses as UTC midnight
@@ -526,18 +615,25 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const mfRealizedPnl = mfSoldInFY.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
   const totalRealizedPnl = stocksRealizedPnl + mfRealizedPnl;
 
+  // Self-transfers between the user's own accounts aren't real income/spend — excluded
+  // from these totals to match how Dashboard/BanksTab/AnnualReportTab treat them, so this
+  // tab's "Cash Net Flow" doesn't double-count money moving between the user's own accounts.
+  const isTransferCategory = (cat: string) =>
+    cat === "Transfer" || cat === "Self Transfer" || cat === "Self-Transfer";
+  const hasTransfers = cashTransactionsInFY.some((t: any) => isTransferCategory(t.category));
   const totalCredits = cashTransactionsInFY
-    .filter((t: any) => t.type === "credit")
+    .filter((t: any) => t.type === "credit" && !isTransferCategory(t.category))
     .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   const totalDebits = cashTransactionsInFY
-    .filter((t: any) => t.type === "debit")
+    .filter((t: any) => t.type === "debit" && !isTransferCategory(t.category))
     .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   const cashNetFlow = totalCredits - totalDebits;
 
   const stocksBoughtTotals = useMemo(() => {
     let invested = 0,
       pnl = 0,
-      hasCurr = false;
+      hasCurr = false,
+      unpriced = 0;
     stocksBoughtInFY.forEach((s: any) => {
       const curr = livePrice(s, marketData);
       const inv = Number(s.qty) * Number(s.avgPrice);
@@ -545,15 +641,18 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
       if (curr) {
         pnl += Number(s.qty) * curr - inv;
         hasCurr = true;
+      } else {
+        unpriced++;
       }
     });
-    return { invested, pnl, hasCurr };
+    return { invested, pnl, hasCurr, unpriced };
   }, [stocksBoughtInFY, marketData]);
 
   const mfBoughtTotals = useMemo(() => {
     let invested = 0,
       pnl = 0,
-      hasCurr = false;
+      hasCurr = false,
+      unpriced = 0;
     mfBoughtInFY.forEach((m: any) => {
       const buyNav = m.buyNav
         ? Number(m.buyNav)
@@ -566,13 +665,59 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
       if (currNav) {
         pnl += Number(m.units) * currNav - inv;
         hasCurr = true;
+      } else {
+        unpriced++;
       }
     });
-    return { invested, pnl, hasCurr };
+    return { invested, pnl, hasCurr, unpriced };
   }, [mfBoughtInFY]);
 
   const totalStocksInvested = stocksBoughtTotals.invested;
   const totalMFInvested = mfBoughtTotals.invested;
+
+  // Display order — defaults to the date-desc order computed above; a column-header click
+  // re-sorts via sortRows without touching the underlying filtered arrays (totals/CSV exports
+  // that don't care about order keep reading the base *_InFY arrays).
+  const stocksBoughtSorted = useMemo(
+    () =>
+      sortRows(stocksBoughtInFY, "stocks_bought", {
+        date: (s: any) => new Date(s.buyDate).getTime(),
+        amount: (s: any) => Number(s.qty) * Number(s.avgPrice),
+      }),
+    [stocksBoughtInFY, sortRows]
+  );
+  const stocksSoldSorted = useMemo(
+    () =>
+      sortRows(stocksSoldInFY, "stocks_sold", {
+        date: (s: any) => new Date(s.sellDate).getTime(),
+        amount: (s: any) => Number(s.profit || 0),
+      }),
+    [stocksSoldInFY, sortRows]
+  );
+  const mfBoughtSorted = useMemo(
+    () =>
+      sortRows(mfBoughtInFY, "mf_bought", {
+        date: (m: any) => new Date(m.buyDate).getTime(),
+        amount: (m: any) => Number(m.units) * Number(m.buyNav || 0),
+      }),
+    [mfBoughtInFY, sortRows]
+  );
+  const mfSoldSorted = useMemo(
+    () =>
+      sortRows(mfSoldInFY, "mf_sold", {
+        date: (m: any) => new Date(m.sellDate).getTime(),
+        amount: (m: any) => Number(m.profit || 0),
+      }),
+    [mfSoldInFY, sortRows]
+  );
+  const cashTransactionsSorted = useMemo(
+    () =>
+      sortRows(cashTransactionsInFY, "cash_ledger", {
+        date: (t: any) => new Date(t.date).getTime(),
+        amount: (t: any) => Number(t.amount || 0) * (t.type === "credit" ? 1 : -1),
+      }),
+    [cashTransactionsInFY, sortRows]
+  );
 
   const fmtDate = (d: string) =>
     d
@@ -583,6 +728,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         })
       : "—";
   const fyLabel = `FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)}`;
+  const fyFileLabel = fyLabel.replace(/\s+/g, "");
 
   const sections = [
     { id: "all", label: "All Assets", icon: Layers },
@@ -667,7 +813,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: "100%",
-              padding: "10px 14px 10px 40px",
+              padding: `10px ${searchQuery ? 40 : 14}px 10px 40px`,
               borderRadius: 12,
               border: `1.5px solid ${THEME.line}`,
               background: "var(--surface-0)",
@@ -676,6 +822,29 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               boxShadow: "var(--shadow-sm)",
             }}
           />
+          {searchQuery && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setSearchQuery("")}
+              style={{
+                position: "absolute",
+                right: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                border: "none",
+                background: "var(--surface-2)",
+                color: THEME.muted,
+                cursor: "pointer",
+              }}
+            >
+              <X size={12} />
+            </button>
+          )}
         </div>
         <div
           style={{
@@ -897,7 +1066,14 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           icon={TrendingUp}
           label="Stocks Bought"
           value={String(stocksBoughtInFY.length)}
-          sub={`${fyLabel} · ₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          sub={
+            <>
+              {fyLabel} ·{" "}
+              <Prv>
+                ₹{totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </Prv>
+            </>
+          }
           color={THEME.accent}
           active={activeSection === "stocks_bought"}
           onClick={() => setActiveSection("stocks_bought")}
@@ -906,7 +1082,15 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           icon={ArrowLeftRight}
           label="Stocks Sold"
           value={String(stocksSoldInFY.length)}
-          sub={`Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          sub={
+            <>
+              Realized:{" "}
+              <Prv>
+                {stocksRealizedPnl >= 0 ? "+" : ""}₹
+                {Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </Prv>
+            </>
+          }
           subColor={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust}
           color={THEME.accent}
           active={activeSection === "stocks_sold"}
@@ -916,7 +1100,12 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           icon={BarChart3}
           label="MF Bought"
           value={String(mfBoughtInFY.length)}
-          sub={`${fyLabel} · ₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          sub={
+            <>
+              {fyLabel} ·{" "}
+              <Prv>₹{totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Prv>
+            </>
+          }
           color={THEME.accent}
           active={activeSection === "mf_bought"}
           onClick={() => setActiveSection("mf_bought")}
@@ -925,7 +1114,15 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           icon={ArrowLeftRight}
           label="MF Redeemed"
           value={String(mfSoldInFY.length)}
-          sub={`Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          sub={
+            <>
+              Realized:{" "}
+              <Prv>
+                {mfRealizedPnl >= 0 ? "+" : ""}₹
+                {Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </Prv>
+            </>
+          }
           subColor={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust}
           color={THEME.accent}
           active={activeSection === "mf_sold"}
@@ -935,7 +1132,12 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           icon={Coins}
           label="Bank & Cash Ledger"
           value={String(cashTransactionsInFY.length)}
-          sub={`In +₹${totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })} · Out -₹${totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          sub={
+            <Prv>
+              In +₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })} · Out -₹
+              {totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            </Prv>
+          }
           subColor={THEME.sage}
           color={THEME.cyan}
           active={activeSection === "cash_ledger"}
@@ -967,8 +1169,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 icon={<Download size={14} />}
                 onClick={() =>
                   exportToCSV(
-                    stocksBoughtInFY,
-                    `Stocks_Bought_${fyLabel}.csv`,
+                    stocksBoughtSorted,
+                    `Stocks_Bought_${fyFileLabel}.csv`,
                     [
                       "Company",
                       "Exchange",
@@ -1001,7 +1203,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             )}
           </div>
           {stocksBoughtInFY.length === 0 ? (
-            <TxnHistoryEmptyState message={`No stock purchases recorded in ${fyLabel}`} />
+            <TxnHistoryEmptyState
+              message={`No stock purchases recorded in ${fyLabel}${searchSuffix(searchQuery)}`}
+            />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
@@ -1010,15 +1214,27 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     <tr style={{ background: "transparent" }}>
                       <th style={{ ...th, paddingLeft: 16 }}>Company</th>
                       <th style={{ ...th, textAlign: "right" }}>Qty</th>
-                      <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
+                      <SortableTh
+                        label="Buy Date"
+                        sortKey="date"
+                        activeKey={sortState.stocks_bought?.key}
+                        dir={sortState.stocks_bought?.dir}
+                        onClick={(key) => toggleSort("stocks_bought", key)}
+                      />
                       <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
-                      <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                      <SortableTh
+                        label="Amount"
+                        sortKey="amount"
+                        activeKey={sortState.stocks_bought?.key}
+                        dir={sortState.stocks_bought?.dir}
+                        onClick={(key) => toggleSort("stocks_bought", key)}
+                      />
                       <th style={{ ...th, textAlign: "right" }}>Curr Price</th>
                       <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stocksBoughtInFY.map((s: any) => {
+                    {stocksBoughtSorted.map((s: any) => {
                       const curr = livePrice(s, marketData);
                       const inv = Number(s.qty) * Number(s.avgPrice);
                       const val = Number(s.qty) * curr;
@@ -1054,13 +1270,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                             {fmtDate(s.buyDate)}
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            ₹{Number(s.avgPrice).toFixed(2)}
+                            <Prv>₹{Number(s.avgPrice).toFixed(2)}</Prv>
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
-                            ₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                            <Prv>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Prv>
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            {curr ? `₹${curr.toFixed(2)}` : "—"}
+                            {curr ? <Prv>₹{curr.toFixed(2)}</Prv> : "—"}
                           </td>
                           <td
                             style={{
@@ -1070,9 +1286,14 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                               fontWeight: 800,
                             }}
                           >
-                            {curr
-                              ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                              : "—"}
+                            {curr ? (
+                              <Prv>
+                                {pnl >= 0 ? "+" : ""}₹
+                                {Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                              </Prv>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                         </tr>
                       );
@@ -1087,10 +1308,12 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         Total Invested
                       </td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
-                        ₹
-                        {stocksBoughtTotals.invested.toLocaleString("en-IN", {
-                          maximumFractionDigits: 0,
-                        })}
+                        <Prv>
+                          ₹
+                          {stocksBoughtTotals.invested.toLocaleString("en-IN", {
+                            maximumFractionDigits: 0,
+                          })}
+                        </Prv>
                       </td>
                       <td style={td}></td>
                       <td
@@ -1102,11 +1325,39 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           fontSize: 15,
                         }}
                       >
-                        {stocksBoughtTotals.hasCurr
-                          ? `${stocksBoughtTotals.pnl >= 0 ? "+" : ""}₹${Math.abs(stocksBoughtTotals.pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                          : "—"}
+                        {stocksBoughtTotals.hasCurr ? (
+                          <Prv>
+                            {stocksBoughtTotals.pnl >= 0 ? "+" : ""}₹
+                            {Math.abs(stocksBoughtTotals.pnl).toLocaleString("en-IN", {
+                              maximumFractionDigits: 0,
+                            })}
+                            {stocksBoughtTotals.unpriced > 0 ? "*" : ""}
+                          </Prv>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
+                    {stocksBoughtTotals.hasCurr && stocksBoughtTotals.unpriced > 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          style={{
+                            ...td,
+                            paddingLeft: 16,
+                            paddingTop: 6,
+                            paddingBottom: 10,
+                            fontSize: 10.5,
+                            color: THEME.muted,
+                            fontStyle: "italic",
+                            borderBottom: "none",
+                          }}
+                        >
+                          * Approximate — excludes {stocksBoughtTotals.unpriced} holding
+                          {stocksBoughtTotals.unpriced > 1 ? "s" : ""} with no live price data
+                        </td>
+                      </tr>
+                    )}
                   </tfoot>
                 </table>
               </div>
@@ -1144,8 +1395,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 icon={<Download size={14} />}
                 onClick={() =>
                   exportToCSV(
-                    stocksSoldInFY,
-                    `Stocks_Sold_${fyLabel}.csv`,
+                    stocksSoldSorted,
+                    `Stocks_Sold_${fyFileLabel}.csv`,
                     [
                       "Company",
                       "Buy Date",
@@ -1174,11 +1425,15 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             )}
           </div>
           <SoldTable
-            rows={stocksSoldInFY}
+            rows={stocksSoldSorted}
             type="stock"
             removeItem={removeItem}
             fmtDate={fmtDate}
             fyLabel={fyLabel}
+            searchQuery={searchQuery}
+            sortKey={sortState.stocks_sold?.key}
+            sortDir={sortState.stocks_sold?.dir}
+            onSort={(key) => toggleSort("stocks_sold", key)}
           />
         </div>
       )}
@@ -1207,8 +1462,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 icon={<Download size={14} />}
                 onClick={() =>
                   exportToCSV(
-                    mfBoughtInFY,
-                    `MF_Bought_${fyLabel}.csv`,
+                    mfBoughtSorted,
+                    `MF_Bought_${fyFileLabel}.csv`,
                     [
                       "Scheme",
                       "Category/Type",
@@ -1237,7 +1492,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             )}
           </div>
           {mfBoughtInFY.length === 0 ? (
-            <TxnHistoryEmptyState message={`No MF purchases recorded in ${fyLabel}`} />
+            <TxnHistoryEmptyState
+              message={`No MF purchases recorded in ${fyLabel}${searchSuffix(searchQuery)}`}
+            />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
@@ -1246,15 +1503,27 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     <tr style={{ background: "transparent" }}>
                       <th style={{ ...th, paddingLeft: 16 }}>Scheme</th>
                       <th style={{ ...th, textAlign: "right" }}>Units</th>
-                      <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
+                      <SortableTh
+                        label="Buy Date"
+                        sortKey="date"
+                        activeKey={sortState.mf_bought?.key}
+                        dir={sortState.mf_bought?.dir}
+                        onClick={(key) => toggleSort("mf_bought", key)}
+                      />
                       <th style={{ ...th, textAlign: "right" }}>Buy NAV</th>
-                      <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                      <SortableTh
+                        label="Amount"
+                        sortKey="amount"
+                        activeKey={sortState.mf_bought?.key}
+                        dir={sortState.mf_bought?.dir}
+                        onClick={(key) => toggleSort("mf_bought", key)}
+                      />
                       <th style={{ ...th, textAlign: "right" }}>Curr NAV</th>
                       <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mfBoughtInFY.map((m: any) => {
+                    {mfBoughtSorted.map((m: any) => {
                       const buyNav = m.buyNav
                         ? Number(m.buyNav)
                         : m.invested && m.units
@@ -1299,13 +1568,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                             {fmtDate(m.buyDate)}
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            {buyNav ? `₹${buyNav.toFixed(4)}` : "—"}
+                            {buyNav ? <Prv>₹{buyNav.toFixed(4)}</Prv> : "—"}
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
-                            ₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                            <Prv>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Prv>
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            {currNav ? `₹${currNav.toFixed(4)}` : "—"}
+                            {currNav ? <Prv>₹{currNav.toFixed(4)}</Prv> : "—"}
                           </td>
                           <td
                             style={{
@@ -1315,9 +1584,14 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                               fontWeight: 800,
                             }}
                           >
-                            {currNav
-                              ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                              : "—"}
+                            {currNav ? (
+                              <Prv>
+                                {pnl >= 0 ? "+" : ""}₹
+                                {Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                              </Prv>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                         </tr>
                       );
@@ -1332,10 +1606,12 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         Total Invested
                       </td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
-                        ₹
-                        {mfBoughtTotals.invested.toLocaleString("en-IN", {
-                          maximumFractionDigits: 0,
-                        })}
+                        <Prv>
+                          ₹
+                          {mfBoughtTotals.invested.toLocaleString("en-IN", {
+                            maximumFractionDigits: 0,
+                          })}
+                        </Prv>
                       </td>
                       <td style={td}></td>
                       <td
@@ -1347,11 +1623,39 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           fontSize: 15,
                         }}
                       >
-                        {mfBoughtTotals.hasCurr
-                          ? `${mfBoughtTotals.pnl >= 0 ? "+" : ""}₹${Math.abs(mfBoughtTotals.pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                          : "—"}
+                        {mfBoughtTotals.hasCurr ? (
+                          <Prv>
+                            {mfBoughtTotals.pnl >= 0 ? "+" : ""}₹
+                            {Math.abs(mfBoughtTotals.pnl).toLocaleString("en-IN", {
+                              maximumFractionDigits: 0,
+                            })}
+                            {mfBoughtTotals.unpriced > 0 ? "*" : ""}
+                          </Prv>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
+                    {mfBoughtTotals.hasCurr && mfBoughtTotals.unpriced > 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          style={{
+                            ...td,
+                            paddingLeft: 16,
+                            paddingTop: 6,
+                            paddingBottom: 10,
+                            fontSize: 10.5,
+                            color: THEME.muted,
+                            fontStyle: "italic",
+                            borderBottom: "none",
+                          }}
+                        >
+                          * Approximate — excludes {mfBoughtTotals.unpriced} holding
+                          {mfBoughtTotals.unpriced > 1 ? "s" : ""} with no live NAV data
+                        </td>
+                      </tr>
+                    )}
                   </tfoot>
                 </table>
               </div>
@@ -1389,8 +1693,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 icon={<Download size={14} />}
                 onClick={() =>
                   exportToCSV(
-                    mfSoldInFY,
-                    `MF_Redeemed_${fyLabel}.csv`,
+                    mfSoldSorted,
+                    `MF_Redeemed_${fyFileLabel}.csv`,
                     [
                       "Scheme",
                       "Buy Date",
@@ -1419,11 +1723,15 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             )}
           </div>
           <SoldTable
-            rows={mfSoldInFY}
+            rows={mfSoldSorted}
             type="mf"
             removeItem={removeItem}
             fmtDate={fmtDate}
             fyLabel={fyLabel}
+            searchQuery={searchQuery}
+            sortKey={sortState.mf_sold?.key}
+            sortDir={sortState.mf_sold?.dir}
+            onSort={(key) => toggleSort("mf_sold", key)}
           />
         </div>
       )}
@@ -1446,7 +1754,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               color={THEME.cyan}
               subText={
                 cashTransactionsInFY.length > 0
-                  ? `Inflow +${fmtINRFull(totalCredits)} · Outflow -${fmtINRFull(totalDebits)}`
+                  ? `Inflow +${fmtINRFull(totalCredits)} · Outflow -${fmtINRFull(totalDebits)}${hasTransfers ? " (excl. self-transfers)" : ""}`
                   : undefined
               }
             />
@@ -1457,8 +1765,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 icon={<Download size={14} />}
                 onClick={() =>
                   exportToCSV(
-                    cashTransactionsInFY,
-                    `Cash_Ledger_${fyLabel}.csv`,
+                    cashTransactionsSorted,
+                    `Cash_Ledger_${fyFileLabel}.csv`,
                     ["Date", "Note", "Category", "Type", "Amount", "Description"],
                     (t) => [t.date, t.note, t.category, t.type, t.amount, t.description || ""]
                   )
@@ -1470,7 +1778,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           </div>
           {cashTransactionsInFY.length === 0 ? (
             <TxnHistoryEmptyState
-              message={`No bank/cash transactions recorded in ${fyLabel} matching your search`}
+              message={`No bank/cash transactions recorded in ${fyLabel}${searchSuffix(searchQuery)}`}
             />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -1479,15 +1787,27 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                   <thead>
                     <tr style={{ background: "transparent" }}>
                       <th style={{ ...th, paddingLeft: 16 }}>Note / Category</th>
-                      <th style={{ ...th, textAlign: "right" }}>Date</th>
+                      <SortableTh
+                        label="Date"
+                        sortKey="date"
+                        activeKey={sortState.cash_ledger?.key}
+                        dir={sortState.cash_ledger?.dir}
+                        onClick={(key) => toggleSort("cash_ledger", key)}
+                      />
                       <th style={{ ...th, textAlign: "right" }}>Type</th>
-                      <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                      <SortableTh
+                        label="Amount"
+                        sortKey="amount"
+                        activeKey={sortState.cash_ledger?.key}
+                        dir={sortState.cash_ledger?.dir}
+                        onClick={(key) => toggleSort("cash_ledger", key)}
+                      />
                       <th style={{ ...th, textAlign: "right" }}>Description</th>
                       <th style={th}></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {cashTransactionsInFY.map((t: any) => {
+                    {cashTransactionsSorted.map((t: any) => {
                       const amount = Number(t.amount || 0);
                       const isCredit = t.type === "credit";
                       return (
@@ -1549,8 +1869,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                               fontSize: 14,
                             }}
                           >
-                            {isCredit ? "+" : "-"}
-                            {fmtINRFull(amount)}
+                            <Prv>
+                              {isCredit ? "+" : "-"}
+                              {fmtINRFull(amount)}
+                            </Prv>
                           </td>
                           <td
                             style={{
@@ -1596,19 +1918,43 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     <tr style={{ background: "var(--surface-1)" }}>
                       <td colSpan={2} style={{ ...td, paddingLeft: 16 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
-                          {cashTransactionsInFY.filter((t: any) => t.type === "credit").length}{" "}
+                          {
+                            cashTransactionsInFY.filter(
+                              (t: any) => t.type === "credit" && !isTransferCategory(t.category)
+                            ).length
+                          }{" "}
                           credits ·{" "}
-                          {cashTransactionsInFY.filter((t: any) => t.type === "debit").length}{" "}
+                          {
+                            cashTransactionsInFY.filter(
+                              (t: any) => t.type === "debit" && !isTransferCategory(t.category)
+                            ).length
+                          }{" "}
                           debits
+                          {hasTransfers && (
+                            <span style={{ opacity: 0.7 }}>
+                              {" "}
+                              ·{" "}
+                              {
+                                cashTransactionsInFY.filter((t: any) =>
+                                  isTransferCategory(t.category)
+                                ).length
+                              }{" "}
+                              transfers (excluded)
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td style={td}></td>
                       <td style={{ ...td, textAlign: "right" }}>
                         <div style={{ fontSize: 13, fontWeight: 900, color: THEME.sage }}>
-                          +₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                          <Prv>
+                            +₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                          </Prv>
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 900, color: THEME.rust }}>
-                          -₹{totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                          <Prv>
+                            -₹{totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                          </Prv>
                         </div>
                         <div
                           style={{
@@ -1620,10 +1966,12 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                             marginTop: 4,
                           }}
                         >
-                          Net {cashNetFlow >= 0 ? "+" : ""}₹
-                          {Math.abs(cashNetFlow).toLocaleString("en-IN", {
-                            maximumFractionDigits: 2,
-                          })}
+                          <Prv>
+                            Net {cashNetFlow >= 0 ? "+" : ""}₹
+                            {Math.abs(cashNetFlow).toLocaleString("en-IN", {
+                              maximumFractionDigits: 2,
+                            })}
+                          </Prv>
                         </div>
                       </td>
                       <td colSpan={2} style={td}></td>
