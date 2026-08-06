@@ -592,6 +592,7 @@ CREATE TABLE IF NOT EXISTS public.govt_schemes (
   coverage_amount     numeric DEFAULT 0,
   premium             numeric DEFAULT 0,
   nominee             text DEFAULT '',
+  nominee_relation    text DEFAULT '',
   bank_account        text DEFAULT '',
   notes               text DEFAULT '',
   created_at          timestamptz NOT NULL DEFAULT NOW(),
@@ -1391,17 +1392,30 @@ CREATE INDEX IF NOT EXISTS idx_salary_slips_month   ON public.salary_slips (slip
 -- ================================================================
 
 CREATE TABLE IF NOT EXISTS public.documents (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     uuid NOT NULL REFERENCES auth.users(id),
-  owner       text NOT NULL DEFAULT 'self',
-  name        text NOT NULL,
-  file_path   text NOT NULL,
-  file_size   integer,
-  mime_type   text,
-  linked_type text,                                             -- 'stock','mf','fd','insurance','tax','property','vehicle', etc.
-  linked_id   uuid,
-  tags        text[],
-  uploaded_at timestamptz DEFAULT NOW()
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        uuid NOT NULL REFERENCES auth.users(id),
+  owner          text NOT NULL DEFAULT 'self',
+  name           text NOT NULL,
+  file_path      text,                                            -- nullable: Will/Key-Contact records below have no uploaded file
+  file_size      integer,
+  mime_type      text,
+  linked_type    text,                                            -- 'stock','mf','fd','insurance','tax','property','vehicle', etc.
+  linked_id      uuid,
+  tags           text[],
+  -- Will & Nominee Tracker also stores its "Will Document" and "Key Contact"
+  -- records in this table (discriminated by `type`), reusing it as a
+  -- generic metadata store rather than only a file vault.
+  type           text DEFAULT '',                                 -- 'will' | 'key_contact' (blank = an actual Document Vault file upload)
+  date           date,                                             -- will: date the will was made/updated
+  location       text DEFAULT '',                                 -- will: physical location (bank locker, home safe, ...)
+  witnesses      text DEFAULT '',                                  -- will: witness names
+  lawyer_name    text DEFAULT '',
+  lawyer_contact text DEFAULT '',
+  notes          text DEFAULT '',
+  role           text DEFAULT '',                                  -- key contact: Lawyer/CA/Financial Advisor/...
+  phone          text DEFAULT '',                                  -- key contact
+  email          text DEFAULT '',                                  -- key contact
+  uploaded_at    timestamptz DEFAULT NOW()
 );
 
 ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;

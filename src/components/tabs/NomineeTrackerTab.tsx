@@ -22,13 +22,13 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { fmtINRFull } from "../../utils/finance";
 import {
-  fmtINRFull,
-  today,
-  monthsBetween,
-  rdMaturity,
-  calculateEpfBalance,
-} from "../../utils/finance";
+  flattenAssets,
+  RELATION_OPTIONS,
+  CATEGORY_ORDER,
+  type FlatAsset,
+} from "../../utils/nomineeTracker";
 import { Prv } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -38,265 +38,10 @@ import { EmptyState } from "../ui/EmptyState";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input, Select } from "../ui/Form";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Asset type definitions for nominee scanning
-// ─────────────────────────────────────────────────────────────────────────────
-
-const assetTypes = [
-  {
-    key: "bankAccounts",
-    label: "Bank Account",
-    nameField: "bankName",
-    valueField: "balance",
-    idLabel: (a: any) => a.accountNumber || "",
-  },
-  {
-    key: "fixedDeposits",
-    label: "Fixed Deposit",
-    nameField: "bank",
-    valueField: "principal",
-    idLabel: (a: any) => `${fmtINRFull(a.principal)} @ ${a.rate}%`,
-  },
-  {
-    key: "recurringDeposits",
-    label: "Recurring Deposit",
-    nameField: "bank",
-    valueField: null,
-    calcValue: (a: any) => {
-      const elapsed = a.startDate
-        ? Math.min(Number(a.tenureMonths || 0), Math.max(0, monthsBetween(a.startDate, today())))
-        : Number(a.tenureMonths || 0);
-      return rdMaturity(Number(a.monthly || 0), Number(a.rate || 0), elapsed);
-    },
-    idLabel: (a: any) => `${fmtINRFull(a.monthly)}/mo`,
-  },
-  {
-    key: "bonds",
-    label: "Bond",
-    nameField: "name",
-    valueField: null,
-    calcValue: (a: any) =>
-      Number(a.totalInvestmentAmount || a.totalPrincipalAmount || a.faceValue || 0),
-    idLabel: (a: any) => a.isin || "",
-  },
-  {
-    key: "goldHoldings",
-    label: "Gold / SGB",
-    nameField: "type",
-    valueField: null,
-    calcValue: (a: any) => Number(a.currentValue || a.investedAmount || 0),
-    idLabel: (a: any) => a.subType || a.form || "",
-  },
-  {
-    key: "ppf",
-    label: "PPF",
-    nameField: "institution",
-    valueField: "balance",
-    idLabel: (a: any) => a.accountNumber || "",
-  },
-  {
-    key: "nps",
-    label: "NPS",
-    nameField: "fundManager",
-    valueField: null,
-    calcValue: (a: any) => {
-      const bal = Number(a.balance) || 0;
-      if (bal > 0) return bal;
-      return (a.transactions || []).reduce(
-        (s: number, t: any) =>
-          s + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
-        0
-      );
-    },
-    idLabel: (a: any) => a.pran || "",
-  },
-  {
-    key: "epf",
-    label: "EPF",
-    nameField: "employer",
-    valueField: null,
-    calcValue: (a: any) => calculateEpfBalance(a),
-    idLabel: (a: any) => a.uan || "",
-  },
-  {
-    key: "lic",
-    label: "LIC Policy",
-    nameField: "planName",
-    valueField: "sumAssured",
-    idLabel: (a: any) => a.policyNumber || "",
-  },
-  {
-    key: "termPlans",
-    label: "Term Plan",
-    nameField: "insurer",
-    valueField: "coverAmount",
-    idLabel: (a: any) => a.policyNumber || "",
-  },
-  {
-    key: "investmentPlans",
-    label: "Investment Plan",
-    nameField: "insurer",
-    valueField: "sumAssured",
-    idLabel: (a: any) => a.policyNumber || "",
-  },
-  {
-    key: "realEstateProperties",
-    label: "Real Estate",
-    nameField: "name",
-    valueField: "marketValue",
-    idLabel: (a: any) => a.location || "",
-  },
-  {
-    key: "vehicles",
-    label: "Vehicle",
-    nameField: "name",
-    valueField: "currentValue",
-    idLabel: (a: any) => a.registration || "",
-  },
-];
-
-const RELATION_OPTIONS = ["Spouse", "Child", "Parent", "Sibling", "Other"];
 const CONTACT_ROLES = ["Lawyer", "CA", "Financial Advisor", "Insurance Agent", "Other"];
 
 type FilterMode = "all" | "missing" | "covered";
-
-// Groups asset types into sections for the tracker UI. Stocks and mutual
-// fund schemes are deliberately absent here — they're not nominee-able on
-// their own (see flattenAssets below).
-const CATEGORY_MAP: Record<string, string> = {
-  bankAccounts: "Bank & Deposits",
-  fixedDeposits: "Bank & Deposits",
-  recurringDeposits: "Bank & Deposits",
-  demat: "Investments",
-  mutualFunds: "Investments",
-  bonds: "Investments",
-  goldHoldings: "Investments",
-  ppf: "Retirement",
-  nps: "Retirement",
-  epf: "Retirement",
-  lic: "Insurance",
-  termPlans: "Insurance",
-  investmentPlans: "Insurance",
-  realEstateProperties: "Property & Vehicles",
-  vehicles: "Property & Vehicles",
-};
-const CATEGORY_ORDER = [
-  "Bank & Deposits",
-  "Investments",
-  "Retirement",
-  "Insurance",
-  "Property & Vehicles",
-];
-
-interface FlatAsset {
-  key: string;
-  label: string;
-  id: string;
-  ids: string[];
-  name: string;
-  identifier: string;
-  value: number;
-  nominee: string;
-  nomineeRelation: string;
-  covered: boolean;
-  category: string;
-}
-
-// In India, a nominee is registered once per demat account (covering every
-// stock held in it) and once per mutual fund folio (covering every scheme
-// under that folio) — never per individual stock or scheme. So stocks roll
-// up into their demat account, and mutual fund schemes roll up into their
-// folio group, instead of each getting their own nominee entry.
-function flattenAssets(state: any): FlatAsset[] {
-  const result: FlatAsset[] = [];
-
-  for (const at of assetTypes) {
-    const items = state[at.key] || [];
-    for (const item of items) {
-      const val = at.valueField
-        ? Number(item[at.valueField]) || 0
-        : at.calcValue
-          ? at.calcValue(item)
-          : 0;
-      result.push({
-        key: at.key,
-        label: at.label,
-        id: item.id,
-        ids: [item.id],
-        name: item[at.nameField] || at.label,
-        identifier: at.idLabel(item),
-        value: val,
-        nominee: item.nominee || "",
-        nomineeRelation: item.nomineeRelation || "",
-        covered: !!(item.nominee && item.nominee.trim()),
-        category: CATEGORY_MAP[at.key] || "Other",
-      });
-    }
-  }
-
-  // Demat accounts — nominee lives on the account; its value is every
-  // linked stock holding's current value.
-  const stocks = state.stocks || [];
-  for (const d of state.demat || []) {
-    const linkedStocks = stocks.filter((s: any) => s.dematId === d.id);
-    const val = linkedStocks.reduce(
-      (s: number, st: any) =>
-        s + (Number(st.qty) || 0) * (Number(st.currentPrice || st.avgPrice) || 0),
-      0
-    );
-    result.push({
-      key: "demat",
-      label: "Demat Account",
-      id: d.id,
-      ids: [d.id],
-      name: d.broker || "Demat Account",
-      identifier: d.accountId || d.dpId || "",
-      value: val,
-      nominee: d.nominee || "",
-      nomineeRelation: d.nomineeRelation || "",
-      covered: !!(d.nominee && d.nominee.trim()),
-      category: "Investments",
-    });
-  }
-
-  // Mutual funds — nominee lives on the folio (one folio = one AMC
-  // enrollment); schemes without a folio number can't be safely grouped, so
-  // each stays its own entry until a folio is recorded.
-  const mfGroups: Record<string, any[]> = {};
-  for (const mf of state.mutualFunds || []) {
-    const folio = (mf.folioNumber || "").trim();
-    const groupKey = folio ? `folio:${folio}` : `item:${mf.id}`;
-    (mfGroups[groupKey] = mfGroups[groupKey] || []).push(mf);
-  }
-  for (const groupKey of Object.keys(mfGroups)) {
-    const items = mfGroups[groupKey];
-    const withNominee = items.find((m) => m.nominee && m.nominee.trim());
-    const rep = withNominee || items[0];
-    const val = items.reduce(
-      (s, m) => s + (Number(m.units) || 0) * (Number(m.currentNav || m.buyNav) || 0),
-      0
-    );
-    const schemeNames = Array.from(new Set(items.map((m) => m.name).filter(Boolean)));
-    result.push({
-      key: "mutualFunds",
-      label: "Mutual Fund",
-      id: groupKey,
-      ids: items.map((m) => m.id),
-      name:
-        schemeNames.length > 1
-          ? `${schemeNames[0]} +${schemeNames.length - 1} more`
-          : schemeNames[0] || "Mutual Fund",
-      identifier: rep.folioNumber ? `Folio ${rep.folioNumber}` : "",
-      value: val,
-      nominee: rep.nominee || "",
-      nomineeRelation: rep.nomineeRelation || "",
-      covered: !!(rep.nominee && rep.nominee.trim()),
-      category: "Investments",
-    });
-  }
-
-  return result;
-}
+type ViewMode = "asset" | "nominee";
 
 /* ─── Premium Nominee Bento Card ─────────────────────────────────── */
 const NomineeStatCard = ({ label, value, sub, subColor, icon: Icon, color }: any) => {
@@ -380,10 +125,12 @@ export const NomineeTrackerTab = ({
   setTab,
 }: any) => {
   const [filter, setFilter] = useState<FilterMode>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("asset");
   const [search, setSearch] = useState("");
   const [assignModal, setAssignModal] = useState<FlatAsset | null>(null);
   const [assignName, setAssignName] = useState("");
   const [assignRelation, setAssignRelation] = useState("Spouse");
+  const [assignRelationOther, setAssignRelationOther] = useState("");
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const toggleCategory = (cat: string) => {
     setCollapsedCategories((prev) => {
@@ -455,6 +202,23 @@ export const NomineeTrackerTab = ({
     }));
   }, [filteredAssets]);
 
+  // "By Nominee" view — who inherits what, at a glance. Groups covered
+  // assets by the nominee's name (case-insensitively, so "Priya" and "priya"
+  // don't split into two people) so the user can sanity-check that the
+  // right person is down for the right accounts.
+  const byNominee = useMemo(() => {
+    const map = new Map<string, { name: string; relation: string; items: FlatAsset[] }>();
+    for (const a of filteredAssets) {
+      if (!a.covered) continue;
+      const k = a.nominee.trim().toLowerCase();
+      if (!map.has(k)) map.set(k, { name: a.nominee.trim(), relation: a.nomineeRelation, items: [] });
+      map.get(k)!.items.push(a);
+    }
+    return Array.from(map.values())
+      .map((g) => ({ ...g, total: g.items.reduce((s, a) => s + a.value, 0) }))
+      .sort((a, b) => b.total - a.total);
+  }, [filteredAssets]);
+
   const documents: any[] = state.documents || [];
   const willDocs = documents.filter((d: any) => d.type === "will");
   const keyContacts = documents.filter((d: any) => d.type === "key_contact");
@@ -462,27 +226,65 @@ export const NomineeTrackerTab = ({
   // Handlers
   const openAssignModal = (asset: FlatAsset) => {
     setAssignName(asset.nominee);
-    setAssignRelation(asset.nomineeRelation || "Spouse");
+    const rel = asset.nomineeRelation || "Spouse";
+    if (rel && !RELATION_OPTIONS.includes(rel)) {
+      setAssignRelation("Other");
+      setAssignRelationOther(rel);
+    } else {
+      setAssignRelation(rel);
+      setAssignRelationOther("");
+    }
     setAssignModal(asset);
   };
 
   const handleAssign = async () => {
     if (!assignModal || !assignName.trim()) return;
+    const relation =
+      assignRelation === "Other" && assignRelationOther.trim()
+        ? assignRelationOther.trim()
+        : assignRelation;
     try {
       await Promise.all(
         assignModal.ids.map((itemId) =>
           updateItem(assignModal.key, itemId, {
             nominee: assignName.trim(),
-            nomineeRelation: assignRelation,
+            nomineeRelation: relation,
           })
         )
       );
       setAssignModal(null);
       setAssignName("");
       setAssignRelation("Spouse");
+      setAssignRelationOther("");
     } catch (e: any) {
       showToast?.(`Failed to save nominee: ${e?.message || "Unknown error"}`, "error");
     }
+  };
+
+  const downloadCSV = () => {
+    const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = ["Category,Asset Type,Name,Identifier,Value (₹),Nominee,Relation,Status"];
+    allAssets.forEach((a) => {
+      rows.push(
+        [
+          q(a.category),
+          q(a.label),
+          q(a.name),
+          q(a.identifier),
+          q(a.value),
+          q(a.nominee),
+          q(a.nomineeRelation),
+          q(a.covered ? "Covered" : "Missing"),
+        ].join(",")
+      );
+    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nominee-coverage.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const resetWillForm = () => {
@@ -512,7 +314,11 @@ export const NomineeTrackerTab = ({
   };
 
   const handleSaveWill = async () => {
-    const payload = { type: "will", ...willForm };
+    // `documents.name` is a required column in Supabase — the will record has
+    // no natural "name" of its own, so synthesize one from the date so saves
+    // don't fail with a not-null constraint violation.
+    const name = willForm.date ? `Will — dated ${willForm.date}` : "Will Document";
+    const payload = { type: "will", name, ...willForm };
     try {
       if (editWill) {
         await updateItem("documents", editWill.id, payload);
@@ -799,9 +605,146 @@ export const NomineeTrackerTab = ({
             }}
           />
         </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            background: "var(--surface-0)",
+            border: `1.5px solid ${THEME.line}`,
+            padding: 4,
+            borderRadius: 14,
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          {(["asset", "nominee"] as ViewMode[]).map((v) => {
+            const isActive = viewMode === v;
+            return (
+              <button
+                key={v}
+                onClick={() => setViewMode(v)}
+                aria-pressed={isActive}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: isActive ? THEME.accent : "transparent",
+                  color: isActive ? "#fff" : THEME.ink,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {v === "asset" ? "By Asset" : "By Nominee"}
+              </button>
+            );
+          })}
+        </div>
+        <Button variant="ghost" size="sm" icon={<FileText size={13} />} onClick={downloadCSV}>
+          Export CSV
+        </Button>
       </div>
 
+      {/* By Nominee — who inherits what, grouped by beneficiary */}
+      {viewMode === "nominee" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {byNominee.length === 0 ? (
+            <Card
+              style={{
+                padding: "40px 24px",
+                textAlign: "center",
+                border: `1.5px solid ${THEME.line}`,
+              }}
+            >
+              <div style={{ fontSize: 14, color: THEME.muted, fontWeight: 600 }}>
+                No nominees assigned yet — switch to "By Asset" to assign one.
+              </div>
+            </Card>
+          ) : (
+            byNominee.map((g) => (
+              <Card
+                key={g.name.toLowerCase()}
+                style={{
+                  padding: "18px 20px",
+                  border: `1.5px solid ${THEME.line}`,
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: THEME.accent,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Users size={16} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
+                        <Prv>{g.name}</Prv>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: THEME.muted, fontWeight: 600 }}>
+                        {g.relation || "Relation not set"} · {g.items.length} asset
+                        {g.items.length === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: THEME.muted,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      Total Value
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 900,
+                        color: THEME.ink,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      <Prv>{fmtINRFull(g.total)}</Prv>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {g.items.map((a) => (
+                    <Badge key={`${a.key}-${a.id}`} variant="muted" style={{ fontSize: 10.5 }}>
+                      {a.name} <span style={{ opacity: 0.6 }}>· {a.label}</span>
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
       {/* Asset Nominees — grouped into collapsible category sections */}
+      {viewMode === "asset" && (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {categorizedAssets.length === 0 ? (
           <Card
@@ -969,7 +912,7 @@ export const NomineeTrackerTab = ({
                           {asset.covered ? (
                             <>
                               <div style={{ fontSize: 13.5, fontWeight: 800, color: THEME.ink }}>
-                                {asset.nominee}
+                                <Prv>{asset.nominee}</Prv>
                               </div>
                               <div
                                 style={{
@@ -1016,6 +959,7 @@ export const NomineeTrackerTab = ({
           })
         )}
       </div>
+      )}
 
       {/* Will Documents Section */}
       <SectionTitle
@@ -1504,6 +1448,16 @@ export const NomineeTrackerTab = ({
               ))}
             </Select>
           </Field>
+
+          {assignRelation === "Other" && (
+            <Field label="Specify Relation">
+              <Input
+                value={assignRelationOther}
+                onChange={(e) => setAssignRelationOther(e.target.value)}
+                placeholder="e.g. Nephew, Friend, Trust"
+              />
+            </Field>
+          )}
 
           <ModalActions
             onSave={handleAssign}

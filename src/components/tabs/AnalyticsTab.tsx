@@ -90,6 +90,7 @@ import {
 } from "../../utils/finance";
 import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { getCurrentFY } from "../../utils/appConstants";
+import { flattenAssets } from "../../utils/nomineeTracker";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -1072,130 +1073,31 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   ]);
 
   // ── Estate Planning — Nomination Coverage Audit ──
+  // Built on the same flattenAssets() the full Will & Nominee Tracker tab
+  // uses, so this widget's coverage % can never drift out of sync with that
+  // tab's — the two used to be independently-maintained copies that counted
+  // different asset universes and showed disagreeing numbers for the same
+  // data.
   const nominationAudit = useMemo(() => {
-    const accounts: {
-      type: string;
-      name: string;
-      hasNominee: boolean;
-      key: string;
-      ids: string[];
-    }[] = [];
-    (state.bankAccounts || []).forEach((a: any) =>
-      accounts.push({
-        type: "Bank Account",
-        name: a.bankName || a.name || "Bank",
-        hasNominee: !!a.nominee,
-        key: "bankAccounts",
-        ids: [a.id],
-      })
-    );
-    (state.demat || []).forEach((a: any) =>
-      accounts.push({
-        type: "Demat",
-        name: a.broker || a.name || "Demat",
-        hasNominee: !!a.nominee,
-        key: "demat",
-        ids: [a.id],
-      })
-    );
-    (state.lic || []).forEach((a: any) =>
-      accounts.push({
-        type: "Insurance (LIC)",
-        name: a.planName || a.name || "LIC Policy",
-        hasNominee: !!a.nominee,
-        key: "lic",
-        ids: [a.id],
-      })
-    );
-    (state.termPlans || []).forEach((a: any) =>
-      accounts.push({
-        type: "Term Insurance",
-        name: a.planName || a.provider || a.name || "Term Plan",
-        hasNominee: !!a.nominee,
-        key: "termPlans",
-        ids: [a.id],
-      })
-    );
-    (state.investmentPlans || []).forEach((a: any) =>
-      accounts.push({
-        type: "Investment Plan",
-        name: a.planName || a.name || "Investment Plan",
-        hasNominee: !!a.nominee,
-        key: "investmentPlans",
-        ids: [a.id],
-      })
-    );
-    (state.ppf || []).forEach((a: any) =>
-      accounts.push({
-        type: "PPF",
-        name: a.bankName || a.name || "PPF",
-        hasNominee: !!a.nominee,
-        key: "ppf",
-        ids: [a.id],
-      })
-    );
-    (state.nps || []).forEach((a: any) =>
-      accounts.push({
-        type: "NPS",
-        name: a.fundManager || a.name || "NPS",
-        hasNominee: !!a.nominee,
-        key: "nps",
-        ids: [a.id],
-      })
-    );
-    (state.fixedDeposits || []).forEach((a: any) =>
-      accounts.push({
-        type: "Fixed Deposit",
-        name: a.bankName || a.name || "FD",
-        hasNominee: !!a.nominee,
-        key: "fixedDeposits",
-        ids: [a.id],
-      })
-    );
-    // Nominee is registered per folio (one AMC enrollment covers every
-    // scheme under it), not per individual scheme — group before counting.
-    const mfByFolio: Record<string, any[]> = {};
-    (state.mutualFunds || []).forEach((m: any) => {
-      const folio = (m.folioNumber || "").trim();
-      const gk = folio ? `folio:${folio}` : `item:${m.id}`;
-      (mfByFolio[gk] = mfByFolio[gk] || []).push(m);
-    });
-    Object.values(mfByFolio).forEach((group: any[]) => {
-      const hasNominee = group.some((m) => m.nominee && m.nominee.trim());
-      accounts.push({
-        type: "Mutual Fund",
-        name: group[0].fundName || group[0].name || "MF",
-        hasNominee,
-        key: "mutualFunds",
-        ids: group.map((m: any) => m.id),
-      });
-    });
+    const flat = flattenAssets(state);
+    const accounts = flat.map((a) => ({
+      type: a.label,
+      name: a.name,
+      hasNominee: a.covered,
+      key: a.key,
+      ids: a.ids,
+    }));
 
     const total = accounts.length;
     const covered = accounts.filter((a) => a.hasNominee).length;
     const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
 
     // Priority alerts
-    const insuranceTypes = ["Insurance (LIC)", "Term Insurance", "Investment Plan"];
-    const insuranceMissing = accounts.filter(
-      (a) => insuranceTypes.includes(a.type) && !a.hasNominee
-    ).length;
-    const accountMissing = accounts.filter(
-      (a) => !insuranceTypes.includes(a.type) && !a.hasNominee
-    ).length;
+    const insuranceMissing = flat.filter((a) => a.category === "Insurance" && !a.covered).length;
+    const accountMissing = flat.filter((a) => a.category !== "Insurance" && !a.covered).length;
 
     return { accounts, total, covered, pct, insuranceMissing, accountMissing };
-  }, [
-    state.bankAccounts,
-    state.demat,
-    state.lic,
-    state.termPlans,
-    state.investmentPlans,
-    state.ppf,
-    state.nps,
-    state.fixedDeposits,
-    state.mutualFunds,
-  ]);
+  }, [state]);
 
   const lastTradingDayPerformance = useMemo(() => {
     const uniqueStocks = new Map<
