@@ -2718,6 +2718,8 @@ export function SettingsTab({
   updateMasterData,
   emailSettings,
   updateEmailSettings,
+  session,
+  showToast,
 }: any) {
   const [tab, setTab] = useState("appearance");
 
@@ -2871,6 +2873,8 @@ export function SettingsTab({
             addItem={addItem}
             removeItem={removeItem}
             updateItem={updateItem}
+            session={session}
+            showToast={showToast}
           />
         </div>
       )}

@@ -31,6 +31,9 @@ import {
   X,
   Copy,
   Check,
+  Upload,
+  Paperclip,
+  Download,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -44,6 +47,10 @@ import { Prv } from "../../context/PrivacyContext";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
+import { supabase } from "../../supabaseClient";
+
+const VAULT_BUCKET = "documents";
+const MAX_FILE_MB = 15;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Category definitions
@@ -212,6 +219,25 @@ function getCategoryColor(category: string) {
   return cat ? cat.color : THEME.muted;
 }
 
+function formatBytes(bytes?: number | null): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Storage objects are keyed `${userId}/${docId}/${sanitizedFileName}` — the
+// original filename is everything after the second slash, used for display.
+function fileNameFromPath(path?: string): string {
+  if (!path) return "";
+  const parts = path.split("/");
+  return parts[parts.length - 1] || "";
+}
+
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+}
+
 function getLinkedAssets(state: any, assetType: string): { id: string; label: string }[] {
   switch (assetType) {
     case "bankAccount":
@@ -343,6 +369,9 @@ const EMPTY_DOC = {
   owner: "self",
   linkedAssetType: "",
   linkedAsset: "",
+  filePath: "",
+  fileSize: null as number | null,
+  mimeType: "",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -457,6 +486,7 @@ function DocCard({
   onCopy,
   onEdit,
   onDelete,
+  onOpenFile,
 }: {
   doc: any;
   state: any;
@@ -466,6 +496,7 @@ function DocCard({
   onCopy: (id: string, text: string, e?: React.MouseEvent) => void;
   onEdit: (doc: any) => void;
   onDelete: (id: string) => void;
+  onOpenFile: (doc: any) => void;
 }) {
   const status = getDocStatus(doc.expiryDate);
   const badge = statusBadge(status);
@@ -618,6 +649,15 @@ function DocCard({
               </span>
             </div>
           )}
+          {doc.filePath && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
+              <Paperclip size={11} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {fileNameFromPath(doc.filePath)}
+                {doc.fileSize ? ` (${formatBytes(doc.fileSize)})` : ""}
+              </span>
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
             <Calendar size={11} style={{ flexShrink: 0 }} />
             <span style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -693,9 +733,12 @@ function DocCard({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {doc.url && (
+        {(doc.url || doc.filePath) && (
           <button
-            onClick={() => window.open(doc.url, "_blank")}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenFile(doc);
+            }}
             style={{
               flex: 1,
               padding: "8px 0",
@@ -718,7 +761,7 @@ function DocCard({
               e.currentTarget.style.background = "transparent";
             }}
           >
-            <ExternalLink size={11} />
+            {doc.filePath && !doc.url ? <Paperclip size={11} /> : <ExternalLink size={11} />}
             Open
           </button>
         )}
@@ -728,7 +771,7 @@ function DocCard({
             flex: 1,
             padding: "8px 0",
             border: "none",
-            borderLeft: doc.url ? `1px solid ${THEME.line}` : "none",
+            borderLeft: doc.url || doc.filePath ? `1px solid ${THEME.line}` : "none",
             background: "transparent",
             cursor: "pointer",
             display: "flex",
@@ -792,6 +835,7 @@ function DocRow({
   onCopy,
   onEdit,
   onDelete,
+  onOpenFile,
 }: {
   doc: any;
   familyProfiles: any[];
@@ -800,6 +844,7 @@ function DocRow({
   onCopy: (id: string, text: string, e?: React.MouseEvent) => void;
   onEdit: (doc: any) => void;
   onDelete: (id: string) => void;
+  onOpenFile: (doc: any) => void;
 }) {
   const status = getDocStatus(doc.expiryDate);
   const badge = statusBadge(status);
@@ -899,9 +944,9 @@ function DocRow({
             {copiedId === doc.id ? <Check size={13} /> : <Copy size={13} />}
           </button>
         )}
-        {doc.url && (
+        {(doc.url || doc.filePath) && (
           <button
-            onClick={() => window.open(doc.url, "_blank")}
+            onClick={() => onOpenFile(doc)}
             aria-label="Open document link"
             title="Open"
             style={{ ...actionBtnBase, color: THEME.accent }}
@@ -912,7 +957,7 @@ function DocRow({
               e.currentTarget.style.background = "transparent";
             }}
           >
-            <ExternalLink size={13} />
+            {doc.filePath && !doc.url ? <Paperclip size={13} /> : <ExternalLink size={13} />}
           </button>
         )}
         <button
@@ -952,9 +997,18 @@ function DocRow({
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => {
+export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, session, showToast }) => {
   const { familyProfiles } = useMasterData();
-  const documents: any[] = state.documents || [];
+  // Will & Nominee Tracker also writes into the `documents` table (type: "will" |
+  // "key_contact") for its own estate-planning records — exclude those here so a
+  // Will doesn't show up as a generic vault document with a nonsensical category
+  // and a Delete button that doesn't belong to this tab.
+  const documents: any[] = (state.documents || []).filter(
+    (d: any) => d.type !== "will" && d.type !== "key_contact"
+  );
+
+  const userId = session?.user?.id;
+  const isOffline = !userId || userId === "offline-user";
 
   // ── UI State ────────────────────────────────────────────────────────────
   const [showModal, setShowModal] = useState(false);
@@ -971,6 +1025,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   const [renewDate, setRenewDate] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [viewDocId, setViewDocId] = useState<string | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [removeExistingFile, setRemoveExistingFile] = useState(false);
+  const [fileError, setFileError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // ── Computed ────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -1211,6 +1269,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       linkedAsset: defaultAssetId,
     });
     setEditId(null);
+    setUploadFile(null);
+    setRemoveExistingFile(false);
+    setFileError("");
     setShowModal(true);
   };
 
@@ -1228,34 +1289,125 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       owner: doc.owner || "self",
       linkedAssetType: doc.linkedAssetType || "",
       linkedAsset: doc.linkedAsset || "",
+      filePath: doc.filePath || "",
+      fileSize: doc.fileSize || null,
+      mimeType: doc.mimeType || "",
     });
     setEditId(doc.id);
+    setUploadFile(null);
+    setRemoveExistingFile(false);
+    setFileError("");
     setShowModal(true);
   };
 
-  const handleSave = () => {
-    if (!form.name.trim()) return;
-    const payload = {
-      ...form,
-      name: form.name.trim(),
-      documentNumber: form.documentNumber.trim(),
-      issuer: form.issuer.trim(),
-      notes: form.notes.trim(),
-      url: form.url.trim(),
-    };
+  // Storage objects live at `${userId}/${docId}/${sanitizedFileName}` — the
+  // top-level folder matching auth.uid() is what the bucket's RLS policies key on.
+  const uploadDocFile = async (docId: string, file: File) => {
+    const path = `${userId}/${docId}/${sanitizeFileName(file.name)}`;
+    const { error } = await supabase.storage
+      .from(VAULT_BUCKET)
+      .upload(path, file, { upsert: true, contentType: file.type || undefined });
+    if (error) throw error;
+    return { filePath: path, fileSize: file.size, mimeType: file.type || "" };
+  };
 
-    if (editId) {
-      updateItem("documents", editId, payload);
-    } else {
-      addItem("documents", { id: uid(), ...payload });
+  const deleteDocFile = async (path?: string) => {
+    if (!path) return;
+    try {
+      await supabase.storage.from(VAULT_BUCKET).remove([path]);
+    } catch (err) {
+      console.warn("Failed to delete vault file from storage:", err);
     }
-    setShowModal(false);
-    setEditId(null);
+  };
+
+  // Private bucket — files aren't reachable by a plain URL, so opening one
+  // means minting a short-lived signed URL on demand rather than storing a
+  // permanent link (which would defeat the point of a *private* vault).
+  const handleOpenDoc = async (doc: any) => {
+    if (doc.url) {
+      window.open(doc.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (doc.filePath) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(VAULT_BUCKET)
+          .createSignedUrl(doc.filePath, 300);
+        if (error || !data?.signedUrl) throw error || new Error("No signed URL returned");
+        window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+      } catch (err) {
+        showToast?.("Couldn't open file — it may have been removed from storage.", "error");
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      setFileError(`File is too large — max ${MAX_FILE_MB}MB.`);
+      return;
+    }
+    setFileError("");
+    setUploadFile(file);
+    setRemoveExistingFile(false);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim() || saving) return;
+    setSaving(true);
+    try {
+      const docId = editId || uid();
+      let fileFields: { filePath?: string; fileSize?: number | null; mimeType?: string } = {};
+
+      if (uploadFile) {
+        if (isOffline) {
+          showToast?.("Sign in to upload files — add a URL/link instead while offline.", "warn");
+        } else {
+          const uploaded = await uploadDocFile(docId, uploadFile);
+          fileFields = uploaded;
+          if (form.filePath && form.filePath !== uploaded.filePath) {
+            await deleteDocFile(form.filePath);
+          }
+        }
+      } else if (removeExistingFile && form.filePath) {
+        await deleteDocFile(form.filePath);
+        fileFields = { filePath: "", fileSize: null, mimeType: "" };
+      }
+
+      const payload = {
+        ...form,
+        ...fileFields,
+        name: form.name.trim(),
+        documentNumber: form.documentNumber.trim(),
+        issuer: form.issuer.trim(),
+        notes: form.notes.trim(),
+        url: form.url.trim(),
+      };
+
+      if (editId) {
+        updateItem("documents", editId, payload);
+      } else {
+        addItem("documents", { id: docId, ...payload });
+      }
+      setShowModal(false);
+      setEditId(null);
+      setUploadFile(null);
+      setRemoveExistingFile(false);
+    } catch (err) {
+      showToast?.("File upload failed. Please try again.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Delete this document?")) {
-      removeItem("documents", id);
+    if (!confirm("Delete this document?")) return;
+    const doc = documents.find((d) => d.id === id);
+    removeItem("documents", id);
+    if (doc?.filePath) {
+      deleteDocFile(doc.filePath);
     }
   };
 
@@ -1357,6 +1509,33 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     () => (form.linkedAssetType ? getLinkedAssets(state, form.linkedAssetType) : []),
     [state, form.linkedAssetType]
   );
+
+  const handleExportCsv = () => {
+    const header = "Name,Category,Sub-category,Document Number,Issuer,Issue Date,Expiry Date,Owner,Status";
+    const rows = filteredDocs.map((d) => {
+      const status = statusBadge(getDocStatus(d.expiryDate)).label;
+      const cell = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
+      return [
+        cell(d.name),
+        cell(d.category),
+        cell(d.subcategory),
+        cell(d.documentNumber),
+        cell(d.issuer),
+        cell(d.issueDate),
+        cell(d.expiryDate),
+        cell(getOwnerAvatarInfo(d.owner, familyProfiles).name),
+        cell(status),
+      ].join(",");
+    });
+    const content = [header, ...rows].join("\n");
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "document_vault.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // ── Empty state ─────────────────────────────────────────────────────────
   if (documents.length === 0) {
@@ -1736,6 +1915,36 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 </div>
               </div>
             )}
+
+            {doc.filePath && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Attached File
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: THEME.ink,
+                  }}
+                >
+                  <Paperclip size={12} color={THEME.accent} />
+                  {fileNameFromPath(doc.filePath)}
+                  {doc.fileSize && (
+                    <span style={{ color: THEME.muted, fontWeight: 500 }}>
+                      ({formatBytes(doc.fileSize)})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Notes */}
@@ -1780,12 +1989,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               )}
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              {doc.url && (
+              {(doc.url || doc.filePath) && (
                 <Button
                   variant="accent"
                   size="sm"
-                  onClick={() => window.open(doc.url, "_blank")}
-                  icon={<ExternalLink size={13} />}
+                  onClick={() => handleOpenDoc(doc)}
+                  icon={doc.filePath && !doc.url ? <Paperclip size={13} /> : <ExternalLink size={13} />}
                 >
                   Open Original
                 </Button>
@@ -1910,6 +2119,68 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             />
           </Field>
 
+          {/* File attachment */}
+          <Field label="Attach File (optional)" style={{ gridColumn: "1 / -1" }}>
+            {isOffline ? (
+              <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
+                Sign in to upload files — use the URL / Link field above while offline.
+              </div>
+            ) : uploadFile ? (
+              <div className="doc-vault-file-chip">
+                <Paperclip size={13} color={THEME.accent} />
+                <span className="doc-vault-file-chip-name">{uploadFile.name}</span>
+                <span className="doc-vault-file-chip-size">{formatBytes(uploadFile.size)}</span>
+                <button type="button" className="doc-vault-file-chip-remove" onClick={() => setUploadFile(null)}>
+                  <X size={13} />
+                </button>
+              </div>
+            ) : form.filePath && !removeExistingFile ? (
+              <div className="doc-vault-file-chip">
+                <Paperclip size={13} color={THEME.accent} />
+                <span className="doc-vault-file-chip-name">{fileNameFromPath(form.filePath)}</span>
+                {form.fileSize && (
+                  <span className="doc-vault-file-chip-size">{formatBytes(form.fileSize)}</span>
+                )}
+                <button
+                  type="button"
+                  className="doc-vault-file-chip-view"
+                  onClick={() => handleOpenDoc({ filePath: form.filePath })}
+                >
+                  View
+                </button>
+                <label htmlFor="doc-vault-file-input" className="doc-vault-file-chip-view">
+                  Replace
+                </label>
+                <button
+                  type="button"
+                  className="doc-vault-file-chip-remove"
+                  onClick={() => setRemoveExistingFile(true)}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <label htmlFor="doc-vault-file-input" className="doc-vault-file-picker">
+                <Upload size={14} />
+                Choose file (PDF, JPG, PNG — max {MAX_FILE_MB}MB)
+              </label>
+            )}
+            {!isOffline && (
+              <input
+                id="doc-vault-file-input"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf"
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+              />
+            )}
+            {fileError && (
+              <div style={{ fontSize: 11, color: THEME.rust, marginTop: 6, fontWeight: 600 }}>
+                {fileError}
+              </div>
+            )}
+          </Field>
+
           {/* Linked Asset Type */}
           <Field label="Linked Asset Type (optional)">
             <Select
@@ -1975,7 +2246,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           onSave={handleSave}
           onClose={() => setShowModal(false)}
           saveLabel={editId ? "Update" : "Add Document"}
-          disabled={!form.name.trim()}
+          disabled={!form.name.trim() || saving}
+          loading={saving}
         />
       </Modal>
     );
@@ -2004,6 +2276,76 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         .doc-vault-form-grid textarea:focus {
           border-color: var(--t-accent) !important;
           box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 12%, transparent) !important;
+        }
+        .doc-vault-file-picker {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px;
+          font-size: 12.5px;
+          font-weight: 600;
+          border-radius: var(--radius-md, 8px);
+          border: 1.5px dashed var(--t-line);
+          background: var(--surface-1);
+          color: var(--t-muted);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .doc-vault-file-picker:hover {
+          border-color: var(--t-accent);
+          color: var(--t-accent);
+          background: color-mix(in srgb, var(--t-accent) 5%, var(--surface-1));
+        }
+        .doc-vault-file-chip {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          border-radius: var(--radius-md, 8px);
+          border: 1.5px solid var(--t-line);
+          background: var(--surface-1);
+        }
+        .doc-vault-file-chip-name {
+          flex: 1;
+          min-width: 0;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: var(--t-ink);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .doc-vault-file-chip-size {
+          font-size: 10.5px;
+          color: var(--t-muted);
+          flex-shrink: 0;
+        }
+        .doc-vault-file-chip-view {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--t-accent);
+          cursor: pointer;
+          flex-shrink: 0;
+          background: none;
+          border: none;
+          padding: 2px 4px;
+        }
+        .doc-vault-file-chip-remove {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 3px;
+          border: none;
+          border-radius: 5px;
+          background: transparent;
+          color: var(--t-muted);
+          cursor: pointer;
+        }
+        .doc-vault-file-chip-remove:hover {
+          background: color-mix(in srgb, var(--t-rust) 10%, transparent);
+          color: var(--t-rust);
         }
         .doc-vault-stats-grid {
           display: grid;
@@ -2694,6 +3036,17 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           ))}
         </div>
 
+        {/* Export */}
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<Download size={13} />}
+          onClick={handleExportCsv}
+          title="Export visible documents to CSV"
+        >
+          Export
+        </Button>
+
         {/* View toggle */}
         <div
           style={{
@@ -2812,6 +3165,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               onCopy={handleCopy}
               onEdit={openEditModal}
               onDelete={handleDelete}
+              onOpenFile={handleOpenDoc}
             />
           ))}
         </div>
@@ -2835,6 +3189,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               onCopy={handleCopy}
               onEdit={openEditModal}
               onDelete={handleDelete}
+              onOpenFile={handleOpenDoc}
             />
           ))}
         </Card>

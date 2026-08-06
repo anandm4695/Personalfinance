@@ -5139,6 +5139,8 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  session={session}
+                  showToast={showToast}
                 />
               )}
               {tab === "rebalancing" && (
@@ -5276,6 +5278,7 @@ function FinanceDashboard() {
                   onRestoreBackup={importJSON}
                   resetAll={resetAll}
                   showToast={showToast}
+                  session={session}
                   onSignOut={async () => {
                     sessionStorage.removeItem("demo_session");
                     if (getIsDemoMode()) {

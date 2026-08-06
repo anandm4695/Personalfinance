@@ -1002,22 +1002,50 @@ Shared table for properties rented out (landlord) and rented in (tenant). Discri
 
 ### 2.40 `documents`
 
+Shared by two features: Document Vault (`type = ''`, DocumentVaultTab.tsx) and
+Will & Nominee Tracker's Will/Key-Contact records (`type = 'will' | 'key_contact'`,
+NomineeTrackerTab.tsx). Document Vault filters the table down to blank-`type`
+rows before rendering.
+
 | Column | Type | Constraints | Default |
 |--------|------|-------------|---------|
 | `id` | uuid | PK | `gen_random_uuid()` |
 | `user_id` | uuid | NOT NULL, FK -> `auth.users(id)` | -- |
 | `owner` | text | NOT NULL | `'self'` |
 | `name` | text | NOT NULL | -- |
-| `file_path` | text | NOT NULL | -- |
+| `file_path` | text | nullable — object key in the `documents` Storage bucket | NULL |
 | `file_size` | integer | | NULL |
 | `mime_type` | text | | NULL |
-| `linked_type` | text | | NULL |
-| `linked_id` | uuid | | NULL |
+| `linked_type` | text | unused by Document Vault (see `linked_asset_type` below) | NULL |
+| `linked_id` | uuid | unused by Document Vault (see `linked_asset` below) | NULL |
 | `tags` | text[] | | NULL |
+| `type` | text | `''` \| `'will'` \| `'key_contact'` | `''` |
+| `date` | date | will: date the will was made/updated | NULL |
+| `location` | text | will: physical location | `''` |
+| `witnesses` | text | will: witness names | `''` |
+| `lawyer_name` | text | | `''` |
+| `lawyer_contact` | text | | `''` |
+| `notes` | text | | `''` |
+| `role` | text | key contact: Lawyer/CA/Financial Advisor/... | `''` |
+| `phone` | text | key contact | `''` |
+| `email` | text | key contact | `''` |
 | `uploaded_at` | timestamptz | | `now()` |
+| `category` | text | Document Vault category (Identity/Financial/...) | `''` |
+| `subcategory` | text | | `''` |
+| `document_number` | text | | `''` |
+| `issuer` | text | | `''` |
+| `issue_date` | text | text (not date) — form sends `''` when blank | `''` |
+| `expiry_date` | text | text (not date) — form sends `''` when blank | `''` |
+| `url` | text | external link, alternative to an uploaded file | `''` |
+| `linked_asset_type` | text | e.g. `'bankAccount'`, `'property'` | `''` |
+| `linked_asset` | text | id of the linked asset row | `''` |
 
-**RLS:** `auth.uid() = user_id` (policy: `Users access own documents`)
-**Migrations:** 58
+**RLS:** `auth.uid() = user_id` (policy: `Users can access own data`)
+**Migrations:** 58, 90, 91
+
+**Storage:** private bucket `documents`, objects keyed `<user_id>/<doc_id>/<filename>`,
+RLS-scoped to the top-level folder matching `auth.uid()`. Files are opened via
+short-lived `createSignedUrl()` calls, never a permanent public URL (migration 91).
 
 ---
 

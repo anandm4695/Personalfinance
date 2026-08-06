@@ -1415,13 +1415,45 @@ CREATE TABLE IF NOT EXISTS public.documents (
   role           text DEFAULT '',                                  -- key contact: Lawyer/CA/Financial Advisor/...
   phone          text DEFAULT '',                                  -- key contact
   email          text DEFAULT '',                                  -- key contact
-  uploaded_at    timestamptz DEFAULT NOW()
+  uploaded_at    timestamptz DEFAULT NOW(),
+  -- Document Vault (DocumentVaultTab.tsx) fields — blank `type` rows only.
+  category          text DEFAULT '',
+  subcategory       text DEFAULT '',
+  document_number   text DEFAULT '',
+  issuer            text DEFAULT '',
+  issue_date        text DEFAULT '',                                -- text, not date: form sends '' when left blank
+  expiry_date       text DEFAULT '',
+  url               text DEFAULT '',
+  linked_asset_type text DEFAULT '',
+  linked_asset      text DEFAULT ''
 );
 
 ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access own data" ON public.documents;
 CREATE POLICY "Users can access own data" ON public.documents
   FOR ALL USING (auth.uid() = user_id);
+
+-- Private Storage bucket backing file_path/file_size/mime_type above —
+-- lets Document Vault store real uploaded files, not just pasted URLs.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('documents', 'documents', false)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Users can read own vault files" ON storage.objects;
+CREATE POLICY "Users can read own vault files" ON storage.objects
+  FOR SELECT USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS "Users can upload own vault files" ON storage.objects;
+CREATE POLICY "Users can upload own vault files" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS "Users can update own vault files" ON storage.objects;
+CREATE POLICY "Users can update own vault files" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS "Users can delete own vault files" ON storage.objects;
+CREATE POLICY "Users can delete own vault files" ON storage.objects
+  FOR DELETE USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 
 -- ================================================================
