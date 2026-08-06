@@ -8,10 +8,12 @@ export function ConfirmDialog({
   message,
   onConfirm,
   onCancel,
+  confirmLabel = "Yes, delete",
 }: {
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
+  confirmLabel?: string;
   btnGhost?: any;
 }) {
   React.useEffect(() => {
@@ -56,7 +58,15 @@ export function ConfirmDialog({
           </button>
         </div>
         <div className="modal-body">
-          <p style={{ fontSize: 14, color: "var(--t-ink)", lineHeight: 1.6, marginBottom: 24 }}>
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--t-ink)",
+              lineHeight: 1.6,
+              marginBottom: 24,
+              whiteSpace: "pre-line",
+            }}
+          >
             {message}
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -73,7 +83,7 @@ export function ConfirmDialog({
                 fontWeight: 700,
               }}
             >
-              Yes, delete
+              {confirmLabel}
             </button>
           </div>
         </div>

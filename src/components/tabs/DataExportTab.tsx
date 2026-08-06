@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   Database,
   Clock,
+  CloudOff,
+  CloudCheck,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today } from "../../utils/finance";
@@ -91,12 +93,32 @@ const toCSV = (data, label) => {
   return [headers.join(","), ...rows].join("\n");
 };
 
-export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast }) => {
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const DataExportTab = ({
+  state,
+  exportJSON,
+  onRestoreBackup,
+  showToast,
+  lastBackupTs,
+  isCloudSynced,
+}) => {
   const [selectedSections, setSelectedSections] = useState(
     new Set(DATA_SECTIONS.map((s) => s.key))
   );
   const [exportFormat, setExportFormat] = useState("json");
-  const [lastExport, setLastExport] = useState(null);
+
+  const daysSinceBackup =
+    lastBackupTs != null ? Math.floor((Date.now() - new Date(lastBackupTs).getTime()) / DAY_MS) : null;
+  const backupStatus =
+    daysSinceBackup === null
+      ? { label: "Never backed up", color: THEME.rust }
+      : daysSinceBackup < 7
+        ? { label: new Date(lastBackupTs).toLocaleString(), color: THEME.sage }
+        : daysSinceBackup <= 30
+          ? { label: new Date(lastBackupTs).toLocaleString(), color: THEME.gold }
+          : { label: new Date(lastBackupTs).toLocaleString(), color: THEME.rust };
+  const isStale = daysSinceBackup === null || daysSinceBackup > 30;
 
   const dataCounts = DATA_SECTIONS.map((s) => ({
     ...s,
@@ -125,7 +147,6 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
     // selective builder if exportJSON wasn't passed in for some reason.
     if (exportJSON) {
       exportJSON();
-      setLastExport(new Date().toLocaleString());
       if (showToast) showToast("Full backup exported successfully!", "success");
       return;
     }
@@ -136,7 +157,8 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
       }
     });
     exportData.profile = state.profile;
-    exportData.settings = state.settings;
+    // Never write the Gemini API key (or other secrets) into a downloadable backup file.
+    exportData.settings = { ...(state.settings || {}), geminiApiKey: "" };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -145,7 +167,6 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
     a.download = `personal-finance-backup-${today()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setLastExport(new Date().toLocaleString());
     if (showToast) showToast("Data exported successfully!", "success");
   }, [state, selectedSections, showToast, exportJSON]);
 
@@ -185,7 +206,6 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
       a.click();
       URL.revokeObjectURL(url);
     }
-    setLastExport(new Date().toLocaleString());
     if (showToast) showToast(`Exported ${csvFiles.length} sections as CSV!`, "success");
   }, [state, selectedSections, showToast]);
 
@@ -230,10 +250,40 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
           icon={<FileText />}
           color={THEME.accent}
         />
-        {lastExport && (
-          <StatCard label="Last Export" value={lastExport} icon={<Clock />} color={THEME.gold} />
-        )}
+        <StatCard
+          label="Last Backup"
+          value={backupStatus.label}
+          icon={<Clock />}
+          color={backupStatus.color}
+        />
       </div>
+
+      {isStale && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "14px 18px",
+            borderRadius: 12,
+            background: "color-mix(in srgb, var(--t-rust) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-rust) 30%, transparent)",
+            flexWrap: "wrap",
+          }}
+        >
+          <AlertTriangle size={18} color={THEME.rust} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: THEME.text, flex: 1, minWidth: 200 }}>
+            {daysSinceBackup === null
+              ? "You've never exported a full backup. Your only copy of this data is on this device"
+              : `It's been ${daysSinceBackup} days since your last full backup. Your data may be at risk`}
+            {isCloudSynced ? " and in the cloud." : " — and it isn't synced to the cloud either."}
+          </span>
+          <Button variant="primary" onClick={handleExportJSON}>
+            <Download size={15} />
+            Backup Now
+          </Button>
+        </div>
+      )}
 
       {/* Export Panel */}
       <Card style={{ padding: 24 }}>
@@ -493,8 +543,20 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
             <span>Store backups in a secure location (Google Drive, encrypted folder)</span>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <CheckCircle size={14} color={THEME.sage} style={{ flexShrink: 0, marginTop: 2 }} />
-            <span>Your data is also synced to Supabase if you're logged in</span>
+            {isCloudSynced ? (
+              <>
+                <CloudCheck size={14} color={THEME.sage} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>Your data is also synced live to the cloud, since you're signed in</span>
+              </>
+            ) : (
+              <>
+                <CloudOff size={14} color={THEME.gold} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>
+                  You're not signed in, so this data lives only on this device — export a JSON
+                  backup before clearing your browser data
+                </span>
+              </>
+            )}
           </div>
         </div>
       </Card>

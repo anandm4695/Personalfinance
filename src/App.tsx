@@ -507,7 +507,15 @@ function FinanceDashboard() {
   const [confirmDialog, setConfirmDialog] = useState<{
     message: string;
     onConfirm: () => void;
+    confirmLabel?: string;
   } | null>(null);
+  const [lastBackupTs, setLastBackupTs] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("pf_last_backup_ts");
+    } catch {
+      return null;
+    }
+  });
 
   // 2. Aggressive Cleanup of Legacy Dummy Data
   useEffect(() => {
@@ -2954,9 +2962,11 @@ function FinanceDashboard() {
   const exportJSON = () => {
     // Never write the Gemini API key (or other secrets) into a downloadable backup file —
     // users routinely email/cloud-store these exports.
+    const exportedAt = new Date().toISOString();
     const exportState = {
       ...state,
       settings: { ...(state.settings || {}), geminiApiKey: "" },
+      _exportedAt: exportedAt,
     };
     const blob = new Blob([JSON.stringify(exportState, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -2967,6 +2977,12 @@ function FinanceDashboard() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    try {
+      localStorage.setItem("pf_last_backup_ts", exportedAt);
+    } catch {
+      // localStorage unavailable (private browsing) — the timestamp just won't persist across reloads
+    }
+    setLastBackupTs(exportedAt);
     logActivity("EXPORT", `Exported full backup — finance-backup-${today()}.json`);
   };
   const pushBackupToSupabase = async (data: any) => {
@@ -3104,6 +3120,9 @@ function FinanceDashboard() {
     await Promise.allSettled(ops);
   };
 
+  const countRecords = (obj) =>
+    Object.values(obj || {}).reduce((n, v) => n + (Array.isArray(v) ? v.length : 0), 0);
+
   const importJSON = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -3114,22 +3133,51 @@ function FinanceDashboard() {
     }
     const input = e.target;
     const reader = new FileReader();
-    reader.onload = async (ev) => {
+    reader.onload = (ev) => {
+      let parsed;
       try {
-        const parsed = JSON.parse(ev.target.result);
-        if (!parsed || typeof parsed !== "object" || typeof parsed.profile !== "object") {
-          showToast("Invalid backup — not a valid finance export", "error");
-          input.value = "";
-          return;
-        }
-        setState({ ...DEFAULT_STATE, ...parsed });
-        showToast("Restoring backup and syncing to cloud...");
-        await pushBackupToSupabase(parsed);
-        showToast("Backup fully restored ✓");
-        logActivity("IMPORT", `Imported backup from ${file.name}`, { fileName: file.name });
+        parsed = JSON.parse(ev.target.result);
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
+        input.value = "";
+        return;
       }
+      if (!parsed || typeof parsed !== "object" || !parsed.profile || typeof parsed.profile !== "object") {
+        showToast("Invalid backup — not a valid finance export", "error");
+        input.value = "";
+        return;
+      }
+
+      const fileRecords = countRecords(parsed);
+      const currentRecords = countRecords(state);
+      const backupDateStr = parsed._exportedAt
+        ? new Date(parsed._exportedAt).toLocaleString()
+        : parsed._exportDate || "an unknown date";
+
+      setConfirmDialog({
+        message:
+          `Restore "${file.name}"?\n` +
+          `Backup created: ${backupDateStr} · ${fileRecords} records\n\n` +
+          `This will permanently replace your current data (${currentRecords} records) on this device` +
+          `${session?.user?.id && session.user.id !== "offline-user" ? " and in the cloud" : ""}. ` +
+          `This cannot be undone — export a fresh backup first if you want to keep what you have now.`,
+        confirmLabel: "Yes, restore backup",
+        onConfirm: async () => {
+          setState({ ...DEFAULT_STATE, ...parsed });
+          showToast("Restoring backup and syncing to cloud...");
+          logActivity("IMPORT", `Imported backup from ${file.name}`, { fileName: file.name });
+          try {
+            await pushBackupToSupabase(parsed);
+            showToast("Backup fully restored ✓", "success");
+          } catch (err) {
+            console.error("Cloud sync after restore failed", err);
+            showToast(
+              "Backup restored locally, but syncing to the cloud failed — check your connection.",
+              "warn"
+            );
+          }
+        },
+      });
       input.value = "";
     };
     reader.readAsText(file);
@@ -5146,6 +5194,8 @@ function FinanceDashboard() {
                   exportJSON={exportJSON}
                   onRestoreBackup={importJSON}
                   showToast={showToast}
+                  lastBackupTs={lastBackupTs}
+                  isCloudSynced={!!(session?.user?.id && session.user.id !== "offline-user")}
                 />
               )}
               {tab === "comparison" && (
@@ -5445,6 +5495,7 @@ function FinanceDashboard() {
         {confirmDialog && (
           <ConfirmDialog
             message={confirmDialog.message}
+            confirmLabel={confirmDialog.confirmLabel}
             onConfirm={() => {
               confirmDialog.onConfirm();
               setConfirmDialog(null);
