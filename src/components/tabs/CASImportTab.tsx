@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
   Upload,
+  UploadCloud,
   FileText,
   CheckCircle,
   AlertTriangle,
@@ -13,11 +14,15 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
+import { parseCsvLine } from "../../utils/csv";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
+import { PdfPasswordPrompt } from "../ui/PdfPasswordPrompt";
+import { useCasPdfExtract } from "../../hooks/useCasPdfExtract";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv } from "../../context/PrivacyContext";
 
 const MF_CATEGORY_MAP = {
@@ -64,6 +69,15 @@ const parseCASText = (text: string) => {
   let currentFolio = "";
   let currentAMC = "";
   let currentScheme = "";
+  // Folio (and AMC) captured at the moment the *current* scheme heading was seen — real
+  // CAS statements print "Folio No: X" once, followed by one or more scheme blocks under
+  // it, so a new folio line legitimately precedes the next scheme. But this fund is only
+  // pushed to `holdings` later, when the *following* scheme heading (or EOF) is reached —
+  // by then `currentFolio`/`currentAMC` may have already moved on to that next fund's own
+  // folio/AMC. Snapshotting at scheme-start and pushing the snapshot (not the live
+  // variable) keeps each fund pinned to the folio/AMC that was actually active for it.
+  let schemeFolio = "";
+  let schemeAMC = "";
   let currentNav = 0;
   let currentUnits = 0;
   let currentValue = 0;
@@ -92,8 +106,8 @@ const parseCASText = (text: string) => {
         holdings.push({
           id: uid(),
           scheme: currentScheme,
-          amc: currentAMC,
-          folio: currentFolio,
+          amc: schemeAMC,
+          folio: schemeFolio,
           units: currentUnits,
           nav: currentNav,
           value: currentValue,
@@ -102,6 +116,8 @@ const parseCASText = (text: string) => {
         });
       }
       currentScheme = schemeMatch[1].trim();
+      schemeFolio = currentFolio;
+      schemeAMC = currentAMC;
       currentUnits = 0;
       currentNav = 0;
       currentValue = 0;
@@ -132,8 +148,8 @@ const parseCASText = (text: string) => {
     holdings.push({
       id: uid(),
       scheme: currentScheme,
-      amc: currentAMC,
-      folio: currentFolio,
+      amc: schemeAMC,
+      folio: schemeFolio,
       units: currentUnits,
       nav: currentNav,
       value: currentValue || currentUnits * currentNav,
@@ -145,30 +161,42 @@ const parseCASText = (text: string) => {
   return holdings;
 };
 
-export const CASImportTab = ({ state, addItem, updateItem }) => {
+export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all" }) => {
+  const { familyProfiles } = useMasterData();
   const [parsedFunds, setParsedFunds] = useState([]);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(null);
   const [imported, setImported] = useState(0);
-  const [parseMethod, setParseMethod] = useState("text"); // "text" or "csv"
+  const [parseMethod, setParseMethod] = useState("pdf"); // "pdf" | "text" | "csv"
   const [rawText, setRawText] = useState("");
   const [csvInputFocused, setCsvInputFocused] = useState(false);
   const [csvParsing, setCsvParsing] = useState(false);
   const [parseError, setParseError] = useState("");
+  const [owner, setOwner] = useState(activeProfile !== "all" ? activeProfile : "self");
 
-  const handlePaste = useCallback(() => {
-    if (!rawText.trim()) return;
+  const runParse = useCallback((text) => {
     setParseError("");
-    const holdings = parseCASText(rawText);
+    const holdings = parseCASText(text);
     if (holdings.length === 0) {
       setParseError(
-        "No fund holdings found in that text. Make sure you copied the full \"Closing Unit Balance\" / NAV / Valuation lines from the CAS PDF, not just the summary page."
+        "No fund holdings found in that text. Make sure it includes the \"Closing Unit Balance\" / NAV / Valuation lines from the CAS, not just the summary page."
       );
       setParsedFunds([]);
       return;
     }
     setParsedFunds(holdings);
     setImported(0);
-  }, [rawText]);
+  }, []);
+
+  const handlePaste = useCallback(() => {
+    if (!rawText.trim()) return;
+    runParse(rawText);
+  }, [rawText, runParse]);
+
+  const pdfExtract = useCasPdfExtract((text) => {
+    setRawText(text);
+    runParse(text);
+  });
 
   const handleCSV = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -191,7 +219,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
         setParseError("The file looks empty — it needs a header row plus at least one fund row.");
         return;
       }
-      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/^"|"$/g, ""));
+      const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
       const schemeIdx = headers.findIndex((h) => h.includes("scheme") || h.includes("fund"));
       const folioIdx = headers.findIndex((h) => h.includes("folio"));
       const unitsIdx = headers.findIndex((h) => h.includes("unit"));
@@ -201,7 +229,10 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
       const holdings = lines
         .slice(1)
         .map((line) => {
-          const vals = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+          // A plain split(",") would misalign every column once a scheme name itself
+          // contains a comma (e.g. "Axis Small Cap Fund, Direct - Growth") — parseCsvLine
+          // understands quoted fields so embedded commas don't get treated as delimiters.
+          const vals = parseCsvLine(line);
           const scheme = vals[schemeIdx] || "";
           const folio = folioIdx >= 0 ? vals[folioIdx] || "" : "";
           const units = parseFloat((vals[unitsIdx] || "0").replace(/,/g, "")) || 0;
@@ -251,10 +282,23 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
   const importSelected = async () => {
     setImporting(true);
     setParseError("");
-    const toImport = parsedFunds.filter((f) => f.selected);
-    const existingMFs = state.mutualFunds || [];
+    const rawToImport = parsedFunds.filter((f) => f.selected);
 
-    for (const f of toImport) {
+    // The same scheme can appear twice in one parse (CAS statements often repeat a scheme
+    // across a "Transaction Details" section and a "Valuation"/summary section further down)
+    // — matching each occurrence only against a snapshot of *existing saved* funds would let
+    // both slip through as separate "new" holdings. Dedupe within this batch first, keeping
+    // the last occurrence (later sections of a CAS are typically the more complete one).
+    const dedupeKey = (f) => (f.folio ? `folio:${f.folio}` : `name:${(f.scheme || "").toLowerCase()}`);
+    const deduped = new Map();
+    rawToImport.forEach((f) => deduped.set(dedupeKey(f), f));
+    const toImport = Array.from(deduped.values());
+
+    const existingMFs = state.mutualFunds || [];
+    setImportProgress({ done: 0, total: toImport.length });
+
+    for (let i = 0; i < toImport.length; i++) {
+      const f = toImport[i];
       // Match by folio when both sides have one recorded — the same scheme name
       // can legitimately exist under multiple folios, so name must never override
       // a folio mismatch. Only fall back to name matching when neither side has
@@ -302,12 +346,15 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
           buyNav: f.value && f.units ? f.value / f.units : "",
           currentNav: f.nav,
           invested: f.value || "",
+          owner,
         });
       }
+      setImportProgress({ done: i + 1, total: toImport.length });
     }
 
     setImported(toImport.length);
     setImporting(false);
+    setImportProgress(null);
     setParsedFunds([]);
   };
 
@@ -323,7 +370,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle sub="Import Mutual Fund holdings from CAMS/KFintech Consolidated Account Statement">
+      <SectionTitle sub="Upload your CAMS/KFintech Consolidated Account Statement PDF directly, or paste text/CSV">
         CAS Import
       </SectionTitle>
 
@@ -335,7 +382,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
             border: "1px solid color-mix(in srgb, var(--t-sage) 40%, transparent)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }} role="status" aria-live="polite">
             <CheckCircle size={20} color="var(--t-sage)" />
             <span style={{ color: "var(--t-sage)", fontWeight: 600 }}>
               Successfully imported/updated {imported} mutual fund holdings!
@@ -352,7 +399,11 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
             border: "1px solid color-mix(in srgb, var(--t-rust) 35%, transparent)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <div
+            style={{ display: "flex", alignItems: "flex-start", gap: 8 }}
+            role="alert"
+            aria-live="assertive"
+          >
             <AlertTriangle size={18} color="var(--t-rust)" style={{ flexShrink: 0, marginTop: 1 }} />
             <span style={{ color: "var(--t-rust)", fontWeight: 600, fontSize: 13, lineHeight: 1.5 }}>
               {parseError}
@@ -365,9 +416,9 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
         <div
           role="tablist"
           aria-label="Import method"
-          style={{ display: "flex", gap: 8, marginBottom: 18 }}
+          style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}
         >
-          {["text", "csv"].map((m) => (
+          {["pdf", "text", "csv"].map((m) => (
             <button
               key={m}
               onClick={() => {
@@ -389,12 +440,82 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 transition: "all 0.15s ease",
               }}
             >
-              {m === "text" ? "Paste CAS Text" : "Upload CSV"}
+              {m === "pdf" ? "Upload PDF" : m === "text" ? "Paste CAS Text" : "Upload CSV"}
             </button>
           ))}
         </div>
 
-        {parseMethod === "text" ? (
+        {parseMethod === "pdf" ? (
+          <div>
+            <label
+              htmlFor="cas-pdf-upload"
+              className="card-lift"
+              style={{
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "36px 20px",
+                borderRadius: "var(--radius-lg)",
+                border: `2px dashed ${pdfExtract.busy ? "var(--t-accent)" : THEME.border}`,
+                background: "color-mix(in srgb, var(--surface-1) 40%, transparent)",
+                cursor: pdfExtract.busy ? "wait" : "pointer",
+                opacity: pdfExtract.busy ? 0.7 : 1,
+                textAlign: "center",
+                transition: "all 0.15s ease",
+              }}
+            >
+              {pdfExtract.busy ? (
+                <RefreshCw size={26} color={THEME.accent} className="animate-spin" />
+              ) : (
+                <UploadCloud size={26} color={THEME.accent} />
+              )}
+              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.text }}>
+                {pdfExtract.busy ? "Reading PDF…" : "Click to choose your CAS PDF"}
+              </div>
+              <div style={{ fontSize: 12, color: THEME.textSecondary }}>
+                Works with password-protected CAMS/KFintech statements. Read entirely in your
+                browser — the file is never uploaded anywhere.
+              </div>
+              <input
+                id="cas-pdf-upload"
+                type="file"
+                accept=".pdf"
+                disabled={pdfExtract.busy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) pdfExtract.selectFile(file);
+                  e.target.value = "";
+                }}
+                aria-label="Upload CAS PDF file"
+                style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
+              />
+            </label>
+
+            {pdfExtract.needsPassword && (
+              <div style={{ marginTop: 14 }}>
+                <PdfPasswordPrompt
+                  fileName={pdfExtract.fileName}
+                  incorrect={pdfExtract.passwordIncorrect}
+                  busy={pdfExtract.busy}
+                  onSubmit={pdfExtract.submitPassword}
+                  onCancel={pdfExtract.cancelPassword}
+                />
+              </div>
+            )}
+            {pdfExtract.error && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: "var(--t-rust)" }}
+              >
+                {pdfExtract.error}
+              </div>
+            )}
+          </div>
+        ) : parseMethod === "text" ? (
           <div>
             <textarea
               value={rawText}
@@ -536,20 +657,60 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 16,
+                flexWrap: "wrap",
+                gap: 10,
               }}
             >
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
                 Parsed Holdings
               </h3>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={importSelected}
-                loading={importing}
-                disabled={stats.count === 0}
-              >
-                {importing ? "Importing…" : `Import ${stats.count} Funds`}
-              </Button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: THEME.textSecondary,
+                  }}
+                >
+                  New funds owner
+                  <select
+                    value={owner}
+                    onChange={(e) => setOwner(e.target.value)}
+                    disabled={importing}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      border: `1px solid ${THEME.border}`,
+                      background: "var(--surface-0)",
+                      color: THEME.text,
+                    }}
+                  >
+                    {familyProfiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {formatProfileOption(p)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={importSelected}
+                  loading={importing}
+                  disabled={stats.count === 0}
+                >
+                  {importing
+                    ? importProgress
+                      ? `Importing ${importProgress.done}/${importProgress.total}…`
+                      : "Importing…"
+                    : `Import ${stats.count} Funds`}
+                </Button>
+              </div>
             </div>
 
             <div style={{ overflowX: "auto", maxHeight: 500, overflowY: "auto" }}>
@@ -571,7 +732,22 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                       background: THEME.card,
                     }}
                   >
-                    <th style={{ padding: 8, textAlign: "left", color: THEME.textSecondary }}>✓</th>
+                    <th style={{ padding: 8, textAlign: "left", color: THEME.textSecondary }}>
+                      <input
+                        type="checkbox"
+                        checked={parsedFunds.length > 0 && parsedFunds.every((f) => f.selected)}
+                        onChange={() => {
+                          const allSelected = parsedFunds.every((f) => f.selected);
+                          setParsedFunds((p) => p.map((x) => ({ ...x, selected: !allSelected })));
+                        }}
+                        disabled={importing}
+                        aria-label={
+                          parsedFunds.every((f) => f.selected)
+                            ? "Deselect all funds"
+                            : "Select all funds"
+                        }
+                      />
+                    </th>
                     <th style={{ padding: 8, textAlign: "left", color: THEME.textSecondary }}>
                       Scheme
                     </th>
@@ -603,6 +779,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
                         <input
                           type="checkbox"
                           checked={f.selected}
+                          disabled={importing}
                           aria-label={`Include ${f.scheme || "this fund"} in import`}
                           onChange={() =>
                             setParsedFunds((p) =>
@@ -666,8 +843,8 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
         <EmptyState
           icon={Upload}
           title="Import Your CAS"
-          pills={["CAMS", "KFintech", "One-click import"]}
-          description="Paste the text from your CAMS/KFintech CAS PDF or upload a CSV export. Your mutual fund holdings will be parsed and can be imported in one click."
+          pills={["CAMS", "KFintech", "Direct PDF upload"]}
+          description="Upload your CAMS/KFintech CAS PDF directly (password-protected is fine), paste statement text, or upload a CSV export. Your mutual fund holdings will be parsed and can be imported in one click."
         />
       )}
     </div>

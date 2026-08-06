@@ -1,16 +1,18 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { AlertCircle, Bot, CheckCircle, GitMerge, X } from "lucide-react";
+import { AlertCircle, Bot, CheckCircle, GitMerge, UploadCloud, X } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { PdfPasswordPrompt } from "../ui/PdfPasswordPrompt";
+import { useCasPdfExtract } from "../../hooks/useCasPdfExtract";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv } from "../../context/PrivacyContext";
 
 interface MFCasPanelProps {
-  onImport: (data: any[]) => void;
+  onImport: (data: any[], onProgress?: (done: number, total: number) => void) => Promise<void> | void;
   onClose: () => void;
   existingFunds?: any[];
   activeProfile?: string;
@@ -71,6 +73,10 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
   const [importedCount, setImportedCount] = useState(0);
   const [mergeMode, setMergeMode] = useState(true);
   const [owner, setOwner] = useState(activeProfile !== "all" ? activeProfile : "self");
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(
+    null
+  );
 
   /* ── Build match map from parsed rows to existing funds ────────── */
   const matchMap = useMemo(() => {
@@ -159,9 +165,12 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
 
         // 1. Detect Folio Number
         // e.g. Folio No: 12345678/90  or  Folio: 98765432
-        const folioMatch = line.match(
-          /(?:Folio|Folio\s+No|Folio\s+Number)\s*[:\-\s]\s*([\w\/\-]+)/i
-        );
+        // Regex alternation tries branches in order, not longest-match — with
+        // (?:Folio|Folio\s+No|Folio\s+Number) the "Folio" branch always wins first against
+        // "Folio No: 12345678/90", leaving "No" to satisfy the [:\-\s] separator and get
+        // captured as the "folio number" itself. Making "No."/"Number" one optional group
+        // after "Folio" (matching CASImportTab's already-correct pattern) avoids that trap.
+        const folioMatch = line.match(/Folio\s*(?:No\.?|Number)?\s*[:\-]?\s*([\w\/\-]+)/i);
         if (folioMatch) {
           currentFolio = folioMatch[1].trim();
           continue;
@@ -344,6 +353,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                 invested: String(amount.toFixed(2)),
                 id: uid(),
                 type: type,
+                selected: true,
               });
             }
           }
@@ -362,11 +372,24 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
     }
   };
 
-  const handleImport = () => {
-    if (!parsedRows.length) return;
+  const pdfExtract = useCasPdfExtract((text) => {
+    setInputText(text);
+    parseCasText(text);
+  });
+
+  const selectedCount = parsedRows.filter((r) => r.selected).length;
+  const allSelected = parsedRows.length > 0 && selectedCount === parsedRows.length;
+  const toggleAll = () =>
+    setParsedRows((rows) => rows.map((r) => ({ ...r, selected: !allSelected })));
+  const toggleRow = (idx: number) =>
+    setParsedRows((rows) => rows.map((r, i) => (i === idx ? { ...r, selected: !r.selected } : r)));
+
+  const handleImport = async () => {
+    if (!parsedRows.length || importing) return;
 
     const mfHoldings: any[] = [];
     parsedRows.forEach((r, idx) => {
+      if (!r.selected) return;
       const match = matchMap.get(idx);
       const isRedemption = r.type === "Redemption";
       const signedUnits = isRedemption ? -Math.abs(parseFloat(r.units || "0")) : parseFloat(r.units || "0");
@@ -398,7 +421,9 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
           currentNav: existing.currentNav || r.currentNav,
           invested: String(Math.max(0, existingInvested + investedDelta).toFixed(2)),
           mfCode: existing.mfCode || r.mfCode,
-          _merge: true, // signal to parent that this is an update
+          // Tells the parent's handleImport to updateItem() this existing holding in place
+          // rather than addItem() it as a brand-new row sharing the same id.
+          _merge: true,
         });
       } else if (isRedemption) {
         // Redemption row with no matching existing holding — nothing to subtract from, skip creating a new holding
@@ -420,14 +445,27 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
         });
       }
     });
-    // Capture the count before clearing parsedRows below — otherwise the
-    // success banner (which reads parsedRows.length) always renders "0".
-    const importedCountValue = mfHoldings.length;
-    onImport(mfHoldings);
-    setImportedCount(importedCountValue);
-    setImportDone(true);
-    setParsedRows([]);
-    setInputText("");
+
+    if (mfHoldings.length === 0) {
+      setError("No rows selected to import — check at least one row first.");
+      return;
+    }
+
+    setImporting(true);
+    setError("");
+    setImportProgress({ done: 0, total: mfHoldings.length });
+    try {
+      await onImport(mfHoldings, (done, total) => setImportProgress({ done, total }));
+      setImportedCount(mfHoldings.length);
+      setImportDone(true);
+      setParsedRows([]);
+      setInputText("");
+    } catch (e: any) {
+      setError("Import failed: " + (e?.message || "please try again."));
+    } finally {
+      setImporting(false);
+      setImportProgress(null);
+    }
   };
 
   return (
@@ -478,10 +516,68 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6, marginBottom: 12 }}>
-          Open your password-protected CAMS / Karvy CAS PDF, select all transactions text (Ctrl+A /
-          Cmd+A, then Copy), and paste it below. The smart analyzer will automatically extract fund
-          names, folio numbers, dates, units, and NAVs.
+          Upload your CAMS / KFintech CAS PDF directly — it's read entirely in your browser and
+          never uploaded anywhere — or paste the transactions text below. The smart analyzer will
+          automatically extract fund names, folio numbers, dates, units, and NAVs.
         </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <label
+            className="card-lift"
+            style={{
+              position: "relative",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              fontWeight: 700,
+              color: THEME.accent,
+              padding: "7px 14px",
+              borderRadius: 8,
+              border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 45%, transparent)`,
+              background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+              cursor: pdfExtract.busy ? "wait" : "pointer",
+              opacity: pdfExtract.busy ? 0.7 : 1,
+            }}
+          >
+            <UploadCloud size={14} />
+            {pdfExtract.busy ? "Reading PDF…" : "Upload CAS PDF"}
+            <input
+              type="file"
+              accept=".pdf"
+              disabled={pdfExtract.busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) pdfExtract.selectFile(file);
+                e.target.value = "";
+              }}
+              aria-label="Upload CAS PDF file"
+              style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
+            />
+          </label>
+          {pdfExtract.fileName && !pdfExtract.needsPassword && (
+            <span style={{ fontSize: 11, color: THEME.muted }}>{pdfExtract.fileName}</span>
+          )}
+        </div>
+
+        {pdfExtract.needsPassword && (
+          <div style={{ marginBottom: 12 }}>
+            <PdfPasswordPrompt
+              fileName={pdfExtract.fileName}
+              incorrect={pdfExtract.passwordIncorrect}
+              busy={pdfExtract.busy}
+              onSubmit={pdfExtract.submitPassword}
+              onCancel={pdfExtract.cancelPassword}
+            />
+          </div>
+        )}
+        {pdfExtract.error && (
+          <div className="info-box info-box-error animate-slide-down" style={{ marginBottom: 12 }}>
+            <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{pdfExtract.error}</span>
+          </div>
+        )}
+
         <textarea
           style={{
             width: "100%",
@@ -510,7 +606,12 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
       </div>
 
       {error && (
-        <div className="info-box info-box-error animate-slide-down" style={{ marginBottom: 16 }}>
+        <div
+          className="info-box info-box-error animate-slide-down"
+          role="alert"
+          aria-live="assertive"
+          style={{ marginBottom: 16 }}
+        >
           <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>{error}</span>
         </div>
@@ -537,6 +638,27 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                   ({matchMap.size} matched to existing)
                 </span>
               )}
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  marginLeft: 10,
+                  fontWeight: 500,
+                  color: THEME.muted,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  disabled={importing}
+                  style={{ accentColor: THEME.accent, cursor: "pointer" }}
+                  aria-label={allSelected ? "Deselect all rows" : "Select all rows"}
+                />
+                {selectedCount} of {parsedRows.length} selected
+              </label>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <label
@@ -553,6 +675,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                 <select
                   value={owner}
                   onChange={(e) => setOwner(e.target.value)}
+                  disabled={importing}
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
@@ -598,6 +721,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                     type="checkbox"
                     checked={mergeMode}
                     onChange={(e) => setMergeMode(e.target.checked)}
+                    disabled={importing}
                     style={{ accentColor: THEME.accent, cursor: "pointer" }}
                   />
                 </label>
@@ -607,8 +731,14 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                 size="sm"
                 style={{ background: THEME.sage }}
                 onClick={handleImport}
+                loading={importing}
+                disabled={selectedCount === 0}
               >
-                Import {parsedRows.length} Transaction{parsedRows.length !== 1 ? "s" : ""}
+                {importing
+                  ? importProgress
+                    ? `Importing ${importProgress.done}/${importProgress.total}…`
+                    : "Importing…"
+                  : `Import ${selectedCount} Transaction${selectedCount !== 1 ? "s" : ""}`}
               </Button>
             </div>
           </div>
@@ -651,6 +781,16 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
             >
               <thead>
                 <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      disabled={importing}
+                      aria-label={allSelected ? "Deselect all rows" : "Select all rows"}
+                      style={{ accentColor: THEME.accent, cursor: "pointer" }}
+                    />
+                  </th>
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
                     Date
                   </th>
@@ -711,8 +851,19 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                           isExisting && mergeMode
                             ? `color-mix(in srgb, ${THEME.sage} 6%, transparent)`
                             : undefined,
+                        opacity: r.selected ? 1 : 0.45,
                       }}
                     >
+                      <td style={{ padding: "8px 10px" }}>
+                        <input
+                          type="checkbox"
+                          checked={!!r.selected}
+                          onChange={() => toggleRow(idx)}
+                          disabled={importing}
+                          aria-label={`Include ${r.name || "this transaction"} in import`}
+                          style={{ accentColor: THEME.accent, cursor: "pointer" }}
+                        />
+                      </td>
                       <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{r.buyDate}</td>
                       <td style={{ padding: "8px 10px", fontWeight: 600 }}>
                         {r.name}
@@ -792,10 +943,12 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
       {importDone && (
         <div
           className="info-box info-box-success animate-scale-in"
+          role="status"
+          aria-live="polite"
           style={{ fontWeight: 600, justifyContent: "center" }}
         >
           <CheckCircle size={15} />
-          <span>Import completed successfully! {importedCount} holdings created.</span>
+          <span>Import completed successfully! {importedCount} transactions applied.</span>
         </div>
       )}
     </Card>

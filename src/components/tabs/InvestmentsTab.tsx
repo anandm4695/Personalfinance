@@ -9940,9 +9940,21 @@ function MFSection({
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = async (rows: any[]) => {
-    for (const r of rows) {
-      await addItem("mutualFunds", r);
+  const handleImport = async (
+    rows: any[],
+    onProgress?: (done: number, total: number) => void
+  ) => {
+    for (let i = 0; i < rows.length; i++) {
+      const { _merge, id, ...patch } = rows[i];
+      // MFCasPanel flags rows it fuzzy-matched to an existing holding with `_merge` so they
+      // update that holding in place instead of being inserted as a second, duplicate row
+      // sharing the same id (addItem's local-state upsert only appends, it never replaces).
+      if (_merge && id) {
+        await updateItem("mutualFunds", id, patch);
+      } else {
+        await addItem("mutualFunds", rows[i]);
+      }
+      onProgress?.(i + 1, rows.length);
     }
   };
 
@@ -10513,10 +10525,11 @@ function MFSection({
           {showCasImport && (
             <div style={{ marginBottom: 16 }}>
               <MFCasPanel
-                onImport={(rows: any[]) => {
-                  handleImport(rows);
-                  setShowCasImport(false);
-                }}
+                // Don't close the panel here — MFCasPanel awaits this itself and shows a
+                // success banner once the writes actually land; closing immediately (this
+                // used to fire-and-forget handleImport, then close synchronously right
+                // after) unmounted the panel before that confirmation could ever be seen.
+                onImport={handleImport}
                 onClose={() => setShowCasImport(false)}
                 existingFunds={items || []}
                 activeProfile={activeProfile}

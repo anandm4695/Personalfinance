@@ -5111,7 +5111,12 @@ function FinanceDashboard() {
               )}
 
               {tab === "casimport" && (
-                <CASImportTab state={filteredState} addItem={addItem} updateItem={updateItem} />
+                <CASImportTab
+                  state={filteredState}
+                  addItem={addItem}
+                  updateItem={updateItem}
+                  activeProfile={activeProfile}
+                />
               )}
               {tab === "amortization" && <LoanAmortizationTab state={filteredState} />}
               {tab === "fireplanner" && <FIREPlannerTab state={filteredState} metrics={metrics} />}
