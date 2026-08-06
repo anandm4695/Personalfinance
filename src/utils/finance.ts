@@ -233,6 +233,15 @@ export const getLocalDateString = (d: Date) => {
 
 export const today = () => getLocalDateString(new Date());
 
+// Alert titles like "HDFC CC due in 5d" or "Credit utilization at 78%" embed a
+// number that changes daily even though the user is dismissing/snoozing the same
+// underlying condition. Keying dismissal off the raw title means a snooze (or even
+// a "permanent" dismiss) silently re-expires the moment that number ticks over —
+// e.g. a 7-day snooze on "due in 5d" no longer matches "due in 4d" the next day.
+// Stripping digits gives a stable key for the same alert across its lifetime while
+// still keeping different alerts (different issuer/policy/name in the title) distinct.
+export const alertDismissKey = (title: string) => title.replace(/\d+(\.\d+)?/g, "#");
+
 export const monthsBetween = (d1: string, d2: string) => {
   const a = new Date(d1),
     b = new Date(d2);

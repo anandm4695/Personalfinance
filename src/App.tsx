@@ -45,6 +45,7 @@ import {
   saveStateLocal,
   getLocalDateString,
   addMonthsToDateStr,
+  alertDismissKey,
 } from "./utils/finance";
 import {
   getCurrentFY,
@@ -4134,7 +4135,7 @@ function FinanceDashboard() {
                               onClick={() => {
                                 const newDismissed = { ...(state.dismissedAlerts || {}) };
                                 alerts.forEach((a) => {
-                                  newDismissed[a.title] = 253402300799000;
+                                  newDismissed[alertDismissKey(a.title)] = 253402300799000;
                                 });
                                 updateDismissedAlerts(newDismissed);
                               }}
@@ -4226,10 +4227,8 @@ function FinanceDashboard() {
                               <div
                                 style={{ minWidth: 0, flex: 1, cursor: "pointer" }}
                                 onClick={() => {
-                                  updateDismissedAlerts({
-                                    ...(state.dismissedAlerts || {}),
-                                    [a.title]: Date.now() + 24 * 60 * 60 * 1000,
-                                  });
+                                  // Viewing/navigating to an alert must not silently snooze it —
+                                  // only the explicit clock/7d/trash controls below dismiss.
                                   setTab(a.tab);
                                   setShowAlerts(false);
                                 }}
@@ -4252,10 +4251,6 @@ function FinanceDashboard() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateDismissedAlerts({
-                                      ...(state.dismissedAlerts || {}),
-                                      [a.title]: Date.now() + 24 * 60 * 60 * 1000,
-                                    });
                                     setTab(a.tab);
                                     setShowAlerts(false);
                                   }}
@@ -4287,7 +4282,7 @@ function FinanceDashboard() {
                                     e.stopPropagation();
                                     updateDismissedAlerts({
                                       ...(state.dismissedAlerts || {}),
-                                      [a.title]: Date.now() + 24 * 60 * 60 * 1000,
+                                      [alertDismissKey(a.title)]: Date.now() + 24 * 60 * 60 * 1000,
                                     });
                                   }}
                                   style={{
@@ -4314,7 +4309,7 @@ function FinanceDashboard() {
                                     e.stopPropagation();
                                     updateDismissedAlerts({
                                       ...(state.dismissedAlerts || {}),
-                                      [a.title]: Date.now() + 7 * 24 * 60 * 60 * 1000,
+                                      [alertDismissKey(a.title)]: Date.now() + 7 * 24 * 60 * 60 * 1000,
                                     });
                                   }}
                                   style={{
@@ -4344,7 +4339,7 @@ function FinanceDashboard() {
                                     e.stopPropagation();
                                     updateDismissedAlerts({
                                       ...(state.dismissedAlerts || {}),
-                                      [a.title]: 253402300799000,
+                                      [alertDismissKey(a.title)]: 253402300799000,
                                     });
                                   }}
                                   style={{

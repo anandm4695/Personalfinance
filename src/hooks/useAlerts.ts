@@ -7,6 +7,7 @@ import {
   calcTaxNewByFY,
   calcTaxOldByFY,
   nextAnnualOccurrence,
+  alertDismissKey,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { SCHEME_RULES } from "../utils/govtSchemes";
@@ -674,7 +675,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     const ORDER = { error: 0, warn: 1, info: 2 };
     return list
       .filter((a) => {
-        const dismissUntil = state.dismissedAlerts?.[a.title];
+        const dismissUntil = state.dismissedAlerts?.[alertDismissKey(a.title)];
         return !(dismissUntil && dismissUntil > Date.now());
       })
       .sort((a, b) => (ORDER[a.level] ?? 2) - (ORDER[b.level] ?? 2));

@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { today, fmtINRFull, getCCDueDate, getLocalDateString } from "../utils/finance";
+import {
+  today,
+  fmtINRFull,
+  getCCDueDate,
+  getLocalDateString,
+  getEffectiveRent,
+  alertDismissKey,
+} from "../utils/finance";
 
 export function useNotifications(loaded: boolean, session: any, state: any): void {
   // Fire browser push notifications for upcoming reminders (runs once per tab session)
@@ -57,6 +64,8 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
         fdMaturities: true,
         insurancePremiums: true,
         loanRecovery: true,
+        rent: true,
+        bonds: true,
       },
     };
     try {
@@ -75,7 +84,9 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
           86400000
       );
     const isDismissed = (title: string, ...alts: string[]) =>
-      [title, ...alts].some((t) => state.dismissedAlerts?.[t] > Date.now());
+      [title, ...alts].some(
+        (t) => state.dismissedAlerts?.[alertDismissKey(t)] > Date.now()
+      );
 
     if (cats.reminders !== false) {
       state.reminders.forEach((r: any) => {
@@ -110,6 +121,90 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
             });
           }
         });
+
+      // Annual fee — the in-app Reminders list already surfaces this as its own
+      // due date (RemindersTab.tsx), but it never had a push counterpart.
+      state.creditCards
+        .filter(
+          (c: any) =>
+            (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth
+        )
+        .forEach((c: any) => {
+          const month = Number(c.feeMonth) - 1;
+          const day = Number(c.feeDay) || 1;
+          const now = new Date();
+          let candidate = new Date(now.getFullYear(), month, day);
+          if (candidate.getTime() < new Date(todayStr + "T00:00:00").getTime())
+            candidate = new Date(now.getFullYear() + 1, month, day);
+          const d = daysLeft(getLocalDateString(candidate));
+          const title = `${c.issuer} annual fee due`;
+          if (d >= 0 && d <= leadDays && !isDismissed(title, `${c.issuer} annual fee in ${d}d`)) {
+            soon.push({
+              title,
+              body: `${fmtINRFull(c.annualFee)} charge${d === 0 ? " today" : ` in ${d}d`}`,
+              type: "credit",
+            });
+          }
+        });
+    }
+
+    if (cats.bonds !== false) {
+      (state.bonds || []).forEach((b: any) => {
+        if (!b.maturityDate) return;
+        const d = daysLeft(b.maturityDate);
+        const title = `Bond Maturity — ${b.name || "Bond"}`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({
+            title,
+            body: `${fmtINRFull(b.faceValue || b.totalInvestmentAmount || 0)} matures${d === 0 ? " today" : ` in ${d}d`}`,
+            type: "fd",
+          });
+        }
+      });
+    }
+
+    // Rent — both the tenant-paid side (rentedProperties) and the landlord-received
+    // side (rentalProperties). Neither had push coverage before, despite rent usually
+    // being the single largest recurring due date in the app. Mirrors the corrected
+    // (non-overdue-masking) due-date logic in RemindersTab.tsx: the due date for an
+    // unpaid cycle is always the current cycle's date, so an overdue payment is still
+    // caught while `d <= leadDays` is still upcoming — a push never fires for something
+    // already overdue, matching every other category above.
+    if (cats.rent !== false) {
+      const todayD = new Date(todayStr + "T00:00:00");
+      const currentYear = todayD.getFullYear();
+      const currentMonth = todayD.getMonth();
+      const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+      const clampedRentDate = (year: number, month: number, day: number) => {
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return new Date(year, month, Math.min(day, lastDay));
+      };
+      const pushRentAlert = (p: any, isPayable: boolean) => {
+        const rentAmt = getEffectiveRent(p);
+        if (!rentAmt) return;
+        const dueDay = p.dueDay ? parseInt(p.dueDay, 10) : 5;
+        const history = isPayable ? p.payments || [] : p.receipts || [];
+        const settledCurrent = history.some(
+          (h: any) => h.date && h.date.startsWith(currentMonthStr)
+        );
+        if (settledCurrent) return;
+        const dueDateStr = getLocalDateString(clampedRentDate(currentYear, currentMonth, dueDay));
+        const d = daysLeft(dueDateStr);
+        const title = `${p.propertyName || "Rent"} — ${isPayable ? "Rent due" : "Rent receivable"}`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({
+            title,
+            body: `${fmtINRFull(rentAmt)} due${d === 0 ? " today" : ` in ${d}d`}`,
+            type: "reminder",
+          });
+        }
+      };
+      (state.rentedProperties || [])
+        .filter((p: any) => p.isActive !== false)
+        .forEach((p: any) => pushRentAlert(p, true));
+      (state.rentalProperties || [])
+        .filter((p: any) => p.isActive !== false)
+        .forEach((p: any) => pushRentAlert(p, false));
     }
 
     if (cats.subscriptions !== false) {

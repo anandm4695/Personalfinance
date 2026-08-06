@@ -23,6 +23,7 @@ import {
   BellOff,
   BellRing,
   Clock,
+  Search as SearchIcon,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -95,6 +96,8 @@ const DEFAULT_NOTIF_SETTINGS = {
     fdMaturities: true,
     insurancePremiums: true,
     loanRecovery: true,
+    rent: true,
+    bonds: true,
   },
 };
 
@@ -130,6 +133,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   const [show, setShow] = useState(false);
   const [editingReminder, setEditingReminder] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [search, setSearch] = useState("");
   const [notifPerm, setNotifPerm] = useState<string>(() => {
     if (typeof Notification === "undefined") return "unsupported";
     // Always trust the actual browser permission as source of truth on init
@@ -215,7 +219,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   };
 
   const markAllPastDone = () => {
-    const pastKeys = past.map((r) => `${r.id}-${r.date}`);
+    // Only the currently visible (search-filtered) past-due items — marking items the
+    // user can't currently see as "done" behind a search filter would be surprising.
+    const pastKeys = searchedPast.map((r) => `${r.id}-${r.date}`);
     const newKeys = [...new Set([...completedKeys, ...pastKeys])];
     setCompletedKeys(newKeys);
     try {
@@ -254,6 +260,10 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             type: "Credit Card",
             amount: Number(c.outstanding || 0),
             isOutflow: true,
+            // Informational, not actionable — the bank collects this automatically.
+            // Still shown (useful for cash-flow awareness) but de-emphasized in the
+            // card UI instead of demanding attention like a manual due item.
+            autoPay: !!c.autoPay,
           });
       });
 
@@ -522,16 +532,16 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         );
 
         if (!paidCurrent) {
+          // Always the CURRENT cycle's due date, even if that day-of-month has already
+          // passed — unpaid + past-due must land in the "Past Due" bucket below (via a
+          // negative daysLeft) instead of silently rolling forward to next month, which
+          // was hiding genuinely unpaid/unlogged rent as if nothing were outstanding.
           const dueDate = clampedRentDate(currentYear, currentMonth, dueDay);
           list.push({
             id: "rent-" + p.id,
             title: `${p.propertyName || "Rent"} — Monthly Rent`,
             subtitle: `Rent: ${fmtINRExact(rentAmt)} · Due on ${dueDay}${ordinalSuffix(dueDay)} of month`,
-            date: getLocalDateString(
-              dueDay >= todayD.getDate()
-                ? dueDate
-                : clampedRentDate(currentYear, currentMonth + 1, dueDay)
-            ),
+            date: getLocalDateString(dueDate),
             type: "Rent",
             amount: rentAmt,
             isOutflow: true,
@@ -579,16 +589,15 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         );
 
         if (!receivedCurrent) {
+          // Same fix as the tenant side above: keep the current cycle's due date when
+          // unpaid so an overdue tenant shows up in "Past Due" instead of quietly
+          // becoming "due next month" as if the current month were settled.
           const dueDate = clampedRentDate(currentYear, currentMonth, dueDay);
           list.push({
             id: "rent-recv-" + p.id,
             title: `${p.propertyName || "Rent"} — Rent Receivable`,
             subtitle: `Expected: ${fmtINRExact(rentAmt)} · Due on ${dueDay}${ordinalSuffix(dueDay)} of month`,
-            date: getLocalDateString(
-              dueDay >= todayD.getDate()
-                ? dueDate
-                : clampedRentDate(currentYear, currentMonth + 1, dueDay)
-            ),
+            date: getLocalDateString(dueDate),
             type: "Rent",
             amount: rentAmt,
             isOutflow: false,
@@ -686,8 +695,20 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
     return TYPE_CATEGORIES.filter((t) => t === "All" || types.has(t));
   }, [upcoming]);
 
-  const filteredUpcoming =
-    activeFilter === "All" ? upcoming : upcoming.filter((r) => r.type === activeFilter);
+  const matchesSearch = (r: any) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (r.title || "").toLowerCase().includes(q) ||
+      (r.subtitle || "").toLowerCase().includes(q) ||
+      (r.type || "").toLowerCase().includes(q)
+    );
+  };
+
+  const filteredUpcoming = (activeFilter === "All"
+    ? upcoming
+    : upcoming.filter((r) => r.type === activeFilter)
+  ).filter(matchesSearch);
 
   // Time bucket grouping
   const critical = filteredUpcoming.filter((r) => daysLeft(r.date) <= 7);
@@ -697,14 +718,23 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   });
   const horizon = filteredUpcoming.filter((r) => daysLeft(r.date) > 30);
 
-  const pastToShow = showAllPast ? [...past].reverse() : [...past].reverse().slice(0, 8);
+  // Search applies here too — otherwise typing e.g. "rent" hides it from the upcoming
+  // buckets but leaves unrelated past-due items showing underneath, which reads as the
+  // search box only half-working.
+  const searchedPast = past.filter(matchesSearch);
+  const pastToShow = showAllPast
+    ? [...searchedPast].reverse()
+    : [...searchedPast].reverse().slice(0, 8);
 
   const renderReminderCard = (r: any, compact = false) => {
     const days = daysLeft(r.date);
     const color = TYPE_COLORS[r.type] || THEME.accent;
-    const urgencyCol = days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
-    const urgencyBg =
-      days <= 7
+    // Auto-pay items settle themselves — no manual action is needed, so they never
+    // get the red/amber "act now" treatment even when due soon, just a calm sage note.
+    const urgencyCol = r.autoPay ? THEME.sage : days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
+    const urgencyBg = r.autoPay
+      ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
+      : days <= 7
         ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)`
         : days <= 30
           ? `color-mix(in srgb, ${THEME.gold} 8%, transparent)`
@@ -769,6 +799,23 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               >
                 {r.type}
               </span>
+              {r.autoPay && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
+                    color: THEME.sage,
+                    letterSpacing: "0.02em",
+                    border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+                  }}
+                  title="This card auto-debits — no manual payment needed"
+                >
+                  Auto-pay
+                </span>
+              )}
             </div>
             {r.subtitle && (
               <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{r.subtitle}</div>
@@ -1241,6 +1288,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                     { key: "fdMaturities", label: "FD Maturities", Icon: Coins },
                     { key: "insurancePremiums", label: "Insurance Premiums", Icon: Shield },
                     { key: "loanRecovery", label: "Loan Recoveries", Icon: HandCoins },
+                    { key: "rent", label: "Rent Due Dates", Icon: Home },
+                    { key: "bonds", label: "Bond Maturities", Icon: FileText },
                   ].map(({ key, label, Icon }) => {
                     const on = notifSettings.categories?.[key] !== false;
                     return (
@@ -1404,6 +1453,58 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             />
           )}
 
+          {/* ── SEARCH ── */}
+          {(upcoming.length > 0 || past.length > 0) && (
+            <div style={{ display: "flex", position: "relative", alignItems: "center", marginBottom: 16 }}>
+              <SearchIcon
+                size={15}
+                color={THEME.muted}
+                style={{ position: "absolute", left: 13, pointerEvents: "none" }}
+              />
+              <input
+                type="text"
+                aria-label="Search reminders"
+                placeholder="Search reminders by title or type..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  maxWidth: 340,
+                  padding: `9px ${search ? 34 : 12}px 9px 36px`,
+                  borderRadius: 10,
+                  border: `1.5px solid ${THEME.line}`,
+                  background: "var(--t-paper)",
+                  color: THEME.ink,
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setSearch("")}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    border: "none",
+                    background: `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+                    color: THEME.muted,
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* ── FILTER PILLS ── */}
           {availableTypes.length > 2 && (upcoming.length > 0 || past.length > 0) && (
             <div
@@ -1488,12 +1589,14 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           )}
 
           {filteredUpcoming.length === 0 &&
-            activeFilter !== "All" &&
+            (activeFilter !== "All" || search.trim()) &&
             (upcoming.length > 0 || past.length > 0) && (
               <div
                 style={{ textAlign: "center", padding: "40px 0", color: THEME.muted, fontSize: 13 }}
               >
-                No upcoming {activeFilter} alerts.
+                {search.trim()
+                  ? `No upcoming reminders match "${search.trim()}".`
+                  : `No upcoming ${activeFilter} alerts.`}
               </div>
             )}
 
@@ -1513,28 +1616,35 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   justifyContent: "space-between",
                 }}
               >
-                <span>Past Due Alerts · {past.length}</span>
-                <button
-                  onClick={markAllPastDone}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.sage,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: 0,
-                    textTransform: "none",
-                    letterSpacing: 0,
-                  }}
-                  title="Mark all past due as done"
-                >
-                  <Check size={11} /> Mark all done
-                </button>
+                <span>Past Due Alerts · {searchedPast.length}</span>
+                {searchedPast.length > 0 && (
+                  <button
+                    onClick={markAllPastDone}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.sage,
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: 0,
+                      textTransform: "none",
+                      letterSpacing: 0,
+                    }}
+                    title="Mark all past due as done"
+                  >
+                    <Check size={11} /> Mark all done
+                  </button>
+                )}
               </div>
+              {searchedPast.length === 0 && (
+                <div style={{ fontSize: 12, color: THEME.muted, padding: "8px 0 4px" }}>
+                  No past-due reminders match "{search.trim()}".
+                </div>
+              )}
               <div style={{ display: "grid", gap: 8 }}>
                 {pastToShow.map((r) => {
                   const days = Math.abs(daysLeft(r.date));
@@ -1636,7 +1746,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   );
                 })}
               </div>
-              {past.length > 8 && (
+              {searchedPast.length > 8 && (
                 <button
                   onClick={() => setShowAllPast(!showAllPast)}
                   style={{
@@ -1654,7 +1764,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                     textAlign: "center",
                   }}
                 >
-                  {showAllPast ? "Show less" : `Show all ${past.length} past due items`}
+                  {showAllPast ? "Show less" : `Show all ${searchedPast.length} past due items`}
                 </button>
               )}
             </div>
