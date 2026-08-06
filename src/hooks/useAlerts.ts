@@ -249,6 +249,50 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
           tab: "credit",
         });
     }
+    // Credit score staleness + score-drop — grouped per family member + bureau so a drop
+    // in one person's CIBIL doesn't get diluted/hidden by another member's steady score,
+    // and a stale check for one person doesn't get masked by another's recent one.
+    {
+      const scoreGroups: Record<string, any[]> = {};
+      (state.creditScores || []).forEach((s: any) => {
+        const key = `${s.owner || "self"}|${s.bureau || "CIBIL"}`;
+        (scoreGroups[key] = scoreGroups[key] || []).push(s);
+      });
+      const distinctScoreOwners = new Set((state.creditScores || []).map((s: any) => s.owner || "self"));
+      const showOwnerLabel = distinctScoreOwners.size > 1;
+      Object.entries(scoreGroups).forEach(([key, entries]) => {
+        const [owner, bureauName] = key.split("|");
+        const ownerLabel = showOwnerLabel ? `${owner.charAt(0).toUpperCase()}${owner.slice(1)} ` : "";
+        const sortedEntries = [...entries].sort((a: any, b: any) =>
+          (a.checkDate || "").localeCompare(b.checkDate || "")
+        );
+        const latestEntry = sortedEntries[sortedEntries.length - 1];
+        const prevEntry = sortedEntries[sortedEntries.length - 2];
+        if (!latestEntry?.checkDate) return;
+        const daysSince = Math.ceil(
+          (todayMidnight - new Date(latestEntry.checkDate + "T00:00:00").getTime()) / 86400000
+        );
+        if (daysSince >= 180) {
+          list.push({
+            level: "info",
+            title: `${ownerLabel}${bureauName} score check is ${daysSince}d old`,
+            detail: "Log a fresh check to keep your credit history up to date.",
+            tab: "creditscore",
+          });
+        }
+        if (prevEntry) {
+          const drop = Number(prevEntry.score) - Number(latestEntry.score);
+          if (drop >= 15) {
+            list.push({
+              level: drop >= 40 ? "error" : "warn",
+              title: `${ownerLabel}${bureauName} score dropped ${drop} pts`,
+              detail: `${prevEntry.score} → ${latestEntry.score} since your last check — review recent credit activity.`,
+              tab: "creditscore",
+            });
+          }
+        }
+      });
+    }
     // FOIR: use unfiltered household income + unfiltered loans for a consistent household metric.
     // Excludes internal transfers — a self-transfer between the user's own accounts isn't real
     // income, and counting it would understate FOIR%, masking a genuinely risky EMI burden.
@@ -713,6 +757,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     state.realEstatePayments,
     state.govtSchemes,
     state.prepaidCards,
+    state.creditScores,
     marketData,
   ]);
 

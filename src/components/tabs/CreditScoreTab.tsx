@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   CreditCard,
   Plus,
@@ -9,6 +9,8 @@ import {
   Minus,
   Award,
   AlertCircle,
+  Search,
+  Download,
 } from "lucide-react";
 import {
   LineChart,
@@ -22,7 +24,7 @@ import {
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { uid, today } from "../../utils/finance";
+import { uid, today, exportArrayToCSV } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { ModalSection } from "../ui/ModalSection";
@@ -32,6 +34,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
+import { Prv } from "../../context/PrivacyContext";
 
 const BUREAUS = ["CIBIL", "Experian", "CRIF", "Equifax"];
 const SOURCES = ["manual", "OneScore", "Paisabazaar", "BankApp", "Other"];
@@ -69,49 +72,29 @@ const BUREAU_COLORS: Record<string, string> = {
   Equifax: THEME.gold,
 };
 
-function getOwnerAvatarInfo(ownerId: string) {
-  switch (ownerId) {
-    case "self":
-      return {
-        initials: "AM",
-        name: "Anand Mohta",
-        relation: "Self",
-        color: THEME.accent,
-        bg: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-      };
-    case "wife":
-      return {
-        initials: "DM",
-        name: "Dharna Mohta",
-        relation: "Wife",
-        color: THEME.pink,
-        bg: `color-mix(in srgb, ${THEME.pink} 12%, transparent)`,
-      };
-    case "daughter":
-      return {
-        initials: "RM",
-        name: "Revika Mohta",
-        relation: "Daughter",
-        color: THEME.violet,
-        bg: `color-mix(in srgb, ${THEME.violet} 12%, transparent)`,
-      };
-    case "huf":
-      return {
-        initials: "H",
-        name: "Anand Mohta HUF",
-        relation: "HUF",
-        color: THEME.cyan,
-        bg: `color-mix(in srgb, ${THEME.cyan} 12%, transparent)`,
-      };
-    default:
-      return {
-        initials: "??",
-        name: ownerId,
-        relation: "",
-        color: THEME.muted,
-        bg: `color-mix(in srgb, ${THEME.muted} 12%, transparent)`,
-      };
-  }
+// Fixed color rotation applied by a profile's position in familyProfiles — this way every
+// avatar stays visually distinct and stable across renders without hardcoding names/ids that
+// drift out of sync the moment a profile is renamed or added in Settings (see useMasterData).
+const OWNER_COLOR_PALETTE = [THEME.accent, THEME.pink, THEME.violet, THEME.cyan, THEME.gold, THEME.sage];
+
+function initialsFor(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "??";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function getOwnerAvatarInfo(ownerId: string, familyProfiles: any[]) {
+  const idx = (familyProfiles || []).findIndex((p) => p.id === ownerId);
+  const profile = idx >= 0 ? familyProfiles[idx] : null;
+  const color = OWNER_COLOR_PALETTE[(idx >= 0 ? idx : 0) % OWNER_COLOR_PALETTE.length];
+  return {
+    initials: profile ? initialsFor(profile.name) : "??",
+    name: profile ? profile.name : ownerId,
+    relation: profile ? profile.relation : "",
+    color: profile ? color : THEME.muted,
+    bg: `color-mix(in srgb, ${profile ? color : THEME.muted} 12%, transparent)`,
+  };
 }
 
 const EMPTY = {
@@ -128,7 +111,8 @@ const EMPTY = {
 // identity on every render, forcing React to unmount/remount it instead of
 // reconciling, which drops any local state or in-flight CSS transitions.
 function OwnerAvatar({ ownerId, size = 22 }: { ownerId: string; size?: number }) {
-  const info = getOwnerAvatarInfo(ownerId);
+  const { familyProfiles } = useMasterData();
+  const info = getOwnerAvatarInfo(ownerId, familyProfiles);
   return (
     <div
       title={`${info.name} (${info.relation})`}
@@ -156,11 +140,20 @@ function OwnerAvatar({ ownerId, size = 22 }: { ownerId: string; size?: number })
 function ScoreForm({ initial, onSave, onClose }: any) {
   const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
+  const [error, setError] = useState("");
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   const save = () => {
     const score = Number(form.score);
-    if (!score || score < 300 || score > 900) return;
+    if (!form.score || Number.isNaN(score) || score < 300 || score > 900) {
+      setError("Enter a valid score between 300 and 900.");
+      return;
+    }
+    if (!form.checkDate) {
+      setError("Check date is required.");
+      return;
+    }
+    setError("");
     onSave({ ...form, score, id: initial?.id || uid() });
   };
 
@@ -179,7 +172,10 @@ function ScoreForm({ initial, onSave, onClose }: any) {
             min={300}
             max={900}
             value={form.score}
-            onChange={(e) => set("score", e.target.value)}
+            onChange={(e) => {
+              set("score", e.target.value);
+              if (error) setError("");
+            }}
             placeholder="e.g. 782"
           />
         </Field>
@@ -201,7 +197,10 @@ function ScoreForm({ initial, onSave, onClose }: any) {
             className="form-input"
             type="date"
             value={form.checkDate}
-            onChange={(e) => set("checkDate", e.target.value)}
+            onChange={(e) => {
+              set("checkDate", e.target.value);
+              if (error) setError("");
+            }}
           />
         </Field>
         <Field label="Owner">
@@ -241,6 +240,22 @@ function ScoreForm({ initial, onSave, onClose }: any) {
           placeholder="Optional note"
         />
       </Field>
+      {error && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            color: THEME.rust,
+            marginTop: 12,
+          }}
+        >
+          <AlertCircle size={13} />
+          {error}
+        </div>
+      )}
       <ModalActions onSave={save} onClose={onClose} saveLabel="Save Score" />
     </Modal>
   );
@@ -348,7 +363,7 @@ function ScoreGauge({ score }: { score: number }) {
           }}
         >
           <span style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1 }}>
-            {score}
+            <Prv>{score}</Prv>
           </span>
           <span
             style={{
@@ -372,36 +387,119 @@ function ScoreGauge({ score }: { score: number }) {
   );
 }
 
-function CreditFactorsPanel() {
-  const factors = [
-    { name: "Payment History", weight: "35% weight", desc: "Timely bill payments", value: 95, rating: "Excellent", color: THEME.sage },
-    { name: "Credit Utilization", weight: "30% weight", desc: "Balance to credit limit", value: 78, rating: "Good", color: THEME.cyan },
-    { name: "Credit History Age", weight: "15% weight", desc: "Age of accounts", value: 60, rating: "Fair", color: THEME.gold },
-    { name: "Total Accounts / Mix", weight: "10% weight", desc: "Credit types variety", value: 85, rating: "Good", color: THEME.cyan },
-    { name: "Recent Inquiries", weight: "10% weight", desc: "Hard score checks", value: 90, rating: "Excellent", color: THEME.sage },
-  ];
+// Renders only insights we can actually derive from the user's own data — no fabricated
+// "Payment History 95%" style figures. A prior version showed fixed mock percentages next
+// to a real, dynamic gauge as if they were real analysis; they never changed for any user
+// and were misleading once someone noticed the numbers never moved.
+function CreditFactorsPanel({ sorted, creditCards }: { sorted: any[]; creditCards: any[] }) {
+  const latest = sorted[sorted.length - 1];
+
+  // Same shared-pool dedup as the CC-utilization alert in useAlerts.ts, so this figure
+  // never contradicts the number that actually triggers that alert.
+  const activeCards = (creditCards || []).filter(
+    (c: any) => (c.status || "").toLowerCase() !== "closed"
+  );
+  const pools: Record<string, number> = {};
+  activeCards.forEach((c: any) => {
+    if (c.sharedGroup)
+      pools[c.sharedGroup] = Math.max(pools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+  });
+  const totalLimit =
+    activeCards
+      .filter((c: any) => !c.sharedGroup)
+      .reduce((s: number, c: any) => s + Number(c.limit || c.cardLimit || 0), 0) +
+    Object.values(pools).reduce((s: number, v: number) => s + v, 0);
+  const totalOutstanding = activeCards.reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
+  const utilization = totalLimit > 0 ? (totalOutstanding / totalLimit) * 100 : null;
+  const utilRating =
+    utilization === null ? null : utilization < 10 ? "Excellent" : utilization < 30 ? "Good" : utilization < 50 ? "Fair" : "High";
+  const utilColor =
+    utilization === null
+      ? THEME.muted
+      : utilization < 10
+      ? THEME.sage
+      : utilization < 30
+      ? THEME.cyan
+      : utilization < 50
+      ? THEME.gold
+      : THEME.rust;
+
+  // Trend across the last up-to-3 logged checks for the selected bureau.
+  const recent = sorted.slice(-3);
+  let trendLabel = "Not enough history yet";
+  let trendColor = THEME.muted;
+  if (recent.length >= 2) {
+    const diff = recent[recent.length - 1].score - recent[0].score;
+    if (diff > 3) {
+      trendLabel = `Improving (+${diff} pts)`;
+      trendColor = THEME.sage;
+    } else if (diff < -3) {
+      trendLabel = `Declining (${diff} pts)`;
+      trendColor = THEME.rust;
+    } else {
+      trendLabel = "Stable";
+      trendColor = THEME.cyan;
+    }
+  }
+
+  const daysSinceCheck = latest
+    ? Math.floor((Date.now() - new Date(latest.checkDate + "T00:00:00").getTime()) / 86400000)
+    : null;
+  const gapToExcellent = latest ? Math.max(0, 750 - latest.score) : null;
+
+  const rows: { label: string; value: string; color: string; pct: number | null; desc: string }[] = [];
+  if (utilization !== null) {
+    rows.push({
+      label: `Credit Utilization — ${utilRating}`,
+      value: `${utilization.toFixed(0)}%`,
+      color: utilColor,
+      pct: Math.min(100, utilization),
+      desc: "Outstanding vs. total limit across your active cards",
+    });
+  }
+  rows.push({
+    label: "Score Trend",
+    value: trendLabel,
+    color: trendColor,
+    pct: null,
+    desc: `Based on your last ${recent.length} logged ${recent.length === 1 ? "check" : "checks"} at this bureau`,
+  });
+  if (gapToExcellent !== null) {
+    rows.push({
+      label: gapToExcellent === 0 ? "Excellent Band Reached" : "Gap to Excellent (750+)",
+      value: gapToExcellent === 0 ? "You're there" : `${gapToExcellent} pts`,
+      color: gapToExcellent === 0 ? THEME.sage : THEME.gold,
+      pct: null,
+      desc: gapToExcellent === 0 ? "Your latest check is in the top band" : "Points needed to reach the Excellent band",
+    });
+  }
+  if (daysSinceCheck !== null) {
+    rows.push({
+      label: "Last Checked",
+      value: daysSinceCheck === 0 ? "Today" : `${daysSinceCheck}d ago`,
+      color: daysSinceCheck > 180 ? THEME.gold : THEME.muted,
+      pct: null,
+      desc: daysSinceCheck > 180 ? "It's been a while — consider logging a fresh check" : "Recency of your latest entry",
+    });
+  }
 
   return (
     <Card style={{ padding: "20px 24px" }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        Key Credit Factors Analysis
+        Credit Health Insights
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {factors.map((f, idx) => (
+        {rows.map((f, idx) => (
           <div key={idx} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{f.name}</span>
-                <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 6 }}>({f.weight})</span>
-              </div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: f.color }}>{f.rating}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{f.label}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: f.color, whiteSpace: "nowrap" }}>{f.value}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ flex: 1, height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
-                <div style={{ width: `${f.value}%`, height: "100%", borderRadius: 3, background: f.color }} />
+            {f.pct !== null && (
+              <div style={{ height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
+                <div style={{ width: `${f.pct}%`, height: "100%", borderRadius: 3, background: f.color }} />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, width: 28, textAlign: "right" }}>{f.value}%</span>
-            </div>
+            )}
             <span style={{ fontSize: 10, color: THEME.muted }}>{f.desc}</span>
           </div>
         ))}
@@ -411,20 +509,61 @@ function CreditFactorsPanel() {
 }
 
 export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) {
+  const { familyProfiles } = useMasterData();
   const scores: any[] = state.creditScores || [];
   const [modal, setModal] = useState<any>(null);
   const [bureau, setBureau] = useState("CIBIL");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
-  const filtered = scores.filter((s) => s.bureau === bureau);
-  const sorted = [...filtered].sort((a, b) => a.checkDate.localeCompare(b.checkDate));
+  const distinctOwners = useMemo(
+    () => Array.from(new Set(scores.map((s) => s.owner).filter(Boolean))),
+    [scores]
+  );
+  const isMultiOwner = distinctOwners.length > 1;
+
+  // Owner scoping applies to the deck counts/gauge/insights/chart — a "latest score"
+  // silently mixing two family members' bureau entries is meaningless. Search (below)
+  // only narrows the history list underneath, it never changes these summary numbers.
+  const ownerScoped = useMemo(
+    () => (ownerFilter === "all" ? scores : scores.filter((s) => s.owner === ownerFilter)),
+    [scores, ownerFilter]
+  );
+
+  const filtered = useMemo(() => ownerScoped.filter((s) => s.bureau === bureau), [ownerScoped, bureau]);
+  const sorted = useMemo(
+    () => [...filtered].sort((a, b) => a.checkDate.localeCompare(b.checkDate)),
+    [filtered]
+  );
   const latest = sorted[sorted.length - 1];
   const prev = sorted[sorted.length - 2];
   const delta = latest && prev ? latest.score - prev.score : null;
 
-  const chartData = sorted.map((s) => ({
-    date: new Date(s.checkDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
-    score: s.score,
-  }));
+  const chartData = useMemo(
+    () =>
+      sorted.map((s) => ({
+        date: new Date(s.checkDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+        score: s.score,
+      })),
+    [sorted]
+  );
+
+  const searchLower = search.trim().toLowerCase();
+  const historyList = useMemo(() => {
+    const list = [...sorted].reverse();
+    if (!searchLower) return list;
+    return list.filter((s) => {
+      const dateLabel = new Date(s.checkDate)
+        .toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
+        .toLowerCase();
+      return (
+        dateLabel.includes(searchLower) ||
+        (s.source || "").toLowerCase().includes(searchLower) ||
+        (s.notes || "").toLowerCase().includes(searchLower) ||
+        String(s.score).includes(searchLower)
+      );
+    });
+  }, [sorted, searchLower]);
 
   const save = (data: any) => {
     if (data.id && scores.find((s: any) => s.id === data.id)) {
@@ -433,6 +572,29 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
       addItem("creditScores", data);
     }
     setModal(null);
+  };
+
+  const handleExportCSV = () => {
+    exportArrayToCSV(
+      historyList.map((s) => ({
+        ...s,
+        ownerLabel: getOwnerAvatarInfo(s.owner, familyProfiles).name,
+        dateLabel: new Date(s.checkDate).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+      })),
+      [
+        { key: "dateLabel", label: "Date" },
+        { key: "bureau", label: "Bureau" },
+        { key: "score", label: "Score" },
+        { key: "ownerLabel", label: "Owner" },
+        { key: "source", label: "Source" },
+        { key: "notes", label: "Notes" },
+      ],
+      `Credit_Score_${bureau}_${new Date().toISOString().slice(0, 10)}.csv`
+    );
   };
 
   return (
@@ -534,10 +696,39 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
         />
       ) : (
         <>
+          {isMultiOwner && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              <select
+                className="form-input"
+                value={ownerFilter}
+                onChange={(e) => setOwnerFilter(e.target.value)}
+                aria-label="Filter by family member"
+                style={{ width: 220, fontSize: 12, padding: "6px 10px" }}
+              >
+                <option value="all">All Members (combined)</option>
+                {familyProfiles
+                  .filter((p: any) => distinctOwners.includes(p.id))
+                  .map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
+
+          {isMultiOwner && ownerFilter === "all" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: THEME.muted, marginBottom: 12 }}>
+              <AlertCircle size={12} style={{ flexShrink: 0 }} />
+              Deck, gauge, and insights below combine scores from {distinctOwners.length} family
+              members — use the filter above to view one person alone.
+            </div>
+          )}
+
           {/* Interactive bureau cards deck */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }} className="bureau-deck">
             {BUREAUS.map((b) => {
-              const filteredForBureau = scores.filter((s) => s.bureau === b);
+              const filteredForBureau = ownerScoped.filter((s) => s.bureau === b);
               const cnt = filteredForBureau.length;
               const isActive = bureau === b;
               const bColor = BUREAU_COLORS[b];
@@ -572,7 +763,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                     )}
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: latestScore ? THEME.ink : THEME.muted, letterSpacing: "-0.02em", marginTop: 4 }}>
-                    {latestScore || "--"}
+                    {latestScore ? <Prv>{latestScore}</Prv> : "--"}
                   </div>
                   <span style={{ fontSize: 9, color: THEME.muted }}>
                     {cnt === 0 ? "No records" : "Latest Rating"}
@@ -620,7 +811,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                 </Card>
 
                 {/* Factors description */}
-                <CreditFactorsPanel />
+                <CreditFactorsPanel sorted={sorted} creditCards={state.creditCards} />
 
                 {/* Stat cards columns */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -735,11 +926,82 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                 </Card>
               )}
 
+              {/* History toolbar: search + CSV export — search only narrows this list,
+                  it never changes the stats/gauge/chart above it. */}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ position: "relative" }}>
+                  <Search
+                    size={13}
+                    style={{
+                      position: "absolute",
+                      left: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: THEME.muted,
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search date, source, notes, score…"
+                    aria-label="Search credit score history"
+                    style={{
+                      border: `1px solid ${THEME.line}`,
+                      borderRadius: 8,
+                      padding: "6px 10px 6px 28px",
+                      fontSize: 12,
+                      color: THEME.ink,
+                      background: "var(--surface-0)",
+                      width: 220,
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={handleExportCSV}
+                  disabled={!historyList.length}
+                  className="card-lift"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${THEME.line}`,
+                    background: "var(--surface-0)",
+                    color: THEME.ink,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: historyList.length ? "pointer" : "not-allowed",
+                    opacity: historyList.length ? 1 : 0.5,
+                  }}
+                >
+                  <Download size={13} />
+                  Export CSV
+                </button>
+              </div>
+
               {/* History entries */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[...sorted].reverse().map((s) => {
+                {historyList.length === 0 && (
+                  <Card style={{ padding: "24px", textAlign: "center", borderStyle: "dashed" }}>
+                    <div style={{ fontSize: 13, color: THEME.muted }}>
+                      No entries match your search.
+                    </div>
+                  </Card>
+                )}
+                {historyList.map((s) => {
                   const grade = scoreGrade(s.score);
-                  const ownerInfo = getOwnerAvatarInfo(s.owner);
                   return (
                     <div
                       key={s.id}
@@ -767,7 +1029,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                         }}
                       >
                         <span style={{ fontSize: 16, fontWeight: 900, color: grade.color }}>
-                          {s.score}
+                          <Prv>{s.score}</Prv>
                         </span>
                       </div>
                       
