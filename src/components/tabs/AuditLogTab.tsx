@@ -19,6 +19,7 @@ import {
 import { supabase } from "../../supabaseClient";
 import { getLocalDateString } from "../../utils/finance";
 import { THEME } from "../../utils/constants";
+import { usePrivacy } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -76,6 +77,59 @@ const SKIP_KEYS = new Set([
   "createdAt",
   "updatedAt",
 ]);
+
+// Fields carrying monetary values or account-identifying numbers — masked in the UI
+// when Privacy Mode is on, same as everywhere else in the app.
+const SENSITIVE_KEYS = new Set([
+  "amount",
+  "balance",
+  "invested",
+  "current_value",
+  "currentValue",
+  "principal",
+  "outstanding",
+  "credit_limit",
+  "creditLimit",
+  "sum_assured",
+  "sumAssured",
+  "premium",
+  "emi",
+  "remaining",
+  "target",
+  "current",
+  "cover",
+  "account_number",
+  "accountNumber",
+  "pran",
+  "folio",
+  "folio_number",
+  "folioNumber",
+  "nav",
+  "buy_price",
+  "buyPrice",
+  "weight",
+]);
+
+// `description` is a plain string built server-side (e.g. "Added Transaction: Groceries — ₹5,240"),
+// so it can't be wrapped field-by-field with <Prv>. Mask the ₹ amounts embedded in it instead.
+const maskCurrencyInText = (text: string, privacyMode: boolean): string => {
+  if (!privacyMode || !text) return text;
+  return text.replace(/₹\s?-?[\d,]+(\.\d+)?/g, "₹••••");
+};
+
+// action_type values follow patterns like "ADD_STOCKS", "BATCH_ADD_TRANSACTIONS",
+// "REMOVE_LOANS_TAKEN", "UPDATE_SETTINGS" — bucket by verb anywhere in the string rather
+// than just the first "_"-delimited token, or compound types like BATCH_ADD_* fall through.
+const getActionBucket = (actionType: string): string => {
+  const a = (actionType || "").toUpperCase();
+  if (a.includes("REMOVE") || a.includes("DELETE")) return "REMOVE";
+  if (a.includes("ADD")) return "ADD";
+  if (a.includes("UPDATE")) return "UPDATE";
+  if (a.includes("IMPORT")) return "IMPORT";
+  if (a.includes("EXPORT")) return "EXPORT";
+  if (a.includes("RESET")) return "RESET";
+  return "UNKNOWN";
+};
 
 const LABEL_MAP: Record<string, string> = {
   symbol: "Symbol",
@@ -158,7 +212,8 @@ const LABEL_MAP: Record<string, string> = {
   entries: "Entries",
 };
 
-const formatDetailValue = (val: any): string => {
+const formatDetailValue = (val: any, masked?: boolean): string => {
+  if (masked) return "••••";
   if (val === null || val === undefined || val === "") return "—";
   if (typeof val === "boolean") return val ? "Yes" : "No";
   if (typeof val === "number") return val.toLocaleString("en-IN");
@@ -192,7 +247,7 @@ const formatDetailValue = (val: any): string => {
   return String(val);
 };
 
-const renderMetadataDetails = (metadata: any, actionType: string) => {
+const renderMetadataDetails = (metadata: any, actionType: string, privacyMode: boolean) => {
   if (!metadata || typeof metadata !== "object") return null;
 
   const isUpdate = (actionType || "").startsWith("UPDATE");
@@ -245,61 +300,78 @@ const renderMetadataDetails = (metadata: any, actionType: string) => {
         </div>
       )}
       <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-        {allEntries.map(([k, v]) => (
-          <div key={k} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-            <span
-              style={{
-                width: 140,
-                flexShrink: 0,
-                fontSize: 11,
-                fontWeight: 600,
-                color: THEME.textSecondary,
-                textTransform: "capitalize",
-                paddingTop: 1,
-              }}
-            >
-              {LABEL_MAP[k] || k.replace(/_/g, " ")}
-            </span>
-            <span
-              style={{
-                flex: 1,
-                fontSize: 12,
-                wordBreak: "break-word",
-                fontStyle: Array.isArray(v) && typeof v[0] === "object" ? "italic" : "normal",
-                color:
-                  Array.isArray(v) && typeof v[0] === "object" ? THEME.textSecondary : THEME.text,
-              }}
-            >
-              {formatDetailValue(v)}
-            </span>
-          </div>
-        ))}
+        {allEntries.map(([k, v]) => {
+          const masked = privacyMode && SENSITIVE_KEYS.has(k);
+          return (
+            <div key={k} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span
+                style={{
+                  width: 140,
+                  flexShrink: 0,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: THEME.textSecondary,
+                  textTransform: "capitalize",
+                  paddingTop: 1,
+                }}
+              >
+                {LABEL_MAP[k] || k.replace(/_/g, " ")}
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: 12,
+                  wordBreak: "break-word",
+                  fontStyle:
+                    !masked && Array.isArray(v) && typeof v[0] === "object" ? "italic" : "normal",
+                  color:
+                    !masked && Array.isArray(v) && typeof v[0] === "object"
+                      ? THEME.textSecondary
+                      : THEME.text,
+                  letterSpacing: masked ? "0.1em" : "normal",
+                }}
+              >
+                {formatDetailValue(v, masked)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-const getMetadataSummary = (metadata: any, actionType: string): string | null => {
+const getMetadataSummary = (
+  metadata: any,
+  actionType: string,
+  privacyMode: boolean
+): string | null => {
   if (!metadata || typeof metadata !== "object") return null;
   const isUpdate = (actionType || "").startsWith("UPDATE");
   const source = isUpdate && metadata.patch ? metadata.patch : metadata;
   const pairs: string[] = [];
   Object.entries(source).forEach(([k, v]) => {
     if (SKIP_KEYS.has(k) || k === "patch") return;
+    const label = LABEL_MAP[k] || k;
+    const masked = privacyMode && SENSITIVE_KEYS.has(k);
+    if (masked) {
+      pairs.push(`${label}: ••••`);
+      return;
+    }
     if (Array.isArray(v)) {
       if (typeof v[0] === "object")
-        pairs.push(`${LABEL_MAP[k] || k}: ${v.length} record${v.length !== 1 ? "s" : ""}`);
-      else pairs.push(`${LABEL_MAP[k] || k}: ${v.join(", ")}`);
+        pairs.push(`${label}: ${v.length} record${v.length !== 1 ? "s" : ""}`);
+      else pairs.push(`${label}: ${v.join(", ")}`);
       return;
     }
     if (typeof v === "object") return;
-    const label = LABEL_MAP[k] || k;
     pairs.push(`${label}: ${formatDetailValue(v)}`);
   });
   return pairs.length ? pairs.slice(0, 3).join(" · ") : null;
 };
 
 export const AuditLogTab = ({ session }) => {
+  const { privacyMode } = usePrivacy();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -348,7 +420,7 @@ export const AuditLogTab = ({ session }) => {
   const filteredLogs = useMemo(() => {
     let list = logs;
     if (filterAction !== "all") {
-      list = list.filter((l) => (l.action_type || "").toUpperCase().startsWith(filterAction));
+      list = list.filter((l) => getActionBucket(l.action_type) === filterAction);
     }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -365,8 +437,8 @@ export const AuditLogTab = ({ session }) => {
   const actionStats = useMemo(() => {
     const stats: Record<string, number> = {};
     logs.forEach((l) => {
-      const action = (l.action_type || "UNKNOWN").split("_")[0];
-      stats[action] = (stats[action] || 0) + 1;
+      const bucket = getActionBucket(l.action_type);
+      stats[bucket] = (stats[bucket] || 0) + 1;
     });
     return stats;
   }, [logs]);
@@ -425,14 +497,38 @@ export const AuditLogTab = ({ session }) => {
     });
   };
 
+  const exportCSV = () => {
+    if (!filteredLogs.length) return;
+    const headers = ["Date", "Time", "Action", "Description", "Details"];
+    const rows = filteredLogs.map((l) => [
+      localDay(l.created_at),
+      formatTime(l.created_at),
+      getActionLabel(l.action_type),
+      l.description || l.action_type || "",
+      getMetadataSummary(l.metadata, l.action_type, false) || "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-log-${getLocalDateString(new Date())}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const getActionColor = (action: string) => {
-    const type = (action || "").split("_")[0];
-    return ACTION_COLORS[type] || THEME.textSecondary;
+    // Exact match first so UPDATE_SETTINGS/UPDATE_PROFILE keep their own colors
+    // instead of always collapsing to the generic UPDATE color.
+    return ACTION_COLORS[action] || ACTION_COLORS[getActionBucket(action)] || THEME.textSecondary;
   };
 
   const getActionIcon = (action: string) => {
-    const type = (action || "").split("_")[0];
-    return ACTION_ICONS[type] || Activity;
+    return ACTION_ICONS[action] || ACTION_ICONS[getActionBucket(action)] || Activity;
   };
 
   const getActionLabel = (action: string) => {
@@ -451,9 +547,20 @@ export const AuditLogTab = ({ session }) => {
         <SectionTitle sub="Track all changes and actions in your financial data">
           Audit Log
         </SectionTitle>
-        <Button variant="ghost" size="sm" onClick={fetchLogs}>
-          <RefreshCw size={14} /> Refresh
-        </Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={exportCSV}
+            disabled={!filteredLogs.length}
+            title="Export the currently filtered entries as CSV"
+          >
+            <Download size={14} /> Export CSV
+          </Button>
+          <Button variant="ghost" size="sm" onClick={fetchLogs}>
+            <RefreshCw size={14} /> Refresh
+          </Button>
+        </div>
       </div>
 
       {fetchError && (
@@ -591,7 +698,10 @@ export const AuditLogTab = ({ session }) => {
             <Search size={13} color={THEME.textSecondary} />
             <input
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(0);
+              }}
               placeholder="Search by description, type, or value…"
               aria-label="Search audit log"
               style={{
@@ -606,7 +716,10 @@ export const AuditLogTab = ({ session }) => {
           </div>
           <select
             value={filterAction}
-            onChange={(e) => setFilterAction(e.target.value)}
+            onChange={(e) => {
+              setFilterAction(e.target.value);
+              setPage(0);
+            }}
             aria-label="Filter by action type"
             style={{
               padding: "7px 12px",
@@ -712,7 +825,7 @@ export const AuditLogTab = ({ session }) => {
                     log.metadata &&
                     typeof log.metadata === "object" &&
                     Object.keys(log.metadata).length > 0;
-                  const summary = getMetadataSummary(log.metadata, log.action_type);
+                  const summary = getMetadataSummary(log.metadata, log.action_type, privacyMode);
 
                   return (
                     <div
@@ -783,7 +896,8 @@ export const AuditLogTab = ({ session }) => {
                                 lineHeight: 1.4,
                               }}
                             >
-                              {log.description || log.action_type}
+                              {maskCurrencyInText(log.description, privacyMode) ||
+                                log.action_type}
                             </span>
                             <span
                               style={{
@@ -860,7 +974,8 @@ export const AuditLogTab = ({ session }) => {
                           </div>
 
                           {/* Expanded details */}
-                          {isExpanded && renderMetadataDetails(log.metadata, log.action_type)}
+                          {isExpanded &&
+                            renderMetadataDetails(log.metadata, log.action_type, privacyMode)}
                         </div>
                       </div>
                     </div>
@@ -896,7 +1011,10 @@ export const AuditLogTab = ({ session }) => {
                 variant="secondary"
                 size="sm"
                 onClick={() => setPage(page + 1)}
-                disabled={filteredLogs.length < PAGE_SIZE}
+                // Whether another server page exists depends on the raw fetched page size,
+                // not the client-filtered count — filters can legitimately shrink a full
+                // page well below PAGE_SIZE while more matching data still exists ahead.
+                disabled={logs.length < PAGE_SIZE}
               >
                 Next
               </Button>
