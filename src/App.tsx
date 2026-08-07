@@ -198,7 +198,6 @@ const DEFAULT_STATE = {
     fontKey: "inter",
     bgStyle: "plain",
     animSpeed: "smooth",
-    chartStyle: "monotone",
     emailEnabled: false,
     emailFrequency: "weekly",
     emailDay: 1,
@@ -359,16 +358,7 @@ function FinanceDashboard() {
 
   // Derived settings from state for easier access
   const settings = state.settings || DEFAULT_STATE.settings;
-  const {
-    darkMode,
-    accentKey,
-    density,
-    radiusKey,
-    fontKey,
-    bgStyle,
-    animSpeed,
-    chartStyle,
-  } = settings;
+  const { darkMode, accentKey, density, radiusKey, fontKey, bgStyle, animSpeed } = settings;
 
   const logActivity = useCallback(
     async (actionType: string, description: string, metadata?: any) => {
@@ -406,7 +396,6 @@ function FinanceDashboard() {
         if (updates.fontKey !== undefined) dbUpdates.font_key = updates.fontKey;
         if (updates.bgStyle !== undefined) dbUpdates.bg_style = updates.bgStyle;
         if (updates.animSpeed !== undefined) dbUpdates.anim_speed = updates.animSpeed;
-        if (updates.chartStyle !== undefined) dbUpdates.chart_style = updates.chartStyle;
         if (updates.emailEnabled !== undefined) dbUpdates.email_enabled = updates.emailEnabled;
         if (updates.emailFrequency !== undefined)
           dbUpdates.email_frequency = updates.emailFrequency;
@@ -472,9 +461,14 @@ function FinanceDashboard() {
         if ("fy" in updates) dbProfile.fy = updates.fy;
         if ("regime" in updates) dbProfile.regime = updates.regime;
         if ("savingsTarget" in updates) dbProfile.savings_target = updates.savingsTarget;
-        await supabase.from("profiles").upsert(dbProfile);
+        const { error } = await supabase.from("profiles").upsert(dbProfile);
+        if (error) {
+          console.error("updateProfile DB error:", error.message, dbProfile);
+          return { success: false, error: error.message };
+        }
       }
       logActivity("UPDATE_PROFILE", "Updated user profile", updates);
+      return { success: true };
     },
     [logActivity, session]
   );
@@ -3235,7 +3229,6 @@ function FinanceDashboard() {
               font_key: "inter",
               bg_style: "plain",
               anim_speed: "smooth",
-              chart_style: "monotone",
             })
             .eq("user_id", userId);
 
@@ -5311,12 +5304,11 @@ function FinanceDashboard() {
                   setBgStyle={(v) => updateSettings({ bgStyle: v })}
                   animSpeed={animSpeed}
                   setAnimSpeed={(v) => updateSettings({ animSpeed: v })}
-                  chartStyle={chartStyle}
-                  setChartStyle={(v) => updateSettings({ chartStyle: v })}
                   masterData={state.masterData || DEFAULT_MASTER_DATA}
                   updateMasterData={updateMasterData}
                   emailSettings={settings}
                   updateEmailSettings={updateSettings}
+                  lastBackupTs={lastBackupTs}
                 />
               )}
             </div>

@@ -59,6 +59,7 @@ import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
+import { ConfirmDialog } from "../ui/Feedback";
 import { DocumentVaultTab } from "./DocumentVaultTab";
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
@@ -213,6 +214,9 @@ function EditableList({ listKey, items, onUpdate }: any) {
   const [val, setVal] = useState("");
   const [focused, setFocused] = useState(false);
   const [sortDir, setSortDir] = useState<"" | "asc" | "desc">("");
+  const [query, setQuery] = useState("");
+  const [pendingRemove, setPendingRemove] = useState<string | null>(null);
+  const [dupWarning, setDupWarning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const defaultItems: string[] = DEFAULT_MASTER_DATA[listKey] || [];
   const isDirty = JSON.stringify([...items].sort()) !== JSON.stringify([...defaultItems].sort());
@@ -234,7 +238,12 @@ function EditableList({ listKey, items, onUpdate }: any) {
 
   const add = () => {
     const v = val.trim();
-    if (!v || items.includes(v)) return;
+    if (!v) return;
+    if (items.some((x: string) => x.toLowerCase() === v.toLowerCase())) {
+      setDupWarning(true);
+      setTimeout(() => setDupWarning(false), 2500);
+      return;
+    }
     onUpdate(listKey, [...items, v]);
     setVal("");
     // New item is appended, not inserted in sorted position — the A→Z/Z→A
@@ -242,11 +251,18 @@ function EditableList({ listKey, items, onUpdate }: any) {
     setSortDir("");
   };
 
-  const remove = (item: string) =>
+  const confirmRemove = () => {
+    if (!pendingRemove) return;
     onUpdate(
       listKey,
-      items.filter((x: string) => x !== item)
+      items.filter((x: string) => x !== pendingRemove)
     );
+    setPendingRemove(null);
+  };
+
+  const visibleItems = query.trim()
+    ? items.filter((x: string) => x.toLowerCase().includes(query.trim().toLowerCase()))
+    : items;
 
   return (
     <div
@@ -374,6 +390,36 @@ function EditableList({ listKey, items, onUpdate }: any) {
         </div>
       </div>
 
+      {/* Search — only shown once the list is long enough to benefit */}
+      {items.length > 6 && (
+        <div
+          style={{
+            padding: "10px 16px 0",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Search size={13} color={THEME.muted} style={{ flexShrink: 0 }} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${items.length} items…`}
+            aria-label={`Search ${MD_LABELS[listKey] || "items"}`}
+            style={{
+              flex: 1,
+              background: "none",
+              border: "none",
+              outline: "none",
+              color: THEME.ink,
+              fontSize: 12,
+              padding: "4px 0",
+              fontFamily: "inherit",
+            }}
+          />
+        </div>
+      )}
+
       {/* Chips */}
       <div
         style={{ padding: "12px 16px", display: "flex", flexWrap: "wrap", gap: 6, minHeight: 52 }}
@@ -385,7 +431,14 @@ function EditableList({ listKey, items, onUpdate }: any) {
             No items yet — add one below
           </span>
         )}
-        {items.map((item: string) => (
+        {items.length > 0 && visibleItems.length === 0 && (
+          <span
+            style={{ fontSize: 13, color: THEME.muted, fontStyle: "italic", alignSelf: "center" }}
+          >
+            No items match "{query}"
+          </span>
+        )}
+        {visibleItems.map((item: string) => (
           <span
             key={item}
             style={{
@@ -403,7 +456,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
           >
             {item}
             <button
-              onClick={() => remove(item)}
+              onClick={() => setPendingRemove(item)}
               style={{
                 background: `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
                 border: "none",
@@ -424,6 +477,32 @@ function EditableList({ listKey, items, onUpdate }: any) {
           </span>
         ))}
       </div>
+
+      {dupWarning && (
+        <div
+          style={{
+            margin: "0 16px 12px",
+            padding: "8px 12px",
+            borderRadius: 8,
+            background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
+            fontSize: 12,
+            color: THEME.gold,
+            fontWeight: 600,
+          }}
+        >
+          That value already exists (case-insensitive match).
+        </div>
+      )}
+
+      {pendingRemove && (
+        <ConfirmDialog
+          message={`Remove "${pendingRemove}" from ${MD_LABELS[listKey] || "this list"}?\n\nIt will disappear from every dropdown immediately. Any existing records already saved with this value will keep it as-is, so they may no longer match an option in the list.`}
+          confirmLabel="Yes, remove"
+          onConfirm={confirmRemove}
+          onCancel={() => setPendingRemove(null)}
+        />
+      )}
 
       {/* Add row */}
       <div
@@ -1027,7 +1106,7 @@ function AppearanceSection({
 }
 
 // ─── Section: Profile ─────────────────────────────────────────────────────────
-function ProfileSection({ state, updateProfile }: any) {
+function ProfileSection({ state, updateProfile, showToast }: any) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<any>(null);
@@ -1048,8 +1127,16 @@ function ProfileSection({ state, updateProfile }: any) {
 
   const isDirty = JSON.stringify(prof) !== JSON.stringify(state.profile);
 
-  const saveProfile = () => {
-    updateProfile(prof);
+  const [saving, setSaving] = useState(false);
+
+  const saveProfile = async () => {
+    setSaving(true);
+    const res = await updateProfile(prof);
+    setSaving(false);
+    if (res?.success === false) {
+      showToast?.(`Failed to save profile: ${res.error || "Unknown error"}`, "error");
+      return;
+    }
     setSaved(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setSaved(false), 2200);
@@ -1104,7 +1191,7 @@ function ProfileSection({ state, updateProfile }: any) {
     padding: "10px 12px",
     background: "var(--t-paper)",
     border: `1.5px solid ${THEME.line}`,
-    borderRadius: 10,
+    borderRadius: "var(--t-radius, 10px)",
     color: THEME.ink,
     fontSize: 14,
     boxSizing: "border-box" as const,
@@ -1197,7 +1284,11 @@ function ProfileSection({ state, updateProfile }: any) {
             min="0"
             max="100"
             value={prof.savingsTarget ?? 20}
-            onChange={(e) => setProf({ ...prof, savingsTarget: Number(e.target.value) })}
+            onChange={(e) => {
+              const n = Math.round(Number(e.target.value));
+              const clamped = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0;
+              setProf({ ...prof, savingsTarget: clamped });
+            }}
             placeholder="e.g. 20"
           />
         </Field>
@@ -1233,10 +1324,11 @@ function ProfileSection({ state, updateProfile }: any) {
         )}
         <Button
           onClick={saveProfile}
+          disabled={saving}
           icon={saved ? <Check size={15} /> : undefined}
           style={saved ? { background: THEME.sage } : isDirty ? {} : { opacity: 0.6 }}
         >
-          {saved ? "Saved!" : "Save Profile"}
+          {saving ? "Saving..." : saved ? "Saved!" : "Save Profile"}
         </Button>
       </div>
     </Card>
@@ -1260,12 +1352,21 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
   const setName = (id: string, name: string) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, name } : r)));
 
+  const trimmedNames = rows.map((r) => (r.name || "").trim());
+  const hasEmptyName = trimmedNames.some((n) => !n);
+  const lowerNames = trimmedNames.map((n) => n.toLowerCase());
+  const hasDuplicateName = lowerNames.some((n, i) => n && lowerNames.indexOf(n) !== i);
+  const isValid = !hasEmptyName && !hasDuplicateName;
+
   const save = () => {
+    if (!isValid) return;
     updateMasterData("familyProfiles", rows);
     setSaved(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setSaved(false), 2200);
   };
+
+  const cancel = () => setRows(savedProfiles);
 
   useEffect(
     () => () => {
@@ -1365,6 +1466,29 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
         })}
       </div>
 
+      {(hasEmptyName || hasDuplicateName) && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
+            fontSize: 12,
+            color: THEME.rust,
+            fontWeight: 600,
+            marginBottom: 16,
+          }}
+        >
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          {hasEmptyName
+            ? "Every profile needs a name — it can't be left blank."
+            : "Two profiles can't share the same name."}
+        </div>
+      )}
+
       <div
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
       >
@@ -1393,13 +1517,27 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
         ) : (
           <span style={{ fontSize: 11, color: THEME.muted }}>Family profile names</span>
         )}
-        <Button
-          onClick={save}
-          icon={saved ? <Check size={15} /> : undefined}
-          style={saved ? { background: THEME.sage } : isDirty ? {} : { opacity: 0.6 }}
-        >
-          {saved ? "Saved!" : "Save Family Profiles"}
-        </Button>
+        <div style={{ display: "flex", gap: 10 }}>
+          {isDirty && (
+            <Button variant="ghost" onClick={cancel}>
+              Cancel
+            </Button>
+          )}
+          <Button
+            onClick={save}
+            disabled={!isValid}
+            icon={saved ? <Check size={15} /> : undefined}
+            style={
+              saved
+                ? { background: THEME.sage }
+                : isDirty && isValid
+                  ? {}
+                  : { opacity: 0.6 }
+            }
+          >
+            {saved ? "Saved!" : "Save Family Profiles"}
+          </Button>
+        </div>
       </div>
     </Card>
   );
@@ -1459,9 +1597,24 @@ function DataSection({
   onSignOut,
   cleanupOrphaned,
   state,
+  lastBackupTs,
 }: any) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const daysSinceBackup =
+    lastBackupTs != null
+      ? Math.floor((Date.now() - new Date(lastBackupTs).getTime()) / DAY_MS)
+      : null;
+  const backupStatus =
+    daysSinceBackup === null
+      ? { label: "Never backed up on this device", color: THEME.rust }
+      : daysSinceBackup < 7
+        ? { label: `Last backup: ${new Date(lastBackupTs).toLocaleString()}`, color: THEME.sage }
+        : daysSinceBackup <= 30
+          ? { label: `Last backup: ${new Date(lastBackupTs).toLocaleString()}`, color: THEME.gold }
+          : { label: `Last backup: ${new Date(lastBackupTs).toLocaleString()}`, color: THEME.rust };
 
   const csvExports = [
     {
@@ -1617,9 +1770,32 @@ function DataSection({
         >
           <Database size={16} color={THEME.sage} /> Backup & Restore
         </div>
-        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 20, marginTop: 4 }}>
+        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 12, marginTop: 4 }}>
           Export all your data as a JSON file or restore from a previous backup.
         </p>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            color: backupStatus.color,
+            marginBottom: 16,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: backupStatus.color,
+              display: "inline-block",
+              flexShrink: 0,
+            }}
+          />
+          {backupStatus.label}
+        </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Button variant="secondary" onClick={() => exportJSON()} icon={<Download size={15} />}>
             Export Backup (.json)
@@ -2180,9 +2356,18 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     max="28"
                     placeholder="e.g. 1"
                     value={day || ""}
-                    onChange={(e) => updateEmailSettings({ emailDay: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") return;
+                      const n = Math.round(Number(raw));
+                      if (!Number.isFinite(n)) return;
+                      updateEmailSettings({ emailDay: Math.min(28, Math.max(1, n)) });
+                    }}
                   />
                 </Field>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: -12 }}>
+                  1–28, so it stays valid every month including February
+                </div>
               </div>
             )}
 
@@ -2530,6 +2715,32 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 // ─── Section: AI Advisor ──────────────────────────────────────────────────────
 function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
   const [showKey, setShowKey] = useState(false);
+  const [keyVal, setKeyVal] = useState(geminiApiKey || "");
+  const [saved, setSaved] = useState(false);
+  const timerRef = useRef<any>(null);
+
+  // Sync local buffer if the saved key changes elsewhere (e.g. DB load after mount).
+  useEffect(() => {
+    setKeyVal(geminiApiKey || "");
+  }, [geminiApiKey]);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
+
+  const isDirty = keyVal !== (geminiApiKey || "");
+  const looksValid = !keyVal || keyVal.trim().length >= 20;
+
+  const saveKey = () => {
+    updateSettings({ geminiApiKey: keyVal.trim() });
+    setShowKey(false);
+    setSaved(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setSaved(false), 2200);
+  };
 
   const inp: any = {
     flex: 1,
@@ -2597,8 +2808,9 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
               style={inp}
               type={showKey ? "text" : "password"}
               placeholder="AIzaSy..."
-              value={geminiApiKey || ""}
-              onChange={(e) => updateSettings({ geminiApiKey: e.target.value })}
+              value={keyVal}
+              onChange={(e) => setKeyVal(e.target.value)}
+              onBlur={() => setShowKey(false)}
             />
             <button
               onClick={() => setShowKey((v) => !v)}
@@ -2617,7 +2829,20 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
             >
               {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
+            <Button
+              onClick={saveKey}
+              disabled={!isDirty}
+              icon={saved ? <Check size={15} /> : undefined}
+              style={saved ? { background: THEME.sage } : !isDirty ? { opacity: 0.6 } : {}}
+            >
+              {saved ? "Saved!" : "Save"}
+            </Button>
           </div>
+          {!looksValid && (
+            <div style={{ marginTop: 8, fontSize: 11, color: THEME.gold, fontWeight: 600 }}>
+              That doesn't look like a full Gemini API key — double-check before saving.
+            </div>
+          )}
         </Field>
         <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted }}>
           Get a free API key from{" "}
@@ -2629,7 +2854,9 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
           >
             Google AI Studio
           </a>{" "}
-          — free tier supports up to 15 requests/minute.
+          — free tier supports up to 15 requests/minute. The key is sent directly from your
+          browser to Google when you use the AI Advisor, so it's visible in your browser's network
+          traffic — this is expected for a bring-your-own-key setup.
         </div>
 
         {geminiApiKey ? (
@@ -2712,14 +2939,13 @@ export function SettingsTab({
   setBgStyle,
   animSpeed,
   setAnimSpeed,
-  chartStyle: _chartStyle,
-  setChartStyle: _setChartStyle,
   masterData,
   updateMasterData,
   emailSettings,
   updateEmailSettings,
   session,
   showToast,
+  lastBackupTs,
 }: any) {
   const [tab, setTab] = useState("appearance");
 
@@ -2797,6 +3023,7 @@ export function SettingsTab({
                 sub={sub}
                 icon={<Icon />}
                 color={color}
+                maskInPrivacyMode={false}
               />
             ))}
           </div>
@@ -2828,7 +3055,7 @@ export function SettingsTab({
 
       {tab === "profile" && (
         <div key="profile" className="tab-content-enter">
-          <ProfileSection state={state} updateProfile={updateProfile} />
+          <ProfileSection state={state} updateProfile={updateProfile} showToast={showToast} />
         </div>
       )}
 
@@ -2888,6 +3115,7 @@ export function SettingsTab({
             onSignOut={onSignOut}
             cleanupOrphaned={cleanupOrphaned}
             state={state}
+            lastBackupTs={lastBackupTs}
           />
         </div>
       )}

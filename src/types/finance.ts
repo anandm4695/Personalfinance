@@ -21,7 +21,6 @@ export interface Settings {
   fontKey: string;
   bgStyle: string;
   animSpeed: string;
-  chartStyle: string;
   emailEnabled: boolean;
   emailFrequency: "daily" | "weekly" | "monthly" | string;
   emailDay: number;
@@ -29,6 +28,7 @@ export interface Settings {
   emailAddress: string;
   fromEmail: string;
   geminiApiKey: string;
+  goldPricePerGram?: number;
 }
 
 // ────────────────────────────────────────────────────────────

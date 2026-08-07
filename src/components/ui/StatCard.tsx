@@ -16,6 +16,8 @@ interface StatCardProps {
   /** Optional: pass the raw number + a formatter to animate the value on change (count-up/down). */
   numericValue?: number;
   formatValue?: (n: number) => string;
+  /** Set false for non-financial/non-sensitive values (e.g. a theme name) that shouldn't blur in Privacy Mode. Defaults to true. */
+  maskInPrivacyMode?: boolean;
 }
 
 export const StatCard = ({
@@ -29,6 +31,7 @@ export const StatCard = ({
   iconBg,
   numericValue,
   formatValue,
+  maskInPrivacyMode = true,
 }: StatCardProps) => {
   const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
   const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
@@ -117,7 +120,7 @@ export const StatCard = ({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          <Prv>{displayValue}</Prv>
+          {maskInPrivacyMode ? <Prv>{displayValue}</Prv> : displayValue}
         </div>
       </div>
     </div>

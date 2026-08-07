@@ -5,24 +5,12 @@ export function useTheme(settings: {
   darkMode: boolean;
   accentKey: string;
   density: string;
-  sidebarNav: boolean;
   radiusKey: string;
   fontKey: string;
   bgStyle: string;
   animSpeed: string;
-  chartStyle: string;
 }): void {
-  const {
-    darkMode,
-    accentKey,
-    density,
-    sidebarNav,
-    radiusKey,
-    fontKey,
-    bgStyle,
-    animSpeed,
-    chartStyle,
-  } = settings;
+  const { darkMode, accentKey, density, radiusKey, fontKey, bgStyle, animSpeed } = settings;
 
   // Apply theme CSS vars whenever darkMode, accentKey, or other UI settings change
   useEffect(() => {
