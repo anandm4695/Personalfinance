@@ -463,8 +463,13 @@ export function MonthlyReportModal({
       : null;
   const nwDelta = hasNWData && prevNW !== null ? displayNetWorth - prevNW : 0;
 
-  // Email report handler
+  // Email report handler — the backend always computes the summary from TODAY's
+  // live data (see api/send-summary.js), it has no notion of "the month currently
+  // shown in this modal". Sending while viewing a past month would silently
+  // email numbers that don't match what's on screen, so this is gated to the
+  // current month only (see the disabled "Email to me" button below).
   async function handleEmailReport() {
+    if (!isCurrentMonth) return;
     const emailTo = state.settings?.emailAddress || "";
     if (!emailTo) {
       setEmailStatus("no-email");
@@ -1426,12 +1431,18 @@ export function MonthlyReportModal({
             <button
               style={{
                 ...btnGhost,
-                color: emailSending ? THEME.muted : THEME.accent,
+                color: emailSending || !isCurrentMonth ? THEME.muted : THEME.accent,
                 borderColor: `color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
-                opacity: emailSending ? 0.7 : 1,
+                opacity: emailSending || !isCurrentMonth ? 0.5 : 1,
+                cursor: !isCurrentMonth ? "not-allowed" : "pointer",
               }}
               onClick={handleEmailReport}
-              disabled={emailSending}
+              disabled={emailSending || !isCurrentMonth}
+              title={
+                !isCurrentMonth
+                  ? "Email reports always reflect live, current-month data — switch to the current month to email this report"
+                  : undefined
+              }
             >
               <Mail size={13} />
               {emailSending ? "Sending…" : "Email to me"}

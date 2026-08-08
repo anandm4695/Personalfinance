@@ -89,6 +89,9 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
   dismissed_alerts    jsonb DEFAULT '{}'::jsonb,              -- 36
   from_email          text DEFAULT NULL,                     -- 40
   gold_price_per_gram numeric DEFAULT 7200,                  -- 63
+  last_email_sent_at  timestamp with time zone,               -- 92
+  last_email_status   text,                                  -- 92: 'sent' | 'failed'
+  last_email_error    text,                                  -- 92
   updated_at          timestamp with time zone DEFAULT now()
 );
 

@@ -61,6 +61,7 @@ import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { ConfirmDialog } from "../ui/Feedback";
+import { Modal } from "../ui/Modal";
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
 const MD_GROUPS = [
@@ -1952,18 +1953,20 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const es = emailSettings || {};
   const enabled = !!es.emailEnabled;
   const frequency = es.emailFrequency || "weekly";
-  const day = Number(es.emailDay ?? 1);
-  const address = es.emailAddress || "";
+  const savedAddress = es.emailAddress || "";
+  const savedFromEmail = es.fromEmail || "";
 
   const [sending, setSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<"" | "ok" | "err">("");
   const [errMsg, setErrMsg] = useState("");
   const [checking, setChecking] = useState(false);
   const [health, setHealth] = useState<any>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState("");
 
-  // Sender email — persisted in Supabase (user_settings.from_email) so cron job can use it too.
-  // Migrate any existing localStorage value to Supabase on first load.
-  const fromEmail: string = es.fromEmail || "";
+  // Migrate any existing localStorage sender-email value to Supabase on first load.
   useEffect(() => {
     try {
       const local = localStorage.getItem("finance-email-from");
@@ -1974,6 +1977,49 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Recipient/Sender email are buffered locally and only written to Supabase on
+  // explicit Save (matching the Profile/AI-key pattern elsewhere in this file).
+  // Without this, every keystroke immediately upserted to user_settings — a
+  // half-typed address could briefly become the address the cron job sends to.
+  const [addrBuf, setAddrBuf] = useState({ emailAddress: savedAddress, fromEmail: savedFromEmail });
+  const [addrSaved, setAddrSaved] = useState(false);
+  const addrSavedTimerRef = useRef<any>(null);
+  useEffect(() => {
+    setAddrBuf({ emailAddress: savedAddress, fromEmail: savedFromEmail });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedAddress, savedFromEmail]);
+  useEffect(
+    () => () => {
+      if (addrSavedTimerRef.current) clearTimeout(addrSavedTimerRef.current);
+    },
+    []
+  );
+  const addrDirty =
+    addrBuf.emailAddress !== savedAddress || addrBuf.fromEmail !== savedFromEmail;
+  function saveAddress() {
+    updateEmailSettings({
+      emailAddress: addrBuf.emailAddress.trim(),
+      fromEmail: addrBuf.fromEmail.trim(),
+    });
+    setAddrSaved(true);
+    if (addrSavedTimerRef.current) clearTimeout(addrSavedTimerRef.current);
+    addrSavedTimerRef.current = setTimeout(() => setAddrSaved(false), 2200);
+  }
+
+  // Day-of-month is buffered too — commits on blur instead of every keystroke.
+  const [dayBuf, setDayBuf] = useState(String(Number(es.emailDay ?? 1)));
+  useEffect(() => {
+    setDayBuf(String(Number(es.emailDay ?? 1)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [es.emailDay]);
+  const day = Number(es.emailDay ?? 1);
+
+  // Only meaningful to test-send / preview against the address actually saved
+  // server-side — the manual-send API ignores whatever the client claims and
+  // always looks up the stored user_settings.email_address for security.
+  const address = savedAddress;
+  const fromEmail = savedFromEmail;
 
   const inp: any = {
     width: "100%",
@@ -2040,6 +2086,31 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
       setHealth({ error: e.message });
     } finally {
       setChecking(false);
+    }
+  }
+
+  async function handlePreview() {
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewHtml(null);
+    setPreviewError("");
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const params = new URLSearchParams({ action: "preview", frequency });
+      const res = await fetch(`/api/send-summary?${params.toString()}`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}) as any);
+        throw new Error(json.error || `Preview failed (${res.status})`);
+      }
+      setPreviewHtml(await res.text());
+    } catch (e: any) {
+      setPreviewError(e.message || "Failed to load preview");
+    } finally {
+      setPreviewLoading(false);
     }
   }
 
@@ -2161,6 +2232,63 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 
       {enabled && (
         <>
+          {/* Last send status — closes the "did my automated email actually go out?" gap;
+              the cron runs unattended once a day, so without this the only way to notice
+              a broken sender/domain was to realize an email never arrived. */}
+          <Card style={{ padding: 24 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: THEME.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 12,
+              }}
+            >
+              Delivery History
+            </div>
+            {(() => {
+              const lastAt = es.lastEmailSentAt ? new Date(es.lastEmailSentAt) : null;
+              const failed = es.lastEmailStatus === "failed";
+              const daysSince = lastAt ? Math.floor((Date.now() - lastAt.getTime()) / 86400000) : null;
+              const color = !lastAt ? THEME.muted : failed ? THEME.rust : THEME.sage;
+              return (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  {!lastAt ? (
+                    <Clock size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+                  ) : failed ? (
+                    <XCircle size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+                  ) : (
+                    <CheckCircle2 size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+                  )}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color }}>
+                      {!lastAt
+                        ? "No email sent yet"
+                        : failed
+                          ? "Last send failed"
+                          : `Last email sent ${daysSince === 0 ? "today" : daysSince === 1 ? "1 day ago" : `${daysSince} days ago`}`}
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                      {!lastAt
+                        ? "Automated reports run at 8:00 AM IST on your chosen schedule — this updates after the first one goes out (or use \"Send Test Email Now\" below)."
+                        : failed
+                          ? es.lastEmailError || "Unknown error — check Configuration Check below."
+                          : lastAt.toLocaleString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </Card>
+
           {/* Email address */}
           <Card style={{ padding: 24 }}>
             <div
@@ -2181,8 +2309,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   style={inp}
                   type="email"
                   placeholder="you@example.com"
-                  value={address}
-                  onChange={(e) => updateEmailSettings({ emailAddress: e.target.value })}
+                  value={addrBuf.emailAddress}
+                  onChange={(e) => setAddrBuf((b) => ({ ...b, emailAddress: e.target.value }))}
                 />
               </Field>
               <Field label="Sender Email (From) — verified custom domain email (optional)">
@@ -2190,11 +2318,28 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   style={inp}
                   type="email"
                   placeholder="e.g. reports@yourdomain.com (Leave blank to use default onboarding@resend.dev)"
-                  value={fromEmail}
-                  onChange={(e) => updateEmailSettings({ fromEmail: e.target.value })}
+                  value={addrBuf.fromEmail}
+                  onChange={(e) => setAddrBuf((b) => ({ ...b, fromEmail: e.target.value }))}
                 />
               </Field>
-              {!fromEmail && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <Button
+                  variant="accent"
+                  size="sm"
+                  onClick={saveAddress}
+                  disabled={!addrDirty}
+                  icon={addrSaved ? <Check size={14} /> : undefined}
+                  style={addrSaved ? { background: THEME.sage } : !addrDirty ? { opacity: 0.6 } : {}}
+                >
+                  {addrSaved ? "Saved!" : "Save"}
+                </Button>
+                {addrDirty && !addrSaved && (
+                  <span style={{ fontSize: 12, color: THEME.gold, fontWeight: 600 }}>
+                    Unsaved changes — save before sending a test or previewing
+                  </span>
+                )}
+              </div>
+              {!addrBuf.fromEmail && (
                 <div
                   style={{
                     padding: "10px 14px",
@@ -2215,7 +2360,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   can <strong>only</strong> deliver to your Resend registration email.
                 </div>
               )}
-              {fromEmail && (
+              {addrBuf.fromEmail && (
                 <div
                   style={{
                     padding: "10px 14px",
@@ -2232,7 +2377,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
                   />{" "}
                   <strong style={{ color: THEME.gold }}>Verification Required:</strong> You must
-                  own and verify the domain of <strong>{fromEmail}</strong> in your{" "}
+                  own and verify the domain of <strong>{addrBuf.fromEmail}</strong> in your{" "}
                   <a
                     href="https://resend.com/domains"
                     target="_blank"
@@ -2355,13 +2500,13 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     min="1"
                     max="28"
                     placeholder="e.g. 1"
-                    value={day || ""}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "") return;
-                      const n = Math.round(Number(raw));
-                      if (!Number.isFinite(n)) return;
-                      updateEmailSettings({ emailDay: Math.min(28, Math.max(1, n)) });
+                    value={dayBuf}
+                    onChange={(e) => setDayBuf(e.target.value)}
+                    onBlur={() => {
+                      const n = Math.round(Number(dayBuf));
+                      const clamped = Number.isFinite(n) ? Math.min(28, Math.max(1, n)) : day;
+                      setDayBuf(String(clamped));
+                      if (clamped !== day) updateEmailSettings({ emailDay: clamped });
                     }}
                   />
                 </Field>
@@ -2528,18 +2673,25 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               Test Your Email
             </div>
             <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 16 }}>
-              Send a test email right now using your current financial data.
+              Send a test email right now using your current financial data, or preview it without
+              sending anything.
               {!address && (
                 <span style={{ color: THEME.rust }}> Add your email address above first.</span>
+              )}
+              {address && addrDirty && (
+                <span style={{ color: THEME.gold }}> Save your address changes before sending a test.</span>
               )}
             </div>
             <div
               style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}
             >
+              <Button variant="secondary" onClick={handlePreview} loading={previewLoading}>
+                Preview Email
+              </Button>
               <Button
                 variant="accent"
                 onClick={handleSendTest}
-                disabled={!address}
+                disabled={!address || addrDirty}
                 loading={sending}
               >
                 Send Test Email Now
@@ -2707,6 +2859,52 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             )}
           </Card>
         </>
+      )}
+
+      {previewOpen && (
+        <Modal
+          title="Email Preview"
+          onClose={() => setPreviewOpen(false)}
+          maxWidth={760}
+        >
+          {previewLoading && (
+            <div style={{ padding: "40px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+              Rendering your latest data…
+            </div>
+          )}
+          {previewError && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 14px",
+                borderRadius: 8,
+                background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
+                fontSize: 13,
+                color: THEME.rust,
+                fontWeight: 600,
+              }}
+            >
+              <XCircle size={15} style={{ flexShrink: 0 }} /> {previewError}
+            </div>
+          )}
+          {previewHtml && !previewLoading && (
+            <iframe
+              title="Email preview"
+              srcDoc={previewHtml}
+              sandbox=""
+              style={{
+                width: "100%",
+                height: "70vh",
+                border: `1px solid ${THEME.line}`,
+                borderRadius: 10,
+                background: "#fff",
+              }}
+            />
+          )}
+        </Modal>
       )}
     </div>
   );

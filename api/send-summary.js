@@ -57,6 +57,23 @@ function getSupabase() {
   return createClient(url, key);
 }
 
+// ── Last-send status tracking ─────────────────────────────────────────────────
+// Surfaced in Settings → Email Reports so a silently-failing cron (bad Resend
+// domain, expired key, etc.) doesn't go unnoticed for weeks — the user previously
+// had no way to tell an automated send ever ran without checking their inbox.
+async function recordSendResult(supabase, userId, status, errorMsg) {
+  try {
+    await supabase.from("user_settings").upsert({
+      user_id: userId,
+      last_email_sent_at: new Date().toISOString(),
+      last_email_status: status,
+      last_email_error: status === "sent" ? null : String(errorMsg || "Unknown error").slice(0, 500),
+    });
+  } catch (err) {
+    console.error("[send-summary] Failed to record send status:", err.message);
+  }
+}
+
 // ── Manual-send auth check ────────────────────────────────────────────────────
 // The manual POST path (used by the Settings "Send Test" button and the Monthly
 // Report modal) used to have NO auth check at all: anyone who found this URL
@@ -1778,6 +1795,37 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // ── Preview — renders the email HTML without sending, for the Settings UI's
+  // "Preview Email" button. Requires the same Supabase auth as manual send since
+  // it renders the user's real financial data.
+  if (req.method === "GET" && req.query?.action === "preview") {
+    const auth = await verifyManualAuth(req);
+    if (!auth.ok) {
+      console.error(`[send-summary] Preview rejected: ${auth.reason}`);
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      const supabase = getSupabase();
+      const state = await fetchStateFromSupabase(supabase, auth.user.id);
+      const { data: profData } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("user_id", auth.user.id)
+        .maybeSingle();
+      const recipientName = profData?.name || "there";
+      const freq = ["daily", "weekly", "monthly"].includes(req.query?.frequency)
+        ? req.query.frequency
+        : "weekly";
+      const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
+      const html = generateHTML(summary, freq, recipientName);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.status(200).send(html);
+    } catch (err) {
+      console.error("[send-summary] Preview error:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   // ── Determine request type ───────────────────────────────────────────────
   const action = req.query?.action;
   const isCron = req.method === "GET" && action === "cron";
@@ -1879,6 +1927,7 @@ module.exports = async function handler(req, res) {
 
       if (error) {
         console.error("[send-summary] Resend error:", error);
+        await recordSendResult(supabase, auth.user.id, "failed", error.message);
         const isTest = effectiveFromEmail === "onboarding@resend.dev";
         return res.status(500).json({
           error: error.message,
@@ -1887,6 +1936,7 @@ module.exports = async function handler(req, res) {
             : `Send failed from ${effectiveFromEmail}. Make sure this email or its domain is verified in your Resend account.`,
         });
       }
+      await recordSendResult(supabase, auth.user.id, "sent", null);
       return res.status(200).json({ sent: true, to: emailTo, id: sendData?.id });
     }
 
@@ -1952,6 +2002,7 @@ module.exports = async function handler(req, res) {
           });
 
           if (error) console.error(`[send-summary] Failed for user ${row.user_id}:`, error.message);
+          await recordSendResult(supabase, row.user_id, error ? "failed" : "sent", error?.message);
           results.push({
             userId: row.user_id,
             email: row.email_address,
@@ -1960,6 +2011,7 @@ module.exports = async function handler(req, res) {
           });
         } catch (userErr) {
           console.error(`[send-summary] Error processing user ${row.user_id}:`, userErr.message);
+          await recordSendResult(supabase, row.user_id, "failed", userErr.message);
           results.push({ userId: row.user_id, sent: false, error: userErr.message });
         }
       }

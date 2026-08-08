@@ -204,6 +204,9 @@ const DEFAULT_STATE = {
     emailHour: 8,
     emailAddress: "",
     fromEmail: "",
+    lastEmailSentAt: null,
+    lastEmailStatus: "",
+    lastEmailError: "",
     geminiApiKey: "",
   },
 };
