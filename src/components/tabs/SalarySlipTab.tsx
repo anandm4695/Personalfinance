@@ -160,7 +160,13 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
 };
 
 function SlipForm({ initial, onSave, onClose, apiKey, existingSlips, familyProfiles }: any) {
-  const [form, setForm] = useState({ ...EMPTY, ...initial });
+  // Filter out null/undefined so a DB row with e.g. raw_text: null (common for
+  // slips saved before this column existed, or added without AI-parsing) doesn't
+  // clobber EMPTY's "" default — form.rawText.trim() would then crash on open.
+  const initialClean = Object.fromEntries(
+    Object.entries(initial || {}).filter(([, v]) => v !== null && v !== undefined)
+  );
+  const [form, setForm] = useState({ ...EMPTY, ...initialClean });
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
   const [netSalaryTouched, setNetSalaryTouched] = useState(false);
