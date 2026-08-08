@@ -4897,6 +4897,7 @@ function FinanceDashboard() {
                   assetBreakdown={assetBreakdown}
                   setState={setState}
                   marketData={marketData}
+                  marketDataTs={marketDataTs}
                   updateMasterData={updateMasterData}
                   updateItem={updateItem}
                   setTab={setTab}

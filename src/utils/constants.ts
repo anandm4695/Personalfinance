@@ -290,6 +290,10 @@ export const DARK_VARS: Record<string, string> = {
   "--t-darkInk": "#0F172A",
 };
 
+// 20 distinct hues (first 8 kept unchanged for visual continuity) — the
+// asset breakdown can carry up to 20 non-zero categories at once, and 8
+// colors used to wrap around and silently collide between unrelated
+// categories in the donut/legend.
 export const PIE_COLORS = [
   "#4F46E5",
   "#059669",
@@ -299,6 +303,18 @@ export const PIE_COLORS = [
   "#0891B2",
   "#EA580C",
   "#2563EB",
+  "#DB2777",
+  "#65A30D",
+  "#0D9488",
+  "#9333EA",
+  "#CA8A04",
+  "#16A34A",
+  "#E11D48",
+  "#0284C7",
+  "#C026D3",
+  "#B45309",
+  "#475569",
+  "#78716C",
 ];
 
 export const STORAGE_KEY = "finance_dashboard_v1";

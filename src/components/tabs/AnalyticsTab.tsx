@@ -80,6 +80,7 @@ import {
   fmtINRFull,
   getCCDueDate,
   rdMaturity,
+  fdMaturity,
   getEffectiveRent,
   calculateEpfBalance,
   today,
@@ -568,6 +569,7 @@ interface AnalyticsTabProps {
   trendData: any[];
   setState: any;
   marketData?: any;
+  marketDataTs?: number | null;
   updateMasterData?: any;
   updateItem?: any;
   setTab?: any;
@@ -578,21 +580,17 @@ interface AnalyticsTabProps {
   activeProfile?: string;
 }
 
+// Each key gates a real section on the Dashboard sub-tab (the default view of
+// this tab) — see the `dashboardWidgets?.["<key>"]` checks wrapping those
+// sections below. Keys mirror the DashboardSectionHeader groups already
+// visible in the UI so toggling one off never orphans a header with nothing
+// under it.
 const DASHBOARD_WIDGET_DEFS = [
-  { key: "networth", label: "Net Worth & Stats" },
   { key: "smartInsights", label: "Smart Insights" },
-  { key: "fireWidget", label: "FIRE Widget" },
-  { key: "netWorthTrend", label: "Net Worth Trend" },
-  { key: "assetAllocation", label: "Asset Allocation" },
-  { key: "portfolio", label: "Portfolio Performance" },
-  { key: "expenses", label: "Expense Breakdown" },
-  { key: "goals", label: "Goals Progress" },
-  { key: "creditHealth", label: "Credit Health" },
-  { key: "calendar", label: "Financial Calendar" },
-  { key: "badges", label: "Badges & Achievements" },
-  { key: "topStocks", label: "Top Stock Holdings" },
-  { key: "taxTracker", label: "Tax Tracker" },
-  { key: "passiveIncome", label: "Passive Income" },
+  { key: "coreWealthVitals", label: "Core Wealth & Vitals" },
+  { key: "cashFlowLiquidity", label: "Cash Flow & Liquidity" },
+  { key: "estateComparison", label: "Estate & Comparison Analysis" },
+  { key: "recentActivity", label: "Recent Ledger Activity" },
 ];
 
 const DashboardSectionHeader: React.FC<{
@@ -634,6 +632,33 @@ const DashboardSectionHeader: React.FC<{
   );
 };
 
+// A few asset-class names are also shown, with their own fixed color, in the
+// coarser Portfolio Rebalancing widget elsewhere on this tab (Equity/Debt/
+// Cash/Real Estate/Other). Positional PIE_COLORS indexing alone can't keep
+// those in sync — the same category's index shifts depending on which other
+// categories a given user has non-zero balances in — so pin the overlapping
+// names to the same color used there and let everything else fall back to
+// the positional palette.
+const FIXED_ASSET_CLASS_COLORS: Record<string, string> = {
+  "Real Estate": THEME.violet,
+};
+const getAssetClassColor = (name: string, index: number) =>
+  FIXED_ASSET_CLASS_COLORS[name] || PIE_COLORS[index % PIE_COLORS.length];
+
+// Maps each Bill Calendar event `type` (set in calendarDueDays) to the tab a
+// user would go to in order to act on it. Advance Tax and FD Maturity have no
+// natural "pay" destination, so they're omitted — the Pay button is hidden
+// for those rather than routing back to the calendar itself.
+const EVENT_TYPE_TO_TARGET_TAB: Record<string, string> = {
+  card: "credit",
+  loanEmi: "amortization",
+  sip: "investments",
+  insurance: "investments",
+  investmentPlan: "investments",
+  rent: "rental",
+  subscription: "subs",
+};
+
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   metrics,
   state,
@@ -641,6 +666,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   trendData,
   setState,
   marketData,
+  marketDataTs,
   updateMasterData,
   updateItem,
   setTab,
@@ -986,10 +1012,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const pctChange = (v1: number, v2: number) =>
       v2 !== 0 ? ((v1 - v2) / Math.abs(v2)) * 100 : v1 > 0 ? 100 : 0;
 
-    return {
-      fy1,
-      fy2,
-      rows: [
+    const rows = [
         {
           label: "Total Income",
           v1: fy1.totalIncome,
@@ -1031,15 +1054,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           pct: pctChange(fy1.investmentAdditions, fy2.investmentAdditions),
           invertColor: false,
         },
-        {
-          label: "Net Worth (end of FY)",
-          v1: fy1.netWorth,
-          v2: fy2.netWorth,
-          change: change(fy1.netWorth, fy2.netWorth),
-          pct: pctChange(fy1.netWorth, fy2.netWorth),
-          invertColor: false,
-        },
-      ],
+      ];
+    // Net worth history is only tracked at the family level — showing it per-person
+    // would render a misleading "₹0" rather than the person's actual net worth.
+    if (activeProfile === "all") {
+      rows.push({
+        label: "Net Worth (end of FY)",
+        v1: fy1.netWorth,
+        v2: fy2.netWorth,
+        change: change(fy1.netWorth, fy2.netWorth),
+        pct: pctChange(fy1.netWorth, fy2.netWorth),
+        invertColor: false,
+      });
+    }
+
+    return {
+      fy1,
+      fy2,
+      rows,
       chartData: [
         {
           name: "Income",
@@ -1465,6 +1497,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             };
           })
           .filter((x: any) => x.value > 0)
+          .sort((a: any, b: any) => b.value - a.value);
+
+      case "Govt Schemes":
+        return (state.govtSchemes || [])
+          .map((sc: any) => ({
+            name: sc.schemeName || sc.schemeType || "Govt Scheme",
+            sub: sc.schemeType || "Government Scheme",
+            value: Number(sc.currentBalance || 0),
+          }))
           .sort((a: any, b: any) => b.value - a.value);
 
       case "Prepaid Cards":
@@ -1936,7 +1977,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const spendingData = useMemo(() => {
     const catMap: Record<string, number> = {};
     (state.transactions || [])
-      .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(spendingViewMonth))
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.date &&
+          t.date.startsWith(spendingViewMonth) &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .forEach((t: any) => {
         const cat = t.category || "Uncategorized";
         catMap[cat] = (catMap[cat] || 0) + Number(t.amount || 0);
@@ -1964,7 +2013,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
     const catMap: Record<string, number> = {};
     (state.transactions || [])
-      .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(prevYm))
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.date &&
+          t.date.startsWith(prevYm) &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .forEach((t: any) => {
         const cat = t.category || "Uncategorized";
         catMap[cat] = (catMap[cat] || 0) + Number(t.amount || 0);
@@ -1980,6 +2037,394 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (rentFromProps > 0 && !catMap["Rent"]) catMap["Rent"] = rentFromProps;
     return catMap;
   }, [spendingViewMonth, state.transactions, state.rentedProperties]);
+
+  // Bill Calendar due-day computation (calendar sub-tab). Memoized since it's an
+  // O(n) scan across 8 different record types that previously re-ran on every
+  // render of the calendar sub-tab, not just when the viewed month or the
+  // underlying records changed.
+  const calendarDueDays = useMemo(() => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const dueDays: Record<number, any[]> = {};
+
+    // 1. CREDIT CARDS: recurring or one-off dues (excluding closed cards)
+    (state.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+      .forEach((c: any) => {
+        if (c.dueDate) {
+          const d = new Date(c.dueDate + "T00:00:00");
+          if (d.getFullYear() === year && d.getMonth() === month) {
+            dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({
+              label: c.issuer || "Card",
+              color: THEME.rust,
+              amount: Number(c.outstanding || 0),
+              amountLabel: "Outstanding",
+              frequency: "Monthly",
+              type: "card",
+            });
+          }
+        } else if (c.dueDay) {
+          const day = parseInt(c.dueDay, 10);
+          if (!isNaN(day) && day >= 1 && day <= 31) {
+            const targetDay = Math.min(day, daysInMonth);
+            dueDays[targetDay] = (dueDays[targetDay] || []).concat({
+              label: (c.issuer || "Card") + " Bill",
+              color: THEME.rust,
+              amount: Number(c.outstanding || 0),
+              amountLabel: "Outstanding",
+              frequency: "Monthly",
+              type: "card",
+            });
+          }
+        }
+      });
+
+    // 1b. CREDIT CARD ANNUAL FEES: mark the fee month/day in amber
+    (state.creditCards || [])
+      .filter(
+        (c: any) =>
+          (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth
+      )
+      .forEach((c: any) => {
+        if (Number(c.feeMonth) - 1 === month) {
+          const fDay = Math.min(Number(c.feeDay) || 1, daysInMonth);
+          dueDays[fDay] = (dueDays[fDay] || []).concat({
+            label: (c.issuer || "Card") + " Annual Fee",
+            color: THEME.gold,
+            amount: Number(c.annualFee || 0),
+            amountLabel: "Annual Fee",
+            frequency: "Annual",
+            type: "card",
+          });
+        }
+      });
+
+    // 2. SUBSCRIPTIONS: recurrent logic by cycle
+    (state.subscriptions || [])
+      .filter((s: any) => !s.paused)
+      .forEach((s: any) => {
+        if (s.renewalDate) {
+          const subDate = new Date(s.renewalDate + "T00:00:00");
+          const subDay = subDate.getDate();
+
+          let isDueThisMonth = false;
+          if (s.billingCycle === "monthly") {
+            isDueThisMonth = true;
+          } else if (s.billingCycle === "quarterly") {
+            const diffMonths = (year - subDate.getFullYear()) * 12 + (month - subDate.getMonth());
+            isDueThisMonth = diffMonths >= 0 && diffMonths % 3 === 0;
+          } else if (s.billingCycle === "yearly") {
+            const diffMonths = (year - subDate.getFullYear()) * 12 + (month - subDate.getMonth());
+            isDueThisMonth = diffMonths >= 0 && diffMonths % 12 === 0;
+          } else {
+            isDueThisMonth = subDate.getFullYear() === year && subDate.getMonth() === month;
+          }
+
+          if (isDueThisMonth) {
+            const targetDay = Math.min(subDay, daysInMonth);
+            dueDays[targetDay] = (dueDays[targetDay] || []).concat({
+              label: s.name,
+              color: THEME.gold,
+              amount: Number(s.amount || 0),
+              amountLabel: "Amount",
+              frequency:
+                s.billingCycle === "monthly"
+                  ? "Monthly"
+                  : s.billingCycle === "quarterly"
+                    ? "Quarterly"
+                    : s.billingCycle === "yearly"
+                      ? "Annual"
+                      : "One-time",
+              type: "subscription",
+            });
+          }
+        }
+      });
+
+    // 3. ADVANCE TAX (15th of Jun, Sep, Dec, Mar)
+    if (month === 5 || month === 8 || month === 11 || month === 2)
+      dueDays[15] = (dueDays[15] || []).concat({
+        label: "Adv. Tax",
+        color: THEME.violet,
+        frequency: "Quarterly",
+        type: "tax",
+      });
+
+    // 4. LIC PREMIUMS: recurring logic by anniversary month and active range
+    (state.lic || []).forEach((l: any) => {
+      if (l.commencementDate) {
+        const commDate = new Date(l.commencementDate + "T00:00:00");
+        if (!isNaN(commDate.getTime())) {
+          const commYear = commDate.getFullYear();
+          const commMonth = commDate.getMonth();
+
+          // Viewed year/month must be >= commencement year/month
+          if (year > commYear || (year === commYear && month >= commMonth)) {
+            let isMatured = false;
+            if (l.maturityDate) {
+              const matDate = new Date(l.maturityDate + "T00:00:00");
+              if (!isNaN(matDate.getTime())) {
+                if (
+                  year > matDate.getFullYear() ||
+                  (year === matDate.getFullYear() && month > matDate.getMonth())
+                ) {
+                  isMatured = true;
+                }
+              }
+            }
+
+            if (!isMatured && month === commMonth) {
+              const dueDay = Math.min(commDate.getDate(), daysInMonth);
+              dueDays[dueDay] = (dueDays[dueDay] || []).concat({
+                label: `LIC: ${l.planName}`,
+                color: THEME.sage,
+                amount: Number(l.annualPremium || l.premium || 0),
+                amountLabel: "Premium",
+                frequency: "Annual",
+                type: "insurance",
+              });
+            }
+          }
+        }
+      }
+    });
+
+    // 5. TERM PLAN PREMIUMS: recurring logic by anniversary month and active range
+    (state.termPlans || []).forEach((t: any) => {
+      if (t.startDate) {
+        const commDate = new Date(t.startDate + "T00:00:00");
+        if (!isNaN(commDate.getTime())) {
+          const commYear = commDate.getFullYear();
+          const commMonth = commDate.getMonth();
+
+          // Viewed year/month must be >= commencement year/month
+          if (year > commYear || (year === commYear && month >= commMonth)) {
+            let isExpired = false;
+            if (t.expiryDate) {
+              const expDate = new Date(t.expiryDate + "T00:00:00");
+              if (!isNaN(expDate.getTime())) {
+                if (
+                  year > expDate.getFullYear() ||
+                  (year === expDate.getFullYear() && month > expDate.getMonth())
+                ) {
+                  isExpired = true;
+                }
+              }
+            }
+
+            // Also check if we have finished paying based on premium paying term
+            const payTerm = t.premiumPayingTerm
+              ? parseInt(t.premiumPayingTerm, 10)
+              : t.term
+                ? parseInt(t.term, 10)
+                : null;
+            if (payTerm && !isNaN(payTerm)) {
+              const yearsElapsed = year - commYear;
+              if (yearsElapsed >= payTerm) {
+                isExpired = true; // Premium paying term ended
+              }
+            }
+
+            if (!isExpired && month === commMonth) {
+              const dueDay = Math.min(commDate.getDate(), daysInMonth);
+              dueDays[dueDay] = (dueDays[dueDay] || []).concat({
+                label: `Term: ${t.planName || "Plan"}`,
+                color: THEME.sage,
+                amount: Number(t.annualPremium || t.premium || 0),
+                amountLabel: "Premium",
+                frequency: "Annual",
+                type: "insurance",
+              });
+            }
+          }
+        }
+      }
+    });
+
+    // 6. INVESTMENT PLAN PREMIUMS: recurring logic by anniversary month and active range
+    (state.investmentPlans || []).forEach((ip: any) => {
+      if (ip.commencementDate) {
+        const commDate = new Date(ip.commencementDate + "T00:00:00");
+        if (!isNaN(commDate.getTime())) {
+          const commYear = commDate.getFullYear();
+          const commMonth = commDate.getMonth();
+
+          // Viewed year/month must be >= commencement year/month
+          if (year > commYear || (year === commYear && month >= commMonth)) {
+            let isMatured = false;
+            if (ip.maturityDate) {
+              const matDate = new Date(ip.maturityDate + "T00:00:00");
+              if (!isNaN(matDate.getTime())) {
+                if (
+                  year > matDate.getFullYear() ||
+                  (year === matDate.getFullYear() && month > matDate.getMonth())
+                ) {
+                  isMatured = true;
+                }
+              }
+            }
+
+            // Also check if we have finished paying based on premium paying term
+            const payTerm = ip.premiumPayingTerm
+              ? parseInt(ip.premiumPayingTerm, 10)
+              : ip.policyTerm
+                ? parseInt(ip.policyTerm, 10)
+                : null;
+            if (payTerm && !isNaN(payTerm)) {
+              const yearsElapsed = year - commYear;
+              if (yearsElapsed >= payTerm) {
+                isMatured = true; // Premium paying term ended
+              }
+            }
+
+            if (!isMatured && month === commMonth) {
+              const dueDay = Math.min(commDate.getDate(), daysInMonth);
+              dueDays[dueDay] = (dueDays[dueDay] || []).concat({
+                label: `Invest: ${ip.planName || "Plan"}`,
+                color: THEME.sage,
+                amount: Number(ip.annualPremium || ip.premium || 0),
+                amountLabel: "Premium",
+                frequency: "Annual",
+                type: "investmentPlan",
+              });
+            }
+          }
+        }
+      }
+    });
+
+    // 7. RENTED PROPERTIES: monthly rent due day within active agreement range (paid vs unpaid status coloring)
+    (state.rentedProperties || [])
+      .filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0)
+      .forEach((p: any) => {
+        let isAgreementActive = true;
+        if (p.agreementStart) {
+          const start = new Date(p.agreementStart + "T00:00:00");
+          if (!isNaN(start.getTime())) {
+            if (
+              year < start.getFullYear() ||
+              (year === start.getFullYear() && month < start.getMonth())
+            ) {
+              isAgreementActive = false;
+            }
+          }
+        }
+        if (p.agreementEnd) {
+          const end = new Date(p.agreementEnd + "T00:00:00");
+          if (!isNaN(end.getTime())) {
+            if (
+              year > end.getFullYear() ||
+              (year === end.getFullYear() && month > end.getMonth())
+            ) {
+              isAgreementActive = false;
+            }
+          }
+        }
+
+        if (isAgreementActive) {
+          const day = p.dueDay ? parseInt(p.dueDay, 10) : 5;
+          if (!isNaN(day) && day >= 1 && day <= 31) {
+            const targetDay = Math.min(day, daysInMonth);
+            const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
+            const isPaid = (p.payments || []).some(
+              (pay: any) => pay.date && pay.date.startsWith(monthStr)
+            );
+            dueDays[targetDay] = (dueDays[targetDay] || []).concat({
+              label: p.propertyName || "Rent",
+              color: isPaid ? THEME.sage : THEME.gold,
+              amount: Number(p.monthlyRent || 0),
+              amountLabel: "Rent",
+              frequency: "Monthly",
+              paid: isPaid,
+              type: "rent",
+            });
+          }
+        }
+      });
+
+    // 8. FD MATURITIES: highlight when FDs mature this month
+    (state.fixedDeposits || [])
+      .filter((f: any) => f.maturityDate)
+      .forEach((f: any) => {
+        const [fyy, fmm, fdd] = f.maturityDate.split("-").map(Number);
+        if (fyy === year && fmm - 1 === month) {
+          const targetDay = Math.min(fdd, daysInMonth);
+          dueDays[targetDay] = (dueDays[targetDay] || []).concat({
+            label: `${f.bank || "FD"} Matures`,
+            color: THEME.sage,
+            amount: fdMaturity(
+              Number(f.principal || 0),
+              Number(f.rate || 0),
+              Number(f.years || 0)
+            ),
+            amountLabel: "Maturity Value",
+            frequency: "One-time",
+            type: "fdMaturity",
+          });
+        }
+      });
+
+    // 9. SIP AUTO-DEDUCTIONS: recurring on the day the SIP was started
+    (state.sips || [])
+      .filter((s: any) => Number(s.amount || 0) > 0 && !s.isCompleted)
+      .forEach((s: any) => {
+        if (!s.startDate) return;
+        const sipStart = new Date(s.startDate + "T00:00:00");
+        if (isNaN(sipStart.getTime())) return;
+        const sipStartYear = sipStart.getFullYear();
+        const sipStartMonth = sipStart.getMonth();
+        if (year < sipStartYear || (year === sipStartYear && month < sipStartMonth)) return;
+        const sipDay = sipStart.getDate();
+        const targetDay = Math.min(sipDay, daysInMonth);
+        dueDays[targetDay] = (dueDays[targetDay] || []).concat({
+          label: `SIP: ${s.scheme || s.fund || "Fund"}`,
+          color: THEME.accent,
+          amount: Number(s.amount || 0),
+          amountLabel: "SIP Amount",
+          frequency: "Monthly",
+          type: "sip",
+        });
+      });
+
+    // 10. LOAN EMIS: recurring monthly EMI due on the loan's start day
+    (state.loansTaken || [])
+      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0)
+      .forEach((l: any) => {
+        let emiDay = 5;
+        if (l.startDate) {
+          const ld = new Date(l.startDate + "T00:00:00");
+          if (!isNaN(ld.getTime())) {
+            const lStartYear = ld.getFullYear();
+            const lStartMonth = ld.getMonth();
+            if (year < lStartYear || (year === lStartYear && month < lStartMonth)) return;
+            emiDay = ld.getDate();
+          }
+        }
+        const targetDay = Math.min(emiDay, daysInMonth);
+        dueDays[targetDay] = (dueDays[targetDay] || []).concat({
+          label: `EMI: ${l.loanName || l.bank || "Loan"}`,
+          color: THEME.rust,
+          amount: Number(l.emi || 0),
+          amountLabel: "EMI",
+          frequency: "Monthly",
+          type: "loanEmi",
+        });
+      });
+
+    return dueDays;
+  }, [
+    calendarDate,
+    state.creditCards,
+    state.subscriptions,
+    state.lic,
+    state.termPlans,
+    state.investmentPlans,
+    state.rentedProperties,
+    state.fixedDeposits,
+    state.sips,
+    state.loansTaken,
+  ]);
 
   const fireData = useMemo(() => {
     const annualExpense = metrics.monthExpense * 12;
@@ -2120,6 +2565,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       ppfAnnual,
       licPremium,
       epfEmployee,
+      npsContrib,
       total,
       remaining,
       limit,
@@ -2601,12 +3047,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         );
       }, 0);
       const exp = txnExp + rentExp;
-      const hasData = txns.length > 0 || inc > 0;
+      // The current month is still in progress — dashboardData.streak (above)
+      // deliberately excludes it from streak counting, so this calendar must
+      // match that and show it as "no data yet" rather than a premature
+      // green/red verdict on incomplete data.
+      const isCurrentMonth = d.getFullYear() === now.getFullYear() && i === now.getMonth();
+      const hasData = !isCurrentMonth && (txns.length > 0 || inc > 0);
       return {
         label: d.toLocaleString("en-IN", { month: "short" }),
         year: d.getFullYear(),
         saved: hasData && inc > exp && inc > 0,
         hasData,
+        isCurrentMonth,
         rate: inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0,
       };
     });
@@ -3109,20 +3561,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const goalHealth = useMemo(() => {
     const now = new Date();
     const monthlySavings = Math.max(0, metrics.monthIncome - metrics.monthExpense);
-    return (state.goals || []).map((g: any) => {
+    const computed = (state.goals || []).map((g: any) => {
       const targetAmount = Number(g.targetAmount || g.target || 0);
       const savedAmount = Number(g.savedAmount || g.currentAmount || g.saved || 0);
       const gap = Math.max(0, targetAmount - savedAmount);
       const progress = targetAmount > 0 ? Math.min((savedAmount / targetAmount) * 100, 100) : 0;
       const targetDate = g.targetDate || g.deadline;
       let monthsLeft = 0,
-        monthlyNeeded = 0,
-        onTrack = false;
+        monthlyNeeded = 0;
       if (targetDate) {
         const td = new Date(targetDate);
         monthsLeft = Math.max(0, Math.ceil((td.getTime() - now.getTime()) / (30 * 86400000)));
         monthlyNeeded = monthsLeft > 0 ? gap / monthsLeft : gap;
-        onTrack = monthlySavings >= monthlyNeeded && gap > 0 && monthsLeft > 0;
       }
       const achieved = gap === 0;
       return {
@@ -3130,13 +3580,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         gap,
         monthsLeft,
         monthlyNeeded,
-        onTrack,
         progress,
         targetAmount,
         savedAmount,
         achieved,
       };
     });
+    // Combined monthly need across ALL active goals — a goal can look affordable
+    // in isolation while the household can't actually fund every goal at once.
+    const totalMonthlyNeeded = computed
+      .filter((g) => !g.achieved && g.monthsLeft > 0)
+      .reduce((sum, g) => sum + g.monthlyNeeded, 0);
+    const combinedShortfall = Math.max(0, totalMonthlyNeeded - monthlySavings);
+    return computed.map((g) => ({
+      ...g,
+      totalMonthlyNeeded,
+      combinedShortfall,
+      onTrack: !g.achieved && g.monthsLeft > 0 && monthlySavings >= totalMonthlyNeeded,
+    }));
   }, [state.goals, metrics.monthIncome, metrics.monthExpense]);
 
   const isPositive = metrics.netWorth >= 0;
@@ -3308,39 +3769,41 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           })}
         </div>
         <div style={{ flexShrink: 0, display: "flex", gap: 6, marginLeft: "auto" }}>
-          <button
-            onClick={() => setShowWidgetConfig(!showWidgetConfig)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              borderRadius: 10,
-              border: `1.5px solid ${showWidgetConfig ? THEME.accent : THEME.line}`,
-              background: showWidgetConfig
-                ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
-                : "transparent",
-              color: showWidgetConfig ? THEME.accent : THEME.muted,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              if (!showWidgetConfig) {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
-                (e.currentTarget as HTMLButtonElement).style.color = THEME.ink;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!showWidgetConfig) {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
-                (e.currentTarget as HTMLButtonElement).style.color = THEME.muted;
-              }
-            }}
-          >
-            <Settings size={13} /> Widgets
-          </button>
+          {sub === "dashboard" && (
+            <button
+              onClick={() => setShowWidgetConfig(!showWidgetConfig)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                borderRadius: 10,
+                border: `1.5px solid ${showWidgetConfig ? THEME.accent : THEME.line}`,
+                background: showWidgetConfig
+                  ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
+                  : "transparent",
+                color: showWidgetConfig ? THEME.accent : THEME.muted,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                if (!showWidgetConfig) {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
+                  (e.currentTarget as HTMLButtonElement).style.color = THEME.ink;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showWidgetConfig) {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
+                  (e.currentTarget as HTMLButtonElement).style.color = THEME.muted;
+                }
+              }}
+            >
+              <Settings size={13} /> Widgets
+            </button>
+          )}
           <button
             onClick={() => setShowReport(true)}
             style={{
@@ -3407,7 +3870,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       })()}
 
       {/* Widget Configuration Panel */}
-      {showWidgetConfig && (
+      {showWidgetConfig && sub === "dashboard" && (
         <Card>
           <div style={{ padding: 16, marginBottom: 16 }}>
             <div
@@ -3449,6 +3912,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 return (
                   <button
                     key={w.key}
+                    role="checkbox"
+                    aria-checked={isVisible}
+                    aria-label={`${w.label}: ${isVisible ? "visible" : "hidden"}`}
                     onClick={() => {
                       const updated = { ...(dashboardWidgets || {}), [w.key]: !isVisible };
                       onUpdateWidgets?.(updated);
@@ -3568,14 +4034,44 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     year: "numeric",
                   })}
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.sage }}>
-                  ● System Online
-                </span>
+                {(() => {
+                  // Real freshness check on the live market-price cache, replacing a
+                  // hardcoded "System Online" claim that stayed green even when
+                  // prices had never loaded or the fetch had failed hours ago.
+                  if (!marketDataTs) {
+                    return (
+                      <span style={{ fontSize: 12, fontWeight: 800, color: THEME.muted }}>
+                        ● Prices not loaded
+                      </span>
+                    );
+                  }
+                  const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
+                  const isStale = diffMin > 8 * 60;
+                  const label =
+                    diffMin < 1
+                      ? "Updated just now"
+                      : diffMin < 60
+                        ? `Updated ${diffMin}m ago`
+                        : diffMin < 8 * 60
+                          ? `Updated ${Math.floor(diffMin / 60)}h ago`
+                          : "Prices stale";
+                  return (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: isStale ? THEME.rust : THEME.sage,
+                      }}
+                    >
+                      ● {label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </Card>
 
-          {smartInsights.length > 0 && (
+          {dashboardWidgets?.["smartInsights"] !== false && smartInsights.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <span
@@ -3678,6 +4174,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           )}
 
           <div className="animate-fade-in-up bento-grid">
+            {(dashboardWidgets?.["coreWealthVitals"] !== false) && (
+              <>
             <DashboardSectionHeader
               title="Core Wealth & Vitals"
               desc="Consolidated net worth summary, asset breakdown, and core health indexes."
@@ -4812,33 +5310,52 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 Savings Streak
               </div>
               <div style={{ textAlign: "center", padding: "10px 0" }}>
-                <div
-                  style={{
-                    marginBottom: 6,
-                    opacity: 0.85,
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
-                  <dashboardData.streakEmoji size={26} color={THEME.sage} />
-                </div>
-                <div
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 900,
-                    color: THEME.sage,
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {dashboardData.streak}
-                </div>
-                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 6, fontWeight: 600 }}>
-                  Months Saved
-                </div>
-                <Badge variant="sage" style={{ marginTop: 12, padding: "5px 12px", fontSize: 11 }}>
-                  {dashboardData.streakMsg}
-                </Badge>
+                {(() => {
+                  // Severity ramps rust→gold→sage like every other health widget on
+                  // this dashboard (Debt-to-Asset, Liquidity Score, Emergency Fund) —
+                  // this card used to always render sage regardless of streak length.
+                  const streak = dashboardData.streak;
+                  const streakColor =
+                    streak === 0 ? THEME.rust : streak < 3 ? THEME.gold : THEME.sage;
+                  const streakVariant: "rust" | "gold" | "sage" =
+                    streak === 0 ? "rust" : streak < 3 ? "gold" : "sage";
+                  return (
+                    <>
+                      <div
+                        style={{
+                          marginBottom: 6,
+                          opacity: 0.85,
+                          display: "flex",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <dashboardData.streakEmoji size={26} color={streakColor} />
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 32,
+                          fontWeight: 900,
+                          color: streakColor,
+                          lineHeight: 1,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {dashboardData.streak}
+                      </div>
+                      <div
+                        style={{ fontSize: 13, color: THEME.muted, marginTop: 6, fontWeight: 600 }}
+                      >
+                        Months Saved
+                      </div>
+                      <Badge
+                        variant={streakVariant}
+                        style={{ marginTop: 12, padding: "5px 12px", fontSize: 11 }}
+                      >
+                        {dashboardData.streakMsg}
+                      </Badge>
+                    </>
+                  );
+                })()}
                 {/* Mini month dots — last 12 months */}
                 <div
                   style={{
@@ -4882,6 +5399,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               </div>
             </Card>
+              </>
+            )}
+            {(dashboardWidgets?.["cashFlowLiquidity"] !== false) && (
+              <>
             <DashboardSectionHeader
               title="Cash Flow & Liquidity"
               desc="Reserves, savings velocity, payoff timelines, and recurring liability coverage."
@@ -5417,6 +5938,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 );
               })()}
             </div>
+              </>
+            )}
+            {(dashboardWidgets?.["estateComparison"] !== false) && (
+              <>
             <DashboardSectionHeader
               title="Estate & Comparison Analysis"
               desc="Audit of family nomination coverage, estate checklists, and fiscal year performance comparisons."
@@ -6220,6 +6745,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               )}
             </Card>
+              </>
+            )}
+            {(dashboardWidgets?.["recentActivity"] !== false) && (
+              <>
             <DashboardSectionHeader
               title="Recent Ledger Activity"
               desc="Real-time transaction tracking and categorization filters."
@@ -6418,6 +6947,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               )}
             </Card>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -7819,7 +8350,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             return (
                               <Cell
                                 key={i}
-                                fill={PIE_COLORS[i % PIE_COLORS.length]}
+                                fill={getAssetClassColor(item.name, i)}
                                 opacity={
                                   selectedAssetClass
                                     ? isSelected
@@ -8005,7 +8536,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div style={{ display: "grid", gap: 8 }}>
                         {assetBreakdown.map((item: any, i: number) => {
                           const isHovered = activeAssetIndex === i;
-                          const color = PIE_COLORS[i % PIE_COLORS.length];
+                          const color = getAssetClassColor(item.name, i);
                           const pct = ((item.value / (metrics.totalAssets || 1)) * 100).toFixed(1);
                           return (
                             <div
@@ -8284,7 +8815,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           lastTradingDayPerformance.noChangeStocks.reduce(
                             (sum: number, x: any) => sum + x.price,
                             0
-                          )
+                          ) / lastTradingDayPerformance.noChangeStocks.length
                         )}
                       </Prv>
                     ) : (
@@ -8292,7 +8823,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     )}
                   </span>
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
-                    combined price
+                    avg. price
                   </span>
                 </div>
               </Card>
@@ -8936,7 +9467,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         ? THEME.sage
                         : passiveIncomeData.passiveRatio >= 20
                           ? THEME.gold
-                          : THEME.accent,
+                          : THEME.rust,
                     letterSpacing: "-0.02em",
                   }}
                 >
@@ -9230,6 +9761,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 <span style={{ fontSize: 12, color }}>Target:</span>
                                 <input
                                   type="number"
+                                  aria-label={`${label} target allocation percent`}
                                   min="0"
                                   max="100"
                                   value={targetPct}
@@ -9504,6 +10036,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <>
                         <div style={{ marginBottom: 14 }}>
                           <label
+                            htmlFor="rebal-new-investment-amount"
                             style={{
                               fontSize: 11,
                               fontWeight: 700,
@@ -9517,6 +10050,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             New Investment Amount
                           </label>
                           <input
+                            id="rebal-new-investment-amount"
                             type="number"
                             min="0"
                             value={newInvestAmount}
@@ -9941,7 +10475,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
                       ) : (
                         <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
-                          No mutual funds detected in Demat or Fixed Deposits.
+                          No mutual funds added yet — add them from the Investments tab.
                         </div>
                       )}
                     </div>
@@ -10342,6 +10876,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </span>
                     <input
                       type="range"
+                      aria-label="Age"
+                      aria-valuetext={`${ageInput} years`}
                       min={20}
                       max={65}
                       step={1}
@@ -10527,9 +11063,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       : `₹${(nextMilestone.value / 100000).toFixed(0)}L`}
                     . Need{" "}
                     <strong style={{ color: THEME.accent }}>
-                      {nextMilestone.value - nw >= 10000000
-                        ? `₹${((nextMilestone.value - nw) / 10000000).toFixed(1)}Cr`
-                        : `₹${Math.max(0, (nextMilestone.value - nw) / 100000).toFixed(0)}L`}
+                      <Prv>
+                        {nextMilestone.value - nw >= 10000000
+                          ? `₹${((nextMilestone.value - nw) / 10000000).toFixed(1)}Cr`
+                          : `₹${Math.max(0, (nextMilestone.value - nw) / 100000).toFixed(0)}L`}
+                      </Prv>
                     </strong>{" "}
                     more.
                   </div>
@@ -10739,6 +11277,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <span style={{ fontSize: 14, fontWeight: 700, color: THEME.muted }}>₹</span>
                     <input
                       type="number"
+                      aria-label="Extra monthly investment amount"
                       value={fireWhatIfExtra || ""}
                       onChange={(e) => setFireWhatIfExtra(Math.max(0, Number(e.target.value) || 0))}
                       placeholder="e.g. 10000"
@@ -11003,6 +11542,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <input
                       type="range"
+                      aria-label="Equities Return CAGR"
+                      aria-valuetext={`${eqCAGR}%`}
                       min="5"
                       max="25"
                       step="0.5"
@@ -11027,6 +11568,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <input
                       type="range"
+                      aria-label="Fixed Income Return"
+                      aria-valuetext={`${fiCAGR}%`}
                       min="3"
                       max="15"
                       step="0.5"
@@ -11051,6 +11594,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <input
                       type="range"
+                      aria-label="Expected Inflation"
+                      aria-valuetext={`${inflationRate}%`}
                       min="2"
                       max="12"
                       step="0.5"
@@ -11552,6 +12097,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 ...(taxData80C.epfEmployee > 0
                   ? [{ label: "EPF (Employee)", value: taxData80C.epfEmployee, color: THEME.violet }]
                   : []),
+                ...(taxData80C.npsContrib > 0
+                  ? [
+                      {
+                        label: "NPS (80CCD(1))",
+                        value: taxData80C.npsContrib,
+                        color: THEME.cyan || THEME.accent,
+                      },
+                    ]
+                  : []),
               ].map(({ label, value, color }) => (
                 <div
                   key={label}
@@ -11872,6 +12426,27 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                 </div>
               </div>
+              {goalHealth.length > 0 && goalHealth[0].combinedShortfall > 0 && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
+                    fontSize: 12,
+                    color: THEME.rust,
+                    fontWeight: 600,
+                    marginBottom: 14,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Your active goals need <Prv>{fmtINRFull(goalHealth[0].totalMonthlyNeeded)}</Prv>
+                  /mo combined, but current monthly savings is only{" "}
+                  <Prv>{fmtINRFull(Math.max(0, metrics.monthIncome - metrics.monthExpense))}</Prv> —
+                  short by <Prv>{fmtINRFull(goalHealth[0].combinedShortfall)}</Prv>/mo. Some goals
+                  below may look affordable alone but not all can be funded at once.
+                </div>
+              )}
               {goalHealth.length === 0 ? (
                 <div
                   style={{
@@ -12430,6 +13005,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <input
                       type="range"
+                      aria-label="Timeline in years"
+                      aria-valuetext={`${sipLsYears} year${sipLsYears > 1 ? "s" : ""}`}
                       min="1"
                       max="30"
                       step="1"
@@ -12466,6 +13043,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <input
                       type="range"
+                      aria-label="Expected CAGR"
+                      aria-valuetext={`${sipLsCagr}%`}
                       min="4"
                       max="20"
                       step="0.5"
@@ -13535,320 +14114,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               const today2 =
                 now.getFullYear() === year && now.getMonth() === month ? now.getDate() : null;
 
-              const dueDays: Record<number, any[]> = {};
-
-              // 1. CREDIT CARDS: recurring or one-off dues (excluding closed cards)
-              (state.creditCards || [])
-                .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-                .forEach((c: any) => {
-                  if (c.dueDate) {
-                    const d = new Date(c.dueDate);
-                    if (d.getFullYear() === year && d.getMonth() === month) {
-                      dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({
-                        label: c.issuer || "Card",
-                        color: THEME.rust,
-                      });
-                    }
-                  } else if (c.dueDay) {
-                    const day = parseInt(c.dueDay, 10);
-                    if (!isNaN(day) && day >= 1 && day <= 31) {
-                      const targetDay = Math.min(day, daysInMonth);
-                      dueDays[targetDay] = (dueDays[targetDay] || []).concat({
-                        label: (c.issuer || "Card") + " Bill",
-                        color: THEME.rust,
-                      });
-                    }
-                  }
-                });
-
-              // 1b. CREDIT CARD ANNUAL FEES: mark the fee month/day in amber
-              (state.creditCards || [])
-                .filter(
-                  (c: any) =>
-                    (c.status || "").toLowerCase() !== "closed" &&
-                    Number(c.annualFee) > 0 &&
-                    c.feeMonth
-                )
-                .forEach((c: any) => {
-                  if (Number(c.feeMonth) - 1 === month) {
-                    const fDay = Math.min(Number(c.feeDay) || 1, daysInMonth);
-                    dueDays[fDay] = (dueDays[fDay] || []).concat({
-                      label: (c.issuer || "Card") + " Annual Fee",
-                      color: THEME.gold,
-                    });
-                  }
-                });
-
-              // 2. SUBSCRIPTIONS: recurrent logic by cycle
-              (state.subscriptions || [])
-                .filter((s: any) => !s.paused)
-                .forEach((s: any) => {
-                  if (s.renewalDate) {
-                    const subDate = new Date(s.renewalDate);
-                    const subDay = subDate.getDate();
-
-                    let isDueThisMonth = false;
-                    if (s.billingCycle === "monthly") {
-                      isDueThisMonth = true;
-                    } else if (s.billingCycle === "quarterly") {
-                      const diffMonths =
-                        (year - subDate.getFullYear()) * 12 + (month - subDate.getMonth());
-                      isDueThisMonth = diffMonths >= 0 && diffMonths % 3 === 0;
-                    } else if (s.billingCycle === "yearly") {
-                      const diffMonths =
-                        (year - subDate.getFullYear()) * 12 + (month - subDate.getMonth());
-                      isDueThisMonth = diffMonths >= 0 && diffMonths % 12 === 0;
-                    } else {
-                      isDueThisMonth =
-                        subDate.getFullYear() === year && subDate.getMonth() === month;
-                    }
-
-                    if (isDueThisMonth) {
-                      const targetDay = Math.min(subDay, daysInMonth);
-                      dueDays[targetDay] = (dueDays[targetDay] || []).concat({
-                        label: s.name,
-                        color: THEME.gold,
-                      });
-                    }
-                  }
-                });
-
-              // 3. ADVANCE TAX (15th of Jun, Sep, Dec, Mar)
-              if (month === 5 || month === 8 || month === 11 || month === 2)
-                dueDays[15] = (dueDays[15] || []).concat({
-                  label: "Adv. Tax",
-                  color: THEME.accent,
-                });
-
-              // 4. LIC PREMIUMS: recurring logic by anniversary month and active range
-              (state.lic || []).forEach((l: any) => {
-                if (l.commencementDate) {
-                  const commDate = new Date(l.commencementDate);
-                  if (!isNaN(commDate.getTime())) {
-                    const commYear = commDate.getFullYear();
-                    const commMonth = commDate.getMonth();
-
-                    // Viewed year/month must be >= commencement year/month
-                    if (year > commYear || (year === commYear && month >= commMonth)) {
-                      let isMatured = false;
-                      if (l.maturityDate) {
-                        const matDate = new Date(l.maturityDate);
-                        if (!isNaN(matDate.getTime())) {
-                          if (
-                            year > matDate.getFullYear() ||
-                            (year === matDate.getFullYear() && month > matDate.getMonth())
-                          ) {
-                            isMatured = true;
-                          }
-                        }
-                      }
-
-                      if (!isMatured && month === commMonth) {
-                        const dueDay = Math.min(commDate.getDate(), daysInMonth);
-                        dueDays[dueDay] = (dueDays[dueDay] || []).concat({
-                          label: `LIC: ${l.planName}`,
-                          color: THEME.sage,
-                        });
-                      }
-                    }
-                  }
-                }
-              });
-
-              // 5. TERM PLAN PREMIUMS: recurring logic by anniversary month and active range
-              (state.termPlans || []).forEach((t: any) => {
-                if (t.startDate) {
-                  const commDate = new Date(t.startDate);
-                  if (!isNaN(commDate.getTime())) {
-                    const commYear = commDate.getFullYear();
-                    const commMonth = commDate.getMonth();
-
-                    // Viewed year/month must be >= commencement year/month
-                    if (year > commYear || (year === commYear && month >= commMonth)) {
-                      let isExpired = false;
-                      if (t.expiryDate) {
-                        const expDate = new Date(t.expiryDate);
-                        if (!isNaN(expDate.getTime())) {
-                          if (
-                            year > expDate.getFullYear() ||
-                            (year === expDate.getFullYear() && month > expDate.getMonth())
-                          ) {
-                            isExpired = true;
-                          }
-                        }
-                      }
-
-                      // Also check if we have finished paying based on premium paying term
-                      const payTerm = t.premiumPayingTerm
-                        ? parseInt(t.premiumPayingTerm, 10)
-                        : t.term
-                          ? parseInt(t.term, 10)
-                          : null;
-                      if (payTerm && !isNaN(payTerm)) {
-                        const yearsElapsed = year - commYear;
-                        if (yearsElapsed >= payTerm) {
-                          isExpired = true; // Premium paying term ended
-                        }
-                      }
-
-                      if (!isExpired && month === commMonth) {
-                        const dueDay = Math.min(commDate.getDate(), daysInMonth);
-                        dueDays[dueDay] = (dueDays[dueDay] || []).concat({
-                          label: `Term: ${t.planName || "Plan"}`,
-                          color: THEME.sage,
-                        });
-                      }
-                    }
-                  }
-                }
-              });
-
-              // 6. INVESTMENT PLAN PREMIUMS: recurring logic by anniversary month and active range
-              (state.investmentPlans || []).forEach((ip: any) => {
-                if (ip.commencementDate) {
-                  const commDate = new Date(ip.commencementDate);
-                  if (!isNaN(commDate.getTime())) {
-                    const commYear = commDate.getFullYear();
-                    const commMonth = commDate.getMonth();
-
-                    // Viewed year/month must be >= commencement year/month
-                    if (year > commYear || (year === commYear && month >= commMonth)) {
-                      let isMatured = false;
-                      if (ip.maturityDate) {
-                        const matDate = new Date(ip.maturityDate);
-                        if (!isNaN(matDate.getTime())) {
-                          if (
-                            year > matDate.getFullYear() ||
-                            (year === matDate.getFullYear() && month > matDate.getMonth())
-                          ) {
-                            isMatured = true;
-                          }
-                        }
-                      }
-
-                      // Also check if we have finished paying based on premium paying term
-                      const payTerm = ip.premiumPayingTerm
-                        ? parseInt(ip.premiumPayingTerm, 10)
-                        : ip.policyTerm
-                          ? parseInt(ip.policyTerm, 10)
-                          : null;
-                      if (payTerm && !isNaN(payTerm)) {
-                        const yearsElapsed = year - commYear;
-                        if (yearsElapsed >= payTerm) {
-                          isMatured = true; // Premium paying term ended
-                        }
-                      }
-
-                      if (!isMatured && month === commMonth) {
-                        const dueDay = Math.min(commDate.getDate(), daysInMonth);
-                        dueDays[dueDay] = (dueDays[dueDay] || []).concat({
-                          label: `Invest: ${ip.planName || "Plan"}`,
-                          color: THEME.sage,
-                        });
-                      }
-                    }
-                  }
-                }
-              });
-
-              // 7. RENTED PROPERTIES: monthly rent due day within active agreement range (paid vs unpaid status coloring)
-              (state.rentedProperties || [])
-                .filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0)
-                .forEach((p: any) => {
-                  let isAgreementActive = true;
-                  if (p.agreementStart) {
-                    const start = new Date(p.agreementStart);
-                    if (!isNaN(start.getTime())) {
-                      if (
-                        year < start.getFullYear() ||
-                        (year === start.getFullYear() && month < start.getMonth())
-                      ) {
-                        isAgreementActive = false;
-                      }
-                    }
-                  }
-                  if (p.agreementEnd) {
-                    const end = new Date(p.agreementEnd);
-                    if (!isNaN(end.getTime())) {
-                      if (
-                        year > end.getFullYear() ||
-                        (year === end.getFullYear() && month > end.getMonth())
-                      ) {
-                        isAgreementActive = false;
-                      }
-                    }
-                  }
-
-                  if (isAgreementActive) {
-                    const day = p.dueDay ? parseInt(p.dueDay, 10) : 5;
-                    if (!isNaN(day) && day >= 1 && day <= 31) {
-                      const targetDay = Math.min(day, daysInMonth);
-                      const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
-                      const isPaid = (p.payments || []).some(
-                        (pay: any) => pay.date && pay.date.startsWith(monthStr)
-                      );
-                      dueDays[targetDay] = (dueDays[targetDay] || []).concat({
-                        label: `${p.propertyName || "Rent"}${isPaid ? " (Paid)" : " Rent"}`,
-                        color: isPaid ? THEME.sage : THEME.gold,
-                      });
-                    }
-                  }
-                });
-
-              // 8. FD MATURITIES: highlight when FDs mature this month
-              (state.fixedDeposits || [])
-                .filter((f: any) => f.maturityDate)
-                .forEach((f: any) => {
-                  const [fyy, fmm, fdd] = f.maturityDate.split("-").map(Number);
-                  if (fyy === year && fmm - 1 === month) {
-                    const targetDay = Math.min(fdd, daysInMonth);
-                    dueDays[targetDay] = (dueDays[targetDay] || []).concat({
-                      label: `${f.bank || "FD"} Matures`,
-                      color: THEME.sage,
-                    });
-                  }
-                });
-
-              // 9. SIP AUTO-DEDUCTIONS: recurring on the day the SIP was started
-              (state.sips || [])
-                .filter((s: any) => Number(s.amount || 0) > 0 && !s.isCompleted)
-                .forEach((s: any) => {
-                  if (!s.startDate) return;
-                  const sipStart = new Date(s.startDate + "T00:00:00");
-                  if (isNaN(sipStart.getTime())) return;
-                  const sipStartYear = sipStart.getFullYear();
-                  const sipStartMonth = sipStart.getMonth();
-                  if (year < sipStartYear || (year === sipStartYear && month < sipStartMonth))
-                    return;
-                  const sipDay = sipStart.getDate();
-                  const targetDay = Math.min(sipDay, daysInMonth);
-                  dueDays[targetDay] = (dueDays[targetDay] || []).concat({
-                    label: `SIP: ${s.scheme || s.fund || "Fund"}`,
-                    color: THEME.accent,
-                  });
-                });
-
-              // 10. LOAN EMIS: recurring monthly EMI due on the loan's start day
-              (state.loansTaken || [])
-                .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0)
-                .forEach((l: any) => {
-                  let emiDay = 5;
-                  if (l.startDate) {
-                    const ld = new Date(l.startDate + "T00:00:00");
-                    if (!isNaN(ld.getTime())) {
-                      const lStartYear = ld.getFullYear();
-                      const lStartMonth = ld.getMonth();
-                      if (year < lStartYear || (year === lStartYear && month < lStartMonth)) return;
-                      emiDay = ld.getDate();
-                    }
-                  }
-                  const targetDay = Math.min(emiDay, daysInMonth);
-                  dueDays[targetDay] = (dueDays[targetDay] || []).concat({
-                    label: `EMI: ${l.loanName || l.bank || "Loan"}`,
-                    color: THEME.rust,
-                  });
-                });
-
+              const dueDays = calendarDueDays;
               const cells: (number | null)[] = [];
               for (let i = 0; i < firstDay; i++) cells.push(null);
               for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -13988,7 +14254,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       Rent
                     </span>
                     <span>
-                      <span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax
+                      <span style={{ color: THEME.violet, fontWeight: 700 }}>●</span> Advance tax
                     </span>
                     <span>
                       <span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> Insurance / FD
@@ -14378,7 +14644,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   title={
                     m.hasData
                       ? `${m.label} ${m.year}: ${m.saved ? `+${m.rate}% savings rate` : "Deficit month"}`
-                      : `${m.label} ${m.year}: No data`
+                      : m.isCurrentMonth
+                        ? `${m.label} ${m.year}: In progress — counted once the month closes`
+                        : `${m.label} ${m.year}: No data`
                   }
                   style={{
                     borderRadius: 10,
@@ -14408,7 +14676,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {m.label}
                     </div>
                     <div style={{ fontSize: 9, color: THEME.muted, marginTop: 1 }}>
-                      {m.hasData ? (m.saved ? `${m.rate}%` : "deficit") : "—"}
+                      {m.hasData ? (m.saved ? `${m.rate}%` : "deficit") : m.isCurrentMonth ? "in progress" : "—"}
                     </div>
                   </div>
                 </div>
@@ -15094,7 +15362,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "4px 0" }}>
             {selectedDayEvents.events.map((evt, idx) => {
-              const isPaid = evt.label.includes("(Paid)");
+              const isPaid = evt.paid === true;
               return (
                 <div
                   key={idx}
@@ -15132,7 +15400,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {evt.label}
                     </span>
                     <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                      Monthly Scheduled Due
+                      {evt.frequency ? `${evt.frequency} · ` : ""}
+                      {evt.amount > 0 ? (
+                        <>
+                          {evt.amountLabel || "Amount"}: <Prv>{fmtINRFull(evt.amount)}</Prv>
+                        </>
+                      ) : (
+                        "Scheduled"
+                      )}
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -15151,43 +15426,37 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     >
                       {isPaid ? "Paid" : "Due"}
                     </Badge>
-                    {setTab && !isPaid && (
-                      <button
-                        onClick={() => {
-                          const lbl = evt.label.toLowerCase();
-                          let targetTab = "analytics";
-                          if (lbl.includes("cc:") || lbl.includes("card") || lbl.includes("bill"))
-                            targetTab = "credit";
-                          else if (lbl.includes("emi") || lbl.includes("loan"))
-                            targetTab = "amortization";
-                          else if (lbl.includes("sip") || lbl.includes("mutual"))
-                            targetTab = "investments";
-                          else if (
-                            lbl.includes("term") ||
-                            lbl.includes("lic") ||
-                            lbl.includes("invest")
-                          )
-                            targetTab = "investments";
-                          else if (lbl.includes("rent")) targetTab = "rental";
-
-                          setTab(targetTab);
-                          setSelectedDayEvents(null);
-                        }}
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          color: THEME.accent,
-                          background: "var(--surface-0)",
-                          border: `1px solid color-mix(in srgb, var(--t-accent) 27%, transparent)`,
-                          padding: "4px 10px",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        Pay →
-                      </button>
-                    )}
+                    {setTab &&
+                      !isPaid &&
+                      (() => {
+                        // Keyed off the event's own `type` (set once in calendarDueDays)
+                        // rather than sniffing keywords out of the display label — a
+                        // user-entered name like a property called "Card House" used
+                        // to be able to hijack the label-matching routing.
+                        const targetTab = EVENT_TYPE_TO_TARGET_TAB[evt.type as string] || null;
+                        if (!targetTab) return null;
+                        return (
+                          <button
+                            onClick={() => {
+                              setTab(targetTab);
+                              setSelectedDayEvents(null);
+                            }}
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: THEME.accent,
+                              background: "var(--surface-0)",
+                              border: `1px solid color-mix(in srgb, var(--t-accent) 27%, transparent)`,
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            Pay →
+                          </button>
+                        );
+                      })()}
                   </div>
                 </div>
               );
