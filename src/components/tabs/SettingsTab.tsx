@@ -49,6 +49,7 @@ import {
   XCircle,
   Clock,
   IdCard,
+  FolderOpen,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
@@ -60,7 +61,6 @@ import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { ConfirmDialog } from "../ui/Feedback";
-import { DocumentVaultTab } from "./DocumentVaultTab";
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
 const MD_GROUPS = [
@@ -2946,6 +2946,7 @@ export function SettingsTab({
   session,
   showToast,
   lastBackupTs,
+  setAppTab,
 }: any) {
   const [tab, setTab] = useState("appearance");
 
@@ -3092,17 +3093,57 @@ export function SettingsTab({
 
       {tab === "documents" && (
         <div key="documents" className="tab-content-enter">
-          {/* Reuses the real Document Vault tab's model directly — this Settings entry point
-              used to have its own parallel implementation with an incompatible category/owner
-              vocabulary, which silently corrupted documents added from here (see audit). */}
-          <DocumentVaultTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-            updateItem={updateItem}
-            session={session}
-            showToast={showToast}
-          />
+          {/* This used to embed the full DocumentVaultTab here as a second copy of the same
+              page — one nav entry showed all profiles' documents, the other showed only the
+              active profile's, so the "same" screen looked different depending on where you
+              opened it from. Document Vault (System) is the single source of truth now; this
+              is just a shortcut to it. */}
+          <Card style={{ padding: "48px 24px", textAlign: "center" }}>
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 20,
+                background: `linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 20px",
+              }}
+            >
+              <FolderOpen size={30} color="#fff" />
+            </div>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: THEME.ink,
+                marginBottom: 8,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Document Vault
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: THEME.muted,
+                maxWidth: 380,
+                margin: "0 auto 24px",
+                lineHeight: 1.6,
+              }}
+            >
+              Wills, policies, IDs, and every other document now live in one place under System →
+              Document Vault, so what you see there always matches the rest of the app.
+            </div>
+            <Button
+              variant="accent"
+              icon={<FolderOpen size={15} />}
+              onClick={() => setAppTab?.("docvault")}
+            >
+              Open Document Vault
+            </Button>
+          </Card>
         </div>
       )}
 

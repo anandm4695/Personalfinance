@@ -5309,6 +5309,7 @@ function FinanceDashboard() {
                   emailSettings={settings}
                   updateEmailSettings={updateSettings}
                   lastBackupTs={lastBackupTs}
+                  setAppTab={setTab}
                 />
               )}
             </div>
