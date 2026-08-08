@@ -56,12 +56,15 @@ const EMPTY: any = {
   lta: "",
   bonus: "",
   otherEarnings: "",
+  employerNpsContribution: "",
   grossSalary: "",
   pfEmployee: "",
   pfEmployer: "",
   esiEmployee: "",
   professionalTax: "",
   tds: "",
+  incomeTax: "",
+  npsDeduction: "",
   otherDeductions: "",
   totalDeductions: "",
   netSalary: "",
@@ -77,12 +80,15 @@ const NUMERIC_KEYS = [
   "lta",
   "bonus",
   "otherEarnings",
+  "employerNpsContribution",
   "grossSalary",
   "pfEmployee",
   "pfEmployer",
   "esiEmployee",
   "professionalTax",
   "tds",
+  "incomeTax",
+  "npsDeduction",
   "otherDeductions",
   "totalDeductions",
   "netSalary",
@@ -95,7 +101,15 @@ function autoCompute(
   deductTouched?: boolean
 ) {
   const earn = ["basic", "hra", "da", "specialAllowance", "lta", "bonus", "otherEarnings"];
-  const deduct = ["pfEmployee", "esiEmployee", "professionalTax", "tds", "otherDeductions"];
+  const deduct = [
+    "pfEmployee",
+    "esiEmployee",
+    "professionalTax",
+    "tds",
+    "incomeTax",
+    "npsDeduction",
+    "otherDeductions",
+  ];
   const gross = earn.reduce((s, k) => s + Number(form[k] || 0), 0);
   const totalD = deduct.reduce((s, k) => s + Number(form[k] || 0), 0);
   const net = gross - totalD;
@@ -187,7 +201,7 @@ function SlipForm({ initial, onSave, onClose, apiKey, existingSlips, familyProfi
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const prompt = `You are a salary slip parser. Extract the following fields from this Indian salary slip text.
 Return ONLY a valid JSON object with these keys (numbers only, no currency symbols, 0 if not found):
-basic, hra, da, specialAllowance, lta, bonus, otherEarnings, grossSalary, pfEmployee, pfEmployer, esiEmployee, professionalTax, tds, otherDeductions, totalDeductions, netSalary, employer, slipMonth (YYYY-MM format)
+basic, hra, da, specialAllowance, lta, bonus, otherEarnings, employerNpsContribution, grossSalary, pfEmployee, pfEmployer, esiEmployee, professionalTax, tds, incomeTax, npsDeduction, otherDeductions, totalDeductions, netSalary, employer, slipMonth (YYYY-MM format)
 
 Salary slip text:
 ${form.rawText}
@@ -408,6 +422,7 @@ Return only the JSON, no explanation.`;
           ["lta", "LTA"],
           ["bonus", "Bonus / Incentive"],
           ["otherEarnings", "Other Earnings"],
+          ["employerNpsContribution", "Employer NPS Contribution"],
           ["grossSalary", "Gross Salary *"],
         ].map(([k, label]) => (
           <Field key={k} label={label}>
@@ -452,6 +467,8 @@ Return only the JSON, no explanation.`;
           ["esiEmployee", "ESI"],
           ["professionalTax", "Professional Tax"],
           ["tds", "TDS"],
+          ["incomeTax", "Income Tax"],
+          ["npsDeduction", "NPS Deduction"],
           ["otherDeductions", "Other Deductions"],
           ["totalDeductions", "Total Deductions *"],
         ].map(([k, label]) => (
@@ -679,12 +696,15 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
         { key: "lta", label: "LTA" },
         { key: "bonus", label: "Bonus" },
         { key: "otherEarnings", label: "Other Earnings" },
+        { key: "employerNpsContribution", label: "Employer NPS Contribution" },
         { key: "grossSalary", label: "Gross Salary" },
         { key: "pfEmployee", label: "PF (Employee)" },
         { key: "pfEmployer", label: "PF (Employer)" },
         { key: "esiEmployee", label: "ESI" },
         { key: "professionalTax", label: "Professional Tax" },
         { key: "tds", label: "TDS" },
+        { key: "incomeTax", label: "Income Tax" },
+        { key: "npsDeduction", label: "NPS Deduction" },
         { key: "otherDeductions", label: "Other Deductions" },
         { key: "totalDeductions", label: "Total Deductions" },
         { key: "netSalary", label: "Net Salary" },
@@ -1163,6 +1183,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                             ["LTA", s.lta],
                             ["Bonus", s.bonus],
                             ["Other Earnings", s.otherEarnings],
+                            ["Employer NPS Contribution", s.employerNpsContribution],
                           ]
                             .filter(([, v]) => Number(v) > 0)
                             .map(([label, val]) => (
@@ -1233,6 +1254,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                             ["ESI", s.esiEmployee],
                             ["Professional Tax", s.professionalTax],
                             ["TDS", s.tds],
+                            ["Income Tax", s.incomeTax],
+                            ["NPS Deduction", s.npsDeduction],
                             ["Other Deductions", s.otherDeductions],
                           ]
                             .filter(([, v]) => Number(v) > 0)
