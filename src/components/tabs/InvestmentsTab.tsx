@@ -3487,6 +3487,8 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
             <StatCard
               label="Bonds Held"
               value={String(items.length)}
+              numericValue={items.length}
+              formatValue={(n) => String(Math.round(n))}
               icon={<BarChart3 />}
               color={THEME.accent}
             />
@@ -6419,7 +6421,9 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
             {[
               {
                 label: "Total NPS Corpus",
-                value: <Prv>{fmtINRFull(totalCorpus)}</Prv>,
+                value: fmtINRFull(totalCorpus),
+                numericValue: totalCorpus,
+                formatValue: fmtINRFull,
                 color: NPS_ORANGE,
                 Icon: PiggyBank,
               },
@@ -6427,13 +6431,17 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
                 ? [
                     {
                       label: "Employee Contributions",
-                      value: <Prv>{fmtINRFull(totalEmployee)}</Prv>,
+                      value: fmtINRFull(totalEmployee),
+                      numericValue: totalEmployee,
+                      formatValue: fmtINRFull,
                       color: THEME.accent,
                       Icon: TrendingUp,
                     },
                     {
                       label: "Employer Contributions",
-                      value: <Prv>{fmtINRFull(totalEmployer)}</Prv>,
+                      value: fmtINRFull(totalEmployer),
+                      numericValue: totalEmployer,
+                      formatValue: fmtINRFull,
                       color: THEME.cyan,
                       Icon: Briefcase,
                     },
@@ -6442,15 +6450,34 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
                     {
                       label: "Accounts",
                       value: String(items.length),
+                      numericValue: items.length,
+                      formatValue: (n: number) => String(Math.round(n)),
                       color: THEME.accent,
                       Icon: BarChart3,
                     },
                   ]),
               ...(totalTx > 0
-                ? [{ label: "Transactions", value: String(totalTx), color: THEME.gold, Icon: List }]
+                ? [
+                    {
+                      label: "Transactions",
+                      value: String(totalTx),
+                      numericValue: totalTx,
+                      formatValue: (n: number) => String(Math.round(n)),
+                      color: THEME.gold,
+                      Icon: List,
+                    },
+                  ]
                 : []),
-            ].map(({ label, value, color, Icon }) => (
-              <StatCard key={label} label={label} value={value} icon={<Icon />} color={color} />
+            ].map(({ label, value, numericValue, formatValue, color, Icon }) => (
+              <StatCard
+                key={label}
+                label={label}
+                value={value}
+                numericValue={numericValue}
+                formatValue={formatValue}
+                icon={<Icon />}
+                color={color}
+              />
             ))}
           </div>
 
@@ -12524,22 +12551,26 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
             <span>
               <span style={{ color: THEME.muted }}>Invested: </span>
               <b>
-                ₹
-                {(Number(f.invested) || autoInvested || 0).toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                <Prv>
+                  ₹
+                  {(Number(f.invested) || autoInvested || 0).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Prv>
               </b>
             </span>
             {currentValue !== null && (
               <span>
                 <span style={{ color: THEME.muted }}>Current: </span>
                 <b style={{ color: THEME.accent }}>
-                  ₹
-                  {currentValue.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                  <Prv>
+                    ₹
+                    {currentValue.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </Prv>
                 </b>
               </span>
             )}
@@ -12547,12 +12578,14 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
               <span>
                 <span style={{ color: THEME.muted }}>P&L: </span>
                 <b style={{ color: pnl >= 0 ? THEME.sage : THEME.rust }}>
-                  {pnl >= 0 ? "+" : ""}₹
-                  {Math.abs(pnl).toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                  {pnlPct !== null && ` (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)`}
+                  <Prv>
+                    {pnl >= 0 ? "+" : ""}₹
+                    {Math.abs(pnl).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                    {pnlPct !== null && ` (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)`}
+                  </Prv>
                 </b>
               </span>
             )}
@@ -12671,21 +12704,25 @@ function SellMFModal({ mf, onClose, onSave }: any) {
             <span style={{ fontSize: 13, color: "var(--t-muted)" }}>
               Proceeds:{" "}
               <b>
-                ₹
-                {proceeds.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                <Prv>
+                  ₹
+                  {proceeds.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Prv>
               </b>
             </span>
             <span style={{ fontSize: 13, color: "var(--t-muted)" }}>
               P&L:{" "}
               <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>
-                {profit >= 0 ? "+" : ""}₹
-                {Math.abs(profit).toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                <Prv>
+                  {profit >= 0 ? "+" : ""}₹
+                  {Math.abs(profit).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Prv>
               </b>
             </span>
             <span
@@ -12951,7 +12988,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                       </span>
                     </td>
                     <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>
-                      ₹{fmt2(a.consume * a.buyNav)}
+                      <Prv>₹{fmt2(a.consume * a.buyNav)}</Prv>
                     </td>
                     <td
                       style={{
@@ -12961,7 +12998,9 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                         color: a.pnl >= 0 ? THEME.sage : THEME.rust,
                       }}
                     >
-                      {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
+                      <Prv>
+                        {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
+                      </Prv>
                     </td>
                     <td style={{ padding: "9px 12px", textAlign: "center" }}>
                       <span
@@ -13006,12 +13045,14 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>
                   Total Proceeds
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800 }}>₹{fmt2(totalProceeds)}</div>
+                <div style={{ fontSize: 15, fontWeight: 800 }}>
+                  <Prv>₹{fmt2(totalProceeds)}</Prv>
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Cost Basis</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>
-                  ₹{fmt2(totalCost)}
+                  <Prv>₹{fmt2(totalCost)}</Prv>
                 </div>
               </div>
               <div>
@@ -13023,7 +13064,9 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                     color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                   }}
                 >
-                  {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
+                  <Prv>
+                    {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
+                  </Prv>
                 </div>
               </div>
             </div>
@@ -13052,7 +13095,9 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                     STCG
                   </span>
                   <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    {stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}
+                    <Prv>
+                      {stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}
+                    </Prv>
                   </b>
                 </span>
               )}
@@ -13072,7 +13117,9 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                     LTCG
                   </span>
                   <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    {ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}
+                    <Prv>
+                      {ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}
+                    </Prv>
                   </b>
                 </span>
               )}
