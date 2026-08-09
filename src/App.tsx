@@ -191,8 +191,12 @@ const DEFAULT_STATE = {
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
   settings: {
-    darkMode: false,
-    accentKey: "blue",
+    // Dark + gold ("Goldman" preset) is the true default identity — it matches
+    // the splash screen's gold branding (#C5A152, index.html) and the FOUC-prevention
+    // script's dark fallback, so first-time/demo visitors see one coherent brand
+    // instead of a gold splash flipping to a generic light-indigo dashboard.
+    darkMode: true,
+    accentKey: "amber",
     density: "normal",
     radiusKey: "modern",
     fontKey: "inter",

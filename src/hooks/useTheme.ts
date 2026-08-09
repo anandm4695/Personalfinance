@@ -53,6 +53,14 @@ export function useTheme(settings: {
     // Drive the CSS class-based dark theme so styles.css vars activate
     document.documentElement.classList.toggle("dark-theme", darkMode);
     document.body.classList.toggle("dark-theme", darkMode);
+
+    // Mirror the real setting into the key index.html's pre-hydration script reads
+    // (`finance-theme`) so the next page load predicts the correct splash theme
+    // instead of always guessing dark — this key was previously never written,
+    // so any user on the light theme saw a dark→light flash on every load.
+    try {
+      localStorage.setItem("finance-theme", darkMode ? "dark" : "light");
+    } catch {}
   }, [darkMode, accentKey, density, radiusKey, fontKey, animSpeed]);
 
   // Background style (dots / mesh) injected dynamically since it depends on user setting
