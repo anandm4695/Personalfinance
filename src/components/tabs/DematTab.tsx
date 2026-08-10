@@ -1258,7 +1258,7 @@ export function DematTab({
     });
 
     const aggregatedBySymbol: Record<string, any> = {};
-    stockValues.forEach((s) => {
+    stockValues.forEach((s: (typeof stockValues)[number]) => {
       const key = `${s.symbol}|${s.exchange}`;
       if (!aggregatedBySymbol[key]) {
         aggregatedBySymbol[key] = {
