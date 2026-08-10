@@ -47,6 +47,7 @@ import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const GOLD_TYPES = [
   { id: "physical", label: "Physical Gold", color: THEME.gold },
@@ -199,6 +200,8 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
 
     return { totalGrams, totalInvested, totalValue, totalPnL, totalInterest, untrackedCount, byType };
   }, [enriched]);
+
+  const animatedTotalValue = useAnimatedNumber(stats.totalValue);
 
   const handleExportCSV = () => {
     const rows = sorted.map((h) => ({
@@ -433,7 +436,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRFull(stats.totalValue)}</Prv>
+              <Prv>{fmtINRFull(animatedTotalValue)}</Prv>
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
               {stats.totalGrams.toFixed(2)}g held ·{" "}
@@ -453,18 +456,24 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
             <StatCard
               label="Total Gold"
               value={`${stats.totalGrams.toFixed(2)}g`}
+              numericValue={stats.totalGrams}
+              formatValue={(n) => `${n.toFixed(2)}g`}
               icon={<Coins />}
               color={THEME.gold}
             />
             <StatCard
               label="Total Invested"
-              value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>}
+              value={fmtINRFull(stats.totalInvested)}
+              numericValue={stats.totalInvested}
+              formatValue={fmtINRFull}
               icon={<IndianRupee />}
               color={THEME.accent}
             />
             <StatCard
               label="P&L"
-              value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>}
+              value={fmtINRFull(stats.totalPnL)}
+              numericValue={stats.totalPnL}
+              formatValue={fmtINRFull}
               sub={
                 stats.untrackedCount > 0
                   ? `${stats.untrackedCount} holding${stats.untrackedCount > 1 ? "s" : ""} missing purchase price — understated`
@@ -476,7 +485,9 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
             {stats.totalInterest > 0 && (
               <StatCard
                 label="SGB Interest Earned"
-                value={<Prv>{fmtINRFull(stats.totalInterest)}</Prv>}
+                value={fmtINRFull(stats.totalInterest)}
+                numericValue={stats.totalInterest}
+                formatValue={fmtINRFull}
                 icon={<Award />}
                 color={THEME.sage}
               />

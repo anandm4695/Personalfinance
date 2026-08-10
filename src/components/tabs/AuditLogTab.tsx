@@ -593,20 +593,33 @@ export const AuditLogTab = ({ session }) => {
       >
         <StatCard
           label="Total Actions"
-          value={logs.length}
+          value={logs.length.toLocaleString("en-IN")}
+          numericValue={logs.length}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<Activity />}
           color={THEME.accent}
         />
-        <StatCard label="Adds" value={actionStats.ADD || 0} icon={<Plus />} color={THEME.sage} />
+        <StatCard
+          label="Adds"
+          value={(actionStats.ADD || 0).toLocaleString("en-IN")}
+          numericValue={actionStats.ADD || 0}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
+          icon={<Plus />}
+          color={THEME.sage}
+        />
         <StatCard
           label="Updates"
-          value={actionStats.UPDATE || 0}
+          value={(actionStats.UPDATE || 0).toLocaleString("en-IN")}
+          numericValue={actionStats.UPDATE || 0}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<Edit2 />}
           color={THEME.accent}
         />
         <StatCard
           label="Deletes"
-          value={(actionStats.DELETE || 0) + (actionStats.REMOVE || 0)}
+          value={((actionStats.DELETE || 0) + (actionStats.REMOVE || 0)).toLocaleString("en-IN")}
+          numericValue={(actionStats.DELETE || 0) + (actionStats.REMOVE || 0)}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<Trash2 />}
           color={THEME.rust}
         />

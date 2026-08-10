@@ -268,25 +268,33 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
         >
           <StatCard
             label="Total Future Cost"
-            value={<Prv>{fmtINRFull(totalCost)}</Prv>}
+            value={fmtINRFull(totalCost)}
+            numericValue={totalCost}
+            formatValue={fmtINRFull}
             icon={<IndianRupee />}
             color={THEME.rust}
           />
           <StatCard
             label="Already Saved"
-            value={<Prv>{fmtINRFull(totalSaved)}</Prv>}
+            value={fmtINRFull(totalSaved)}
+            numericValue={totalSaved}
+            formatValue={fmtINRFull}
             icon={<CheckCircle />}
             color={THEME.sage}
           />
           <StatCard
             label="Gap to Fill"
-            value={<Prv>{fmtINRFull(totalGap)}</Prv>}
+            value={fmtINRFull(totalGap)}
+            numericValue={totalGap}
+            formatValue={fmtINRFull}
             icon={<AlertTriangle />}
             color={THEME.gold}
           />
           <StatCard
             label="Monthly SIP Needed"
-            value={<Prv>{fmtINRFull(totalMonthlySIP)}</Prv>}
+            value={fmtINRFull(totalMonthlySIP)}
+            numericValue={totalMonthlySIP}
+            formatValue={fmtINRFull}
             icon={<TrendingUp />}
             color={THEME.accent}
           />

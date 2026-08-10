@@ -384,7 +384,9 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
           <div style={{ gridColumn: "span 2" }}>
             <StatCard
               label="Monthly Bills"
-              value={<Prv>{fmtINRFull(totalMonthly)}</Prv>}
+              value={fmtINRFull(totalMonthly)}
+              numericValue={totalMonthly}
+              formatValue={fmtINRFull}
               sub={`${bills.length} bill${bills.length === 1 ? "" : "s"} tracked · ${privacyMode ? "••••" : fmtINRFull(totalMonthly * 12)}/yr`}
               icon={<IndianRupee size={18} />}
               color={THEME.primary}
@@ -392,13 +394,17 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
           </div>
           <StatCard
             label="Bills Tracked"
-            value={bills.length}
+            value={bills.length.toLocaleString("en-IN")}
+            numericValue={bills.length}
+            formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
             icon={<ClipboardList size={18} />}
             color={THEME.success}
           />
           <StatCard
             label="Due This Week"
-            value={upcomingDue.length}
+            value={upcomingDue.length.toLocaleString("en-IN")}
+            numericValue={upcomingDue.length}
+            formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
             sub={upcomingDue.length > 0 ? "Needs attention" : "All clear"}
             subColor={upcomingDue.length > 0 ? THEME.warning : undefined}
             icon={<Clock size={18} />}
@@ -626,7 +632,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                             >
                               <CheckCircle size={13} color={THEME.success} />
                               <span>
-                                {new Date(h.paidDate).toLocaleDateString("en-IN", {
+                                {new Date(`${h.paidDate}T00:00:00`).toLocaleDateString("en-IN", {
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",

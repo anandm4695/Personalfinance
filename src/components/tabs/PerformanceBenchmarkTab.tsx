@@ -414,6 +414,8 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
         <StatCard
           label="Financial Health"
           value={String(overallScore)}
+          numericValue={overallScore}
+          formatValue={(n) => String(Math.round(n))}
           sub={scoreLabel}
           subColor={scoreColor}
           icon={<Shield />}
