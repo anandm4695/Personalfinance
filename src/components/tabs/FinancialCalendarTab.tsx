@@ -34,6 +34,7 @@ import {
   rdMaturity,
   nextAnnualOccurrence,
   addMonthsToDateStr,
+  annualizePremium,
 } from "../../utils/finance";
 import { SCHEME_RULES, projectSchemeValue } from "../../utils/govtSchemes";
 import { Card } from "../ui/Card";
@@ -159,7 +160,15 @@ const getUrgencyLabel = (days) => {
 // `onNavigateToTab` is optional and not yet wired up by the parent — see
 // cross-file findings in the audit report for the one-line App.tsx change
 // that would enable click-through from an event card to its source tab.
-export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefined }) => {
+export const FinancialCalendarTab = ({
+  state,
+  metrics,
+  onNavigateToTab = undefined,
+  // Set by CalendarTab.tsx when rendering this as the "Milestones" view of
+  // the merged Calendar tab — suppresses this component's own SectionTitle
+  // since the wrapper already renders one shared header + view toggle.
+  embedded = false,
+}) => {
   const [horizon, setHorizon] = useState(6);
   const [activeFilter, setActiveFilter] = useState("all");
   const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed());
@@ -355,7 +364,7 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
     // dates as UTC and could overflow a Feb 29 anniversary into March).
     const addInsurancePremium = (policies, label) => {
       (policies || []).forEach((p) => {
-        const premium = Number(p.annualPremium || p.premium || 0);
+        const premium = annualizePremium(p.premium, p.premiumFrequency, p.annualPremium);
         if (!premium) return;
         const startDate = p.commencementDate || p.startDate;
         if (!startDate) return;
@@ -391,8 +400,7 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
       if (!p.renewalDate) return;
       if (p.renewalDate > cutoffDate) return;
       const days = getDaysUntil(p.renewalDate);
-      const mult: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1 };
-      const annualPrem = Number(p.premium || 0) * (mult[p.premiumFrequency] || 1);
+      const annualPrem = annualizePremium(p.premium, p.premiumFrequency);
       items.push({
         id: `health_insurance_${p.id || p.renewalDate}`,
         type: "health_insurance",
@@ -908,9 +916,11 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
   if (events.length === 0) {
     return (
       <div>
-        <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">
-          Financial Calendar
-        </SectionTitle>
+        {!embedded && (
+          <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">
+            Financial Calendar
+          </SectionTitle>
+        )}
         <EmptyState
           icon={Calendar}
           gradient={`linear-gradient(135deg, ${THEME.cyan} 0%, color-mix(in srgb, ${THEME.cyan} 55%, white) 100%)`}
@@ -933,9 +943,11 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
 
   return (
     <div>
-      <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">
-        Financial Calendar
-      </SectionTitle>
+      {!embedded && (
+        <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">
+          Financial Calendar
+        </SectionTitle>
+      )}
 
       {/* Horizon Toggle */}
       <div

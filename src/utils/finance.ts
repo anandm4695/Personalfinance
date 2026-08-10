@@ -41,6 +41,31 @@ export const fmtINRExact = (n: number | string | null | undefined) => {
   return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: hasPaisa ? 2 : 0, maximumFractionDigits: 2 })}`;
 };
 
+// LIC/Term/Investment-plan records carry a pre-annualized `annualPremium`.
+// Health-insurance records don't — they only have `premium` + `premiumFrequency`
+// (e.g. monthly) — so using the raw `premium` as-is understates the true
+// annual cost by up to 12x for monthly-billed policies. This table and helper
+// used to be copy-pasted independently in FinancialCalendarTab and
+// PaymentCalendarTab; FinancialCalendarTab's copy was missing the multiplier
+// entirely for LIC/Term/Investment plans (only its separate health-insurance
+// block had it), understating those premiums the same way until this was
+// shared. Both calendars, and anywhere else needing "true annual premium
+// cost", should go through this one function.
+export const PREMIUM_FREQ_MULT: Record<string, number> = {
+  monthly: 12,
+  quarterly: 4,
+  semi_annual: 2,
+  annual: 1,
+};
+export const annualizePremium = (
+  premium: number | string | null | undefined,
+  frequency: string | null | undefined,
+  preAnnualized?: number | string | null | undefined
+): number => {
+  if (preAnnualized) return Number(preAnnualized);
+  return Number(premium || 0) * (PREMIUM_FREQ_MULT[frequency || "annual"] || 1);
+};
+
 export const DEFAULT_GOLD_PRICE_PER_GRAM = 7200; // ₹ per gram for 24K, last-resort fallback only
 
 export const GOLD_PURITY_FACTOR: Record<string, number> = {

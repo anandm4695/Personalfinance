@@ -31,7 +31,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fmtINRExact, today, getCCDueDate, uid } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact, today, getCCDueDate, uid, annualizePremium } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -145,7 +145,7 @@ const BarTooltip = ({ active, payload, label, formatter }: any) => {
   );
 };
 
-export function PaymentCalendarTab({ state, addItem, showToast }: any) {
+export function PaymentCalendarTab({ state, addItem, showToast, embedded = false }: any) {
   const { privacyMode } = usePrivacy();
   const todayStr = today();
   const todayDate = new Date(todayStr + "T00:00:00");
@@ -275,22 +275,9 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
     });
 
     // Insurance Premiums — LIC / Term / Investment Plans / Health
-    const PREMIUM_FREQ_MULT: Record<string, number> = {
-      monthly: 12,
-      quarterly: 4,
-      semi_annual: 2,
-      annual: 1,
-    };
     const addInsurance = (policies: any[], tag: string, typeKey: string) => {
       (policies || []).forEach((p: any) => {
-        // LIC/Term/Investment-plan records carry a pre-annualized `annualPremium`.
-        // Health-insurance records don't — they only have `premium` + `premiumFrequency`
-        // (e.g. monthly), so using the raw `premium` as-is understated this calendar's
-        // health-premium entry by up to 12x for monthly-billed policies. Annualize using
-        // the same frequency multiplier the Health Insurance tab itself uses.
-        const premium = p.annualPremium
-          ? Number(p.annualPremium)
-          : Number(p.premium || 0) * (PREMIUM_FREQ_MULT[p.premiumFrequency] || 1);
+        const premium = annualizePremium(p.premium, p.premiumFrequency, p.annualPremium);
         if (!premium) return;
         const startDate = p.commencementDate || p.startDate;
         const dueDay = startDate ? new Date(startDate + "T00:00:00").getDate() : 1;
@@ -639,9 +626,11 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
   if (payments.length === 0) {
     return (
       <div>
-        <SectionTitle sub="All EMIs, SIPs, subscriptions, bills, credit cards & premiums by date">
-          Payment Calendar
-        </SectionTitle>
+        {!embedded && (
+          <SectionTitle sub="All EMIs, SIPs, subscriptions, bills, credit cards & premiums by date">
+            Payment Calendar
+          </SectionTitle>
+        )}
         <EmptyState
           icon={Calendar}
           gradient={`linear-gradient(135deg, ${THEME.violet} 0%, color-mix(in srgb, ${THEME.violet} 55%, white) 100%)`}
@@ -677,9 +666,11 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
           .paycal-pill { font-size: 8px !important; padding: 1px 2px !important; }
         }
       `}</style>
-      <SectionTitle sub="Every recurring outflow — EMIs, SIPs, RDs, subscriptions, bills, credit cards & insurance premiums plotted by date">
-        Payment Calendar
-      </SectionTitle>
+      {!embedded && (
+        <SectionTitle sub="Every recurring outflow — EMIs, SIPs, RDs, subscriptions, bills, credit cards & insurance premiums plotted by date">
+          Payment Calendar
+        </SectionTitle>
+      )}
 
       {/* Summary stats */}
       <div

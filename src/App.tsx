@@ -90,9 +90,8 @@ import { AIAssistantTab } from "./components/tabs/AIAssistantTab";
 import { RealEstateTab } from "./components/tabs/RealEstateTab";
 import { VehiclesTab } from "./components/tabs/VehiclesTab";
 import { CashFlowTab } from "./components/tabs/CashFlowTab";
-import { FinancialCalendarTab } from "./components/tabs/FinancialCalendarTab";
+import { CalendarTab } from "./components/tabs/CalendarTab";
 import { XIRRReportTab } from "./components/tabs/XIRRReportTab";
-import { PaymentCalendarTab } from "./components/tabs/PaymentCalendarTab";
 import { DividendCalendarTab } from "./components/tabs/DividendCalendarTab";
 import { CapitalGainsTab } from "./components/tabs/CapitalGainsTab";
 import { TaxToolsTab } from "./components/tabs/TaxToolsTab";
@@ -3729,19 +3728,13 @@ function FinanceDashboard() {
               )}
               {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}
               {tab === "cashflow" && <CashFlowTab state={filteredState} metrics={metrics} />}
-              {tab === "calendar" && (
-                <FinancialCalendarTab
-                  state={filteredState}
-                  metrics={metrics}
-                  onNavigateToTab={setTab}
-                />
-              )}
-              {tab === "paycal" && (
-                <PaymentCalendarTab
+              {(tab === "calendar" || tab === "paycal") && (
+                <CalendarTab
                   state={filteredState}
                   metrics={metrics}
                   addItem={addItem}
                   showToast={showToast}
+                  onNavigateToTab={setTab}
                 />
               )}
               {tab === "capitalgains" && <CapitalGainsTab state={filteredState} />}

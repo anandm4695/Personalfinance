@@ -425,7 +425,6 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "healthinsurance", label: "Health Insurance", icon: Shield },
           { id: "sip", label: "SIP Tracker", icon: Activity },
           { id: "calendar", label: "Financial Calendar", icon: Calendar },
-          { id: "paycal", label: "Payment Calendar", icon: Calendar },
           { id: "fireplanner", label: "FIRE Planner", icon: Flame },
           { id: "lifeevents", label: "Life Event Planner", icon: GraduationCap },
         ],
