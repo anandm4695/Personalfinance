@@ -32,6 +32,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const MONTH_NAMES = [
   "Jan",
@@ -334,6 +335,20 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
     return { totalGrowth, avgMonthly, cagr, best, worst, months };
   }, [history, momDeltas]);
 
+  // Count-up polish for the hero/KPI numbers below. Called unconditionally (with ?? 0
+  // fallbacks) so hook order stays stable regardless of the `stats === null` / empty-state
+  // branches that follow.
+  const animatedNetWorth = useAnimatedNumber(metrics.netWorth || 0);
+  const animatedTotalGrowth = useAnimatedNumber(stats?.totalGrowth ?? 0);
+  const animatedAvgMonthly = useAnimatedNumber(stats?.avgMonthly ?? 0);
+  const animatedCagr = useAnimatedNumber(stats?.cagr ?? 0);
+  const animatedBestDelta = useAnimatedNumber(stats?.best?.delta ?? 0);
+  const animatedWorstDelta = useAnimatedNumber(stats?.worst?.delta ?? 0);
+  const animatedProjectedNominal = useAnimatedNumber(
+    projection[projection.length - 1]?.nominal || 0
+  );
+  const animatedProjectedReal = useAnimatedNumber(projection[projection.length - 1]?.real || 0);
+
   if (history.length === 0) {
     return (
       <EmptyState
@@ -383,7 +398,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          <Prv>{fmtINRFull(metrics.netWorth || 0)}</Prv>
+          <Prv>{fmtINRFull(animatedNetWorth)}</Prv>
         </div>
         {latestDelta && (
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
@@ -464,7 +479,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 }}
               >
                 <Prv>
-                  {(stats.totalGrowth < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.totalGrowth))}
+                  {(stats.totalGrowth < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedTotalGrowth))}
                 </Prv>
               </div>
               <div
@@ -538,7 +553,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 }}
               >
                 <Prv>
-                  {(stats.avgMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.avgMonthly))}
+                  {(stats.avgMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedAvgMonthly))}
                 </Prv>
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
@@ -607,7 +622,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                       lineHeight: 1,
                     }}
                   >
-                    {cagrKnown ? `${stats.cagr.toFixed(1)}%` : "N/A"}
+                    {cagrKnown ? `${animatedCagr.toFixed(1)}%` : "N/A"}
                   </div>
                   <div style={{ marginTop: 4 }}>
                     {cagrKnown ? (
@@ -700,7 +715,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   lineHeight: 1,
                 }}
               >
-                <Prv>+{fmtINRFull(stats.best?.delta || 0)}</Prv>
+                <Prv>+{fmtINRFull(animatedBestDelta)}</Prv>
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
                 Growth: +{stats.best?.pctChange.toFixed(1)}% MoM
@@ -763,7 +778,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   lineHeight: 1,
                 }}
               >
-                <Prv>{fmtINRFull(stats.worst?.delta || 0)}</Prv>
+                <Prv>{fmtINRFull(animatedWorstDelta)}</Prv>
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
                 Growth: {stats.worst?.pctChange.toFixed(1)}% MoM
@@ -1283,7 +1298,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 marginTop: 4,
               }}
             >
-              <Prv>{fmtINRFull(projection[projection.length - 1]?.nominal || 0)}</Prv>
+              <Prv>{fmtINRFull(animatedProjectedNominal)}</Prv>
             </div>
           </div>
 
@@ -1317,7 +1332,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 marginTop: 4,
               }}
             >
-              <Prv>{fmtINRFull(projection[projection.length - 1]?.real || 0)}</Prv>
+              <Prv>{fmtINRFull(animatedProjectedReal)}</Prv>
             </div>
           </div>
         </div>

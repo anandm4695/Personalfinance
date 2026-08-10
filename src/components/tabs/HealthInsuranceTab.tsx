@@ -121,12 +121,16 @@ function hasRoomRentCap(p: any): boolean {
 // product) whose sum insured works out to under ₹5L per insured member — a commonly cited
 // rule-of-thumb minimum for a metro/tier-1 hospitalisation today.
 const ADEQUACY_PER_MEMBER_MIN = 500000;
-function coverageAdequacyNote(p: any): string | null {
+// Returns the raw per-member figure (not a pre-formatted string) so the caller can wrap
+// just the money portion in <Prv> — the sum-insured-per-member number is exactly the kind
+// of sensitive figure Privacy Mode is meant to blur, and embedding it in a plain string
+// (as this used to do) meant it always rendered unmasked.
+function coverageAdequacyNote(p: any): number | null {
   if (["top_up", "super_top_up", "critical_illness"].includes(p.policyType)) return null;
   const members = Math.max(1, p.insuredMembers?.length || 1);
   const perMember = Number(p.sumInsured || 0) / members;
   if (perMember >= ADEQUACY_PER_MEMBER_MIN) return null;
-  return `~${fmtINRFull(perMember)}/member — consider a top-up`;
+  return perMember;
 }
 
 const EMPTY: any = {
@@ -606,26 +610,34 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
         >
           <StatCard
             label="Total Cover"
-            value={<Prv>{fmtINRFull(totalCover)}</Prv>}
+            value={fmtINRFull(totalCover)}
+            numericValue={totalCover}
+            formatValue={fmtINRFull}
             icon={<Shield size={18} />}
             color={THEME.success}
           />
           <StatCard
             label="Annual Premium"
-            value={<Prv>{fmtINRFull(totalAnnualPremium)}</Prv>}
+            value={fmtINRFull(totalAnnualPremium)}
+            numericValue={totalAnnualPremium}
+            formatValue={fmtINRFull}
             sub={sec80DEstimate > 0 ? <Prv>{`≈ ${fmtINRFull(sec80DEstimate)} eligible for 80D`}</Prv> : undefined}
             icon={<Heart size={18} />}
             color={THEME.danger}
           />
           <StatCard
             label="Policies Active"
-            value={policies.length}
+            value={String(policies.length)}
+            numericValue={policies.length}
+            formatValue={(n) => String(Math.round(n))}
             icon={<ClipboardList size={18} />}
             color={THEME.primary}
           />
           <StatCard
             label="Renewing Soon"
-            value={renewingSoon.length}
+            value={String(renewingSoon.length)}
+            numericValue={renewingSoon.length}
+            formatValue={(n) => String(Math.round(n))}
             icon={<Calendar size={18} />}
             color={renewingSoon.length > 0 ? THEME.warning : THEME.textMuted}
           />
@@ -754,7 +766,8 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                         }}
                         title="Rough rule-of-thumb: ₹5L+ cover per insured member for a metro/tier-1 hospitalisation"
                       >
-                        <AlertTriangle size={10} /> {adequacyNote}
+                        <AlertTriangle size={10} /> <Prv>{`~${fmtINRFull(adequacyNote)}`}</Prv>/member
+                        — consider a top-up
                       </div>
                     )}
                   </div>

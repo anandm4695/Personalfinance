@@ -25,6 +25,7 @@ import {
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { uid, today, exportArrayToCSV } from "../../utils/finance";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { ModalSection } from "../ui/ModalSection";
@@ -265,6 +266,10 @@ function ScoreGauge({ score }: { score: number }) {
   const grade = scoreGrade(score);
   const pct = Math.min(1, Math.max(0, (score - 300) / 600));
   const angle = pct * 180;
+  // Needle/track sweep is already smoothed by the SVG's own CSS transition (below);
+  // this only count-up-animates the big digit readout so it doesn't hard-jump between
+  // bureaus/owners/new entries.
+  const animatedScore = useAnimatedNumber(score);
 
   return (
     <div style={{ textAlign: "center", padding: "16px 0 8px 0" }}>
@@ -363,7 +368,7 @@ function ScoreGauge({ score }: { score: number }) {
           }}
         >
           <span style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1 }}>
-            <Prv>{score}</Prv>
+            <Prv>{Math.round(animatedScore)}</Prv>
           </span>
           <span
             style={{
@@ -528,6 +533,17 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
   const ownerScoped = useMemo(
     () => (ownerFilter === "all" ? scores : scores.filter((s) => s.owner === ownerFilter)),
     [scores, ownerFilter]
+  );
+
+  // Same owner scoping for the credit cards feeding CreditFactorsPanel's utilization
+  // insight — without this, selecting one family member above still silently blended
+  // every family member's card balances/limits into that panel's number.
+  const ownerScopedCreditCards = useMemo(
+    () =>
+      ownerFilter === "all"
+        ? state.creditCards
+        : (state.creditCards || []).filter((c: any) => c.owner === ownerFilter),
+    [state.creditCards, ownerFilter]
   );
 
   const filtered = useMemo(() => ownerScoped.filter((s) => s.bureau === bureau), [ownerScoped, bureau]);
@@ -811,7 +827,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                 </Card>
 
                 {/* Factors description */}
-                <CreditFactorsPanel sorted={sorted} creditCards={state.creditCards} />
+                <CreditFactorsPanel sorted={sorted} creditCards={ownerScopedCreditCards} />
 
                 {/* Stat cards columns */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -833,13 +849,17 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                   <StatCard
                     label="Score Logs"
                     value={String(filtered.length)}
+                    numericValue={filtered.length}
+                    formatValue={(n) => String(Math.round(n))}
                     icon={<CreditCard />}
                     color={BUREAU_COLORS[bureau] || THEME.accent}
                   />
-                  
+
                   <StatCard
                     label="Peak Score"
                     value={String(Math.max(...sorted.map((s) => s.score)))}
+                    numericValue={Math.max(...sorted.map((s) => s.score))}
+                    formatValue={(n) => String(Math.round(n))}
                     icon={<Award />}
                     color={THEME.sage}
                   />

@@ -226,7 +226,11 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
         type: "fd_maturity",
         category: "Fixed Deposit",
         icon: Landmark,
-        name: `${fd.bank || "FD"} — ${fmtINRFull(fd.principal)}`,
+        // Amount deliberately NOT embedded in the plain-text `name` (rendered
+        // unmasked as the card title) — it's already shown correctly masked via
+        // <Prv> in the amount column and in `detail` below; embedding it here too
+        // would leak the principal in Privacy Mode.
+        name: fd.bank || "FD",
         date: fd.maturityDate,
         days,
         amount: Number(fd.principal || 0),
@@ -260,14 +264,22 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
         type: "rd_maturity",
         category: "Recurring Deposit",
         icon: Repeat,
-        name: `${rd.bank || "RD"} — ${fmtINRFull(rd.monthly)}/mo`,
+        // Amount deliberately NOT embedded in the plain-text `name` (rendered
+        // unmasked as the card title) — the monthly instalment amount now
+        // moves to `detail` wrapped in <Prv> instead, alongside the amount
+        // column, so Privacy Mode actually hides it.
+        name: rd.bank || "RD",
         date: matDate,
         days,
         amount: Number(rd.monthly || 0) * Number(rd.tenureMonths || 0),
         maturityAmount: matAmt,
         rate: rd.rate,
         color: THEME.violet,
-        detail: `${rd.rate}% p.a. • ${rd.tenureMonths} months`,
+        detail: (
+          <>
+            {rd.rate}% p.a. • {rd.tenureMonths} months • <Prv>{fmtINRExact(rd.monthly)}</Prv>/mo
+          </>
+        ),
       });
     });
 
@@ -981,18 +993,24 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
         <StatCard
           label="This Week"
           value={String(stats.upcoming7)}
+          numericValue={stats.upcoming7}
+          formatValue={(n) => String(Math.round(n))}
           icon={<Clock />}
           color={THEME.gold}
         />
         <StatCard
           label="Next 30 Days"
           value={String(stats.upcoming30)}
+          numericValue={stats.upcoming30}
+          formatValue={(n) => String(Math.round(n))}
           icon={<Calendar />}
           color={THEME.accent}
         />
         <StatCard
           label="Overdue"
           value={String(stats.overdue)}
+          numericValue={stats.overdue}
+          formatValue={(n) => String(Math.round(n))}
           sub={stats.overdue > 0 ? "Needs action" : "All caught up"}
           subColor={stats.overdue > 0 ? THEME.rust : undefined}
           icon={<AlertTriangle />}
@@ -1001,12 +1019,16 @@ export const FinancialCalendarTab = ({ state, metrics, onNavigateToTab = undefin
         <StatCard
           label="Expected Inflows"
           value={fmtINRFull(stats.totalInflows)}
+          numericValue={stats.totalInflows}
+          formatValue={fmtINRFull}
           icon={<TrendingUp />}
           color={THEME.sage}
         />
         <StatCard
           label="Expected Outflows"
           value={fmtINRFull(stats.totalOutflows)}
+          numericValue={stats.totalOutflows}
+          formatValue={fmtINRFull}
           icon={<Coins />}
           color={THEME.rust}
         />

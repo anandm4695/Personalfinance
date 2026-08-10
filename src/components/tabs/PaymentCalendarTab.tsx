@@ -692,26 +692,34 @@ export function PaymentCalendarTab({ state, addItem, showToast }: any) {
       >
         <StatCard
           label="Due This Month"
-          value={privacyMode ? "••••" : fmtINRFull(thisMonthTotal)}
+          value={fmtINRFull(thisMonthTotal)}
+          numericValue={thisMonthTotal}
+          formatValue={fmtINRFull}
           sub={`${thisMonthPaymentsAll.length} payment${thisMonthPaymentsAll.length === 1 ? "" : "s"}`}
           icon={<Calendar />}
           color={THEME.accent}
         />
         <StatCard
           label="Monthly Committed (avg)"
-          value={privacyMode ? "••••" : fmtINRFull(monthlyAvg)}
+          value={fmtINRFull(monthlyAvg)}
+          numericValue={monthlyAvg}
+          formatValue={fmtINRFull}
           icon={<Repeat />}
           color={THEME.violet}
         />
         <StatCard
           label="Annual Committed"
-          value={privacyMode ? "••••" : fmtINRFull(monthlyAvg * 12)}
+          value={fmtINRFull(monthlyAvg * 12)}
+          numericValue={monthlyAvg * 12}
+          formatValue={fmtINRFull}
           icon={<IndianRupee />}
           color={THEME.rust}
         />
         <StatCard
           label="Needs Attention"
           value={String(attentionItems.length)}
+          numericValue={attentionItems.length}
+          formatValue={(n) => String(Math.round(n))}
           sub={attentionItems.length > 0 ? "Unpaid & past due" : "All clear"}
           subColor={attentionItems.length > 0 ? THEME.rust : THEME.sage}
           icon={attentionItems.length > 0 ? <AlertTriangle /> : <CheckCircle2 />}

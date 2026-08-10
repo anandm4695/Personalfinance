@@ -24,6 +24,7 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, exportArrayToCSV } from "../../utils/finance";
 import { computeNetWorthAsOf } from "../../utils/netWorthAsOf";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -158,6 +159,9 @@ const ComparisonSplitCard = ({
   deltaIndicator,
 }: any) => {
   const isUp = delta > 0;
+  // Unconditional hooks — this component has no early returns, so call order stays stable.
+  const animatedCurrent = useAnimatedNumber(currentValue ?? 0);
+  const animatedPrevious = useAnimatedNumber(previousValue ?? 0);
   return (
     <div
       className="card-lift"
@@ -211,7 +215,7 @@ const ComparisonSplitCard = ({
               letterSpacing: "-0.02em",
             }}
           >
-            <Prv>{fmtINRFull(currentValue)}</Prv>
+            <Prv>{fmtINRFull(animatedCurrent)}</Prv>
           </div>
         </div>
 
@@ -233,7 +237,7 @@ const ComparisonSplitCard = ({
           <div
             style={{ fontSize: 20, fontWeight: 700, color: THEME.muted, letterSpacing: "-0.02em" }}
           >
-            <Prv>{fmtINRFull(previousValue)}</Prv>
+            <Prv>{fmtINRFull(animatedPrevious)}</Prv>
           </div>
         </div>
       </div>
@@ -253,7 +257,9 @@ const ComparisonSplitCard = ({
           <span
             style={{
               fontSize: 12,
-              color: isIncome ? (isUp ? THEME.sage : THEME.rust) : isUp ? THEME.rust : THEME.sage,
+              // Income and Net Worth: rising is good (sage). Expenses: rising is bad (rust).
+              color:
+                isIncome || isNetWorth ? (isUp ? THEME.sage : THEME.rust) : isUp ? THEME.rust : THEME.sage,
               fontWeight: 700,
             }}
           >
@@ -716,7 +722,10 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
     setPeriodB(periodA);
   };
 
-  const DeltaIndicator = ({ value, showAmount = true }) => {
+  // `higherIsBetter` flips the sentiment color: for Expenses, an increase is bad (rust,
+  // the default); for Income and Net Worth, an increase is good (sage) — without this,
+  // a rising income or net worth was painted red, the same color as overspending.
+  const DeltaIndicator = ({ value, showAmount = true, higherIsBetter = false }) => {
     if (!value || Math.abs(value) < 1) {
       return (
         <Badge variant="muted">
@@ -725,9 +734,10 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
       );
     }
     const isUp = value > 0;
+    const isGood = higherIsBetter ? isUp : !isUp;
     return (
       <Badge
-        variant={isUp ? "rust" : "sage"}
+        variant={isGood ? "sage" : "rust"}
         style={{ textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 800 }}
       >
         {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
@@ -913,7 +923,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
               comp.previousIncome > 0 ? (comp.incomeDelta / comp.previousIncome) * 100 : undefined
             }
             isIncome={true}
-            deltaIndicator={<DeltaIndicator value={comp.incomeDelta} showAmount={false} />}
+            deltaIndicator={<DeltaIndicator value={comp.incomeDelta} showAmount={false} higherIsBetter />}
           />
 
           {(comp.currentNW !== 0 || comp.previousNW !== 0) && (
@@ -928,7 +938,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
                 comp.previousNW !== 0 ? (comp.nwDelta / Math.abs(comp.previousNW)) * 100 : undefined
               }
               isNetWorth={true}
-              deltaIndicator={<DeltaIndicator value={comp.nwDelta} showAmount={false} />}
+              deltaIndicator={<DeltaIndicator value={comp.nwDelta} showAmount={false} higherIsBetter />}
             />
           )}
         </div>

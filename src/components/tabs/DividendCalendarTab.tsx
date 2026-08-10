@@ -584,18 +584,24 @@ export function DividendCalendarTab({ state, marketData }: any) {
         <StatCard
           label="Est. Annual Dividend"
           value={fmtINRFull(totalEstIncome)}
+          numericValue={totalEstIncome}
+          formatValue={fmtINRFull}
           icon={<Coins />}
           color={THEME.sage}
         />
         <StatCard
           label="Portfolio Div. Yield"
           value={portfolioYield > 0 ? `${portfolioYield.toFixed(2)}%` : "—"}
+          numericValue={portfolioYield}
+          formatValue={(n) => (n > 0 ? `${n.toFixed(2)}%` : "—")}
           icon={<TrendingUp />}
           color={THEME.accent}
         />
         <StatCard
           label="Upcoming Ex-dates"
           value={String(upcomingExDates.length)}
+          numericValue={upcomingExDates.length}
+          formatValue={(n) => String(Math.round(n))}
           icon={<Calendar />}
           color={THEME.gold}
         />
@@ -1120,7 +1126,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
                           fontWeight: r.divRate > 0 ? 700 : 500,
                         }}
                       >
-                        {r.divRate > 0 ? `₹${r.divRate.toFixed(2)}` : loading ? "…" : "—"}
+                        {r.divRate > 0 ? <Prv>{`₹${r.divRate.toFixed(2)}`}</Prv> : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
