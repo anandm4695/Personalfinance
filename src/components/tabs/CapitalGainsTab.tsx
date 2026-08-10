@@ -987,7 +987,9 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <StatCard
           icon={<TrendingUp />}
           label="Total Realized P&L"
-          value={privacyMode ? "••••" : fmtINRFull(totalRealizedPL)}
+          value={fmtINRFull(totalRealizedPL)}
+          numericValue={totalRealizedPL}
+          formatValue={fmtINRFull}
           sub={`${classified.length} transactions in ${fyLabel}`}
           subColor={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
           color={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
@@ -995,14 +997,18 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <StatCard
           icon={<IndianRupee />}
           label="Estimated Tax"
-          value={privacyMode ? "••••" : fmtINRFull(totalTax)}
+          value={fmtINRFull(totalTax)}
+          numericValue={totalTax}
+          formatValue={fmtINRFull}
           sub="Across all gain categories"
           color={THEME.rust}
         />
         <StatCard
           icon={<Shield />}
           label="LTCG Exemption Used"
-          value={privacyMode ? "••••" : fmtINRFull(ltcgExemptionUsed)}
+          value={fmtINRFull(ltcgExemptionUsed)}
+          numericValue={ltcgExemptionUsed}
+          formatValue={fmtINRFull}
           sub={privacyMode ? "of •••• (Sec 112A)" : `of ${fmtINRFull(ltcgExemptionLimit)} (Sec 112A)`}
           subColor={ltcgExemptionUsed >= ltcgExemptionLimit ? THEME.sage : undefined}
           color={THEME.sage}
@@ -1010,11 +1016,9 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <StatCard
           icon={<Scissors />}
           label="Harvesting Potential"
-          value={
-            privacyMode
-              ? "••••"
-              : fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))
-          }
+          value={fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))}
+          numericValue={harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0)}
+          formatValue={fmtINRFull}
           sub={
             isViewingCurrentFY
               ? `${harvestingSuggestions.length} opportunities`

@@ -38,6 +38,7 @@ import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -602,6 +603,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
   const grandOutflow = totalOutflow + eventOutflow;
   const netCashFlow = grandInflow - grandOutflow;
 
+  // Count-up animation for the hero summary numbers below.
+  const animatedGrandInflow = useAnimatedNumber(grandInflow);
+  const animatedGrandOutflow = useAnimatedNumber(grandOutflow);
+  const animatedNetCashFlow = useAnimatedNumber(netCashFlow);
+  const animatedNetMonthly = useAnimatedNumber(netMonthly);
+
   const chartData = useMemo(() => {
     let cumulative = 0;
     return months.map((m) => {
@@ -803,7 +810,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{fmtINRFull(grandInflow)}</Prv>
+            <Prv>{fmtINRFull(animatedGrandInflow)}</Prv>
           </div>
 
           {/* Composition bar */}
@@ -910,7 +917,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{fmtINRFull(grandOutflow)}</Prv>
+            <Prv>{fmtINRFull(animatedGrandOutflow)}</Prv>
           </div>
 
           {/* Composition bar */}
@@ -1020,7 +1027,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{(netCashFlow < 0 ? "-" : "") + fmtINRFull(Math.abs(netCashFlow))}</Prv>
+            <Prv>{(animatedNetCashFlow < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedNetCashFlow))}</Prv>
           </div>
 
           {/* Cash Flow Ratio indicator */}
@@ -1118,7 +1125,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{(netMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(netMonthly))}</Prv>
+            <Prv>{(animatedNetMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedNetMonthly))}</Prv>
           </div>
 
           {/* Monthly progress indicator */}

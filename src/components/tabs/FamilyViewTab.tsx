@@ -49,7 +49,7 @@ import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 // Family-member swatch colors. Deliberately drawn from the app's fixed
 // "extension" tokens (--t-violet/--t-cyan/--t-pink/--t-gold — see THEME
@@ -479,6 +479,7 @@ const getTopHoldings = (state, owner) => {
 
 export const FamilyViewTab = ({ state, metrics, marketData }) => {
   const { familyProfiles } = useMasterData();
+  const { privacyMode } = usePrivacy();
   const dark = state.settings?.darkMode ?? false;
   const ASSET_CLASS_COLORS = getAssetClassColors(dark);
 
@@ -852,7 +853,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       >
         <StatCard
           label="Total Family Assets"
-          value={<Prv>{fmtINRFull(totalAssets)}</Prv>}
+          value={fmtINRFull(totalAssets)}
+          numericValue={totalAssets}
+          formatValue={fmtINRFull}
           sub="Combined Financial Capital"
           icon={<TrendingUp />}
           color={THEME.sage}
@@ -860,7 +863,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
         <StatCard
           label="Total Liabilities"
-          value={<Prv>{fmtINRFull(totalLiabilities)}</Prv>}
+          value={fmtINRFull(totalLiabilities)}
+          numericValue={totalLiabilities}
+          formatValue={fmtINRFull}
           sub="Outstanding Debt & Cards"
           icon={<CreditCard />}
           color={totalLiabilities > 0 ? THEME.rust : THEME.sage}
@@ -877,6 +882,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
         <StatCard
           label="Debt-to-Asset Ratio"
           value={`${debtToAssetRatio.toFixed(1)}%`}
+          numericValue={debtToAssetRatio}
+          formatValue={(n) => `${n.toFixed(1)}%`}
           sub={
             debtToAssetRatio > 30
               ? "High Leverage"
@@ -892,7 +899,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
         {totalLifeCover > 0 && (
           <StatCard
             label="Consolidated Life Cover"
-            value={<Prv>{fmtINRFull(totalLifeCover)}</Prv>}
+            value={fmtINRFull(totalLifeCover)}
+            numericValue={totalLifeCover}
+            formatValue={fmtINRFull}
             sub="Aggregate Insurance Cover"
             icon={<Shield />}
             color={THEME.violet}
@@ -1403,7 +1412,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tick={{ fill: THEME.muted, fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v) => fmtINR(v)}
+                    tickFormatter={(v) => (privacyMode ? "••••" : fmtINR(v))}
                     width={64}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
@@ -1426,7 +1435,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       <LabelList
                         dataKey={m.name}
                         position="top"
-                        formatter={(v: number) => (v > 0 ? fmtINR(v) : "")}
+                        formatter={(v: number) => (v > 0 ? (privacyMode ? "••••" : fmtINR(v)) : "")}
                         style={{ fill: THEME.muted, fontSize: 9, fontWeight: 700 }}
                       />
                     </Bar>

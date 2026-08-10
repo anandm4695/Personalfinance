@@ -328,7 +328,9 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       >
         <StatCard
           label="Monthly SIP"
-          value={privacyMode ? "••••" : fmtINRFull(totalMonthlyEquivalent)}
+          value={fmtINRFull(totalMonthlyEquivalent)}
+          numericValue={totalMonthlyEquivalent}
+          formatValue={fmtINRFull}
           sub={
             metrics?.monthIncome > 0
               ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
@@ -339,7 +341,9 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
         />
         <StatCard
           label="Total Invested"
-          value={privacyMode ? "••••" : fmtINRFull(totalInvested)}
+          value={fmtINRFull(totalInvested)}
+          numericValue={totalInvested}
+          formatValue={fmtINRFull}
           sub="Cumulative capital deployed"
           icon={<IndianRupee />}
           color={THEME.sage}
@@ -347,6 +351,8 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
         <StatCard
           label="Est. Returns"
           value={totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—"}
+          numericValue={overallGainPct}
+          formatValue={(n) => (totalInvested > 0 ? `+${n.toFixed(1)}%` : "—")}
           sub={
             totalGains > 0
               ? `+${privacyMode ? "••••" : fmtINRFull(totalGains)} total return`
@@ -357,7 +363,9 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
         />
         <StatCard
           label="Projected Corpus"
-          value={privacyMode ? "••••" : fmtINRFull(totalProjected)}
+          value={fmtINRFull(totalProjected)}
+          numericValue={totalProjected}
+          formatValue={fmtINRFull}
           sub={`@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} inactive` : ""}`}
           icon={<Activity />}
           color={THEME.accent}
