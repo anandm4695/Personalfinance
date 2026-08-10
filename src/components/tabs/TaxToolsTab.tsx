@@ -27,6 +27,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // Escapes user-controlled free-text before it's interpolated into an HTML
 // string handed to document.write() (used by printReceipts below) — without
@@ -184,6 +185,14 @@ const AdvanceTaxSection = ({ state, metrics }) => {
   const totalPaid = advanceTaxPaid;
   const remaining = Math.max(0, netTaxDue - totalPaid);
 
+  // Count-up animation for the headline "Remaining to Pay" figure and the
+  // supporting stat tiles below it.
+  const animatedRemaining = useAnimatedNumber(remaining);
+  const animatedTaxLiability = useAnimatedNumber(taxLiability);
+  const animatedTdsPaid = useAnimatedNumber(tdsPaid);
+  const animatedNetTaxDue = useAnimatedNumber(netTaxDue);
+  const animatedTotalPaid = useAnimatedNumber(totalPaid);
+
   const todayStr = today();
 
   // Bug fix: this previously derived "current quarter" from today's real
@@ -326,7 +335,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{fmtINRFull(remaining)}</Prv>
+            <Prv>{fmtINRFull(animatedRemaining)}</Prv>
           </div>
           <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
             Net tax due <Prv>{fmtINRFull(netTaxDue)}</Prv> · already paid{" "}
@@ -344,10 +353,10 @@ const AdvanceTaxSection = ({ state, metrics }) => {
         }}
       >
         {[
-          { label: "Estimated Tax", value: fmtINRFull(taxLiability), color: THEME.accent },
-          { label: "TDS Already Paid", value: fmtINRFull(tdsPaid), color: THEME.sage },
-          { label: "Net Tax Due", value: fmtINRFull(netTaxDue), color: THEME.gold },
-          { label: "Advance Tax Paid", value: fmtINRFull(totalPaid), color: THEME.accent },
+          { label: "Estimated Tax", value: fmtINRFull(animatedTaxLiability), color: THEME.accent },
+          { label: "TDS Already Paid", value: fmtINRFull(animatedTdsPaid), color: THEME.sage },
+          { label: "Net Tax Due", value: fmtINRFull(animatedNetTaxDue), color: THEME.gold },
+          { label: "Advance Tax Paid", value: fmtINRFull(animatedTotalPaid), color: THEME.accent },
         ].map((s, i) => (
           <Card key={i}>
             <div style={{ padding: 14, textAlign: "center" }}>
@@ -1002,11 +1011,14 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
   };
   const entriesForFY = entries.filter((e) => entryFY(e) === fy);
   const total26AS = entriesForFY.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const animatedTotal26AS = useAnimatedNumber(total26AS);
   const appTdsAmounts = taxPayments
     .filter((t) => t.taxType === "TDS" || t.type === "TDS")
     .map((t) => Number(t.amount || 0));
   const totalApp = appTdsAmounts.reduce((s, a) => s + a, 0);
+  const animatedTotalApp = useAnimatedNumber(totalApp);
   const mismatch = Math.abs(total26AS - totalApp);
+  const animatedMismatch = useAnimatedNumber(mismatch);
   const isMatch = mismatch < 100;
 
   // Best-effort per-entry reconciliation: flag a 26AS entry as "Matched" if
@@ -1066,7 +1078,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
               26AS / AIS Total
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
-              <Prv>{fmtINRFull(total26AS)}</Prv>
+              <Prv>{fmtINRFull(animatedTotal26AS)}</Prv>
             </div>
           </div>
         </Card>
@@ -1074,7 +1086,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>App Records</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
-              <Prv>{fmtINRFull(totalApp)}</Prv>
+              <Prv>{fmtINRFull(animatedTotalApp)}</Prv>
             </div>
           </div>
         </Card>
@@ -1096,7 +1108,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                   <CheckCircle2 size={18} /> Match
                 </span>
               ) : (
-                <Prv>{fmtINRFull(mismatch)}</Prv>
+                <Prv>{fmtINRFull(animatedMismatch)}</Prv>
               )}
             </div>
           </div>

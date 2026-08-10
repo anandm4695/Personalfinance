@@ -30,6 +30,7 @@ import {
   type FlatAsset,
 } from "../../utils/nomineeTracker";
 import { Prv } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -44,7 +45,21 @@ type FilterMode = "all" | "missing" | "covered";
 type ViewMode = "asset" | "nominee";
 
 /* ─── Premium Nominee Bento Card ─────────────────────────────────── */
-const NomineeStatCard = ({ label, value, sub, subColor, icon: Icon, color }: any) => {
+const NomineeStatCard = ({
+  label,
+  value,
+  sub,
+  subColor,
+  icon: Icon,
+  color,
+  numericValue,
+  formatValue,
+  mask,
+}: any) => {
+  const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
+  const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
+  const rawDisplayValue = hasAnimation ? formatValue(animated) : value;
+  const displayValue = mask ? <Prv>{rawDisplayValue}</Prv> : rawDisplayValue;
   return (
     <div
       className="card-lift"
@@ -102,7 +117,7 @@ const NomineeStatCard = ({ label, value, sub, subColor, icon: Icon, color }: any
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {value}
+          {displayValue}
         </span>
         {sub && (
           <div
@@ -496,6 +511,8 @@ export const NomineeTrackerTab = ({
           <NomineeStatCard
             label="Assets Covered"
             value={String(coveredAssets.length)}
+            numericValue={coveredAssets.length}
+            formatValue={(n) => String(Math.round(n))}
             sub={`of ${totalAssets} total`}
             icon={<ShieldCheck size={16} />}
             color={THEME.sage}
@@ -503,6 +520,8 @@ export const NomineeTrackerTab = ({
           <NomineeStatCard
             label="Without Nominee"
             value={String(missingAssets.length)}
+            numericValue={missingAssets.length}
+            formatValue={(n) => String(Math.round(n))}
             sub={missingAssets.length === 0 ? "None remaining" : "Action needed"}
             subColor={missingAssets.length > 0 ? THEME.rust : undefined}
             icon={<ShieldAlert size={16} />}
@@ -511,6 +530,9 @@ export const NomineeTrackerTab = ({
           <NomineeStatCard
             label="Value at Risk"
             value={<Prv>{fmtINRFull(valueAtRisk)}</Prv>}
+            numericValue={valueAtRisk}
+            formatValue={fmtINRFull}
+            mask
             sub="Without nominee protection"
             icon={<AlertTriangle size={16} />}
             color={THEME.gold}

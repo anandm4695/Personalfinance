@@ -45,6 +45,7 @@ import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /* ─── STYLES ──────────────────────────────────────────────────────────────── */
 
@@ -228,7 +229,20 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
 };
 
 /* ─── Premium Stat Card ───────────────────────────────────────── */
-const PremiumStatCard = ({ label, value, color, icon: Icon, sub, subColor }: any) => (
+const PremiumStatCard = ({
+  label,
+  value,
+  color,
+  icon: Icon,
+  sub,
+  subColor,
+  numericValue,
+  formatValue,
+}: any) => {
+  const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
+  const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
+  const displayValue = hasAnimation ? formatValue(animated) : value;
+  return (
   <div
     className="card-lift"
     style={{
@@ -301,10 +315,11 @@ const PremiumStatCard = ({ label, value, color, icon: Icon, sub, subColor }: any
         marginTop: 4,
       }}
     >
-      <Prv>{value}</Prv>
+      <Prv>{displayValue}</Prv>
     </div>
   </div>
-);
+  );
+};
 
 /* ─── MAIN COMPONENT ──────────────────────────────────────────────────────── */
 
@@ -747,6 +762,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <PremiumStatCard
           label="Total Spend"
           value={fmtINRFull(summary.totalSpend)}
+          numericValue={summary.totalSpend}
+          formatValue={fmtINRFull}
           icon={Wallet}
           color={PIE_COLORS[3]}
           sub={`${monthLabel(getMonthKey(rangeStart))} – ${monthLabel(getMonthKey(rangeEnd))}`}
@@ -754,6 +771,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <PremiumStatCard
           label="Avg Monthly"
           value={fmtINRFull(summary.avgMonthly)}
+          numericValue={summary.avgMonthly}
+          formatValue={fmtINRFull}
           icon={Activity}
           color={PIE_COLORS[0]}
           sub={`Over ${monthlyData.length} month${monthlyData.length !== 1 ? "s" : ""}`}
@@ -761,6 +780,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <PremiumStatCard
           label="Highest Month"
           value={fmtINRFull(summary.highestMonth.amount)}
+          numericValue={summary.highestMonth.amount}
+          formatValue={fmtINRFull}
           icon={TrendingUp}
           color={THEME.rust}
           sub={summary.highestMonth.month ? fullMonthLabel(summary.highestMonth.month) : "--"}
@@ -769,6 +790,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <PremiumStatCard
           label="Lowest Month"
           value={fmtINRFull(summary.lowestMonth.amount)}
+          numericValue={summary.lowestMonth.amount}
+          formatValue={fmtINRFull}
           icon={TrendingDown}
           color={THEME.sage}
           sub={summary.lowestMonth.month ? fullMonthLabel(summary.lowestMonth.month) : "--"}
@@ -777,6 +800,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         <PremiumStatCard
           label="MoM Change"
           value={`${summary.momChange >= 0 ? "+" : ""}${summary.momChange.toFixed(1)}%`}
+          numericValue={summary.momChange}
+          formatValue={(n) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`}
           icon={summary.momChange >= 0 ? ArrowUpRight : ArrowDownRight}
           color={summary.momChange >= 0 ? THEME.rust : THEME.sage}
           sub={summary.momChange >= 0 ? "Spending up" : "Spending down"}

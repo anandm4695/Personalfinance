@@ -30,7 +30,6 @@ import {
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import {
-  fmtINR,
   fmtINRFull,
   rdMaturity,
   calculateEpfBalance,
@@ -43,7 +42,8 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const th: React.CSSProperties = {
   textAlign: "left",
@@ -159,6 +159,7 @@ const loadRebalPrefs = () => {
 };
 
 export const RebalancingTab = ({ state, metrics, marketData }) => {
+  const { privacyMode } = usePrivacy();
   const [savedPrefs] = useState(loadRebalPrefs);
   const [selectedPreset, setSelectedPreset] = useState(
     PRESETS[savedPrefs.selectedPreset] ? savedPrefs.selectedPreset : "moderate"
@@ -451,6 +452,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       .sort((a, b) => b.amount - a.amount);
   }, [newMoneyAmount, allocation, target]);
 
+  // Count-up animation for the hero "Total Portfolio" figure.
+  const animatedTotal = useAnimatedNumber(allocation.total);
+
   // Fixed chart-extension token (not the user-selectable accent) — Equity
   // already uses THEME.accent, so a hardcoded purple here would render as the
   // exact same color if the user's active theme happens to be "Violet".
@@ -619,7 +623,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 marginTop: 2,
               }}
             >
-              <Prv>{fmtINRFull(allocation.total)}</Prv>
+              <Prv>{fmtINRFull(animatedTotal)}</Prv>
             </div>
           </div>
         </div>
@@ -873,10 +877,11 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        ₹
-                        {pieData[activeCurrentIndex].value.toLocaleString("en-IN", {
-                          maximumFractionDigits: 0,
-                        })}
+                        {privacyMode
+                          ? "••••"
+                          : `₹${pieData[activeCurrentIndex].value.toLocaleString("en-IN", {
+                              maximumFractionDigits: 0,
+                            })}`}
                       </text>
                     </>
                   ) : (
@@ -908,7 +913,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        ₹{allocation.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        {privacyMode
+                          ? "••••"
+                          : `₹${allocation.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
                       </text>
                     </>
                   )}
@@ -1099,7 +1106,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        100%
+                        {/* Sums the actual target slices rather than assuming 100 — an
+                            invalid custom target (flagged above) can total something else. */}
+                        {targetPieData.reduce((s, d) => s + d.value, 0).toFixed(0)}%
                       </text>
                     </>
                   )}
