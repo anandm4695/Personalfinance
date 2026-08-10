@@ -43,7 +43,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 const EMPTY: any = {
   owner: "self",
@@ -557,6 +557,7 @@ Return only the JSON, no explanation.`;
 
 export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
   const { familyProfiles } = useMasterData();
+  const { privacyMode } = usePrivacy();
   const slips: any[] = state.salarySlips || [];
   const [modal, setModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -865,6 +866,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
               <StatCard
                 label="Last Net Salary"
                 value={fmtINRFull(Number(latest.netSalary || 0))}
+                numericValue={Number(latest.netSalary || 0)}
+                formatValue={fmtINRFull}
                 sub={lastNetSub}
                 subColor={lastNetSubColor}
                 icon={<IndianRupee />}
@@ -874,13 +877,17 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
             <StatCard
               label={`Avg Monthly Net (${fyLabel})`}
               value={fmtINRFull(avgNet)}
-              sub={`All-time: ${fmtINRFull(allTimeAvgNet)}${combinedNote}`}
+              numericValue={avgNet}
+              formatValue={fmtINRFull}
+              sub={<>All-time: <Prv>{fmtINRFull(allTimeAvgNet)}</Prv>{combinedNote}</>}
               icon={<TrendingUp />}
               color={THEME.accent}
             />
             <StatCard
               label={`Total TDS (${fyLabel})`}
               value={fmtINRFull(totalTDS)}
+              numericValue={totalTDS}
+              formatValue={fmtINRFull}
               sub={showingCombined ? `${distinctOwners.length} members combined` : undefined}
               icon={<TrendingDown />}
               color={THEME.rust}
@@ -888,6 +895,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
             <StatCard
               label={`Total PF (${fyLabel})`}
               value={fmtINRFull(totalPF)}
+              numericValue={totalPF}
+              formatValue={fmtINRFull}
               sub={showingCombined ? `${distinctOwners.length} members combined` : undefined}
               icon={<Briefcase />}
               color={THEME.gold}
@@ -934,7 +943,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                   />
                   <YAxis
                     tick={{ fontSize: 11, fill: THEME.muted }}
-                    tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                    tickFormatter={(v) => (privacyMode ? "••••" : `₹${(v / 1000).toFixed(0)}k`)}
                     axisLine={false}
                     tickLine={false}
                   />

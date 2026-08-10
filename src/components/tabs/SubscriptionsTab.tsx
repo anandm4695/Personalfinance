@@ -373,7 +373,9 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           pausedMonthlySavings > 0
             ? {
                 label: "Paused Savings",
-                value: privacyMode ? "••••" : fmtINRFull(pausedMonthlySavings),
+                value: fmtINRFull(pausedMonthlySavings),
+                numericValue: pausedMonthlySavings,
+                formatValue: fmtINRFull,
                 sub: `${pausedSubs.length} paused service${pausedSubs.length !== 1 ? "s" : ""} · /mo equiv`,
                 color: THEME.muted,
                 Icon: Pause,
@@ -381,6 +383,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             : {
                 label: "Total Tracked",
                 value: String(state.subscriptions.length),
+                numericValue: state.subscriptions.length,
+                formatValue: (n: number) => String(Math.round(n)),
                 sub: "Including paused services",
                 color: THEME.muted,
                 Icon: Play,
@@ -402,11 +406,20 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             `}</style>
             <StatCard
               label="Monthly Equivalent"
-              value={privacyMode ? "••••" : fmtINRFull(totalMonthly)}
+              value={fmtINRFull(totalMonthly)}
+              numericValue={totalMonthly}
+              formatValue={fmtINRFull}
               sub={
-                metrics?.monthIncome > 0
-                  ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income · ${privacyMode ? "••••" : fmtINRFull(totalAnnual)}/yr`
-                  : `Projected monthly spend · ${privacyMode ? "••••" : fmtINRFull(totalAnnual)}/yr`
+                metrics?.monthIncome > 0 ? (
+                  <>
+                    {((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income ·{" "}
+                    <Prv>{fmtINRFull(totalAnnual)}</Prv>/yr
+                  </>
+                ) : (
+                  <>
+                    Projected monthly spend · <Prv>{fmtINRFull(totalAnnual)}</Prv>/yr
+                  </>
+                )
               }
               color={THEME.gold}
               icon={<Wallet />}
@@ -414,13 +427,17 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             <StatCard
               label="Active Subscriptions"
               value={String(activeSubs.length)}
+              numericValue={activeSubs.length}
+              formatValue={(n) => String(Math.round(n))}
               sub="Monthly / annual recurring"
               color={THEME.accent}
               icon={<Repeat />}
             />
             <StatCard
               label="Annual Cost"
-              value={privacyMode ? "••••" : fmtINRFull(totalAnnual)}
+              value={fmtINRFull(totalAnnual)}
+              numericValue={totalAnnual}
+              formatValue={fmtINRFull}
               sub={
                 metrics?.annualIncome > 0
                   ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income`
@@ -432,6 +449,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             <StatCard
               label={tile4.label}
               value={tile4.value}
+              numericValue={tile4.numericValue}
+              formatValue={tile4.formatValue}
               sub={tile4.sub}
               color={tile4.color}
               icon={<tile4.Icon />}

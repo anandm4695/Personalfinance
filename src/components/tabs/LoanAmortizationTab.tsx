@@ -623,25 +623,33 @@ export const LoanAmortizationTab = ({ state }) => {
           >
             <StatCard
               label="Monthly EMI"
-              value={<Prv>{fmtINRExact(baseAmort.emi)}</Prv>}
+              value={fmtINRExact(baseAmort.emi)}
+              numericValue={baseAmort.emi}
+              formatValue={fmtINRExact}
               icon={<IndianRupee size={16} />}
               color="var(--accent)"
             />
             <StatCard
               label="Total Interest"
-              value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>}
+              value={fmtINRFull(baseAmort.totalInterest)}
+              numericValue={baseAmort.totalInterest}
+              formatValue={fmtINRFull}
               icon={<TrendingDown size={16} />}
               color={THEME.rust}
             />
             <StatCard
               label="Total Payment"
-              value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>}
+              value={fmtINRFull(loanData.principal + baseAmort.totalInterest)}
+              numericValue={loanData.principal + baseAmort.totalInterest}
+              formatValue={fmtINRFull}
               icon={<Calculator size={16} />}
               color="var(--accent)"
             />
             <StatCard
               label="Loan Closes In"
               value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`}
+              numericValue={baseAmort.totalMonths}
+              formatValue={(n) => `${Math.floor(n / 12)}y ${Math.round(n % 12)}m`}
               sub={closureDate ? `Around ${closureDate}` : undefined}
               icon={<Calendar size={16} />}
               color={THEME.sage}

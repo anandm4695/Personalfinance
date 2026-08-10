@@ -234,18 +234,24 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             <StatCard
               label="Total Target"
               value={fmtINRFull(totalTarget)}
+              numericValue={totalTarget}
+              formatValue={fmtINRFull}
               icon={<Target />}
               color={THEME.accent}
             />
             <StatCard
               label="Total Saved"
               value={fmtINRFull(totalSaved)}
+              numericValue={totalSaved}
+              formatValue={fmtINRFull}
               icon={<PiggyBank />}
               color={THEME.sage}
             />
             <StatCard
               label="Remaining"
               value={fmtINRFull(totalRemaining)}
+              numericValue={totalRemaining}
+              formatValue={fmtINRFull}
               icon={<TrendingDown />}
               color={THEME.rust}
             />

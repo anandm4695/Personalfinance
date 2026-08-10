@@ -31,6 +31,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const SWR_DEFAULT = 4; // Safe Withdrawal Rate
 
@@ -386,6 +387,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     };
   }, [monthlyExpense, swr, inflationRate, returnRate, monthlySavings, currentAge, fireCalc.currentNW]);
 
+  // Count-up polish for the hero FIRE Number — called unconditionally every
+  // render (this component has no early-return branches) so hook order stays stable.
+  const animatedFireNumber = useAnimatedNumber(fireCalc.fireNumber ?? 0);
+
   const progressColor =
     fireCalc.progress >= 100
       ? THEME.sage
@@ -646,7 +651,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             lineHeight: 1.05,
           }}
         >
-          <Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>
+          <Prv>{fmtINRFull(animatedFireNumber)}</Prv>
         </div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
           Needed at age {targetAge} to sustain{" "}
@@ -665,7 +670,9 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       >
         <StatCard
           label="Coast FIRE"
-          value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>}
+          value={fmtINRFull(fireCalc.coastFIRE)}
+          numericValue={fireCalc.coastFIRE}
+          formatValue={fmtINRFull}
           sub={
             fireCalc.coastProgress >= 100
               ? "Reached — you could stop saving today"
@@ -676,7 +683,9 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         />
         <StatCard
           label="Lean FIRE"
-          value={<Prv>{fmtINRFull(fireCalc.leanFIRE)}</Prv>}
+          value={fmtINRFull(fireCalc.leanFIRE)}
+          numericValue={fireCalc.leanFIRE}
+          formatValue={fmtINRFull}
           sub={
             scenarioAges.lean != null
               ? `By age ${scenarioAges.lean.toFixed(1)} · 60% of your spend`
@@ -687,7 +696,9 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         />
         <StatCard
           label="Fat FIRE"
-          value={<Prv>{fmtINRFull(fireCalc.fatFIRE)}</Prv>}
+          value={fmtINRFull(fireCalc.fatFIRE)}
+          numericValue={fireCalc.fatFIRE}
+          formatValue={fmtINRFull}
           sub={
             scenarioAges.fat != null
               ? `By age ${scenarioAges.fat.toFixed(1)} · 150% of your spend`
@@ -698,7 +709,9 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         />
         <StatCard
           label="Barista FIRE"
-          value={<Prv>{fmtINRFull(fireCalc.baristaNumber)}</Prv>}
+          value={fmtINRFull(fireCalc.baristaNumber)}
+          numericValue={fireCalc.baristaNumber}
+          formatValue={fmtINRFull}
           sub={
             scenarioAges.barista != null
               ? `By age ${scenarioAges.barista.toFixed(1)} · half from part-time work`
