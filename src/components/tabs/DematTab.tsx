@@ -45,6 +45,7 @@ import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv } from "../../context/PrivacyContext";
 import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { INDEX_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
 // Shared with CapitalGainsTab so the sell-preview LTCG/STCG split always agrees with the
 // actual tax report — see the isLongTerm/getHoldingMonths doc comments there for the
@@ -1198,6 +1199,15 @@ export function DematTab({
   const prevCloseValue = totalValue - totalDaysPnL;
   const totalDaysPnLPct = prevCloseValue > 0 ? (totalDaysPnL / prevCloseValue) * 100 : 0;
 
+  // Count-up animation for the top hero stat cards (also reused by the Analytics
+  // view's summary cards below, which mirror the same totals).
+  const animatedTotalValue = useAnimatedNumber(totalValue);
+  const animatedTotalDaysPnL = useAnimatedNumber(totalDaysPnL);
+  const animatedPnl = useAnimatedNumber(pnl);
+  const animatedOverallXirr = useAnimatedNumber(overallXirr ?? 0);
+  const netReturnPct = totalInvested ? (pnl / totalInvested) * 100 : 0;
+  const animatedNetReturnPct = useAnimatedNumber(netReturnPct);
+
   // ─── PORTFOLIO HEALTH SCORE CALCULATIONS ──────────────────────────────────
   const portfolioScoreData = useMemo(() => {
     if (!filteredStocks || filteredStocks.length === 0) {
@@ -1834,7 +1844,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     lineHeight: 1,
                   }}
                 >
-                  <Prv>{fmtINRFull(totalValue)}</Prv>
+                  <Prv>{fmtINRFull(animatedTotalValue)}</Prv>
                 </div>
                 <div
                   style={{
@@ -1927,7 +1937,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     lineHeight: 1,
                   }}
                 >
-                  <Prv>{(totalDaysPnL >= 0 ? "+" : "") + fmtINRFull(totalDaysPnL)}</Prv>
+                  <Prv>{(animatedTotalDaysPnL >= 0 ? "+" : "") + fmtINRFull(animatedTotalDaysPnL)}</Prv>
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {totalDaysPnL !== 0 ? (
@@ -1999,7 +2009,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     lineHeight: 1,
                   }}
                 >
-                  <Prv>{(pnl >= 0 ? "+" : "") + fmtINRFull(pnl)}</Prv>
+                  <Prv>{(animatedPnl >= 0 ? "+" : "") + fmtINRFull(animatedPnl)}</Prv>
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {totalInvested ? (
@@ -2082,9 +2092,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     lineHeight: 1,
                   }}
                 >
-                  {overallXirr !== null
-                    ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%`
-                    : "—"}
+                  {overallXirr !== null ? (
+                    <Prv>{`${animatedOverallXirr >= 0 ? "+" : ""}${animatedOverallXirr.toFixed(2)}%`}</Prv>
+                  ) : (
+                    "—"
+                  )}
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {overallXirr !== null ? (
@@ -4057,7 +4069,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         lineHeight: 1,
                       }}
                     >
-                      <Prv>{fmtINRFull(totalValue)}</Prv>
+                      <Prv>{fmtINRFull(animatedTotalValue)}</Prv>
                     </div>
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
@@ -4122,7 +4134,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         lineHeight: 1,
                       }}
                     >
-                      <Prv>{(pnl >= 0 ? "+" : "") + fmtINRFull(pnl)}</Prv>
+                      <Prv>{(animatedPnl >= 0 ? "+" : "") + fmtINRFull(animatedPnl)}</Prv>
                     </div>
                     <div
                       style={{
@@ -4194,7 +4206,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         lineHeight: 1,
                       }}
                     >
-                      {totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
+                      {totalInvested ? (
+                        <Prv>{animatedNetReturnPct.toFixed(2) + "%"}</Prv>
+                      ) : (
+                        "—"
+                      )}
                     </div>
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
@@ -4269,9 +4285,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         lineHeight: 1,
                       }}
                     >
-                      {overallXirr !== null
-                        ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%`
-                        : "—"}
+                      {overallXirr !== null ? (
+                        <Prv>{`${animatedOverallXirr >= 0 ? "+" : ""}${animatedOverallXirr.toFixed(2)}%`}</Prv>
+                      ) : (
+                        "—"
+                      )}
                     </div>
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}

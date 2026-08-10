@@ -1821,7 +1821,7 @@ function CCList({
           <div>
             Fee:{" "}
             <strong style={{ color: "#fff" }}>
-              {fmtINRExact(c.annualFee)}
+              <Prv>{fmtINRExact(c.annualFee)}</Prv>
               {c.feeMonth
                 ? ` · ${Number(c.feeDay) || 1} ${MONTH_NAMES[Number(c.feeMonth) - 1]}`
                 : ""}
@@ -1864,7 +1864,7 @@ function CCList({
           >
             <span>
               <strong style={{ color: "#fff" }}>
-                {Math.round(Number(c.rewardPointsBalance)).toLocaleString("en-IN")}
+                <Prv>{Math.round(Number(c.rewardPointsBalance)).toLocaleString("en-IN")}</Prv>
               </strong>{" "}
               reward pts
             </span>
@@ -2003,12 +2003,16 @@ function CCList({
               : isWarning
                 ? "#fbbf24"
                 : "rgba(255,255,255,0.85)";
-            const label =
-              daysLeft === 0
-                ? `Annual fee ${fmtINRExact(c.annualFee)} due today!`
-                : daysLeft === 1
-                  ? `Annual fee ${fmtINRExact(c.annualFee)} due tomorrow!`
-                  : `Annual fee ${fmtINRExact(c.annualFee)} on ${dateStr} (${daysLeft}d)`;
+            const label = (
+              <>
+                Annual fee <Prv>{fmtINRExact(c.annualFee)}</Prv>{" "}
+                {daysLeft === 0
+                  ? "due today!"
+                  : daysLeft === 1
+                    ? "due tomorrow!"
+                    : `on ${dateStr} (${daysLeft}d)`}
+              </>
+            );
             return (
               <div
                 style={{
@@ -3023,8 +3027,10 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                             color: Number(r.amount) >= 0 ? THEME.rust : THEME.sage,
                           }}
                         >
-                          {Number(r.amount) >= 0 ? "+" : ""}
-                          {fmtINRExact(r.amount)}
+                          <Prv>
+                            {Number(r.amount) >= 0 ? "+" : ""}
+                            {fmtINRExact(r.amount)}
+                          </Prv>
                         </td>
                       </tr>
                     ))}
@@ -3161,7 +3167,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                         color: Number(t.amount) >= 0 ? THEME.rust : THEME.sage,
                       }}
                     >
-                      {fmtINRExact(t.amount)}
+                      <Prv>{fmtINRExact(t.amount)}</Prv>
                     </td>
                     <td style={{ padding: "12px 8px", textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -5166,8 +5172,20 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                 {[
-                  { k: "Principal", v: fmtINRExact(l.principal), color: "var(--t-muted)" },
-                  { k: "EMI Amount", v: `${fmtINRExact(emi)}/mo`, color: "var(--t-accent)" },
+                  {
+                    k: "Principal",
+                    v: <Prv>{fmtINRExact(l.principal)}</Prv>,
+                    color: "var(--t-muted)",
+                  },
+                  {
+                    k: "EMI Amount",
+                    v: (
+                      <>
+                        <Prv>{fmtINRExact(emi)}</Prv>/mo
+                      </>
+                    ),
+                    color: "var(--t-accent)",
+                  },
                   {
                     k: "Interest Rate",
                     v: l.rate !== "" && l.rate != null ? `${l.rate}%` : "—",
@@ -5187,13 +5205,19 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     ? [{ k: "Payoff Date", v: payoffDate, color: "var(--t-sage)" }]
                     : []),
                   ...(paid > 0
-                    ? [{ k: "Total Paid", v: fmtINRExact(paid), color: "var(--t-sage)" }]
+                    ? [
+                        {
+                          k: "Total Paid",
+                          v: <Prv>{fmtINRExact(paid)}</Prv>,
+                          color: "var(--t-sage)",
+                        },
+                      ]
                     : []),
                   ...(interestRemaining > 0
                     ? [
                         {
                           k: "Est. Interest Left",
-                          v: fmtINRExact(interestRemaining),
+                          v: <Prv>{fmtINRExact(interestRemaining)}</Prv>,
                           color: "var(--t-rust)",
                         },
                       ]
@@ -8280,6 +8304,8 @@ function DebtPayoffOptimizer({ state }: any) {
         <StatCard
           label="Total Outstanding Debt"
           value={fmtINRExact(totalOutstandingDebt)}
+          numericValue={totalOutstandingDebt}
+          formatValue={fmtINRExact}
           sub={`${activeLoans.length} liabilit${activeLoans.length === 1 ? "y" : "ies"} aggregated`}
           icon={<Wallet />}
           color={THEME.rust}
@@ -8287,6 +8313,8 @@ function DebtPayoffOptimizer({ state }: any) {
         <StatCard
           label="Monthly Commitment"
           value={fmtINRExact(totalMonthlyCommitment)}
+          numericValue={totalMonthlyCommitment}
+          formatValue={fmtINRExact}
           sub="Base EMIs + est. min dues"
           icon={<Calendar />}
           color={THEME.gold}
@@ -8294,6 +8322,8 @@ function DebtPayoffOptimizer({ state }: any) {
         <StatCard
           label="Blended Avg Rate"
           value={`${blendedRate.toFixed(2)}%`}
+          numericValue={blendedRate}
+          formatValue={(n) => `${n.toFixed(2)}%`}
           sub="Weighted by outstanding"
           icon={<Calculator />}
           color={THEME.accent}
