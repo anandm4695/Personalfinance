@@ -217,6 +217,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
   const [sortDir, setSortDir] = useState<"" | "asc" | "desc">("");
   const [query, setQuery] = useState("");
   const [pendingRemove, setPendingRemove] = useState<string | null>(null);
+  const [pendingReset, setPendingReset] = useState(false);
   const [dupWarning, setDupWarning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const defaultItems: string[] = DEFAULT_MASTER_DATA[listKey] || [];
@@ -259,6 +260,12 @@ function EditableList({ listKey, items, onUpdate }: any) {
       items.filter((x: string) => x !== pendingRemove)
     );
     setPendingRemove(null);
+  };
+
+  const confirmReset = () => {
+    onUpdate(listKey, [...defaultItems]);
+    setSortDir("");
+    setPendingReset(false);
   };
 
   const visibleItems = query.trim()
@@ -364,10 +371,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
 
           {isDirty && (
             <button
-              onClick={() => {
-                onUpdate(listKey, [...defaultItems]);
-                setSortDir("");
-              }}
+              onClick={() => setPendingReset(true)}
               title="Reset to default values"
               aria-label="Reset to default values"
               style={{
@@ -502,6 +506,19 @@ function EditableList({ listKey, items, onUpdate }: any) {
           confirmLabel="Yes, remove"
           onConfirm={confirmRemove}
           onCancel={() => setPendingRemove(null)}
+        />
+      )}
+
+      {pendingReset && (
+        <ConfirmDialog
+          message={`Reset ${MD_LABELS[listKey] || "this list"} to its default values?\n\n${
+            items.filter((x: string) => !defaultItems.includes(x)).length > 0
+              ? `This removes ${items.filter((x: string) => !defaultItems.includes(x)).length} custom item(s) you added. `
+              : ""
+          }Any existing records already saved with a removed value will keep it as-is, so they may no longer match an option in the list.`}
+          confirmLabel="Yes, reset"
+          onConfirm={confirmReset}
+          onCancel={() => setPendingReset(false)}
         />
       )}
 

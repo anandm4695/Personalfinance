@@ -2558,12 +2558,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
         <StatCard
           label="Total Documents"
           value={String(stats.total)}
+          numericValue={stats.total}
+          formatValue={(n: number) => String(Math.round(n))}
           icon={<FileText />}
           color={THEME.accent}
         />
         <StatCard
           label="Expiring Soon"
           value={String(stats.expiringSoon)}
+          numericValue={stats.expiringSoon}
+          formatValue={(n: number) => String(Math.round(n))}
           sub="within 30 days"
           subColor={stats.expiringSoon > 0 ? THEME.gold : undefined}
           icon={<Clock />}
@@ -2572,6 +2576,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
         <StatCard
           label="Expired"
           value={String(stats.expired)}
+          numericValue={stats.expired}
+          formatValue={(n: number) => String(Math.round(n))}
           sub={stats.expired > 0 ? "needs attention" : "all clear"}
           subColor={stats.expired > 0 ? THEME.rust : THEME.sage}
           icon={<AlertTriangle />}
@@ -2580,6 +2586,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
         <StatCard
           label="Categories"
           value={String(Object.keys(stats.catCounts).length)}
+          numericValue={Object.keys(stats.catCounts).length}
+          formatValue={(n: number) => String(Math.round(n))}
           sub={`of ${CATEGORY_KEYS.length} used`}
           icon={<FolderOpen />}
           color={THEME.sage}

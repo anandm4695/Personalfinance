@@ -876,9 +876,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               <span>
                 Expected Total:{" "}
                 <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                  {lic.annualPremium && lic.policyTerm
-                    ? fmtINRExact(Number(lic.annualPremium) * parseInt(lic.policyTerm, 10))
-                    : "—"}
+                  {lic.annualPremium && lic.policyTerm ? (
+                    <Prv>
+                      {fmtINRExact(Number(lic.annualPremium) * parseInt(lic.policyTerm, 10))}
+                    </Prv>
+                  ) : (
+                    "—"
+                  )}
                 </span>
               </span>
               <span>
@@ -1926,28 +1930,36 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       <div className="ins-stats-grid">
         <StatCard
           label="LIC Sum Assured"
-          value={privacyMode ? "••••" : fmtINRFull(totalLICAssured)}
+          value={fmtINRFull(totalLICAssured)}
+          numericValue={totalLICAssured}
+          formatValue={fmtINRFull}
           sub="Life Insurance Corp policies"
           icon={<Shield />}
           color={THEME.rust}
         />
         <StatCard
           label="Term Cover"
-          value={privacyMode ? "••••" : fmtINRFull(totalTermCover)}
+          value={fmtINRFull(totalTermCover)}
+          numericValue={totalTermCover}
+          formatValue={fmtINRFull}
           sub="Pure protection cover"
           icon={<Zap />}
           color={THEME.accent}
         />
         <StatCard
           label="Total Life Cover"
-          value={privacyMode ? "••••" : fmtINRFull(totalLifeCover)}
+          value={fmtINRFull(totalLifeCover)}
+          numericValue={totalLifeCover}
+          formatValue={fmtINRFull}
           sub="LIC + Term combined"
           icon={<Heart />}
           color={THEME.accent}
         />
         <StatCard
           label="Annual Premium"
-          value={privacyMode ? "••••" : fmtINRFull(totalAnnualPremium)}
+          value={fmtINRFull(totalAnnualPremium)}
+          numericValue={totalAnnualPremium}
+          formatValue={fmtINRFull}
           sub={
             annualIncome > 0
               ? `${premiumBurdenPct.toFixed(1)}% of income`
@@ -1958,7 +1970,9 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         />
         <StatCard
           label="Investment Maturity"
-          value={privacyMode ? "••••" : fmtINRFull(totalInvestMaturity)}
+          value={fmtINRFull(totalInvestMaturity)}
+          numericValue={totalInvestMaturity}
+          formatValue={fmtINRFull}
           sub="Endowment & ULIP receivables"
           icon={<TrendingUp />}
           color={THEME.sage}
@@ -1966,6 +1980,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         <StatCard
           label="Cover Adequacy"
           value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"}
+          numericValue={annualIncome > 0 ? coverRatio : undefined}
+          formatValue={(n: number) => n.toFixed(1) + "×"}
           sub={adequacyLabel}
           icon={<AlertCircle />}
           color={adequacyColor}

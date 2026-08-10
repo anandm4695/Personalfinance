@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import {
   Building2,
   TrendingUp,
@@ -266,6 +267,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     (s: number, p: any) => s + Number(p.propertyValue || 0),
     0
   );
+  const outTaxableIHP = Math.max(0, outThisFY - municipalTaxPaid) * 0.7;
+
+  // Count-up animation for the two hero (non-StatCard) numbers below. StatCards
+  // below animate internally via numericValue/formatValue — pre-animating those
+  // too would double-animate (lag chasing lag), so only the raw hero divs use this.
+  const animOutMonthlyRent = useAnimatedNumber(outMonthlyRent);
+  const animInMonthlyRent = useAnimatedNumber(inMonthlyRent);
 
   const downloadPropertyCsv = (p: any, type: "receipts" | "payments") => {
     const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -561,7 +569,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  <Prv>{fmtINRFull(outMonthlyRent)}</Prv>
+                  <Prv>{fmtINRFull(animOutMonthlyRent)}</Prv>
                 </div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
                   <Prv>{fmtINRFull(outThisFY)}</Prv> received so far this FY, of{" "}
@@ -580,14 +588,18 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               >
                 <StatCard
                   label="Property Portfolio"
-                  value={<Prv>{fmtINRFull(outPropertyValuation)}</Prv>}
+                  value={fmtINRFull(outPropertyValuation)}
+                  numericValue={outPropertyValuation}
+                  formatValue={fmtINRFull}
                   sub="Total asset valuation"
                   icon={<Building2 />}
                   color={THEME.violet}
                 />
                 <StatCard
                   label="Received (FY)"
-                  value={<Prv>{fmtINRFull(outThisFY)}</Prv>}
+                  value={fmtINRFull(outThisFY)}
+                  numericValue={outThisFY}
+                  formatValue={fmtINRFull}
                   sub={
                     <>
                       of <Prv>{fmtINRFull(outExpectedFY)}</Prv> annual target
@@ -598,14 +610,18 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 />
                 <StatCard
                   label="Deposit Held"
-                  value={<Prv>{fmtINRFull(outDepositHeld)}</Prv>}
+                  value={fmtINRFull(outDepositHeld)}
+                  numericValue={outDepositHeld}
+                  formatValue={fmtINRFull}
                   sub="Total liability"
                   icon={<Shield />}
                   color={THEME.gold}
                 />
                 <StatCard
                   label="Taxable IHP"
-                  value={<Prv>{fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7)}</Prv>}
+                  value={fmtINRFull(outTaxableIHP)}
+                  numericValue={outTaxableIHP}
+                  formatValue={fmtINRFull}
                   sub={
                     municipalTaxPaid > 0
                       ? "After muni tax + 30% deduction"
@@ -2014,7 +2030,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  <Prv>{fmtINRFull(inMonthlyRent)}</Prv>
+                  <Prv>{fmtINRFull(animInMonthlyRent)}</Prv>
                 </div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
                   <Prv>{fmtINRFull(inThisFY)}</Prv> paid so far this FY, of{" "}
@@ -2032,7 +2048,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               >
                 <StatCard
                   label="Paid (FY)"
-                  value={<Prv>{fmtINRFull(inThisFY)}</Prv>}
+                  value={fmtINRFull(inThisFY)}
+                  numericValue={inThisFY}
+                  formatValue={fmtINRFull}
                   sub={
                     <>
                       of <Prv>{fmtINRFull(inExpectedFY)}</Prv> annual commitment
@@ -2043,14 +2061,18 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 />
                 <StatCard
                   label="Deposit Paid"
-                  value={<Prv>{fmtINRFull(inDepositPaid)}</Prv>}
+                  value={fmtINRFull(inDepositPaid)}
+                  numericValue={inDepositPaid}
+                  formatValue={fmtINRFull}
                   sub="Recoverable asset"
                   icon={<Shield />}
                   color={THEME.sage}
                 />
                 <StatCard
                   label="HRA Eligible"
-                  value={<Prv>{fmtINRFull(inThisFY)}</Prv>}
+                  value={fmtINRFull(inThisFY)}
+                  numericValue={inThisFY}
+                  formatValue={fmtINRFull}
                   sub="Annual rent paid"
                   icon={<Building2 />}
                   color={THEME.accent}
