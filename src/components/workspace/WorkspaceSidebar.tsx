@@ -31,12 +31,11 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onToggleCollapse,
 }) => {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    Overview: true,
-    "Wealth & Assets": true,
-    "Liabilities & Credit": false,
-    "Planning & Spends": false,
-    "Reports & Tools": false,
-    System: false,
+    Home: true,
+    Money: true,
+    Wealth: false,
+    Plans: false,
+    Vault: false,
   });
 
   const toggleGroup = (title: string) => {

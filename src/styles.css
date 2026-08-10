@@ -110,6 +110,31 @@
   --app-font-size: 14px;
   --section-gap: 32px;
   --t-font: var(--font-sans);
+
+  /* Motion durations — named so components stop hand-typing "0.15s"/"0.2s"/"0.3s"
+     inline with no shared meaning. Pair with --ease-* above. */
+  --motion-fast: 120ms;   /* hover/press feedback, icon-button states */
+  --motion-base: 200ms;   /* default transitions: panels, toggles, tab switches */
+  --motion-slow: 320ms;   /* drawers, modals, sidebar collapse/expand */
+
+  /* Elevation z-index scale — sidebar/modal/toast/tooltip currently pick ad hoc
+     values (10, 200, 400, 500, 9999) with no ordering guarantee between them.
+     New surfaces should read from this scale instead of hardcoding a number. */
+  --z-sticky: 30;      /* sticky headers, sticky table headers */
+  --z-dropdown: 100;   /* menus, select popovers, alerts panel */
+  --z-drawer: 400;     /* right-edge inspector / mobile bottom sheet */
+  --z-modal: 500;      /* dialogs, confirm modals */
+  --z-cmdk: 600;       /* command palette — always above any open modal */
+  --z-toast: 700;      /* toasts — always above everything else */
+
+  /* Semantic state colors — alias the existing sage/gold/rust/cyan tokens by
+     *meaning* so severity (success/warning/danger/info) is never hand-picked
+     per screen. Swap these two lines, not every callsite, if the mapping
+     ever changes. */
+  --state-success: var(--t-sage);
+  --state-warning: var(--t-gold);
+  --state-danger: var(--t-rust);
+  --state-info: var(--t-cyan);
 }
 
 /* ── Dark Theme — Bloomberg Terminal Aesthetic ─────────────────── */

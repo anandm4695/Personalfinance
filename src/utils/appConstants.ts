@@ -257,21 +257,83 @@ export const snakeToCamel = (obj: any): any => {
   return res;
 };
 
+// Regrouped from the original 6 flat groups (80 leaf items, one group alone
+// holding 16 unrelated entries) into 5 workspaces that match how one person
+// actually thinks about their money: what's happening now, what's coming in
+// and out, what they own, what they're planning for, and where the paperwork
+// lives. Every item id is unchanged — this only changes where things are
+// found, not what they do, so it's safe against `tab`/`subTab` state,
+// deep-links, and Supabase data. See src/utils/appConstants.ts.test note in
+// the redesign spec (Phase 1) for the rationale.
 export const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Overview",
+    title: "Home",
     items: [
       { id: "analytics", label: "Executive Dashboard", icon: PieIcon },
       { id: "ai", label: "AI Advisor", icon: Bot },
       { id: "cashflow", label: "Cash Flow Forecast", icon: LineChart },
       { id: "nwtimeline", label: "Net Worth Timeline", icon: LineChart },
       { id: "familyview", label: "Family View", icon: Users },
+      { id: "annualreport", label: "Annual Report", icon: FileBarChart },
+      { id: "comparison", label: "Comparison Reports", icon: Crosshair },
     ],
   },
   {
-    title: "Wealth & Assets",
+    title: "Money",
     items: [
       { id: "banks", label: "Banks & Transactions", icon: Landmark },
+      { id: "txnhistory", label: "Global Ledger", icon: History },
+      {
+        id: "cards",
+        label: "Cards & Credit",
+        icon: CreditCard,
+        directChildren: true,
+        children: [
+          { id: "cc", label: "Credit Cards", icon: CreditCard },
+          { id: "prepaid", label: "Prepaid Cards", icon: Wallet },
+        ],
+      },
+      {
+        id: "peopleloans",
+        label: "Loans & People",
+        icon: HandCoins,
+        directChildren: true,
+        children: [
+          { id: "taken", label: "Loans Taken", icon: ArrowLeft },
+          { id: "given", label: "Loans Given", icon: ArrowRight },
+          { id: "borrowed", label: "From People", icon: User },
+          { id: "lent", label: "To People", icon: IndianRupee },
+        ],
+      },
+      {
+        id: "recurring",
+        label: "Bills & Recurring",
+        icon: Repeat,
+        directChildren: true,
+        children: [
+          { id: "budget", label: "Budgeting", icon: Wallet },
+          { id: "bills", label: "Bill Payments", icon: Zap },
+          { id: "rental", label: "Rental Details", icon: Building2 },
+          { id: "subs", label: "Subscriptions", icon: Repeat },
+        ],
+      },
+      {
+        id: "spendinsights",
+        label: "Spend Insights",
+        icon: TrendingUp,
+        directChildren: true,
+        children: [
+          { id: "expensetrends", label: "Expense Trends", icon: BarChart3 },
+          { id: "expenseforecast", label: "Expense Forecast", icon: TrendingUp },
+          { id: "optimizer", label: "Payoff Optimizer", icon: Sparkles },
+          { id: "amortization", label: "Loan Amortization", icon: Calculator },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Wealth",
+    items: [
       { id: "demat", label: "Demat & Stocks", icon: BarChart3 },
       {
         id: "investments",
@@ -293,6 +355,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "realestate", label: "Real Estate", icon: Home },
       { id: "gold", label: "Gold & SGBs", icon: Gem },
       { id: "vehicles", label: "Vehicles", icon: Car },
+      { id: "emergencyfund", label: "Emergency Fund", icon: Shield },
       {
         id: "govtschemes",
         label: "Govt Schemes",
@@ -311,22 +374,33 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "NPS_LITE", label: "NPS Lite", icon: Briefcase },
         ],
       },
-      { id: "emergencyfund", label: "Emergency Fund", icon: Shield },
+      {
+        id: "portfoliotools",
+        label: "Portfolio Tools",
+        icon: Scale,
+        directChildren: true,
+        children: [
+          { id: "rebalancing", label: "Smart Rebalancing", icon: Scale },
+          { id: "benchmark", label: "Performance Benchmark", icon: BarChart3 },
+          { id: "investstatement", label: "Investment Statement", icon: ClipboardList },
+          { id: "xirrreport", label: "XIRR Report", icon: Activity },
+        ],
+      },
+      {
+        id: "wealthrecords",
+        label: "Records & Imports",
+        icon: ClipboardList,
+        directChildren: true,
+        children: [
+          { id: "dividendcal", label: "Dividend Calendar", icon: Coins },
+          { id: "salaryslip", label: "Salary Slip Tracker", icon: FileCheck },
+          { id: "casimport", label: "CAS Import", icon: Briefcase },
+        ],
+      },
     ],
   },
   {
-    title: "Liabilities & Credit",
-    items: [
-      { id: "cc", label: "Credit Cards", icon: CreditCard },
-      { id: "prepaid", label: "Prepaid Cards", icon: Wallet },
-      { id: "taken", label: "Loans Taken", icon: ArrowLeft },
-      { id: "given", label: "Loans Given", icon: ArrowRight },
-      { id: "borrowed", label: "From People", icon: User },
-      { id: "lent", label: "To People", icon: IndianRupee },
-    ],
-  },
-  {
-    title: "Planning & Spends",
+    title: "Plans",
     items: [
       {
         id: "taxplanning",
@@ -339,18 +413,6 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "capitalgains", label: "Capital Gains", icon: FileBarChart },
           { id: "sec80", label: "80C / 80D Tracker", icon: Shield },
           { id: "taxfiling", label: "Tax Filing Helper", icon: FileText },
-        ],
-      },
-      {
-        id: "spending",
-        label: "Budget & Spending",
-        icon: HandCoins,
-        directChildren: true,
-        children: [
-          { id: "budget", label: "Budgeting", icon: Wallet },
-          { id: "bills", label: "Bill Payments", icon: Zap },
-          { id: "rental", label: "Rental Details", icon: Building2 },
-          { id: "subs", label: "Subscriptions", icon: Repeat },
         ],
       },
       {
@@ -368,32 +430,11 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "lifeevents", label: "Life Event Planner", icon: GraduationCap },
         ],
       },
-    ],
-  },
-  {
-    title: "Reports & Tools",
-    items: [
-      { id: "annualreport", label: "Annual Report", icon: FileBarChart },
-      { id: "txnhistory", label: "Global Ledger", icon: History },
-      { id: "expensetrends", label: "Expense Trends", icon: BarChart3 },
-      { id: "expenseforecast", label: "Expense Forecast", icon: TrendingUp },
-      { id: "comparison", label: "Comparison Reports", icon: Crosshair },
-      { id: "investstatement", label: "Investment Statement", icon: ClipboardList },
-      { id: "rebalancing", label: "Smart Rebalancing", icon: Scale },
-      { id: "benchmark", label: "Performance Benchmark", icon: BarChart3 },
-      { id: "optimizer", label: "Payoff Optimizer", icon: Sparkles },
-      { id: "amortization", label: "Loan Amortization", icon: Calculator },
       { id: "calculators", label: "Financial Calculators", icon: Hash },
-
-      { id: "xirrreport", label: "XIRR Report", icon: Activity },
-      { id: "dividendcal", label: "Dividend Calendar", icon: Coins },
-      { id: "salaryslip", label: "Salary Slip Tracker", icon: FileCheck },
-      { id: "casimport", label: "CAS Import", icon: Briefcase },
-      { id: "dataexport", label: "Data Export & Backup", icon: Database },
     ],
   },
   {
-    title: "System",
+    title: "Vault",
     items: [
       { id: "smartalerts", label: "Smart Alerts", icon: Bell },
       { id: "reminders", label: "Reminders & Alerts", icon: Bell },
@@ -401,6 +442,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "docvault", label: "Document Vault", icon: FolderOpen },
       { id: "creditscore", label: "Credit Score", icon: Award },
       { id: "auditlog", label: "Audit Log", icon: Clock },
+      { id: "dataexport", label: "Data Export & Backup", icon: Database },
       { id: "settings", label: "Settings", icon: Settings },
     ],
   },
