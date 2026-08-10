@@ -361,6 +361,8 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
         <StatCard
           label="Next Month Forecast"
           value={nextMonth ? fmtINRFull(nextMonth.predicted) : "—"}
+          numericValue={nextMonth ? nextMonth.predicted : undefined}
+          formatValue={fmtINRFull}
           icon={<TrendingUp />}
           color="var(--accent)"
           sub={nextMonth ? `Range ${fmtINR(nextMonth.lower)} – ${fmtINR(nextMonth.upper)}` : undefined}
@@ -368,6 +370,8 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
         <StatCard
           label="Annual Projection"
           value={fmtINRFull(annualProjection)}
+          numericValue={annualProjection}
+          formatValue={fmtINRFull}
           icon={<Calendar />}
           color="var(--accent)"
           sub="Next 12 months, forecast model"
@@ -375,12 +379,16 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
         <StatCard
           label="Monthly Average"
           value={fmtINRFull(Math.round(annualProjection / 12))}
+          numericValue={Math.round(annualProjection / 12)}
+          formatValue={fmtINRFull}
           icon={<BarChart3 />}
           color={THEME.accent}
         />
         <StatCard
           label="Trending Up"
           value={`${trendingUp} categories`}
+          numericValue={trendingUp}
+          formatValue={(n) => `${Math.round(n)} categories`}
           icon={<ArrowUp />}
           color={THEME.rust}
           sub="Rising spending velocity"
@@ -389,6 +397,8 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
         <StatCard
           label="Trending Down"
           value={`${trendingDown} categories`}
+          numericValue={trendingDown}
+          formatValue={(n) => `${Math.round(n)} categories`}
           icon={<ArrowDown />}
           color={THEME.sage}
           sub="Cooling spending velocity"

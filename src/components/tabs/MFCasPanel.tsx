@@ -4,7 +4,6 @@ import { AlertCircle, Bot, CheckCircle, GitMerge, UploadCloud, X } from "lucide-
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
-import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { PdfPasswordPrompt } from "../ui/PdfPasswordPrompt";
 import { useCasPdfExtract } from "../../hooks/useCasPdfExtract";
@@ -447,7 +446,18 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
     });
 
     if (mfHoldings.length === 0) {
-      setError("No rows selected to import — check at least one row first.");
+      // Selected redemption rows with no matching existing holding are silently
+      // dropped above (nothing to reduce units/cost-basis from) — surface that
+      // distinctly, otherwise the user sees "check at least one row" despite
+      // having already checked rows, which is confusing and wrong.
+      const hasSkippedRedemptions = parsedRows.some(
+        (r, idx) => r.selected && r.type === "Redemption" && !(mergeMode && matchMap.get(idx))
+      );
+      setError(
+        hasSkippedRedemptions
+          ? "Selected redemption row(s) don't match any existing holding, so there's nothing to reduce — enable Merge Existing with a matching fund, or deselect them."
+          : "No rows selected to import — check at least one row first."
+      );
       return;
     }
 

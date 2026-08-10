@@ -349,12 +349,16 @@ export const Section80TrackerTab = ({ state, metrics }) => {
             <StatCard
               label="Total Deductions"
               value={fmtINRFull(data.totalDeductions)}
+              numericValue={data.totalDeductions}
+              formatValue={fmtINRFull}
               icon={<CheckCircle />}
               color={THEME.sage}
             />
             <StatCard
               label="Estimated Tax Saved"
               value={fmtINRFull(data.taxSaved)}
+              numericValue={data.taxSaved}
+              formatValue={fmtINRFull}
               sub="At 30% tax bracket, Old Regime only"
               icon={<IndianRupee />}
               color={THEME.accent}
@@ -362,6 +366,8 @@ export const Section80TrackerTab = ({ state, metrics }) => {
             <StatCard
               label="80C Remaining"
               value={fmtINRFull(data.sec80C.remaining)}
+              numericValue={data.sec80C.remaining}
+              formatValue={fmtINRFull}
               sub={data.sec80C.remaining > 0 ? "Room to invest more" : "Limit exhausted!"}
               icon={<Shield />}
               color={data.sec80C.remaining > 0 ? THEME.gold : THEME.sage}

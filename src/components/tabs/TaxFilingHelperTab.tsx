@@ -27,6 +27,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /** Card section header — icon + label, matching the convention used across
  * the app's other Card-based sections (e.g. NetWorthTimelineTab's "Net Worth
@@ -445,6 +446,10 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     return { form, reasons, housePropertyCount };
   }, [incomeSummary.totalIncome, incomeSummary.hasCapitalGainRecords, state.realEstateProperties, state.rentalProperties]);
 
+  const animatedTotalIncome = useAnimatedNumber(incomeSummary.totalIncome);
+  const animatedTotalDeductions = useAnimatedNumber(deductions.totalDeductions);
+  const animatedTotalTaxPaid = useAnimatedNumber(taxPaid.total);
+
   const checklistProgress = ITR_CHECKLIST.filter((item) => checkedItems[item.id]).length;
   const checklistPct = Math.round((checklistProgress / ITR_CHECKLIST.length) * 100);
   const categories = [...new Set(ITR_CHECKLIST.map((i) => i.category))];
@@ -715,7 +720,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Gross Total Income</div>
           <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.accent }}>
-            <Prv>{fmtINRFull(incomeSummary.totalIncome)}</Prv>
+            <Prv>{fmtINRFull(animatedTotalIncome)}</Prv>
           </div>
         </div>
         </>
@@ -831,7 +836,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Total Deductions</div>
           <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.sage }}>
-            <Prv>{fmtINRFull(deductions.totalDeductions)}</Prv>
+            <Prv>{fmtINRFull(animatedTotalDeductions)}</Prv>
           </div>
         </div>
       </Card>
@@ -874,7 +879,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             >
               <span style={{ fontWeight: 600, color: THEME.text }}>Total Tax Paid</span>
               <span className="tabular-nums" style={{ fontWeight: 700, fontSize: 18, color: THEME.accent }}>
-                <Prv>{fmtINRFull(taxPaid.total)}</Prv>
+                <Prv>{fmtINRFull(animatedTotalTaxPaid)}</Prv>
               </span>
             </div>
           </div>

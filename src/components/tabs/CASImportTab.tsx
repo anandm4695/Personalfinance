@@ -608,14 +608,25 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
           >
             <StatCard
               label="Funds Found"
-              value={parsedFunds.length}
+              value={parsedFunds.length.toLocaleString("en-IN")}
+              numericValue={parsedFunds.length}
+              formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
               icon={<Briefcase />}
               color={THEME.accent}
             />
-            <StatCard label="Selected" value={stats.count} icon={<CheckCircle />} color={THEME.sage} />
+            <StatCard
+              label="Selected"
+              value={stats.count.toLocaleString("en-IN")}
+              numericValue={stats.count}
+              formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
+              icon={<CheckCircle />}
+              color={THEME.sage}
+            />
             <StatCard
               label="Total Value"
               value={fmtINRFull(stats.totalValue)}
+              numericValue={stats.totalValue}
+              formatValue={fmtINRFull}
               icon={<IndianRupee />}
               color={THEME.accent}
             />

@@ -234,19 +234,25 @@ export const DataExportTab = ({
       >
         <StatCard
           label="Total Records"
-          value={totalRecords}
+          value={totalRecords.toLocaleString("en-IN")}
+          numericValue={totalRecords}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<Database />}
           color={THEME.accent}
         />
         <StatCard
           label="Selected for Export"
-          value={selectedRecords}
+          value={selectedRecords.toLocaleString("en-IN")}
+          numericValue={selectedRecords}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<CheckCircle />}
           color={THEME.sage}
         />
         <StatCard
           label="Data Sections"
-          value={dataCounts.filter((d) => d.count > 0).length}
+          value={dataCounts.filter((d) => d.count > 0).length.toLocaleString("en-IN")}
+          numericValue={dataCounts.filter((d) => d.count > 0).length}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<FileText />}
           color={THEME.accent}
         />

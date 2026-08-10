@@ -27,6 +27,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const TIER_COLOR = { critical: THEME.rust, building: THEME.gold, healthy: THEME.accent, excellent: THEME.sage };
 
@@ -99,6 +100,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
   const healthColor = TIER_COLOR[ef.tier];
   const healthLabel = ef.label;
+  const animatedMonthsCovered = useAnimatedNumber(data.monthsCovered);
 
   // Projected months to close the gap, based on the user's actual monthly
   // savings (income - expense). Only shown when there's a real gap and a
@@ -158,7 +160,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                   letterSpacing: "-0.03em",
                 }}
               >
-                {data.monthsCovered.toFixed(1)}
+                {animatedMonthsCovered.toFixed(1)}
               </div>
               <div
                 style={{
@@ -224,28 +226,36 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       >
         <StatCard
           label="Liquid Assets"
-          value={<Prv>{fmtINRFull(data.totalLiquid)}</Prv>}
+          value={fmtINRFull(data.totalLiquid)}
+          numericValue={data.totalLiquid}
+          formatValue={fmtINRFull}
           sub="Bank accounts, FDs maturing within 90 days & liquid funds"
           icon={<IndianRupee />}
           color={THEME.sage}
         />
         <StatCard
           label="Monthly Expenses"
-          value={<Prv>{fmtINRFull(data.monthlyExpense)}</Prv>}
+          value={fmtINRFull(data.monthlyExpense)}
+          numericValue={data.monthlyExpense}
+          formatValue={fmtINRFull}
           sub="Calculated active monthly commitments"
           icon={<Wallet />}
           color={THEME.gold}
         />
         <StatCard
           label="6-Month Target"
-          value={<Prv>{fmtINRFull(data.targetAmount)}</Prv>}
+          value={fmtINRFull(data.targetAmount)}
+          numericValue={data.targetAmount}
+          formatValue={fmtINRFull}
           sub="Standard security buffer target amount"
           icon={<Target />}
           color={THEME.accent}
         />
         <StatCard
           label="Gap to Fill"
-          value={data.gap > 0 ? <Prv>{fmtINRFull(data.gap)}</Prv> : "Fully Funded!"}
+          value={data.gap > 0 ? fmtINRFull(data.gap) : "Fully Funded!"}
+          numericValue={data.gap > 0 ? data.gap : undefined}
+          formatValue={fmtINRFull}
           sub={
             data.gap > 0
               ? "Shortfall to reach 6-month buffer"

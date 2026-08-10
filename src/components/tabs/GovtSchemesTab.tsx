@@ -604,26 +604,34 @@ export function GovtSchemesTab({
         >
           <StatCard
             label="Total Corpus"
-            value={<Prv>{fmtINRFull(totalCorpus)}</Prv>}
+            value={fmtINRFull(totalCorpus)}
+            numericValue={totalCorpus}
+            formatValue={fmtINRFull}
             icon={<IndianRupee size={18} />}
             color={THEME.success}
           />
           <StatCard
             label="Annual Outflow"
-            value={<Prv>{fmtINRFull(totalOutflow)}</Prv>}
+            value={fmtINRFull(totalOutflow)}
+            numericValue={totalOutflow}
+            formatValue={fmtINRFull}
             icon={<TrendingUp size={18} />}
             color={THEME.primary}
           />
           <StatCard
             label="Annual Benefit"
-            value={<Prv>{fmtINRFull(totalBenefit)}</Prv>}
+            value={fmtINRFull(totalBenefit)}
+            numericValue={totalBenefit}
+            formatValue={fmtINRFull}
             sub="PM-KISAN + payout schemes"
             icon={<Repeat size={18} />}
             color={THEME.violet}
           />
           <StatCard
             label="Schemes Active"
-            value={schemes.length}
+            value={schemes.length.toLocaleString("en-IN")}
+            numericValue={schemes.length}
+            formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
             icon={<Shield size={18} />}
             color={THEME.gold}
           />
@@ -843,7 +851,7 @@ export function GovtSchemesTab({
                       {sc.startDate && (
                         <div>
                           Start:{" "}
-                          {new Date(sc.startDate).toLocaleDateString("en-IN", {
+                          {new Date(`${sc.startDate}T00:00:00`).toLocaleDateString("en-IN", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
@@ -853,7 +861,7 @@ export function GovtSchemesTab({
                       {sc.maturityDate && (
                         <div>
                           Maturity:{" "}
-                          {new Date(sc.maturityDate).toLocaleDateString("en-IN", {
+                          {new Date(`${sc.maturityDate}T00:00:00`).toLocaleDateString("en-IN", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",

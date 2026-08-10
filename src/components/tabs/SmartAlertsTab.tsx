@@ -564,14 +564,25 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       >
         <StatCard
           label="Critical Alerts"
-          value={errorCount}
+          value={errorCount.toLocaleString("en-IN")}
+          numericValue={errorCount}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<XCircle />}
           color={THEME.rust}
         />
-        <StatCard label="Warnings" value={warnCount} icon={<AlertTriangle />} color={THEME.gold} />
+        <StatCard
+          label="Warnings"
+          value={warnCount.toLocaleString("en-IN")}
+          numericValue={warnCount}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
+          icon={<AlertTriangle />}
+          color={THEME.gold}
+        />
         <StatCard
           label="Total Alerts"
-          value={activeAlerts.length}
+          value={activeAlerts.length.toLocaleString("en-IN")}
+          numericValue={activeAlerts.length}
+          formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<Bell />}
           color={THEME.accent}
         />
