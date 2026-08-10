@@ -906,24 +906,32 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         <StatCard
           label="Stocks Invested"
           value={`₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          numericValue={totalStocksInvested}
+          formatValue={fmtINRFull}
           color={THEME.accent}
           icon={<BarChart3 />}
         />
         <StatCard
           label="MF Invested"
           value={`₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          numericValue={totalMFInvested}
+          formatValue={fmtINRFull}
           color={THEME.violet}
           icon={<Layers />}
         />
         <StatCard
           label="Realized P&L"
           value={`${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          numericValue={totalRealizedPnl}
+          formatValue={(n) => `${n >= 0 ? "+" : ""}${fmtINRFull(Math.abs(n))}`}
           color={totalRealizedPnl >= 0 ? THEME.sage : THEME.rust}
           icon={totalRealizedPnl >= 0 ? <TrendingUp /> : <TrendingDown />}
         />
         <StatCard
           label="Cash Net Flow"
           value={`${cashNetFlow >= 0 ? "+" : ""}₹${Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          numericValue={cashNetFlow}
+          formatValue={(n) => `${n >= 0 ? "+" : ""}${fmtINRFull(Math.abs(n))}`}
           color={cashNetFlow >= 0 ? THEME.sage : THEME.rust}
           icon={<Coins />}
         />
@@ -1383,9 +1391,17 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               count={stocksSoldInFY.length}
               color={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust}
               subText={
-                stocksSoldInFY.length > 0
-                  ? `Net Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                  : undefined
+                stocksSoldInFY.length > 0 ? (
+                  <>
+                    Net Realized:{" "}
+                    <Prv>
+                      {stocksRealizedPnl >= 0 ? "+" : ""}₹
+                      {Math.abs(stocksRealizedPnl).toLocaleString("en-IN", {
+                        maximumFractionDigits: 0,
+                      })}
+                    </Prv>
+                  </>
+                ) : undefined
               }
             />
             {stocksSoldInFY.length > 0 && (
@@ -1681,9 +1697,17 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               count={mfSoldInFY.length}
               color={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust}
               subText={
-                mfSoldInFY.length > 0
-                  ? `Net Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                  : undefined
+                mfSoldInFY.length > 0 ? (
+                  <>
+                    Net Realized:{" "}
+                    <Prv>
+                      {mfRealizedPnl >= 0 ? "+" : ""}₹
+                      {Math.abs(mfRealizedPnl).toLocaleString("en-IN", {
+                        maximumFractionDigits: 0,
+                      })}
+                    </Prv>
+                  </>
+                ) : undefined
               }
             />
             {mfSoldInFY.length > 0 && (
@@ -1753,9 +1777,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               count={cashTransactionsInFY.length}
               color={THEME.cyan}
               subText={
-                cashTransactionsInFY.length > 0
-                  ? `Inflow +${fmtINRFull(totalCredits)} · Outflow -${fmtINRFull(totalDebits)}${hasTransfers ? " (excl. self-transfers)" : ""}`
-                  : undefined
+                cashTransactionsInFY.length > 0 ? (
+                  <>
+                    Inflow <Prv>+{fmtINRFull(totalCredits)}</Prv> · Outflow{" "}
+                    <Prv>-{fmtINRFull(totalDebits)}</Prv>
+                    {hasTransfers ? " (excl. self-transfers)" : ""}
+                  </>
+                ) : undefined
               }
             />
             {cashTransactionsInFY.length > 0 && (

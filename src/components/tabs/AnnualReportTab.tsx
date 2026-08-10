@@ -49,6 +49,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { isLongTerm, isEquityMF } from "./CapitalGainsTab";
 import { computeNetWorthAsOf } from "../../utils/netWorthAsOf";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /* ══════════════════════════════════════════════════════════════════
    HELPERS & PREMIUM CONTROLS
@@ -383,7 +384,13 @@ const PremiumStatCard = ({
   icon: Icon,
   color,
   sparklineData,
-}: any) => (
+  numericValue,
+  formatValue,
+}: any) => {
+  const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
+  const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
+  const displayValue = hasAnimation ? formatValue(animated) : value;
+  return (
   <div
     className="card-lift"
     style={{
@@ -470,10 +477,11 @@ const PremiumStatCard = ({
         marginTop: 4,
       }}
     >
-      <Prv>{value}</Prv>
+      <Prv>{displayValue}</Prv>
     </div>
   </div>
-);
+  );
+};
 
 /* ══════════════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -1940,6 +1948,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
             <PremiumStatCard
               label="Opening Net Worth"
               value={fmtINRFull(netWorthData.openingNW)}
+              numericValue={netWorthData.openingNW}
+              formatValue={fmtINRFull}
               icon={Wallet}
               color={THEME.accent}
               sub={`Start of ${fyLabel}`}
@@ -1948,6 +1958,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
             <PremiumStatCard
               label="Closing Net Worth"
               value={fmtINRFull(netWorthData.closingNW)}
+              numericValue={netWorthData.closingNW}
+              formatValue={fmtINRFull}
               icon={TrendingUp}
               color={THEME.accent}
               sub={netWorthData.isCurrentFY ? "As of today" : `End of ${fyLabel}`}
@@ -1956,6 +1968,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
             <PremiumStatCard
               label="NW Change"
               value={`${netWorthData.change >= 0 ? "+" : ""}${fmtINRFull(netWorthData.change)}`}
+              numericValue={netWorthData.change}
+              formatValue={(n: number) => `${n >= 0 ? "+" : ""}${fmtINRFull(n)}`}
               icon={netWorthData.change >= 0 ? ArrowUpRight : ArrowDownRight}
               color={nwChangeColor}
               sub={`${netWorthData.changePct >= 0 ? "+" : ""}${netWorthData.changePct.toFixed(1)}%`}
@@ -1965,6 +1979,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
             <PremiumStatCard
               label="Savings Rate"
               value={`${savingsData.savingsRate.toFixed(0)}%`}
+              numericValue={savingsData.savingsRate}
+              formatValue={(n: number) => `${n.toFixed(0)}%`}
               icon={PiggyBank}
               color={savingsRateColor}
               sub={

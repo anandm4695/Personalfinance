@@ -33,7 +33,8 @@ import {
   GOLD_PURITY_FACTOR,
   exportArrayToCSV,
 } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -272,6 +273,7 @@ export const InvestmentStatementTab = ({
   marketData: any;
   activeProfile?: string;
 }) => {
+  const { privacyMode } = usePrivacy();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     stocks: true,
     mf: true,
@@ -785,6 +787,9 @@ export const InvestmentStatementTab = ({
     };
   }, [state, marketData, activeProfile]);
 
+  /* ── Animated hero "Total Portfolio Value" figure ────────────────── */
+  const animatedTotalCurrent = useAnimatedNumber(summary.totalCurrent);
+
   /* ── Stock groups (same logic as DematTab) ───────────────────────── */
   const stockGroups = useMemo(() => {
     const stocks = state.stocks || [];
@@ -1008,7 +1013,7 @@ export const InvestmentStatementTab = ({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          <Prv>{fmtINRFull(summary.totalCurrent)}</Prv>
+          <Prv>{fmtINRFull(animatedTotalCurrent)}</Prv>
         </div>
         <div
           style={{
@@ -2112,10 +2117,11 @@ export const InvestmentStatementTab = ({
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        ₹
-                        {summary.pieData[activePieIndex].value.toLocaleString("en-IN", {
-                          maximumFractionDigits: 0,
-                        })}
+                        {privacyMode
+                          ? "••••"
+                          : `₹${summary.pieData[activePieIndex].value.toLocaleString("en-IN", {
+                              maximumFractionDigits: 0,
+                            })}`}
                       </text>
                     </>
                   ) : (
@@ -2147,8 +2153,9 @@ export const InvestmentStatementTab = ({
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        ₹
-                        {summary.totalCurrent.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        {privacyMode
+                          ? "••••"
+                          : `₹${summary.totalCurrent.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
                       </text>
                     </>
                   )}
