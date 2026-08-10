@@ -32,6 +32,7 @@ import {
   today,
   getCCDueDate,
   getLocalDateString,
+  nextAnnualOccurrence,
   getEffectiveRent,
 } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -276,15 +277,15 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       .forEach((c: any) => {
         const month = Number(c.feeMonth) - 1;
         const day = Number(c.feeDay) || 1;
-        const now = new Date();
-        let candidate = new Date(now.getFullYear(), month, day);
         const todayStr = today();
-        if (candidate.getTime() < new Date(todayStr + "T00:00:00").getTime()) {
-          candidate = new Date(now.getFullYear() + 1, month, day);
-        }
-        const yyyy = candidate.getFullYear();
-        const mm = String(candidate.getMonth() + 1).padStart(2, "0");
-        const dd = String(candidate.getDate()).padStart(2, "0");
+        // nextAnnualOccurrence clamps day-of-month (e.g. fee day 29-31 in Feb)
+        // instead of letting `new Date(y, month, day)` silently overflow into
+        // the next month — same class of bug already fixed for getCCDueDate.
+        const feeDateStr = nextAnnualOccurrence(
+          `${todayStr.slice(0, 4)}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+          todayStr
+        );
+        const [yyyy, mm, dd] = feeDateStr.split("-");
         list.push({
           id: "ccfee-" + c.id,
           title: (c.issuer || "Card") + " — Annual Fee",
@@ -355,13 +356,12 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       if (l.commencementDate) {
         const comm = new Date(l.commencementDate);
         if (!isNaN(comm.getTime())) {
-          const todayDate = new Date();
-          todayDate.setHours(0, 0, 0, 0);
-          const currentYear = todayDate.getFullYear();
-          let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
-          if (anniversary < todayDate) {
-            anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
-          }
+          // nextAnnualOccurrence clamps day-of-month (e.g. a Feb 29 anniversary
+          // in a non-leap year) instead of letting `new Date(y, month, date)`
+          // silently overflow into the next month.
+          const anniversary = new Date(
+            nextAnnualOccurrence(l.commencementDate, today()) + "T00:00:00"
+          );
           let isMatured = false;
           if (l.maturityDate) {
             const mat = new Date(l.maturityDate);
@@ -402,13 +402,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       if (t.startDate) {
         const comm = new Date(t.startDate);
         if (!isNaN(comm.getTime())) {
-          const todayDate = new Date();
-          todayDate.setHours(0, 0, 0, 0);
-          const currentYear = todayDate.getFullYear();
-          let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
-          if (anniversary < todayDate) {
-            anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
-          }
+          // nextAnnualOccurrence clamps day-of-month instead of letting
+          // `new Date(y, month, date)` silently overflow into the next month.
+          const anniversary = new Date(nextAnnualOccurrence(t.startDate, today()) + "T00:00:00");
           let isExpired = false;
           if (t.expiryDate) {
             const exp = new Date(t.expiryDate);
@@ -454,13 +450,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       if (ip.commencementDate) {
         const comm = new Date(ip.commencementDate);
         if (!isNaN(comm.getTime())) {
-          const todayDate = new Date();
-          todayDate.setHours(0, 0, 0, 0);
-          const currentYear = todayDate.getFullYear();
-          let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
-          if (anniversary < todayDate) {
-            anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
-          }
+          // nextAnnualOccurrence clamps day-of-month instead of letting
+          // `new Date(y, month, date)` silently overflow into the next month.
+          const anniversary = new Date(
+            nextAnnualOccurrence(ip.commencementDate, today()) + "T00:00:00"
+          );
           let isMatured = false;
           if (ip.maturityDate) {
             const mat = new Date(ip.maturityDate);

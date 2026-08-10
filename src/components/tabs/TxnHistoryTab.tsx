@@ -698,7 +698,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
     () =>
       sortRows(mfBoughtInFY, "mf_bought", {
         date: (m: any) => new Date(m.buyDate).getTime(),
-        amount: (m: any) => Number(m.units) * Number(m.buyNav || 0),
+        // Matches the buyNav fallback used in mfBoughtTotals/render below — CAS-imported
+        // rows can have an empty buyNav with invested/units populated instead.
+        amount: (m: any) =>
+          Number(m.units) *
+          (m.buyNav ? Number(m.buyNav) : m.invested && m.units ? Number(m.invested) / Number(m.units) : 0),
       }),
     [mfBoughtInFY, sortRows]
   );
@@ -1012,8 +1016,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         })}
       </div>
 
-      {/* Demat Account selectors */}
-      {(state.demat || []).length > 1 && activeSection !== "cash_ledger" && (
+      {/* Demat Account selectors — MF records have no dematId anywhere in the app,
+          so this filter has zero effect on the mf_bought/mf_sold sections; only
+          show it where it can actually do something (stocks + "all"). */}
+      {(state.demat || []).length > 1 &&
+        activeSection !== "cash_ledger" &&
+        activeSection !== "mf_bought" &&
+        activeSection !== "mf_sold" && (
         <div
           style={{
             display: "flex",
@@ -1199,8 +1208,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         s.buyDate,
                         s.avgPrice,
                         inv,
-                        cp,
-                        (cp - Number(s.avgPrice)) * Number(s.qty),
+                        // Blank (not 0) when unpriced — matches the "—" the on-screen
+                        // table shows instead of implying a fabricated full loss.
+                        cp || "",
+                        cp ? (cp - Number(s.avgPrice)) * Number(s.qty) : "",
                       ];
                     }
                   )
@@ -1490,16 +1501,28 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       "Current NAV",
                       "Unrealized P&L",
                     ],
-                    (m) => [
-                      m.name || m.scheme,
-                      m.category || m.mfType || m.type || "Equity",
-                      m.units,
-                      m.buyDate,
-                      m.buyNav || 0,
-                      Number(m.units) * Number(m.buyNav || 0),
-                      m.currentNav || 0,
-                      (Number(m.currentNav || 0) - Number(m.buyNav || 0)) * Number(m.units),
-                    ]
+                    (m) => {
+                      // Matches the buyNav fallback used in mfBoughtTotals/render — CAS-imported
+                      // rows can have an empty buyNav with invested/units populated instead.
+                      const buyNav = m.buyNav
+                        ? Number(m.buyNav)
+                        : m.invested && m.units
+                          ? Number(m.invested) / Number(m.units)
+                          : 0;
+                      const currNav = Number(m.currentNav || 0);
+                      return [
+                        m.name || m.scheme,
+                        m.category || m.mfType || m.type || "Equity",
+                        m.units,
+                        m.buyDate,
+                        buyNav,
+                        Number(m.units) * buyNav,
+                        // Blank (not 0) when unpriced — matches the "—" the on-screen
+                        // table shows instead of implying a fabricated full loss.
+                        currNav || "",
+                        currNav ? (currNav - buyNav) * Number(m.units) : "",
+                      ];
+                    }
                   )
                 }
               >

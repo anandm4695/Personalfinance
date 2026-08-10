@@ -407,6 +407,10 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
+  // The Gemini key the current chatRef session was created with — lets us detect a
+  // mid-conversation key rotation in Settings and start a fresh session instead of
+  // silently keeping the old key's session alive until the user manually clears chat.
+  const chatApiKeyRef = useRef<string>("");
   const isFirstRef = useRef(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -510,8 +514,8 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     const creditUtil = metrics.creditUtilization || 0;
     // Same figure as the Emergency Fund tab (bank + near-term FDs + liquid MF +
     // prepaid balance), not bank cash alone — see metrics.emergencyFund.
-    const emergencyMonths = metrics.emergencyFund.monthsCovered;
-    const efMonthlyExpense = metrics.emergencyFund.monthlyExpense;
+    const emergencyMonths = metrics.emergencyFund?.monthsCovered || 0;
+    const efMonthlyExpense = metrics.emergencyFund?.monthlyExpense || 0;
     // User-configurable target from Settings → Profile ("Monthly Savings Target %"),
     // defaulting to 20 to match that same field's default. Previously hardcoded to
     // 20 here regardless of what the user actually set, so this insight could fire
@@ -631,7 +635,10 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
         title: "Tax Saving Opportunity",
         detail: `${privacyMode ? "••••" : fmtINRFull(remaining80CCD)} tax saving opportunity via NPS 80CCD(1B)`,
         severity: "opportunity",
-        prompt: `I haven't utilized my 80CCD(1B) NPS deduction. How much can I save on taxes by investing ${fmtINRFull(remaining80CCD)} in NPS?`,
+        // Mask the figure here too — this string is sent verbatim as a chat message on
+        // click and rendered in the message bubble, so leaving it unmasked would let one
+        // click defeat the "••••" shown above, worse than not masking at all.
+        prompt: `I haven't utilized my 80CCD(1B) NPS deduction. How much can I save on taxes by investing ${privacyMode ? "••••" : fmtINRFull(remaining80CCD)} in NPS?`,
       });
     }
 
@@ -689,8 +696,8 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     const regime = state.profile?.regime === "old" ? "Old Regime" : "New Regime (FY 2025-26)";
 
     // Emergency fund — same figure as the dedicated Emergency Fund tab.
-    const emergencyMonths = metrics.emergencyFund.monthsCovered;
-    const emergencyStatus = metrics.emergencyFund.label;
+    const emergencyMonths = metrics.emergencyFund?.monthsCovered || 0;
+    const emergencyStatus = metrics.emergencyFund?.label || "Unknown";
 
     // Net worth trend
     const nwHistory = state.netWorthHistory || [];
@@ -1733,12 +1740,18 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       // If the tab was remounted (chatRef reset) but a conversation was restored from
       // sessionStorage, replay that history into the new chat session so the model
       // isn't amnesic about turns the user can still see on screen (e.g. "Follow Up").
+      if (chatRef.current && chatApiKeyRef.current !== apiKey) {
+        // Key was rotated in Settings mid-conversation — the existing session is bound
+        // to the old GoogleGenerativeAI client and would keep using the stale key.
+        chatRef.current = null;
+      }
       if (!chatRef.current) {
         const priorHistory = messages
           .filter((m, idx) => !(idx === 0 && m.role === "model" && m.text === WELCOME.text))
           .map((m) => ({ role: m.role, parts: [{ text: m.text }] }));
         chatRef.current =
           priorHistory.length > 0 ? model.startChat({ history: priorHistory }) : model.startChat();
+        chatApiKeyRef.current = apiKey;
         isFirstRef.current = priorHistory.length === 0;
       }
 

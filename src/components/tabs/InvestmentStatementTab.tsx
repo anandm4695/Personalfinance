@@ -507,7 +507,23 @@ export const InvestmentStatementTab = ({
       }
       return s + (Number(x.balance) || 0);
     }, 0);
-    const npsBalance = npsList.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0);
+    // Matches the fallback already used by npsContributions above and by the per-account
+    // detail table below — an account tracked purely via its transactions ledger (balance
+    // field unset/0) was previously counted as ₹0 here, undercounting the hero portfolio
+    // total, the Retirement pie slice, weightedCAGR, and forcing npsCAGR to null (a real
+    // account with contribution history reading as a full loss).
+    const npsBalance = npsList.reduce((s: number, x: any) => {
+      const bal = Number(x.balance) || 0;
+      if (bal > 0) return s + bal;
+      const txs = x.transactions || [];
+      return (
+        s +
+        txs.reduce(
+          (sum: number, t: any) => sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+          0
+        )
+      );
+    }, 0);
 
     /* ── EPF ──────────────────────────────────────────────────────── */
     const epfBalance = epfs.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0);
@@ -708,11 +724,14 @@ export const InvestmentStatementTab = ({
         invested: insurancePremiums,
         current: insuranceValue,
         gain: insuranceValue - insurancePremiums,
+        // "current" here is the policy's eventual maturity/sum-assured value, not a
+        // present mark-to-market figure — a lifetime-return % (annualized or not) would
+        // misleadingly compare premiums-paid-to-date against a future payout under the
+        // same "CAGR" header every other row uses for a genuine annualized return.
+        // Already correctly excluded from weightedCAGR (rate: null); the label now
+        // matches that instead of showing a fabricated-looking number next to it.
         rate: null,
-        rateLabel:
-          insurancePremiums > 0 && insuranceValue > 0
-            ? `${(((insuranceValue - insurancePremiums) / insurancePremiums) * 100).toFixed(1)}%`
-            : "--",
+        rateLabel: "--",
       },
       {
         label: "Gold & SGBs",

@@ -909,8 +909,11 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
         .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0)
     );
   }, 0);
+  // Escalation-aware (via getEffectiveRent), not the flat `monthlyRent` field, which
+  // goes stale the moment a property's rent escalates — AIAssistantTab.tsx's tax
+  // optimizer already used this fallback; this was the one place that hadn't caught up.
   const hraMonthly = (state.rentedProperties || []).reduce(
-    (s: number, p: any) => s + Number(p.monthlyRent || 0),
+    (s: number, p: any) => s + getEffectiveRent(p),
     0
   );
   const hra_raw = hraPayments > 0 ? hraPayments : hraMonthly > 0 ? hraMonthly * 12 : 0;
