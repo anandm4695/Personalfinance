@@ -5511,8 +5511,8 @@ function FinanceDashboard() {
             setTab(t);
             if (st) setSubTab(st);
           }}
-          togglePrivacy={togglePrivacy}
-          isPrivacyMode={isPrivacyMode}
+          togglePrivacy={() => setPrivacyMode(!privacyMode)}
+          isPrivacyMode={privacyMode}
         />
 
         {/* ── RESET OVERLAY ── */}
