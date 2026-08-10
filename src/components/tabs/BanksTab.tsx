@@ -37,6 +37,7 @@ import {
   addMonthsToDateStr,
 } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Drawer } from "../ui/Drawer";
@@ -680,6 +681,12 @@ export function BanksTab({
     return map;
   }, [liquidityWeights]);
 
+  // Count-up animation for the hero stat numbers below (Quick Stats + Cash Flow panel).
+  const animTotalBalance = useAnimatedNumber(totalBalance);
+  const animMonthlyIncome = useAnimatedNumber(monthlyIncome);
+  const animMonthlyExpense = useAnimatedNumber(monthlyExpense);
+  const animSavingsRate = useAnimatedNumber(monthlySavingsRate);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* ── HEADER & ACTIONS ────────────────────────────────────────────────── */}
@@ -777,7 +784,7 @@ export function BanksTab({
                 lineHeight: 1,
               }}
             >
-              <Prv>{fmtINRFull(totalBalance)}</Prv>
+              <Prv>{fmtINRFull(animTotalBalance)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
               {state.bankAccounts.length} Connected Account
@@ -841,7 +848,7 @@ export function BanksTab({
                 lineHeight: 1,
               }}
             >
-              <Prv>{fmtINRFull(monthlyIncome)}</Prv>
+              <Prv>{fmtINRFull(animMonthlyIncome)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.sage, fontWeight: 700, marginTop: 4 }}>
               Inflow cash positions
@@ -904,7 +911,7 @@ export function BanksTab({
                 lineHeight: 1,
               }}
             >
-              <Prv>{fmtINRFull(monthlyExpense)}</Prv>
+              <Prv>{fmtINRFull(animMonthlyExpense)}</Prv>
             </div>
             <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
               Outflow cash ledger
@@ -960,7 +967,7 @@ export function BanksTab({
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  {monthlySavingsRate.toFixed(1)}%
+                  {animSavingsRate.toFixed(1)}%
                 </span>
                 <Badge
                   variant={
