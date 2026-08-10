@@ -30,6 +30,7 @@ import { fmtINRFull, getEffectiveRent } from "../../utils/finance";
 import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
+import { usePrivacy } from "../../context/PrivacyContext";
 
 interface AIAssistantTabProps {
   state: any;
@@ -386,6 +387,7 @@ const PROMPT_CATEGORY_ICONS: Record<string, any> = {
 
 // ── Main component ───────────────────────────────────────────────────────────
 export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }) => {
+  const { privacyMode } = usePrivacy();
   const [messages, setMessages] = useState<{ role: "model" | "user"; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -627,7 +629,7 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
       insights.push({
         icon: Lightbulb,
         title: "Tax Saving Opportunity",
-        detail: `${fmtINRFull(remaining80CCD)} tax saving opportunity via NPS 80CCD(1B)`,
+        detail: `${privacyMode ? "••••" : fmtINRFull(remaining80CCD)} tax saving opportunity via NPS 80CCD(1B)`,
         severity: "opportunity",
         prompt: `I haven't utilized my 80CCD(1B) NPS deduction. How much can I save on taxes by investing ${fmtINRFull(remaining80CCD)} in NPS?`,
       });
@@ -652,7 +654,7 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     return insights
       .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
       .slice(0, 4);
-  }, [metrics, state]);
+  }, [metrics, state, privacyMode]);
 
   const generateContext = useCallback(() => {
     const topExpenses =
@@ -1749,8 +1751,13 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       let result = await chatRef.current.sendMessage(payload);
       let functionCalls = result.response.functionCalls();
 
-      // Loop executing client-side tool calls while the model requests them
-      while (functionCalls && functionCalls.length > 0) {
+      // Loop executing client-side tool calls while the model requests them.
+      // Capped so a misbehaving/looping model can't hang the UI or burn API
+      // quota by requesting tool calls indefinitely.
+      let toolCallRounds = 0;
+      const MAX_TOOL_CALL_ROUNDS = 8;
+      while (functionCalls && functionCalls.length > 0 && toolCallRounds < MAX_TOOL_CALL_ROUNDS) {
+        toolCallRounds++;
         const functionResponses = [];
 
         for (const call of functionCalls) {
@@ -1806,7 +1813,15 @@ You have access to local tools/functions to retrieve real-time and detailed tran
         functionCalls = result.response.functionCalls();
       }
 
-      setMessages((prev) => [...prev, { role: "model", text: result.response.text() }]);
+      // If we hit the round cap while the model still wanted to call more tools,
+      // the last response is a function-call request with no user-facing text —
+      // showing it verbatim would render a blank bubble.
+      const replyText =
+        functionCalls && functionCalls.length > 0
+          ? "I gathered a lot of data for this one but couldn't finish forming a reply. Could you narrow your question a bit?"
+          : result.response.text();
+
+      setMessages((prev) => [...prev, { role: "model", text: replyText }]);
     } catch (err: any) {
       setError(err?.message || "Failed to reach Gemini. Check your API key in Settings.");
     } finally {

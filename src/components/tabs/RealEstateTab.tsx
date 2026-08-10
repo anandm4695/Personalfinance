@@ -2201,6 +2201,8 @@ export function RealEstateTab({
             <StatCard
               label="Total Invested"
               value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>}
+              numericValue={stats.totalInvested}
+              formatValue={fmtINRFull}
               sub="Agreement + Stamp + TDS"
               icon={<IndianRupee />}
               color={THEME.accent}
@@ -2208,6 +2210,8 @@ export function RealEstateTab({
             <StatCard
               label="Total Paid"
               value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>}
+              numericValue={stats.totalPaid}
+              formatValue={fmtINRFull}
               sub="All payments"
               icon={<CheckCircle />}
               color={THEME.accent}
@@ -2215,6 +2219,8 @@ export function RealEstateTab({
             <StatCard
               label="Outstanding"
               value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>}
+              numericValue={stats.outstanding}
+              formatValue={fmtINRFull}
               sub="Demands pending"
               icon={<Clock />}
               color={stats.outstanding > 0 ? THEME.rust : THEME.muted}
@@ -2227,6 +2233,8 @@ export function RealEstateTab({
                   <Prv>{fmtINRFull(Math.abs(stats.appreciation))}</Prv>
                 </>
               }
+              numericValue={stats.appreciation}
+              formatValue={(n) => `${n >= 0 ? "+" : "−"}${fmtINRFull(Math.abs(n))}`}
               sub={`${stats.appreciation >= 0 ? "+" : "−"}${Math.abs(stats.appreciationPct).toFixed(1)}% vs. invested`}
               icon={<TrendingUp />}
               color={stats.appreciation >= 0 ? THEME.sage : THEME.rust}

@@ -1006,6 +1006,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           {
             label: "Upcoming Alerts",
             value: String(upcoming.length),
+            numericValue: upcoming.length,
+            formatValue: (n: number) => String(Math.round(n)),
             sub: "Reminders within next 365 days",
             color: THEME.accent,
             Icon: Bell,
@@ -1013,6 +1015,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           {
             label: "Due Soon (7 days)",
             value: String(critCount),
+            numericValue: critCount,
+            formatValue: (n: number) => String(Math.round(n)),
             sub: "Critical window alerts",
             color: critCount > 0 ? THEME.rust : THEME.sage,
             Icon: BellRing,
@@ -1020,6 +1024,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           {
             label: "Past Due",
             value: String(past.length),
+            numericValue: past.length,
+            formatValue: (n: number) => String(Math.round(n)),
             sub: "Unresolved past alerts",
             color: past.length > 0 ? THEME.rust : THEME.muted,
             Icon: AlertCircle,
@@ -1027,6 +1033,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           {
             label: "Next 30d Outflow",
             value: fmtINRFull(next30Outflow),
+            numericValue: next30Outflow,
+            formatValue: fmtINRFull,
             sub: "Payments due in next 30 days",
             color: next30Outflow > 0 ? THEME.rust : THEME.muted,
             Icon: IndianRupee,
@@ -1041,11 +1049,13 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               marginBottom: 28,
             }}
           >
-            {tiles.map(({ label, value, sub, color, Icon }) => (
+            {tiles.map(({ label, value, sub, color, Icon, numericValue, formatValue }) => (
               <StatCard
                 key={label}
                 label={label}
                 value={value}
+                numericValue={numericValue}
+                formatValue={formatValue}
                 sub={sub}
                 color={color}
                 icon={<Icon />}
