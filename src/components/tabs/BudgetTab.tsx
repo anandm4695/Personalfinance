@@ -999,6 +999,8 @@ export function BudgetTab({
                   {
                     label: "Total Budgeted",
                     value: fmtINRFull(totalBudget),
+                    numericValue: totalBudget,
+                    formatValue: fmtINRFull,
                     sub: `Target for ${selectedMonthLabel}`,
                     color: THEME.accent,
                     Icon: Target,
@@ -1006,6 +1008,8 @@ export function BudgetTab({
                   {
                     label: "Spent in Month",
                     value: fmtINRFull(allSpent),
+                    numericValue: allSpent,
+                    formatValue: fmtINRFull,
                     sub:
                       `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used` +
                       (totalUnbudgetedSpent > 0
@@ -1017,6 +1021,8 @@ export function BudgetTab({
                   {
                     label: "Remaining Balance",
                     value: fmtINRFull(Math.max(0, totalBudget - totalSpent)),
+                    numericValue: Math.max(0, totalBudget - totalSpent),
+                    formatValue: fmtINRFull,
                     sub: totalBudget - totalSpent > 0 ? "Left to spend" : "Budget exceeded",
                     color: totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust,
                     Icon: Wallet,
@@ -1024,6 +1030,8 @@ export function BudgetTab({
                   {
                     label: "Active Buckets",
                     value: String(budgetsToUse.length),
+                    numericValue: budgetsToUse.length,
+                    formatValue: (n: number) => Math.round(n).toString(),
                     sub:
                       totalUnbudgetedSpent > 0
                         ? `+${privacyMode ? "••••" : fmtINRFull(totalUnbudgetedSpent)} unbudgeted`
@@ -1034,6 +1042,8 @@ export function BudgetTab({
                   {
                     label: "Savings Rate",
                     value: savingsRate !== null ? `${savingsRate.toFixed(1)}%` : "—",
+                    numericValue: savingsRate !== null ? savingsRate : undefined,
+                    formatValue: (n: number) => `${n.toFixed(1)}%`,
                     sub:
                       selectedMonthIncome > 0
                         ? `Income: ${privacyMode ? "••••" : fmtINRFull(selectedMonthIncome)}`
@@ -1041,8 +1051,17 @@ export function BudgetTab({
                     color: savingsColor,
                     Icon: TrendingUp,
                   },
-                ].map(({ label, value, sub, color, Icon }) => (
-                  <StatCard key={label} label={label} value={value} sub={sub} color={color} icon={<Icon />} />
+                ].map(({ label, value, numericValue, formatValue, sub, color, Icon }) => (
+                  <StatCard
+                    key={label}
+                    label={label}
+                    value={value}
+                    numericValue={numericValue}
+                    formatValue={formatValue}
+                    sub={sub}
+                    color={color}
+                    icon={<Icon />}
+                  />
                 ))}
               </div>
             );
@@ -1679,6 +1698,8 @@ export function BudgetTab({
               {
                 label: "Monthly Commitment",
                 value: fmtINRFull(recurringStats.monthlyCommitment),
+                numericValue: recurringStats.monthlyCommitment,
+                formatValue: fmtINRFull,
                 sub: "Sum of active recurring costs",
                 color: THEME.accent,
                 Icon: Repeat,
@@ -1686,6 +1707,8 @@ export function BudgetTab({
               {
                 label: "Annual Equivalent",
                 value: fmtINRFull(recurringStats.annualCost),
+                numericValue: recurringStats.annualCost,
+                formatValue: fmtINRFull,
                 sub: "Projected yearly outgo",
                 color: THEME.gold,
                 Icon: Calendar,
@@ -1693,6 +1716,8 @@ export function BudgetTab({
               {
                 label: "Paid This Month",
                 value: `${recurringStats.paidCount} / ${activeRecurringExpenses.filter((x: any) => x.isActive).length}`,
+                numericValue: undefined as number | undefined,
+                formatValue: undefined as ((n: number) => string) | undefined,
                 sub: `Recorded: ${privacyMode ? "••••" : fmtINRFull(recurringStats.paidTotal)}`,
                 color: THEME.sage,
                 Icon: CheckCircle2,
@@ -1700,12 +1725,23 @@ export function BudgetTab({
               {
                 label: "Overdue / Unpaid",
                 value: String(recurringStats.overdueCount),
+                numericValue: recurringStats.overdueCount,
+                formatValue: (n: number) => Math.round(n).toString(),
                 sub: `Pending: ${privacyMode ? "••••" : fmtINRFull(recurringStats.overdueTotal)}`,
                 color: recurringStats.overdueCount > 0 ? THEME.rust : THEME.sage,
                 Icon: AlertCircle,
               },
-            ].map(({ label, value, sub, color, Icon }) => (
-              <StatCard key={label} label={label} value={value} sub={sub} color={color} icon={<Icon />} />
+            ].map(({ label, value, numericValue, formatValue, sub, color, Icon }) => (
+              <StatCard
+                key={label}
+                label={label}
+                value={value}
+                numericValue={numericValue}
+                formatValue={formatValue}
+                sub={sub}
+                color={color}
+                icon={<Icon />}
+              />
             ))}
           </div>
 

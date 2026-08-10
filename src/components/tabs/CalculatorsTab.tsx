@@ -50,6 +50,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 interface CalculatorsTabProps {
   metrics: any;
@@ -1165,6 +1166,42 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     return points;
   }, [metrics?.netWorth, nwpSavings, nwpReturn, nwpYears]);
 
+  // ── ANIMATED HERO NUMBERS ──
+  // Count-up/down animation for headline result figures — real account data
+  // (context tile strip) plus the single "final answer" per calculator —
+  // mirrors the StatCard numericValue/formatValue pattern used app-wide.
+  // Hooks must stay unconditional (top-level, every render), so the source
+  // values are computed here rather than inside the conditionally-rendered
+  // JSX further down; riResult can be null (only computed on its own tab),
+  // so it's guarded with `?? 0`.
+  const ctxNetWorth = Math.max(0, metrics?.netWorth || 0);
+  const ctxMonthExpense = Math.max(0, metrics?.monthExpense || 0);
+  const ctxMonthlySavings = Math.max(0, (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0));
+  const ctxTotalEMIs = (state?.loansTaken || []).reduce(
+    (s: number, l: any) => s + Number(l.emi || 0),
+    0
+  );
+  const animatedCtxNetWorth = useAnimatedNumber(ctxNetWorth);
+  const animatedCtxMonthExpense = useAnimatedNumber(ctxMonthExpense);
+  const animatedCtxMonthlySavings = useAnimatedNumber(ctxMonthlySavings);
+  const animatedCtxTotalEMIs = useAnimatedNumber(ctxTotalEMIs);
+
+  const animatedStepSipCorpus = useAnimatedNumber(stepSipResult.corpus);
+  const animatedStepSipInvested = useAnimatedNumber(stepSipResult.invested);
+  const animatedStepSipGains = useAnimatedNumber(stepSipResult.gains);
+  const animatedStepSipFlatCorpus = useAnimatedNumber(stepSipResult.flatCorpus);
+  const animatedSwpTotalWithdrawn = useAnimatedNumber(swpResult.totalWithdrawn);
+  const animatedFireGap = useAnimatedNumber(Math.abs(fireResult.gap));
+  const animatedFireMonthlySavingsNeeded = useAnimatedNumber(fireResult.monthlySavingsNeeded);
+  const animatedLviWealthPrepay = useAnimatedNumber(lviResult.wealthPrepay);
+  const animatedLviWealthInvest = useAnimatedNumber(lviResult.wealthInvest);
+  const animatedLviNetBenefit = useAnimatedNumber(lviResult.netBenefit);
+  const animatedNwpStart = useAnimatedNumber(nwpData[0]?.value ?? 0);
+  const animatedNwpEnd = useAnimatedNumber(nwpData[nwpData.length - 1]?.value ?? 0);
+  const animatedIdxTaxSaved = useAnimatedNumber(idxResult.taxSaved);
+  const animatedRiCorpusNeeded = useAnimatedNumber(riResult?.corpusNeeded ?? 0);
+  const animatedRiMonthlySIPNeeded = useAnimatedNumber(riResult?.monthlySIPNeeded ?? 0);
+
   // ── 8. LIQUID RUNWAY & FINANCIAL STABILITY STRESS TESTER LOGIC ──
   const [eqHaircut, setEqHaircut] = useState(30);
   const [fiHaircut, setFiHaircut] = useState(5);
@@ -1332,32 +1369,30 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
       {/* ── CONTEXT TILE STRIP ── */}
       {(() => {
-        const totalEMIs = (state?.loansTaken || []).reduce(
-          (s: number, l: any) => s + Number(l.emi || 0),
-          0
-        );
-        const monthlySavings = Math.max(
-          0,
-          (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0)
-        );
+        // totalEMIs/monthlySavings are the hoisted ctxTotalEMIs/ctxMonthlySavings
+        // computed at component top-level (see ANIMATED HERO NUMBERS above) so
+        // their useAnimatedNumber hooks stay unconditional; reused here as plain
+        // aliases to keep this block's logic unchanged.
+        const totalEMIs = ctxTotalEMIs;
+        const monthlySavings = ctxMonthlySavings;
         const tiles = [
           {
             label: "Current Net Worth",
-            value: <Prv>{fmtINRFull(metrics?.netWorth || 0)}</Prv>,
+            value: <Prv>{fmtINRFull(animatedCtxNetWorth)}</Prv>,
             sub: "Total assets minus liabilities",
             color: THEME.accent,
             Icon: TrendingUp,
           },
           {
             label: "Monthly Expenses",
-            value: <Prv>{fmtINRFull(metrics?.monthExpense || 0)}</Prv>,
+            value: <Prv>{fmtINRFull(animatedCtxMonthExpense)}</Prv>,
             sub: "Baseline for FIRE & runway calcs",
             color: THEME.gold,
             Icon: Wallet,
           },
           {
             label: "Est. Monthly Savings",
-            value: <Prv>{fmtINRFull(monthlySavings)}</Prv>,
+            value: <Prv>{fmtINRFull(animatedCtxMonthlySavings)}</Prv>,
             sub:
               metrics?.monthIncome > 0
                 ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate`
@@ -1367,7 +1402,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           },
           {
             label: "Total Loan EMIs",
-            value: <Prv>{fmtINRFull(totalEMIs)}</Prv>,
+            value: <Prv>{fmtINRFull(animatedCtxTotalEMIs)}</Prv>,
             sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans",
             color: totalEMIs > 0 ? THEME.rust : THEME.muted,
             Icon: Coins,
@@ -1705,7 +1740,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Final Corpus
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent }}>
-                    <Prv>{fmtINRFull(stepSipResult.corpus)}</Prv>
+                    <Prv>{fmtINRFull(animatedStepSipCorpus)}</Prv>
                   </div>
                 </div>
                 <div
@@ -1729,7 +1764,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Total Invested
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                    <Prv>{fmtINRFull(stepSipResult.invested)}</Prv>
+                    <Prv>{fmtINRFull(animatedStepSipInvested)}</Prv>
                   </div>
                 </div>
                 <div
@@ -1753,7 +1788,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Net Gains
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
-                    <Prv>{fmtINRFull(stepSipResult.gains)}</Prv>
+                    <Prv>{fmtINRFull(animatedStepSipGains)}</Prv>
                   </div>
                 </div>
               </div>
@@ -1787,10 +1822,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Step-Up SIP Corpus
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold }}>
-                      <Prv>{fmtINRFull(stepSipResult.corpus)}</Prv>
+                      <Prv>{fmtINRFull(animatedStepSipCorpus)}</Prv>
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-                      Invested: <Prv>{fmtINRFull(stepSipResult.invested)}</Prv>
+                      Invested: <Prv>{fmtINRFull(animatedStepSipInvested)}</Prv>
                     </div>
                   </div>
                   <div
@@ -1807,7 +1842,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Flat SIP Corpus
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                      <Prv>{fmtINRFull(stepSipResult.flatCorpus)}</Prv>
+                      <Prv>{fmtINRFull(animatedStepSipFlatCorpus)}</Prv>
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
                       Invested: <Prv>{fmtINRFull(stepSipResult.flatInvested)}</Prv>
@@ -2036,7 +2071,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Total Withdrawn
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                    <Prv>{fmtINRFull(swpResult.totalWithdrawn)}</Prv>
+                    <Prv>{fmtINRFull(animatedSwpTotalWithdrawn)}</Prv>
                   </div>
                 </div>
 
@@ -2722,7 +2757,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         color: fireResult.gap > 0 ? THEME.rust : THEME.sage,
                       }}
                     >
-                      <Prv>{fmtINRFull(Math.abs(fireResult.gap))}</Prv>
+                      <Prv>{fmtINRFull(animatedFireGap)}</Prv>
                     </span>
                   </div>
                 </div>
@@ -2851,7 +2886,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold }}>
                       {fireResult.monthlySavingsNeeded > 0 ? (
-                        <Prv>{fmtINRFull(fireResult.monthlySavingsNeeded)}</Prv>
+                        <Prv>{fmtINRFull(animatedFireMonthlySavingsNeeded)}</Prv>
                       ) : (
                         "On Track"
                       )}
@@ -3287,7 +3322,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         Path A: Prepay Loan
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(lviResult.wealthPrepay)}</Prv>
+                        <Prv>{fmtINRFull(animatedLviWealthPrepay)}</Prv>
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                         Net wealth at month {lviLoanTenure}
@@ -3333,7 +3368,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         Path B: Invest Surplus
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(lviResult.wealthInvest)}</Prv>
+                        <Prv>{fmtINRFull(animatedLviWealthInvest)}</Prv>
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                         Net wealth at month {lviLoanTenure}
@@ -3375,7 +3410,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Net Benefit Difference
                   </span>
                   <span style={{ fontSize: 18, fontWeight: 900, color: THEME.sage }}>
-                    <Prv>{fmtINRFull(lviResult.netBenefit)}</Prv>
+                    <Prv>{fmtINRFull(animatedLviNetBenefit)}</Prv>
                   </span>
                 </div>
               </Card>
@@ -3464,7 +3499,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Starting Net Worth Today
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                      <Prv>{fmtINRFull(nwpData[0]?.value)}</Prv>
+                      <Prv>{fmtINRFull(animatedNwpStart)}</Prv>
                     </div>
                   </div>
                   <div
@@ -3481,7 +3516,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Projected Value in {nwpYears} Years
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage }}>
-                      <Prv>{fmtINRFull(nwpData[nwpData.length - 1]?.value)}</Prv>
+                      <Prv>{fmtINRFull(animatedNwpEnd)}</Prv>
                     </div>
                   </div>
                   <div
@@ -5294,7 +5329,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Tax Saved via Indexation
                     </div>
                     <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage }}>
-                      <Prv>{fmtINRFull(idxResult.taxSaved)}</Prv>
+                      <Prv>{fmtINRFull(animatedIdxTaxSaved)}</Prv>
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -5545,12 +5580,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          <Prv>{fmtINRFull(riResult.corpusNeeded)}</Prv>
+                          <Prv>{fmtINRFull(animatedRiCorpusNeeded)}</Prv>
                         </div>
                         <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
                           Start a monthly SIP of{" "}
                           <strong style={{ color: THEME.accent }}>
-                            <Prv>{fmtINRFull(riResult.monthlySIPNeeded)}</Prv>
+                            <Prv>{fmtINRFull(animatedRiMonthlySIPNeeded)}</Prv>
                           </strong>{" "}
                           at 12% return to build this corpus by retirement.
                         </div>

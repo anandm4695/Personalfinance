@@ -49,6 +49,7 @@ import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vehicle make → company domain (for logo fetching)
@@ -3404,6 +3405,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
     () => vehicles.reduce((s, v) => s + Number(v.purchasePrice || 0), 0),
     [vehicles]
   );
+  const animatedFleetValue = useAnimatedNumber(totalCurrentValue);
   const totalServiceSpend = useMemo(
     () =>
       vehicles.reduce(
@@ -3648,7 +3650,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRFull(totalCurrentValue)}</Prv>
+              <Prv>{fmtINRFull(animatedFleetValue)}</Prv>
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
               {totalPurchasePrice ? (
@@ -3682,13 +3684,17 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
             <StatCard
               label="Vehicles Owned"
               value={vehicles.length.toString()}
+              numericValue={vehicles.length}
+              formatValue={(n) => Math.round(n).toString()}
               sub={`${vehicles.filter((v) => v.vehicleType === "two-wheeler").length} two-wheeler · ${vehicles.filter((v) => v.vehicleType === "four-wheeler").length} four-wheeler`}
               icon={<Car />}
               color={THEME.accent}
             />
             <StatCard
               label="Total Service Spend"
-              value={<Prv>{fmtINRFull(totalServiceSpend)}</Prv>}
+              value={fmtINRFull(totalServiceSpend)}
+              numericValue={totalServiceSpend}
+              formatValue={fmtINRFull}
               sub="across all vehicles"
               icon={<Wrench />}
               color={THEME.gold}

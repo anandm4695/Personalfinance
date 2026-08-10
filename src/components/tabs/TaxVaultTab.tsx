@@ -52,6 +52,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
 import { EmptyState } from "../ui/EmptyState";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // The capital-gains report below is built with document.write() from raw HTML strings —
 // without this, a security/fund name containing e.g. <img onerror=...> (typeable directly,
@@ -1510,6 +1511,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   const totalPaidSoFar = totalTDS + totalAdvancePaid + totalSelfAssessment;
   const netLiability = Math.max(0, currentTax - totalTDS);
   const remainingAdvance = Math.max(0, netLiability - totalAdvancePaid - totalSelfAssessment);
+  const animatedRemainingAdvance = useAnimatedNumber(remainingAdvance);
   const isAdvanceTaxApplicable = netLiability > 10_000;
   const progressPct = currentTax > 0 ? Math.min(100, (totalPaidSoFar / currentTax) * 100) : 0;
 
@@ -1924,6 +1926,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
       totalSaved: Math.max(0, totalActualTax - totalSimTax),
     };
   }, [realizedGainsData, harvestCandidates, simulatedHarvestIds, fyStartYear]);
+  const animatedTotalSaved = useAnimatedNumber(taxCalculations.totalSaved);
 
   /* ── Actions ─────────────────────────────────────────────────── */
   const printTaxSummary = () => {
@@ -2681,7 +2684,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     letterSpacing: "-0.03em",
                   }}
                 >
-                  <Prv>{fmtINRFull(remainingAdvance)}</Prv>
+                  <Prv>{fmtINRFull(animatedRemainingAdvance)}</Prv>
                 </div>
                 <div
                   style={{
@@ -4426,7 +4429,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     textShadow: "0 0 20px color-mix(in srgb, var(--t-sage) 40%, transparent)",
                   }}
                 >
-                  <Prv>{fmtINRFull(taxCalculations.totalSaved)}</Prv>
+                  <Prv>{fmtINRFull(animatedTotalSaved)}</Prv>
                 </div>
                 <div
                   style={{
