@@ -15,6 +15,10 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   searchPlaceholder?: string;
+  /** Hide the built-in search bar — use when the page already has its own search
+      driving `data` (e.g. a shared search box that also filters a calendar or
+      grouped view), so the table doesn't grow a second, redundant search input. */
+  hideSearch?: boolean;
   keyExtractor: (row: T, index: number) => string;
   onRowClick?: (row: T) => void;
   emptyState?: React.ReactNode;
@@ -25,6 +29,7 @@ export function DataTable<T extends Record<string, any>>({
   columns,
   data,
   searchPlaceholder = "Search records...",
+  hideSearch = false,
   keyExtractor,
   onRowClick,
   emptyState,
@@ -34,16 +39,17 @@ export function DataTable<T extends Record<string, any>>({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Filtering
+  // Filtering — a no-op when hideSearch is set, since `data` is assumed
+  // pre-filtered by the caller's own search in that case.
   const filteredData = React.useMemo(() => {
-    if (!searchQuery.trim()) return data;
+    if (hideSearch || !searchQuery.trim()) return data;
     const q = searchQuery.toLowerCase();
     return data.filter((row) =>
       Object.values(row).some(
         (val) => val !== null && val !== undefined && String(val).toLowerCase().includes(q)
       )
     );
-  }, [data, searchQuery]);
+  }, [data, searchQuery, hideSearch]);
 
   // Sorting
   const sortedData = React.useMemo(() => {
@@ -90,41 +96,43 @@ export function DataTable<T extends Record<string, any>>({
           borderBottom: "1px solid var(--t-line, rgba(255, 255, 255, 0.08))",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: hideSearch ? "flex-end" : "space-between",
           gap: "12px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "rgba(255, 255, 255, 0.04)",
-            border: "1px solid var(--t-line, rgba(255, 255, 255, 0.08))",
-            borderRadius: "8px",
-            padding: "6px 12px",
-            maxWidth: "320px",
-            width: "100%",
-          }}
-        >
-          <Search size={14} style={{ color: "var(--t-muted, #71717a)" }} />
-          <input
-            type="text"
-            placeholder={searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+        {!hideSearch && (
+          <div
             style={{
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              fontSize: "13px",
-              color: "var(--t-ink, #f4f4f5)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid var(--t-line, rgba(255, 255, 255, 0.08))",
+              borderRadius: "8px",
+              padding: "6px 12px",
+              maxWidth: "320px",
               width: "100%",
             }}
-          />
-        </div>
+          >
+            <Search size={14} style={{ color: "var(--t-muted, #71717a)" }} />
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                fontSize: "13px",
+                color: "var(--t-ink, #f4f4f5)",
+                width: "100%",
+              }}
+            />
+          </div>
+        )}
 
-        <div style={{ fontSize: "12px", color: "var(--t-muted, #71717a)", fontWeight: 500 }}>
+        <div style={{ fontSize: "12px", color: "var(--t-muted, #71717a)", fontWeight: 500, flexShrink: 0 }}>
           {sortedData.length} {sortedData.length === 1 ? "entry" : "entries"}
         </div>
       </div>
