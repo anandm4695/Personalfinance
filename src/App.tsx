@@ -125,8 +125,8 @@ import { GoldSGBTab } from "./components/tabs/GoldSGBTab";
 import { AuditLogTab } from "./components/tabs/AuditLogTab";
 import { PerformanceBenchmarkTab } from "./components/tabs/PerformanceBenchmarkTab";
 
-// Modal Imports
-import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
+// Workspace Imports
+import { CommandKModal } from "./components/workspace/CommandKModal";
 import { OnboardingWizard } from "./components/modals/OnboardingWizard";
 
 // UI Imports
@@ -5503,17 +5503,16 @@ function FinanceDashboard() {
           />
         )}
 
-        {/* ── COMMAND PALETTE ── */}
-        <CommandPaletteModal
+        {/* ── COMMAND PALETTE (⌘K) ── */}
+        <CommandKModal
           isOpen={showCmdPalette}
           onClose={() => setShowCmdPalette(false)}
-          onNavigate={(t, st) => {
+          onSelectTab={(t, st) => {
             setTab(t);
             if (st) setSubTab(st);
           }}
-          onAction={(a) => {
-            void a;
-          }}
+          togglePrivacy={togglePrivacy}
+          isPrivacyMode={isPrivacyMode}
         />
 
         {/* ── RESET OVERLAY ── */}
