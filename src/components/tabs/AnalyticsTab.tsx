@@ -947,7 +947,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
       const txnIncome = (state.transactions || [])
         .filter(
-          (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "credit"
+          (t: any) =>
+            t.date &&
+            t.date >= fyStartStr &&
+            t.date <= fyEndStr &&
+            t.type === "credit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer"
         )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const totalIncome = incomeLedger > 0 ? incomeLedger : txnIncome;
@@ -955,7 +962,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       // Expenses from debit transactions + rent payments
       const txnExpense = (state.transactions || [])
         .filter(
-          (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "debit"
+          (t: any) =>
+            t.date &&
+            t.date >= fyStartStr &&
+            t.date <= fyEndStr &&
+            t.type === "debit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer" &&
+            t.category !== "Investment"
         )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const rentPaid = (state.rentedProperties || []).reduce(
@@ -1137,7 +1152,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       { base: string; exchange: string; yfSym: string; lastPrice: number }
     >();
     (state.stocks || []).forEach((s: any) => {
-      const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+      const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
       const exch = s.exchange || "NSE";
       const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
       if (!uniqueStocks.has(yfSym)) {
@@ -1213,7 +1228,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const getStockCapAssets = (capName: string) => {
     return (state.stocks || [])
       .map((s: any) => {
-        const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+        const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
         const exch = s.exchange || "NSE";
         const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
         const md = marketData?.[yfSym];
@@ -1304,7 +1319,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       case "Stocks":
         return (state.stocks || [])
           .map((s: any) => {
-            const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+            const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
             const exch = s.exchange || "NSE";
             const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
             const md = marketData?.[yfSym];
@@ -1540,7 +1555,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     > = {};
 
     (state.stocks || []).forEach((s: any) => {
-      const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+      const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
       const exch = s.exchange || "NSE";
       const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
       const md = marketData?.[yfSym];
@@ -1881,11 +1896,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .filter((inc: any) => inc.date && inc.date.startsWith(ym2))
         .reduce((s: number, inc: any) => s + Number(inc.amount || 0), 0);
       const txnInc = txns
-        .filter((t: any) => t.type === "credit")
+        .filter(
+          (t: any) =>
+            t.type === "credit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const inc = explicitInc > 0 ? explicitInc : txnInc;
       const txnExp = txns
-        .filter((t: any) => t.type === "debit")
+        .filter(
+          (t: any) =>
+            t.type === "debit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer" &&
+            t.category !== "Investment"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const rentExp = (state.rentedProperties || []).reduce((sum: number, p: any) => {
         return (
@@ -3032,11 +3060,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .filter((inc: any) => inc.date && inc.date.startsWith(ym))
         .reduce((s: number, inc: any) => s + Number(inc.amount || 0), 0);
       const txnInc = txns
-        .filter((t: any) => t.type === "credit")
+        .filter(
+          (t: any) =>
+            t.type === "credit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const inc = explicitInc > 0 ? explicitInc : txnInc;
       const txnExp = txns
-        .filter((t: any) => t.type === "debit")
+        .filter(
+          (t: any) =>
+            t.type === "debit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer" &&
+            t.category !== "Investment"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const rentExp = (state.rentedProperties || []).reduce((sum: number, p: any) => {
         return (
@@ -3189,7 +3230,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       .filter((i: any) => new Date(i.date) >= fyStart2)
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
     const txnIncome = (state.transactions || [])
-      .filter((t: any) => t.type === "credit" && t.date && new Date(t.date) >= fyStart2)
+      .filter(
+        (t: any) =>
+          t.type === "credit" &&
+          t.date &&
+          new Date(t.date) >= fyStart2 &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const annualizedCurrentMonth = (metrics?.monthIncome || 0) * 12;
     // Correct priority: explicit ledger → FY-to-date txns → annualised current month
@@ -3376,7 +3425,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         const ym3 = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, "0")}`;
         const monthTotals: Record<string, number> = {};
         (state.transactions || [])
-          .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(ym3))
+          .filter(
+            (t: any) =>
+              t.type === "debit" &&
+              t.date &&
+              t.date.startsWith(ym3) &&
+              t.category !== "Transfer" &&
+              t.category !== "Self Transfer" &&
+              t.category !== "Self-Transfer" &&
+              t.category !== "Investment"
+          )
           .forEach((t: any) => {
             const cat = t.category || "Uncategorized";
             monthTotals[cat] = (monthTotals[cat] || 0) + Number(t.amount || 0);
@@ -3388,7 +3446,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       }
       const currentCatMap: Record<string, number> = {};
       (state.transactions || [])
-        .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(currentYm))
+        .filter(
+          (t: any) =>
+            t.type === "debit" &&
+            t.date &&
+            t.date.startsWith(currentYm) &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer" &&
+            t.category !== "Investment"
+        )
         .forEach((t: any) => {
           const cat = t.category || "Uncategorized";
           currentCatMap[cat] = (currentCatMap[cat] || 0) + Number(t.amount || 0);
@@ -3520,7 +3587,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-01`;
     const ytdTxns = (state.transactions || []).filter((t: any) => t.date && t.date >= startStr);
     const ytdTxnIncome = ytdTxns
-      .filter((t: any) => t.type === "credit")
+      .filter(
+        (t: any) =>
+          t.type === "credit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     // Income ledger is the authoritative source (mirrors App.tsx explicitIncome priority)
     const ytdIncomeLedger = (state.income || [])
@@ -3528,7 +3601,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
     const ytdIncome = ytdIncomeLedger > 0 ? ytdIncomeLedger : ytdTxnIncome;
     const ytdTxnExpense = ytdTxns
-      .filter((t: any) => t.type === "debit")
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer" &&
+          t.category !== "Investment"
+      )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     // Rent payments tracked via rentedProperties.payments are not debit transactions
     const ytdRentPaid = (state.rentedProperties || []).reduce(
@@ -3601,6 +3681,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   }, [state.goals, metrics.monthIncome, metrics.monthExpense]);
 
   const isPositive = metrics.netWorth >= 0;
+  const animatedMonthIncome = useAnimatedNumber(metrics.monthIncome || 0);
+  const animatedMonthExpense = useAnimatedNumber(metrics.monthExpense || 0);
+  const animatedTaxDue = useAnimatedNumber(metrics.taxDue || 0);
+  const animatedMomDelta = useAnimatedNumber(momNetWorthDelta?.delta ?? 0);
+  const animatedYtdIncome = useAnimatedNumber(ytdData.ytdIncome || 0);
+  const animatedYtdExpense = useAnimatedNumber(ytdData.ytdExpense || 0);
+  const animatedYtdSavings = useAnimatedNumber(ytdData.ytdSavings || 0);
 
   return (
     <div className="tab-content-enter">
@@ -3613,7 +3700,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         const items = [
           {
             label: "Net Worth",
-            value: fmtINRFull(metrics.netWorth),
+            value: fmtINRFull(animatedNetWorth),
             color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust,
             Icon: TrendingUp,
             money: true,
@@ -3626,21 +3713,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           },
           {
             label: "Monthly Income",
-            value: fmtINRFull(metrics.monthIncome),
+            value: fmtINRFull(animatedMonthIncome),
             color: THEME.sage,
             Icon: ArrowUpRight,
             money: true,
           },
           {
             label: "Monthly Spend",
-            value: fmtINRFull(metrics.monthExpense),
+            value: fmtINRFull(animatedMonthExpense),
             color: THEME.rust,
             Icon: Receipt,
             money: true,
           },
           {
             label: "Est. Tax",
-            value: fmtINRFull(metrics.taxDue),
+            value: fmtINRFull(animatedTaxDue),
             color: metrics.taxDue > 0 ? THEME.rust : THEME.sage,
             Icon: Landmark,
             money: true,
@@ -3649,7 +3736,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             ? [
                 {
                   label: "MoM Change",
-                  value: `${momNetWorthDelta.delta >= 0 ? "+" : ""}${fmtINRFull(momNetWorthDelta.delta)}`,
+                  value: `${animatedMomDelta >= 0 ? "+" : ""}${fmtINRFull(animatedMomDelta)}`,
                   color: momNetWorthDelta.delta >= 0 ? THEME.sage : THEME.rust,
                   Icon: momNetWorthDelta.delta >= 0 ? ArrowUpRight : ArrowDownRight,
                   money: true,
@@ -6625,6 +6712,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               <td style={{ padding: "10px 16px", textAlign: "center" }}>
                                 {!acc.hasNominee && (
                                   <span
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Add nominee for ${acc.name}`}
                                     onClick={() =>
                                       openNomineeModal({
                                         key: acc.key,
@@ -6633,6 +6723,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                         name: acc.name,
                                       })
                                     }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        openNomineeModal({
+                                          key: acc.key,
+                                          ids: acc.ids,
+                                          type: acc.type,
+                                          name: acc.name,
+                                        });
+                                      }
+                                    }}
                                     style={{
                                       fontSize: 11,
                                       fontWeight: 700,
@@ -6986,7 +7087,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               [
                 {
                   label: "Net Worth",
-                  value: fmtINRFull(metrics.netWorth),
+                  value: fmtINRFull(animatedNetWorth),
                   money: true,
                   delta:
                     filteredNetWorthTrend.length >= 2
@@ -7006,7 +7107,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 },
                 {
                   label: "YTD Income",
-                  value: fmtINRFull(ytdData.ytdIncome),
+                  value: fmtINRFull(animatedYtdIncome),
                   money: true,
                   delta: null,
                   positive: ytdData.ytdIncome >= 0,
@@ -7812,19 +7913,19 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   {[
                     {
                       label: "YTD Income",
-                      value: fmtINRFull(ytdData.ytdIncome),
+                      value: fmtINRFull(animatedYtdIncome),
                       money: true,
                       color: ytdData.ytdIncome > 0 ? THEME.sage : THEME.muted,
                     },
                     {
                       label: "YTD Expense",
-                      value: fmtINRFull(ytdData.ytdExpense),
+                      value: fmtINRFull(animatedYtdExpense),
                       money: true,
                       color: ytdData.ytdExpense > 0 ? THEME.rust : THEME.muted,
                     },
                     {
                       label: "YTD Savings",
-                      value: fmtINRFull(ytdData.ytdSavings),
+                      value: fmtINRFull(animatedYtdSavings),
                       money: true,
                       color:
                         ytdData.ytdIncome === 0 && ytdData.ytdExpense === 0
@@ -8238,7 +8339,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
               gap: 24,
               marginBottom: 28,
             }}
@@ -9372,7 +9473,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
                   gap: "16px 24px",
                 }}
               >
