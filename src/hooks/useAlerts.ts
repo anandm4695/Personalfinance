@@ -6,12 +6,11 @@ import {
   getCCDueDate,
   calcTaxNewByFY,
   calcTaxOldByFY,
-  nextAnnualOccurrence,
   alertDismissKey,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
-import { SCHEME_RULES } from "../utils/govtSchemes";
 import { dueStatus } from "../components/tabs/BillPaymentTab";
+import { useMilestoneEvents } from "./useFinancialEvents";
 
 export type Alert = {
   level: "error" | "warn" | "info";
@@ -20,10 +19,29 @@ export type Alert = {
   tab: string;
 };
 
+// Far-future cutoff so useMilestoneEvents returns every upcoming event
+// unfiltered by horizon — this hook applies its own, tighter per-category
+// day-windows (5/7/10/15/30 days) below instead of the Calendar's
+// 3/6/12-month selector.
+const FAR_FUTURE_CUTOFF = "2099-12-31";
+
 export function useAlerts(state: any, metrics: any, marketData?: Record<string, any>): Alert[] {
+  // Called at the hook's top level (not inside the useMemo below) since this
+  // is itself a hook. Several categories below — FD/govt-scheme maturity,
+  // insurance premiums, health insurance renewal, CC annual fee, real estate
+  // demands, prepaid card expiry — used to independently re-walk `state` and
+  // recompute the same dates useMilestoneEvents already computes (correctly,
+  // with fixes made earlier this session: annualizePremium, leap-day-safe
+  // nextAnnualOccurrence, matured-policy/closed-card guards). Sourcing from
+  // the shared hook here means those fixes can't drift out of sync with this
+  // file again. Title/detail text and day-windows are kept byte-identical to
+  // before so existing alert dismissals (keyed by exact title text) still match.
+  const milestoneEvents = useMilestoneEvents(state, FAR_FUTURE_CUTOFF);
+
   const alerts = useMemo(() => {
     const list: { level: "error" | "warn" | "info"; title: string; detail: string; tab: string }[] =
       [];
+    const milestoneByType = (type: string) => milestoneEvents.filter((e: any) => e.type === type);
     const now = new Date();
     // Over-budget categories (uses budget inheritance: current month → latest prior month → legacy)
     const ym = today().slice(0, 7);
@@ -182,30 +200,19 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
           });
       });
     // Credit card annual fee due in ≤30 days
-    state.creditCards
-      .filter(
-        (c: any) =>
-          (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth
-      )
-      .forEach((c: any) => {
-        const month = Number(c.feeMonth) - 1;
-        const day = Number(c.feeDay) || 1;
-        let candidate = new Date(now.getFullYear(), month, day);
-        if (candidate.getTime() < new Date(today() + "T00:00:00").getTime())
-          candidate = new Date(now.getFullYear() + 1, month, day);
-        const days = Math.ceil(
-          (candidate.getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000
-        );
-        if (days >= 0 && days <= 30) {
-          const lvl = days <= 7 ? "warn" : "info";
-          list.push({
-            level: lvl,
-            title: `${c.issuer} annual fee in ${days}d`,
-            detail: fmtINRFull(c.annualFee),
-            tab: "credit",
-          });
-        }
-      });
+    milestoneByType("cc_fee").forEach((e: any) => {
+      const c = e.source;
+      const days = e.days;
+      if (days >= 0 && days <= 30) {
+        const lvl = days <= 7 ? "warn" : "info";
+        list.push({
+          level: lvl,
+          title: `${c.issuer} annual fee in ${days}d`,
+          detail: fmtINRFull(c.annualFee),
+          tab: "credit",
+        });
+      }
+    });
     // Credit card utilization — compute from state (unfiltered) for consistent alert coverage.
     // Shared-pool cards (sharedGroup) must count the pool limit once (max across the group),
     // not the sum of each card's sub-limit — same dedup as useMetrics.ts/CreditTab.tsx, otherwise
@@ -393,50 +400,22 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
         tab: "analytics",
       });
     }
-    // Insurance premium due within 30 days
-    // Compute next annual due date from the policy start date's anniversary.
-    // Uses the shared, local-safe, leap-day-clamping `nextAnnualOccurrence`
-    // helper (same one FinancialCalendarTab uses) instead of a hand-rolled
-    // `new Date(startDateStr)` + `setFullYear` version — the old version
-    // parsed the date-only start string as UTC midnight and compared it
-    // against `now` (a real timestamp), which in IST (+5:30) could compute
-    // the wrong anniversary date/day-count depending on time of day.
-    const todayStr = today();
-    const allPolicies = [
-      ...(state.lic || []).map((p: any) => ({
-        name: p.planName || "LIC Policy",
-        start: p.commencementDate,
-        premium: p.annualPremium,
-        expiry: p.maturityDate,
-      })),
-      ...(state.termPlans || []).map((p: any) => ({
-        name: p.planName || "Term Plan",
-        start: p.startDate,
-        premium: p.annualPremium,
-        expiry: p.expiryDate,
-      })),
-      ...(state.investmentPlans || []).map((p: any) => ({
-        name: p.planName || "Investment Plan",
-        start: p.commencementDate,
-        premium: p.annualPremium,
-        expiry: p.maturityDate,
-      })),
-    ];
-    const todayMidnightMsForPolicies = new Date(todayStr + "T00:00:00").getTime();
-    allPolicies.forEach((pol) => {
-      if (!pol.premium || Number(pol.premium) <= 0) return;
-      if (pol.expiry && pol.expiry < todayStr) return; // expired policy (plain ISO string compare)
-      if (!pol.start) return;
-      const nextDue = nextAnnualOccurrence(pol.start, todayStr);
-      const daysToRenew = Math.ceil(
-        (new Date(nextDue + "T00:00:00").getTime() - todayMidnightMsForPolicies) / 86400000
-      );
-      if (daysToRenew >= 0 && daysToRenew <= 30) {
-        const lvl = daysToRenew <= 7 ? "error" : "warn";
+    // Insurance premium due within 30 days — next-due date, matured-policy
+    // guard, and true annualized premium all come from useMilestoneEvents now.
+    milestoneByType("insurance_premium").forEach((e: any) => {
+      const p = e.source;
+      const days = e.days;
+      if (days >= 0 && days <= 30) {
+        // Matches the original per-collection fallback text exactly (LIC's
+        // fallback was "LIC Policy", not the shared hook's "LIC" label) so
+        // existing dismissals — keyed by this exact title — still match.
+        const fallback = e.sourceLabel === "LIC" ? "LIC Policy" : e.sourceLabel;
+        const name = p.planName || fallback;
+        const lvl = days <= 7 ? "error" : "warn";
         list.push({
           level: lvl,
-          title: `${pol.name} premium due in ${daysToRenew}d`,
-          detail: `Annual premium: ${fmtINRFull(pol.premium)} — due on ${nextDue}`,
+          title: `${name} premium due in ${days}d`,
+          detail: `Annual premium: ${fmtINRFull(e.amount)} — due on ${e.date}`,
           tab: "insurance",
         });
       }
@@ -455,11 +434,9 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     });
     // ── Feature 15: Smart Alert Extensions ──
     // FD maturity alerts (within 30 days)
-    (state.fixedDeposits || []).forEach((fd: any) => {
-      if (!fd.maturityDate) return;
-      const days = Math.ceil(
-        (new Date(fd.maturityDate + "T00:00:00").getTime() - todayMidnight) / 86400000
-      );
+    milestoneByType("fd_maturity").forEach((e: any) => {
+      const fd = e.source;
+      const days = e.days;
       if (days >= 0 && days <= 30) {
         list.push({
           level: days <= 7 ? "error" : "warn",
@@ -472,13 +449,9 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // Govt Scheme maturity alerts (within 30 days) — these never surfaced
     // anywhere before, so a matured SSY/NSC/KVP/SCSS/POMIS/RBI Bond could sit
     // unnoticed indefinitely once it stops earning at the matured rate.
-    (state.govtSchemes || []).forEach((sc: any) => {
-      if (!sc.maturityDate) return;
-      const rule = SCHEME_RULES[sc.schemeType];
-      if (!rule || rule.growth === "none") return;
-      const days = Math.ceil(
-        (new Date(sc.maturityDate + "T00:00:00").getTime() - todayMidnight) / 86400000
-      );
+    milestoneByType("govt_scheme_maturity").forEach((e: any) => {
+      const sc = e.source;
+      const days = e.days;
       if (days >= 0 && days <= 30) {
         list.push({
           level: days <= 7 ? "error" : "warn",
@@ -489,20 +462,14 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       }
     });
     // Govt Scheme insurance premium due (PMJJBY/PMSBY annual renewal)
-    (state.govtSchemes || []).forEach((sc: any) => {
-      const rule = SCHEME_RULES[sc.schemeType];
-      if (!rule || rule.growth !== "none") return;
-      const premium = Number(sc.premium || 0);
-      if (!premium || !sc.startDate) return;
-      const nextDueStr = nextAnnualOccurrence(sc.startDate, today());
-      const days = Math.ceil(
-        (new Date(nextDueStr + "T00:00:00").getTime() - todayMidnight) / 86400000
-      );
+    milestoneByType("govt_scheme_premium").forEach((e: any) => {
+      const sc = e.source;
+      const days = e.days;
       if (days >= 0 && days <= 15) {
         list.push({
           level: days <= 3 ? "error" : "warn",
           title: `${sc.schemeName || sc.schemeType} premium due in ${days}d`,
-          detail: `Annual premium of ${fmtINRFull(premium)} due — renew to keep the cover active.`,
+          detail: `Annual premium of ${fmtINRFull(e.amount)} due — renew to keep the cover active.`,
           tab: "govtschemes",
         });
       }
@@ -594,15 +561,9 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     }
 
     // Health insurance renewal alerts (30 days)
-    (state.healthInsurance || []).forEach((p: any) => {
-      if (!p.renewalDate) return;
-      // Both sides must parse the same way (local midnight) — `renewalDate` alone parsed as
-      // UTC midnight while the right side was local midnight, an inconsistent-operand bug that
-      // made a policy renewing "today" report "renews in 1d" instead of "renews today" in IST.
-      const days = Math.ceil(
-        (new Date(p.renewalDate + "T00:00:00").getTime() - new Date(today() + "T00:00:00").getTime()) /
-          86400000
-      );
+    milestoneByType("health_insurance").forEach((e: any) => {
+      const p = e.source;
+      const days = e.days;
       if (days >= 0 && days <= 30) {
         list.push({
           level: days <= 7 ? "error" : "warn",
@@ -642,48 +603,28 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // one-off milestone payments with real consequences for missing them (interest
     // penalty, risk of booking cancellation under the builder-buyer agreement), but
     // previously surfaced nowhere outside manually opening the Real Estate tab.
-    {
-      const ucPropertyIds = new Set(
-        (state.realEstateProperties || [])
-          .filter((p: any) => p.status === "under-construction")
-          .map((p: any) => p.id)
-      );
-      (state.realEstateDemands || []).forEach((d: any) => {
-        if (!ucPropertyIds.has(d.propertyId) || d.status === "paid" || !d.dueDate) return;
-        const totalAmt = Number(d.totalAmount || d.amount || 0);
-        const paidForDemand = (state.realEstatePayments || [])
-          .filter((p: any) => p.demandId === d.id)
-          .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-        const remaining = Math.max(0, totalAmt - paidForDemand);
-        if (remaining <= 0) return;
-        const days = Math.ceil(
-          (new Date(d.dueDate + "T00:00:00").getTime() -
-            new Date(today() + "T00:00:00").getTime()) /
-            86400000
-        );
-        if (days > 10) return;
-        const property = (state.realEstateProperties || []).find(
-          (p: any) => p.id === d.propertyId
-        );
-        list.push({
-          level: days < 0 || days <= 3 ? "error" : "warn",
-          title:
-            days < 0
-              ? `Builder demand overdue by ${Math.abs(days)}d`
-              : `Builder demand due in ${days}d`,
-          detail: `${property?.name || "Property"} — ${d.milestone || "Demand"} · ₹${remaining.toLocaleString("en-IN")} pending`,
-          tab: "realestate",
-        });
+    milestoneByType("realestate_demand").forEach((e: any) => {
+      const days = e.days;
+      if (days > 10) return;
+      const d = e.source;
+      const property = e.sourceProperty;
+      const remaining = e.sourceRemaining;
+      list.push({
+        level: days < 0 || days <= 3 ? "error" : "warn",
+        title:
+          days < 0
+            ? `Builder demand overdue by ${Math.abs(days)}d`
+            : `Builder demand due in ${days}d`,
+        detail: `${property?.name || "Property"} — ${d.milestone || "Demand"} · ₹${remaining.toLocaleString("en-IN")} pending`,
+        tab: "realestate",
       });
-    }
+    });
 
     // Prepaid card expiring soon (within 30 days) — cards that have an expiry date
     // set and are still active.
-    (state.prepaidCards || []).forEach((pc: any) => {
-      if (!pc.expiryDate || (pc.status || "").toLowerCase() === "closed") return;
-      const days = Math.ceil(
-        (new Date(pc.expiryDate + "T00:00:00").getTime() - todayMidnight) / 86400000
-      );
+    milestoneByType("prepaid_card_expiry").forEach((e: any) => {
+      const pc = e.source;
+      const days = e.days;
       if (days >= 0 && days <= 30) {
         list.push({
           level: days <= 7 ? "error" : "warn",
@@ -759,6 +700,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     state.prepaidCards,
     state.creditScores,
     marketData,
+    milestoneEvents,
   ]);
 
   return alerts;

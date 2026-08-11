@@ -103,6 +103,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `fd_maturity_${fd.id || fd.maturityDate}`,
         type: "fd_maturity",
+        source: fd,
         category: "Fixed Deposit",
         icon: Landmark,
         // Amount deliberately NOT embedded in the plain-text `name` (rendered
@@ -253,6 +254,8 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         items.push({
           id: `insurance_premium_${p.id || `${label}_${startDate}`}`,
           type: "insurance_premium",
+          source: p,
+          sourceLabel: label,
           category: "Insurance",
           icon: Heart,
           name: `${p.planName || p.insurer || p.policyName || p.provider || label} — Premium Due`,
@@ -282,6 +285,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `health_insurance_${p.id || p.renewalDate}`,
         type: "health_insurance",
+        source: p,
         category: "Health Insurance",
         icon: Shield,
         name: `${p.insurer || p.policyName || "Health Policy"} — Renewal`,
@@ -349,10 +353,15 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       });
     });
 
-    // Credit Card Annual Fee Due
+    // Credit Card Annual Fee Due — was missing the closed-card and
+    // feeMonth-actually-set guards useAlerts.ts's independent copy of this
+    // same logic already had, so a closed card (or one where feeMonth was
+    // never configured) could surface a fee milestone here that shouldn't
+    // exist, silently defaulting the unset month to January.
     (state.creditCards || []).forEach((cc) => {
+      if ((cc.status || "").toLowerCase() === "closed") return;
       const feeAmt = Number(cc.annualFee || 0);
-      if (!feeAmt) return;
+      if (!feeAmt || !cc.feeMonth) return;
       const feeMonth = cc.feeMonth || 1;
       const feeDay = cc.feeDay || 1;
       // `now` must be constructed the same way as `feeDate` (both LOCAL midnight). Parsing
@@ -373,6 +382,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `cc_fee_${cc.id || feeDateStr}`,
         type: "cc_fee",
+        source: cc,
         category: "Credit Card",
         icon: CreditCard,
         name: `${cc.issuer || cc.name || "CC"} — Annual Fee`,
@@ -452,6 +462,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `govt_scheme_maturity_${sc.id || sc.maturityDate}`,
         type: "govt_scheme_maturity",
+        source: sc,
         category: "Govt Scheme",
         icon: Star,
         name: `${sc.schemeName || sc.schemeType}${sc.memberName ? ` — ${sc.memberName}` : ""} — Maturity`,
@@ -482,6 +493,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `govt_scheme_premium_${sc.id || nextDueStr}`,
         type: "govt_scheme_premium",
+        source: sc,
         category: "Govt Scheme",
         icon: Star,
         name: `${sc.schemeName || sc.schemeType} — Premium Due`,
@@ -521,6 +533,9 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `realestate_demand_${d.id}`,
         type: "realestate_demand",
+        source: d,
+        sourceProperty: property,
+        sourceRemaining: remaining,
         category: "Real Estate",
         icon: Building2,
         name: `${property?.name || "Property"} — ${d.milestone || "Demand"}`,
@@ -613,6 +628,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `prepaid_card_expiry_${pc.id || pc.expiryDate}`,
         type: "prepaid_card_expiry",
+        source: pc,
         category: "Prepaid Card",
         icon: Wallet,
         name: `${pc.cardName || "Prepaid Card"} — Expiry`,
