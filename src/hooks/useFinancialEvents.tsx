@@ -170,6 +170,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `bond_maturity_${b.id || b.maturityDate}`,
         type: "bond_maturity",
+        source: b,
         category: "Bond",
         icon: FileText,
         name: b.name || "Bond",
@@ -337,6 +338,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       items.push({
         id: `loan_given_repayment_${l.id || l.dueDate}`,
         type: "loan_given_repayment",
+        source: l,
         category: "Loan Given",
         icon: Users,
         name: `${l.borrower || "Borrower"} — Repayment Due`,

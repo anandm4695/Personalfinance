@@ -6,11 +6,32 @@ import {
   getLocalDateString,
   getEffectiveRent,
   alertDismissKey,
-  nextAnnualOccurrence,
-  annualizePremium,
 } from "../utils/finance";
+import { useMilestoneEvents } from "./useFinancialEvents";
+
+// Far-future cutoff so useMilestoneEvents returns every upcoming event
+// unfiltered by horizon — this hook applies its own `leadDays` window below.
+const FAR_FUTURE_CUTOFF = "2099-12-31";
 
 export function useNotifications(loaded: boolean, session: any, state: any): void {
+  // Called at the hook's top level (not inside the useEffect below) since this
+  // is itself a hook. CC annual fee, insurance premium, FD/bond maturity, and
+  // loan-given repayment below now source their date/expiry/guard logic from
+  // the same shared hook useAlerts.ts (the header bell) already uses, instead
+  // of a third independent copy — closes the exact drift class that caused
+  // this file's insurance-premium block to earlier need its own leap-day/
+  // annualizePremium/expiry-check fixes. Also fixes two real bugs found while
+  // wiring this up: loan-given push notifications read `l.lender || l.name`,
+  // neither of which exists on a loansGiven record (the real field is
+  // `.borrower`, confirmed in CreditTab.tsx) — every push always showed the
+  // literal fallback string "Borrower" — and never excluded already-settled
+  // loans, so a fully repaid loan could still push a "repayment due" alert.
+  // Subscriptions and rent were investigated and deliberately left
+  // independent: the shared hook's subscription list intentionally excludes
+  // monthly cycles (calendar-declutter reasoning that doesn't apply to push
+  // reminders), and rent's tenant-paid side has no shared-hook equivalent.
+  const milestoneEvents = useMilestoneEvents(state, FAR_FUTURE_CUTOFF);
+
   // Fire browser push notifications for upcoming reminders (runs once per tab session)
   useEffect(() => {
     if (
@@ -85,6 +106,7 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
         (new Date(d + "T00:00:00").getTime() - new Date(todayStr + "T00:00:00").getTime()) /
           86400000
       );
+    const milestoneByType = (type: string) => milestoneEvents.filter((e: any) => e.type === type);
     const isDismissed = (title: string, ...alts: string[]) =>
       [title, ...alts].some(
         (t) => state.dismissedAlerts?.[alertDismissKey(t)] > Date.now()
@@ -126,34 +148,24 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
 
       // Annual fee — the in-app Reminders list already surfaces this as its own
       // due date (RemindersTab.tsx), but it never had a push counterpart.
-      state.creditCards
-        .filter(
-          (c: any) =>
-            (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth
-        )
-        .forEach((c: any) => {
-          const month = Number(c.feeMonth) - 1;
-          const day = Number(c.feeDay) || 1;
-          const now = new Date();
-          let candidate = new Date(now.getFullYear(), month, day);
-          if (candidate.getTime() < new Date(todayStr + "T00:00:00").getTime())
-            candidate = new Date(now.getFullYear() + 1, month, day);
-          const d = daysLeft(getLocalDateString(candidate));
-          const title = `${c.issuer} annual fee due`;
-          if (d >= 0 && d <= leadDays && !isDismissed(title, `${c.issuer} annual fee in ${d}d`)) {
-            soon.push({
-              title,
-              body: `${fmtINRFull(c.annualFee)} charge${d === 0 ? " today" : ` in ${d}d`}`,
-              type: "credit",
-            });
-          }
-        });
+      milestoneByType("cc_fee").forEach((e: any) => {
+        const c = e.source;
+        const d = e.days;
+        const title = `${c.issuer} annual fee due`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title, `${c.issuer} annual fee in ${d}d`)) {
+          soon.push({
+            title,
+            body: `${fmtINRFull(c.annualFee)} charge${d === 0 ? " today" : ` in ${d}d`}`,
+            type: "credit",
+          });
+        }
+      });
     }
 
     if (cats.bonds !== false) {
-      (state.bonds || []).forEach((b: any) => {
-        if (!b.maturityDate) return;
-        const d = daysLeft(b.maturityDate);
+      milestoneByType("bond_maturity").forEach((e: any) => {
+        const b = e.source;
+        const d = e.days;
         const title = `Bond Maturity — ${b.name || "Bond"}`;
         if (d >= 0 && d <= leadDays && !isDismissed(title)) {
           soon.push({
@@ -229,9 +241,9 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
     }
 
     if (cats.fdMaturities !== false) {
-      (state.fixedDeposits || []).forEach((f: any) => {
-        if (!f.maturityDate) return;
-        const d = daysLeft(f.maturityDate);
+      milestoneByType("fd_maturity").forEach((e: any) => {
+        const f = e.source;
+        const d = e.days;
         const title = `FD Maturity — ${f.bank || f.bankName || "Bank"}`;
         if (d >= 0 && d <= leadDays && !isDismissed(title)) {
           soon.push({
@@ -244,45 +256,29 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
     }
 
     if (cats.insurancePremiums !== false) {
-      // Was hand-rolling its own `new Date(year, month, date)` anniversary calc
-      // instead of the shared `nextAnnualOccurrence` helper every other premium
-      // computation in the app uses — silently overflowed a Feb 29 start date
-      // into March in non-leap years. Also used the raw `annualPremium` field
-      // only, missing policies that carry `premium` + `premiumFrequency`
-      // instead (the same understatement class as the 12x premium bug fixed
-      // earlier this session), and never checked whether the policy had
-      // already matured. All three fixed by routing through the same shared
-      // helpers/checks as useMilestoneEvents' addInsurancePremium.
-      const allPolicies = [
-        ...(state.lic || []).map((p: any) => ({
-          name: p.planName || "LIC Policy",
-          start: p.commencementDate,
-          premium: annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
-          expiry: p.maturityDate,
-        })),
-        ...(state.termPlans || []).map((p: any) => ({
-          name: p.planName || "Term Plan",
-          start: p.startDate,
-          premium: annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
-          expiry: p.expiryDate,
-        })),
-        ...(state.investmentPlans || []).map((p: any) => ({
-          name: p.planName || "Investment Plan",
-          start: p.commencementDate,
-          premium: annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
-          expiry: p.maturityDate,
-        })),
-      ];
-      allPolicies.forEach((pol) => {
-        if (!pol.premium || Number(pol.premium) <= 0 || !pol.start) return;
-        if (pol.expiry && pol.expiry < todayStr) return;
-        const nextDue = nextAnnualOccurrence(pol.start, todayStr);
-        const d = daysLeft(nextDue);
-        const title = `${pol.name} premium due`;
+      // Now sources next-due-date/premium/expiry-guard from the shared
+      // useMilestoneEvents hook (same one useAlerts.ts's header bell reads)
+      // instead of an independent copy — this file's own copy already had
+      // the leap-day/annualizePremium/expiry-check fixes applied earlier
+      // this session, so this is pure dedup (prevents future drift), not a
+      // behavior change.
+      milestoneByType("insurance_premium").forEach((e: any) => {
+        const p = e.source;
+        const d = e.days;
+        // Matches this file's original per-collection fallback text exactly
+        // ("LIC Policy" for LIC, not the shared hook's plain "LIC" label).
+        const fallback =
+          e.sourceLabel === "LIC"
+            ? "LIC Policy"
+            : e.sourceLabel === "Term Plan"
+              ? "Term Plan"
+              : "Investment Plan";
+        const name = p.planName || fallback;
+        const title = `${name} premium due`;
         if (d >= 0 && d <= leadDays && !isDismissed(title)) {
           soon.push({
             title,
-            body: `${fmtINRFull(pol.premium)}${d === 0 ? " — today!" : ` in ${d}d`}`,
+            body: `${fmtINRFull(e.amount)}${d === 0 ? " — today!" : ` in ${d}d`}`,
             type: "insurance",
           });
         }
@@ -290,10 +286,18 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
     }
 
     if (cats.loanRecovery !== false) {
-      (state.loansGiven || []).forEach((l: any) => {
-        if (!l.dueDate) return;
-        const d = daysLeft(l.dueDate);
-        const title = `Loan Recovery — ${l.lender || l.name || "Borrower"}`;
+      // Was reading `l.lender || l.name`, neither of which exists on a
+      // loansGiven record (the real field is `.borrower`, confirmed in
+      // CreditTab.tsx) — every push notification here always showed the
+      // literal fallback string "Borrower" regardless of who actually owes
+      // the money. Also never excluded already-settled loans (outstanding
+      // <= 0), so a fully repaid loan could still push a "repayment due"
+      // notification. Both fixed by sourcing from useMilestoneEvents, which
+      // already guards on outstanding and uses the correct field.
+      milestoneByType("loan_given_repayment").forEach((e: any) => {
+        const l = e.source;
+        const d = e.days;
+        const title = `Loan Recovery — ${l.borrower || "Borrower"}`;
         if (d >= 0 && d <= leadDays && !isDismissed(title)) {
           soon.push({
             title,
