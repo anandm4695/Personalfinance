@@ -47,6 +47,7 @@ import { Button } from "../ui/Button";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
 import { SectionTitle } from "../ui/SectionTitle";
+import { DataTable } from "../design-system/DataTable";
 import { Card } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
 
@@ -1695,590 +1696,449 @@ export function BanksTab({
             <EmptyHint text="No transactions match your query filters" />
           )
         ) : (
-          <div
-            className="desktop-only"
-            style={{ overflowX: "auto", borderRadius: 12, border: `1.5px solid ${THEME.line}` }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: "var(--surface-1)" }}>
-                  <th
-                    style={{ ...th, padding: "12px 16px", cursor: "pointer", userSelect: "none" }}
-                    onClick={() => requestSort("date")}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Date{" "}
-                      {sortField === "date" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowUp size={11} strokeWidth={3} />
-                        ) : (
-                          <ArrowDown size={11} strokeWidth={3} />
-                        )
-                      ) : (
-                        <ArrowUpDown size={11} />
-                      )}
+          <div className="desktop-only">
+            <DataTable
+              columns={[
+                {
+                  key: "date",
+                  header: "Date",
+                  sortable: true,
+                  accessor: (t: any) => (
+                    <span style={{ color: THEME.muted, fontSize: 12, whiteSpace: "nowrap", fontWeight: 600 }}>
+                      {t.date
+                        ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
                     </span>
-                  </th>
-                  <th
-                    style={{ ...th, padding: "12px 16px", cursor: "pointer", userSelect: "none" }}
-                    onClick={() => requestSort("note")}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Particulars{" "}
-                      {sortField === "note" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowUp size={11} strokeWidth={3} />
-                        ) : (
-                          <ArrowDown size={11} strokeWidth={3} />
-                        )
-                      ) : (
-                        <ArrowUpDown size={11} />
-                      )}
-                    </span>
-                  </th>
-                  <th
-                    style={{ ...th, padding: "12px 16px", cursor: "pointer", userSelect: "none" }}
-                    onClick={() => requestSort("category")}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Category{" "}
-                      {sortField === "category" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowUp size={11} strokeWidth={3} />
-                        ) : (
-                          <ArrowDown size={11} strokeWidth={3} />
-                        )
-                      ) : (
-                        <ArrowUpDown size={11} />
-                      )}
-                    </span>
-                  </th>
-                  <th style={{ ...th, padding: "12px 16px" }}>Account</th>
-                  <th
-                    style={{
-                      ...th,
-                      padding: "12px 16px",
-                      textAlign: "right",
-                      cursor: "pointer",
-                      userSelect: "none",
-                    }}
-                    onClick={() => requestSort("amount")}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Debit{" "}
-                      {sortField === "amount" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowUp size={11} strokeWidth={3} />
-                        ) : (
-                          <ArrowDown size={11} strokeWidth={3} />
-                        )
-                      ) : (
-                        <ArrowUpDown size={11} />
-                      )}
-                    </span>
-                  </th>
-                  <th
-                    style={{
-                      ...th,
-                      padding: "12px 16px",
-                      textAlign: "right",
-                      cursor: "pointer",
-                      userSelect: "none",
-                    }}
-                    onClick={() => requestSort("amount")}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Credit{" "}
-                      {sortField === "amount" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowUp size={11} strokeWidth={3} />
-                        ) : (
-                          <ArrowDown size={11} strokeWidth={3} />
-                        )
-                      ) : (
-                        <ArrowUpDown size={11} />
-                      )}
-                    </span>
-                  </th>
-                  <th style={{ ...th, padding: "12px 16px" }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedTxns.map((t: any) => {
-                  const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
-                  const isEditing = inlineEditId === t.id;
-
-                  const handleSaveInline = () => {
-                    if (!inlineEdit.amount || Number(inlineEdit.amount) <= 0) {
-                      alert("Please enter a valid amount greater than 0");
-                      return;
-                    }
-                    updateItem("transactions", t.id, inlineEdit);
-                    setInlineEditId(null);
-                  };
-
-                  if (isEditing && inlineEdit) {
-                    return (
-                      <tr
-                        key={t.id}
+                  ),
+                },
+                {
+                  key: "note",
+                  header: "Particulars",
+                  sortable: true,
+                  accessor: (t: any) => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <div
                         style={{
-                          borderBottom: `1.5px solid ${THEME.accent}`,
-                          background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: THEME.ink,
                         }}
                       >
-                        <td style={{ ...td, padding: "12px 16px" }}>
-                          <input
-                            type="date"
-                            value={inlineEdit.date}
-                            onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })}
-                            style={{
-                              ...input,
-                              padding: "6px 10px",
-                              fontSize: 12,
-                              height: 32,
-                              width: 130,
-                            }}
-                          />
-                        </td>
-                        <td style={{ ...td, padding: "12px 16px" }}>
-                          {t.linkedType && (
-                            <div
-                              style={{
-                                fontSize: 10,
-                                color: THEME.gold,
-                                fontWeight: 700,
-                                marginBottom: 4,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 3,
-                              }}
-                              title="Changing the amount here will not update the linked record — delete and re-add the transaction instead if the amount was wrong."
-                            >
-                              <Link2 size={10} /> Linked — amount changes will not sync
-                            </div>
-                          )}
-                          <input
-                            value={inlineEdit.note || ""}
-                            onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSaveInline();
-                              if (e.key === "Escape") setInlineEditId(null);
-                            }}
-                            style={{
-                              ...input,
-                              padding: "6px 10px",
-                              fontSize: 12,
-                              height: 32,
-                              minWidth: 150,
-                            }}
-                            autoFocus
-                          />
-                          <input
-                            value={inlineEdit.narration || ""}
-                            onChange={(e) =>
-                              setInlineEdit({ ...inlineEdit, narration: e.target.value })
-                            }
-                            placeholder="Narration (bank description)"
-                            style={{
-                              ...input,
-                              padding: "4px 8px",
-                              fontSize: 11,
-                              minWidth: 150,
-                              marginTop: 4,
-                            }}
-                          />
-                          <input
-                            value={inlineEdit.referenceNumber || ""}
-                            onChange={(e) =>
-                              setInlineEdit({ ...inlineEdit, referenceNumber: e.target.value })
-                            }
-                            placeholder="Cheque / Ref Number"
-                            style={{
-                              ...input,
-                              padding: "4px 8px",
-                              fontSize: 11,
-                              minWidth: 150,
-                              marginTop: 4,
-                            }}
-                          />
-                        </td>
-                        <td style={{ ...td, padding: "12px 16px" }}>
-                          <select
-                            value={inlineEdit.category || ""}
-                            onChange={(e) =>
-                              setInlineEdit({ ...inlineEdit, category: e.target.value })
-                            }
-                            style={{ ...input, padding: "4px 8px", height: 32, fontSize: 12 }}
-                          >
-                            {txnCats.map((c: string) => (
-                              <option key={c}>{c}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td
-                          style={{
-                            ...td,
-                            padding: "12px 16px",
-                            color: THEME.muted,
-                            fontSize: 12,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {bank ? accountLabel(bank) : "—"}
-                        </td>
-                        <td style={{ ...td, padding: "12px 16px", textAlign: "right" }} colSpan={2}>
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: 6,
-                              alignItems: "center",
-                              justifyContent: "flex-end",
-                            }}
-                          >
-                            <select
-                              value={inlineEdit.type || "debit"}
-                              onChange={(e) =>
-                                setInlineEdit({ ...inlineEdit, type: e.target.value })
-                              }
-                              style={{
-                                background:
-                                  inlineEdit.type === "credit"
-                                    ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                                    : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                                color: inlineEdit.type === "credit" ? THEME.sage : THEME.rust,
-                                border: `1.5px solid color-mix(in srgb, ${inlineEdit.type === "credit" ? THEME.sage : THEME.rust} 27%, transparent)`,
-                                borderRadius: 6,
-                                fontSize: 11,
-                                fontWeight: 800,
-                                padding: "4px 8px",
-                                cursor: "pointer",
-                                outline: "none",
-                              }}
-                            >
-                              <option value="debit">DEBIT</option>
-                              <option value="credit">CREDIT</option>
-                            </select>
-                            <input
-                              type="number"
-                              value={inlineEdit.amount}
-                              onChange={(e) =>
-                                setInlineEdit({ ...inlineEdit, amount: e.target.value })
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveInline();
-                                if (e.key === "Escape") setInlineEditId(null);
-                              }}
-                              style={{
-                                ...input,
-                                padding: "4px 8px",
-                                height: 32,
-                                fontSize: 12,
-                                width: 90,
-                                textAlign: "right",
-                              }}
-                            />
-                          </div>
-                        </td>
-                        <td style={{ ...td, padding: "12px 16px" }}>
-                          <div style={{ display: "flex", gap: 2 }}>
-                            <button
-                              onClick={handleSaveInline}
-                              className="icon-btn"
-                              style={{ ...iconBtn, color: THEME.sage, padding: 6 }}
-                              title="Save"
-                              aria-label="Save transaction"
-                            >
-                              <Check size={14} />
-                            </button>
-                            <button
-                              onClick={() => setInlineEditId(null)}
-                              className="icon-btn danger"
-                              style={{ ...iconBtn, color: THEME.rust, padding: 6 }}
-                              title="Cancel"
-                              aria-label="Cancel edit"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  return (
-                    <tr
-                      key={t.id}
-                      className="table-row-hover"
-                      onClick={() => setViewTxnId(t.id)}
-                      onDoubleClick={() => {
-                        setInlineEditId(t.id);
-                        setInlineEdit({ ...t });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e: React.KeyboardEvent) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setViewTxnId(t.id);
-                        }
-                      }}
-                      aria-label={`View details for ${t.note || "transaction"} on ${t.date || ""}`}
-                      style={{ cursor: "pointer" }}
-                      title="Click to view details · double-click to edit inline"
-                    >
-                      <td
-                        style={{
-                          ...td,
-                          padding: "12px 16px",
-                          color: THEME.muted,
-                          fontSize: 12,
-                          whiteSpace: "nowrap",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {t.date
-                          ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </td>
-                      <td style={{ ...td, padding: "12px 16px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: THEME.ink,
-                            }}
-                          >
-                            {t.note || "—"}
-                            {t.category === "Transfer" && (
-                              <Badge variant="accent" size="xs" style={{ whiteSpace: "nowrap" }}>
-                                ↔ TRANSFER
-                              </Badge>
-                            )}
-                            {t.linkedType && (
-                              <Badge
-                                variant="accent"
-                                size="xs"
-                                style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 3 }}
-                              >
-                                <Link2 size={9} /> LINKED
-                              </Badge>
-                            )}
-                            {t.category !== "Transfer" &&
-                              recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
-                                <Badge variant="gold" size="xs" style={{ whiteSpace: "nowrap" }}>
-                                  RECURRING
-                                </Badge>
-                              )}
-                          </div>
-                          {t.narration && (
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: THEME.muted,
-                                fontStyle: "italic",
-                                fontWeight: 500,
-                              }}
-                            >
-                              {t.narration}
-                            </div>
-                          )}
-                          {t.referenceNumber && (
-                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                              Ref: {t.referenceNumber}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ ...td, padding: "12px 16px" }}>
-                        {t.category ? (
-                          <span
-                            style={{
-                              padding: "2px 8px",
-                              borderRadius: 20,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              background: getCategoryStyle(t.category).bg,
-                              color: getCategoryStyle(t.category).color,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {t.category}
-                          </span>
-                        ) : (
-                          <span style={{ color: THEME.muted }}>—</span>
+                        {t.note || "—"}
+                        {t.category === "Transfer" && (
+                          <Badge variant="accent" size="xs" style={{ whiteSpace: "nowrap" }}>
+                            ↔ TRANSFER
+                          </Badge>
                         )}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          padding: "12px 16px",
-                          color: THEME.muted,
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {bank ? accountLabel(bank) : "—"}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          padding: "12px 16px",
-                          textAlign: "right",
-                          color: THEME.rust,
-                          fontVariantNumeric: "tabular-nums",
-                          fontWeight: 800,
-                        }}
-                      >
-                        {t.type === "debit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          padding: "12px 16px",
-                          textAlign: "right",
-                          color: THEME.sage,
-                          fontVariantNumeric: "tabular-nums",
-                          fontWeight: 800,
-                        }}
-                      >
-                        {t.type === "credit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
-                      </td>
-                      <td style={{ ...td, padding: "12px 16px" }}>
-                        <div style={{ display: "flex", gap: 2 }}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditTxnId(t.id);
-                            }}
-                            className="icon-btn"
-                            style={{
-                              ...iconBtn,
-                              padding: 6,
-                              borderRadius: 8,
-                              background: "transparent",
-                            }}
-                            title="Edit"
-                            aria-label="Edit transaction"
+                        {t.linkedType && (
+                          <Badge
+                            variant="accent"
+                            size="xs"
+                            style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 3 }}
                           >
-                            <Edit3 size={12} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeItem("transactions", t.id);
-                            }}
-                            className="icon-btn danger"
-                            style={{
-                              ...iconBtn,
-                              padding: 6,
-                              borderRadius: 8,
-                              background: "transparent",
-                            }}
-                            title="Delete"
-                            aria-label="Delete transaction"
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                            <Link2 size={9} /> LINKED
+                          </Badge>
+                        )}
+                        {t.category !== "Transfer" &&
+                          recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
+                            <Badge variant="gold" size="xs" style={{ whiteSpace: "nowrap" }}>
+                              RECURRING
+                            </Badge>
+                          )}
+                      </div>
+                      {t.narration && (
+                        <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic", fontWeight: 500 }}>
+                          {t.narration}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              {sortedTxns.length > 0 &&
-                (() => {
-                  const totalDebit = sortedTxns
-                    .filter((t: any) => t.type === "debit")
-                    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-                  const totalCredit = sortedTxns
-                    .filter((t: any) => t.type === "credit")
-                    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-                  const net = totalCredit - totalDebit;
-                  const netColor = net > 0 ? THEME.sage : net < 0 ? THEME.rust : THEME.muted;
-                  const borderTop = `1.5px solid ${THEME.line}`;
-                  return (
-                    <tfoot>
-                      <tr style={{ background: "var(--surface-1)" }}>
-                        <td
-                          colSpan={3}
+                      )}
+                      {t.referenceNumber && (
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          Ref: {t.referenceNumber}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: "category",
+                  header: "Category",
+                  sortable: true,
+                  accessor: (t: any) =>
+                    t.category ? (
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 20,
+                          fontSize: 10,
+                          fontWeight: 800,
+                          background: getCategoryStyle(t.category).bg,
+                          color: getCategoryStyle(t.category).color,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t.category}
+                      </span>
+                    ) : (
+                      <span style={{ color: THEME.muted }}>—</span>
+                    ),
+                },
+                {
+                  key: "account",
+                  header: "Account",
+                  accessor: (t: any) => {
+                    const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
+                    return (
+                      <span style={{ color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                        {bank ? accountLabel(bank) : "—"}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "debit",
+                  header: "Debit",
+                  sortable: true,
+                  sortGroup: "amount",
+                  align: "right",
+                  accessor: (t: any) => (
+                    <span style={{ color: THEME.rust, fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
+                      {t.type === "debit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
+                    </span>
+                  ),
+                },
+                {
+                  key: "credit",
+                  header: "Credit",
+                  sortable: true,
+                  sortGroup: "amount",
+                  align: "right",
+                  accessor: (t: any) => (
+                    <span style={{ color: THEME.sage, fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
+                      {t.type === "credit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
+                    </span>
+                  ),
+                },
+              ]}
+              data={pagedTxns}
+              hideSearch
+              keyExtractor={(t: any) => t.id}
+              sortKey={sortField}
+              sortDirection={sortDirection}
+              onSortChange={(key: any) => requestSort(key)}
+              onRowClick={(t: any) => setViewTxnId(t.id)}
+              onRowDoubleClick={(t: any) => {
+                setInlineEditId(t.id);
+                setInlineEdit({ ...t });
+              }}
+              rowAriaLabel={(t: any) => `View details for ${t.note || "transaction"} on ${t.date || ""}`}
+              renderRow={(t: any) => {
+                if (inlineEditId !== t.id || !inlineEdit) return null;
+                const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
+                const handleSaveInline = () => {
+                  if (!inlineEdit.amount || Number(inlineEdit.amount) <= 0) {
+                    alert("Please enter a valid amount greater than 0");
+                    return;
+                  }
+                  updateItem("transactions", t.id, inlineEdit);
+                  setInlineEditId(null);
+                };
+                return (
+                  <tr
+                    key={t.id}
+                    style={{
+                      borderBottom: `1.5px solid ${THEME.accent}`,
+                      background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                    }}
+                  >
+                    <td style={{ ...td, padding: "12px 16px" }}>
+                      <input
+                        type="date"
+                        value={inlineEdit.date}
+                        onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })}
+                        style={{
+                          ...input,
+                          padding: "6px 10px",
+                          fontSize: 12,
+                          height: 32,
+                          width: 130,
+                        }}
+                      />
+                    </td>
+                    <td style={{ ...td, padding: "12px 16px" }}>
+                      {t.linkedType && (
+                        <div
                           style={{
-                            padding: "12px 16px",
+                            fontSize: 10,
+                            color: THEME.gold,
+                            fontWeight: 700,
+                            marginBottom: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 3,
+                          }}
+                          title="Changing the amount here will not update the linked record — delete and re-add the transaction instead if the amount was wrong."
+                        >
+                          <Link2 size={10} /> Linked — amount changes will not sync
+                        </div>
+                      )}
+                      <input
+                        value={inlineEdit.note || ""}
+                        onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveInline();
+                          if (e.key === "Escape") setInlineEditId(null);
+                        }}
+                        style={{
+                          ...input,
+                          padding: "6px 10px",
+                          fontSize: 12,
+                          height: 32,
+                          minWidth: 150,
+                        }}
+                        autoFocus
+                      />
+                      <input
+                        value={inlineEdit.narration || ""}
+                        onChange={(e) => setInlineEdit({ ...inlineEdit, narration: e.target.value })}
+                        placeholder="Narration (bank description)"
+                        style={{
+                          ...input,
+                          padding: "4px 8px",
+                          fontSize: 11,
+                          minWidth: 150,
+                          marginTop: 4,
+                        }}
+                      />
+                      <input
+                        value={inlineEdit.referenceNumber || ""}
+                        onChange={(e) =>
+                          setInlineEdit({ ...inlineEdit, referenceNumber: e.target.value })
+                        }
+                        placeholder="Cheque / Ref Number"
+                        style={{
+                          ...input,
+                          padding: "4px 8px",
+                          fontSize: 11,
+                          minWidth: 150,
+                          marginTop: 4,
+                        }}
+                      />
+                    </td>
+                    <td style={{ ...td, padding: "12px 16px" }}>
+                      <select
+                        value={inlineEdit.category || ""}
+                        onChange={(e) => setInlineEdit({ ...inlineEdit, category: e.target.value })}
+                        style={{ ...input, padding: "4px 8px", height: 32, fontSize: 12 }}
+                      >
+                        {txnCats.map((c: string) => (
+                          <option key={c}>{c}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td
+                      style={{
+                        ...td,
+                        padding: "12px 16px",
+                        color: THEME.muted,
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {bank ? accountLabel(bank) : "—"}
+                    </td>
+                    <td style={{ ...td, padding: "12px 16px", textAlign: "right" }} colSpan={2}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          alignItems: "center",
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <select
+                          value={inlineEdit.type || "debit"}
+                          onChange={(e) => setInlineEdit({ ...inlineEdit, type: e.target.value })}
+                          style={{
+                            background:
+                              inlineEdit.type === "credit"
+                                ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                                : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                            color: inlineEdit.type === "credit" ? THEME.sage : THEME.rust,
+                            border: `1.5px solid color-mix(in srgb, ${inlineEdit.type === "credit" ? THEME.sage : THEME.rust} 27%, transparent)`,
+                            borderRadius: 6,
                             fontSize: 11,
                             fontWeight: 800,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            borderTop,
+                            padding: "4px 8px",
+                            cursor: "pointer",
+                            outline: "none",
                           }}
                         >
-                          {sortedTxns.length} Transaction{sortedTxns.length === 1 ? "" : "s"} total
-                        </td>
-                        <td
+                          <option value="debit">DEBIT</option>
+                          <option value="credit">CREDIT</option>
+                        </select>
+                        <input
+                          type="number"
+                          value={inlineEdit.amount}
+                          onChange={(e) => setInlineEdit({ ...inlineEdit, amount: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveInline();
+                            if (e.key === "Escape") setInlineEditId(null);
+                          }}
                           style={{
-                            padding: "12px 16px",
+                            ...input,
+                            padding: "4px 8px",
+                            height: 32,
+                            fontSize: 12,
+                            width: 90,
                             textAlign: "right",
-                            fontSize: 11,
-                            fontWeight: 800,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            borderTop,
                           }}
+                        />
+                      </div>
+                    </td>
+                    <td style={{ ...td, padding: "12px 16px" }}>
+                      <div style={{ display: "flex", gap: 2 }}>
+                        <button
+                          onClick={handleSaveInline}
+                          className="icon-btn"
+                          style={{ ...iconBtn, color: THEME.sage, padding: 6 }}
+                          title="Save"
+                          aria-label="Save transaction"
                         >
-                          Net Balance
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px 16px",
-                            textAlign: "right",
-                            fontWeight: 800,
-                            color: THEME.rust,
-                            fontSize: 13,
-                            fontVariantNumeric: "tabular-nums",
-                            borderTop,
-                          }}
+                          <Check size={14} />
+                        </button>
+                        <button
+                          onClick={() => setInlineEditId(null)}
+                          className="icon-btn danger"
+                          style={{ ...iconBtn, color: THEME.rust, padding: 6 }}
+                          title="Cancel"
+                          aria-label="Cancel edit"
                         >
-                          -<Prv>{fmtINRExact(totalDebit)}</Prv>
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px 16px",
-                            textAlign: "right",
-                            fontWeight: 800,
-                            color: THEME.sage,
-                            fontSize: 13,
-                            fontVariantNumeric: "tabular-nums",
-                            borderTop,
-                          }}
-                        >
-                          +<Prv>{fmtINRExact(totalCredit)}</Prv>
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px 16px",
-                            textAlign: "right",
-                            fontWeight: 900,
-                            color: netColor,
-                            fontSize: 13,
-                            fontVariantNumeric: "tabular-nums",
-                            borderTop,
-                          }}
-                        >
-                          {net >= 0 ? "+" : "-"}
-                          <Prv>{fmtINRExact(Math.abs(net))}</Prv>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  );
-                })()}
-            </table>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }}
+              actions={(t: any) => (
+                <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditTxnId(t.id);
+                    }}
+                    className="icon-btn"
+                    style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "transparent" }}
+                    title="Edit"
+                    aria-label="Edit transaction"
+                  >
+                    <Edit3 size={12} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeItem("transactions", t.id);
+                    }}
+                    className="icon-btn danger"
+                    style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "transparent" }}
+                    title="Delete"
+                    aria-label="Delete transaction"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              )}
+              footer={(() => {
+                const totalDebit = sortedTxns
+                  .filter((t: any) => t.type === "debit")
+                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                const totalCredit = sortedTxns
+                  .filter((t: any) => t.type === "credit")
+                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                const net = totalCredit - totalDebit;
+                const netColor = net > 0 ? THEME.sage : net < 0 ? THEME.rust : THEME.muted;
+                const borderTop = `1.5px solid ${THEME.line}`;
+                return (
+                  <tr style={{ background: "var(--surface-1)" }}>
+                    <td
+                      colSpan={3}
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: THEME.muted,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        borderTop,
+                      }}
+                    >
+                      {sortedTxns.length} Transaction{sortedTxns.length === 1 ? "" : "s"} total
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: "right",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: THEME.muted,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        borderTop,
+                      }}
+                    >
+                      Net Balance
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: "right",
+                        fontWeight: 800,
+                        color: THEME.rust,
+                        fontSize: 13,
+                        fontVariantNumeric: "tabular-nums",
+                        borderTop,
+                      }}
+                    >
+                      -<Prv>{fmtINRExact(totalDebit)}</Prv>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: "right",
+                        fontWeight: 800,
+                        color: THEME.sage,
+                        fontSize: 13,
+                        fontVariantNumeric: "tabular-nums",
+                        borderTop,
+                      }}
+                    >
+                      +<Prv>{fmtINRExact(totalCredit)}</Prv>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: "right",
+                        fontWeight: 900,
+                        color: netColor,
+                        fontSize: 13,
+                        fontVariantNumeric: "tabular-nums",
+                        borderTop,
+                      }}
+                    >
+                      {net >= 0 ? "+" : "-"}
+                      <Prv>{fmtINRExact(Math.abs(net))}</Prv>
+                    </td>
+                  </tr>
+                );
+              })()}
+            />
           </div>
         )}
         {sortedTxns.length > 0 && (
