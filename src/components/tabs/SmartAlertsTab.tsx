@@ -6,7 +6,6 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
-  Shield,
   Zap,
   Filter,
   CheckCircle,
@@ -222,30 +221,9 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       }
     });
 
-    // 3. FD maturing soon
-    (state.fixedDeposits || []).forEach((fd) => {
-      if (fd.maturityDate) {
-        const days = daysUntil(fd.maturityDate);
-        if (days >= 0 && days <= 30) {
-          alerts.push({
-            id: `fd_mature_${fd.id}`,
-            level: days <= 7 ? "error" : "warn",
-            category: "investments",
-            title: `FD maturing in ${days} days`,
-            detail: (
-              <>
-                {`${fd.bank || "FD"} — Principal: `}
-                <Prv>{fmtINRExact(fd.principal)}</Prv>
-                {` @ ${fd.rate}%`}
-              </>
-            ),
-            icon: Clock,
-            action: "Decide: reinvest or withdraw",
-          });
-        }
-      }
-    });
-
+    // FD maturing soon — removed (now shown in the header bell, which every
+    // screen already surfaces; keeping it here too was showing the same fact
+    // twice). Bond maturing has no header-bell equivalent, so it stays.
     // 3b. Bond maturing soon
     (state.bonds || []).forEach((b) => {
       if (b.maturityDate) {
@@ -269,68 +247,8 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       }
     });
 
-    // 4. Insurance premium due (anniversary-based, matching RemindersTab logic)
-    const insurancePolicies = [
-      ...(state.lic || []).map((p) => ({
-        ...p,
-        _startField: p.commencementDate,
-        _matField: p.maturityDate,
-        _termField: p.policyTerm,
-      })),
-      ...(state.termPlans || []).map((p) => ({
-        ...p,
-        _startField: p.startDate,
-        _matField: p.expiryDate,
-        _termField: p.premiumPayingTerm || p.term,
-      })),
-      ...(state.investmentPlans || []).map((p) => ({
-        ...p,
-        _startField: p.commencementDate,
-        _matField: p.maturityDate,
-        _termField: p.premiumPayingTerm || p.policyTerm,
-      })),
-    ];
-    insurancePolicies.forEach((p) => {
-      if (!p._startField) return;
-      const comm = new Date(p._startField);
-      if (isNaN(comm.getTime())) return;
-      const currentYear = now.getFullYear();
-      let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
-      if (anniversary < new Date(todayStr + "T00:00:00")) {
-        anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
-      }
-      let isExpired = false;
-      if (p._matField) {
-        const mat = new Date(p._matField);
-        if (!isNaN(mat.getTime()) && anniversary > mat) isExpired = true;
-      }
-      const payTerm = p._termField ? parseInt(p._termField, 10) : null;
-      if (payTerm && !isNaN(payTerm)) {
-        if (anniversary.getFullYear() - comm.getFullYear() >= payTerm) isExpired = true;
-      }
-      if (isExpired) return;
-      // `anniversary` is already LOCAL midnight (multi-arg Date constructor) — diff it against
-      // today's local midnight, not the real "now" instant, for the same reason as daysUntil().
-      const days = Math.round(
-        (anniversary.getTime() - new Date(todayStr + "T00:00:00").getTime()) / 86400000
-      );
-      if (days >= 0 && days <= 30) {
-        alerts.push({
-          id: `insurance_due_${p.id}`,
-          level: days <= 7 ? "error" : "warn",
-          category: "insurance",
-          title: `Insurance premium due in ${days} days`,
-          detail: (
-            <>
-              {`${p.planName || p.policyName || p.insurer || "Policy"} — Premium: `}
-              <Prv>{fmtINRExact(p.annualPremium || p.premium)}</Prv>
-            </>
-          ),
-          icon: Shield,
-          action: "Pay premium to avoid lapse",
-        });
-      }
-    });
+    // Insurance premium due — removed (now shown in the header bell with the
+    // same 30-day window, so it was showing the same fact twice).
 
     // 5. SIP monitoring — this alert was permanently dead: SIP records carry
     // `startDate`/`totalInstallments`/`frequency`/`scheme`, never `endDate`/`name`/`fund`,
@@ -435,42 +353,9 @@ export const SmartAlertsTab = ({ state, metrics }) => {
 
     const monthlyExpense = metrics.monthExpense || 0;
 
-    // 8. Emergency fund warning — same liquid-assets figure (bank + near-term FDs
-    // + liquid MF + prepaid) as the dedicated Emergency Fund tab, instead of raw
-    // bank balance alone.
-    const efLiquidAssets = metrics.emergencyFund.liquidAssets;
-    const efMonthlyExpense = metrics.emergencyFund.monthlyExpense;
-    if (efMonthlyExpense > 0 && metrics.emergencyFund.monthsCovered < 3) {
-      alerts.push({
-        id: "emergency_fund_low",
-        level: metrics.emergencyFund.monthsCovered < 1 ? "error" : "warn",
-        category: "safety",
-        title: "Emergency fund below 3 months",
-        detail: (
-          <>
-            {"Liquid assets: "}
-            <Prv>{fmtINRExact(efLiquidAssets)}</Prv>
-            {` covers ${metrics.emergencyFund.monthsCovered.toFixed(1)} months of expenses`}
-          </>
-        ),
-        icon: Shield,
-        action: "Build up your emergency fund",
-      });
-    }
-
-    // 9. Credit utilization high
-    const ccUtil = Number(metrics.creditUtilization) || 0;
-    if (ccUtil > 30) {
-      alerts.push({
-        id: "credit_util_high",
-        level: ccUtil > 70 ? "error" : "warn",
-        category: "credit",
-        title: `Credit utilization at ${ccUtil.toFixed(0)}%`,
-        detail: "Keep credit utilization below 30% for a healthy credit score",
-        icon: AlertTriangle,
-        action: "Pay down credit card outstanding",
-      });
-    }
+    // Emergency fund warning and credit utilization high — both removed (now
+    // shown in the header bell with the same underlying metric, so they were
+    // showing the same fact twice).
 
     // 10. Subscription review
     const monthlySubs = (state.subscriptions || [])
@@ -498,19 +383,9 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       });
     }
 
-    // 11. Loan EMI to income ratio
-    const foirVal = Number(metrics.foir) || 0;
-    if (foirVal > 40) {
-      alerts.push({
-        id: "foir_high",
-        level: foirVal > 50 ? "error" : "warn",
-        category: "credit",
-        title: `EMI-to-income ratio at ${foirVal.toFixed(0)}%`,
-        detail: "Banks consider >50% FOIR risky. Try to keep it below 40%.",
-        icon: AlertTriangle,
-        action: "Consider prepaying high-interest loans",
-      });
-    }
+    // Loan EMI to income ratio (FOIR) — removed (now shown in the header
+    // bell at the same 40/50% thresholds, so it was showing the same fact
+    // twice).
 
     return alerts.sort((a, b) => {
       const order = { error: 0, warn: 1, info: 2 };
