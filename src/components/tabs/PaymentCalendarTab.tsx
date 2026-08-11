@@ -109,7 +109,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
 // are bank/broker auto-debit mandates by nature and insurance/rent have no such
 // tracked field in this app, so they intentionally fall back to the old, calmer
 // "past due date" treatment instead of a false-confidence "Overdue" alert.
-const MANUAL_ATTENTION_TYPES = new Set(["bill", "creditcard"]);
+const MANUAL_ATTENTION_TYPES = new Set(["bill", "creditcard", "rent"]);
 const needsManualAttention = (p: any) =>
   MANUAL_ATTENTION_TYPES.has(p.type) && !p.autoPay && !p.paidThisCycle;
 

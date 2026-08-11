@@ -69,6 +69,7 @@ const EVENT_TYPE_TO_TAB: Record<string, string> = {
   vehicle_service: "vehicles",
   health_insurance: "healthinsurance",
   life_event: "lifeevents",
+  rent_receivable: "rental",
 };
 
 // Types that represent money coming IN (maturities, projected income) vs
@@ -82,6 +83,7 @@ const INFLOW_TYPES = [
   "ppf_maturity",
   "govt_scheme_maturity",
   "loan_given_repayment",
+  "rent_receivable",
 ];
 const OUTFLOW_TYPES = [
   "insurance_premium",
@@ -263,6 +265,7 @@ export const FinancialCalendarTab = ({
     { key: "prepaid_card", label: "Prepaid Cards" },
     { key: "vehicle", label: "Vehicles" },
     { key: "life_event", label: "Life Events" },
+    { key: "rent_receivable", label: "Rent Receivable" },
   ];
 
   // ICS (iCalendar) export — one VEVENT per currently-filtered, non-dismissed

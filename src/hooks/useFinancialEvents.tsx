@@ -27,6 +27,7 @@ import {
   addMonthsToDateStr,
   annualizePremium,
   getCCDueDate,
+  getEffectiveRent,
 } from "../utils/finance";
 import { SCHEME_RULES, projectSchemeValue } from "../utils/govtSchemes";
 import { Prv } from "../context/PrivacyContext";
@@ -535,6 +536,59 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       });
     });
 
+    // Rent receivable (landlord side — `state.rentalProperties` is entirely
+    // "rented out" properties by definition; RentalTab.tsx's own `propertiesOut`
+    // alias confirms it, and `propertyType` on these records means property
+    // category like "shop"/"flat", not a rent direction — a pre-existing filter
+    // elsewhere in this file mistakenly checked propertyType for direction and
+    // matched nothing, see the dead-code note in useRecurringPayments below).
+    // Phase 2 of the alerts consolidation plan: Payments only ever tracked the
+    // tenant-paid side (it's framed as "recurring outflows"), so a landlord's
+    // incoming rent had no home in Calendar at all — ported from RemindersTab's
+    // independent version of this same logic, which already had it. Projects
+    // the single next due date (current cycle if unpaid, else next month's),
+    // same current/next-cycle pattern RemindersTab uses, not a full recurring
+    // series — that's the right shape for this list, unlike Payments' month-grid.
+    (state.rentalProperties || [])
+      .filter((p: any) => p.isActive !== false)
+      .forEach((p: any) => {
+        const rentAmt = getEffectiveRent(p);
+        if (!rentAmt) return;
+        const dueDay = Number(p.dueDay || 1);
+        const now = new Date(todayStr + "T00:00:00");
+        const clamp = (year: number, month: number) => {
+          const lastDay = new Date(year, month + 1, 0).getDate();
+          return new Date(year, month, Math.min(dueDay, lastDay));
+        };
+        const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const receivedInMonth = (monthStr: string) =>
+          (p.receipts || []).some((r: any) => r.date && r.date.startsWith(monthStr));
+        let dueDate = clamp(now.getFullYear(), now.getMonth());
+        if (receivedInMonth(ym(dueDate))) {
+          const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          dueDate = clamp(next.getFullYear(), next.getMonth());
+        }
+        const dueDateStr = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, "0")}-${String(dueDate.getDate()).padStart(2, "0")}`;
+        if (dueDateStr > cutoffDate) return;
+        const days = getDaysUntil(dueDateStr);
+        items.push({
+          id: `rent_receivable_${p.id}`,
+          type: "rent_receivable",
+          category: "Rent Receivable",
+          icon: Building2,
+          name: `${p.propertyName || "Property"} — Rent Receivable`,
+          date: dueDateStr,
+          days,
+          amount: rentAmt,
+          color: THEME.sage,
+          detail: (
+            <>
+              Expected: <Prv>{fmtINRExact(rentAmt)}</Prv>
+            </>
+          ),
+        });
+      });
+
     // Prepaid card expiries — previously surfaced nowhere outside the Credit tab
     // itself, so a card could lapse with unused balance still loaded on it.
     (state.prepaidCards || []).forEach((pc: any) => {
@@ -833,36 +887,43 @@ export function useRecurringPayments(state: any, todayStr: string, todayDate: Da
       });
     });
 
-    // Rent paid (rented-in properties)
-    (state.rentedProperties || []).forEach((p: any) => {
-      if (!p.monthlyRent || Number(p.monthlyRent) <= 0) return;
+    // Rent paid (rented-in properties) — Phase 2 of the alerts consolidation
+    // plan: uses the escalation-aware effective rent (not the static
+    // `monthlyRent` field, which is only ever set once at creation and never
+    // updated as escalation tiers advance) and carries `paidThisCycle` (has
+    // the current month already been logged in `p.payments`?) so the
+    // calendar can tell "already paid" apart from "needs action," matching
+    // the pattern bills already use above. Both fixes port RemindersTab's
+    // more-correct independent rent logic into this shared hook instead of
+    // leaving Payments on the weaker of the two.
+    const currentMonthStr = todayStr.slice(0, 7);
+    const addRentItem = (p: any, idPrefix: string) => {
+      const rentAmt = getEffectiveRent(p);
+      if (!rentAmt) return;
+      const paidThisCycle = (p.payments || []).some(
+        (pay: any) => pay.date && pay.date.startsWith(currentMonthStr)
+      );
       items.push({
-        id: `rent-${p.id}`,
+        id: `${idPrefix}-${p.id}`,
         name: `Rent — ${p.propertyName || p.landlordName || "Property"}`,
         type: "rent",
-        amount: Number(p.monthlyRent),
+        amount: rentAmt,
         frequency: "monthly",
         dueDay: Number(p.dueDay || 1),
         owner: p.owner,
         monthsLeft: 9999,
+        paidThisCycle,
       });
-    });
-    // Also check rental properties with propertyType "in"
-    (state.rentalProperties || [])
-      .filter((p: any) => p.propertyType === "in")
-      .forEach((p: any) => {
-        if (!p.monthlyRent || Number(p.monthlyRent) <= 0) return;
-        items.push({
-          id: `rentalin-${p.id}`,
-          name: `Rent — ${p.propertyName || "Property"}`,
-          type: "rent",
-          amount: Number(p.monthlyRent),
-          frequency: "monthly",
-          dueDay: Number(p.dueDay || 1),
-          owner: p.owner,
-          monthsLeft: 9999,
-        });
-      });
+    };
+    // `state.rentalProperties` (landlord-side, "rented out") deliberately isn't
+    // included here — it was previously gated behind `p.propertyType === "in"`,
+    // a condition that can never be true (propertyType holds a property
+    // category like "shop"/"flat" on those records, not a rent direction; see
+    // RentalTab.tsx's own `propertiesOut` alias), so it silently matched zero
+    // records. Landlord-received rent belongs in Payments' "outflows" framing
+    // even less than it belonged in that dead filter — it's tracked correctly
+    // now as its own inflow-typed milestone in useMilestoneEvents above.
+    (state.rentedProperties || []).forEach((p: any) => addRentItem(p, "rent"));
 
     return items;
   }, [state, todayStr, todayDate]);
