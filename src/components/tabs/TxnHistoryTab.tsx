@@ -1213,161 +1213,172 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               message={`No stock purchases recorded in ${fyLabel}${searchSuffix(searchQuery)}`}
             />
           ) : (
-            <Card style={{ padding: 0, overflow: "hidden" }}>
-              <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "transparent" }}>
-                      <th style={{ ...th, paddingLeft: 16 }}>Company</th>
-                      <th style={{ ...th, textAlign: "right" }}>Qty</th>
-                      <SortableTh
-                        label="Buy Date"
-                        sortKey="date"
-                        activeKey={sortState.stocks_bought?.key}
-                        dir={sortState.stocks_bought?.dir}
-                        onClick={(key) => toggleSort("stocks_bought", key)}
-                      />
-                      <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
-                      <SortableTh
-                        label="Amount"
-                        sortKey="amount"
-                        activeKey={sortState.stocks_bought?.key}
-                        dir={sortState.stocks_bought?.dir}
-                        onClick={(key) => toggleSort("stocks_bought", key)}
-                      />
-                      <th style={{ ...th, textAlign: "right" }}>Curr Price</th>
-                      <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stocksBoughtSorted.map((s: any) => {
-                      const curr = livePrice(s, marketData);
-                      const inv = Number(s.qty) * Number(s.avgPrice);
-                      const val = Number(s.qty) * curr;
-                      const pnl = val - inv;
-                      return (
-                        <tr
-                          key={s.id}
-                          className="table-row-hover"
-                          style={{
-                            borderBottom: `1px solid ${THEME.line}`,
-                          }}
-                        >
-                          <td style={{ ...td, paddingLeft: 16 }}>
-                            <span style={{ fontWeight: 700, color: THEME.ink }}>
-                              {s.symbol?.replace(/\.(NS|BO)$/i, "")}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 9,
-                                marginLeft: 6,
-                                color: THEME.muted,
-                                background: "var(--surface-2)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {s.exchange || "NSE"}
-                            </span>
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{s.qty}</td>
-                          <td style={{ ...td, textAlign: "right", color: THEME.muted }}>
-                            {fmtDate(s.buyDate)}
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            <Prv>₹{Number(s.avgPrice).toFixed(2)}</Prv>
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
-                            <Prv>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Prv>
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            {curr ? <Prv>₹{curr.toFixed(2)}</Prv> : "—"}
-                          </td>
-                          <td
-                            style={{
-                              ...td,
-                              textAlign: "right",
-                              color: pnl >= 0 ? THEME.sage : THEME.rust,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {curr ? (
-                              <Prv>
-                                {pnl >= 0 ? "+" : ""}₹
-                                {Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                              </Prv>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: "var(--surface-1)" }}>
-                      <td
-                        colSpan={4}
-                        style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}
-                      >
-                        Total Invested
-                      </td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
-                        <Prv>
-                          ₹
-                          {stocksBoughtTotals.invested.toLocaleString("en-IN", {
-                            maximumFractionDigits: 0,
-                          })}
-                        </Prv>
-                      </td>
-                      <td style={td}></td>
-                      <td
+            <DataTable
+              columns={[
+                {
+                  key: "company",
+                  header: "Company",
+                  accessor: (s: any) => (
+                    <span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>
+                        {s.symbol?.replace(/\.(NS|BO)$/i, "")}
+                      </span>
+                      <span
                         style={{
-                          ...td,
-                          textAlign: "right",
-                          fontWeight: 900,
-                          color: stocksBoughtTotals.pnl >= 0 ? THEME.sage : THEME.rust,
-                          fontSize: 15,
+                          fontSize: 9,
+                          marginLeft: 6,
+                          color: THEME.muted,
+                          background: "var(--surface-2)",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontWeight: 700,
                         }}
                       >
-                        {stocksBoughtTotals.hasCurr ? (
-                          <Prv>
-                            {stocksBoughtTotals.pnl >= 0 ? "+" : ""}₹
-                            {Math.abs(stocksBoughtTotals.pnl).toLocaleString("en-IN", {
-                              maximumFractionDigits: 0,
-                            })}
-                            {stocksBoughtTotals.unpriced > 0 ? "*" : ""}
-                          </Prv>
-                        ) : (
-                          "—"
-                        )}
+                        {s.exchange || "NSE"}
+                      </span>
+                    </span>
+                  ),
+                },
+                {
+                  key: "qty",
+                  header: "Qty",
+                  align: "right",
+                  accessor: (s: any) => <span style={{ fontWeight: 700 }}>{s.qty}</span>,
+                },
+                {
+                  key: "date",
+                  header: "Buy Date",
+                  align: "right",
+                  sortable: true,
+                  accessor: (s: any) => <span style={{ color: THEME.muted }}>{fmtDate(s.buyDate)}</span>,
+                },
+                {
+                  key: "buyPrice",
+                  header: "Buy Price",
+                  align: "right",
+                  accessor: (s: any) => (
+                    <span style={{ fontWeight: 600 }}>
+                      <Prv>₹{Number(s.avgPrice).toFixed(2)}</Prv>
+                    </span>
+                  ),
+                },
+                {
+                  key: "amount",
+                  header: "Amount",
+                  align: "right",
+                  sortable: true,
+                  accessor: (s: any) => {
+                    const inv = Number(s.qty) * Number(s.avgPrice);
+                    return (
+                      <span style={{ fontWeight: 800 }}>
+                        <Prv>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Prv>
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "currPrice",
+                  header: "Curr Price",
+                  align: "right",
+                  accessor: (s: any) => {
+                    const curr = livePrice(s, marketData);
+                    return curr ? (
+                      <span style={{ fontWeight: 600 }}>
+                        <Prv>₹{curr.toFixed(2)}</Prv>
+                      </span>
+                    ) : (
+                      "—"
+                    );
+                  },
+                },
+                {
+                  key: "pnl",
+                  header: "Unrealized P&L",
+                  align: "right",
+                  accessor: (s: any) => {
+                    const curr = livePrice(s, marketData);
+                    const inv = Number(s.qty) * Number(s.avgPrice);
+                    const val = Number(s.qty) * curr;
+                    const pnl = val - inv;
+                    return curr ? (
+                      <span style={{ color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
+                        <Prv>
+                          {pnl >= 0 ? "+" : ""}₹
+                          {Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        </Prv>
+                      </span>
+                    ) : (
+                      "—"
+                    );
+                  },
+                },
+              ]}
+              data={stocksBoughtSorted}
+              hideSearch
+              keyExtractor={(s: any) => s.id}
+              sortKey={sortState.stocks_bought?.key || null}
+              sortDirection={sortState.stocks_bought?.dir || "asc"}
+              onSortChange={(key: any) => toggleSort("stocks_bought", key)}
+              footer={
+                <>
+                  <tr style={{ background: "var(--surface-1)" }}>
+                    <td colSpan={4} style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}>
+                      Total Invested
+                    </td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
+                      <Prv>
+                        ₹
+                        {stocksBoughtTotals.invested.toLocaleString("en-IN", {
+                          maximumFractionDigits: 0,
+                        })}
+                      </Prv>
+                    </td>
+                    <td style={td}></td>
+                    <td
+                      style={{
+                        ...td,
+                        textAlign: "right",
+                        fontWeight: 900,
+                        color: stocksBoughtTotals.pnl >= 0 ? THEME.sage : THEME.rust,
+                        fontSize: 15,
+                      }}
+                    >
+                      {stocksBoughtTotals.hasCurr ? (
+                        <Prv>
+                          {stocksBoughtTotals.pnl >= 0 ? "+" : ""}₹
+                          {Math.abs(stocksBoughtTotals.pnl).toLocaleString("en-IN", {
+                            maximumFractionDigits: 0,
+                          })}
+                          {stocksBoughtTotals.unpriced > 0 ? "*" : ""}
+                        </Prv>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                  {stocksBoughtTotals.hasCurr && stocksBoughtTotals.unpriced > 0 && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        style={{
+                          ...td,
+                          paddingLeft: 16,
+                          paddingTop: 6,
+                          paddingBottom: 10,
+                          fontSize: 10.5,
+                          color: THEME.muted,
+                          fontStyle: "italic",
+                          borderBottom: "none",
+                        }}
+                      >
+                        * Approximate — excludes {stocksBoughtTotals.unpriced} holding
+                        {stocksBoughtTotals.unpriced > 1 ? "s" : ""} with no live price data
                       </td>
                     </tr>
-                    {stocksBoughtTotals.hasCurr && stocksBoughtTotals.unpriced > 0 && (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          style={{
-                            ...td,
-                            paddingLeft: 16,
-                            paddingTop: 6,
-                            paddingBottom: 10,
-                            fontSize: 10.5,
-                            color: THEME.muted,
-                            fontStyle: "italic",
-                            borderBottom: "none",
-                          }}
-                        >
-                          * Approximate — excludes {stocksBoughtTotals.unpriced} holding
-                          {stocksBoughtTotals.unpriced > 1 ? "s" : ""} with no live price data
-                        </td>
-                      </tr>
-                    )}
-                  </tfoot>
-                </table>
-              </div>
-            </Card>
+                  )}
+                </>
+              }
+            />
           )}
         </div>
       )}
@@ -1522,170 +1533,189 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               message={`No MF purchases recorded in ${fyLabel}${searchSuffix(searchQuery)}`}
             />
           ) : (
-            <Card style={{ padding: 0, overflow: "hidden" }}>
-              <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "transparent" }}>
-                      <th style={{ ...th, paddingLeft: 16 }}>Scheme</th>
-                      <th style={{ ...th, textAlign: "right" }}>Units</th>
-                      <SortableTh
-                        label="Buy Date"
-                        sortKey="date"
-                        activeKey={sortState.mf_bought?.key}
-                        dir={sortState.mf_bought?.dir}
-                        onClick={(key) => toggleSort("mf_bought", key)}
-                      />
-                      <th style={{ ...th, textAlign: "right" }}>Buy NAV</th>
-                      <SortableTh
-                        label="Amount"
-                        sortKey="amount"
-                        activeKey={sortState.mf_bought?.key}
-                        dir={sortState.mf_bought?.dir}
-                        onClick={(key) => toggleSort("mf_bought", key)}
-                      />
-                      <th style={{ ...th, textAlign: "right" }}>Curr NAV</th>
-                      <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mfBoughtSorted.map((m: any) => {
-                      const buyNav = m.buyNav
-                        ? Number(m.buyNav)
-                        : m.invested && m.units
-                          ? Number(m.invested) / Number(m.units)
-                          : 0;
-                      const currNav = Number(m.currentNav || 0);
-                      const inv = Number(m.units) * buyNav;
-                      const val = Number(m.units) * currNav;
-                      const pnl = val - inv;
-                      return (
-                        <tr
-                          key={m.id}
-                          className="table-row-hover"
+            <DataTable
+              columns={[
+                {
+                  key: "scheme",
+                  header: "Scheme",
+                  accessor: (m: any) => (
+                    <span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>{m.name || m.scheme}</span>
+                      {(m.category || m.mfType || m.type) && (
+                        <span
                           style={{
-                            borderBottom: `1px solid ${THEME.line}`,
+                            fontSize: 9,
+                            marginLeft: 6,
+                            color: THEME.muted,
+                            background: "var(--surface-2)",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontWeight: 700,
                           }}
                         >
-                          <td style={{ ...td, paddingLeft: 16 }}>
-                            <span style={{ fontWeight: 700, color: THEME.ink }}>
-                              {m.name || m.scheme}
-                            </span>
-                            {(m.category || m.mfType || m.type) && (
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  marginLeft: 6,
-                                  color: THEME.muted,
-                                  background: "var(--surface-2)",
-                                  padding: "2px 6px",
-                                  borderRadius: 4,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {m.category || m.mfType || m.type}
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
-                            {Number(m.units).toFixed(3)}
-                          </td>
-                          <td style={{ ...td, textAlign: "right", color: THEME.muted }}>
-                            {fmtDate(m.buyDate)}
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            {buyNav ? <Prv>₹{buyNav.toFixed(4)}</Prv> : "—"}
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
-                            <Prv>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Prv>
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            {currNav ? <Prv>₹{currNav.toFixed(4)}</Prv> : "—"}
-                          </td>
-                          <td
-                            style={{
-                              ...td,
-                              textAlign: "right",
-                              color: pnl >= 0 ? THEME.sage : THEME.rust,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {currNav ? (
-                              <Prv>
-                                {pnl >= 0 ? "+" : ""}₹
-                                {Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                              </Prv>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: "var(--surface-1)" }}>
-                      <td
-                        colSpan={4}
-                        style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}
-                      >
-                        Total Invested
-                      </td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
+                          {m.category || m.mfType || m.type}
+                        </span>
+                      )}
+                    </span>
+                  ),
+                },
+                {
+                  key: "units",
+                  header: "Units",
+                  align: "right",
+                  accessor: (m: any) => (
+                    <span style={{ fontWeight: 700 }}>{Number(m.units).toFixed(3)}</span>
+                  ),
+                },
+                {
+                  key: "date",
+                  header: "Buy Date",
+                  align: "right",
+                  sortable: true,
+                  accessor: (m: any) => <span style={{ color: THEME.muted }}>{fmtDate(m.buyDate)}</span>,
+                },
+                {
+                  key: "buyNav",
+                  header: "Buy NAV",
+                  align: "right",
+                  accessor: (m: any) => {
+                    const buyNav = m.buyNav
+                      ? Number(m.buyNav)
+                      : m.invested && m.units
+                        ? Number(m.invested) / Number(m.units)
+                        : 0;
+                    return (
+                      <span style={{ fontWeight: 600 }}>
+                        {buyNav ? <Prv>₹{buyNav.toFixed(4)}</Prv> : "—"}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "amount",
+                  header: "Amount",
+                  align: "right",
+                  sortable: true,
+                  accessor: (m: any) => {
+                    const buyNav = m.buyNav
+                      ? Number(m.buyNav)
+                      : m.invested && m.units
+                        ? Number(m.invested) / Number(m.units)
+                        : 0;
+                    const inv = Number(m.units) * buyNav;
+                    return (
+                      <span style={{ fontWeight: 800 }}>
+                        <Prv>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Prv>
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "currNav",
+                  header: "Curr NAV",
+                  align: "right",
+                  accessor: (m: any) => {
+                    const currNav = Number(m.currentNav || 0);
+                    return (
+                      <span style={{ fontWeight: 600 }}>
+                        {currNav ? <Prv>₹{currNav.toFixed(4)}</Prv> : "—"}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "pnl",
+                  header: "Unrealized P&L",
+                  align: "right",
+                  accessor: (m: any) => {
+                    const buyNav = m.buyNav
+                      ? Number(m.buyNav)
+                      : m.invested && m.units
+                        ? Number(m.invested) / Number(m.units)
+                        : 0;
+                    const currNav = Number(m.currentNav || 0);
+                    const inv = Number(m.units) * buyNav;
+                    const val = Number(m.units) * currNav;
+                    const pnl = val - inv;
+                    return currNav ? (
+                      <span style={{ color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
                         <Prv>
-                          ₹
-                          {mfBoughtTotals.invested.toLocaleString("en-IN", {
+                          {pnl >= 0 ? "+" : ""}₹
+                          {Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        </Prv>
+                      </span>
+                    ) : (
+                      "—"
+                    );
+                  },
+                },
+              ]}
+              data={mfBoughtSorted}
+              hideSearch
+              keyExtractor={(m: any) => m.id}
+              sortKey={sortState.mf_bought?.key || null}
+              sortDirection={sortState.mf_bought?.dir || "asc"}
+              onSortChange={(key: any) => toggleSort("mf_bought", key)}
+              footer={
+                <>
+                  <tr style={{ background: "var(--surface-1)" }}>
+                    <td colSpan={4} style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}>
+                      Total Invested
+                    </td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
+                      <Prv>
+                        ₹
+                        {mfBoughtTotals.invested.toLocaleString("en-IN", {
+                          maximumFractionDigits: 0,
+                        })}
+                      </Prv>
+                    </td>
+                    <td style={td}></td>
+                    <td
+                      style={{
+                        ...td,
+                        textAlign: "right",
+                        fontWeight: 900,
+                        color: mfBoughtTotals.pnl >= 0 ? THEME.sage : THEME.rust,
+                        fontSize: 15,
+                      }}
+                    >
+                      {mfBoughtTotals.hasCurr ? (
+                        <Prv>
+                          {mfBoughtTotals.pnl >= 0 ? "+" : ""}₹
+                          {Math.abs(mfBoughtTotals.pnl).toLocaleString("en-IN", {
                             maximumFractionDigits: 0,
                           })}
+                          {mfBoughtTotals.unpriced > 0 ? "*" : ""}
                         </Prv>
-                      </td>
-                      <td style={td}></td>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                  {mfBoughtTotals.hasCurr && mfBoughtTotals.unpriced > 0 && (
+                    <tr>
                       <td
+                        colSpan={7}
                         style={{
                           ...td,
-                          textAlign: "right",
-                          fontWeight: 900,
-                          color: mfBoughtTotals.pnl >= 0 ? THEME.sage : THEME.rust,
-                          fontSize: 15,
+                          paddingLeft: 16,
+                          paddingTop: 6,
+                          paddingBottom: 10,
+                          fontSize: 10.5,
+                          color: THEME.muted,
+                          fontStyle: "italic",
+                          borderBottom: "none",
                         }}
                       >
-                        {mfBoughtTotals.hasCurr ? (
-                          <Prv>
-                            {mfBoughtTotals.pnl >= 0 ? "+" : ""}₹
-                            {Math.abs(mfBoughtTotals.pnl).toLocaleString("en-IN", {
-                              maximumFractionDigits: 0,
-                            })}
-                            {mfBoughtTotals.unpriced > 0 ? "*" : ""}
-                          </Prv>
-                        ) : (
-                          "—"
-                        )}
+                        * Approximate — excludes {mfBoughtTotals.unpriced} holding
+                        {mfBoughtTotals.unpriced > 1 ? "s" : ""} with no live NAV data
                       </td>
                     </tr>
-                    {mfBoughtTotals.hasCurr && mfBoughtTotals.unpriced > 0 && (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          style={{
-                            ...td,
-                            paddingLeft: 16,
-                            paddingTop: 6,
-                            paddingBottom: 10,
-                            fontSize: 10.5,
-                            color: THEME.muted,
-                            fontStyle: "italic",
-                            borderBottom: "none",
-                          }}
-                        >
-                          * Approximate — excludes {mfBoughtTotals.unpriced} holding
-                          {mfBoughtTotals.unpriced > 1 ? "s" : ""} with no live NAV data
-                        </td>
-                      </tr>
-                    )}
-                  </tfoot>
-                </table>
-              </div>
-            </Card>
+                  )}
+                </>
+              }
+            />
           )}
         </div>
       )}
@@ -1819,205 +1849,192 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               message={`No bank/cash transactions recorded in ${fyLabel}${searchSuffix(searchQuery)}`}
             />
           ) : (
-            <Card style={{ padding: 0, overflow: "hidden" }}>
-              <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "transparent" }}>
-                      <th style={{ ...th, paddingLeft: 16 }}>Note / Category</th>
-                      <SortableTh
-                        label="Date"
-                        sortKey="date"
-                        activeKey={sortState.cash_ledger?.key}
-                        dir={sortState.cash_ledger?.dir}
-                        onClick={(key) => toggleSort("cash_ledger", key)}
-                      />
-                      <th style={{ ...th, textAlign: "right" }}>Type</th>
-                      <SortableTh
-                        label="Amount"
-                        sortKey="amount"
-                        activeKey={sortState.cash_ledger?.key}
-                        dir={sortState.cash_ledger?.dir}
-                        onClick={(key) => toggleSort("cash_ledger", key)}
-                      />
-                      <th style={{ ...th, textAlign: "right" }}>Description</th>
-                      <th style={th}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cashTransactionsSorted.map((t: any) => {
-                      const amount = Number(t.amount || 0);
-                      const isCredit = t.type === "credit";
-                      return (
-                        <tr
-                          key={t.id}
-                          className="table-row-hover"
-                          style={{
-                            borderBottom: `1px solid ${THEME.line}`,
-                          }}
-                        >
-                          <td style={{ ...td, paddingLeft: 16 }}>
-                            <span style={{ fontWeight: 700, color: THEME.ink }}>
-                              {t.note || "General Ledger"}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 9,
-                                marginLeft: 6,
-                                color: THEME.muted,
-                                background: "var(--surface-2)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {t.category || "Other"}
-                            </span>
-                          </td>
-                          <td
-                            style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}
-                          >
-                            {fmtDate(t.date)}
-                          </td>
-                          <td style={{ ...td, textAlign: "right" }}>
-                            <span
-                              style={{
-                                padding: "3px 10px",
-                                borderRadius: 20,
-                                fontSize: 10,
-                                fontWeight: 800,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.04em",
-                                background: isCredit
-                                  ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
-                                  : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
-                                color: isCredit ? THEME.sage : THEME.rust,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {isCredit ? "▲ Credit" : "▼ Debit"}
-                            </span>
-                          </td>
-                          <td
-                            style={{
-                              ...td,
-                              textAlign: "right",
-                              color: isCredit ? THEME.sage : THEME.rust,
-                              fontWeight: 800,
-                              fontSize: 14,
-                            }}
-                          >
-                            <Prv>
-                              {isCredit ? "+" : "-"}
-                              {fmtINRFull(amount)}
-                            </Prv>
-                          </td>
-                          <td
-                            style={{
-                              ...td,
-                              textAlign: "right",
-                              color: THEME.muted,
-                              fontSize: 12,
-                              maxWidth: 200,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                            title={t.description || undefined}
-                          >
-                            {t.description || "—"}
-                          </td>
-                          <td style={{ ...td, paddingRight: 16 }}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeItem("transactions", t.id)}
-                              title="Delete"
-                              aria-label="Delete transaction"
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: "50%",
-                                padding: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: THEME.rust,
-                              }}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: "var(--surface-1)" }}>
-                      <td colSpan={2} style={{ ...td, paddingLeft: 16 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+            <DataTable
+              columns={[
+                {
+                  key: "note",
+                  header: "Note / Category",
+                  accessor: (t: any) => (
+                    <span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>
+                        {t.note || "General Ledger"}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          marginLeft: 6,
+                          color: THEME.muted,
+                          background: "var(--surface-2)",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {t.category || "Other"}
+                      </span>
+                    </span>
+                  ),
+                },
+                {
+                  key: "date",
+                  header: "Date",
+                  align: "right",
+                  sortable: true,
+                  accessor: (t: any) => (
+                    <span style={{ color: THEME.muted, fontSize: 12 }}>{fmtDate(t.date)}</span>
+                  ),
+                },
+                {
+                  key: "type",
+                  header: "Type",
+                  align: "right",
+                  accessor: (t: any) => {
+                    const isCredit = t.type === "credit";
+                    return (
+                      <span
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: 20,
+                          fontSize: 10,
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                          background: isCredit
+                            ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
+                            : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
+                          color: isCredit ? THEME.sage : THEME.rust,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {isCredit ? "▲ Credit" : "▼ Debit"}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "amount",
+                  header: "Amount",
+                  align: "right",
+                  sortable: true,
+                  accessor: (t: any) => {
+                    const amount = Number(t.amount || 0);
+                    const isCredit = t.type === "credit";
+                    return (
+                      <span style={{ color: isCredit ? THEME.sage : THEME.rust, fontWeight: 800, fontSize: 14 }}>
+                        <Prv>
+                          {isCredit ? "+" : "-"}
+                          {fmtINRFull(amount)}
+                        </Prv>
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "description",
+                  header: "Description",
+                  align: "right",
+                  accessor: (t: any) => (
+                    <span
+                      style={{
+                        color: THEME.muted,
+                        fontSize: 12,
+                        maxWidth: 200,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        display: "inline-block",
+                      }}
+                      title={t.description || undefined}
+                    >
+                      {t.description || "—"}
+                    </span>
+                  ),
+                },
+              ]}
+              data={cashTransactionsSorted}
+              hideSearch
+              keyExtractor={(t: any) => t.id}
+              sortKey={sortState.cash_ledger?.key || null}
+              sortDirection={sortState.cash_ledger?.dir || "asc"}
+              onSortChange={(key: any) => toggleSort("cash_ledger", key)}
+              actions={(t: any) => (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeItem("transactions", t.id)}
+                  title="Delete"
+                  aria-label="Delete transaction"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: THEME.rust,
+                  }}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              )}
+              footer={
+                <tr style={{ background: "var(--surface-1)" }}>
+                  <td colSpan={2} style={{ ...td, paddingLeft: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+                      {
+                        cashTransactionsInFY.filter(
+                          (t: any) => t.type === "credit" && !isTransferCategory(t.category)
+                        ).length
+                      }{" "}
+                      credits ·{" "}
+                      {
+                        cashTransactionsInFY.filter(
+                          (t: any) => t.type === "debit" && !isTransferCategory(t.category)
+                        ).length
+                      }{" "}
+                      debits
+                      {hasTransfers && (
+                        <span style={{ opacity: 0.7 }}>
+                          {" "}
+                          ·{" "}
                           {
-                            cashTransactionsInFY.filter(
-                              (t: any) => t.type === "credit" && !isTransferCategory(t.category)
-                            ).length
+                            cashTransactionsInFY.filter((t: any) => isTransferCategory(t.category))
+                              .length
                           }{" "}
-                          credits ·{" "}
-                          {
-                            cashTransactionsInFY.filter(
-                              (t: any) => t.type === "debit" && !isTransferCategory(t.category)
-                            ).length
-                          }{" "}
-                          debits
-                          {hasTransfers && (
-                            <span style={{ opacity: 0.7 }}>
-                              {" "}
-                              ·{" "}
-                              {
-                                cashTransactionsInFY.filter((t: any) =>
-                                  isTransferCategory(t.category)
-                                ).length
-                              }{" "}
-                              transfers (excluded)
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={td}></td>
-                      <td style={{ ...td, textAlign: "right" }}>
-                        <div style={{ fontSize: 13, fontWeight: 900, color: THEME.sage }}>
-                          <Prv>
-                            +₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                          </Prv>
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 900, color: THEME.rust }}>
-                          <Prv>
-                            -₹{totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                          </Prv>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: cashNetFlow >= 0 ? THEME.sage : THEME.rust,
-                            borderTop: `1px solid ${THEME.line}`,
-                            paddingTop: 4,
-                            marginTop: 4,
-                          }}
-                        >
-                          <Prv>
-                            Net {cashNetFlow >= 0 ? "+" : ""}₹
-                            {Math.abs(cashNetFlow).toLocaleString("en-IN", {
-                              maximumFractionDigits: 2,
-                            })}
-                          </Prv>
-                        </div>
-                      </td>
-                      <td colSpan={2} style={td}></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </Card>
+                          transfers (excluded)
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={td}></td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: THEME.sage }}>
+                      <Prv>+₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</Prv>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: THEME.rust }}>
+                      <Prv>-₹{totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</Prv>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: cashNetFlow >= 0 ? THEME.sage : THEME.rust,
+                        borderTop: `1px solid ${THEME.line}`,
+                        paddingTop: 4,
+                        marginTop: 4,
+                      }}
+                    >
+                      <Prv>
+                        Net {cashNetFlow >= 0 ? "+" : ""}₹
+                        {Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                      </Prv>
+                    </div>
+                  </td>
+                  <td colSpan={2} style={td}></td>
+                </tr>
+              }
+            />
           )}
         </div>
       )}
