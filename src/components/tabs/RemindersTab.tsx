@@ -32,9 +32,9 @@ import {
   today,
   getCCDueDate,
   getLocalDateString,
-  nextAnnualOccurrence,
   getEffectiveRent,
 } from "../../utils/finance";
+import { useMilestoneEvents } from "../../hooks/useFinancialEvents";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -86,6 +86,10 @@ const TYPE_ICONS: Record<string, any> = {
 
 const MANUAL_CATEGORIES = ["Reminder", "Health", "Vehicle", "Tax", "Bills"];
 
+// Far-future cutoff so useMilestoneEvents returns every upcoming event
+// unfiltered by horizon — this tab applies its own 365-day-ish window below.
+const FAR_FUTURE_CUTOFF = "2099-12-31";
+
 const DEFAULT_NOTIF_SETTINGS = {
   leadDays: 3,
   notifStartHour: 6,
@@ -131,6 +135,22 @@ function fmtDisplayDate(dateStr: string): string {
 }
 
 export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
+  // CC annual fee, FD/bond maturity, insurance premium, and loan-given
+  // recovery below now source their date/annualize/guard logic from the same
+  // shared hook the header bell and push notifications already use, instead
+  // of a 4th independent copy — closes the drift class that let this file's
+  // insurance-premium amount silently ignore policies recorded as
+  // premium+premiumFrequency (only read annualPremium directly, the same
+  // understatement bug fixed elsewhere this session) and let its loan-given
+  // recovery item read `l.lender || l.name`, neither of which exists on a
+  // loansGiven record (real field is `.borrower`) — a 3rd instance of that
+  // exact bug, after useNotifications.ts. Rent (both directions) and
+  // subscriptions were left independent: rent's tenant-paid side has no
+  // shared-hook equivalent and this file's rent logic is already the
+  // gold-standard the shared hook was ported FROM; subscriptions here
+  // intentionally include monthly-cycle renewals, which the shared hook
+  // deliberately excludes for calendar-declutter reasons.
+  const milestoneEvents = useMilestoneEvents(state, FAR_FUTURE_CUTOFF);
   const [show, setShow] = useState(false);
   const [editingReminder, setEditingReminder] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState("All");
@@ -246,6 +266,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
 
   const allReminders = useMemo(() => {
     const list: any[] = [];
+    const milestoneByType = (type: string) => milestoneEvents.filter((e: any) => e.type === type);
 
     // ── 1. CREDIT CARDS ──
     (state.creditCards || [])
@@ -269,33 +290,18 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       });
 
     // ── 1b. CREDIT CARD ANNUAL FEES ──
-    (state.creditCards || [])
-      .filter(
-        (c: any) =>
-          (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth
-      )
-      .forEach((c: any) => {
-        const month = Number(c.feeMonth) - 1;
-        const day = Number(c.feeDay) || 1;
-        const todayStr = today();
-        // nextAnnualOccurrence clamps day-of-month (e.g. fee day 29-31 in Feb)
-        // instead of letting `new Date(y, month, day)` silently overflow into
-        // the next month — same class of bug already fixed for getCCDueDate.
-        const feeDateStr = nextAnnualOccurrence(
-          `${todayStr.slice(0, 4)}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-          todayStr
-        );
-        const [yyyy, mm, dd] = feeDateStr.split("-");
-        list.push({
-          id: "ccfee-" + c.id,
-          title: (c.issuer || "Card") + " — Annual Fee",
-          subtitle: `Yearly charge · ${fmtINRExact(c.annualFee)}`,
-          date: `${yyyy}-${mm}-${dd}`,
-          type: "Credit Card",
-          amount: Number(c.annualFee),
-          isOutflow: true,
-        });
+    milestoneByType("cc_fee").forEach((e: any) => {
+      const c = e.source;
+      list.push({
+        id: "ccfee-" + c.id,
+        title: (c.issuer || "Card") + " — Annual Fee",
+        subtitle: `Yearly charge · ${fmtINRExact(c.annualFee)}`,
+        date: e.date,
+        type: "Credit Card",
+        amount: Number(c.annualFee),
+        isOutflow: true,
       });
+    });
 
     // ── 2. SUBSCRIPTIONS ──
     (state.subscriptions || [])
@@ -314,31 +320,31 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       });
 
     // ── 3. FIXED DEPOSITS ──
-    (state.fixedDeposits || []).forEach((f: any) => {
-      if (f.maturityDate)
-        list.push({
-          id: "fd-" + f.id,
-          title: "FD Maturity — " + (f.bank || f.bankName || "Bank"),
-          subtitle: "Principal: " + fmtINRExact(f.principal),
-          date: f.maturityDate,
-          type: "Fixed Deposit",
-          amount: Number(f.principal || 0),
-          isOutflow: false,
-        });
+    milestoneByType("fd_maturity").forEach((e: any) => {
+      const f = e.source;
+      list.push({
+        id: "fd-" + f.id,
+        title: "FD Maturity — " + (f.bank || f.bankName || "Bank"),
+        subtitle: "Principal: " + fmtINRExact(f.principal),
+        date: e.date,
+        type: "Fixed Deposit",
+        amount: Number(f.principal || 0),
+        isOutflow: false,
+      });
     });
 
     // ── 4. BONDS ──
-    (state.bonds || []).forEach((b: any) => {
-      if (b.maturityDate)
-        list.push({
-          id: "bond-" + b.id,
-          title: "Bond Maturity — " + b.name,
-          subtitle: "Face Value: " + fmtINRExact(b.faceValue),
-          date: b.maturityDate,
-          type: "Bond",
-          amount: 0,
-          isOutflow: false,
-        });
+    milestoneByType("bond_maturity").forEach((e: any) => {
+      const b = e.source;
+      list.push({
+        id: "bond-" + b.id,
+        title: "Bond Maturity — " + b.name,
+        subtitle: "Face Value: " + fmtINRExact(b.faceValue),
+        date: e.date,
+        type: "Bond",
+        amount: 0,
+        isOutflow: false,
+      });
     });
 
     // ── 5. LIC POLICIES ──
@@ -353,41 +359,65 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           amount: 0,
           isOutflow: false,
         });
-      if (l.commencementDate) {
-        const comm = new Date(l.commencementDate);
-        if (!isNaN(comm.getTime())) {
-          // nextAnnualOccurrence clamps day-of-month (e.g. a Feb 29 anniversary
-          // in a non-leap year) instead of letting `new Date(y, month, date)`
-          // silently overflow into the next month.
-          const anniversary = new Date(
-            nextAnnualOccurrence(l.commencementDate, today()) + "T00:00:00"
-          );
-          let isMatured = false;
-          if (l.maturityDate) {
-            const mat = new Date(l.maturityDate);
-            if (!isNaN(mat.getTime()) && anniversary > mat) isMatured = true;
-          }
-          const policyTerm = l.policyTerm ? parseInt(l.policyTerm, 10) : null;
-          if (policyTerm && !isNaN(policyTerm)) {
-            const yearsElapsed = anniversary.getFullYear() - comm.getFullYear();
-            if (yearsElapsed >= policyTerm) isMatured = true;
-          }
-          if (!isMatured) {
-            list.push({
-              id: "lic-prem-" + l.id,
-              title: `LIC Premium — ${l.planName}`,
-              subtitle: `Policy: ${l.policyNumber || "N/A"} · Premium: ${fmtINRExact(l.annualPremium)}`,
-              date: getLocalDateString(anniversary),
-              type: "LIC Premium",
-              amount: Number(l.annualPremium || 0),
-              isOutflow: true,
-            });
-          }
-        }
+    });
+    // LIC/Term/Investment premiums now source next-due-date/amount/expiry-guard
+    // from the shared useMilestoneEvents hook (same one the header bell and
+    // push notifications use) instead of a 4th independent copy — this also
+    // picks up annualizePremium (policies recorded as premium+premiumFrequency
+    // instead of a pre-set annualPremium were previously shown with `amount: 0`
+    // here, the same understatement bug fixed elsewhere this session). The
+    // extra policyTerm-years-elapsed maturity check below is preserved exactly
+    // as before (belt-and-suspenders alongside the shared hook's own
+    // maturityDate/expiryDate check) since `e.date` is the identical
+    // nextAnnualOccurrence-derived anniversary this file computed locally.
+    const policyTermMatured = (source: any, termField: string, anniversaryStr: string) => {
+      const payTerm = source[termField] ? parseInt(source[termField], 10) : null;
+      if (!payTerm || isNaN(payTerm)) return false;
+      const comm = new Date(source.commencementDate || source.startDate);
+      const anniversary = new Date(anniversaryStr + "T00:00:00");
+      if (isNaN(comm.getTime())) return false;
+      return anniversary.getFullYear() - comm.getFullYear() >= payTerm;
+    };
+    milestoneByType("insurance_premium").forEach((e: any) => {
+      const p = e.source;
+      if (e.sourceLabel === "LIC") {
+        if (policyTermMatured(p, "policyTerm", e.date)) return;
+        list.push({
+          id: "lic-prem-" + p.id,
+          title: `LIC Premium — ${p.planName}`,
+          subtitle: `Policy: ${p.policyNumber || "N/A"} · Premium: ${fmtINRExact(e.amount)}`,
+          date: e.date,
+          type: "LIC Premium",
+          amount: Number(e.amount || 0),
+          isOutflow: true,
+        });
+      } else if (e.sourceLabel === "Term Plan") {
+        if (policyTermMatured(p, p.premiumPayingTerm ? "premiumPayingTerm" : "term", e.date)) return;
+        list.push({
+          id: "term-prem-" + p.id,
+          title: `Term Premium — ${p.planName || "Plan"}`,
+          subtitle: `Insurer: ${p.insurer || "N/A"} · Premium: ${fmtINRExact(e.amount)}`,
+          date: e.date,
+          type: "Term Premium",
+          amount: Number(e.amount || 0),
+          isOutflow: true,
+        });
+      } else if (e.sourceLabel === "Investment Plan") {
+        if (policyTermMatured(p, p.premiumPayingTerm ? "premiumPayingTerm" : "policyTerm", e.date))
+          return;
+        list.push({
+          id: "invest-prem-" + p.id,
+          title: `Investment Premium — ${p.planName || "Plan"}`,
+          subtitle: `Insurer: ${p.insurer || "N/A"} · Premium: ${fmtINRExact(e.amount)}`,
+          date: e.date,
+          type: "Investment Premium",
+          amount: Number(e.amount || 0),
+          isOutflow: true,
+        });
       }
     });
 
-    // ── 6. TERM PLANS ──
+    // ── 6. TERM PLANS (maturity/expiry) ──
     (state.termPlans || []).forEach((t: any) => {
       if (t.expiryDate)
         list.push({
@@ -399,42 +429,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           amount: 0,
           isOutflow: false,
         });
-      if (t.startDate) {
-        const comm = new Date(t.startDate);
-        if (!isNaN(comm.getTime())) {
-          // nextAnnualOccurrence clamps day-of-month instead of letting
-          // `new Date(y, month, date)` silently overflow into the next month.
-          const anniversary = new Date(nextAnnualOccurrence(t.startDate, today()) + "T00:00:00");
-          let isExpired = false;
-          if (t.expiryDate) {
-            const exp = new Date(t.expiryDate);
-            if (!isNaN(exp.getTime()) && anniversary > exp) isExpired = true;
-          }
-          const payTerm = t.premiumPayingTerm
-            ? parseInt(t.premiumPayingTerm, 10)
-            : t.term
-              ? parseInt(t.term, 10)
-              : null;
-          if (payTerm && !isNaN(payTerm)) {
-            const yearsElapsed = anniversary.getFullYear() - comm.getFullYear();
-            if (yearsElapsed >= payTerm) isExpired = true;
-          }
-          if (!isExpired) {
-            list.push({
-              id: "term-prem-" + t.id,
-              title: `Term Premium — ${t.planName || "Plan"}`,
-              subtitle: `Insurer: ${t.insurer || "N/A"} · Premium: ${fmtINRExact(t.annualPremium)}`,
-              date: getLocalDateString(anniversary),
-              type: "Term Premium",
-              amount: Number(t.annualPremium || 0),
-              isOutflow: true,
-            });
-          }
-        }
-      }
     });
 
-    // ── 7. INVESTMENT PLANS ──
+    // ── 7. INVESTMENT PLANS (maturity) ──
     (state.investmentPlans || []).forEach((ip: any) => {
       if (ip.maturityDate) {
         list.push({
@@ -447,55 +444,27 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           isOutflow: false,
         });
       }
-      if (ip.commencementDate) {
-        const comm = new Date(ip.commencementDate);
-        if (!isNaN(comm.getTime())) {
-          // nextAnnualOccurrence clamps day-of-month instead of letting
-          // `new Date(y, month, date)` silently overflow into the next month.
-          const anniversary = new Date(
-            nextAnnualOccurrence(ip.commencementDate, today()) + "T00:00:00"
-          );
-          let isMatured = false;
-          if (ip.maturityDate) {
-            const mat = new Date(ip.maturityDate);
-            if (!isNaN(mat.getTime()) && anniversary > mat) isMatured = true;
-          }
-          const payTerm = ip.premiumPayingTerm
-            ? parseInt(ip.premiumPayingTerm, 10)
-            : ip.policyTerm
-              ? parseInt(ip.policyTerm, 10)
-              : null;
-          if (payTerm && !isNaN(payTerm)) {
-            const yearsElapsed = anniversary.getFullYear() - comm.getFullYear();
-            if (yearsElapsed >= payTerm) isMatured = true;
-          }
-          if (!isMatured) {
-            list.push({
-              id: "invest-prem-" + ip.id,
-              title: `Investment Premium — ${ip.planName || "Plan"}`,
-              subtitle: `Insurer: ${ip.insurer || "N/A"} · Premium: ${fmtINRExact(ip.annualPremium)}`,
-              date: getLocalDateString(anniversary),
-              type: "Investment Premium",
-              amount: Number(ip.annualPremium || 0),
-              isOutflow: true,
-            });
-          }
-        }
-      }
     });
 
-    // ── 8. LOANS GIVEN (recovery) ──
-    (state.loansGiven || []).forEach((l: any) => {
-      if (l.dueDate)
-        list.push({
-          id: "loan-" + l.id,
-          title: "Loan Recovery — " + (l.lender || l.name || "Borrower"),
-          subtitle: "Outstanding: " + fmtINRExact(l.outstanding),
-          date: l.dueDate,
-          type: "Loan Given",
-          amount: Number(l.outstanding || 0),
-          isOutflow: false,
-        });
+    // ── 8. LOANS GIVEN (recovery) ── sourced from the shared hook, which
+    // fixes two real bugs this block had: it read `l.lender || l.name`,
+    // neither of which exists on a loansGiven record (the real field is
+    // `.borrower`, confirmed in CreditTab.tsx) — every recovery reminder
+    // always showed the generic fallback "Borrower" instead of the actual
+    // person's name — and never excluded already-settled loans
+    // (outstanding <= 0), so a fully repaid loan could still show a
+    // "recovery" reminder here.
+    milestoneByType("loan_given_repayment").forEach((e: any) => {
+      const l = e.source;
+      list.push({
+        id: "loan-" + l.id,
+        title: "Loan Recovery — " + (l.borrower || "Borrower"),
+        subtitle: "Outstanding: " + fmtINRExact(l.outstanding),
+        date: e.date,
+        type: "Loan Given",
+        amount: Number(l.outstanding || 0),
+        isOutflow: false,
+      });
     });
 
     // ── 9. RENTED PROPERTIES — Monthly Rent Dues ──
