@@ -31,6 +31,7 @@ import {
   BarChart3,
   Pencil,
   PartyPopper,
+  Save,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
@@ -328,20 +329,62 @@ const AddTaxPaymentModal = ({ onClose, onSave }: any) => {
    FORM 26AS RECONCILER
    ══════════════════════════════════════════════════════════════════ */
 
+// Parses the handful of date formats a 26AS/TRACES export commonly uses
+// ("15-Jun-2025", "15-06-2025", "15/06/2025", "2025-06-15") into YYYY-MM-DD.
+// Returns null on anything else rather than guessing — dateOfPayment is
+// optional on a form26as record (entryFY() in TaxToolsTab.tsx falls back to
+// the explicit `fy` field when it's missing), so a row this can't parse still
+// saves correctly scoped to the right financial year, just without a display date.
+const MONTH_ABBR: Record<string, string> = {
+  jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+  jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+};
+const normalize26ASDate = (raw: string): string | null => {
+  if (!raw) return null;
+  const s = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const monMatch = s.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})[-\s](\d{4})$/);
+  if (monMatch) {
+    const mon = MONTH_ABBR[monMatch[2].slice(0, 3).toLowerCase()];
+    if (mon) return `${monMatch[3]}-${mon}-${monMatch[1].padStart(2, "0")}`;
+  }
+  const numMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (numMatch) return `${numMatch[3]}-${numMatch[2].padStart(2, "0")}-${numMatch[1].padStart(2, "0")}`;
+  return null;
+};
+
 const Reconciler26AS = ({
   income,
   taxPayments,
   fy,
   fyStartStr,
   fyEndStr,
+  existingLedger,
+  addItem,
+  showToast,
 }: {
   income: any[];
   taxPayments: any[];
   fy: string;
   fyStartStr: string;
   fyEndStr: string;
+  existingLedger?: any[];
+  addItem?: any;
+  showToast?: any;
 }) => {
   const [rawText, setRawText] = useState("");
+  const [savingToLedger, setSavingToLedger] = useState(false);
+  // Rows saved this session (deductor+amount key), independent of the
+  // `existingLedger` prop. addItem() does update state.form26as
+  // optimistically before its network write, but that update has to
+  // round-trip back down through App.tsx -> TaxVaultTab -> this component as
+  // a fresh prop before existingForFY reflects it — a second Save click that
+  // lands before that round-trip completes (e.g. re-parsing the same paste
+  // right after saving it) must not re-add the same rows. This local set is
+  // authoritative the instant a save resolves, with no re-render to wait on.
+  const [savedRowKeys, setSavedRowKeys] = useState<Set<string>>(new Set());
+  const rowKey = (row: any) =>
+    `${(row.deductor || "").trim().toLowerCase()}|${Math.round(Number(row.tdsDeducted || 0))}`;
   const [parsed26AS, setParsed26AS] = useState<any[]>([]);
   const [parseError, setParseError] = useState("");
 
@@ -483,6 +526,66 @@ const Reconciler26AS = ({
 
     return { matched, unmatchedIn26AS, missingFrom26AS };
   }, [parsed26AS, fyIncome, fyTDS]);
+
+  // Persists this paste into the same state.form26as ledger TaxToolsTab's Form
+  // 26AS Reconciliation section reads/writes — the two used to be entirely
+  // separate: this reconciler was ephemeral (parsed26AS resets on navigation,
+  // never saved anywhere), while TaxTools required typing entries in one at a
+  // time. Now a paste-and-reconcile here also builds the persisted ledger
+  // TaxTools (and any future consumer) sees. Dedupes against entries already
+  // saved for this FY by deductor + amount (±₹1) so re-pasting the same
+  // export, or pasting after already having logged some rows manually in
+  // TaxTools, doesn't create duplicates.
+  const existingForFY = useMemo(
+    () => (existingLedger || []).filter((e: any) => e.fy === fy),
+    [existingLedger, fy]
+  );
+  const isAlreadyInLedger = (row: any) =>
+    savedRowKeys.has(rowKey(row)) ||
+    existingForFY.some(
+      (e: any) =>
+        (e.deductor || "").trim().toLowerCase() === (row.deductor || "").trim().toLowerCase() &&
+        Math.abs(Number(e.amount || 0) - Number(row.tdsDeducted || 0)) < 1
+    );
+  const saveToLedger = async () => {
+    if (!addItem || savingToLedger || parsed26AS.length === 0) return;
+    const toSave = parsed26AS.filter((row) => Number(row.tdsDeducted) > 0 && !isAlreadyInLedger(row));
+    if (toSave.length === 0) {
+      showToast?.("Nothing new to save — every parsed row is already in your 26AS ledger.", "info");
+      return;
+    }
+    setSavingToLedger(true);
+    try {
+      await Promise.all(
+        toSave.map((row) =>
+          addItem("form26as", {
+            deductor: row.deductor,
+            tan: row.tan || null,
+            amount: Number(row.tdsDeducted),
+            dateOfPayment: normalize26ASDate(row.date),
+            section: row.section || "Other",
+            fy,
+          })
+        )
+      );
+      setSavedRowKeys((prev) => {
+        const next = new Set(prev);
+        toSave.forEach((row) => next.add(rowKey(row)));
+        return next;
+      });
+      const skipped = parsed26AS.length - toSave.length;
+      showToast?.(
+        `Saved ${toSave.length} entr${toSave.length === 1 ? "y" : "ies"} to your 26AS ledger${
+          skipped > 0 ? ` (${skipped} already there)` : ""
+        } — also visible in Tax Tools → 26AS Reconciliation.`,
+        "success"
+      );
+    } catch (e: any) {
+      showToast?.(`Couldn't save to 26AS ledger: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingToLedger(false);
+    }
+  };
 
   const thStyle = {
     padding: "8px 10px",
@@ -654,6 +757,38 @@ const Reconciler26AS = ({
               </div>
             </Card>
           </div>
+
+          {/* Save into the shared 26AS ledger (state.form26as) */}
+          {addItem && (
+            <Card
+              style={{
+                padding: "12px 16px",
+                marginBottom: 20,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                borderLeft: `3px solid ${THEME.accent}`,
+              }}
+            >
+              <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5 }}>
+                {existingForFY.length > 0 ? (
+                  <>
+                    <b style={{ color: THEME.ink }}>{existingForFY.length}</b> entr
+                    {existingForFY.length === 1 ? "y" : "ies"} already saved to your 26AS ledger for
+                    FY {fy} (shared with Tax Tools → 26AS Reconciliation).
+                  </>
+                ) : (
+                  <>Save these rows to your 26AS ledger — same one Tax Tools' 26AS Reconciliation reads.</>
+                )}
+              </div>
+              <Button size="sm" variant="accent" loading={savingToLedger} onClick={saveToLedger}>
+                <Save size={13} style={{ marginRight: 4 }} />
+                Save to 26AS Ledger
+              </Button>
+            </Card>
+          )}
 
           {/* Matched entries */}
           {reconciled.matched.length > 0 && (
@@ -1196,6 +1331,7 @@ interface TaxVaultTabProps {
   updateItem: any;
   updateProfile?: any;
   updateMasterData?: any;
+  showToast?: any;
 }
 
 export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
@@ -1205,6 +1341,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   removeItem,
   updateProfile,
   updateMasterData,
+  showToast,
 }) => {
   const [subTab, setSubTab] = useState<"income" | "capitalGains" | "reconciler">("income");
   const [showModal, setShowModal] = useState(false);
@@ -5165,6 +5302,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             fy={fy}
             fyStartStr={fyStartStr}
             fyEndStr={fyEndStr}
+            existingLedger={state.form26as || []}
+            addItem={addItem}
+            showToast={showToast}
           />
         </div>
       )}

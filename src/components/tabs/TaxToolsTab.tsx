@@ -1067,7 +1067,9 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
         <FYSelector fy={fy} setFy={setFy} fyList={fyList} />
       </div>
       <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>
-        Compare your recorded TDS entries against Form 26AS / AIS data — FY {fy}
+        Compare your recorded TDS entries against Form 26AS / AIS data — FY {fy}. Adding many
+        entries at once? Tax Vault → 26AS Reconciler can parse a pasted TRACES export and save them
+        here in bulk.
       </div>
 
       {/* Summary */}

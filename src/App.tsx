@@ -3593,6 +3593,7 @@ function FinanceDashboard() {
                   updateItem={updateItem}
                   updateProfile={updateProfile}
                   updateMasterData={updateMasterData}
+                  showToast={showToast}
                 />
               )}
               {tab === "rental" && (
