@@ -21,6 +21,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+import { DataTable } from "../design-system/DataTable";
 
 const th = {
   textAlign: "left" as const,
@@ -281,180 +282,166 @@ const SoldTable = ({
       />
     );
   return (
-    <Card style={{ padding: 0, overflow: "hidden" }}>
-      <div className="mobile-table-wrap" style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "transparent" }}>
-              <th style={{ ...th, paddingLeft: 16 }}>{type === "stock" ? "Company" : "Scheme"}</th>
-              <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
-              <th style={{ ...th, textAlign: "right" }}>
-                {type === "stock" ? "Buy Price" : "Buy NAV"}
-              </th>
-              <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Qty" : "Units"}</th>
-              <SortableTh
-                label="Sell Date"
-                sortKey="date"
-                activeKey={sortKey}
-                dir={sortDir}
-                onClick={onSort}
-              />
-              <th style={{ ...th, textAlign: "right" }}>
-                {type === "stock" ? "Sell Price" : "Sell NAV"}
-              </th>
-              <SortableTh
-                label="Profit / Loss"
-                sortKey="amount"
-                activeKey={sortKey}
-                dir={sortDir}
-                onClick={onSort}
-              />
-              <th style={{ ...th, textAlign: "right" }}>Broker</th>
-              <th style={th}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((s: any) => {
-              const profit = Number(s.profit || 0);
-              const buyP = type === "stock" ? Number(s.buyPrice) : Number(s.buyNav);
-              const sellP = type === "stock" ? Number(s.sellPrice) : Number(s.sellNav);
-              return (
-                <tr
-                  key={s.id}
-                  className="table-row-hover"
+    <DataTable
+      columns={[
+        {
+          key: "company",
+          header: type === "stock" ? "Company" : "Scheme",
+          accessor: (s: any) => (
+            <span>
+              <span style={{ fontWeight: 700, color: THEME.ink }}>
+                {type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}
+              </span>
+              {(type === "stock" || (type === "mf" && s.type)) && (
+                <span
                   style={{
-                    borderBottom: `1px solid ${THEME.line}`,
+                    fontSize: 9,
+                    marginLeft: 6,
+                    color: THEME.muted,
+                    background: "var(--surface-2)",
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    fontWeight: 700,
                   }}
                 >
-                  <td style={{ ...td, paddingLeft: 16 }}>
-                    <span style={{ fontWeight: 700, color: THEME.ink }}>
-                      {type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}
-                    </span>
-                    {type === "stock" && (
-                      <span
-                        style={{
-                          fontSize: 9,
-                          marginLeft: 6,
-                          color: THEME.muted,
-                          background: "var(--surface-2)",
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {s.exchange || "NSE"}
-                      </span>
-                    )}
-                    {type === "mf" && s.type && (
-                      <span
-                        style={{
-                          fontSize: 9,
-                          marginLeft: 6,
-                          color: THEME.muted,
-                          background: "var(--surface-2)",
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {s.type}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
-                    {fmtDate(s.buyDate)}
-                  </td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                    <Prv>₹{buyP.toFixed(type === "mf" ? 4 : 2)}</Prv>
-                  </td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
-                    {type === "stock" ? s.qty : Number(s.units).toFixed(3)}
-                  </td>
-                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
-                    {fmtDate(s.sellDate)}
-                  </td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                    <span style={{ color: sellP >= buyP ? THEME.sage : THEME.rust }}>
-                      <Prv>
-                        ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
-                      </Prv>
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      ...td,
-                      textAlign: "right",
-                      color: profit >= 0 ? THEME.sage : THEME.rust,
-                      fontWeight: 800,
-                      fontSize: 14,
-                    }}
-                  >
-                    <Prv>
-                      {profit >= 0 ? "+" : ""}₹
-                      {Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                    </Prv>
-                  </td>
-                  <td
-                    style={{
-                      ...td,
-                      textAlign: "right",
-                      color: THEME.muted,
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {s.broker || "—"}
-                  </td>
-                  <td style={{ ...td, paddingRight: 16 }}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)}
-                      title="Delete"
-                      aria-label="Delete sale record"
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        padding: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: THEME.rust,
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr style={{ background: "var(--surface-1)" }}>
-              <td colSpan={6} style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}>
-                Total Realized P&L
-              </td>
-              <td
-                style={{
-                  ...td,
-                  textAlign: "right",
-                  fontWeight: 900,
-                  color: total >= 0 ? THEME.sage : THEME.rust,
-                  fontSize: 15,
-                }}
-              >
+                  {type === "stock" ? s.exchange || "NSE" : s.type}
+                </span>
+              )}
+            </span>
+          ),
+        },
+        {
+          key: "buyDate",
+          header: "Buy Date",
+          align: "right",
+          accessor: (s: any) => (
+            <span style={{ color: THEME.muted, fontSize: 12 }}>{fmtDate(s.buyDate)}</span>
+          ),
+        },
+        {
+          key: "buyPrice",
+          header: type === "stock" ? "Buy Price" : "Buy NAV",
+          align: "right",
+          accessor: (s: any) => {
+            const buyP = type === "stock" ? Number(s.buyPrice) : Number(s.buyNav);
+            return (
+              <span style={{ fontWeight: 600 }}>
+                <Prv>₹{buyP.toFixed(type === "mf" ? 4 : 2)}</Prv>
+              </span>
+            );
+          },
+        },
+        {
+          key: "qty",
+          header: type === "stock" ? "Qty" : "Units",
+          align: "right",
+          accessor: (s: any) => (
+            <span style={{ fontWeight: 700 }}>
+              {type === "stock" ? s.qty : Number(s.units).toFixed(3)}
+            </span>
+          ),
+        },
+        {
+          key: "date",
+          header: "Sell Date",
+          align: "right",
+          sortable: true,
+          accessor: (s: any) => (
+            <span style={{ color: THEME.muted, fontSize: 12 }}>{fmtDate(s.sellDate)}</span>
+          ),
+        },
+        {
+          key: "sellPrice",
+          header: type === "stock" ? "Sell Price" : "Sell NAV",
+          align: "right",
+          accessor: (s: any) => {
+            const buyP = type === "stock" ? Number(s.buyPrice) : Number(s.buyNav);
+            const sellP = type === "stock" ? Number(s.sellPrice) : Number(s.sellNav);
+            return (
+              <span style={{ fontWeight: 600, color: sellP >= buyP ? THEME.sage : THEME.rust }}>
                 <Prv>
-                  {total >= 0 ? "+" : ""}₹
-                  {Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
                 </Prv>
-              </td>
-              <td colSpan={2} style={td}></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </Card>
+              </span>
+            );
+          },
+        },
+        {
+          key: "amount",
+          header: "Profit / Loss",
+          align: "right",
+          sortable: true,
+          accessor: (s: any) => {
+            const profit = Number(s.profit || 0);
+            return (
+              <span style={{ color: profit >= 0 ? THEME.sage : THEME.rust, fontWeight: 800, fontSize: 14 }}>
+                <Prv>
+                  {profit >= 0 ? "+" : ""}₹
+                  {Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </Prv>
+              </span>
+            );
+          },
+        },
+        {
+          key: "broker",
+          header: "Broker",
+          align: "right",
+          accessor: (s: any) => (
+            <span style={{ color: THEME.muted, fontSize: 12, fontWeight: 600 }}>{s.broker || "—"}</span>
+          ),
+        },
+      ]}
+      data={rows}
+      hideSearch
+      keyExtractor={(s: any) => s.id}
+      sortKey={sortKey || null}
+      sortDirection={sortDir || "asc"}
+      onSortChange={(key: any) => onSort(key)}
+      actions={(s: any) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)}
+          title="Delete"
+          aria-label="Delete sale record"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: THEME.rust,
+          }}
+        >
+          <Trash2 size={14} />
+        </Button>
+      )}
+      footer={
+        <tr style={{ background: "var(--surface-1)" }}>
+          <td colSpan={6} style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}>
+            Total Realized P&L
+          </td>
+          <td
+            style={{
+              ...td,
+              textAlign: "right",
+              fontWeight: 900,
+              color: total >= 0 ? THEME.sage : THEME.rust,
+              fontSize: 15,
+            }}
+          >
+            <Prv>
+              {total >= 0 ? "+" : ""}₹
+              {Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            </Prv>
+          </td>
+          <td colSpan={2} style={td}></td>
+        </tr>
+      }
+    />
   );
 };
 
