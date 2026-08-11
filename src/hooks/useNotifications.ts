@@ -6,6 +6,8 @@ import {
   getLocalDateString,
   getEffectiveRent,
   alertDismissKey,
+  nextAnnualOccurrence,
+  annualizePremium,
 } from "../utils/finance";
 
 export function useNotifications(loaded: boolean, session: any, state: any): void {
@@ -242,32 +244,40 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
     }
 
     if (cats.insurancePremiums !== false) {
+      // Was hand-rolling its own `new Date(year, month, date)` anniversary calc
+      // instead of the shared `nextAnnualOccurrence` helper every other premium
+      // computation in the app uses — silently overflowed a Feb 29 start date
+      // into March in non-leap years. Also used the raw `annualPremium` field
+      // only, missing policies that carry `premium` + `premiumFrequency`
+      // instead (the same understatement class as the 12x premium bug fixed
+      // earlier this session), and never checked whether the policy had
+      // already matured. All three fixed by routing through the same shared
+      // helpers/checks as useMilestoneEvents' addInsurancePremium.
       const allPolicies = [
         ...(state.lic || []).map((p: any) => ({
           name: p.planName || "LIC Policy",
           start: p.commencementDate,
-          premium: p.annualPremium,
+          premium: annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
+          expiry: p.maturityDate,
         })),
         ...(state.termPlans || []).map((p: any) => ({
           name: p.planName || "Term Plan",
           start: p.startDate,
-          premium: p.annualPremium,
+          premium: annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
+          expiry: p.expiryDate,
         })),
         ...(state.investmentPlans || []).map((p: any) => ({
           name: p.planName || "Investment Plan",
           start: p.commencementDate,
-          premium: p.annualPremium,
+          premium: annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
+          expiry: p.maturityDate,
         })),
       ];
-      const todayD = new Date(todayStr + "T00:00:00");
       allPolicies.forEach((pol) => {
         if (!pol.premium || Number(pol.premium) <= 0 || !pol.start) return;
-        const start = new Date(pol.start);
-        if (isNaN(start.getTime())) return;
-        let ann = new Date(todayD.getFullYear(), start.getMonth(), start.getDate());
-        if (ann < todayD)
-          ann = new Date(todayD.getFullYear() + 1, start.getMonth(), start.getDate());
-        const d = daysLeft(getLocalDateString(ann));
+        if (pol.expiry && pol.expiry < todayStr) return;
+        const nextDue = nextAnnualOccurrence(pol.start, todayStr);
+        const d = daysLeft(nextDue);
         const title = `${pol.name} premium due`;
         if (d >= 0 && d <= leadDays && !isDismissed(title)) {
           soon.push({
