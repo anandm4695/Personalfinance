@@ -44,6 +44,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { DataTable } from "../design-system/DataTable";
 
 // Bank logo domains for Clearbit / Google Favicon API
 const BANK_LOGO_DOMAINS: Record<string, string> = {
@@ -3109,99 +3110,64 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
 
       {/* Transaction Table */}
       <div style={{ maxHeight: 400, overflowY: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr
-              style={{
-                textAlign: "left",
-                borderBottom: `1px solid ${THEME.line}`,
-                color: THEME.muted,
-              }}
-            >
-              <th style={{ padding: "10px 8px" }}>Date</th>
-              <th style={{ padding: "10px 8px" }}>Merchant</th>
-              <th style={{ padding: "10px 8px" }}>Category</th>
-              <th style={{ padding: "10px 8px", textAlign: "right" }}>Amount</th>
-              <th style={{ padding: "10px 8px", width: 70 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {txs.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={5}
+        <DataTable
+          columns={[
+            { key: "date", header: "Date", accessor: (t: any) => t.date },
+            {
+              key: "merchant",
+              header: "Merchant",
+              accessor: (t: any) => <span style={{ fontWeight: 600 }}>{t.merchant}</span>,
+            },
+            {
+              key: "category",
+              header: "Category",
+              accessor: (t: any) => (
+                <span
                   style={{
-                    padding: "28px 8px",
-                    textAlign: "center",
-                    color: THEME.muted,
-                    fontSize: 13,
+                    background: THEME.paper,
+                    padding: "2px 8px",
+                    borderRadius: 4,
+                    fontSize: 11,
                   }}
                 >
-                  No transactions yet — add manually or import CSV above
-                </td>
-              </tr>
-            ) : (
-              [...txs]
-                .sort((a: any, b: any) => b.date.localeCompare(a.date))
-                .map((t: any) => (
-                  <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                    <td style={{ padding: "12px 8px" }}>{t.date}</td>
-                    <td style={{ padding: "12px 8px", fontWeight: 600 }}>{t.merchant}</td>
-                    <td style={{ padding: "12px 8px" }}>
-                      <span
-                        style={{
-                          background: THEME.paper,
-                          padding: "2px 8px",
-                          borderRadius: 4,
-                          fontSize: 11,
-                        }}
-                      >
-                        {t.category || "General"}
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 8px",
-                        textAlign: "right",
-                        fontWeight: 700,
-                        color: Number(t.amount) >= 0 ? THEME.rust : THEME.sage,
-                      }}
-                    >
-                      <Prv>{fmtINRExact(t.amount)}</Prv>
-                    </td>
-                    <td style={{ padding: "12px 8px", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                        <button
-                          onClick={() => startEdit(t)}
-                          aria-label="Edit transaction"
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: THEME.muted,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          onClick={() => removeTx(t.id)}
-                          aria-label="Delete transaction"
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: THEME.rust,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-            )}
-          </tbody>
-        </table>
+                  {t.category || "General"}
+                </span>
+              ),
+            },
+            {
+              key: "amount",
+              header: "Amount",
+              align: "right",
+              accessor: (t: any) => (
+                <span style={{ fontWeight: 700, color: Number(t.amount) >= 0 ? THEME.rust : THEME.sage }}>
+                  <Prv>{fmtINRExact(t.amount)}</Prv>
+                </span>
+              ),
+            },
+          ]}
+          data={[...txs].sort((a: any, b: any) => b.date.localeCompare(a.date))}
+          hideSearch
+          keyExtractor={(t: any) => t.id}
+          emptyState={<span>No transactions yet — add manually or import CSV above</span>}
+          actions={(t: any) => (
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => startEdit(t)}
+                aria-label="Edit transaction"
+                style={{ background: "transparent", border: "none", color: THEME.muted, cursor: "pointer" }}
+              >
+                <Edit3 size={14} />
+              </button>
+              <button
+                onClick={() => removeTx(t.id)}
+                aria-label="Delete transaction"
+                style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer" }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+        />
       </div>
       <div
         style={{
@@ -4678,141 +4644,85 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
       )}
 
       <div style={{ maxHeight: 480, overflowY: "auto" }}>
-        {txs.length === 0 ? (
-          <div style={{ padding: "32px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
-            No transactions yet — load money, record a spend, or import a CSV above
-          </div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${THEME.line}`, color: THEME.muted }}>
-                <th
+        <DataTable
+          columns={[
+            {
+              key: "date",
+              header: "Date",
+              accessor: (t: any) => <span style={{ color: THEME.muted, fontSize: 12 }}>{t.date}</span>,
+            },
+            {
+              key: "type",
+              header: "Type",
+              accessor: (t: any) => (
+                <span
                   style={{
-                    padding: "10px 10px",
-                    textAlign: "left" as const,
-                    fontWeight: 600,
-                    fontSize: 11,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 99,
+                    background:
+                      t.type === "load"
+                        ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                        : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                    color: t.type === "load" ? THEME.sage : THEME.rust,
                   }}
                 >
-                  Date
-                </th>
-                <th
-                  style={{
-                    padding: "10px 10px",
-                    textAlign: "left" as const,
-                    fontWeight: 600,
-                    fontSize: 11,
-                  }}
-                >
-                  Type
-                </th>
-                <th
-                  style={{
-                    padding: "10px 10px",
-                    textAlign: "left" as const,
-                    fontWeight: 600,
-                    fontSize: 11,
-                  }}
-                >
-                  Note / Merchant
-                </th>
-                <th
-                  style={{
-                    padding: "10px 10px",
-                    textAlign: "left" as const,
-                    fontWeight: 600,
-                    fontSize: 11,
-                  }}
-                >
-                  Category
-                </th>
-                <th
-                  style={{
-                    padding: "10px 10px",
-                    textAlign: "right" as const,
-                    fontWeight: 600,
-                    fontSize: 11,
-                  }}
-                >
-                  Amount
-                </th>
-                <th style={{ width: 64 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...txs]
-                .sort((a: any, b: any) => b.date.localeCompare(a.date))
-                .map((t: any) => (
-                  <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                    <td style={{ padding: "11px 10px", color: THEME.muted, fontSize: 12 }}>
-                      {t.date}
-                    </td>
-                    <td style={{ padding: "11px 10px" }}>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          padding: "2px 8px",
-                          borderRadius: 99,
-                          background: t.type === "load" ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                          color: t.type === "load" ? THEME.sage : THEME.rust,
-                        }}
-                      >
-                        {t.type === "load" ? "LOAD" : "SPEND"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "11px 10px" }}>{t.note || "—"}</td>
-                    <td style={{ padding: "11px 10px", color: THEME.muted, fontSize: 12 }}>
-                      {t.type === "spend" ? t.category || "—" : "—"}
-                    </td>
-                    <td
-                      style={{
-                        padding: "11px 10px",
-                        textAlign: "right" as const,
-                        fontWeight: 700,
-                        color: t.type === "load" ? THEME.sage : THEME.rust,
-                      }}
-                    >
-                      <Prv>
-                        {t.type === "load" ? "+" : "−"}
-                        {fmtINRExact(t.amount)}
-                      </Prv>
-                    </td>
-                    <td style={{ padding: "11px 10px" }}>
-                      <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-                        <button
-                          onClick={() => editTx(t)}
-                          aria-label="Edit transaction"
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: THEME.muted,
-                            cursor: "pointer",
-                            padding: 4,
-                          }}
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button
-                          onClick={() => removeTx(t.id)}
-                          aria-label="Delete transaction"
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: THEME.rust,
-                            cursor: "pointer",
-                            padding: 4,
-                          }}
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        )}
+                  {t.type === "load" ? "LOAD" : "SPEND"}
+                </span>
+              ),
+            },
+            {
+              key: "note",
+              header: "Note / Merchant",
+              accessor: (t: any) => t.note || "—",
+            },
+            {
+              key: "category",
+              header: "Category",
+              accessor: (t: any) => (
+                <span style={{ color: THEME.muted, fontSize: 12 }}>
+                  {t.type === "spend" ? t.category || "—" : "—"}
+                </span>
+              ),
+            },
+            {
+              key: "amount",
+              header: "Amount",
+              align: "right",
+              accessor: (t: any) => (
+                <span style={{ fontWeight: 700, color: t.type === "load" ? THEME.sage : THEME.rust }}>
+                  <Prv>
+                    {t.type === "load" ? "+" : "−"}
+                    {fmtINRExact(t.amount)}
+                  </Prv>
+                </span>
+              ),
+            },
+          ]}
+          data={[...txs].sort((a: any, b: any) => b.date.localeCompare(a.date))}
+          hideSearch
+          keyExtractor={(t: any) => t.id}
+          emptyState={<span>No transactions yet — load money, record a spend, or import a CSV above</span>}
+          actions={(t: any) => (
+            <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => editTx(t)}
+                aria-label="Edit transaction"
+                style={{ background: "transparent", border: "none", color: THEME.muted, cursor: "pointer", padding: 4 }}
+              >
+                <Edit3 size={13} />
+              </button>
+              <button
+                onClick={() => removeTx(t.id)}
+                aria-label="Delete transaction"
+                style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer", padding: 4 }}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
+        />
       </div>
     </Modal>
   );
@@ -7207,31 +7117,16 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                         <Plus size={11} /> Add Tranche
                       </button>
                     </div>
-                    {tranches.length === 0 ? (
-                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>
-                        No loans recorded yet
-                      </div>
-                    ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-                        <thead>
-                          <tr style={{ borderBottom: `1px solid var(--t-line)` }}>
-                            <th
-                              style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}
-                            >
-                              Date
-                            </th>
-                            <th style={{ ...th, textAlign: "right", width: "120px" }}>Amount</th>
-                            <th style={{ ...th, textAlign: "left" }}>Note</th>
-                            <th style={{ ...th, width: "40px" }}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tranches.map((t: any) => {
+                    <DataTable
+                      columns={[
+                        {
+                          key: "date",
+                          header: "Date",
+                          accessor: (t: any) => {
                             const tDueOverdue =
                               t.dueDate && outstanding > 0 && new Date(t.dueDate + "T00:00:00") < now;
                             return (
-                            <tr key={t.id} style={{ borderBottom: `1px dashed var(--t-line)` }}>
-                              <td style={{ ...td, paddingLeft: 0, color: "var(--t-muted)" }}>
+                              <span style={{ color: "var(--t-muted)" }}>
                                 {fmtD(t.date)}
                                 {t.dueDate && (
                                   <div
@@ -7245,78 +7140,77 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                                     Due {fmtD(t.dueDate)}
                                   </div>
                                 )}
-                              </td>
-                              <td
-                                style={{
-                                  ...td,
-                                  textAlign: "right",
-                                  fontWeight: 800,
-                                  color: accentColor,
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                <Prv>{fmtINRExact(t.amount)}</Prv>
-                              </td>
-                              <td style={{ ...td, color: "var(--t-muted)" }}>{t.note || "—"}</td>
-                              <td style={{ ...td, textAlign: "right" }}>
-                                <button
-                                  style={{
-                                    ...iconBtn,
-                                    color: "var(--t-muted)",
-                                    background: "transparent",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    padding: 4,
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.color = "var(--t-rust)";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.color = "var(--t-muted)";
-                                  }}
-                                  onClick={() => {
-                                    if (!window.confirm("Delete this loan tranche? This cannot be undone."))
-                                      return;
-                                    const updated = tranches.filter((x: any) => x.id !== t.id);
-                                    onUpdate(person.id, { tranches: updated });
-                                  }}
-                                  aria-label="Delete tranche"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </td>
-                            </tr>
+                              </span>
                             );
-                          })}
-                        </tbody>
-                        <tfoot>
-                          <tr>
-                            <td
-                              style={{
-                                ...td,
-                                paddingLeft: 0,
-                                fontWeight: 800,
-                                color: "var(--t-ink)",
-                              }}
-                            >
-                              Total
-                            </td>
-                            <td
-                              style={{
-                                ...td,
-                                textAlign: "right",
-                                fontWeight: 900,
-                                color: accentColor,
-                                fontVariantNumeric: "tabular-nums",
-                              }}
-                            >
-                              <Prv>{fmtINRExact(totalT)}</Prv>
-                            </td>
-                            <td colSpan={2} style={td}></td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    )}
+                          },
+                        },
+                        {
+                          key: "amount",
+                          header: "Amount",
+                          align: "right",
+                          accessor: (t: any) => (
+                            <span style={{ fontWeight: 800, color: accentColor, fontVariantNumeric: "tabular-nums" }}>
+                              <Prv>{fmtINRExact(t.amount)}</Prv>
+                            </span>
+                          ),
+                        },
+                        {
+                          key: "note",
+                          header: "Note",
+                          accessor: (t: any) => <span style={{ color: "var(--t-muted)" }}>{t.note || "—"}</span>,
+                        },
+                      ]}
+                      data={tranches}
+                      hideSearch
+                      keyExtractor={(t: any) => t.id}
+                      emptyState={<span>No loans recorded yet</span>}
+                      actions={(t: any) => (
+                        <button
+                          style={{
+                            ...iconBtn,
+                            color: "var(--t-muted)",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 4,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--t-rust)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--t-muted)";
+                          }}
+                          onClick={() => {
+                            if (!window.confirm("Delete this loan tranche? This cannot be undone."))
+                              return;
+                            const updated = tranches.filter((x: any) => x.id !== t.id);
+                            onUpdate(person.id, { tranches: updated });
+                          }}
+                          aria-label="Delete tranche"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                      footer={
+                        <tr>
+                          <td style={{ ...td, paddingLeft: 0, fontWeight: 800, color: "var(--t-ink)" }}>
+                            Total
+                          </td>
+                          <td
+                            style={{
+                              ...td,
+                              textAlign: "right",
+                              fontWeight: 900,
+                              color: accentColor,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            <Prv>{fmtINRExact(totalT)}</Prv>
+                          </td>
+                          <td colSpan={2} style={td}></td>
+                        </tr>
+                      }
+                    />
                   </div>
                   <div style={{ padding: "16px 20px", borderBottom: `1px solid var(--t-line)` }}>
                     <div
@@ -7362,100 +7256,80 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                         <Plus size={11} /> Record Payment
                       </button>
                     </div>
-                    {payments.length === 0 ? (
-                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>
-                        No payments recorded yet
-                      </div>
-                    ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-                        <thead>
-                          <tr style={{ borderBottom: `1px solid var(--t-line)` }}>
-                            <th
-                              style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}
-                            >
-                              Date
-                            </th>
-                            <th style={{ ...th, textAlign: "right", width: "120px" }}>Amount</th>
-                            <th style={{ ...th, textAlign: "left" }}>Note</th>
-                            <th style={{ ...th, width: "40px" }}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {payments.map((p: any) => (
-                            <tr key={p.id} style={{ borderBottom: `1px dashed var(--t-line)` }}>
-                              <td style={{ ...td, paddingLeft: 0, color: "var(--t-muted)" }}>
-                                {fmtD(p.date)}
-                              </td>
-                              <td
-                                style={{
-                                  ...td,
-                                  textAlign: "right",
-                                  fontWeight: 800,
-                                  color: "var(--t-sage)",
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                <Prv>{fmtINRExact(p.amount)}</Prv>
-                              </td>
-                              <td style={{ ...td, color: "var(--t-muted)" }}>{p.note || "—"}</td>
-                              <td style={{ ...td, textAlign: "right" }}>
-                                <button
-                                  style={{
-                                    ...iconBtn,
-                                    color: "var(--t-muted)",
-                                    background: "transparent",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    padding: 4,
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.color = "var(--t-rust)";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.color = "var(--t-muted)";
-                                  }}
-                                  onClick={() => {
-                                    if (!window.confirm("Delete this payment record? This cannot be undone."))
-                                      return;
-                                    const updated = payments.filter((x: any) => x.id !== p.id);
-                                    onUpdate(person.id, { payments: updated });
-                                  }}
-                                  aria-label="Delete payment"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr>
-                            <td
-                              style={{
-                                ...td,
-                                paddingLeft: 0,
-                                fontWeight: 800,
-                                color: "var(--t-ink)",
-                              }}
-                            >
-                              Total Paid
-                            </td>
-                            <td
-                              style={{
-                                ...td,
-                                textAlign: "right",
-                                fontWeight: 900,
-                                color: "var(--t-sage)",
-                                fontVariantNumeric: "tabular-nums",
-                              }}
-                            >
-                              <Prv>{fmtINRExact(totalP)}</Prv>
-                            </td>
-                            <td colSpan={2} style={td}></td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    )}
+                    <DataTable
+                      columns={[
+                        {
+                          key: "date",
+                          header: "Date",
+                          accessor: (p: any) => <span style={{ color: "var(--t-muted)" }}>{fmtD(p.date)}</span>,
+                        },
+                        {
+                          key: "amount",
+                          header: "Amount",
+                          align: "right",
+                          accessor: (p: any) => (
+                            <span style={{ fontWeight: 800, color: "var(--t-sage)", fontVariantNumeric: "tabular-nums" }}>
+                              <Prv>{fmtINRExact(p.amount)}</Prv>
+                            </span>
+                          ),
+                        },
+                        {
+                          key: "note",
+                          header: "Note",
+                          accessor: (p: any) => <span style={{ color: "var(--t-muted)" }}>{p.note || "—"}</span>,
+                        },
+                      ]}
+                      data={payments}
+                      hideSearch
+                      keyExtractor={(p: any) => p.id}
+                      emptyState={<span>No payments recorded yet</span>}
+                      actions={(p: any) => (
+                        <button
+                          style={{
+                            ...iconBtn,
+                            color: "var(--t-muted)",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 4,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--t-rust)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--t-muted)";
+                          }}
+                          onClick={() => {
+                            if (!window.confirm("Delete this payment record? This cannot be undone."))
+                              return;
+                            const updated = payments.filter((x: any) => x.id !== p.id);
+                            onUpdate(person.id, { payments: updated });
+                          }}
+                          aria-label="Delete payment"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                      footer={
+                        <tr>
+                          <td style={{ ...td, paddingLeft: 0, fontWeight: 800, color: "var(--t-ink)" }}>
+                            Total Paid
+                          </td>
+                          <td
+                            style={{
+                              ...td,
+                              textAlign: "right",
+                              fontWeight: 900,
+                              color: "var(--t-sage)",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            <Prv>{fmtINRExact(totalP)}</Prv>
+                          </td>
+                          <td colSpan={2} style={td}></td>
+                        </tr>
+                      }
+                    />
                   </div>
                   <div
                     style={{
