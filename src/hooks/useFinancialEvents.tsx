@@ -238,6 +238,14 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         if (!premium) return;
         const startDate = p.commencementDate || p.startDate;
         if (!startDate) return;
+        // A matured/expired policy stops charging premiums — without this check
+        // nextAnnualOccurrence keeps projecting an annual "due" date forever,
+        // which useAlerts.ts's independent copy of this same logic already
+        // guarded against (`pol.expiry && pol.expiry < todayStr`). Found via a
+        // direct comparison between the two while scoping Phase 3 of the
+        // alerts consolidation plan.
+        const expiry = p.maturityDate || p.expiryDate;
+        if (expiry && expiry < todayStr) return;
 
         const nextDueStr = nextAnnualOccurrence(startDate, todayStr);
         if (nextDueStr > cutoffDate) return;
