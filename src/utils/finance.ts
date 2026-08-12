@@ -224,15 +224,14 @@ export const getEmergencyFundMonthlyExpense = (state: any, fallbackMonthExpense:
     (s: number, r: any) => s + Number(r.amount || 0),
     0
   );
-  const rent = (state?.rentedProperties || []).reduce(
-    (s: number, p: any) => s + Number(p.monthlyRent || 0),
-    0
-  );
+  const rent = (state?.rentedProperties || [])
+    .filter((p: any) => p.isActive !== false)
+    .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
   const insurance = [
     ...(state?.lic || []),
     ...(state?.termPlans || []),
     ...(state?.investmentPlans || []),
-  ].reduce((s: number, p: any) => s + Number(p.annualPremium || p.premium || 0) / 12, 0);
+  ].reduce((s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium) / 12, 0);
   const bottomUp = emis + sips + subs + recurring + rent + insurance;
 
   return bottomUp > 0 ? bottomUp : fallbackMonthExpense || 0;
