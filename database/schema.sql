@@ -1312,8 +1312,18 @@ CREATE TABLE IF NOT EXISTS public.tax_payments (
   type       text,                                              -- TDS, Advance Tax, Self-Assessment, Professional Tax
   amount     numeric DEFAULT 0,
   note       text,
+  fy         text,                                              -- e.g. "2026-27" — added because TaxFilingHelperTab.tsx
+                                                                  -- and TaxToolsTab.tsx both filter payments by `t.fy === fy`,
+                                                                  -- but the column never existed, so every payment ever
+                                                                  -- recorded was invisible to the advance-tax-paid trackers
+                                                                  -- on both tabs. ALTER TABLE below applies this to an
+                                                                  -- existing (already-created) tax_payments table.
   created_at timestamp with time zone DEFAULT now()
 );
+
+-- Idempotent — safe to run against an existing tax_payments table that
+-- predates the `fy` column above.
+ALTER TABLE public.tax_payments ADD COLUMN IF NOT EXISTS fy text;
 
 ALTER TABLE public.tax_payments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access own data" ON public.tax_payments;

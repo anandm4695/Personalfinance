@@ -317,7 +317,22 @@ const AddTaxPaymentModal = ({ onClose, onSave }: any) => {
         />
       </Field>
       <ModalActions
-        onSave={() => f.amount && onSave({ ...f, id: uid() })}
+        onSave={() => {
+          if (!f.amount) return;
+          // This modal is the ONLY place a taxPayments record is ever
+          // created, and it never used to set `fy` — but TaxFilingHelperTab.
+          // tsx's advance-tax-paid total and TaxToolsTab.tsx's advance-tax
+          // tracker (3 separate places) both filter taxPayments by
+          // `t.fy === fy`, so every payment ever recorded here was silently
+          // invisible to both features (always compared against `undefined`).
+          // Derive fy from the payment date the same way getCurrentFY() does
+          // for "today" (Apr–Mar year), so a backdated entry lands in the
+          // correct FY too.
+          const d = new Date(f.date + "T00:00:00");
+          const fyStartYear = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+          const fy = `${fyStartYear}-${String(fyStartYear + 1).slice(-2)}`;
+          onSave({ ...f, fy, id: uid() });
+        }}
         onClose={onClose}
         saveLabel="Record Payment"
       />
