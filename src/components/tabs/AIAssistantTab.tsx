@@ -418,7 +418,7 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
 
   const WELCOME: { role: "model"; text: string } = {
     role: "model",
-    text: "Hello! I'm your **AI Financial Advisor**.\n\nI've analysed your anonymised financial snapshot. Ask me anything — savings strategy, debt management, investment allocation, tax planning, or retirement goals.\n\nOr pick a suggestion below to get started.",
+    text: "Hello! I'm your **AI Financial Advisor**.\n\nI've analysed a summary of your finances. Ask me anything — savings strategy, debt management, investment allocation, tax planning, or retirement goals.\n\nOr pick a suggestion below to get started.",
   };
 
   // Restore session from sessionStorage on mount
@@ -1632,13 +1632,17 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       txs = txs.filter((t: any) => (t.type || "").toLowerCase() === type);
     }
 
+    // `note`/`description` are free-text fields the user typed themselves —
+    // unlike every other field here they're genuinely unpredictable and could
+    // contain a name, account detail, or anything else, so they're used to
+    // match `queryText` above but deliberately never included in what's
+    // returned to Gemini.
     return txs.slice(0, 25).map((t: any) => ({
       id: t.id,
       date: t.date,
       amount: Number(t.amount || 0),
       type: t.type,
       category: t.category || "Uncategorized",
-      note: t.note || t.description || "",
     }));
   };
 
@@ -1907,8 +1911,9 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               lineHeight: 1.7,
             }}
           >
-            Connect your own free Gemini API key to get hyper-personalised financial advice. Your
-            data is anonymised locally before every API call — nothing sensitive leaves your device.
+            Connect your own free Gemini API key to get hyper-personalised financial advice. A
+            summary of your finances is sent to Google's Gemini API to generate each response —
+            your API key itself is stored only on this device.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
             <a
@@ -1950,7 +1955,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
             }}
           >
             <ShieldCheck size={15} style={{ color: THEME.accent, flexShrink: 0 }} />
-            Context is anonymised before each request · API key stored only on this device
+            A financial summary is sent to Gemini per request · API key stored only on this device
           </div>
         </Card>
       </div>
@@ -1968,7 +1973,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
         minHeight: 0,
       }}
     >
-      <SectionTitle sub="Powered by Gemini 2.5 Flash · Context anonymised locally · Multi-turn">
+      <SectionTitle sub="Powered by Gemini 2.5 Flash · Financial summary sent per request · Multi-turn">
         AI Advisor
       </SectionTitle>
 
@@ -2031,7 +2036,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                 }}
               >
                 <ShieldCheck size={11} />
-                Privacy preserved · multi-turn conversation
+                API key stored locally · multi-turn conversation
               </div>
             </div>
             <button
