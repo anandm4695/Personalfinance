@@ -34,6 +34,7 @@ import {
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
+import { getCurrentFY } from "../../utils/appConstants";
 import {
   fmtINR,
   fmtINRFull,
@@ -310,6 +311,16 @@ const memberAssets = (state, owner, marketData) => {
     const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
     return s + grams * goldPrice * purityMul;
   }, 0);
+  // Was entirely missing from this tab — govt schemes (SSY/NSC/KVP/SCSS/
+  // POMIS/RBI Bonds/PMJJBY/PMSBY/APY etc.) never contributed to a member's
+  // net worth, allocation pie, or the family total here despite being a
+  // real, owner-scoped asset class the app-wide net worth already includes
+  // (useMetrics.ts's govtSchemesValue, same currentBalance sum, no
+  // scheme-type filtering).
+  const govtSchemes = filter(state.govtSchemes).reduce(
+    (s, sc) => s + Number(sc.currentBalance || 0),
+    0
+  );
 
   // Liabilities
   const loans = filter(state.loansTaken).reduce((s, l) => s + Number(l.outstanding || 0), 0);
@@ -366,7 +377,8 @@ const memberAssets = (state, owner, marketData) => {
     rentedDeposit +
     informalLent +
     rentalProps +
-    gold;
+    gold +
+    govtSchemes;
   const totalLiabilities =
     loans + cc + rentalDepositLiab + informalBorrowed + realEstateOutstanding;
 
@@ -390,6 +402,7 @@ const memberAssets = (state, owner, marketData) => {
     informalLent,
     rentalProps,
     gold,
+    govtSchemes,
     totalAssets,
     totalLiabilities,
     netWorth: totalAssets - totalLiabilities,
@@ -417,6 +430,7 @@ const getAllocationData = (m) => {
     { name: "Real Estate", value: m.re },
     { name: "Vehicles", value: m.vehicles },
     { name: "Gold & SGBs", value: m.gold },
+    { name: "Govt Schemes", value: m.govtSchemes },
     { name: "Loans Given", value: m.loansGiven },
     { name: "Prepaid Cards", value: m.prepaid },
     { name: "Rental Properties", value: m.rentalProps },
@@ -485,6 +499,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
   const familyData = useMemo(() => {
     const colors = getMemberColors();
+    // Current-FY start, matching useMetrics.ts's explicitIncome window exactly
+    // (Apr 1 of the FY start year) so this per-member figure is computed the
+    // same way as the app-wide annualIncome the header/dashboard/alerts use.
+    const fyStart = new Date(`${(state.profile?.fy || getCurrentFY()).split("-")[0]}-04-01`);
     const members = familyProfiles.map((p, idx) => {
       const assets = memberAssets(state, p.id, marketData);
       const topHoldings = getTopHoldings(state, p.id);
@@ -499,11 +517,17 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
         .reduce((s, t) => s + Number(t.coverAmount || 0), 0);
       const totalLifeCover = licCover + termCover;
 
-      const ownerIncome = (state.income || [])
-        .filter((i) => i.owner === p.id)
-        .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-      const latestMonthlyIncome = ownerIncome.length > 0 ? Number(ownerIncome[0].amount || 0) : 0;
-      const memberIncome = latestMonthlyIncome * 12;
+      // Sum this member's income ledger entries within the current FY — was
+      // previously "most recent single entry x 12", which silently diverges
+      // from every other consumer of state.income in the app (useMetrics.ts's
+      // annualIncome, AnalyticsTab, AnnualReportTab all sum the FY-scoped
+      // ledger) any time income isn't logged as a perfectly steady monthly
+      // amount — a mid-year raise, bonus, or gap between entries would badly
+      // skew "10x income" life-cover adequacy here without matching the same
+      // check anywhere else in the app.
+      const memberIncome = (state.income || [])
+        .filter((i) => i.owner === p.id && i.date && new Date(i.date) >= fyStart)
+        .reduce((s, i) => s + Number(i.amount || 0), 0);
 
       return {
         ...p,
@@ -551,6 +575,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       { key: "creditCards", label: "Credit Card" },
       { key: "prepaidCards", label: "Prepaid Card" },
       { key: "goldHoldings", label: "Gold/SGB" },
+      { key: "govtSchemes", label: "Govt Scheme" },
       { key: "rentalProperties", label: "Rental Property" },
       { key: "rentedProperties", label: "Rented Property" },
       { key: "informalLent", label: "Informal Loan Given" },
@@ -597,6 +622,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       { key: "re", label: "Real Estate" },
       { key: "vehicles", label: "Vehicles" },
       { key: "gold", label: "Gold & SGBs" },
+      { key: "govtSchemes", label: "Govt Schemes" },
       { key: "loansGiven", label: "Loans Given" },
       { key: "rentalProps", label: "Rental Props" },
     ];
