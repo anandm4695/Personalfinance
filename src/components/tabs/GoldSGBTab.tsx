@@ -217,7 +217,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
       interestRate: h.type === "sgb" ? h.interestRate : "",
       interestEarned: h.type === "sgb" ? h.interest.toFixed(2) : "",
       maturityDate: h.maturityDate || "",
-      owner: h.owner || "",
+      owner: familyProfiles.find((p) => p.id === h.owner)?.name || h.owner || "",
     }));
     exportArrayToCSV(
       rows,
@@ -774,7 +774,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
               </div>
               {h.owner && h.owner !== "self" && (
                 <div style={{ marginTop: 8, fontSize: 11, color: THEME.textSecondary }}>
-                  Owner: {h.owner}
+                  Owner: {familyProfiles.find((p) => p.id === h.owner)?.name || h.owner}
                 </div>
               )}
             </Card>
