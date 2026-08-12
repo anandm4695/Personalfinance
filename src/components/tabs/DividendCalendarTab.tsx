@@ -15,8 +15,6 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  ArrowUp,
-  ArrowDown,
   Landmark,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
@@ -28,6 +26,7 @@ import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
 import { Prv } from "../../context/PrivacyContext";
 import { StockLogo } from "./DematTab";
+import { DataTable, Column } from "../design-system/DataTable";
 
 const MONTH_NAMES = [
   "Jan",
@@ -58,30 +57,6 @@ const FULL_MONTH_NAMES = [
   "December",
 ];
 const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-const th: React.CSSProperties = {
-  padding: "14px 16px",
-  textAlign: "right",
-  color: THEME.muted,
-  fontWeight: 800,
-  fontSize: 11,
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  borderBottom: `2px solid ${THEME.line}`,
-  cursor: "pointer",
-  userSelect: "none",
-  whiteSpace: "nowrap",
-};
-
-const td: React.CSSProperties = {
-  padding: "14px 16px",
-  textAlign: "right",
-  color: THEME.ink,
-  fontSize: 13,
-  fontWeight: 500,
-  borderBottom: `1px solid ${THEME.line}`,
-  fontVariantNumeric: "tabular-nums",
-};
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "—";
@@ -119,12 +94,6 @@ const urgencyLabel = (days: number | null): string => {
 const tsToDate = (ts: number | null | undefined): string | null => {
   if (!ts || ts <= 0) return null;
   return new Date(Number(ts) * 1000).toISOString().slice(0, 10);
-};
-
-const SortIcon = ({ active, dir }: { active: boolean; dir: "asc" | "desc" }) => {
-  if (!active) return null;
-  const Icon = dir === "asc" ? ArrowUp : ArrowDown;
-  return <Icon size={11} style={{ marginLeft: 4, verticalAlign: -1 }} />;
 };
 
 export function DividendCalendarTab({ state, marketData }: any) {
@@ -475,16 +444,173 @@ export function DividendCalendarTab({ state, marketData }: any) {
     );
   }
 
-  const renderTh = (label: string, key: string, align: "left" | "right" = "right") => (
-    <th
-      style={{ ...th, textAlign: align }}
-      onClick={() => handleSort(key)}
-      aria-sort={sortKey === key ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
-    >
-      {label}
-      <SortIcon active={sortKey === key} dir={sortDir} />
-    </th>
-  );
+  const holdingsColumns: Column<(typeof tableRows)[number]>[] = [
+    {
+      key: "symbol",
+      header: "Symbol",
+      sortable: true,
+      align: "left",
+      accessor: (r) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <StockLogo yfSym={r.yfSym} size={28} />
+          <div>
+            <div style={{ fontWeight: 800, color: THEME.ink }}>{r.symbol}</div>
+            {r.exchange && (
+              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
+                {r.exchange}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "qty",
+      header: "Qty",
+      sortable: true,
+      align: "right",
+      accessor: (r) => r.qty.toLocaleString("en-IN"),
+    },
+    {
+      key: "currentValue",
+      header: "Current Value",
+      sortable: true,
+      align: "right",
+      accessor: (r) => (
+        <span style={{ fontWeight: 700 }}>
+          <Prv>{fmtINRExact(r.currentValue)}</Prv>
+        </span>
+      ),
+    },
+    {
+      key: "divRate",
+      header: "Div / Share",
+      sortable: true,
+      align: "right",
+      accessor: (r) => (
+        <span
+          style={{ color: r.divRate > 0 ? THEME.sage : THEME.muted, fontWeight: r.divRate > 0 ? 700 : 500 }}
+        >
+          {r.divRate > 0 ? <Prv>{`₹${r.divRate.toFixed(2)}`}</Prv> : loading ? "…" : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "divYield",
+      header: "Yield %",
+      sortable: true,
+      align: "right",
+      accessor: (r) => (
+        <span
+          style={{ color: r.divYield > 0 ? THEME.sage : THEME.muted, fontWeight: r.divYield > 0 ? 700 : 500 }}
+        >
+          {r.divYield > 0 ? `${r.divYield.toFixed(2)}%` : loading ? "…" : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "exDate",
+      header: "Ex-date",
+      sortable: true,
+      align: "right",
+      accessor: (r) => (
+        <span style={{ color: r.exDate ? THEME.ink : THEME.muted, whiteSpace: "nowrap" }}>
+          {r.exDate ? formatDate(r.exDate) : loading ? "…" : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "divPayDate",
+      header: "Pay Date",
+      sortable: true,
+      align: "right",
+      accessor: (r) => (
+        <span style={{ color: r.divPayDate ? THEME.ink : THEME.muted, whiteSpace: "nowrap" }}>
+          {r.divPayDate ? formatDate(r.divPayDate) : loading ? "…" : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "estDivIncome",
+      header: "Est. Annual",
+      sortable: true,
+      align: "right",
+      accessor: (r) => (
+        <span
+          style={{
+            fontWeight: r.estDivIncome > 0 ? 700 : 500,
+            color: r.estDivIncome > 0 ? THEME.sage : THEME.muted,
+          }}
+        >
+          {r.estDivIncome > 0 ? <Prv>{fmtINRExact(r.estDivIncome)}</Prv> : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "lastDiv",
+      header: "Last Received",
+      sortable: true,
+      align: "right",
+      accessor: (r) => (
+        <span style={{ color: THEME.muted, whiteSpace: "nowrap" }}>
+          {r.lastDiv ? formatDate(r.lastDiv.recordDate || r.lastDiv.paymentDate) : "—"}
+        </span>
+      ),
+    },
+  ];
+
+  const mfColumns: Column<(typeof mfDividends)[number]>[] = [
+    {
+      key: "fundName",
+      header: "Fund",
+      align: "left",
+      accessor: (d) => (
+        <span style={{ fontWeight: 700, color: THEME.ink }}>{d.fundName || "—"}</span>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      accessor: (d) => (
+        <span style={{ fontWeight: 700 }}>
+          <Prv>{fmtINRExact(Number(d.amount || 0))}</Prv>
+        </span>
+      ),
+    },
+    {
+      key: "tds",
+      header: "TDS",
+      align: "right",
+      accessor: (d) => (
+        <span style={{ color: THEME.rust }}>
+          <Prv>{fmtINRExact(Number(d.tds || 0))}</Prv>
+        </span>
+      ),
+    },
+    {
+      key: "net",
+      header: "Net",
+      align: "right",
+      accessor: (d) => (
+        <span style={{ fontWeight: 700, color: THEME.sage }}>
+          <Prv>{fmtINRExact(Number(d.amount || 0) - Number(d.tds || 0))}</Prv>
+        </span>
+      ),
+    },
+    {
+      key: "recordDate",
+      header: "Record Date",
+      align: "right",
+      accessor: (d) => <span style={{ whiteSpace: "nowrap" }}>{formatDate(d.recordDate)}</span>,
+    },
+    {
+      key: "paymentDate",
+      header: "Payment Date",
+      align: "right",
+      accessor: (d) => <span style={{ whiteSpace: "nowrap" }}>{formatDate(d.paymentDate)}</span>,
+    },
+  ];
 
   return (
     <div
@@ -1065,128 +1191,20 @@ export function DividendCalendarTab({ state, marketData }: any) {
                 </span>
               )}
             </div>
-            <div style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: 13,
-                }}
-              >
-                <thead>
-                  <tr style={{ background: "var(--surface-1)" }}>
-                    {renderTh("Symbol", "symbol", "left")}
-                    {renderTh("Qty", "qty")}
-                    {renderTh("Current Value", "currentValue")}
-                    {renderTh("Div / Share", "divRate")}
-                    {renderTh("Yield %", "divYield")}
-                    {renderTh("Ex-date", "exDate")}
-                    {renderTh("Pay Date", "divPayDate")}
-                    {renderTh("Est. Annual", "estDivIncome")}
-                    {renderTh("Last Received", "lastDiv")}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableRows.map((r) => (
-                    <tr
-                      key={r.key}
-                      className="table-row-hover"
-                      style={{
-                        borderBottom: `1px solid ${THEME.line}`,
-                      }}
-                    >
-                      <td style={{ padding: "12px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <StockLogo yfSym={r.yfSym} size={28} />
-                          <div>
-                            <div style={{ fontWeight: 800, color: THEME.ink }}>{r.symbol}</div>
-                            {r.exchange && (
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  color: THEME.muted,
-                                  fontWeight: 600,
-                                  marginTop: 2,
-                                }}
-                              >
-                                {r.exchange}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={td}>{r.qty.toLocaleString("en-IN")}</td>
-                      <td style={{ ...td, fontWeight: 700 }}>
-                        <Prv>{fmtINRExact(r.currentValue)}</Prv>
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          color: r.divRate > 0 ? THEME.sage : THEME.muted,
-                          fontWeight: r.divRate > 0 ? 700 : 500,
-                        }}
-                      >
-                        {r.divRate > 0 ? <Prv>{`₹${r.divRate.toFixed(2)}`}</Prv> : loading ? "…" : "—"}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          color: r.divYield > 0 ? THEME.sage : THEME.muted,
-                          fontWeight: r.divYield > 0 ? 700 : 500,
-                        }}
-                      >
-                        {r.divYield > 0 ? `${r.divYield.toFixed(2)}%` : loading ? "…" : "—"}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          color: r.exDate ? THEME.ink : THEME.muted,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {r.exDate ? formatDate(r.exDate) : loading ? "…" : "—"}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          color: r.divPayDate ? THEME.ink : THEME.muted,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {r.divPayDate ? formatDate(r.divPayDate) : loading ? "…" : "—"}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          fontWeight: r.estDivIncome > 0 ? 700 : 500,
-                          color: r.estDivIncome > 0 ? THEME.sage : THEME.muted,
-                        }}
-                      >
-                        {r.estDivIncome > 0 ? <Prv>{fmtINRExact(r.estDivIncome)}</Prv> : "—"}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          color: THEME.muted,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {r.lastDiv
-                          ? formatDate(r.lastDiv.recordDate || r.lastDiv.paymentDate)
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                  {tableRows.length === 0 && (
-                    <tr>
-                      <td colSpan={9} style={{ padding: "24px 16px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
-                        No holdings match "{searchQuery}".
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={holdingsColumns}
+              data={tableRows}
+              hideSearch
+              keyExtractor={(r) => r.key}
+              sortKey={sortKey}
+              sortDirection={sortDir}
+              onSortChange={handleSort}
+              emptyState={
+                <p style={{ fontSize: 13, color: THEME.muted, margin: 0 }}>
+                  No holdings match "{searchQuery}".
+                </p>
+              }
+            />
 
             {fetched && dividendPayers.length === 0 && (
               <div
@@ -1278,40 +1296,12 @@ export function DividendCalendarTab({ state, marketData }: any) {
               </div>
             </div>
 
-            <div style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: "var(--surface-1)" }}>
-                    <th style={{ ...th, textAlign: "left", cursor: "default" }}>Fund</th>
-                    <th style={{ ...th, cursor: "default" }}>Amount</th>
-                    <th style={{ ...th, cursor: "default" }}>TDS</th>
-                    <th style={{ ...th, cursor: "default" }}>Net</th>
-                    <th style={{ ...th, cursor: "default" }}>Record Date</th>
-                    <th style={{ ...th, cursor: "default" }}>Payment Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mfDividends.map((d: any, idx: number) => (
-                    <tr key={d.id || idx} className="table-row-hover" style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                      <td style={{ padding: "12px 16px", fontWeight: 700, color: THEME.ink, textAlign: "left" }}>
-                        {d.fundName || "—"}
-                      </td>
-                      <td style={{ ...td, fontWeight: 700 }}>
-                        <Prv>{fmtINRExact(Number(d.amount || 0))}</Prv>
-                      </td>
-                      <td style={{ ...td, color: THEME.rust }}>
-                        <Prv>{fmtINRExact(Number(d.tds || 0))}</Prv>
-                      </td>
-                      <td style={{ ...td, fontWeight: 700, color: THEME.sage }}>
-                        <Prv>{fmtINRExact(Number(d.amount || 0) - Number(d.tds || 0))}</Prv>
-                      </td>
-                      <td style={{ ...td, whiteSpace: "nowrap" }}>{formatDate(d.recordDate)}</td>
-                      <td style={{ ...td, whiteSpace: "nowrap" }}>{formatDate(d.paymentDate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={mfColumns}
+              data={mfDividends}
+              hideSearch
+              keyExtractor={(d, idx) => d.id || idx}
+            />
           </div>
         </Card>
       )}
