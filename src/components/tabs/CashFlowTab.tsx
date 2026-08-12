@@ -445,18 +445,22 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       sources.push({ name: "Rent Paid", monthly: rentPaid, icon: Home, category: "Rent" });
 
     // 7. Insurance Premiums
-    const licPremium = (state.lic || []).reduce((sum: number, l: any) => {
-      const annual = Number(l.annualPremium || l.premium || 0);
-      return sum + annual / 12;
-    }, 0);
-    const termPremium = (state.termPlans || []).reduce((sum: number, t: any) => {
-      const annual = Number(t.annualPremium || t.premium || 0);
-      return sum + annual / 12;
-    }, 0);
-    const ulipPremium = (state.investmentPlans || []).reduce((sum: number, ip: any) => {
-      const annual = Number(ip.annualPremium || ip.premium || 0);
-      return sum + annual / 12;
-    }, 0);
+    // Uses annualizePremium() rather than a raw annualPremium||premium fallback:
+    // a policy recorded as premium+premiumFrequency (e.g. monthly) with no
+    // pre-set annualPremium would otherwise have its per-period premium treated
+    // as if it were already annual, understating the true annual cost.
+    const licPremium = (state.lic || []).reduce(
+      (sum: number, l: any) => sum + annualizePremium(l.premium, l.premiumFrequency, l.annualPremium) / 12,
+      0
+    );
+    const termPremium = (state.termPlans || []).reduce(
+      (sum: number, t: any) => sum + annualizePremium(t.premium, t.premiumFrequency, t.annualPremium) / 12,
+      0
+    );
+    const ulipPremium = (state.investmentPlans || []).reduce(
+      (sum: number, ip: any) => sum + annualizePremium(ip.premium, ip.premiumFrequency, ip.annualPremium) / 12,
+      0
+    );
     const totalInsurance = licPremium + termPremium + ulipPremium;
     if (totalInsurance > 0)
       sources.push({

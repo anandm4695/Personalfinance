@@ -20,7 +20,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, getEffectiveRent, annualizePremium } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -51,7 +51,11 @@ export const EmergencyFundTab = ({ state, metrics }) => {
     const emis = (state.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
     if (emis > 0) expenseBreakdown.push({ label: "EMIs", amount: emis, icon: CreditCard });
 
-    const rent = (state.rentedProperties || []).reduce((s, p) => s + Number(p.monthlyRent || 0), 0);
+    // Uses getEffectiveRent() rather than the raw monthlyRent field, which is
+    // set once at lease start and never updated as escalation tiers advance.
+    const rent = (state.rentedProperties || [])
+      .filter((p) => p.isActive !== false)
+      .reduce((s, p) => s + getEffectiveRent(p), 0);
     if (rent > 0) expenseBreakdown.push({ label: "Rent", amount: rent, icon: Home });
 
     const sipTotal = (state.sips || [])
@@ -78,7 +82,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       ...(state.lic || []),
       ...(state.termPlans || []),
       ...(state.investmentPlans || []),
-    ].reduce((s, p) => s + Number(p.annualPremium || p.premium || 0) / 12, 0);
+    ].reduce((s, p) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium) / 12, 0);
     if (insTotal > 0)
       expenseBreakdown.push({ label: "Insurance Premiums", amount: insTotal, icon: HeartPulse });
 
