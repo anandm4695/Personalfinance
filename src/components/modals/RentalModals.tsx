@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { today, fmtINRFull } from "../../utils/finance";
+import { today, fmtINRFull, getEffectiveRent } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -1111,7 +1111,12 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
   const [f, setF] = useState({
     owner: initial?.owner || "self",
     propertyName: initial?.propertyName || "",
-    monthlyRent: initial?.monthlyRent || "",
+    // Seed from the current effective rent (accounting for escalation tiers)
+    // rather than the raw stored monthlyRent field, which goes stale the
+    // moment tiers advance — otherwise reopening this modal to edit an
+    // escalated property showed a frozen, no-longer-accurate figure here
+    // even though every other tab reads the tier-aware getEffectiveRent().
+    monthlyRent: initial ? getEffectiveRent(initial) || "" : "",
     securityDeposit: initial?.securityDeposit || "",
     depositPaidDate: initial?.depositPaidDate || "",
     agreementStart: initial?.agreementStart || "",
