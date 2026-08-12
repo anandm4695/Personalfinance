@@ -2552,10 +2552,12 @@ function getLinkConfig(category: string, type: string, state: any) {
   if (category === "EMI" && type === "debit") {
     return {
       label: "Loan",
-      options: (state.loansTaken || []).map((l: any) => ({
-        key: `loansTaken:${l.id}`,
-        label: `${l.lender || "Loan"} – ${l.type || ""} | EMI ${fmt(l.emi)}/mo | Outstanding ${fmt(l.outstanding)}`,
-      })),
+      options: (state.loansTaken || [])
+        .filter((l: any) => Number(l.outstanding || 0) > 0)
+        .map((l: any) => ({
+          key: `loansTaken:${l.id}`,
+          label: `${l.lender || "Loan"} – ${l.type || ""} | EMI ${fmt(l.emi)}/mo | Outstanding ${fmt(l.outstanding)}`,
+        })),
     };
   }
   if (category === "Insurance" && type === "debit") {
