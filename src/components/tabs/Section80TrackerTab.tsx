@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, isHomeLoan, loanOutstanding } from "../../utils/finance";
+import { fmtINRFull, isHomeLoan, loanOutstanding, getEffectiveRent } from "../../utils/finance";
 import { getCurrentFY } from "../../utils/appConstants";
 import { annualizeContribution } from "../../utils/govtSchemes";
 import { Card } from "../ui/Card";
@@ -242,11 +242,16 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     const sec24_used = Math.min(homeLoanInterest, sec24_limit);
     const sec24_remaining = Math.max(0, sec24_limit - homeLoanInterest);
 
-    // HRA exemption (estimate)
-    const monthlyRent = (state.rentedProperties || []).reduce(
-      (s, p) => s + Number(p.monthlyRent || 0),
-      0
-    );
+    // HRA exemption (estimate). Was reading the static `monthlyRent` field
+    // directly — that field is only ever set once at creation and never
+    // updated as escalation tiers advance, silently understating rent (and
+    // thus the HRA exemption estimate) for any property past its first
+    // tier boundary. Use the escalation-aware getEffectiveRent(), same fix
+    // already applied to CashFlowTab.tsx/RemindersTab.tsx/
+    // useFinancialEvents.tsx this session.
+    const monthlyRent = (state.rentedProperties || [])
+      .filter((p) => p.isActive !== false)
+      .reduce((s, p) => s + getEffectiveRent(p), 0);
     const annualRent = monthlyRent * 12;
 
     const totalDeductions =
