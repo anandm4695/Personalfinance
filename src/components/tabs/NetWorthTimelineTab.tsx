@@ -114,6 +114,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           else if (entry.dataKey === "debt") color = "var(--t-gold)";
           else if (entry.dataKey === "realEstate") color = "var(--t-violet)";
           else if (entry.dataKey === "vehicles") color = "var(--t-pink)";
+          else if (entry.dataKey === "other") color = "var(--t-cyan)";
           else if (entry.dataKey === "netWorth") color = "var(--t-accent)";
           else if (entry.dataKey === "delta")
             color = entry.value >= 0 ? "var(--t-sage)" : "var(--t-rust)";
@@ -216,6 +217,27 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
   // which nuked genuine early history once real estate inflated the current net worth.
   // Reconstructing from source records sidesteps that entirely and isn't limited by
   // whatever survived in the snapshot table.
+  // Named individually below: Bank Cash, Stocks+Mutual Funds, Fixed
+  // Deposits, Real Estate, Vehicles. Everything else computeNetWorthAsOf
+  // tracks (PPF/NPS/EPF/Bonds/LIC/Investment Plans/Gold & SGBs/Govt Schemes/
+  // Recurring Deposits/Rental Properties/Security Deposit/Prepaid Cards/
+  // Loans Given/Informal Loans Given) rolls into "Other Assets" instead of
+  // being silently dropped — the stacked Asset Breakdown chart used to only
+  // sum these 5, so its visible total (and its own tooltip's "Total Net
+  // Worth" line) could read far below the hero "Net Worth Today" figure
+  // shown right above it on the same page for anyone with meaningful PPF/
+  // Gold/Govt Scheme/etc. holdings. Building the catch-all from the
+  // breakdown's full category list (rather than hardcoding a second name
+  // set) also means a future category added to netWorthAsOf.ts can't repeat
+  // this drift.
+  const NAMED_CATEGORIES = new Set([
+    "Bank Cash",
+    "Stocks",
+    "Mutual Funds",
+    "Fixed Deposits",
+    "Real Estate",
+    "Vehicles",
+  ]);
   const history = useMemo(() => {
     const todayYm = today().slice(0, 7);
     const startYm = getEarliestNetWorthMonth(state);
@@ -228,6 +250,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
       // combined tracked share (see realEstateShareForOwner vs realEstateTrackedShare) under
       // one member's individual net worth, disagreeing with what `metrics` shows for "today".
       const { netWorth, assetBreakdown } = computeNetWorthAsOf(state, cursor, marketData, activeProfile);
+      const other = assetBreakdown
+        .filter((x) => !NAMED_CATEGORIES.has(x.name))
+        .reduce((s, x) => s + x.value, 0);
       points.push({
         month: cursor,
         label: formatMonth(cursor),
@@ -237,11 +262,12 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
         debt: findVal(assetBreakdown, "Fixed Deposits"),
         realEstate: findVal(assetBreakdown, "Real Estate"),
         vehicles: findVal(assetBreakdown, "Vehicles"),
+        other,
       });
       cursor = nextYm(cursor);
     }
     return points;
-  }, [state, marketData]);
+  }, [state, marketData, activeProfile]);
 
   const momDeltas = useMemo(() => {
     if (history.length < 2) return [];
@@ -881,6 +907,10 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   <stop offset="0%" stopColor="var(--t-pink)" stopOpacity={0.65} />
                   <stop offset="100%" stopColor="var(--t-pink)" stopOpacity={0.05} />
                 </linearGradient>
+                <linearGradient id="otherGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--t-cyan)" stopOpacity={0.65} />
+                  <stop offset="100%" stopColor="var(--t-cyan)" stopOpacity={0.05} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
               <XAxis
@@ -948,6 +978,15 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 fill="url(#vehiclesGrad)"
                 strokeWidth={1.5}
                 name="Vehicles"
+              />
+              <Area
+                type="monotone"
+                dataKey="other"
+                stackId="1"
+                stroke="var(--t-cyan)"
+                fill="url(#otherGrad)"
+                strokeWidth={1.5}
+                name="Other Assets"
               />
             </AreaChart>
           ) : (
