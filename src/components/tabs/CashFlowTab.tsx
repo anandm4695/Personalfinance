@@ -233,9 +233,14 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
   const inflows = useMemo(() => {
     const sources: { name: string; monthly: number; icon: any; category: string }[] = [];
 
-    // 1. Salary
+    // 1. Salary. Was checking `i.category`, which on an income_entries row
+    // only ever holds "active"/"passive" (see migration 34) — the field that
+    // actually carries "Salary"/"Freelance"/"Dividend"/"Bonus" is `i.source`.
+    // This meant salary income could never be detected here; every income
+    // entry silently fell into "Other Income" below regardless of its real
+    // source.
     const salaryEntries = (state.income || []).filter((i: any) =>
-      (i.category || "").toLowerCase().includes("salary")
+      (i.source || "").toLowerCase().includes("salary")
     );
     if (salaryEntries.length > 0) {
       // Use latest salary entry
@@ -335,9 +340,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         category: "Interest",
       });
 
-    // 5. Other Income
+    // 5. Other Income — everything not matched as salary above.
     const otherIncome = (state.income || []).filter(
-      (i: any) => !(i.category || "").toLowerCase().includes("salary")
+      (i: any) => !(i.source || "").toLowerCase().includes("salary")
     );
     if (otherIncome.length > 0) {
       const sorted = [...otherIncome].sort((a: any, b: any) =>
