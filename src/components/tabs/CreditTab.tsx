@@ -1558,7 +1558,14 @@ function CCList({
             <Edit3 size={14} />
           </button>
           <button
-            onClick={() => onRemove(c.id)}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Delete "${c.issuer || "this card"}${c.last4 ? ` ····${c.last4}` : ""}" and its entire transaction ledger? This cannot be undone.`
+                )
+              )
+                onRemove(c.id);
+            }}
             aria-label="Remove card"
             style={{
               background: "transparent",
@@ -3517,7 +3524,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   <Edit3 size={14} />
                 </button>
                 <button
-                  onClick={() => onRemove(p.id)}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Delete "${p.cardName || p.name || p.provider || "this prepaid card"}" and its entire transaction ledger? This cannot be undone.`
+                      )
+                    )
+                      onRemove(p.id);
+                  }}
                   aria-label="Remove card"
                   style={{
                     background: "transparent",
