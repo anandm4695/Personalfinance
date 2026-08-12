@@ -32,7 +32,17 @@ import {
   ComposedChart,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, getEffectiveRent } from "../../utils/finance";
+import {
+  fmtINRFull,
+  fmtINRExact,
+  getEffectiveRent,
+  nextAnnualOccurrence,
+  annualizePremium,
+  addMonthsToDateStr,
+  fdMaturity,
+  rdMaturity,
+  today,
+} from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
@@ -291,12 +301,15 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         category: "Interest",
       });
 
-    // Interest Income — RDs
+    // Interest Income — RDs. Was reading `rd.monthlyDeposit`/`rd.tenure`, neither
+    // of which exist on a recurringDeposits record (the real fields are
+    // `rd.monthly`/`rd.tenureMonths`, confirmed in InvestmentsTab.tsx's RD form)
+    // — this source always computed to ₹0.
     const rdInterest = (state.recurringDeposits || []).reduce((sum: number, rd: any) => {
-      const monthly = Number(rd.monthlyDeposit || rd.amount || 0);
+      const monthly = Number(rd.monthly || 0);
       const rate = Number(rd.rate || rd.interestRate || 0);
       // Rough estimate: average balance * rate / 12
-      const tenure = Number(rd.tenureMonths || rd.tenure || 12);
+      const tenure = Number(rd.tenureMonths || 12);
       const avgBalance = (monthly * tenure) / 2;
       return sum + (avgBalance * rate) / 100 / 12;
     }, 0);
@@ -496,14 +509,23 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       type: "inflow" | "outflow";
     }[] = [];
 
-    // FD Maturities
+    // FD Maturities. `fd.bankName` and `fd.maturityAmount` don't exist on a
+    // fixedDeposits record (real fields: `fd.bank`, and the maturity value
+    // must be computed via fdMaturity() — there's no stored maturity-amount
+    // field) — this previously showed no bank name and understated the
+    // inflow to bare principal (missing all accrued interest).
     (state.fixedDeposits || []).forEach((fd: any) => {
       const matDate = fd.maturityDate || "";
       if (isDateInRange(matDate, months)) {
-        const maturityAmount = Number(fd.maturityAmount || fd.principal || fd.amount || 0);
+        const principal = Number(fd.principal || 0);
+        const years = Number(fd.years || 0);
+        const maturityAmount =
+          principal > 0 && years > 0
+            ? fdMaturity(principal, Number(fd.rate || 0), years)
+            : principal;
         items.push({
           date: matDate,
-          name: `FD Maturity${fd.bankName ? ` — ${fd.bankName}` : ""}`,
+          name: `FD Maturity${fd.bank ? ` — ${fd.bank}` : ""}`,
           amount: maturityAmount,
           category: "FD Maturity",
           type: "inflow",
@@ -511,14 +533,24 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       }
     });
 
-    // RD Maturities
+    // RD Maturities. Was checking `rd.maturityDate` and `rd.maturityAmount`,
+    // neither of which are ever stored on a recurringDeposits record (real
+    // fields: `rd.bank`/`rd.monthly`/`rd.tenureMonths`/`rd.startDate` — the
+    // maturity date must be derived from startDate+tenureMonths and the
+    // amount computed via rdMaturity(), same as XIRRReportTab/
+    // useFinancialEvents.tsx already do) — this event never fired at all.
     (state.recurringDeposits || []).forEach((rd: any) => {
-      const matDate = rd.maturityDate || "";
+      if (!rd.startDate || !rd.monthly || !rd.tenureMonths) return;
+      const matDate = addMonthsToDateStr(rd.startDate, Number(rd.tenureMonths));
       if (isDateInRange(matDate, months)) {
-        const maturityAmount = Number(rd.maturityAmount || 0);
+        const maturityAmount = rdMaturity(
+          Number(rd.monthly || 0),
+          Number(rd.rate || 0),
+          Number(rd.tenureMonths || 0)
+        );
         items.push({
           date: matDate,
-          name: `RD Maturity${rd.bankName ? ` — ${rd.bankName}` : ""}`,
+          name: `RD Maturity${rd.bank ? ` — ${rd.bank}` : ""}`,
           amount: maturityAmount,
           category: "RD Maturity",
           type: "inflow",
@@ -526,15 +558,25 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       }
     });
 
-    // Insurance Premium Due
-    const todayDate = new Date();
-    [...(state.lic || []), ...(state.termPlans || []), ...(state.investmentPlans || [])].forEach(
-      (policy: any) => {
-        const premium = Number(policy.annualPremium || policy.premium || 0);
-        if (premium <= 0) return;
-        // Try to figure out next due date from policy start or last premium date
-        const dueDate = policy.nextPremiumDate || policy.premiumDueDate || "";
-        if (dueDate && isDateInRange(dueDate, months)) {
+    // Insurance Premium Due. Was permanently dead — checked
+    // `policy.nextPremiumDate`/`policy.premiumDueDate`, neither of which is
+    // ever set on a lic/termPlans/investmentPlans record anywhere in the app;
+    // every other consumer of "when's the next premium due" (useAlerts.ts,
+    // useFinancialEvents.tsx, RemindersTab.tsx) instead derives it from the
+    // policy's start date via nextAnnualOccurrence, with a matured-policy
+    // guard and annualizePremium (handles premium+premiumFrequency, not just
+    // a pre-set annualPremium).
+    const todayStr = today();
+    const addPremiumDue = (policies: any[], startField: string, expiryField: string) => {
+      (policies || []).forEach((policy: any) => {
+        const premium = annualizePremium(policy.premium, policy.premiumFrequency, policy.annualPremium);
+        if (!premium) return;
+        const startDate = policy[startField];
+        if (!startDate) return;
+        const expiry = policy[expiryField];
+        if (expiry && expiry < todayStr) return;
+        const dueDate = nextAnnualOccurrence(startDate, todayStr);
+        if (isDateInRange(dueDate, months)) {
           items.push({
             date: dueDate,
             name: `Premium — ${policy.planName || policy.name || policy.provider || "Insurance"}`,
@@ -543,16 +585,23 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             type: "outflow",
           });
         }
-      }
-    );
+      });
+    };
+    addPremiumDue(state.lic, "commencementDate", "maturityDate");
+    addPremiumDue(state.termPlans, "startDate", "expiryDate");
+    addPremiumDue(state.investmentPlans, "commencementDate", "maturityDate");
 
-    // Loan Closures
+    // Loan Closures. Was permanently dead — checked `loan.endDate`/
+    // `loan.closureDate`, neither of which is ever set on a loansTaken
+    // record; the real closure date must be derived from monthsRemaining,
+    // same as useFinancialEvents.tsx's loan_closure milestone already does.
     (state.loansTaken || []).forEach((loan: any) => {
-      const endDate = loan.endDate || loan.closureDate || "";
-      if (isDateInRange(endDate, months)) {
+      if (!loan.monthsRemaining || !loan.emi) return;
+      const closureDate = addMonthsToDateStr(todayStr, Number(loan.monthsRemaining));
+      if (isDateInRange(closureDate, months)) {
         items.push({
-          date: endDate,
-          name: `Loan Closure — ${loan.name || loan.lender || loan.type || "Loan"}`,
+          date: closureDate,
+          name: `Loan Closure — ${loan.lender || loan.lenderBorrower || loan.type || "Loan"}`,
           amount: Number(loan.outstanding || loan.balance || 0),
           category: "Loan Closure",
           type: "outflow",
