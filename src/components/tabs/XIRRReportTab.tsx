@@ -38,6 +38,7 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
 import { Prv } from "../../context/PrivacyContext";
+import { DataTable, Column } from "../design-system/DataTable";
 
 // Canonical section order — keeps the per-type table ordering stable across
 // renders. Grouping straight off the XIRR-sorted `rows` list (as before) meant
@@ -53,27 +54,6 @@ const TYPE_ORDER = [
   "NPS",
   "Bonds",
 ];
-
-const th: React.CSSProperties = {
-  padding: "14px 16px",
-  textAlign: "right",
-  color: THEME.muted,
-  fontWeight: 800,
-  fontSize: 11,
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  borderBottom: `2px solid ${THEME.line}`,
-};
-
-const td: React.CSSProperties = {
-  padding: "14px 16px",
-  textAlign: "right",
-  color: THEME.ink,
-  fontSize: 13,
-  fontWeight: 500,
-  borderBottom: `1px solid ${THEME.line}`,
-  fontVariantNumeric: "tabular-nums",
-};
 
 const xirrColor = (x: number | null): string => {
   if (x === null) return THEME.muted;
@@ -550,6 +530,108 @@ export function XIRRReportTab({ state }: any) {
     );
   };
 
+  const holdingColumns: Column<any>[] = [
+    {
+      key: "name",
+      header: "Name",
+      align: "left",
+      accessor: (row) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: `color-mix(in srgb, ${row.color} 12%, transparent)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <row.icon size={14} style={{ color: row.color }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 13.5 }}>{row.name}</div>
+            {row.owner && row.owner !== "self" && (
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 2 }}>
+                {row.owner}
+              </div>
+            )}
+          </div>
+          {row.status === "matured" && (
+            <Badge variant="muted" size="xs">
+              matured
+            </Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "invested",
+      header: "Invested",
+      align: "right",
+      accessor: (row) => <Prv>{fmtINRExact(row.invested)}</Prv>,
+    },
+    {
+      key: "currentValue",
+      header: "Current Value",
+      align: "right",
+      accessor: (row) => (
+        <span style={{ fontWeight: 700 }}>
+          <Prv>{fmtINRExact(row.currentValue)}</Prv>
+        </span>
+      ),
+    },
+    {
+      key: "gain",
+      header: "Gain / Loss",
+      align: "right",
+      accessor: (row) => {
+        const gain = (row.currentValue || 0) - (row.invested || 0);
+        const gainPct = row.invested > 0 ? (gain / row.invested) * 100 : 0;
+        return (
+          <span style={{ color: gain >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
+            <Prv>
+              {gain >= 0 ? "+" : ""}
+              {fmtINRExact(Math.abs(gain))}
+              <span style={{ fontSize: 11, marginLeft: 5, opacity: 0.8, fontWeight: 500 }}>
+                ({gainPct >= 0 ? "+" : ""}
+                {gainPct.toFixed(1)}%)
+              </span>
+            </Prv>
+          </span>
+        );
+      },
+    },
+    {
+      key: "period",
+      header: "Period",
+      align: "right",
+      accessor: (row) => holdingLabel(row.startDate, row.endDate),
+    },
+    {
+      key: "xirr",
+      header: "XIRR",
+      align: "right",
+      accessor: (row) => (
+        <span
+          style={{
+            fontWeight: 800,
+            fontSize: 13,
+            color: xirrColor(row.xirr),
+            background: `color-mix(in srgb, ${xirrColor(row.xirr)} 12%, transparent)`,
+            padding: "4px 10px",
+            borderRadius: 8,
+            display: "inline-block",
+          }}
+        >
+          {xirrLabel(row.xirr)}
+        </span>
+      ),
+    },
+  ];
+
   if (rows.length === 0) {
     return (
       <div>
@@ -888,147 +970,13 @@ export function XIRRReportTab({ state }: any) {
                 </div>
               </div>
 
-              <div
-                className="desktop-only"
-                style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}
-              >
-                <table
-                  style={{
-                    width: "100%",
-                    minWidth: 640,
-                    borderCollapse: "collapse",
-                    fontSize: 13,
-                  }}
-                >
-                  <thead>
-                    <tr style={{ background: "var(--surface-1)" }}>
-                      <th style={{ ...th, textAlign: "left" }}>Name</th>
-                      <th style={th}>Invested</th>
-                      <th style={th}>Current Value</th>
-                      <th style={th}>Gain / Loss</th>
-                      <th style={th} title="Time held from start date to today (or maturity)">Period</th>
-                      <th style={th}>XIRR</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((row, i) => {
-                      const gain = (row.currentValue || 0) - (row.invested || 0);
-                      const gainPct = row.invested > 0 ? (gain / row.invested) * 100 : 0;
-                      return (
-                        <tr
-                          key={i}
-                          className="table-row-hover"
-                          style={{
-                            borderBottom: `1px solid ${THEME.line}`,
-                          }}
-                        >
-                          <td style={{ padding: "12px 16px" }}>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: 8,
-                                  background: `color-mix(in srgb, ${row.color} 12%, transparent)`,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <row.icon size={14} style={{ color: row.color }} />
-                              </div>
-                              <div>
-                                <div
-                                  style={{
-                                    fontWeight: 700,
-                                    color: THEME.ink,
-                                    fontSize: 13.5,
-                                  }}
-                                >
-                                  {row.name}
-                                </div>
-                                {row.owner && row.owner !== "self" && (
-                                  <div
-                                    style={{
-                                      fontSize: 11,
-                                      color: THEME.muted,
-                                      fontWeight: 500,
-                                      marginTop: 2,
-                                    }}
-                                  >
-                                    {row.owner}
-                                  </div>
-                                )}
-                              </div>
-                              {row.status === "matured" && (
-                                <Badge variant="muted" size="xs">
-                                  matured
-                                </Badge>
-                              )}
-                            </div>
-                          </td>
-                          <td style={td}>
-                            <Prv>{fmtINRExact(row.invested)}</Prv>
-                          </td>
-                          <td style={{ ...td, fontWeight: 700 }}>
-                            <Prv>{fmtINRExact(row.currentValue)}</Prv>
-                          </td>
-                          <td
-                            style={{
-                              ...td,
-                              color: gain >= 0 ? THEME.sage : THEME.rust,
-                              fontWeight: 700,
-                            }}
-                          >
-                            <Prv>
-                              {gain >= 0 ? "+" : ""}
-                              {fmtINRExact(Math.abs(gain))}
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  marginLeft: 5,
-                                  opacity: 0.8,
-                                  fontWeight: 500,
-                                }}
-                              >
-                                ({gainPct >= 0 ? "+" : ""}
-                                {gainPct.toFixed(1)}%)
-                              </span>
-                            </Prv>
-                          </td>
-                          <td style={td}>{holdingLabel(row.startDate, row.endDate)}</td>
-                          <td
-                            style={{
-                              padding: "12px 16px",
-                              textAlign: "right",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontWeight: 800,
-                                fontSize: 13,
-                                color: xirrColor(row.xirr),
-                                background: `color-mix(in srgb, ${xirrColor(row.xirr)} 12%, transparent)`,
-                                padding: "4px 10px",
-                                borderRadius: 8,
-                                display: "inline-block",
-                              }}
-                            >
-                              {xirrLabel(row.xirr)}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="desktop-only">
+                <DataTable
+                  columns={holdingColumns}
+                  data={items}
+                  hideSearch
+                  keyExtractor={(row, i) => `${type}-${i}`}
+                />
               </div>
 
               <div className="mobile-only" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
