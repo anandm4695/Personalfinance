@@ -12358,6 +12358,11 @@ function MFSection({
                 id: `mfs-${Date.now()}-${i}`,
                 owner: alloc.lot.owner || "self",
                 scheme: fifoSellMFGroup.fundName || fifoSellMFGroup.schemeName,
+                // Preserved from the live lot so CapitalGainsTab.isEquityMF() can
+                // use the user's actual Equity/Debt classification instead of
+                // falling back to guessing from the fund name text — see the
+                // matching comment in SellMFModal's single-lot sell path above.
+                category: alloc.lot.category || "",
                 units: alloc.consume,
                 buyNav: alloc.buyNav,
                 buyDate: alloc.lot.buyDate || "",
@@ -12625,6 +12630,13 @@ function SellMFModal({ mf, onClose, onSave }: any) {
       id: `mfs-${Date.now()}`,
       owner: mf.owner || "self",
       scheme: mf.name || mf.scheme || "",
+      // Preserved from the live lot so CapitalGainsTab.isEquityMF() can use the
+      // user's actual Equity/Debt classification instead of falling back to
+      // guessing from the fund name text — a fund like "Axis Bluechip Fund"
+      // contains no keyword from CapitalGainsTab's EQUITY_CATEGORIES list and
+      // would silently misclassify as Debt (wrong tax rate, wrong LTCG
+      // threshold) without this.
+      category: mf.category || "",
       units: sellUnitsNum,
       buyNav,
       buyDate: mf.buyDate || "",
