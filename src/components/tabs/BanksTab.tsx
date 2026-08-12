@@ -35,6 +35,7 @@ import {
   autoCateg,
   getLocalDateString,
   addMonthsToDateStr,
+  getEffectiveRent,
 } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
@@ -2583,7 +2584,7 @@ function getLinkConfig(category: string, type: string, state: any) {
         .filter((p: any) => p.isActive !== false)
         .map((p: any) => ({
           key: `rentedProperties:${p.id}`,
-          label: `${p.propertyName || "Property"} – ${fmt(p.monthlyRent)}/mo`,
+          label: `${p.propertyName || "Property"} – ${fmt(getEffectiveRent(p))}/mo`,
         })),
     };
   }
@@ -2594,7 +2595,7 @@ function getLinkConfig(category: string, type: string, state: any) {
         .filter((p: any) => p.isActive !== false)
         .map((p: any) => ({
           key: `rentalProperties:${p.id}`,
-          label: `${p.propertyName || "Property"} – ${fmt(p.monthlyRent)}/mo`,
+          label: `${p.propertyName || "Property"} – ${fmt(getEffectiveRent(p))}/mo`,
         })),
     };
   }

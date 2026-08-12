@@ -676,7 +676,7 @@ const HraReceiptSection = ({ state }) => {
                     {rentedProps.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name || p.address || "Property"} —{" "}
-                        {privacyMode ? "••••" : fmtINRFull(p.monthlyRent)}/mo
+                        {privacyMode ? "••••" : fmtINRFull(getEffectiveRent(p))}/mo
                       </option>
                     ))}
                   </select>

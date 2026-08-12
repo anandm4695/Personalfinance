@@ -21,6 +21,7 @@ import {
   calcTaxOldByFY,
   isHomeLoan,
   loanOutstanding,
+  getEffectiveRent,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -162,7 +163,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     );
     const rentalIncomeEstimate = (state.rentalProperties || [])
       .filter((p) => p.isActive !== false)
-      .reduce((s, p) => s + Number(p.monthlyRent || 0) * 12, 0);
+      .reduce((s, p) => s + getEffectiveRent(p) * 12, 0);
     const rentalIncome = rentalReceiptsLedger > 0 ? rentalReceiptsLedger : rentalIncomeEstimate;
 
     // Dividend income

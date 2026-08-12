@@ -2324,7 +2324,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // 7. RENTED PROPERTIES: monthly rent due day within active agreement range (paid vs unpaid status coloring)
     (state.rentedProperties || [])
-      .filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0)
+      .filter((p: any) => p.isActive !== false && getEffectiveRent(p) > 0)
       .forEach((p: any) => {
         let isAgreementActive = true;
         if (p.agreementStart) {
@@ -2361,7 +2361,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             dueDays[targetDay] = (dueDays[targetDay] || []).concat({
               label: p.propertyName || "Rent",
               color: isPaid ? THEME.sage : THEME.gold,
-              amount: Number(p.monthlyRent || 0),
+              amount: getEffectiveRent(p),
               amountLabel: "Rent",
               frequency: "Monthly",
               paid: isPaid,

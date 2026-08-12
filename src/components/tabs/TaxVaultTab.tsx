@@ -44,6 +44,7 @@ import {
   uid,
   isHomeLoan,
   loanOutstanding,
+  getEffectiveRent,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -1496,9 +1497,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0)
       );
     }, 0);
-    // Monthly rent fallback — from rentedProperties monthlyRent × 12
+    // Monthly rent fallback — from rentedProperties effective rent × 12
     const hraMonthly = (state.rentedProperties || []).reduce(
-      (s: number, p: any) => s + Number(p.monthlyRent || 0),
+      (s: number, p: any) => s + getEffectiveRent(p),
       0
     );
     const hra_raw = hraPayments > 0 ? hraPayments : hraMonthly > 0 ? hraMonthly * 12 : 0;
