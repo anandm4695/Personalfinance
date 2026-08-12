@@ -928,7 +928,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         />
       </div>
 
-      {/* Premium Sticky Section Tab Pills */}
+      {/* Section Tab Pills */}
       <div
         className="no-print"
         style={{
@@ -937,12 +937,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           flexWrap: "nowrap",
           overflowX: "auto",
           marginBottom: 24,
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          background: "color-mix(in srgb, var(--surface-0) 70%, transparent)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
+          background: "var(--surface-0)",
           padding: "10px 8px",
           borderRadius: 16,
           border: `1px solid ${THEME.line}`,
