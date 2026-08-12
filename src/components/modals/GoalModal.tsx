@@ -6,7 +6,7 @@ import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
-export function GoalModal({ initial, onClose, onSave }: any) {
+export function GoalModal({ initial, onClose, onSave, saving }: any) {
   const { goalCategories, familyProfiles } = useMasterData();
   const [clearHover, setClearHover] = useState(false);
   const [setDateHover, setSetDateHover] = useState(false);
@@ -177,7 +177,8 @@ export function GoalModal({ initial, onClose, onSave }: any) {
       <ModalActions
         onSave={() => onSave({ ...f, name: f.name.trim() })}
         onClose={onClose}
-        disabled={!canSave}
+        disabled={!canSave || saving}
+        loading={saving}
       />
     </Modal>
   );

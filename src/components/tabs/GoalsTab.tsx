@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
   Plus,
   Pencil,
@@ -51,7 +52,7 @@ const PRIORITY_COLOR: Record<string, string> = {
   Low: THEME.sage,
 };
 
-export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
+export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, showToast }: any) {
   const [show, setShow] = useState(false);
   const [editGoal, setEditGoal] = useState<any>(null);
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
@@ -61,6 +62,28 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   const [sipInputs, setSipInputs] = useState<Record<string, string>>({});
   const [showInflation, setShowInflation] = useState(false);
   const [inflationRate, setInflationRate] = useState("6");
+
+  const { run: runAddGoal, loading: addingGoal } = useAsyncAction(
+    async (v: any) => {
+      await addItem("goals", v);
+    },
+    {
+      onSuccess: () => setShow(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to save goal: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: runUpdateGoal, loading: updatingGoal } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("goals", id, v);
+    },
+    {
+      onSuccess: () => setEditGoal(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save goal: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
   const [contribOpen, setContribOpen] = useState<string | null>(null);
   const [contribValue, setContribValue] = useState("");
 
@@ -1250,20 +1273,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
       {show && (
         <GoalModal
           onClose={() => setShow(false)}
-          onSave={(v: any) => {
-            addItem("goals", v);
-            setShow(false);
-          }}
+          onSave={(v: any) => runAddGoal(v)}
+          saving={addingGoal}
         />
       )}
       {editGoal && (
         <GoalModal
           initial={editGoal}
           onClose={() => setEditGoal(null)}
-          onSave={(v: any) => {
-            updateItem("goals", editGoal.id, v);
-            setEditGoal(null);
-          }}
+          onSave={(v: any) => runUpdateGoal(editGoal.id, v)}
+          saving={updatingGoal}
         />
       )}
     </div>

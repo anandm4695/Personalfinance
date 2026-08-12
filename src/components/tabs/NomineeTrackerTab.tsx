@@ -31,6 +31,7 @@ import {
 } from "../../utils/nomineeTracker";
 import { Prv } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -328,23 +329,25 @@ export const NomineeTrackerTab = ({
     setShowWillForm(true);
   };
 
-  const handleSaveWill = async () => {
-    // `documents.name` is a required column in Supabase — the will record has
-    // no natural "name" of its own, so synthesize one from the date so saves
-    // don't fail with a not-null constraint violation.
-    const name = willForm.date ? `Will — dated ${willForm.date}` : "Will Document";
-    const payload = { type: "will", name, ...willForm };
-    try {
+  const { run: handleSaveWill, loading: savingWill } = useAsyncAction(
+    async () => {
+      // `documents.name` is a required column in Supabase — the will record has
+      // no natural "name" of its own, so synthesize one from the date so saves
+      // don't fail with a not-null constraint violation.
+      const name = willForm.date ? `Will — dated ${willForm.date}` : "Will Document";
+      const payload = { type: "will", name, ...willForm };
       if (editWill) {
         await updateItem("documents", editWill.id, payload);
       } else {
         await addItem("documents", payload);
       }
-      resetWillForm();
-    } catch (e: any) {
-      showToast?.(`Failed to save will details: ${e?.message || "Unknown error"}`, "error");
+    },
+    {
+      onSuccess: () => resetWillForm(),
+      onError: (e: any) =>
+        showToast?.(`Failed to save will details: ${e?.message || "Unknown error"}`, "error"),
     }
-  };
+  );
 
   const resetContactForm = () => {
     setContactForm({ name: "", role: "Lawyer", phone: "", email: "", notes: "" });
@@ -364,20 +367,22 @@ export const NomineeTrackerTab = ({
     setShowContactForm(true);
   };
 
-  const handleSaveContact = async () => {
-    if (!contactForm.name.trim()) return;
-    const payload = { type: "key_contact", ...contactForm };
-    try {
+  const { run: handleSaveContact, loading: savingContact } = useAsyncAction(
+    async () => {
+      if (!contactForm.name.trim()) return;
+      const payload = { type: "key_contact", ...contactForm };
       if (editContact) {
         await updateItem("documents", editContact.id, payload);
       } else {
         await addItem("documents", payload);
       }
-      resetContactForm();
-    } catch (e: any) {
-      showToast?.(`Failed to save contact: ${e?.message || "Unknown error"}`, "error");
+    },
+    {
+      onSuccess: () => resetContactForm(),
+      onError: (e: any) =>
+        showToast?.(`Failed to save contact: ${e?.message || "Unknown error"}`, "error"),
     }
-  };
+  );
 
   if (totalAssets === 0) {
     return (
@@ -1564,6 +1569,7 @@ export const NomineeTrackerTab = ({
             onSave={handleSaveWill}
             onClose={resetWillForm}
             saveLabel={editWill ? "Update Will" : "Save Will"}
+            loading={savingWill}
           />
         </Modal>
       )}
@@ -1641,6 +1647,7 @@ export const NomineeTrackerTab = ({
             onClose={resetContactForm}
             saveLabel={editContact ? "Update Contact" : "Save Contact"}
             disabled={!contactForm.name.trim()}
+            loading={savingContact}
           />
         </Modal>
       )}

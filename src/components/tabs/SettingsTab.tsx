@@ -62,6 +62,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { ConfirmDialog } from "../ui/Feedback";
 import { Modal } from "../ui/Modal";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
 const MD_GROUPS = [
@@ -1145,20 +1146,23 @@ function ProfileSection({ state, updateProfile, showToast }: any) {
 
   const isDirty = JSON.stringify(prof) !== JSON.stringify(state.profile);
 
-  const [saving, setSaving] = useState(false);
-
-  const saveProfile = async () => {
-    setSaving(true);
-    const res = await updateProfile(prof);
-    setSaving(false);
-    if (res?.success === false) {
-      showToast?.(`Failed to save profile: ${res.error || "Unknown error"}`, "error");
-      return;
+  const { run: saveProfile, loading: saving } = useAsyncAction(
+    async () => {
+      const res = await updateProfile(prof);
+      if (res?.success === false) {
+        throw new Error(res.error || "Unknown error");
+      }
+    },
+    {
+      onSuccess: () => {
+        setSaved(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setSaved(false), 2200);
+      },
+      onError: (e: any) =>
+        showToast?.(`Failed to save profile: ${e?.message || "Unknown error"}`, "error"),
     }
-    setSaved(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setSaved(false), 2200);
-  };
+  );
 
   useEffect(
     () => () => {
