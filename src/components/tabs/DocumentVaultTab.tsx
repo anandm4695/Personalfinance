@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { uid, today as todayFn } from "../../utils/finance";
+import { uid, today as todayFn, addMonthsToDateStr } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input, Select } from "../ui/Form";
 import { Card } from "../ui/Card";
@@ -1118,16 +1118,29 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
       if (assets.length === 0) continue;
 
       let insuranceTotal = assets.length;
+      let validIds = new Set(assets.map((a: any) => a.id));
       if (typeId === "insurance") {
-        insuranceTotal =
-          (state.lic || []).length +
-          (state.termPlans || []).length +
-          (state.investmentPlans || []).length;
+        const allInsurance = [
+          ...(state.lic || []),
+          ...(state.termPlans || []),
+          ...(state.investmentPlans || []),
+        ];
+        insuranceTotal = allInsurance.length;
+        validIds = new Set(allInsurance.map((a: any) => a.id));
       }
 
+      // Only count a document as "linking" this type if its stored
+      // linkedAsset id still resolves to a real, current asset — otherwise a
+      // document linked to a bank account/policy/etc. that was later edited
+      // or deleted keeps inflating this count forever (it can even push
+      // coverage above 100%). Mirrors the same staleness fix DocCard's
+      // `linkedAssetResolved` already applies per-document; this aggregate
+      // stat had been missed when that fix went in.
       const linkedDocIds = new Set(
         documents
-          .filter((d) => d.linkedAssetType === typeId && d.linkedAsset)
+          .filter(
+            (d) => d.linkedAssetType === typeId && d.linkedAsset && validIds.has(d.linkedAsset)
+          )
           .map((d) => d.linkedAsset)
       );
 
@@ -1667,10 +1680,15 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
               key={btn.label}
               type="button"
               onClick={() => {
-                const base = renewDoc.expiryDate ? new Date(renewDoc.expiryDate) : new Date();
-                const current = base.getTime() < new Date().getTime() ? new Date() : base;
-                current.setFullYear(current.getFullYear() + btn.val);
-                setRenewDate(current.toISOString().split("T")[0]);
+                // Built from Y-M-D string arithmetic (addMonthsToDateStr), not
+                // Date#setFullYear, which silently overflows a Feb 29 base date
+                // into March 1 on a non-leap target year — same bug class fixed
+                // elsewhere in the app (nextAnnualOccurrence/addMonthsClamped).
+                const todayStr = todayFn();
+                const base = renewDoc.expiryDate && renewDoc.expiryDate >= todayStr
+                  ? renewDoc.expiryDate
+                  : todayStr;
+                setRenewDate(addMonthsToDateStr(base, btn.val * 12));
               }}
               style={{
                 padding: "6px 12px",
