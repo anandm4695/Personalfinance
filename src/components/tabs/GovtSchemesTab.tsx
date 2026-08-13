@@ -31,6 +31,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
   APY_PENSION_TIERS,
   PMKISAN_ANNUAL_BENEFIT,
@@ -187,7 +188,7 @@ const EMPTY: any = {
   notes: "",
 };
 
-function SchemeForm({ initial, onSave, onClose }: any) {
+function SchemeForm({ initial, onSave, onClose, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, startDate: today(), ...initial });
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
@@ -457,7 +458,7 @@ function SchemeForm({ initial, onSave, onClose }: any) {
           placeholder="Optional notes"
         />
       </Field>
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Scheme" />
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Scheme" disabled={saving} loading={saving} />
     </Modal>
   );
 }
@@ -469,6 +470,7 @@ export function GovtSchemesTab({
   updateItem,
   subTab,
   onSubTabChange,
+  showToast,
 }: any) {
   const schemes: any[] = state.govtSchemes || [];
   const [modal, setModal] = useState<any>(null);
@@ -515,14 +517,21 @@ export function GovtSchemesTab({
     return s;
   }, 0);
 
-  const save = (data: any) => {
-    if (data.id && schemes.find((s: any) => s.id === data.id)) {
-      updateItem("govtSchemes", data.id, data);
-    } else {
-      addItem("govtSchemes", data);
-    }
-    setModal(null);
-  };
+  const { run: save, loading: savingScheme } = useAsyncAction(
+    async (data: any) => {
+      if (data.id && schemes.find((s: any) => s.id === data.id)) {
+        await updateItem("govtSchemes", data.id, data);
+      } else {
+        await addItem("govtSchemes", data);
+      }
+    },
+    { onSuccess: () => setModal(null), onError: (e: any) => showToast?.(`Failed to save scheme: ${e?.message || "Unknown error"}`, "error") }
+  );
+
+  const { run: deleteScheme } = useAsyncAction(
+    async (id: string) => { await removeItem("govtSchemes", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete scheme: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const subs = SCHEMES.map((s) => ({
     id: s.value,
@@ -813,7 +822,7 @@ export function GovtSchemesTab({
                     </button>
                     <button
                       onClick={() => {
-                        if (window.confirm(`Delete this scheme?`)) removeItem("govtSchemes", sc.id);
+                        if (window.confirm(`Delete this scheme?`)) deleteScheme(sc.id);
                       }}
                       className="icon-btn danger"
                       aria-label="Delete scheme"
@@ -927,6 +936,7 @@ export function GovtSchemesTab({
           initial={modal?.id ? modal : modal?.schemeType ? modal : undefined}
           onSave={save}
           onClose={() => setModal(null)}
+          saving={savingScheme}
         />
       )}
     </div>

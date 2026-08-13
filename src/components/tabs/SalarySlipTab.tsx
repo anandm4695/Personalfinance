@@ -44,6 +44,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const EMPTY: any = {
   owner: "self",
@@ -173,7 +174,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   );
 };
 
-function SlipForm({ initial, onSave, onClose, apiKey, existingSlips, familyProfiles }: any) {
+function SlipForm({ initial, onSave, onClose, apiKey, existingSlips, familyProfiles, saving = false }: any) {
   // Filter out null/undefined so a DB row with e.g. raw_text: null (common for
   // slips saved before this column existed, or added without AI-parsing) doesn't
   // clobber EMPTY's "" default — form.rawText.trim() would then crash on open.
@@ -550,12 +551,12 @@ Return only the JSON, no explanation.`;
         />
       </Field>
 
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Slip" />
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Slip" disabled={saving} loading={saving} />
     </Modal>
   );
 }
 
-export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
+export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToast }: any) {
   const { familyProfiles } = useMasterData();
   const { privacyMode } = usePrivacy();
   const slips: any[] = state.salarySlips || [];
@@ -667,14 +668,21 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
   const lastNetSub = lastNetSubParts.join(" · ") || undefined;
   const lastNetSubColor = momPct !== null ? (momPct >= 0 ? THEME.sage : THEME.rust) : undefined;
 
-  const save = (data: any) => {
-    if (data.id && slips.find((s: any) => s.id === data.id)) {
-      updateItem("salarySlips", data.id, data);
-    } else {
-      addItem("salarySlips", data);
-    }
-    setModal(null);
-  };
+  const { run: save, loading: savingSlip } = useAsyncAction(
+    async (data: any) => {
+      if (data.id && slips.find((s: any) => s.id === data.id)) {
+        await updateItem("salarySlips", data.id, data);
+      } else {
+        await addItem("salarySlips", data);
+      }
+    },
+    { onSuccess: () => setModal(null), onError: (e: any) => showToast?.(`Failed to save salary slip: ${e?.message || "Unknown error"}`, "error") }
+  );
+
+  const { run: deleteSlip } = useAsyncAction(
+    async (id: string) => { await removeItem("salarySlips", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete salary slip: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const handleExportCSV = () => {
     exportArrayToCSV(
@@ -1121,7 +1129,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                       <button
                         onClick={() => {
                           if (window.confirm("Delete this salary slip?"))
-                            removeItem("salarySlips", s.id);
+                            deleteSlip(s.id);
                         }}
                         className="card-lift"
                         title="Delete"
@@ -1342,6 +1350,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
           apiKey={apiKey}
           existingSlips={slips}
           familyProfiles={familyProfiles}
+          saving={savingSlip}
         />
       )}
     </div>

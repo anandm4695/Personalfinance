@@ -36,6 +36,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const BUREAUS = ["CIBIL", "Experian", "CRIF", "Equifax"];
 const SOURCES = ["manual", "OneScore", "Paisabazaar", "BankApp", "Other"];
@@ -138,7 +139,7 @@ function OwnerAvatar({ ownerId, size = 22 }: { ownerId: string; size?: number })
   );
 }
 
-function ScoreForm({ initial, onSave, onClose }: any) {
+function ScoreForm({ initial, onSave, onClose, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [error, setError] = useState("");
@@ -257,7 +258,7 @@ function ScoreForm({ initial, onSave, onClose }: any) {
           {error}
         </div>
       )}
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Score" />
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Score" disabled={saving} loading={saving} />
     </Modal>
   );
 }
@@ -513,7 +514,7 @@ function CreditFactorsPanel({ sorted, creditCards }: { sorted: any[]; creditCard
   );
 }
 
-export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) {
+export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToast }: any) {
   const { familyProfiles } = useMasterData();
   const scores: any[] = state.creditScores || [];
   const [modal, setModal] = useState<any>(null);
@@ -581,14 +582,21 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
     });
   }, [sorted, searchLower]);
 
-  const save = (data: any) => {
-    if (data.id && scores.find((s: any) => s.id === data.id)) {
-      updateItem("creditScores", data.id, data);
-    } else {
-      addItem("creditScores", data);
-    }
-    setModal(null);
-  };
+  const { run: save, loading: savingScore } = useAsyncAction(
+    async (data: any) => {
+      if (data.id && scores.find((s: any) => s.id === data.id)) {
+        await updateItem("creditScores", data.id, data);
+      } else {
+        await addItem("creditScores", data);
+      }
+    },
+    { onSuccess: () => setModal(null), onError: (e: any) => showToast?.(`Failed to save score: ${e?.message || "Unknown error"}`, "error") }
+  );
+
+  const { run: deleteScore } = useAsyncAction(
+    async (id: string) => { await removeItem("creditScores", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete score entry: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const handleExportCSV = () => {
     exportArrayToCSV(
@@ -1086,7 +1094,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                       <button
                         onClick={() => {
                           if (window.confirm("Delete this entry?"))
-                            removeItem("creditScores", s.id);
+                            deleteScore(s.id);
                         }}
                         aria-label="Delete credit score entry"
                         style={{
@@ -1154,6 +1162,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
           initial={modal?.bureau ? modal : modal?.id ? modal : undefined}
           onSave={save}
           onClose={() => setModal(null)}
+          saving={savingScore}
         />
       )}
     </div>

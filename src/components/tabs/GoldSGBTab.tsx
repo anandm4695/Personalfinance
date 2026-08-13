@@ -260,6 +260,11 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
     }
   );
 
+  const { run: deleteHolding } = useAsyncAction(
+    async (id) => { await removeItem("goldHoldings", id); },
+    { onError: (e) => showToast?.(`Failed to delete gold holding: ${e?.message || "Unknown error"}`, "error") }
+  );
+
   const handleEdit = (h) => {
     setForm({
       name: h.name,
@@ -690,7 +695,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                   <button
                     onClick={() => {
                       if (window.confirm(`Delete "${h.name || h.typeInfo.label}" holding? This cannot be undone.`)) {
-                        removeItem("goldHoldings", h.id);
+                        deleteHolding(h.id);
                       }
                     }}
                     className="icon-btn danger"

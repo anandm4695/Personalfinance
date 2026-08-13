@@ -39,6 +39,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const EVENT_TYPES = [
   {
@@ -103,7 +104,7 @@ const formatTimeAway = (targetDate: Date, now: Date) => {
   return `${(diffDays / 365.25).toFixed(1)} years away`;
 };
 
-export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updateItem }) => {
+export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updateItem, showToast = undefined }) => {
   const { privacyMode } = usePrivacy();
   const { familyProfiles } = useMasterData();
   const [showModal, setShowModal] = useState(false);
@@ -198,6 +199,11 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const { run: deleteEvent } = useAsyncAction(
+    async (id: string) => { await removeItem("lifeEvents", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete event: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const handleSave = async () => {
     if (saving) return;
@@ -459,7 +465,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                     <button
                       onClick={() => {
                         if (window.confirm(`Delete "${e.name}" event? This cannot be undone.`)) {
-                          removeItem("lifeEvents", e.id);
+                          deleteEvent(e.id);
                         }
                       }}
                       aria-label={`Delete ${e.name}`}

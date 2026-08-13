@@ -3837,6 +3837,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  showToast={showToast}
                 />
               )}
               {tab === "taxfiling" && (
@@ -3894,6 +3895,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  showToast={showToast}
                 />
               )}
               {tab === "bills" && (
@@ -3913,6 +3915,7 @@ function FinanceDashboard() {
                   updateItem={updateItem}
                   subTab={subTab}
                   onSubTabChange={setSubTab}
+                  showToast={showToast}
                 />
               )}
               {tab === "xirrreport" && <XIRRReportTab state={filteredState} metrics={metrics} />}
@@ -3925,6 +3928,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  showToast={showToast}
                 />
               )}
               {tab === "auditlog" && <AuditLogTab session={session} />}
