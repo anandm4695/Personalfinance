@@ -50,6 +50,7 @@ import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vehicle make → company domain (for logo fetching)
@@ -662,7 +663,7 @@ const EMPTY_VEHICLE = {
   owner: "self",
 };
 
-function VehicleModal({ existing, onClose, onSave }: any) {
+function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const isEdit = !!existing;
   const [f, setF] = useState<any>(
@@ -776,7 +777,8 @@ function VehicleModal({ existing, onClose, onSave }: any) {
           onClose={onClose}
           onSave={handleSave}
           saveLabel={isEdit ? "Update" : "Add Vehicle"}
-          disabled={!canSave}
+          disabled={!canSave || saving}
+          loading={saving}
         />
       }
     >
@@ -1401,7 +1403,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 // ServiceModal — Add / Edit service record
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ServiceModal({ existing, vehicleName, currentReminder, onClose, onSave }: any) {
+function ServiceModal({ existing, vehicleName, currentReminder, onClose, onSave, saving = false }: any) {
   const isEdit = !!existing;
   const [f, setF] = useState<any>(
     existing
@@ -1447,7 +1449,8 @@ function ServiceModal({ existing, vehicleName, currentReminder, onClose, onSave 
           onClose={onClose}
           onSave={handleSave}
           saveLabel={isEdit ? "Update" : "Add Record"}
-          disabled={!f.date || !f.type}
+          disabled={!f.date || !f.type || saving}
+          loading={saving}
         />
       }
     >
@@ -1755,7 +1758,7 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
 // InsuranceModal — Add / Edit insurance policy / renewal record
 // ─────────────────────────────────────────────────────────────────────────────
 
-function InsuranceModal({ existing, vehicleName, onClose, onSave }: any) {
+function InsuranceModal({ existing, vehicleName, onClose, onSave, saving = false }: any) {
   const isEdit = !!existing;
   const [f, setF] = useState<any>(
     existing
@@ -1809,7 +1812,8 @@ function InsuranceModal({ existing, vehicleName, onClose, onSave }: any) {
           onClose={onClose}
           onSave={handleSave}
           saveLabel={isEdit ? "Update" : "Add Record"}
-          disabled={!canSave}
+          disabled={!canSave || saving}
+          loading={saving}
         />
       }
     >
@@ -3363,7 +3367,7 @@ function vehicleUrgencyRank(v: any): number {
   return Math.min(...statuses.map((s) => URGENCY_RANK[s.icon]));
 }
 
-export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
+export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast }: any) {
   const vehicles: any[] = state.vehicles || [];
   const [sortBy, setSortBy] = useState<"default" | "value" | "urgency">("default");
 
@@ -3437,81 +3441,113 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
   }, [vehicles]);
 
   // ── Handlers ──
-  const handleSaveVehicle = (data: any) => {
-    if (vehicleModal.existing) {
-      updateItem("vehicles", vehicleModal.existing.id, data);
-    } else {
-      addItem("vehicles", data);
+  const { run: handleSaveVehicle, loading: savingVehicle } = useAsyncAction(
+    async (data: any) => {
+      if (vehicleModal.existing) {
+        await updateItem("vehicles", vehicleModal.existing.id, data);
+      } else {
+        await addItem("vehicles", data);
+      }
+    },
+    {
+      onSuccess: () => setVehicleModal({ open: false }),
+      onError: (e: any) => showToast?.(`Failed to save vehicle: ${e?.message || "Unknown error"}`, "error"),
     }
-    setVehicleModal({ open: false });
+  );
+
+  const { run: handleDeleteVehicle } = useAsyncAction(
+    async (id: string) => {
+      await removeItem("vehicles", id);
+      if (expandedId === id) setExpandedId(null);
+    },
+    { onError: (e: any) => showToast?.(`Failed to delete vehicle: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const confirmDeleteVehicle = (id: string) => {
+    if (window.confirm("Delete this vehicle and all its service records?")) handleDeleteVehicle(id);
   };
 
-  const handleDeleteVehicle = (id: string) => {
-    if (!window.confirm("Delete this vehicle and all its service records?")) return;
-    removeItem("vehicles", id);
-    if (expandedId === id) setExpandedId(null);
+  const { run: handleSaveService, loading: savingService } = useAsyncAction(
+    async ({ rec, nextServiceDueDate, nextServiceDueOdometer }: any) => {
+      const vehicle = vehicles.find((v) => v.id === serviceModal.vehicleId);
+      if (!vehicle) return;
+      const oldHistory: any[] = vehicle.serviceHistory || [];
+      const newHistory = serviceModal.existing
+        ? oldHistory.map((r) => (r.id === rec.id ? rec : r))
+        : [...oldHistory, rec];
+      const updates: any = { ...vehicle, serviceHistory: newHistory };
+      if (nextServiceDueDate) updates.nextServiceDueDate = nextServiceDueDate;
+      if (nextServiceDueOdometer) updates.nextServiceDueOdometer = nextServiceDueOdometer;
+      await updateItem("vehicles", vehicle.id, updates);
+    },
+    {
+      onSuccess: () => setServiceModal({ open: false }),
+      onError: (e: any) => showToast?.(`Failed to save service record: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: handleDeleteService } = useAsyncAction(
+    async (vehicleId: string, serviceId: string) => {
+      const vehicle = vehicles.find((v) => v.id === vehicleId);
+      if (!vehicle) return;
+      await updateItem("vehicles", vehicle.id, {
+        ...vehicle,
+        serviceHistory: (vehicle.serviceHistory || []).filter((r: any) => r.id !== serviceId),
+      });
+    },
+    { onError: (e: any) => showToast?.(`Failed to delete service record: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const confirmDeleteService = (vehicleId: string, serviceId: string) => {
+    if (window.confirm("Are you sure you want to delete this service record?"))
+      handleDeleteService(vehicleId, serviceId);
   };
 
-  const handleSaveService = ({ rec, nextServiceDueDate, nextServiceDueOdometer }: any) => {
-    const vehicle = vehicles.find((v) => v.id === serviceModal.vehicleId);
-    if (!vehicle) return;
-    const oldHistory: any[] = vehicle.serviceHistory || [];
-    const newHistory = serviceModal.existing
-      ? oldHistory.map((r) => (r.id === rec.id ? rec : r))
-      : [...oldHistory, rec];
-    const updates: any = { ...vehicle, serviceHistory: newHistory };
-    if (nextServiceDueDate) updates.nextServiceDueDate = nextServiceDueDate;
-    if (nextServiceDueOdometer) updates.nextServiceDueOdometer = nextServiceDueOdometer;
-    updateItem("vehicles", vehicle.id, updates);
-    setServiceModal({ open: false });
-  };
+  const { run: handleSaveInsurance, loading: savingInsurance } = useAsyncAction(
+    async (rec: any) => {
+      const vehicle = vehicles.find((v) => v.id === insuranceModal.vehicleId);
+      if (!vehicle) return;
+      const oldHistory: any[] = vehicle.insuranceHistory || [];
+      const newHistory = insuranceModal.existing
+        ? oldHistory.map((r) => (r.id === rec.id ? rec : r))
+        : [...oldHistory, rec];
+      const latestExpiry = newHistory.reduce(
+        (max: string, r: any) => (r.toDate && r.toDate > max ? r.toDate : max),
+        vehicle.insuranceExpiry || ""
+      );
+      await updateItem("vehicles", vehicle.id, {
+        ...vehicle,
+        insuranceHistory: newHistory,
+        insuranceExpiry: latestExpiry || vehicle.insuranceExpiry,
+      });
+    },
+    {
+      onSuccess: () => setInsuranceModal({ open: false }),
+      onError: (e: any) => showToast?.(`Failed to save insurance record: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
-  const handleDeleteService = (vehicleId: string, serviceId: string) => {
-    if (!window.confirm("Are you sure you want to delete this service record?")) return;
-    const vehicle = vehicles.find((v) => v.id === vehicleId);
-    if (!vehicle) return;
-    updateItem("vehicles", vehicle.id, {
-      ...vehicle,
-      serviceHistory: (vehicle.serviceHistory || []).filter((r: any) => r.id !== serviceId),
-    });
-  };
-
-  const handleSaveInsurance = (rec: any) => {
-    const vehicle = vehicles.find((v) => v.id === insuranceModal.vehicleId);
-    if (!vehicle) return;
-    const oldHistory: any[] = vehicle.insuranceHistory || [];
-    const newHistory = insuranceModal.existing
-      ? oldHistory.map((r) => (r.id === rec.id ? rec : r))
-      : [...oldHistory, rec];
-    const latestExpiry = newHistory.reduce(
-      (max: string, r: any) => (r.toDate && r.toDate > max ? r.toDate : max),
-      vehicle.insuranceExpiry || ""
-    );
-    updateItem("vehicles", vehicle.id, {
-      ...vehicle,
-      insuranceHistory: newHistory,
-      insuranceExpiry: latestExpiry || vehicle.insuranceExpiry,
-    });
-    setInsuranceModal({ open: false });
-  };
-
-  const handleDeleteInsurance = (vehicleId: string, insuranceId: string) => {
-    if (!window.confirm("Are you sure you want to delete this insurance record?")) return;
-    const vehicle = vehicles.find((v) => v.id === vehicleId);
-    if (!vehicle) return;
-    const remaining = (vehicle.insuranceHistory || []).filter((r: any) => r.id !== insuranceId);
-    // Re-derive insuranceExpiry from what's left — otherwise deleting the
-    // record that set the current expiry leaves a stale date driving the
-    // compliance badge/renewal alerts even though its source record is gone.
-    const latestExpiry = remaining.reduce(
-      (max: string, r: any) => (r.toDate && r.toDate > max ? r.toDate : max),
-      ""
-    );
-    updateItem("vehicles", vehicle.id, {
-      ...vehicle,
-      insuranceHistory: remaining,
-      insuranceExpiry: latestExpiry,
-    });
+  const { run: handleDeleteInsurance } = useAsyncAction(
+    async (vehicleId: string, insuranceId: string) => {
+      const vehicle = vehicles.find((v) => v.id === vehicleId);
+      if (!vehicle) return;
+      const remaining = (vehicle.insuranceHistory || []).filter((r: any) => r.id !== insuranceId);
+      // Re-derive insuranceExpiry from what's left — otherwise deleting the
+      // record that set the current expiry leaves a stale date driving the
+      // compliance badge/renewal alerts even though its source record is gone.
+      const latestExpiry = remaining.reduce(
+        (max: string, r: any) => (r.toDate && r.toDate > max ? r.toDate : max),
+        ""
+      );
+      await updateItem("vehicles", vehicle.id, {
+        ...vehicle,
+        insuranceHistory: remaining,
+        insuranceExpiry: latestExpiry,
+      });
+    },
+    { onError: (e: any) => showToast?.(`Failed to delete insurance record: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const confirmDeleteInsurance = (vehicleId: string, insuranceId: string) => {
+    if (window.confirm("Are you sure you want to delete this insurance record?"))
+      handleDeleteInsurance(vehicleId, insuranceId);
   };
 
   return (
@@ -3727,17 +3763,17 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
             expanded={expandedId === v.id}
             onToggle={() => setExpandedId(expandedId === v.id ? null : v.id)}
             onEdit={() => setVehicleModal({ open: true, existing: v })}
-            onDelete={() => handleDeleteVehicle(v.id)}
+            onDelete={() => confirmDeleteVehicle(v.id)}
             onAddService={() => setServiceModal({ open: true, vehicleId: v.id })}
             onEditService={(rec: any) =>
               setServiceModal({ open: true, vehicleId: v.id, existing: rec })
             }
-            onDeleteService={(sid: string) => handleDeleteService(v.id, sid)}
+            onDeleteService={(sid: string) => confirmDeleteService(v.id, sid)}
             onAddInsurance={() => setInsuranceModal({ open: true, vehicleId: v.id })}
             onEditInsurance={(rec: any) =>
               setInsuranceModal({ open: true, vehicleId: v.id, existing: rec })
             }
-            onDeleteInsurance={(iid: string) => handleDeleteInsurance(v.id, iid)}
+            onDeleteInsurance={(iid: string) => confirmDeleteInsurance(v.id, iid)}
           />
         ))}
       </div>
@@ -3748,6 +3784,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           existing={vehicleModal.existing}
           onClose={() => setVehicleModal({ open: false })}
           onSave={handleSaveVehicle}
+          saving={savingVehicle}
         />
       )}
       {serviceModal.open && (
@@ -3765,6 +3802,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           })()}
           onClose={() => setServiceModal({ open: false })}
           onSave={handleSaveService}
+          saving={savingService}
         />
       )}
       {insuranceModal.open && (
@@ -3776,6 +3814,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           })()}
           onClose={() => setInsuranceModal({ open: false })}
           onSave={handleSaveInsurance}
+          saving={savingInsurance}
         />
       )}
     </div>
