@@ -652,7 +652,15 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                                 </Badge>
                               )}
                               <button
-                                onClick={() => removeItem("billPaymentHistory", h.id)}
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `Delete this payment record from ${h.paidDate}? This cannot be undone.`
+                                    )
+                                  ) {
+                                    removeItem("billPaymentHistory", h.id);
+                                  }
+                                }}
                                 aria-label="Delete payment record"
                                 className="icon-btn danger"
                                 style={{

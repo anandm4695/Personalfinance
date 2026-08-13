@@ -2023,7 +2023,15 @@ export function BudgetTab({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeItem("recurringExpenses", re.id)}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Delete "${re.name}"? This cannot be undone.`
+                                )
+                              ) {
+                                removeItem("recurringExpenses", re.id);
+                              }
+                            }}
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label={`Delete ${re.name}`}

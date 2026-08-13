@@ -2907,7 +2907,11 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                         size="sm"
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
-                        onClick={() => removeItem("fixedDeposits", f.id)}
+                        onClick={() => {
+                          if (window.confirm(`Delete ${f.bank} fixed deposit? This cannot be undone.`)) {
+                            removeItem("fixedDeposits", f.id);
+                          }
+                        }}
                         aria-label={`Delete ${f.bank} fixed deposit`}
                         title="Delete"
                       />
@@ -3277,7 +3281,11 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                         size="sm"
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
-                        onClick={() => removeItem("recurringDeposits", r.id)}
+                        onClick={() => {
+                          if (window.confirm(`Delete ${r.bank} recurring deposit? This cannot be undone.`)) {
+                            removeItem("recurringDeposits", r.id);
+                          }
+                        }}
                         aria-label={`Delete ${r.bank} recurring deposit`}
                         title="Delete"
                       />
@@ -3584,7 +3592,11 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                         size="sm"
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
-                        onClick={() => removeItem("bonds", b.id)}
+                        onClick={() => {
+                          if (window.confirm(`Delete ${b.issuer || "this bond"}? This cannot be undone.`)) {
+                            removeItem("bonds", b.id);
+                          }
+                        }}
                         aria-label={`Delete ${b.issuer || "bond"}`}
                         title="Delete"
                       />
@@ -4930,7 +4942,15 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
             size="sm"
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
-            onClick={() => removeItem("ppf", p.id)}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Delete ${p.institution || p.bank || "this PPF"} account? This cannot be undone.`
+                )
+              ) {
+                removeItem("ppf", p.id);
+              }
+            }}
             aria-label={`Delete ${p.institution || p.bank || "PPF"} account`}
             title="Delete"
           />
@@ -5134,7 +5154,15 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
                           <Pencil size={12} />
                         </button>
                         <button
-                          onClick={() => removeTx(t.id)}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Delete this ${t.type} transaction dated ${t.date}? This cannot be undone.`
+                              )
+                            ) {
+                              removeTx(t.id);
+                            }
+                          }}
                           aria-label={`Delete ${t.type} transaction dated ${t.date}`}
                           title="Delete"
                           style={{
@@ -5962,7 +5990,13 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
             size="sm"
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
-            onClick={() => removeItem("nps", n.id)}
+            onClick={() => {
+              if (
+                window.confirm(`Delete NPS account${n.pran ? ` ${n.pran}` : ""}? This cannot be undone.`)
+              ) {
+                removeItem("nps", n.id);
+              }
+            }}
             aria-label={`Delete NPS account${n.pran ? ` ${n.pran}` : ""}`}
             title="Delete"
           />
@@ -6286,7 +6320,11 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
                               size="sm"
                               icon={<Trash2 size={11} />}
                               style={{ color: THEME.rust }}
-                              onClick={() => removeTx(t.id)}
+                              onClick={() => {
+                                if (window.confirm(`Delete this transaction dated ${t.date}? This cannot be undone.`)) {
+                                  removeTx(t.id);
+                                }
+                              }}
                               aria-label={`Delete transaction dated ${t.date}`}
                               title="Delete"
                             />
@@ -7705,7 +7743,15 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             size="sm"
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
-            onClick={() => removeItem("epf", p.id)}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Delete EPF account${p.uan || p.accountNumber ? ` ${p.uan || p.accountNumber}` : ""}? This cannot be undone.`
+                )
+              ) {
+                removeItem("epf", p.id);
+              }
+            }}
             aria-label={`Delete EPF account${p.uan || p.accountNumber ? ` ${p.uan || p.accountNumber}` : ""}`}
             title="Delete"
           />
@@ -7983,7 +8029,13 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                         <button
                           onClick={() => {
                             if (alreadyTransferred) return;
-                            removeEst(est.id);
+                            if (
+                              window.confirm(
+                                `Delete ${est.employerName || "this employer"} service history? This cannot be undone.`
+                              )
+                            ) {
+                              removeEst(est.id);
+                            }
                           }}
                           disabled={alreadyTransferred}
                           aria-label={`Delete ${est.employerName || "employer"} service history`}
@@ -8660,7 +8712,11 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                       <Pencil size={11} />
                                     </button>
                                     <button
-                                      onClick={() => removeTx(t.id)}
+                                      onClick={() => {
+                                if (window.confirm(`Delete this transaction dated ${t.date}? This cannot be undone.`)) {
+                                  removeTx(t.id);
+                                }
+                              }}
                                       aria-label={`Delete transaction dated ${t.date}`}
                                       title="Delete"
                                       style={{
@@ -8893,7 +8949,11 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                                 <Pencil size={12} />
                               </button>
                               <button
-                                onClick={() => removeTx(t.id)}
+                                onClick={() => {
+                                if (window.confirm(`Delete this transaction dated ${t.date}? This cannot be undone.`)) {
+                                  removeTx(t.id);
+                                }
+                              }}
                                 aria-label={`Delete transaction dated ${t.date}`}
                                 title="Delete"
                                 style={{
@@ -11841,7 +11901,13 @@ function MFSection({
                                                             style={{ color: THEME.rust }}
                                                             onClick={(e: any) => {
                                                               e.stopPropagation();
-                                                              removeItem("mutualFunds", lot.id);
+                                                              if (
+                                                                window.confirm(
+                                                                  `Delete this ${lot.fundName || displayName} lot? This cannot be undone.`
+                                                                )
+                                                              ) {
+                                                                removeItem("mutualFunds", lot.id);
+                                                              }
                                                             }}
                                                             aria-label={`Delete ${lot.fundName || displayName} lot`}
                                                             title="Delete"
@@ -13517,7 +13583,15 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                       <td style={{ padding: "10px 6px" }}>
                         {!d.isAuto && (
                           <button
-                            onClick={() => removeItem("dividends", d.id)}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Delete this dividend from ${d.symbol || d.fundName || "this holding"}? This cannot be undone.`
+                                )
+                              ) {
+                                removeItem("dividends", d.id);
+                              }
+                            }}
                             aria-label={`Delete dividend from ${d.symbol || d.fundName || "holding"}`}
                             title="Delete"
                             style={{

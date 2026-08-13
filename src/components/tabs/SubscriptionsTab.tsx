@@ -908,7 +908,11 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeItem("subscriptions", s.id)}
+                                onClick={() => {
+                                  if (window.confirm(`Delete "${s.name}"? This cannot be undone.`)) {
+                                    removeItem("subscriptions", s.id);
+                                  }
+                                }}
                                 style={{ padding: 6, color: THEME.rust }}
                                 title="Delete"
                                 aria-label="Delete subscription"
@@ -1048,7 +1052,11 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeItem("subscriptions", s.id)}
+                            onClick={() => {
+                                  if (window.confirm(`Delete "${s.name}"? This cannot be undone.`)) {
+                                    removeItem("subscriptions", s.id);
+                                  }
+                                }}
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label="Delete subscription"

@@ -4501,7 +4501,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeItem("taxPayments", p.id)}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Delete this tax payment dated ${p.date}? This cannot be undone.`
+                          )
+                        ) {
+                          removeItem("taxPayments", p.id);
+                        }
+                      }}
                       style={{ padding: 6, color: THEME.rust }}
                       title="Delete"
                       aria-label="Delete tax payment"

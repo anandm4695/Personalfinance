@@ -848,7 +848,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => removeItem("reminders", r.id)}
+                onClick={() => {
+                  if (window.confirm(`Delete "${r.title}"? This cannot be undone.`)) {
+                    removeItem("reminders", r.id);
+                  }
+                }}
                 style={{ padding: 6, color: THEME.rust }}
                 title="Delete"
                 aria-label="Delete reminder"
@@ -1709,7 +1713,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeItem("reminders", r.id)}
+                              onClick={() => {
+                                if (window.confirm(`Delete "${r.title}"? This cannot be undone.`)) {
+                                  removeItem("reminders", r.id);
+                                }
+                              }}
                               style={{ padding: 6, color: THEME.rust }}
                               title="Delete"
                               aria-label="Delete reminder"

@@ -345,6 +345,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   };
 
   const handleRemovePayment = (p: any, paymentId: string) => {
+    if (!window.confirm(`Delete this rent payment for "${p.propertyName}"? This cannot be undone.`)) return;
     const updatedPayments = (p.payments || []).filter((pay: any) => pay.id !== paymentId);
     updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
   };
@@ -367,6 +368,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   };
 
   const handleRemoveReceipt = (p: any, receiptId: string) => {
+    if (!window.confirm(`Delete this rent receipt for "${p.propertyName}"? This cannot be undone.`)) return;
     const updatedReceipts = (p.receipts || []).filter((rec: any) => rec.id !== receiptId);
     updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
   };
@@ -397,6 +399,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   };
 
   const handleRemoveDeduction = (p: any, deductionId: string) => {
+    if (!window.confirm(`Delete this deposit deduction for "${p.propertyName}"? This cannot be undone.`))
+      return;
     const updatedDeductions = (p.depositDeductions || []).filter(
       (dec: any) => dec.id !== deductionId
     );
@@ -413,6 +417,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   };
 
   const handleRemoveDepositIn = (p: any, depositId: string) => {
+    if (!window.confirm(`Delete this deposit-in entry for "${p.propertyName}"? This cannot be undone.`))
+      return;
     const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
     updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
   };
@@ -435,6 +441,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   };
 
   const handleRemoveDepositOut = (p: any, depositId: string) => {
+    if (!window.confirm(`Delete this deposit-out entry for "${p.propertyName}"? This cannot be undone.`))
+      return;
     const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
     updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
   };

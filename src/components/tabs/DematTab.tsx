@@ -3722,7 +3722,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      removeItem("stocks", lot.id);
+                                                      if (
+                                                        window.confirm(
+                                                          `Delete this ${base} lot (${lot.qty} shares)? This cannot be undone.`
+                                                        )
+                                                      ) {
+                                                        removeItem("stocks", lot.id);
+                                                      }
                                                     }}
                                                     className="icon-btn danger"
                                                     style={{ ...iconBtn, padding: 5 }}

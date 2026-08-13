@@ -3166,7 +3166,15 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                 <Edit3 size={14} />
               </button>
               <button
-                onClick={() => removeTx(t.id)}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Delete this transaction${t.merchant ? ` at ${t.merchant}` : ""} dated ${t.date}? This cannot be undone.`
+                    )
+                  ) {
+                    removeTx(t.id);
+                  }
+                }}
                 aria-label="Delete transaction"
                 style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer" }}
               >
@@ -4728,7 +4736,15 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                 <Edit3 size={13} />
               </button>
               <button
-                onClick={() => removeTx(t.id)}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Delete this transaction${t.note ? ` ("${t.note}")` : ""} dated ${t.date}? This cannot be undone.`
+                    )
+                  ) {
+                    removeTx(t.id);
+                  }
+                }}
                 aria-label="Delete transaction"
                 style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer", padding: 4 }}
               >

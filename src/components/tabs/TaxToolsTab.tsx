@@ -994,8 +994,10 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
     }
   };
 
-  const deleteEntry = (id) => {
-    removeItem("form26as", id);
+  const deleteEntry = (id, deductor) => {
+    if (window.confirm(`Delete this 26AS entry from ${deductor || "this deductor"}? This cannot be undone.`)) {
+      removeItem("form26as", id);
+    }
   };
 
   // Entries created before the Supabase migration (imported/legacy data)
@@ -1354,7 +1356,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                       </td>
                       <td style={{ padding: "8px 10px" }}>
                         <button
-                          onClick={() => deleteEntry(e.id)}
+                          onClick={() => deleteEntry(e.id, e.deductor)}
                           aria-label={`Remove 26AS entry from ${e.deductor || "deductor"}`}
                           style={{
                             background: "none",
