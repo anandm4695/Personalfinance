@@ -3673,6 +3673,7 @@ function FinanceDashboard() {
                     setTab(st);
                     setSubTab(null);
                   }}
+                  showToast={showToast}
                 />
               )}
               {tab === "subs" && (

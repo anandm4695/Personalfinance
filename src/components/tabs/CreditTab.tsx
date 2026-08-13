@@ -44,6 +44,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
 
 // Bank logo domains for Clearbit / Google Favicon API
@@ -645,7 +646,15 @@ const td = {
   borderBottom: `1px solid var(--t-line)`,
 };
 
-export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSubTabChange }: any) {
+export function CreditTab({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  subTab,
+  onSubTabChange,
+  showToast,
+}: any) {
   const { privacyMode } = usePrivacy();
   const [sub, setSub] = useState(subTab || "cc");
   const [modal, setModal] = useState<string | null>(null);
@@ -657,6 +666,125 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
       state.creditCards.filter((c: any) => c.sharedGroup).map((c: any) => c.sharedGroup as string)
     ),
   ];
+
+  const { run: saveNewCC, loading: savingNewCC } = useAsyncAction(
+    async (v: any) => {
+      await addItem("creditCards", v);
+    },
+    {
+      onSuccess: () => setModal(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to add credit card: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: saveNewPrepaid, loading: savingNewPrepaid } = useAsyncAction(
+    async (v: any) => {
+      await addItem("prepaidCards", v);
+    },
+    {
+      onSuccess: () => setModal(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to add prepaid card: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: saveNewLoanTaken, loading: savingNewLoanTaken } = useAsyncAction(
+    async (v: any) => {
+      await addItem("loansTaken", v);
+    },
+    {
+      onSuccess: () => setModal(null),
+      onError: (e: any) => showToast?.(`Failed to add loan: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: saveNewLoanGiven, loading: savingNewLoanGiven } = useAsyncAction(
+    async (v: any) => {
+      await addItem("loansGiven", v);
+    },
+    {
+      onSuccess: () => setModal(null),
+      onError: (e: any) => showToast?.(`Failed to add loan: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: saveCCEdit, loading: savingCCEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      // If the ledger already has entries and the user hand-edited Outstanding to a
+      // different number, reconcile with an adjustment entry instead of letting the
+      // next ledger edit silently recompute Outstanding from the (now stale) ledger sum
+      // and discard the correction — see CCTransactionLedger's onUpdate.
+      const existingTxs: any[] = Array.isArray(v.transactions) ? v.transactions : [];
+      if (existingTxs.length > 0) {
+        const ledgerSum = existingTxs.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+        const diff = (Number(v.outstanding) || 0) - ledgerSum;
+        if (Math.abs(diff) >= 1) {
+          v.transactions = [
+            ...existingTxs,
+            {
+              id: uid(),
+              date: today(),
+              merchant: "Balance Adjustment",
+              amount: String(diff),
+              category: "General",
+            },
+          ];
+        }
+      }
+      await updateItem("creditCards", id, v);
+    },
+    {
+      onSuccess: () => setEditId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save credit card: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: savePrepaidEdit, loading: savingPrepaidEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("prepaidCards", id, v);
+    },
+    {
+      onSuccess: () => setEditId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save prepaid card: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: saveLoanTakenEdit, loading: savingLoanTakenEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("loansTaken", id, v);
+    },
+    {
+      onSuccess: () => setEditId(null),
+      onError: (e: any) => showToast?.(`Failed to save loan: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: saveLoanGivenEdit, loading: savingLoanGivenEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("loansGiven", id, v);
+    },
+    {
+      onSuccess: () => setEditId(null),
+      onError: (e: any) => showToast?.(`Failed to save loan: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: saveBorrowedEdit, loading: savingBorrowedEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("informalBorrowed", id, v);
+    },
+    {
+      onSuccess: () => setEditId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save lender: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+  const { run: saveLentEdit, loading: savingLentEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("informalLent", id, v);
+    },
+    {
+      onSuccess: () => setEditId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save borrower: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   const subs: Record<string, { label: string; sub: string }> = {
     cc: { label: "Credit Cards", sub: "Manage your credit cards and track utilization" },
@@ -1045,7 +1173,13 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
               items={state.creditCards}
               onRemove={(id: any) => removeItem("creditCards", id)}
               onEdit={setEditId}
-              onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)}
+              onUpdateCard={async (id: any, updates: any) => {
+                try {
+                  await updateItem("creditCards", id, updates);
+                } catch (e: any) {
+                  showToast?.(`Failed to update card: ${e?.message || "Unknown error"}`, "error");
+                }
+              }}
               onAdd={() => setModal("cc")}
               existingGroups={existingGroups}
             />
@@ -1056,7 +1190,13 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
             items={state.prepaidCards || []}
             onRemove={(id: any) => removeItem("prepaidCards", id)}
             onEdit={setEditId}
-            onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)}
+            onUpdateCard={async (id: any, updates: any) => {
+              try {
+                await updateItem("prepaidCards", id, updates);
+              } catch (e: any) {
+                showToast?.(`Failed to update card: ${e?.message || "Unknown error"}`, "error");
+              }
+            }}
             onAdd={() => setModal("prepaid")}
           />
         )}
@@ -1074,15 +1214,33 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
             onRemove={(id: any) => removeItem("loansGiven", id)}
             onEdit={setEditId}
             onAdd={() => setModal("given")}
-            onUpdate={(id: any, patch: any) => updateItem("loansGiven", id, patch)}
+            onUpdate={async (id: any, patch: any) => {
+              try {
+                await updateItem("loansGiven", id, patch);
+              } catch (e: any) {
+                showToast?.(`Failed to update loan: ${e?.message || "Unknown error"}`, "error");
+              }
+            }}
           />
         )}
         {sub === "borrowed" && (
           <InformalLoanView
             direction="borrowed"
             items={state.informalBorrowed || []}
-            onAddPerson={(v: any) => addItem("informalBorrowed", v)}
-            onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)}
+            onAddPerson={async (v: any) => {
+              try {
+                await addItem("informalBorrowed", v);
+              } catch (e: any) {
+                showToast?.(`Failed to add lender: ${e?.message || "Unknown error"}`, "error");
+              }
+            }}
+            onUpdate={async (id: any, patch: any) => {
+              try {
+                await updateItem("informalBorrowed", id, patch);
+              } catch (e: any) {
+                showToast?.(`Failed to update: ${e?.message || "Unknown error"}`, "error");
+              }
+            }}
             onRemove={(id: any) => removeItem("informalBorrowed", id)}
             onEdit={setEditId}
           />
@@ -1091,8 +1249,20 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           <InformalLoanView
             direction="lent"
             items={state.informalLent || []}
-            onAddPerson={(v: any) => addItem("informalLent", v)}
-            onUpdate={(id: any, patch: any) => updateItem("informalLent", id, patch)}
+            onAddPerson={async (v: any) => {
+              try {
+                await addItem("informalLent", v);
+              } catch (e: any) {
+                showToast?.(`Failed to add borrower: ${e?.message || "Unknown error"}`, "error");
+              }
+            }}
+            onUpdate={async (id: any, patch: any) => {
+              try {
+                await updateItem("informalLent", id, patch);
+              } catch (e: any) {
+                showToast?.(`Failed to update: ${e?.message || "Unknown error"}`, "error");
+              }
+            }}
             onRemove={(id: any) => removeItem("informalLent", id)}
             onEdit={setEditId}
           />
@@ -1103,38 +1273,26 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
       {modal === "cc" && (
         <CCModal
           onClose={() => setModal(null)}
-          onSave={(v: any) => {
-            addItem("creditCards", v);
-            setModal(null);
-          }}
+          onSave={saveNewCC}
+          saving={savingNewCC}
           existingGroups={existingGroups}
         />
       )}
       {modal === "prepaid" && (
-        <PrepaidModal
-          onClose={() => setModal(null)}
-          onSave={(v: any) => {
-            addItem("prepaidCards", v);
-            setModal(null);
-          }}
-        />
+        <PrepaidModal onClose={() => setModal(null)} onSave={saveNewPrepaid} saving={savingNewPrepaid} />
       )}
       {modal === "taken" && (
         <LoanTakenModal
           onClose={() => setModal(null)}
-          onSave={(v: any) => {
-            addItem("loansTaken", v);
-            setModal(null);
-          }}
+          onSave={saveNewLoanTaken}
+          saving={savingNewLoanTaken}
         />
       )}
       {modal === "given" && (
         <LoanGivenModal
           onClose={() => setModal(null)}
-          onSave={(v: any) => {
-            addItem("loansGiven", v);
-            setModal(null);
-          }}
+          onSave={saveNewLoanGiven}
+          saving={savingNewLoanGiven}
         />
       )}
 
@@ -1142,31 +1300,8 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
         <CCModal
           initial={state.creditCards.find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
-          onSave={(v: any) => {
-            // If the ledger already has entries and the user hand-edited Outstanding to a
-            // different number, reconcile with an adjustment entry instead of letting the
-            // next ledger edit silently recompute Outstanding from the (now stale) ledger sum
-            // and discard the correction — see CCTransactionLedger's onUpdate.
-            const existingTxs: any[] = Array.isArray(v.transactions) ? v.transactions : [];
-            if (existingTxs.length > 0) {
-              const ledgerSum = existingTxs.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-              const diff = (Number(v.outstanding) || 0) - ledgerSum;
-              if (Math.abs(diff) >= 1) {
-                v.transactions = [
-                  ...existingTxs,
-                  {
-                    id: uid(),
-                    date: today(),
-                    merchant: "Balance Adjustment",
-                    amount: String(diff),
-                    category: "General",
-                  },
-                ];
-              }
-            }
-            updateItem("creditCards", editId, v);
-            setEditId(null);
-          }}
+          onSave={(v: any) => saveCCEdit(editId, v)}
+          saving={savingCCEdit}
           existingGroups={existingGroups}
         />
       )}
@@ -1174,30 +1309,24 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
         <PrepaidModal
           initial={state.prepaidCards.find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
-          onSave={(v: any) => {
-            updateItem("prepaidCards", editId, v);
-            setEditId(null);
-          }}
+          onSave={(v: any) => savePrepaidEdit(editId, v)}
+          saving={savingPrepaidEdit}
         />
       )}
       {editId && sub === "taken" && (
         <LoanTakenModal
           initial={state.loansTaken.find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
-          onSave={(v: any) => {
-            updateItem("loansTaken", editId, v);
-            setEditId(null);
-          }}
+          onSave={(v: any) => saveLoanTakenEdit(editId, v)}
+          saving={savingLoanTakenEdit}
         />
       )}
       {editId && sub === "given" && (
         <LoanGivenModal
           initial={state.loansGiven.find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
-          onSave={(v: any) => {
-            updateItem("loansGiven", editId, v);
-            setEditId(null);
-          }}
+          onSave={(v: any) => saveLoanGivenEdit(editId, v)}
+          saving={savingLoanGivenEdit}
         />
       )}
       {editId && sub === "borrowed" && (
@@ -1205,11 +1334,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           <InformalPersonForm
             personLabel="Lender"
             initial={(state.informalBorrowed || []).find((x: any) => x.id === editId)}
-            onSave={(v: any) => {
-              updateItem("informalBorrowed", editId, v);
-              setEditId(null);
-            }}
+            onSave={(v: any) => saveBorrowedEdit(editId, v)}
             onClose={() => setEditId(null)}
+            saving={savingBorrowedEdit}
           />
         </Modal>
       )}
@@ -1218,11 +1345,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           <InformalPersonForm
             personLabel="Borrower"
             initial={(state.informalLent || []).find((x: any) => x.id === editId)}
-            onSave={(v: any) => {
-              updateItem("informalLent", editId, v);
-              setEditId(null);
-            }}
+            onSave={(v: any) => saveLentEdit(editId, v)}
             onClose={() => setEditId(null)}
+            saving={savingLentEdit}
           />
         </Modal>
       )}
@@ -6133,7 +6258,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
   );
 }
 
-function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) {
+function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving }: any) {
   const { ccNetworks, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
@@ -6491,12 +6616,17 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) 
         )}
       </div>
 
-      <ModalActions onSave={() => f.issuer && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() => f.issuer && onSave(f)}
+        onClose={onClose}
+        disabled={saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
 
-function PrepaidModal({ onClose, onSave, initial = null }: any) {
+function PrepaidModal({ onClose, onSave, initial = null, saving }: any) {
   const { prepaidCardTypes, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
@@ -6611,6 +6741,8 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
           });
         }}
         onClose={onClose}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -7446,7 +7578,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
   );
 }
 
-function InformalPersonForm({ personLabel, initial = null, onSave, onClose }: any) {
+function InformalPersonForm({ personLabel, initial = null, onSave, onClose, saving }: any) {
   const { familyProfiles } = useMasterData();
   // Edit mode intentionally omits tranches/payments from local state — onSave below
   // sends only {owner, person, note} so the patch merge in updateItem can't clobber
@@ -7491,6 +7623,8 @@ function InformalPersonForm({ personLabel, initial = null, onSave, onClose }: an
         onSave={() => f.person && onSave({ ...f })}
         onClose={onClose}
         saveLabel={initial ? "Save" : "Add"}
+        disabled={saving}
+        loading={saving}
       />
     </>
   );
@@ -7549,7 +7683,7 @@ function InformalAmountForm({ label, showDueDate = false, onSave, onClose }: any
   );
 }
 
-function LoanTakenModal({ onClose, onSave, initial = null }: any) {
+function LoanTakenModal({ onClose, onSave, initial = null, saving }: any) {
   const { loanTypes, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
@@ -7685,12 +7819,14 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           onSave({ ...f, outstanding: Math.max(0, Number(outstanding) || 0) });
         }}
         onClose={onClose}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
-function LoanGivenModal({ onClose, onSave, initial = null }: any) {
+function LoanGivenModal({ onClose, onSave, initial = null, saving }: any) {
   const { familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
@@ -7813,6 +7949,8 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           onSave({ ...f, outstanding: Math.max(0, Number(outstanding) || 0) });
         }}
         onClose={onClose}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
