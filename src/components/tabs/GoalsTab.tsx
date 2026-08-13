@@ -87,14 +87,29 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   const [contribOpen, setContribOpen] = useState<string | null>(null);
   const [contribValue, setContribValue] = useState("");
 
+  const { run: runAddContribution } = useAsyncAction(
+    async (goalId: string, currentAmount: number, amt: number) => {
+      await updateItem("goals", goalId, { currentAmount: Number(currentAmount || 0) + amt });
+    },
+    {
+      onSuccess: () => { setContribOpen(null); setContribValue(""); },
+      onError: (e: any) => showToast?.(`Failed to add contribution: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
   const addContribution = (goalId: string, currentAmount: number) => {
     const amt = Number(contribValue);
     if (amt > 0) {
-      updateItem("goals", goalId, { currentAmount: Number(currentAmount || 0) + amt });
+      runAddContribution(goalId, currentAmount, amt);
+    } else {
+      setContribOpen(null);
+      setContribValue("");
     }
-    setContribOpen(null);
-    setContribValue("");
   };
+
+  const { run: deleteGoal } = useAsyncAction(
+    async (id: string) => { await removeItem("goals", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete goal: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const totalTarget = state.goals.reduce((s: number, g: any) => s + Number(g.targetAmount || 0), 0);
   const totalSaved = state.goals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
@@ -699,7 +714,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     </button>
                     <button
                       onClick={() => {
-                        if (window.confirm(`Delete goal "${g.name}"?`)) removeItem("goals", g.id);
+                        if (window.confirm(`Delete goal "${g.name}"?`)) deleteGoal(g.id);
                       }}
                       style={{
                         background: "none",
