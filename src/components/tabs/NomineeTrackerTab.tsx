@@ -384,6 +384,15 @@ export const NomineeTrackerTab = ({
     }
   );
 
+  const { run: deleteWillDoc, loading: deletingWill } = useAsyncAction(
+    async (id: string) => { await removeItem("documents", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete document: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: deleteContact, loading: deletingContact } = useAsyncAction(
+    async (id: string) => { await removeItem("documents", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete contact: ${e?.message || "Unknown error"}`, "error") }
+  );
+
   if (totalAssets === 0) {
     return (
       <div style={{ padding: "24px 0" }}>
@@ -1109,13 +1118,15 @@ export const NomineeTrackerTab = ({
                     variant="danger"
                     size="sm"
                     icon={<Trash2 size={12} />}
+                    loading={deletingWill}
+                    disabled={deletingWill}
                     onClick={() => {
                       if (
                         window.confirm(
                           `Delete Will Document dated ${doc.date || "not specified"}? This cannot be undone.`
                         )
                       ) {
-                        removeItem("documents", doc.id);
+                        deleteWillDoc(doc.id);
                       }
                     }}
                   >
@@ -1326,9 +1337,10 @@ export const NomineeTrackerTab = ({
                   <button
                     onClick={() => {
                       if (window.confirm(`Delete contact "${c.name}"? This cannot be undone.`)) {
-                        removeItem("documents", c.id);
+                        deleteContact(c.id);
                       }
                     }}
+                    disabled={deletingContact}
                     className="card-lift"
                     aria-label={`Delete contact ${c.name}`}
                     title="Delete"
