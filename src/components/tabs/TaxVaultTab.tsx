@@ -55,6 +55,7 @@ import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
 import { EmptyState } from "../ui/EmptyState";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // The capital-gains report below is built with document.write() from raw HTML strings —
 // without this, a security/fund name containing e.g. <img onerror=...> (typeable directly,
@@ -272,7 +273,7 @@ export const computeEquityCGTax = (
    ADD PAYMENT MODAL
    ══════════════════════════════════════════════════════════════════ */
 
-const AddTaxPaymentModal = ({ onClose, onSave }: any) => {
+const AddTaxPaymentModal = ({ onClose, onSave, saving = false }: any) => {
   const [f, setF] = useState({ date: today(), type: "TDS", amount: "", note: "" });
   const types = ["TDS", "Advance Tax", "Self-Assessment", "Professional Tax"];
   return (
@@ -336,6 +337,8 @@ const AddTaxPaymentModal = ({ onClose, onSave }: any) => {
         }}
         onClose={onClose}
         saveLabel="Record Payment"
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -1366,6 +1369,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [expandedTipId, setExpandedTipId] = useState<string | null>(null);
   const { privacyMode } = usePrivacy();
+
+  const { run: saveNewTaxPayment, loading: savingTaxPayment } = useAsyncAction(
+    async (data: any) => { await addItem("taxPayments", data); },
+    { onSuccess: () => setShowModal(false), onError: (e: any) => showToast?.(`Failed to save tax payment: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: deleteTaxPayment } = useAsyncAction(
+    async (id: string) => { await removeItem("taxPayments", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete tax payment: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   /* ── FY selection (local — independent of global profile.fy) ── */
   const availableFYs = useMemo(() => {
@@ -4507,7 +4519,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             `Delete this tax payment dated ${p.date}? This cannot be undone.`
                           )
                         ) {
-                          removeItem("taxPayments", p.id);
+                          deleteTaxPayment(p.id);
                         }
                       }}
                       style={{ padding: 6, color: THEME.rust }}
@@ -5336,10 +5348,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
       {showModal && (
         <AddTaxPaymentModal
           onClose={() => setShowModal(false)}
-          onSave={(data: any) => {
-            addItem("taxPayments", data);
-            setShowModal(false);
-          }}
+          onSave={saveNewTaxPayment}
+          saving={savingTaxPayment}
         />
       )}
     </div>
