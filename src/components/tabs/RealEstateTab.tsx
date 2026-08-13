@@ -30,6 +30,7 @@ import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // Sentinel owner id for a co-owner who isn't one of this household's tracked
 // family profiles (e.g. a parent on the property papers who isn't part of
@@ -326,7 +327,7 @@ const cardShell: React.CSSProperties = {
 
 // ─── Property Modal ──────────────────────────────────────────────────────────
 
-function PropertyModal({ existing, onClose, onSave }: any) {
+function PropertyModal({ existing, onClose, onSave, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const isEdit = !!existing;
   const [f, setF] = useState(
@@ -791,7 +792,8 @@ function PropertyModal({ existing, onClose, onSave }: any) {
         onSave={handleSave}
         onClose={onClose}
         saveLabel={isEdit ? "Save Changes" : "Add Property"}
-        disabled={!f.name || !pctValid || !externalNamesValid}
+        disabled={!f.name || !pctValid || !externalNamesValid || saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -911,7 +913,7 @@ function OwnerSplitRow({
 
 // ─── Demand Modal ─────────────────────────────────────────────────────────────
 
-function DemandModal({ existing, propertyName, onClose, onSave }: any) {
+function DemandModal({ existing, propertyName, onClose, onSave, saving = false }: any) {
   const isEdit = !!existing;
   const [f, setF] = useState(
     existing || {
@@ -1011,6 +1013,8 @@ function DemandModal({ existing, propertyName, onClose, onSave }: any) {
         onSave={() => onSave({ ...f, totalAmount: f.totalAmount || computedTotal || f.amount })}
         onClose={onClose}
         saveLabel={isEdit ? "Save Changes" : "Add Demand"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -1018,7 +1022,7 @@ function DemandModal({ existing, propertyName, onClose, onSave }: any) {
 
 // ─── Payment Modal ────────────────────────────────────────────────────────────
 
-function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any) {
+function PaymentModal({ existing, propertyName, demands, onClose, onSave, saving = false }: any) {
   const { privacyMode } = usePrivacy();
   const isEdit = !!existing;
   const [f, setF] = useState(
@@ -1109,6 +1113,8 @@ function PaymentModal({ existing, propertyName, demands, onClose, onSave }: any)
         onSave={() => f.amount && onSave(f)}
         onClose={onClose}
         saveLabel={isEdit ? "Save Changes" : "Record Payment"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -1959,6 +1965,7 @@ interface RealEstateTabProps {
   removeItem: (key: string, id: string) => void;
   updateItem: (key: string, id: string, data: any) => void;
   activeProfile?: string;
+  showToast?: (message: string, type?: string) => void;
 }
 
 export function RealEstateTab({
@@ -1967,6 +1974,7 @@ export function RealEstateTab({
   removeItem,
   updateItem,
   activeProfile,
+  showToast,
 }: RealEstateTabProps) {
   const properties: any[] = state.realEstateProperties || [];
   const demands: any[] = state.realEstateDemands || [];
@@ -2045,35 +2053,60 @@ export function RealEstateTab({
     };
   }, [properties, demands, payments, activeProfile, valueView]);
 
-  const handleSaveProperty = (data: any) => {
-    if (editProperty) {
-      updateItem("realEstateProperties", editProperty.id, data);
-      setEditProperty(null);
-    } else {
-      addItem("realEstateProperties", data);
-      setShowPropertyModal(false);
+  const { run: handleSaveProperty, loading: savingProperty } = useAsyncAction(
+    async (data: any) => {
+      if (editProperty) {
+        await updateItem("realEstateProperties", editProperty.id, data);
+      } else {
+        await addItem("realEstateProperties", data);
+      }
+    },
+    {
+      onSuccess: () => { setEditProperty(null); setShowPropertyModal(false); },
+      onError: (e: any) => showToast?.(`Failed to save property: ${e?.message || "Unknown error"}`, "error"),
     }
-  };
+  );
 
-  const handleSaveDemand = (data: any) => {
-    if (editDemand) {
-      updateItem("realEstateDemands", editDemand.id, data);
-      setEditDemand(null);
-    } else {
-      addItem("realEstateDemands", { ...data, propertyId: demandForProperty.id });
-      setDemandForProperty(null);
+  const { run: handleSaveDemand, loading: savingDemand } = useAsyncAction(
+    async (data: any) => {
+      if (editDemand) {
+        await updateItem("realEstateDemands", editDemand.id, data);
+      } else {
+        await addItem("realEstateDemands", { ...data, propertyId: demandForProperty.id });
+      }
+    },
+    {
+      onSuccess: () => { setEditDemand(null); setDemandForProperty(null); },
+      onError: (e: any) => showToast?.(`Failed to save demand letter: ${e?.message || "Unknown error"}`, "error"),
     }
-  };
+  );
 
-  const handleSavePayment = (data: any) => {
-    if (editPayment) {
-      updateItem("realEstatePayments", editPayment.id, data);
-      setEditPayment(null);
-    } else {
-      addItem("realEstatePayments", { ...data, propertyId: paymentForProperty.id });
-      setPaymentForProperty(null);
+  const { run: handleSavePayment, loading: savingPayment } = useAsyncAction(
+    async (data: any) => {
+      if (editPayment) {
+        await updateItem("realEstatePayments", editPayment.id, data);
+      } else {
+        await addItem("realEstatePayments", { ...data, propertyId: paymentForProperty.id });
+      }
+    },
+    {
+      onSuccess: () => { setEditPayment(null); setPaymentForProperty(null); },
+      onError: (e: any) => showToast?.(`Failed to save payment: ${e?.message || "Unknown error"}`, "error"),
     }
-  };
+  );
+
+  const { run: deleteProperty, loading: deletingProperty } = useAsyncAction(
+    async (id: string) => { await removeItem("realEstateProperties", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete property: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: deleteDemand, loading: deletingDemand } = useAsyncAction(
+    async (id: string) => { await removeItem("realEstateDemands", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete demand letter: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: deletePayment, loading: deletingPayment } = useAsyncAction(
+    async (id: string) => { await removeItem("realEstatePayments", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete payment: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   return (
     <div>
@@ -2275,19 +2308,19 @@ export function RealEstateTab({
                   "Delete this property? Its demand letters and payment records will be deleted too. This cannot be undone."
                 )
               )
-                removeItem("realEstateProperties", id);
+                deleteProperty(id);
             }}
             onAddDemand={(p: any) => setDemandForProperty(p)}
             onEditDemand={(d: any) => setEditDemand(d)}
             onDeleteDemand={(id: string) => {
               if (window.confirm("Delete this demand letter? This cannot be undone."))
-                removeItem("realEstateDemands", id);
+                deleteDemand(id);
             }}
             onAddPayment={(p: any) => setPaymentForProperty(p)}
             onEditPayment={(p: any) => setEditPayment(p)}
             onDeletePayment={(id: string) => {
               if (window.confirm("Delete this payment record? This cannot be undone."))
-                removeItem("realEstatePayments", id);
+                deletePayment(id);
             }}
           />
         ))
@@ -2302,6 +2335,7 @@ export function RealEstateTab({
             setEditProperty(null);
           }}
           onSave={handleSaveProperty}
+          saving={savingProperty}
         />
       )}
       {(demandForProperty || editDemand) && (
@@ -2317,6 +2351,7 @@ export function RealEstateTab({
             setEditDemand(null);
           }}
           onSave={handleSaveDemand}
+          saving={savingDemand}
         />
       )}
       {(paymentForProperty || editPayment) && (
@@ -2337,6 +2372,7 @@ export function RealEstateTab({
             setEditPayment(null);
           }}
           onSave={handleSavePayment}
+          saving={savingPayment}
         />
       )}
     </div>

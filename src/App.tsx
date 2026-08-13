@@ -3613,6 +3613,7 @@ function FinanceDashboard() {
                   removeItem={removeItem}
                   updateItem={updateItem}
                   activeProfile={activeProfile}
+                  showToast={showToast}
                 />
               )}
               {tab === "vehicles" && (
