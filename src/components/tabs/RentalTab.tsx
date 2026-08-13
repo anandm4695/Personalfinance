@@ -34,6 +34,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
   RentalPropertyModal,
@@ -48,6 +49,7 @@ interface RentalTabProps {
   addItem: (key: string, data: any) => void;
   removeItem: (key: string, id: string) => void;
   updateItem: (key: string, id: string, data: any) => void;
+  showToast?: (msg: string, type?: string) => void;
 }
 
 const fmtDate = (dateStr: string) => {
@@ -63,7 +65,13 @@ const fmtDate = (dateStr: string) => {
   }
 };
 
-export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem, updateItem }) => {
+export const RentalTab: React.FC<RentalTabProps> = ({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  showToast,
+}) => {
   const [sub, setSub] = useState("out");
   const [modalOut, setModalOut] = useState<{ open: boolean; editing: any }>({
     open: false,
@@ -88,6 +96,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     property: any;
     editing?: any;
   } | null>(null);
+  const [savingLog, setSavingLog] = useState(false);
+  const [savingProperty, setSavingProperty] = useState(false);
 
   // CSV Import state
   const [showCsvImport, setShowCsvImport] = useState<string | null>(null);
@@ -95,6 +105,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const [csvPreview, setCsvPreview] = useState<any[]>([]);
   const [csvError, setCsvError] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
+  const [csvImporting, setCsvImporting] = useState(false);
 
   const getOrdinal = (n: number | string) => {
     const num = parseInt(n as string, 10);
@@ -291,57 +302,96 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     URL.revokeObjectURL(url);
   };
 
-  const handleAddOut = (data: any) => {
-    addItem("rentalProperties", {
-      ...data,
-      receipts: [],
-      depositDeductions: [],
-      depositReturned: 0,
-      depositTransactions: [],
-    });
-    setModalOut({ open: false, editing: null });
+  const handleAddOut = async (data: any) => {
+    setSavingProperty(true);
+    try {
+      await addItem("rentalProperties", {
+        ...data,
+        receipts: [],
+        depositDeductions: [],
+        depositReturned: 0,
+        depositTransactions: [],
+      });
+      setModalOut({ open: false, editing: null });
+    } catch (e: any) {
+      showToast?.(`Failed to save property: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingProperty(false);
+    }
   };
-  const handleEditOut = (data: any) => {
-    if (modalOut.editing) {
-      updateItem("rentalProperties", modalOut.editing.id, {
+  const handleEditOut = async (data: any) => {
+    if (!modalOut.editing) {
+      setModalOut({ open: false, editing: null });
+      return;
+    }
+    setSavingProperty(true);
+    try {
+      await updateItem("rentalProperties", modalOut.editing.id, {
         ...data,
         receipts: modalOut.editing.receipts || [],
         depositDeductions: modalOut.editing.depositDeductions || [],
         depositTransactions: modalOut.editing.depositTransactions || [],
         depositReturned: modalOut.editing.depositReturned || 0,
       });
+      setModalOut({ open: false, editing: null });
+    } catch (e: any) {
+      showToast?.(`Failed to save property: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingProperty(false);
     }
-    setModalOut({ open: false, editing: null });
   };
-  const handleAddIn = (data: any) => {
-    addItem("rentedProperties", {
-      ...data,
-      payments: [],
-      depositReturned: 0,
-      depositTransactions: [],
-    });
-    setModalIn({ open: false, editing: null });
+  const handleAddIn = async (data: any) => {
+    setSavingProperty(true);
+    try {
+      await addItem("rentedProperties", {
+        ...data,
+        payments: [],
+        depositReturned: 0,
+        depositTransactions: [],
+      });
+      setModalIn({ open: false, editing: null });
+    } catch (e: any) {
+      showToast?.(`Failed to save property: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingProperty(false);
+    }
   };
-  const handleEditIn = (data: any) => {
-    if (modalIn.editing) {
-      updateItem("rentedProperties", modalIn.editing.id, {
+  const handleEditIn = async (data: any) => {
+    if (!modalIn.editing) {
+      setModalIn({ open: false, editing: null });
+      return;
+    }
+    setSavingProperty(true);
+    try {
+      await updateItem("rentedProperties", modalIn.editing.id, {
         ...data,
         payments: modalIn.editing.payments || [],
         depositTransactions: modalIn.editing.depositTransactions || [],
         depositReturned: modalIn.editing.depositReturned || 0,
       });
+      setModalIn({ open: false, editing: null });
+    } catch (e: any) {
+      showToast?.(`Failed to save property: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingProperty(false);
     }
-    setModalIn({ open: false, editing: null });
   };
 
   // Payment, Receipt, and Deduction Handlers
-  const handleAddPayment = (p: any, paymentData: any) => {
+  const handleAddPayment = async (p: any, paymentData: any) => {
     const updatedPayments = [
       ...(p.payments || []),
       { ...paymentData, id: Math.random().toString(36).substr(2, 9) },
     ];
-    updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save payment: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
   const handleRemovePayment = (p: any, paymentId: string) => {
@@ -350,21 +400,35 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
   };
 
-  const handleEditPayment = (p: any, editingId: string, paymentData: any) => {
+  const handleEditPayment = async (p: any, editingId: string, paymentData: any) => {
     const updatedPayments = (p.payments || []).map((pay: any) =>
       pay.id === editingId ? { ...paymentData, id: editingId } : pay
     );
-    updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save payment: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
-  const handleAddReceipt = (p: any, receiptData: any) => {
+  const handleAddReceipt = async (p: any, receiptData: any) => {
     const updatedReceipts = [
       ...(p.receipts || []),
       { ...receiptData, id: Math.random().toString(36).substr(2, 9) },
     ];
-    updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save receipt: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
   const handleRemoveReceipt = (p: any, receiptId: string) => {
@@ -373,29 +437,50 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
   };
 
-  const handleEditReceipt = (p: any, editingId: string, receiptData: any) => {
+  const handleEditReceipt = async (p: any, editingId: string, receiptData: any) => {
     const updatedReceipts = (p.receipts || []).map((rec: any) =>
       rec.id === editingId ? { ...receiptData, id: editingId } : rec
     );
-    updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save receipt: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
-  const handleEditDeduction = (p: any, editingId: string, deductionData: any) => {
+  const handleEditDeduction = async (p: any, editingId: string, deductionData: any) => {
     const updated = (p.depositDeductions || []).map((d: any) =>
       d.id === editingId ? { ...deductionData, id: editingId } : d
     );
-    updateItem("rentalProperties", p.id, { ...p, depositDeductions: updated });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentalProperties", p.id, { ...p, depositDeductions: updated });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save deduction: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
-  const handleAddDeduction = (p: any, deductionData: any) => {
+  const handleAddDeduction = async (p: any, deductionData: any) => {
     const updatedDeductions = [
       ...(p.depositDeductions || []),
       { ...deductionData, id: Math.random().toString(36).substr(2, 9) },
     ];
-    updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save deduction: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
   const handleRemoveDeduction = (p: any, deductionId: string) => {
@@ -407,13 +492,20 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
   };
 
-  const handleAddDepositIn = (p: any, depositData: any) => {
+  const handleAddDepositIn = async (p: any, depositData: any) => {
     const updated = [
       ...(p.depositTransactions || []),
       { ...depositData, id: Math.random().toString(36).substr(2, 9) },
     ];
-    updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save deposit entry: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
   const handleRemoveDepositIn = (p: any, depositId: string) => {
@@ -423,21 +515,35 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
   };
 
-  const handleEditDepositIn = (p: any, editingId: string, depositData: any) => {
+  const handleEditDepositIn = async (p: any, editingId: string, depositData: any) => {
     const updated = (p.depositTransactions || []).map((tx: any) =>
       tx.id === editingId ? { ...depositData, id: editingId } : tx
     );
-    updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save deposit entry: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
-  const handleAddDepositOut = (p: any, depositData: any) => {
+  const handleAddDepositOut = async (p: any, depositData: any) => {
     const updated = [
       ...(p.depositTransactions || []),
       { ...depositData, id: Math.random().toString(36).substr(2, 9) },
     ];
-    updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
-    setShowLogModal(null);
+    setSavingLog(true);
+    try {
+      await updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save deposit entry: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
   const handleRemoveDepositOut = (p: any, depositId: string) => {
@@ -453,19 +559,33 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   // so each logged return is additive on top of whatever was returned before.
   // This lets a partial/staggered refund be logged over multiple visits, same
   // as partial deposit receipts.
-  const handleReturnDepositOut = (p: any, data: any) => {
-    updateItem("rentalProperties", p.id, {
-      ...p,
-      depositReturned: Number(p.depositReturned || 0) + Number(data.amount || 0),
-    });
-    setShowLogModal(null);
+  const handleReturnDepositOut = async (p: any, data: any) => {
+    setSavingLog(true);
+    try {
+      await updateItem("rentalProperties", p.id, {
+        ...p,
+        depositReturned: Number(p.depositReturned || 0) + Number(data.amount || 0),
+      });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save deposit return: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
-  const handleReturnDepositIn = (p: any, data: any) => {
-    updateItem("rentedProperties", p.id, {
-      ...p,
-      depositReturned: Number(p.depositReturned || 0) + Number(data.amount || 0),
-    });
-    setShowLogModal(null);
+  const handleReturnDepositIn = async (p: any, data: any) => {
+    setSavingLog(true);
+    try {
+      await updateItem("rentedProperties", p.id, {
+        ...p,
+        depositReturned: Number(p.depositReturned || 0) + Number(data.amount || 0),
+      });
+      setShowLogModal(null);
+    } catch (e: any) {
+      showToast?.(`Failed to save deposit return: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
   return (
@@ -1475,20 +1595,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       fontSize: 12,
                                       cursor: "pointer",
                                     }}
-                                    onClick={() => {
+                                    disabled={csvImporting}
+                                    onClick={async () => {
                                       const nextReceipts = [...(p.receipts || []), ...csvPreview];
-                                      updateItem("rentalProperties", p.id, {
-                                        ...p,
-                                        receipts: nextReceipts,
-                                      });
-                                      setCsvPreview([]);
-                                      setCsvText("");
-                                      setCsvFileName("");
-                                      setShowCsvImport(null);
+                                      setCsvImporting(true);
+                                      try {
+                                        await updateItem("rentalProperties", p.id, {
+                                          ...p,
+                                          receipts: nextReceipts,
+                                        });
+                                        setCsvPreview([]);
+                                        setCsvText("");
+                                        setCsvFileName("");
+                                        setShowCsvImport(null);
+                                      } catch (e: any) {
+                                        showToast?.(
+                                          `Failed to import receipts: ${e?.message || "Unknown error"}`,
+                                          "error"
+                                        );
+                                      } finally {
+                                        setCsvImporting(false);
+                                      }
                                     }}
                                   >
-                                    Import {csvPreview.length} Row
-                                    {csvPreview.length !== 1 ? "s" : ""}
+                                    {csvImporting
+                                      ? "Importing…"
+                                      : `Import ${csvPreview.length} Row${csvPreview.length !== 1 ? "s" : ""}`}
                                   </button>
                                 )}
                               </div>
@@ -2900,20 +3032,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       fontSize: 12,
                                       cursor: "pointer",
                                     }}
-                                    onClick={() => {
+                                    disabled={csvImporting}
+                                    onClick={async () => {
                                       const nextPayments = [...(p.payments || []), ...csvPreview];
-                                      updateItem("rentedProperties", p.id, {
-                                        ...p,
-                                        payments: nextPayments,
-                                      });
-                                      setCsvPreview([]);
-                                      setCsvText("");
-                                      setCsvFileName("");
-                                      setShowCsvImport(null);
+                                      setCsvImporting(true);
+                                      try {
+                                        await updateItem("rentedProperties", p.id, {
+                                          ...p,
+                                          payments: nextPayments,
+                                        });
+                                        setCsvPreview([]);
+                                        setCsvText("");
+                                        setCsvFileName("");
+                                        setShowCsvImport(null);
+                                      } catch (e: any) {
+                                        showToast?.(
+                                          `Failed to import payments: ${e?.message || "Unknown error"}`,
+                                          "error"
+                                        );
+                                      } finally {
+                                        setCsvImporting(false);
+                                      }
                                     }}
                                   >
-                                    Import {csvPreview.length} Row
-                                    {csvPreview.length !== 1 ? "s" : ""}
+                                    {csvImporting
+                                      ? "Importing…"
+                                      : `Import ${csvPreview.length} Row${csvPreview.length !== 1 ? "s" : ""}`}
                                   </button>
                                 )}
                               </div>
@@ -3417,6 +3561,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           initial={modalOut.editing}
           onClose={() => setModalOut({ open: false, editing: null })}
           onSave={modalOut.editing ? handleEditOut : handleAddOut}
+          saving={savingProperty}
         />
       )}
       {modalIn.open && (
@@ -3424,6 +3569,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           initial={modalIn.editing}
           onClose={() => setModalIn({ open: false, editing: null })}
           onSave={modalIn.editing ? handleEditIn : handleAddIn}
+          saving={savingProperty}
         />
       )}
 
@@ -3440,6 +3586,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               ? handleEditPayment(showLogModal.property, showLogModal.editing.id, data)
               : handleAddPayment(showLogModal.property, data)
           }
+          saving={savingLog}
         />
       )}
 
@@ -3456,6 +3603,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               ? handleEditReceipt(showLogModal.property, showLogModal.editing.id, data)
               : handleAddReceipt(showLogModal.property, data)
           }
+          saving={savingLog}
         />
       )}
 
@@ -3469,6 +3617,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               ? handleEditDeduction(showLogModal.property, showLogModal.editing.id, data)
               : handleAddDeduction(showLogModal.property, data)
           }
+          saving={savingLog}
         />
       )}
 
@@ -3485,6 +3634,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               ? handleEditDepositIn(showLogModal.property, showLogModal.editing.id, data)
               : handleAddDepositIn(showLogModal.property, data)
           }
+          saving={savingLog}
         />
       )}
 
@@ -3496,6 +3646,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           saveLabel="Log Deposit Receipt"
           onClose={() => setShowLogModal(null)}
           onSave={(data) => handleAddDepositOut(showLogModal.property, data)}
+          saving={savingLog}
         />
       )}
 
@@ -3507,6 +3658,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           saveLabel="Log Return"
           onClose={() => setShowLogModal(null)}
           onSave={(data: any) => handleReturnDepositOut(showLogModal.property, data)}
+          saving={savingLog}
         />
       )}
 
@@ -3518,6 +3670,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           saveLabel="Log Refund"
           onClose={() => setShowLogModal(null)}
           onSave={(data: any) => handleReturnDepositIn(showLogModal.property, data)}
+          saving={savingLog}
         />
       )}
     </div>

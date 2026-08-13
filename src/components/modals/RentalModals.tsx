@@ -404,7 +404,7 @@ function TenantSplitCard({
 /* ══════════════════════════════════════════════════════════════════
    RentalPropertyModal  (Rented Out)
 ══════════════════════════════════════════════════════════════════ */
-export function RentalPropertyModal({ initial, onClose, onSave }: any) {
+export function RentalPropertyModal({ initial, onClose, onSave, saving }: any) {
   const { familyProfiles } = useMasterData();
   // Initialise tenants from saved data or default single tenant
   const initTenants = (): any[] => {
@@ -771,6 +771,8 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
         onSave={handleSave}
         onClose={onClose}
         saveLabel={initial ? "Update" : "Add Property"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -786,6 +788,7 @@ export function RentalReceiptModal({
   title,
   amountLabel,
   saveLabel,
+  saving,
 }: any) {
   const now = new Date();
   const defaultMonth = now.toISOString().slice(0, 7);
@@ -836,6 +839,8 @@ export function RentalReceiptModal({
         onSave={() => f.month && Number(f.amount) > 0 && onSave(f)}
         onClose={onClose}
         saveLabel={saveLabel || "Log Receipt"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -844,7 +849,7 @@ export function RentalReceiptModal({
 /* ══════════════════════════════════════════════════════════════════
    RentalDeductionModal
 ══════════════════════════════════════════════════════════════════ */
-export function RentalDeductionModal({ onClose, onSave, initial }: any) {
+export function RentalDeductionModal({ onClose, onSave, initial, saving }: any) {
   const [f, setF] = useState({
     reason: initial?.reason || "",
     amount: initial?.amount ? String(initial.amount) : "",
@@ -883,6 +888,8 @@ export function RentalDeductionModal({ onClose, onSave, initial }: any) {
         onSave={() => f.reason && Number(f.amount) > 0 && onSave(f)}
         onClose={onClose}
         saveLabel={initial ? "Update Deduction" : "Add Deduction"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -1091,7 +1098,7 @@ function LandlordSplitCard({
 /* ══════════════════════════════════════════════════════════════════
    RentedInPropertyModal  — MAIN (with multi-landlord support)
 ══════════════════════════════════════════════════════════════════ */
-export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
+export function RentedInPropertyModal({ initial, onClose, onSave, saving }: any) {
   const { familyProfiles } = useMasterData();
   // Initialise landlords from saved data or default single landlord
   const initLandlords = (): any[] => {
@@ -1584,7 +1591,8 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
         onSave={handleSave}
         onClose={onClose}
         saveLabel={initial ? "Update" : "Add Property"}
-        disabled={isMulti && !pctValid}
+        disabled={(isMulti && !pctValid) || saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -1601,6 +1609,7 @@ export function RentalDepositTxModal({
   onClose,
   onSave,
   initial,
+  saving,
 }: any) {
   const [f, setF] = useState({
     amount: initial?.amount ? String(initial.amount) : "",
@@ -1640,6 +1649,8 @@ export function RentalDepositTxModal({
         onSave={() => Number(f.amount) > 0 && onSave(f)}
         onClose={onClose}
         saveLabel={saveLabel || "Log Deposit"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
