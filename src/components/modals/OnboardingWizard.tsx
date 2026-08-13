@@ -44,6 +44,7 @@ interface OnboardingWizardProps {
   updateSettings: (updates: any) => void;
   updateMasterData: (key: string, value: any) => void;
   onComplete: () => void;
+  showToast?: (message: string, type?: string) => void;
 }
 
 export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
@@ -52,6 +53,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   updateSettings,
   updateMasterData,
   onComplete,
+  showToast,
 }) => {
   const [step, setStep] = useState(0);
   const [profile, setProfile] = useState({ name: "", fy: getCurrentFY(), regime: "new" });
@@ -60,6 +62,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const [goal, setGoal] = useState({ name: "", targetAmount: "", targetDate: "" });
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const inputStyle = {
     width: "100%",
@@ -71,73 +74,80 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     color: THEME.ink,
   };
 
-  const handleNext = () => {
-    if (step === 0 && profile.name) {
-      updateProfile({ name: profile.name, fy: profile.fy, regime: profile.regime });
-    } else if (step === 1 && bank.bankName) {
-      addItem("bankAccounts", {
-        id: uid(),
-        bankName: bank.bankName,
-        accountNumber: bank.accountNumber,
-        balance: Number(bank.balance) || 0,
-        type: "Savings",
-        owner: "self",
-      });
-    } else if (step === 2 && investment.name) {
-      if (investment.type === "fd") {
-        addItem("fixedDeposits", {
+  const handleNext = async () => {
+    setSaving(true);
+    try {
+      if (step === 0 && profile.name) {
+        updateProfile({ name: profile.name, fy: profile.fy, regime: profile.regime });
+      } else if (step === 1 && bank.bankName) {
+        await addItem("bankAccounts", {
           id: uid(),
-          bank: investment.name,
-          principal: Number(investment.amount) || 0,
-          rate: Number(investment.rate) || 7,
-          years: 1,
+          bankName: bank.bankName,
+          accountNumber: bank.accountNumber,
+          balance: Number(bank.balance) || 0,
+          type: "Savings",
+          owner: "self",
+        });
+      } else if (step === 2 && investment.name) {
+        if (investment.type === "fd") {
+          await addItem("fixedDeposits", {
+            id: uid(),
+            bank: investment.name,
+            principal: Number(investment.amount) || 0,
+            rate: Number(investment.rate) || 7,
+            years: 1,
+            startDate: today(),
+            owner: "self",
+          });
+        } else if (investment.type === "mf") {
+          await addItem("mutualFunds", {
+            id: uid(),
+            name: investment.name,
+            category: "Equity",
+            invested: Number(investment.amount) || 0,
+            units: "",
+            buyNav: "",
+            currentNav: "",
+            owner: "self",
+          });
+        } else if (investment.type === "stock") {
+          await addItem("stocks", {
+            id: uid(),
+            symbol: investment.name,
+            exchange: "NSE",
+            dematId: "",
+            qty: 1,
+            avgPrice: Number(investment.amount) || 0,
+            currentPrice: Number(investment.amount) || 0,
+            buyDate: today(),
+            owner: "self",
+          });
+        }
+      } else if (step === 3 && goal.name) {
+        await addItem("goals", {
+          id: uid(),
+          name: goal.name,
+          category: "Wealth",
+          targetAmount: Number(goal.targetAmount) || 0,
+          currentAmount: 0,
+          priority: "Medium",
           startDate: today(),
+          targetDate: goal.targetDate,
           owner: "self",
         });
-      } else if (investment.type === "mf") {
-        addItem("mutualFunds", {
-          id: uid(),
-          name: investment.name,
-          category: "Equity",
-          invested: Number(investment.amount) || 0,
-          units: "",
-          buyNav: "",
-          currentNav: "",
-          owner: "self",
-        });
-      } else if (investment.type === "stock") {
-        addItem("stocks", {
-          id: uid(),
-          symbol: investment.name,
-          exchange: "NSE",
-          dematId: "",
-          qty: 1,
-          avgPrice: Number(investment.amount) || 0,
-          currentPrice: Number(investment.amount) || 0,
-          buyDate: today(),
-          owner: "self",
-        });
+      } else if (step === 4 && apiKey) {
+        updateSettings({ geminiApiKey: apiKey });
       }
-    } else if (step === 3 && goal.name) {
-      addItem("goals", {
-        id: uid(),
-        name: goal.name,
-        category: "Wealth",
-        targetAmount: Number(goal.targetAmount) || 0,
-        currentAmount: 0,
-        priority: "Medium",
-        startDate: today(),
-        targetDate: goal.targetDate,
-        owner: "self",
-      });
-    } else if (step === 4 && apiKey) {
-      updateSettings({ geminiApiKey: apiKey });
-    }
-    if (step < 4) {
-      setStep(step + 1);
-    } else {
-      updateMasterData("_onboardingComplete", true);
-      onComplete();
+      if (step < 4) {
+        setStep(step + 1);
+      } else {
+        updateMasterData("_onboardingComplete", true);
+        onComplete();
+      }
+    } catch (e: any) {
+      showToast?.(`Failed to save: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -498,7 +508,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               onClick={() => {
                 if (step > 0) setStep(step - 1);
               }}
-              disabled={step === 0}
+              disabled={step === 0 || saving}
             >
               Back
             </Button>
@@ -507,6 +517,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 <Button
                   variant="ghost"
                   onClick={() => setStep(step + 1)}
+                  disabled={saving}
                   style={{ color: THEME.muted }}
                 >
                   Skip
@@ -515,6 +526,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <Button
                 variant="accent"
                 onClick={handleNext}
+                disabled={saving}
+                loading={saving}
                 icon={step === 4 ? <Check size={14} /> : <ChevronRight size={14} />}
               >
                 {step === 4 ? "Finish Setup" : "Next"}

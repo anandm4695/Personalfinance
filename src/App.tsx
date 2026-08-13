@@ -3407,6 +3407,7 @@ function FinanceDashboard() {
           addItem={addItem}
           updateSettings={updateSettings}
           updateMasterData={updateMasterData}
+          showToast={showToast}
           onComplete={() => {
             try {
               localStorage.removeItem("pf_pending_onboarding");
