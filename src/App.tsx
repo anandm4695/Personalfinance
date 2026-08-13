@@ -3660,6 +3660,7 @@ function FinanceDashboard() {
                   state={filteredState}
                   removeItem={removeItem}
                   marketData={marketData}
+                  showToast={showToast}
                 />
               )}
               {(tab === "credit" ||

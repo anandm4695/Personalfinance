@@ -24,6 +24,7 @@ import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 import { Drawer } from "../ui/Drawer";
 import { Prv } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
 
 const cashTxnAccountLabel = (a: any): string => {
@@ -267,6 +268,7 @@ const SoldTable = ({
   rows,
   type,
   removeItem,
+  showToast,
   fmtDate,
   fyLabel,
   searchQuery,
@@ -277,6 +279,7 @@ const SoldTable = ({
   rows: any[];
   type: "stock" | "mf";
   removeItem: (collection: string, id: string) => void;
+  showToast?: (message: string, type?: string) => void;
   fmtDate: (d: string) => string;
   fyLabel: string;
   searchQuery: string;
@@ -284,6 +287,10 @@ const SoldTable = ({
   sortDir?: SortDir;
   onSort: (key: string) => void;
 }) => {
+  const { run: deleteSaleRecord } = useAsyncAction(
+    async (collection: string, id: string) => { await removeItem(collection, id); },
+    { onError: (e: any) => showToast?.(`Failed to delete sale record: ${e?.message || "Unknown error"}`, "error") }
+  );
   const total = rows.reduce((s: number, r: any) => s + Number(r.profit || 0), 0);
   if (rows.length === 0)
     return (
@@ -416,7 +423,7 @@ const SoldTable = ({
             const name =
               type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") || "this stock" : s.scheme || "this fund";
             if (window.confirm(`Delete this sale record for "${name}"? This cannot be undone.`)) {
-              removeItem(type === "stock" ? "stockSells" : "mfSells", s.id);
+              deleteSaleRecord(type === "stock" ? "stockSells" : "mfSells", s.id);
             }
           }}
           title="Delete"
@@ -461,7 +468,7 @@ const SoldTable = ({
   );
 };
 
-export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
+export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }: any) {
   const currentFY = (() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -475,6 +482,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const [viewCashTxnId, setViewCashTxnId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortState, setSortState] = useState<Record<string, { key: string; dir: SortDir }>>({});
+
+  const { run: deleteCashTxn } = useAsyncAction(
+    async (id: string) => { await removeItem("transactions", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete transaction: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const toggleSort = useCallback((section: string, key: string) => {
     setSortState((prev) => {
@@ -1465,6 +1477,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             rows={stocksSoldSorted}
             type="stock"
             removeItem={removeItem}
+            showToast={showToast}
             fmtDate={fmtDate}
             fyLabel={fyLabel}
             searchQuery={searchQuery}
@@ -1802,6 +1815,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             rows={mfSoldSorted}
             type="mf"
             removeItem={removeItem}
+            showToast={showToast}
             fmtDate={fmtDate}
             fyLabel={fyLabel}
             searchQuery={searchQuery}
@@ -1982,7 +1996,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
                       )
                     ) {
-                      removeItem("transactions", t.id);
+                      deleteCashTxn(t.id);
                     }
                   }}
                   title="Delete"
@@ -2154,7 +2168,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
                       )
                     ) {
-                      removeItem("transactions", t.id);
+                      deleteCashTxn(t.id);
                       setViewCashTxnId(null);
                     }
                   }}
