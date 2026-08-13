@@ -53,7 +53,7 @@ export const Prv = ({ children }: { children: React.ReactNode }) => {
   if (!privacyMode) return <>{children}</>;
   return (
     <span
-      aria-hidden="true"
+      aria-label="Amount hidden — privacy mode is on"
       style={{ letterSpacing: "0.1em", userSelect: "none", fontFamily: "inherit" }}
     >
       ••••
