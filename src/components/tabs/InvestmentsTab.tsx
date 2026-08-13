@@ -43,7 +43,7 @@ import {
   calcCAGR,
   calcXIRR,
 } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -9902,6 +9902,7 @@ function MFSection({
   fetchingMfNavs,
   mfMarketDataTs,
 }: any) {
+  const { privacyMode } = usePrivacy();
   const getLiveNav = (m: any) => liveMfNav(m, mfMarketData);
   const [editMF, setEditMF] = useState<any>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
@@ -10985,11 +10986,11 @@ function MFSection({
                                     })}
                                   </td>
                                   <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}>
-                                    ₹{avgNav.toFixed(2)}
+                                    <Prv>₹{avgNav.toFixed(2)}</Prv>
                                   </td>
                                   <td style={{ ...mfTd, textAlign: "right" }}>
                                     <div style={{ fontWeight: 700, color: THEME.ink }}>
-                                      {currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "—"}
+                                      {currentNav > 0 ? <Prv>₹{currentNav.toFixed(2)}</Prv> : "—"}
                                     </div>
                                   </td>
                                   <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}>
@@ -11318,7 +11319,7 @@ function MFSection({
                                                           labelStyle={{ color: THEME.ink }}
                                                           itemStyle={{ color: THEME.ink }}
                                                           formatter={(v: any) => [
-                                                            `₹${Number(v).toFixed(4)}`,
+                                                            privacyMode ? "••••" : `₹${Number(v).toFixed(4)}`,
                                                             "NAV",
                                                           ]}
                                                         />
@@ -11363,7 +11364,9 @@ function MFSection({
                                                           <span style={{ color: THEME.muted }}>
                                                             Prev NAV:{" "}
                                                           </span>
-                                                          <b>₹{Number(meta.prevNav).toFixed(4)}</b>
+                                                          <b>
+                                                            <Prv>₹{Number(meta.prevNav).toFixed(4)}</Prv>
+                                                          </b>
                                                         </span>
                                                       )}
                                                       {meta.navChange != null && (
@@ -11392,14 +11395,15 @@ function MFSection({
                                                             52W H/L:{" "}
                                                           </span>
                                                           <b style={{ color: THEME.sage }}>
-                                                            ₹{Number(meta.high52).toFixed(4)}
+                                                            <Prv>₹{Number(meta.high52).toFixed(4)}</Prv>
                                                           </b>
                                                           {" / "}
                                                           <b style={{ color: THEME.rust }}>
-                                                            ₹
-                                                            {meta.low52 != null
-                                                              ? Number(meta.low52).toFixed(4)
-                                                              : "—"}
+                                                            {meta.low52 != null ? (
+                                                              <Prv>₹{Number(meta.low52).toFixed(4)}</Prv>
+                                                            ) : (
+                                                              "—"
+                                                            )}
                                                           </b>
                                                         </span>
                                                       )}
@@ -11663,9 +11667,11 @@ function MFSection({
                                                           fontWeight: 600,
                                                         }}
                                                       >
-                                                        {lotBuyNav > 0
-                                                          ? `₹${lotBuyNav.toFixed(4)}`
-                                                          : "—"}
+                                                        {lotBuyNav > 0 ? (
+                                                          <Prv>₹{lotBuyNav.toFixed(4)}</Prv>
+                                                        ) : (
+                                                          "—"
+                                                        )}
                                                       </td>
                                                       <td
                                                         style={{
@@ -12489,7 +12495,9 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
         {currentNav > 0 && (
           <span>
             <span style={{ color: THEME.muted }}>Current NAV: </span>
-            <b>₹{currentNav.toFixed(4)}</b>
+            <b>
+              <Prv>₹{currentNav.toFixed(4)}</Prv>
+            </b>
           </span>
         )}
       </div>
@@ -12654,7 +12662,12 @@ function SellMFModal({ mf, onClose, onSave }: any) {
     >
       <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
         Holding: <b>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}</b> units
-        {buyNav > 0 && <> @ buy NAV ₹{buyNav.toFixed(4)}</>}
+        {buyNav > 0 && (
+          <>
+            {" "}
+            @ buy NAV <Prv>₹{buyNav.toFixed(4)}</Prv>
+          </>
+        )}
         {mf.buyDate && (
           <>
             {" "}
@@ -12981,7 +12994,9 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                         <span style={{ color: THEME.muted }}>—</span>
                       )}
                     </td>
-                    <td style={{ padding: "9px 12px", textAlign: "right" }}>₹{fmt4(a.buyNav)}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right" }}>
+                      <Prv>₹{fmt4(a.buyNav)}</Prv>
+                    </td>
                     <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>
                       {Number(a.lot.units).toLocaleString("en-IN", { maximumFractionDigits: 3 })}
                     </td>

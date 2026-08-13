@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { INDEX_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
@@ -842,6 +842,7 @@ export function DematTab({
   activeProfile = "all",
   showToast,
 }: any) {
+  const { privacyMode } = usePrivacy();
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
   const [showStock, setShowStock] = useState(false);
@@ -3210,7 +3211,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 labelStyle={{ color: THEME.ink }}
                                                 itemStyle={{ color: THEME.ink }}
                                                 formatter={(v: any) => [
-                                                  `₹${Number(v).toFixed(2)}`,
+                                                  privacyMode ? "••••" : `₹${Number(v).toFixed(2)}`,
                                                   "Price",
                                                 ]}
                                               />
@@ -3243,7 +3244,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   Prev Close:{" "}
                                                 </span>
                                                 <b style={{ fontVariantNumeric: "tabular-nums" }}>
-                                                  ₹{md.prevClose.toFixed(2)}
+                                                  <Prv>₹{md.prevClose.toFixed(2)}</Prv>
                                                 </b>
                                               </span>
                                             )}
@@ -3258,7 +3259,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     fontVariantNumeric: "tabular-nums",
                                                   }}
                                                 >
-                                                  ₹{md.dayHigh.toFixed(2)}
+                                                  <Prv>₹{md.dayHigh.toFixed(2)}</Prv>
                                                 </b>{" "}
                                                 /{" "}
                                                 <b
@@ -3267,7 +3268,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     fontVariantNumeric: "tabular-nums",
                                                   }}
                                                 >
-                                                  ₹{md.dayLow?.toFixed(2) ?? "—"}
+                                                  {md.dayLow != null ? (
+                                                    <Prv>₹{md.dayLow.toFixed(2)}</Prv>
+                                                  ) : (
+                                                    "—"
+                                                  )}
                                                 </b>
                                               </span>
                                             )}
@@ -3282,7 +3287,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     fontVariantNumeric: "tabular-nums",
                                                   }}
                                                 >
-                                                  ₹{md.weekHigh52.toFixed(2)}
+                                                  <Prv>₹{md.weekHigh52.toFixed(2)}</Prv>
                                                 </b>{" "}
                                                 /{" "}
                                                 <b
@@ -3291,7 +3296,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     fontVariantNumeric: "tabular-nums",
                                                   }}
                                                 >
-                                                  ₹{md.weekLow52?.toFixed(2) ?? "—"}
+                                                  {md.weekLow52 != null ? (
+                                                    <Prv>₹{md.weekLow52.toFixed(2)}</Prv>
+                                                  ) : (
+                                                    "—"
+                                                  )}
                                                 </b>
                                               </span>
                                             )}
@@ -6158,7 +6167,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                             labelStyle={{ color: THEME.ink }}
                                                             itemStyle={{ color: THEME.ink }}
                                                             formatter={(v: any) => [
-                                                              `₹${Number(v).toFixed(2)}`,
+                                                              privacyMode ? "••••" : `₹${Number(v).toFixed(2)}`,
                                                               "Price",
                                                             ]}
                                                           />
@@ -6192,7 +6201,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                             <span style={{ color: THEME.muted }}>
                                                               Prev Close:{" "}
                                                             </span>
-                                                            <b>₹{md.prevClose.toFixed(2)}</b>
+                                                            <b>
+                                                              <Prv>₹{md.prevClose.toFixed(2)}</Prv>
+                                                            </b>
                                                           </span>
                                                         )}
                                                         {md.dayHigh != null && (
@@ -6201,11 +6212,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                               Day High/Low:{" "}
                                                             </span>
                                                             <b style={{ color: THEME.sage }}>
-                                                              ₹{md.dayHigh.toFixed(2)}
+                                                              <Prv>₹{md.dayHigh.toFixed(2)}</Prv>
                                                             </b>
                                                             {" / "}
                                                             <b style={{ color: THEME.rust }}>
-                                                              ₹{md.dayLow?.toFixed(2) ?? "—"}
+                                                              {md.dayLow != null ? (
+                                                                <Prv>₹{md.dayLow.toFixed(2)}</Prv>
+                                                              ) : (
+                                                                "—"
+                                                              )}
                                                             </b>
                                                           </span>
                                                         )}
@@ -6215,11 +6230,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                               52W H/L:{" "}
                                                             </span>
                                                             <b style={{ color: THEME.sage }}>
-                                                              ₹{md.weekHigh52.toFixed(2)}
+                                                              <Prv>₹{md.weekHigh52.toFixed(2)}</Prv>
                                                             </b>
                                                             {" / "}
                                                             <b style={{ color: THEME.rust }}>
-                                                              ₹{md.weekLow52?.toFixed(2) ?? "—"}
+                                                              {md.weekLow52 != null ? (
+                                                                <Prv>₹{md.weekLow52.toFixed(2)}</Prv>
+                                                              ) : (
+                                                                "—"
+                                                              )}
                                                             </b>
                                                           </span>
                                                         )}
@@ -6819,7 +6838,8 @@ function SellStockModal({ lot, onClose, onSave }: any) {
   return (
     <Modal title={`Sell ${lot.base || lot.symbol}`} onClose={onClose}>
       <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
-        Holding: <b>{lot.qty}</b> shares @ avg ₹{Number(lot.avgPrice).toFixed(2)} · Lot bought{" "}
+        Holding: <b>{lot.qty}</b> shares @ avg{" "}
+        <Prv>₹{Number(lot.avgPrice).toFixed(2)}</Prv> · Lot bought{" "}
         {lot.buyDate || "—"}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

@@ -810,7 +810,11 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                     gap: 5,
                                     fontWeight: 700,
                                   }}
-                                  title={`Last bank-linked payment was ${fmtINRExact(s.lastPaidAmount)}, but the tracked cost is ${fmtINRExact(s.amount)}`}
+                                  title={
+                                    privacyMode
+                                      ? "Last bank-linked payment differs from the tracked cost"
+                                      : `Last bank-linked payment was ${fmtINRExact(s.lastPaidAmount)}, but the tracked cost is ${fmtINRExact(s.amount)}`
+                                  }
                                 >
                                   <TrendingUp size={11} style={{ flexShrink: 0 }} />
                                   <span>
@@ -866,7 +870,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                     justifyContent: "flex-end",
                                     gap: 3,
                                   }}
-                                  title={`Actual renewal: ${fmtINRExact(s.amount)} every ${s.cycle}`}
+                                  title={`Actual renewal: ${privacyMode ? "••••" : fmtINRExact(s.amount)} every ${s.cycle}`}
                                 >
                                   <span style={{ fontSize: 9, opacity: 0.65, fontWeight: 600 }}>
                                     RENEWAL:

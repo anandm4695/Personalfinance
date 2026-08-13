@@ -790,6 +790,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 // ── SIP Card ─────────────────────────────────────────────────────────────────
 function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
   const { familyProfiles } = useMasterData();
+  const { privacyMode } = usePrivacy();
   const isPaused = sip.status === "paused";
   const isStopped = sip.status === "stopped";
   const isOverdue = sip.daysUntilDue !== null && sip.daysUntilDue < 0;
@@ -995,7 +996,11 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
                   textTransform: "uppercase" as const,
                   letterSpacing: "0.06em",
                 }}
-                title={`Started at ${fmtINRExact(sip.amount)}, now ${fmtINRExact(currentAmt)} after step-up`}
+                title={
+                  privacyMode
+                    ? "Amount increased after step-up"
+                    : `Started at ${fmtINRExact(sip.amount)}, now ${fmtINRExact(currentAmt)} after step-up`
+                }
               >
                 <Sparkles size={9} /> {sip.stepUpPct}% step-up
               </span>
