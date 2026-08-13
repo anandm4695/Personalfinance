@@ -1400,27 +1400,31 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
       };
 
       if (editId) {
-        updateItem("documents", editId, payload);
+        await updateItem("documents", editId, payload);
       } else {
-        addItem("documents", { id: docId, ...payload });
+        await addItem("documents", { id: docId, ...payload });
       }
       setShowModal(false);
       setEditId(null);
       setUploadFile(null);
       setRemoveExistingFile(false);
-    } catch (err) {
-      showToast?.("File upload failed. Please try again.", "error");
+    } catch (err: any) {
+      showToast?.(`Failed to save document: ${err?.message || "Please try again."}`, "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this document?")) return;
     const doc = documents.find((d) => d.id === id);
-    removeItem("documents", id);
-    if (doc?.filePath) {
-      deleteDocFile(doc.filePath);
+    try {
+      await removeItem("documents", id);
+      if (doc?.filePath) {
+        deleteDocFile(doc.filePath);
+      }
+    } catch (err: any) {
+      showToast?.(`Failed to delete document: ${err?.message || "Unknown error"}`, "error");
     }
   };
 
@@ -1429,11 +1433,15 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
     setRenewDate("");
   };
 
-  const handleRenewSave = () => {
+  const handleRenewSave = async () => {
     if (renewDoc && renewDate && /^\d{4}-\d{2}-\d{2}$/.test(renewDate)) {
-      updateItem("documents", renewDoc.id, { expiryDate: renewDate });
-      setRenewDoc(null);
-      setRenewDate("");
+      try {
+        await updateItem("documents", renewDoc.id, { expiryDate: renewDate });
+        setRenewDoc(null);
+        setRenewDate("");
+      } catch (err: any) {
+        showToast?.(`Failed to renew document: ${err?.message || "Unknown error"}`, "error");
+      }
     }
   };
 
