@@ -3737,6 +3737,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  showToast={showToast}
                 />
               )}
               {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}

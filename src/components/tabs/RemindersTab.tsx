@@ -40,6 +40,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -135,7 +136,7 @@ function fmtDisplayDate(dateStr: string): string {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
+export function RemindersTab({ state, addItem, removeItem, updateItem, showToast }: any) {
   // CC annual fee, FD/bond maturity, insurance premium, and loan-given
   // recovery below now source their date/annualize/guard logic from the same
   // shared hook the header bell and push notifications already use, instead
@@ -156,6 +157,18 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   const [show, setShow] = useState(false);
   const [editingReminder, setEditingReminder] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState("All");
+  const { run: saveNewReminder, loading: savingNewReminder } = useAsyncAction(
+    async (v: any) => { await addItem("reminders", v); },
+    { onSuccess: () => setShow(false), onError: (e: any) => showToast?.(`Failed to add reminder: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveReminderEdit, loading: savingReminderEdit } = useAsyncAction(
+    async (v: any) => { await updateItem("reminders", editingReminder.id, v); },
+    { onSuccess: () => setEditingReminder(null), onError: (e: any) => showToast?.(`Failed to save reminder: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: deleteReminder } = useAsyncAction(
+    async (id: string) => { await removeItem("reminders", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete reminder: ${e?.message || "Unknown error"}`, "error") }
+  );
   const [search, setSearch] = useState("");
   const [notifPerm, setNotifPerm] = useState<string>(() => {
     if (typeof Notification === "undefined") return "unsupported";
@@ -850,7 +863,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                 size="sm"
                 onClick={() => {
                   if (window.confirm(`Delete "${r.title}"? This cannot be undone.`)) {
-                    removeItem("reminders", r.id);
+                    deleteReminder(r.id);
                   }
                 }}
                 style={{ padding: 6, color: THEME.rust }}
@@ -1715,7 +1728,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                               size="sm"
                               onClick={() => {
                                 if (window.confirm(`Delete "${r.title}"? This cannot be undone.`)) {
-                                  removeItem("reminders", r.id);
+                                  deleteReminder(r.id);
                                 }
                               }}
                               style={{ padding: 6, color: THEME.rust }}
@@ -1881,10 +1894,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       {show && (
         <ReminderModal
           onClose={() => setShow(false)}
-          onSave={(v: any) => {
-            addItem("reminders", v);
-            setShow(false);
-          }}
+          onSave={saveNewReminder}
+          saving={savingNewReminder}
         />
       )}
 
@@ -1892,17 +1903,15 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         <ReminderModal
           initialValues={editingReminder}
           onClose={() => setEditingReminder(null)}
-          onSave={(v: any) => {
-            updateItem("reminders", editingReminder.id, v);
-            setEditingReminder(null);
-          }}
+          onSave={saveReminderEdit}
+          saving={savingReminderEdit}
         />
       )}
     </div>
   );
 }
 
-function ReminderModal({ onClose, onSave, initialValues = null }: any) {
+function ReminderModal({ onClose, onSave, initialValues = null, saving = false }: any) {
   const [f, setF] = useState(
     initialValues
       ? {
@@ -1971,7 +1980,12 @@ function ReminderModal({ onClose, onSave, initialValues = null }: any) {
           placeholder="e.g. Pay via HDFC net banking"
         />
       </Field>
-      <ModalActions onSave={() => f.title && f.date && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() => f.title && f.date && onSave(f)}
+        onClose={onClose}
+        disabled={saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
