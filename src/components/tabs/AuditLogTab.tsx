@@ -17,7 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
-import { getLocalDateString } from "../../utils/finance";
+import { getLocalDateString, maskCurrencyInText } from "../../utils/finance";
 import { THEME } from "../../utils/constants";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
@@ -109,13 +109,6 @@ const SENSITIVE_KEYS = new Set([
   "buyPrice",
   "weight",
 ]);
-
-// `description` is a plain string built server-side (e.g. "Added Transaction: Groceries — ₹5,240"),
-// so it can't be wrapped field-by-field with <Prv>. Mask the ₹ amounts embedded in it instead.
-const maskCurrencyInText = (text: string, privacyMode: boolean): string => {
-  if (!privacyMode || !text) return text;
-  return text.replace(/₹\s?-?[\d,]+(\.\d+)?/g, "₹••••");
-};
 
 // action_type values follow patterns like "ADD_STOCKS", "BATCH_ADD_TRANSACTIONS",
 // "REMOVE_LOANS_TAKEN", "UPDATE_SETTINGS" — bucket by verb anywhere in the string rather

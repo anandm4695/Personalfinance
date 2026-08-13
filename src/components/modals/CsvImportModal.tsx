@@ -5,6 +5,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { SkeletonTableRows } from "../ui/Skeleton";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 interface CsvImportModalProps {
   accounts: any[];
@@ -232,6 +233,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   onClose,
   onImport,
 }) => {
+  const { privacyMode } = usePrivacy();
   const [mode, setMode] = useState<"template" | "smart">("smart");
   const [csvText, setCsvText] = useState("");
   const [preview, setPreview] = useState<any[]>([]);
@@ -898,7 +900,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                       }}
                     >
                       {r.type === "credit" ? "+" : "−"}
-                      {fmtINRFull(r.amount)}
+                      <Prv>{fmtINRFull(r.amount)}</Prv>
                     </span>
                     <span style={{ color: THEME.muted, minWidth: 80 }}>{r.category}</span>
                     <span style={{ flex: 1, color: THEME.muted }}>
@@ -1174,7 +1176,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                             checked={r.selected && !r.isDuplicate}
                             disabled={r.isDuplicate}
                             onChange={() => toggleRow(i)}
-                            aria-label={`Include row: ${r.narration || r.date} for ${fmtINRFull(r.amount)}`}
+                            aria-label={`Include row: ${r.narration || r.date} for ${
+                              privacyMode ? "hidden amount" : fmtINRFull(r.amount)
+                            }`}
                           />
                         </td>
                         <td
@@ -1251,7 +1255,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                           }}
                         >
                           {r.type === "credit" ? "+" : "-"}
-                          {fmtINRFull(r.amount)}
+                          <Prv>{fmtINRFull(r.amount)}</Prv>
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
                           {r.isDuplicate ? (
@@ -1312,10 +1316,10 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 }}
               >
                 <span>
-                  Credits: <b style={{ color: THEME.sage }}>{fmtINRFull(totalCredits)}</b>
+                  Credits: <b style={{ color: THEME.sage }}><Prv>{fmtINRFull(totalCredits)}</Prv></b>
                 </span>
                 <span>
-                  Debits: <b style={{ color: THEME.rust }}>{fmtINRFull(totalDebits)}</b>
+                  Debits: <b style={{ color: THEME.rust }}><Prv>{fmtINRFull(totalDebits)}</Prv></b>
                 </span>
                 {duplicateCount > 0 && (
                   <span>

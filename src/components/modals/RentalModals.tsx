@@ -6,6 +6,7 @@ import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { today, fmtINRFull, getEffectiveRent } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { Prv } from "../../context/PrivacyContext";
 
 const input: React.CSSProperties = {
   width: "100%",
@@ -712,7 +713,7 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CheckCircle2 size={16} color={THEME.accent} />
             <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-              Total Monthly Rent: {fmtINRFull(totalMonthlyRent)}/mo
+              Total Monthly Rent: <Prv>{fmtINRFull(totalMonthlyRent)}</Prv>/mo
             </span>
           </div>
         </div>
@@ -975,7 +976,7 @@ function LandlordSplitCard({
               color: accentColor,
             }}
           >
-            {fmtINRFull(share)}/mo
+            <Prv>{fmtINRFull(share)}</Prv>/mo
           </span>
           {canDelete && (
             <button
@@ -1521,7 +1522,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
                       }}
                     />
                     {ll.name || `Landlord ${i + 1}`}:{" "}
-                    {fmtINRFull((Number(ll.splitPct) / 100) * monthlyRent)}/mo
+                    <Prv>{fmtINRFull((Number(ll.splitPct) / 100) * monthlyRent)}</Prv>/mo
                   </span>
                 );
               })}

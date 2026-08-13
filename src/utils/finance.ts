@@ -41,6 +41,15 @@ export const fmtINRExact = (n: number | string | null | undefined) => {
   return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: hasPaisa ? 2 : 0, maximumFractionDigits: 2 })}`;
 };
 
+// Some strings (audit log descriptions, reminder subtitles) are pre-built free
+// text with a rupee amount embedded — e.g. "Added Transaction: Groceries — ₹5,240"
+// — so they can't be wrapped field-by-field with <Prv>/<Money>. Mask the ₹
+// amounts embedded in the text instead.
+export const maskCurrencyInText = (text: string, privacyMode: boolean): string => {
+  if (!privacyMode || !text) return text;
+  return text.replace(/₹\s?-?[\d,]+(\.\d+)?/g, "₹••••");
+};
+
 // LIC/Term/Investment-plan records carry a pre-annualized `annualPremium`.
 // Health-insurance records don't — they only have `premium` + `premiumFrequency`
 // (e.g. monthly) — so using the raw `premium` as-is understates the true

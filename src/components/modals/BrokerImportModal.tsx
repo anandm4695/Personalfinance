@@ -6,6 +6,7 @@ import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 
 /* ── Broker CSV column profiles ──────────────────────────────────── */
 const BROKER_PROFILES = [
@@ -977,7 +978,7 @@ export function BrokerImportModal({
                       {t.qty}
                     </td>
                     <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600 }}>
-                      {fmtINRFull(t.price)}
+                      <Prv>{fmtINRFull(t.price)}</Prv>
                     </td>
                     <td
                       style={{
@@ -987,7 +988,7 @@ export function BrokerImportModal({
                         color: THEME.ink,
                       }}
                     >
-                      {fmtINRFull(t.qty * t.price)}
+                      <Prv>{fmtINRFull(t.qty * t.price)}</Prv>
                     </td>
                   </tr>
                 ))}
@@ -1009,7 +1010,7 @@ export function BrokerImportModal({
               <span>
                 Buy value:{" "}
                 <b style={{ color: THEME.sage }}>
-                  {fmtINRFull(buyTrades.reduce((s, t) => s + t.qty * t.price, 0))}
+                  <Prv>{fmtINRFull(buyTrades.reduce((s, t) => s + t.qty * t.price, 0))}</Prv>
                 </b>
               </span>
             )}
@@ -1017,7 +1018,7 @@ export function BrokerImportModal({
               <span>
                 Sell value:{" "}
                 <b style={{ color: THEME.rust }}>
-                  {fmtINRFull(sellTrades.reduce((s, t) => s + t.qty * t.price, 0))}
+                  <Prv>{fmtINRFull(sellTrades.reduce((s, t) => s + t.qty * t.price, 0))}</Prv>
                 </b>
               </span>
             )}

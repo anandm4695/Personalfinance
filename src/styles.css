@@ -986,12 +986,12 @@ tbody tr:hover td {
   background: rgba(7, 8, 10, 0.72);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  z-index: 9999;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  animation: fadeIn 0.2s var(--ease-premium);
+  animation: fadeIn var(--motion-base) var(--ease-premium);
 }
 .modal-panel {
   position: relative;
@@ -1077,7 +1077,7 @@ tbody tr:hover td {
   inset: 0;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
-  z-index: 9999;
+  z-index: var(--z-drawer);
   display: flex;
   justify-content: flex-end;
   animation: fadeIn 0.15s ease;

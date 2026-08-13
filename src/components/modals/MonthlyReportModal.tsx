@@ -828,7 +828,7 @@ export function MonthlyReportModal({
                         color: THEME.sage,
                       }}
                     >
-                      {fmtINRExact(amt)}
+                      <Prv>{fmtINRExact(amt)}</Prv>
                     </span>
                   </div>
                 </div>
@@ -878,7 +878,7 @@ export function MonthlyReportModal({
                       className="tabular-nums"
                       style={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}
                     >
-                      {fmtINRExact(amt)}
+                      <Prv>{fmtINRExact(amt)}</Prv>
                     </span>
                   </div>
                 </div>
@@ -904,7 +904,9 @@ export function MonthlyReportModal({
                     >
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{row.category}</span>
                       <span style={{ fontWeight: 700, color: row.over ? THEME.rust : THEME.sage }}>
-                        {fmtINRExact(row.spent)} / {fmtINRExact(row.budget)}
+                        <Prv>
+                          {fmtINRExact(row.spent)} / {fmtINRExact(row.budget)}
+                        </Prv>
                       </span>
                     </div>
                     <div className="progress-track" style={{ height: 5 }}>
@@ -917,7 +919,7 @@ export function MonthlyReportModal({
                       <div
                         style={{ fontSize: 10, color: THEME.rust, marginTop: 2, fontWeight: 600 }}
                       >
-                        Over by {fmtINRExact(row.spent - row.budget)}
+                        Over by <Prv>{fmtINRExact(row.spent - row.budget)}</Prv>
                       </div>
                     )}
                   </div>

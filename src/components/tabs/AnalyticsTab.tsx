@@ -7394,7 +7394,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
                         <YAxis
                           tick={{ fill: THEME.muted, fontSize: 11 }}
-                          tickFormatter={fmtINRFull}
+                          tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                           width={85}
                         />
                         <Tooltip
@@ -7516,7 +7516,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         tickLine={false}
                       />
                       <YAxis
-                        tickFormatter={fmtINRFull}
+                        tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                         tick={{ fill: THEME.muted, fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
@@ -7629,7 +7629,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         tickLine={false}
                       />
                       <YAxis
-                        tickFormatter={fmtINRFull}
+                        tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                         tick={{ fill: THEME.muted, fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
@@ -7756,7 +7756,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         tickLine={false}
                       />
                       <YAxis
-                        tickFormatter={fmtINRFull}
+                        tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                         tick={{ fill: THEME.muted, fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
@@ -12017,7 +12017,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           fontSize={10}
                           tickLine={false}
                           axisLine={false}
-                          tickFormatter={fmtINRFull}
+                          tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                           width={85}
                         />
                         <Tooltip

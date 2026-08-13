@@ -1000,10 +1000,11 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        ₹
-                        {categoryData[activePieIndex].value.toLocaleString("en-IN", {
-                          maximumFractionDigits: 0,
-                        })}
+                        {privacyMode
+                          ? "••••"
+                          : `₹${categoryData[activePieIndex].value.toLocaleString("en-IN", {
+                              maximumFractionDigits: 0,
+                            })}`}
                       </text>
                     </>
                   ) : (
@@ -1035,7 +1036,9 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        ₹{summary.totalSpend.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        {privacyMode
+                          ? "••••"
+                          : `₹${summary.totalSpend.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
                       </text>
                     </>
                   )}

@@ -37,7 +37,7 @@ import {
   addMonthsToDateStr,
   getEffectiveRent,
 } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -2540,14 +2540,16 @@ export function BanksTab({
   );
 }
 
-function getLinkConfig(category: string, type: string, state: any) {
+function getLinkConfig(category: string, type: string, state: any, privacyMode?: boolean) {
   if (!state) return null;
   const fmt = (v: any) =>
-    Number(v || 0).toLocaleString("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    });
+    privacyMode
+      ? "₹••••"
+      : Number(v || 0).toLocaleString("en-IN", {
+          style: "currency",
+          currency: "INR",
+          maximumFractionDigits: 0,
+        });
 
   if (category === "EMI" && type === "debit") {
     return {
@@ -2719,6 +2721,7 @@ function BankModal({ onClose, onSave }: any) {
 
 function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) {
   const { transactionCategories: cats, familyProfiles } = useMasterData();
+  const { privacyMode } = usePrivacy();
   const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
   const [f, setF] = useState({
     owner: "self",
@@ -2889,7 +2892,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
       )}
       {!isTransfer &&
         (() => {
-          const cfg = getLinkConfig(f.category, f.type, state);
+          const cfg = getLinkConfig(f.category, f.type, state, privacyMode);
           if (!cfg) return null;
           return (
             <Field label={`Link to ${cfg.label} (optional)`}>

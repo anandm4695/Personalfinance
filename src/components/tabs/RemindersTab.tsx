@@ -33,12 +33,13 @@ import {
   getCCDueDate,
   getLocalDateString,
   getEffectiveRent,
+  maskCurrencyInText,
 } from "../../utils/finance";
 import { useMilestoneEvents } from "../../hooks/useFinancialEvents";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -151,6 +152,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   // intentionally include monthly-cycle renewals, which the shared hook
   // deliberately excludes for calendar-declutter reasons.
   const milestoneEvents = useMilestoneEvents(state, FAR_FUTURE_CUTOFF);
+  const { privacyMode } = usePrivacy();
   const [show, setShow] = useState(false);
   const [editingReminder, setEditingReminder] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState("All");
@@ -781,7 +783,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               )}
             </div>
             {r.subtitle && (
-              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{r.subtitle}</div>
+              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>
+                {maskCurrencyInText(r.subtitle, privacyMode)}
+              </div>
             )}
           </div>
 

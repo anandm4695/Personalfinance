@@ -48,7 +48,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2114,6 +2114,7 @@ function VehicleCard({
   onDeleteInsurance,
 }: any) {
   const { familyProfiles } = useMasterData();
+  const { privacyMode } = usePrivacy();
   const ownerProfile = familyProfiles.find((p) => p.id === (vehicle.owner || "self"));
   const ownerName = ownerProfile ? formatProfileOption(ownerProfile) : vehicle.owner || "Self";
   const sh: any[] = vehicle.serviceHistory || [];
@@ -2904,7 +2905,7 @@ function VehicleCard({
                               fontSize={10}
                               tickLine={false}
                               axisLine={false}
-                              tickFormatter={(v) => `₹${v}`}
+                              tickFormatter={(v) => (privacyMode ? "••••" : `₹${v}`)}
                             />
                             <Tooltip
                               formatter={(v: any) => [<Prv>{fmtINRFull(v)}</Prv>, "Spend"]}
