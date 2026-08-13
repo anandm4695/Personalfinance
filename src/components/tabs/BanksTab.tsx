@@ -2045,7 +2045,13 @@ export function BanksTab({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeItem("transactions", t.id);
+                      if (
+                        window.confirm(
+                          `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
+                        )
+                      ) {
+                        removeItem("transactions", t.id);
+                      }
                     }}
                     className="icon-btn danger"
                     style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "transparent" }}

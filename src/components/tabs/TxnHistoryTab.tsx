@@ -412,7 +412,13 @@ const SoldTable = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)}
+          onClick={() => {
+            const name =
+              type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") || "this stock" : s.scheme || "this fund";
+            if (window.confirm(`Delete this sale record for "${name}"? This cannot be undone.`)) {
+              removeItem(type === "stock" ? "stockSells" : "mfSells", s.id);
+            }
+          }}
           title="Delete"
           aria-label="Delete sale record"
           style={{
@@ -1971,7 +1977,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                   size="sm"
                   onClick={(e: any) => {
                     e.stopPropagation();
-                    removeItem("transactions", t.id);
+                    if (
+                      window.confirm(
+                        `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
+                      )
+                    ) {
+                      removeItem("transactions", t.id);
+                    }
                   }}
                   title="Delete"
                   aria-label="Delete transaction"
@@ -2137,8 +2149,14 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                   variant="secondary"
                   style={{ flex: 1, color: THEME.rust }}
                   onClick={() => {
-                    removeItem("transactions", t.id);
-                    setViewCashTxnId(null);
+                    if (
+                      window.confirm(
+                        `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
+                      )
+                    ) {
+                      removeItem("transactions", t.id);
+                      setViewCashTxnId(null);
+                    }
                   }}
                 >
                   Delete
