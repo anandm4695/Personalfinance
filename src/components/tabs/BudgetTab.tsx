@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
   AlertCircle,
   Plus,
@@ -105,6 +106,57 @@ export function BudgetTab({
   const [editBudget, setEditBudget] = useState<any>(null);
   const [showAddRecurring, setShowAddRecurring] = useState(false);
   const [editRecurring, setEditRecurring] = useState<any>(null);
+  const [togglingRecurringId, setTogglingRecurringId] = useState<string | null>(null);
+  const [removingRecurringId, setRemovingRecurringId] = useState<string | null>(null);
+
+  const toggleRecurringActive = async (re: any) => {
+    setTogglingRecurringId(re.id);
+    try {
+      await updateItem("recurringExpenses", re.id, { isActive: !re.isActive });
+    } catch (e: any) {
+      showToast?.(`Failed to update recurring expense: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setTogglingRecurringId(null);
+    }
+  };
+
+  const removeRecurring = async (re: any) => {
+    setRemovingRecurringId(re.id);
+    try {
+      await removeItem("recurringExpenses", re.id);
+    } catch (e: any) {
+      showToast?.(`Failed to delete recurring expense: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setRemovingRecurringId(null);
+    }
+  };
+
+  const { run: saveNewBudget, loading: savingNewBudget } = useAsyncAction(
+    async (v: any) => { await addItem("budgets", { ...v, budgetMonth: selectedMonth }); },
+    { onSuccess: () => setShowAddBudget(false), onError: (e: any) => showToast?.(`Failed to add budget category: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveBudgetEdit, loading: savingBudgetEdit } = useAsyncAction(
+    async (v: any) => {
+      const isInheritedItem = editBudget.budgetMonth !== selectedMonth;
+      if (isInheritedItem) {
+        await addItem("budgets", { ...v, budgetMonth: selectedMonth });
+      } else {
+        await updateItem("budgets", editBudget.id, {
+          ...v,
+          budgetMonth: editBudget.budgetMonth || selectedMonth,
+        });
+      }
+    },
+    { onSuccess: () => setEditBudget(null), onError: (e: any) => showToast?.(`Failed to save budget category: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveNewRecurring, loading: savingNewRecurring } = useAsyncAction(
+    async (v: any) => { await addItem("recurringExpenses", v); },
+    { onSuccess: () => setShowAddRecurring(false), onError: (e: any) => showToast?.(`Failed to add recurring expense: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveRecurringEdit, loading: savingRecurringEdit } = useAsyncAction(
+    async (v: any) => { await updateItem("recurringExpenses", editRecurring.id, v); },
+    { onSuccess: () => setEditRecurring(null), onError: (e: any) => showToast?.(`Failed to save recurring expense: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   // Month navigation helpers
   const handlePrevMonth = () => {
@@ -232,47 +284,53 @@ export function BudgetTab({
   }, [state.budgets, selectedMonth]);
 
   // Lock and duplicate inherited budgets to the selected month (idempotent — skips already-set categories)
-  const handleLockAndCustomize = () => {
-    if (!isInherited || budgetsToUse.length === 0) return;
-    const alreadySet = new Set(
-      state.budgets.filter((b: any) => b.budgetMonth === selectedMonth).map((b: any) => b.category)
-    );
-    budgetsToUse.forEach((b: any) => {
-      if (alreadySet.has(b.category)) return;
-      addItem("budgets", {
-        owner: b.owner || "self",
-        category: b.category,
-        monthly: b.monthly || b.monthlyLimit || 0,
-        budgetMonth: selectedMonth,
-        rollover: !!b.rollover,
-      });
-    });
-  };
+  const { run: handleLockAndCustomize, loading: lockingBudgets } = useAsyncAction(
+    async () => {
+      if (!isInherited || budgetsToUse.length === 0) return;
+      const alreadySet = new Set(
+        state.budgets.filter((b: any) => b.budgetMonth === selectedMonth).map((b: any) => b.category)
+      );
+      for (const b of budgetsToUse) {
+        if (alreadySet.has(b.category)) continue;
+        await addItem("budgets", {
+          owner: b.owner || "self",
+          category: b.category,
+          monthly: b.monthly || b.monthlyLimit || 0,
+          budgetMonth: selectedMonth,
+          rollover: !!b.rollover,
+        });
+      }
+    },
+    { onError: (e: any) => showToast?.(`Failed to lock budgets for this month: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   // Safe removal of budgets (handles inherited override, deduplication guard)
-  const handleRemoveBudget = (b: any) => {
-    const isInheritedItem = b.budgetMonth !== selectedMonth;
-    if (isInheritedItem) {
-      const alreadySet = new Set(
-        state.budgets
-          .filter((x: any) => x.budgetMonth === selectedMonth)
-          .map((x: any) => x.category)
-      );
-      budgetsToUse.forEach((otherB: any) => {
-        if (otherB.id !== b.id && !alreadySet.has(otherB.category)) {
-          addItem("budgets", {
-            owner: otherB.owner || "self",
-            category: otherB.category,
-            monthly: otherB.monthly || otherB.monthlyLimit || 0,
-            budgetMonth: selectedMonth,
-            rollover: !!otherB.rollover,
-          });
+  const { run: handleRemoveBudget, loading: removingBudget } = useAsyncAction(
+    async (b: any) => {
+      const isInheritedItem = b.budgetMonth !== selectedMonth;
+      if (isInheritedItem) {
+        const alreadySet = new Set(
+          state.budgets
+            .filter((x: any) => x.budgetMonth === selectedMonth)
+            .map((x: any) => x.category)
+        );
+        for (const otherB of budgetsToUse) {
+          if (otherB.id !== b.id && !alreadySet.has(otherB.category)) {
+            await addItem("budgets", {
+              owner: otherB.owner || "self",
+              category: otherB.category,
+              monthly: otherB.monthly || otherB.monthlyLimit || 0,
+              budgetMonth: selectedMonth,
+              rollover: !!otherB.rollover,
+            });
+          }
         }
-      });
-    } else {
-      removeItem("budgets", b.id);
-    }
-  };
+      } else {
+        await removeItem("budgets", b.id);
+      }
+    },
+    { onError: (e: any) => showToast?.(`Failed to remove budget category: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   // Rollover: when a category has `rollover` enabled, unused budget from the
   // immediately preceding month's explicit record carries forward into this
@@ -940,6 +998,8 @@ export function BudgetTab({
               </div>
               <Button
                 onClick={handleLockAndCustomize}
+                disabled={lockingBudgets}
+                loading={lockingBudgets}
                 size="sm"
                 variant="ghost"
                 style={{
@@ -1489,6 +1549,7 @@ export function BudgetTab({
                         <Button
                           variant="ghost"
                           size="sm"
+                          disabled={removingBudget}
                           onClick={() => {
                             if (window.confirm(`Delete "${b.category}" budget? This cannot be undone.`)) {
                               handleRemoveBudget(b);
@@ -2008,9 +2069,9 @@ export function BudgetTab({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              updateItem("recurringExpenses", re.id, { isActive: !re.isActive })
-                            }
+                            onClick={() => toggleRecurringActive(re)}
+                            loading={togglingRecurringId === re.id}
+                            disabled={togglingRecurringId === re.id || removingRecurringId === re.id}
                             style={{ padding: 6, color: re.isActive ? THEME.gold : THEME.sage }}
                             title={re.isActive ? "Pause" : "Resume"}
                             aria-label={
@@ -2038,9 +2099,11 @@ export function BudgetTab({
                                   `Delete "${re.name}"? This cannot be undone.`
                                 )
                               ) {
-                                removeItem("recurringExpenses", re.id);
+                                removeRecurring(re);
                               }
                             }}
+                            loading={removingRecurringId === re.id}
+                            disabled={togglingRecurringId === re.id || removingRecurringId === re.id}
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label={`Delete ${re.name}`}
@@ -2286,10 +2349,8 @@ export function BudgetTab({
           existing={budgetsToUse.map((b: any) => b.category)}
           activeProfile={activeProfile}
           onClose={() => setShowAddBudget(false)}
-          onSave={(v: any) => {
-            addItem("budgets", { ...v, budgetMonth: selectedMonth });
-            setShowAddBudget(false);
-          }}
+          onSave={saveNewBudget}
+          saving={savingNewBudget}
         />
       )}
 
@@ -2302,20 +2363,8 @@ export function BudgetTab({
           initialValues={editBudget}
           activeProfile={activeProfile}
           onClose={() => setEditBudget(null)}
-          onSave={(v: any) => {
-            const isInheritedItem = editBudget.budgetMonth !== selectedMonth;
-            if (isInheritedItem) {
-              // Create an override for the currently selected month
-              addItem("budgets", { ...v, budgetMonth: selectedMonth });
-            } else {
-              // Update existing month specific record — preserve budgetMonth
-              updateItem("budgets", editBudget.id, {
-                ...v,
-                budgetMonth: editBudget.budgetMonth || selectedMonth,
-              });
-            }
-            setEditBudget(null);
-          }}
+          onSave={saveBudgetEdit}
+          saving={savingBudgetEdit}
         />
       )}
 
@@ -2325,10 +2374,8 @@ export function BudgetTab({
           accounts={state.bankAccounts}
           activeProfile={activeProfile}
           onClose={() => setShowAddRecurring(false)}
-          onSave={(v: any) => {
-            addItem("recurringExpenses", v);
-            setShowAddRecurring(false);
-          }}
+          onSave={saveNewRecurring}
+          saving={savingNewRecurring}
         />
       )}
 
@@ -2339,10 +2386,8 @@ export function BudgetTab({
           initialValues={editRecurring}
           activeProfile={activeProfile}
           onClose={() => setEditRecurring(null)}
-          onSave={(v: any) => {
-            updateItem("recurringExpenses", editRecurring.id, v);
-            setEditRecurring(null);
-          }}
+          onSave={saveRecurringEdit}
+          saving={savingRecurringEdit}
         />
       )}
     </div>
@@ -2356,6 +2401,7 @@ export function BudgetModal({
   initialValues = null,
   existing = [],
   activeProfile = "all",
+  saving = false,
 }: any) {
   const { transactionCategories: allCats, familyProfiles } = useMasterData();
   const availableCats = allCats.filter((c: string) => !existing.includes(c));
@@ -2443,7 +2489,8 @@ export function BudgetModal({
       <ModalActions
         onSave={() => f.monthly && Number(f.monthly) > 0 && onSave(f)}
         onClose={onClose}
-        disabled={!(Number(f.monthly) > 0)}
+        disabled={!(Number(f.monthly) > 0) || saving}
+        loading={saving}
         saveLabel={initialValues ? "Save Changes" : "Add Budget"}
       />
     </Modal>
@@ -2457,6 +2504,7 @@ export function RecurringModal({
   initialValues = null,
   accounts = [],
   activeProfile = "all",
+  saving = false,
 }: any) {
   const { transactionCategories: cats, familyProfiles } = useMasterData();
   // Default the owner to whichever family profile is currently active — matches
@@ -2610,7 +2658,8 @@ export function RecurringModal({
       <ModalActions
         onSave={() => f.name.trim() && Number(f.amount) > 0 && onSave(f)}
         onClose={onClose}
-        disabled={!f.name.trim() || !(Number(f.amount) > 0)}
+        disabled={!f.name.trim() || !(Number(f.amount) > 0) || saving}
+        loading={saving}
         saveLabel={initialValues ? "Save Changes" : "Add Recurring Expense"}
       />
     </Modal>
