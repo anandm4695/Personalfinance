@@ -33,6 +33,7 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { MFLogo } from "./InvestmentsTab";
 
@@ -67,13 +68,38 @@ const FUND_COLORS: Record<string, string> = {
   "Flexi Cap": THEME.violet,
 };
 
-export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics }: any) {
+export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics, showToast }: any) {
   const { privacyMode } = usePrivacy();
   const [show, setShow] = useState(false);
   const [editSip, setEditSip] = useState<any>(null);
   const [sipProjRate, setSipProjRate] = useState("12");
   const [sortBy, setSortBy] = useState<string>("amount");
   const todayStr = today();
+
+  const deleteSip = async (id: string) => {
+    try {
+      await removeItem("sips", id);
+    } catch (e: any) {
+      showToast?.(`Failed to delete SIP: ${e?.message || "Unknown error"}`, "error");
+    }
+  };
+
+  const changeSipStatus = async (id: string, newStatus: string) => {
+    try {
+      await updateItem("sips", id, { status: newStatus });
+    } catch (e: any) {
+      showToast?.(`Failed to update SIP status: ${e?.message || "Unknown error"}`, "error");
+    }
+  };
+
+  const { run: saveNewSip, loading: savingNewSip } = useAsyncAction(
+    async (v: any) => { await addItem("sips", v); },
+    { onSuccess: () => setShow(false), onError: (e: any) => showToast?.(`Failed to add SIP: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveSipEdit, loading: savingSipEdit } = useAsyncAction(
+    async (v: any) => { await updateItem("sips", editSip.id, v); },
+    { onSuccess: () => setEditSip(null), onError: (e: any) => showToast?.(`Failed to save SIP: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const sipsWithCalc = useMemo(() => {
     return (state.sips || []).map((sip: any) => {
@@ -562,12 +588,10 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                     onEdit={() => setEditSip(sip)}
                     onRemove={() => {
                       if (window.confirm(`Delete "${sip.scheme || "this SIP"}"? This cannot be undone.`)) {
-                        removeItem("sips", sip.id);
+                        deleteSip(sip.id);
                       }
                     }}
-                    onStatusChange={(newStatus: string) =>
-                      updateItem("sips", sip.id, { status: newStatus })
-                    }
+                    onStatusChange={(newStatus: string) => changeSipStatus(sip.id, newStatus)}
                   />
                 ))}
               </div>
@@ -604,12 +628,10 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                     onEdit={() => setEditSip(sip)}
                     onRemove={() => {
                       if (window.confirm(`Delete "${sip.scheme || "this SIP"}"? This cannot be undone.`)) {
-                        removeItem("sips", sip.id);
+                        deleteSip(sip.id);
                       }
                     }}
-                    onStatusChange={(newStatus: string) =>
-                      updateItem("sips", sip.id, { status: newStatus })
-                    }
+                    onStatusChange={(newStatus: string) => changeSipStatus(sip.id, newStatus)}
                   />
                 ))}
               </div>
@@ -767,20 +789,16 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       {show && (
         <SIPModal
           onClose={() => setShow(false)}
-          onSave={(v: any) => {
-            addItem("sips", v);
-            setShow(false);
-          }}
+          onSave={saveNewSip}
+          saving={savingNewSip}
         />
       )}
       {editSip && (
         <SIPModal
           initial={editSip}
           onClose={() => setEditSip(null)}
-          onSave={(v: any) => {
-            updateItem("sips", editSip.id, v);
-            setEditSip(null);
-          }}
+          onSave={saveSipEdit}
+          saving={savingSipEdit}
         />
       )}
     </div>
@@ -1270,7 +1288,7 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
 }
 
 // ── SIP Modal ─────────────────────────────────────────────────────────────────
-function SIPModal({ onClose, onSave, initial }: any) {
+function SIPModal({ onClose, onSave, initial, saving = false }: any) {
   const { mfCategories, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial
@@ -1471,7 +1489,8 @@ function SIPModal({ onClose, onSave, initial }: any) {
         onSave={() => isValid && onSave(f)}
         onClose={onClose}
         saveLabel={initial ? "Save Changes" : "Add SIP"}
-        disabled={!isValid}
+        disabled={!isValid || saving}
+        loading={saving}
       />
     </Modal>
   );
