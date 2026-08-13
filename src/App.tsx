@@ -3685,6 +3685,7 @@ function FinanceDashboard() {
                   removeItem={removeItem}
                   updateItem={updateItem}
                   metrics={metrics}
+                  showToast={showToast}
                 />
               )}
               {tab === "sip" && (

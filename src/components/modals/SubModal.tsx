@@ -15,7 +15,7 @@ const input = {
   fontSize: 14,
 };
 
-export function SubModal({ onClose, onSave, initialValues = null }: any) {
+export function SubModal({ onClose, onSave, initialValues = null, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const [attempted, setAttempted] = useState(false);
   const [f, setF] = useState(
@@ -149,6 +149,8 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
         onSave={handleSave}
         onClose={onClose}
         saveLabel={initialValues ? "Save Changes" : "Add Subscription"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );

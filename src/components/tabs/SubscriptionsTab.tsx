@@ -28,6 +28,7 @@ import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // Fixed, validated colorblind-safe order (see THEME.chart1..6 / --t-chart-N in
 // styles.css) — "Other" gets the neutral muted gray, a deliberate exception
@@ -209,11 +210,45 @@ const fmtDate = (dateStr: string) => {
   }
 };
 
-export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
+export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metrics, showToast }: any) {
   const { privacyMode } = usePrivacy();
   const [show, setShow] = useState(false);
   const [editSub, setEditSub] = useState<any>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const updateSub = async (id: string, patch: any) => {
+    setTogglingId(id);
+    try {
+      await updateItem("subscriptions", id, patch);
+    } catch (e: any) {
+      showToast?.(`Failed to update subscription: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const deleteSub = async (id: string, name: string) => {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await removeItem("subscriptions", id);
+    } catch (e: any) {
+      showToast?.(`Failed to delete subscription: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const { run: saveNewSub, loading: savingNewSub } = useAsyncAction(
+    async (v: any) => { await addItem("subscriptions", v); },
+    { onSuccess: () => setShow(false), onError: (e: any) => showToast?.(`Failed to add subscription: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveSubEdit, loading: savingSubEdit } = useAsyncAction(
+    async (v: any) => { await updateItem("subscriptions", editSub.id, v); },
+    { onSuccess: () => setEditSub(null), onError: (e: any) => showToast?.(`Failed to save subscription: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const activeSubs = state.subscriptions.filter((s: any) => !s.paused);
   const pausedSubs = state.subscriptions.filter((s: any) => s.paused);
@@ -822,9 +857,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                     {" "}to <Prv>{fmtINRExact(s.lastPaidAmount)}</Prv>
                                   </span>
                                   <button
-                                    onClick={() =>
-                                      updateItem("subscriptions", s.id, { amount: s.lastPaidAmount })
-                                    }
+                                    onClick={() => updateSub(s.id, { amount: s.lastPaidAmount })}
+                                    disabled={togglingId === s.id}
                                     aria-label={`Update ${s.name} tracked cost to last paid amount`}
                                     style={{
                                       border: "none",
@@ -837,7 +871,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                       textDecoration: "underline",
                                     }}
                                   >
-                                    Update tracked cost
+                                    {togglingId === s.id ? "Updating…" : "Update tracked cost"}
                                   </button>
                                 </div>
                               )}
@@ -886,9 +920,9 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() =>
-                                  updateItem("subscriptions", s.id, { paused: !s.paused })
-                                }
+                                onClick={() => updateSub(s.id, { paused: !s.paused })}
+                                loading={togglingId === s.id}
+                                disabled={togglingId === s.id || deletingId === s.id}
                                 style={{ padding: 6, color: THEME.gold }}
                                 title="Pause"
                                 aria-label={`Pause ${s.name}`}
@@ -908,11 +942,9 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                  if (window.confirm(`Delete "${s.name}"? This cannot be undone.`)) {
-                                    removeItem("subscriptions", s.id);
-                                  }
-                                }}
+                                onClick={() => deleteSub(s.id, s.name)}
+                                loading={deletingId === s.id}
+                                disabled={togglingId === s.id || deletingId === s.id}
                                 style={{ padding: 6, color: THEME.rust }}
                                 title="Delete"
                                 aria-label="Delete subscription"
@@ -1032,7 +1064,9 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => updateItem("subscriptions", s.id, { paused: false })}
+                            onClick={() => updateSub(s.id, { paused: false })}
+                            loading={togglingId === s.id}
+                            disabled={togglingId === s.id || deletingId === s.id}
                             style={{ padding: 6, color: THEME.sage }}
                             title="Resume"
                             aria-label={`Resume ${s.name}`}
@@ -1052,11 +1086,9 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                                  if (window.confirm(`Delete "${s.name}"? This cannot be undone.`)) {
-                                    removeItem("subscriptions", s.id);
-                                  }
-                                }}
+                            onClick={() => deleteSub(s.id, s.name)}
+                            loading={deletingId === s.id}
+                            disabled={togglingId === s.id || deletingId === s.id}
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label="Delete subscription"
@@ -1077,20 +1109,16 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
       {show && (
         <SubModal
           onClose={() => setShow(false)}
-          onSave={(v: any) => {
-            addItem("subscriptions", v);
-            setShow(false);
-          }}
+          onSave={saveNewSub}
+          saving={savingNewSub}
         />
       )}
       {editSub && (
         <SubModal
           initialValues={editSub}
           onClose={() => setEditSub(null)}
-          onSave={(v: any) => {
-            updateItem("subscriptions", editSub.id, v);
-            setEditSub(null);
-          }}
+          onSave={saveSubEdit}
+          saving={savingSubEdit}
         />
       )}
     </div>
