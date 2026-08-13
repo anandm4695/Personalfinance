@@ -16,7 +16,7 @@ const input = {
   fontSize: 14,
 };
 
-export function BankEditModal({ account, onClose, onSave }: any) {
+export function BankEditModal({ account, onClose, onSave, saving }: any) {
   const { bankAccountTypes } = useMasterData();
   const [f, setF] = useState({
     owner: account?.owner || "self",
@@ -73,7 +73,8 @@ export function BankEditModal({ account, onClose, onSave }: any) {
       <ModalActions
         onSave={() => f.bankName.trim() && onSave(f)}
         onClose={onClose}
-        disabled={!f.bankName.trim()}
+        disabled={!f.bankName.trim() || saving}
+        loading={saving}
         saveLabel="Save Changes"
       />
     </Modal>

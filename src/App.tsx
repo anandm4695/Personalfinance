@@ -3630,6 +3630,7 @@ function FinanceDashboard() {
                   updateItem={updateItem}
                   masterData={state.masterData || DEFAULT_MASTER_DATA}
                   updateMasterData={updateMasterData}
+                  showToast={showToast}
                 />
               )}
               {tab === "demat" && (

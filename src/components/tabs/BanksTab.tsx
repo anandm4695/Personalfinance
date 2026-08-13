@@ -38,6 +38,7 @@ import {
   getEffectiveRent,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -367,6 +368,7 @@ export function BanksTab({
   removeItem,
   updateItem,
   masterData: _masterData,
+  showToast,
 }: any) {
   const [showBank, setShowBank] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
@@ -380,11 +382,12 @@ export function BanksTab({
   const [viewTxnId, setViewTxnId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineSaving, setInlineSaving] = useState(false);
   const [inlineEdit, setInlineEdit] = useState<any>(null);
   const [activeRange, setActiveRange] = useState<string | null>(null);
   const { transactionCategories: txnCats } = useMasterData();
 
-  const autoPostLinkedTransaction = (linkedKey: string, txn: any, txnId: string) => {
+  const autoPostLinkedTransaction = async (linkedKey: string, txn: any, txnId: string) => {
     if (!linkedKey) return;
     const ci = linkedKey.indexOf(":");
     if (ci < 0) return;
@@ -400,7 +403,7 @@ export function BanksTab({
     if (["lic", "termPlans", "investmentPlans"].includes(lt)) {
       const policy = (state[lt] || []).find((p: any) => p.id === lid);
       if (!policy) return;
-      updateItem(lt, lid, {
+      await updateItem(lt, lid, {
         transactions: [...(policy.transactions || []), { id: newId, date, amount: String(amt) }],
         premiumPaid: Number(policy.premiumPaid || 0) + amt,
       });
@@ -415,15 +418,15 @@ export function BanksTab({
       const monthlyRate = Number(loan.rate || 0) / 100 / 12;
       const interestPortion = outstandingBefore * monthlyRate;
       const principalPortion = Math.min(outstandingBefore, Math.max(0, amt - interestPortion));
-      updateItem("loansTaken", lid, {
+      await updateItem("loansTaken", lid, {
         outstanding: Math.max(0, outstandingBefore - principalPortion),
         monthsRemaining: Math.max(0, Number(loan.monthsRemaining || 0) - 1),
       });
-      updateItem("transactions", txnId, { linkedPrincipalAmount: principalPortion });
+      await updateItem("transactions", txnId, { linkedPrincipalAmount: principalPortion });
     } else if (lt === "rentedProperties") {
       const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
       if (!prop) return;
-      updateItem("rentedProperties", lid, {
+      await updateItem("rentedProperties", lid, {
         payments: [
           ...(prop.payments || []),
           {
@@ -438,7 +441,7 @@ export function BanksTab({
     } else if (lt === "rentalProperties") {
       const prop = (state.rentalProperties || []).find((p: any) => p.id === lid);
       if (!prop) return;
-      updateItem("rentalProperties", lid, {
+      await updateItem("rentalProperties", lid, {
         receipts: [
           ...(prop.receipts || []),
           {
@@ -459,7 +462,7 @@ export function BanksTab({
       // Also post a negative entry into the card's own ledger (CCTransactionLedger sums
       // its entries into `outstanding`) so the two stay consistent when the ledger is
       // next opened/edited from the Credit tab.
-      updateItem("creditCards", lid, {
+      await updateItem("creditCards", lid, {
         transactions: [
           ...(card.transactions || []),
           {
@@ -479,7 +482,7 @@ export function BanksTab({
       const costField = sep >= 0 ? lid.slice(sep + 1) : "stampDuty";
       const prop = (state.realEstateProperties || []).find((p: any) => p.id === propId);
       if (!prop) return;
-      updateItem("realEstateProperties", propId, {
+      await updateItem("realEstateProperties", propId, {
         [costField]: Number(prop[costField] || 0) + amt,
       });
     } else if (lt === "subscriptions") {
@@ -491,12 +494,99 @@ export function BanksTab({
       const step = sub.cycle === "monthly" ? 1 : sub.cycle === "quarterly" ? 3 : 12;
       // Track the pre-renewal cost so the tab can flag a price hike if the amount
       // recorded here differs from what's on the subscription the next time it's edited.
-      updateItem("subscriptions", lid, {
+      await updateItem("subscriptions", lid, {
         renewalDate: addMonthsToDateStr(sub.renewalDate, step),
         lastPaidAmount: amt,
       });
     }
   };
+
+  const { run: saveBankEdit, loading: savingBankEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("bankAccounts", id, v);
+    },
+    {
+      onSuccess: () => setEditBankId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save bank account: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: saveTxnEdit, loading: savingTxnEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("transactions", id, v);
+    },
+    {
+      onSuccess: () => setEditTxnId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save transaction: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: saveNewBank, loading: savingNewBank } = useAsyncAction(
+    async (v: any) => {
+      await addItem("bankAccounts", v);
+    },
+    {
+      onSuccess: () => setShowBank(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to add bank account: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: saveNewTxn, loading: savingNewTxn } = useAsyncAction(
+    async (v: any) => {
+      if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
+        const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
+        const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
+        await addItem("transactions", {
+          owner: v.owner,
+          date: v.date,
+          accountId: v.accountId,
+          type: "debit",
+          amount: v.amount,
+          category: "Transfer",
+          note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
+          narration: v.narration,
+          referenceNumber: v.referenceNumber,
+        });
+        await addItem("transactions", {
+          owner: v.owner,
+          date: v.date,
+          accountId: v.toAccountId,
+          type: "credit",
+          amount: v.amount,
+          category: "Transfer",
+          note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
+          narration: v.narration,
+          referenceNumber: v.referenceNumber,
+        });
+      } else {
+        const { toAccountId: _drop, linkedKey, ...txnBase } = v;
+        const ci = linkedKey ? linkedKey.indexOf(":") : -1;
+        const linkedType = ci >= 0 ? linkedKey.slice(0, ci) : undefined;
+        const linkedId = ci >= 0 ? linkedKey.slice(ci + 1) : undefined;
+        // Pre-generate the id when linked so the ledger entry posted into the
+        // linked record (below) can be tagged with it for later reversal on delete.
+        const txnId = linkedKey
+          ? crypto.randomUUID
+            ? crypto.randomUUID()
+            : Math.random().toString(36).slice(2)
+          : undefined;
+        await addItem("transactions", {
+          ...txnBase,
+          ...(txnId ? { id: txnId } : {}),
+          ...(linkedType ? { linkedType, linkedId } : {}),
+        });
+        if (linkedKey) await autoPostLinkedTransaction(linkedKey, v, txnId as string);
+      }
+    },
+    {
+      onSuccess: () => setShowTxn(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to save transaction: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   // Sorting State
   const [sortField, setSortField] = useState<"date" | "amount" | "note" | "category" | null>(null);
@@ -1842,13 +1932,20 @@ export function BanksTab({
               renderRow={(t: any) => {
                 if (inlineEditId !== t.id || !inlineEdit) return null;
                 const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
-                const handleSaveInline = () => {
+                const handleSaveInline = async () => {
                   if (!inlineEdit.amount || Number(inlineEdit.amount) <= 0) {
                     alert("Please enter a valid amount greater than 0");
                     return;
                   }
-                  updateItem("transactions", t.id, inlineEdit);
-                  setInlineEditId(null);
+                  setInlineSaving(true);
+                  try {
+                    await updateItem("transactions", t.id, inlineEdit);
+                    setInlineEditId(null);
+                  } catch (e: any) {
+                    showToast?.(`Failed to save transaction: ${e?.message || "Unknown error"}`, "error");
+                  } finally {
+                    setInlineSaving(false);
+                  }
                 };
                 return (
                   <tr
@@ -2007,14 +2104,16 @@ export function BanksTab({
                       <div style={{ display: "flex", gap: 2 }}>
                         <button
                           onClick={handleSaveInline}
+                          disabled={inlineSaving}
                           className="icon-btn"
-                          style={{ ...iconBtn, color: THEME.sage, padding: 6 }}
+                          style={{ ...iconBtn, color: THEME.sage, padding: 6, opacity: inlineSaving ? 0.5 : 1 }}
                           title="Save"
                           aria-label="Save transaction"
                         >
                           <Check size={14} />
                         </button>
                         <button
+                          disabled={inlineSaving}
                           onClick={() => setInlineEditId(null)}
                           className="icon-btn danger"
                           style={{ ...iconBtn, color: THEME.rust, padding: 6 }}
@@ -2323,10 +2422,8 @@ export function BanksTab({
         <BankEditModal
           account={state.bankAccounts.find((a: any) => a.id === editBankId)}
           onClose={() => setEditBankId(null)}
-          onSave={(v: any) => {
-            updateItem("bankAccounts", editBankId, v);
-            setEditBankId(null);
-          }}
+          onSave={(v: any) => saveBankEdit(editBankId, v)}
+          saving={savingBankEdit}
         />
       )}
       {editTxnId && (
@@ -2335,10 +2432,8 @@ export function BanksTab({
           accounts={state.bankAccounts}
           getDisplayBalance={getDisplayBalance}
           onClose={() => setEditTxnId(null)}
-          onSave={(v: any) => {
-            updateItem("transactions", editTxnId, v);
-            setEditTxnId(null);
-          }}
+          onSave={(v: any) => saveTxnEdit(editTxnId, v)}
+          saving={savingTxnEdit}
         />
       )}
       {viewTxnId &&
@@ -2464,13 +2559,7 @@ export function BanksTab({
           );
         })()}
       {showBank && (
-        <BankModal
-          onClose={() => setShowBank(false)}
-          onSave={(v: any) => {
-            addItem("bankAccounts", v);
-            setShowBank(false);
-          }}
-        />
+        <BankModal onClose={() => setShowBank(false)} onSave={saveNewBank} saving={savingNewBank} />
       )}
       {showTxn && (
         <TxnModal
@@ -2478,53 +2567,8 @@ export function BanksTab({
           state={state}
           getDisplayBalance={getDisplayBalance}
           onClose={() => setShowTxn(false)}
-          onSave={(v: any) => {
-            if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
-              const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
-              const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
-              addItem("transactions", {
-                owner: v.owner,
-                date: v.date,
-                accountId: v.accountId,
-                type: "debit",
-                amount: v.amount,
-                category: "Transfer",
-                note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
-                narration: v.narration,
-                referenceNumber: v.referenceNumber,
-              });
-              addItem("transactions", {
-                owner: v.owner,
-                date: v.date,
-                accountId: v.toAccountId,
-                type: "credit",
-                amount: v.amount,
-                category: "Transfer",
-                note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
-                narration: v.narration,
-                referenceNumber: v.referenceNumber,
-              });
-            } else {
-              const { toAccountId: _drop, linkedKey, ...txnBase } = v;
-              const ci = linkedKey ? linkedKey.indexOf(":") : -1;
-              const linkedType = ci >= 0 ? linkedKey.slice(0, ci) : undefined;
-              const linkedId = ci >= 0 ? linkedKey.slice(ci + 1) : undefined;
-              // Pre-generate the id when linked so the ledger entry posted into the
-              // linked record (below) can be tagged with it for later reversal on delete.
-              const txnId = linkedKey
-                ? crypto.randomUUID
-                  ? crypto.randomUUID()
-                  : Math.random().toString(36).slice(2)
-                : undefined;
-              addItem("transactions", {
-                ...txnBase,
-                ...(txnId ? { id: txnId } : {}),
-                ...(linkedType ? { linkedType, linkedId } : {}),
-              });
-              if (linkedKey) autoPostLinkedTransaction(linkedKey, v, txnId as string);
-            }
-            setShowTxn(false);
-          }}
+          onSave={saveNewTxn}
+          saving={savingNewTxn}
         />
       )}
       {showImport && (
@@ -2532,13 +2576,19 @@ export function BanksTab({
           accounts={state.bankAccounts}
           existingTransactions={state.transactions || []}
           onClose={() => setShowImport(false)}
-          onImport={(rows: any) => {
-            if (addTransactions) {
-              addTransactions(rows);
-            } else {
-              rows.forEach((v: any) => addItem("transactions", v));
+          onImport={async (rows: any) => {
+            try {
+              if (addTransactions) {
+                await addTransactions(rows);
+              } else {
+                for (const v of rows) {
+                  await addItem("transactions", v);
+                }
+              }
+              setShowImport(false);
+            } catch (e: any) {
+              showToast?.(`Failed to import transactions: ${e?.message || "Unknown error"}`, "error");
             }
-            setShowImport(false);
           }}
         />
       )}
@@ -2660,7 +2710,7 @@ function getLinkConfig(category: string, type: string, state: any, privacyMode?:
   return null;
 }
 
-function BankModal({ onClose, onSave }: any) {
+function BankModal({ onClose, onSave, saving }: any) {
   const { bankAccountTypes, familyProfiles } = useMasterData();
   const [f, setF] = useState({
     owner: "self",
@@ -2720,12 +2770,17 @@ function BankModal({ onClose, onSave }: any) {
           />
         </Field>
       </div>
-      <ModalActions onSave={() => f.bankName && onSave(f)} onClose={onClose} />
+      <ModalActions
+        onSave={() => f.bankName && onSave(f)}
+        onClose={onClose}
+        disabled={saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
 
-function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) {
+function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving }: any) {
   const { transactionCategories: cats, familyProfiles } = useMasterData();
   const { privacyMode } = usePrivacy();
   const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
@@ -2976,12 +3031,14 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
           onSave(f)
         }
         onClose={onClose}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
-function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any) {
+function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, saving }: any) {
   const { transactionCategories: cats, familyProfiles } = useMasterData();
   const [f, setF] = useState({
     owner: txn?.owner || "self",
@@ -3152,6 +3209,8 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
       <ModalActions
         onSave={() => Number(f.amount) > 0 && f.accountId && onSave(f)}
         onClose={onClose}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
