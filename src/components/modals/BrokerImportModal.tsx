@@ -177,6 +177,7 @@ interface BrokerImportModalProps {
     stockUpdates: { id: string; qty: string }[],
     stockRemovals: string[]
   ) => void;
+  saving?: boolean;
 }
 
 export function BrokerImportModal({
@@ -184,6 +185,7 @@ export function BrokerImportModal({
   demats,
   onClose,
   onImport,
+  saving = false,
 }: BrokerImportModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1025,16 +1027,19 @@ export function BrokerImportModal({
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <Button variant="ghost" onClick={() => setStep(2)}>
+            <Button variant="ghost" onClick={() => setStep(2)} disabled={saving}>
               Back
             </Button>
             <Button
               variant="accent"
               onClick={handleImport}
-              disabled={selectedTrades.length === 0 || !dematSelected}
+              disabled={selectedTrades.length === 0 || !dematSelected || saving}
+              loading={saving}
               icon={<Upload size={13} />}
             >
-              Import {selectedTrades.length} Trade{selectedTrades.length !== 1 ? "s" : ""}
+              {saving
+                ? "Importing…"
+                : `Import ${selectedTrades.length} Trade${selectedTrades.length !== 1 ? "s" : ""}`}
             </Button>
           </div>
         </>

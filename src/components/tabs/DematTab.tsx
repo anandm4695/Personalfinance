@@ -46,6 +46,7 @@ import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { INDEX_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
 // Shared with CapitalGainsTab so the sell-preview LTCG/STCG split always agrees with the
 // actual tax report — see the isLongTerm/getHoldingMonths doc comments there for the
@@ -678,10 +679,12 @@ function WishlistModal({
   initial,
   onClose,
   onSave,
+  saving = false,
 }: {
   initial?: any;
   onClose: () => void;
   onSave: (v: any) => void;
+  saving?: boolean;
 }) {
   const [name, setName] = React.useState(initial?.name || "");
   const [description, setDescription] = React.useState(initial?.description || "");
@@ -735,7 +738,8 @@ function WishlistModal({
         }}
         onClose={onClose}
         saveLabel={initial ? "Save" : "Create Watchlist"}
-        disabled={!name.trim()}
+        disabled={!name.trim() || saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -746,11 +750,13 @@ function WishlistItemModal({
   initial,
   onClose,
   onSave,
+  saving = false,
 }: {
   wishlistName: string;
   initial?: any;
   onClose: () => void;
   onSave: (v: any) => void;
+  saving?: boolean;
 }) {
   const isEdit = !!initial;
   const [symbol, setSymbol] = React.useState(initial?.symbol || "");
@@ -819,7 +825,8 @@ function WishlistItemModal({
         }}
         onClose={onClose}
         saveLabel={isEdit ? "Save Changes" : "Add to Watchlist"}
-        disabled={!symbol.trim()}
+        disabled={!symbol.trim() || saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -873,6 +880,102 @@ export function DematTab({
     return (localStorage.getItem("finance_demat_sort") as any) || "value";
   });
   const [search, setSearch] = useState("");
+
+  const { run: saveNewDemat, loading: savingNewDemat } = useAsyncAction(
+    async (v: any) => { await addItem("demat", v); },
+    { onSuccess: () => setShowDemat(false), onError: (e: any) => showToast?.(`Failed to add demat account: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveDematEdit, loading: savingDematEdit } = useAsyncAction(
+    async (id: string, v: any) => { await updateItem("demat", id, v); },
+    { onSuccess: () => setEditDematId(null), onError: (e: any) => showToast?.(`Failed to save demat account: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveNewStock, loading: savingNewStock } = useAsyncAction(
+    async (v: any) => { await addItem("stocks", v); },
+    { onSuccess: () => { setShowStock(false); setStockDefaults(null); }, onError: (e: any) => showToast?.(`Failed to add stock: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveStockEdit, loading: savingStockEdit } = useAsyncAction(
+    async (id: string, v: any) => { await updateItem("stocks", id, v); },
+    { onSuccess: () => setEditStockId(null), onError: (e: any) => showToast?.(`Failed to save stock: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveSellStock, loading: savingSellStock } = useAsyncAction(
+    async (lotId: string, sellRecord: any, remainingQty: number) => {
+      await addItem("stockSells", sellRecord);
+      if (remainingQty <= 0) await removeItem("stocks", lotId);
+      else await updateItem("stocks", lotId, { qty: String(remainingQty) });
+    },
+    { onSuccess: () => setSellLot(null), onError: (e: any) => showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveFifoSell, loading: savingFifoSell } = useAsyncAction(
+    async (group: any, allocs: FifoAlloc[], sellPrice: number, sellDate: string, broker: string) => {
+      for (let i = 0; i < allocs.length; i++) {
+        const alloc = allocs[i];
+        await addItem("stockSells", {
+          id: `ss-${Date.now()}-${i}`,
+          owner: alloc.lot.owner || "self",
+          symbol: group.base,
+          exchange: group.exchange,
+          qty: alloc.consume,
+          buyPrice: alloc.buyPrice,
+          buyDate: alloc.lot.buyDate || "",
+          sellPrice,
+          sellDate,
+          broker,
+          dematId: alloc.lot.dematId || "",
+          profit: Number(alloc.pnl.toFixed(2)),
+        });
+        if (alloc.fullyConsumed) await removeItem("stocks", alloc.lot.id);
+        else
+          await updateItem("stocks", alloc.lot.id, {
+            qty: String(Number(alloc.lot.qty) - alloc.consume),
+          });
+      }
+    },
+    { onSuccess: () => setFifoSellGroup(null), onError: (e: any) => showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveSplitBonus, loading: savingSplitBonus } = useAsyncAction(
+    async (updates: any[], actionLog: any, removals: string[] = []) => {
+      for (const u of updates) {
+        await updateItem("stocks", u.id, { qty: u.qty, avgPrice: u.avgPrice });
+      }
+      for (const id of removals) {
+        await removeItem("stocks", id);
+      }
+      await addItem("corporateActions", actionLog);
+    },
+    { onSuccess: () => setSplitBonusGroup(null), onError: (e: any) => showToast?.(`Failed to apply corporate action: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveNewWishlist, loading: savingNewWishlist } = useAsyncAction(
+    async (v: any) => { await addItem("wishlists", v); },
+    { onSuccess: () => setShowWishlistModal(false), onError: (e: any) => showToast?.(`Failed to add watchlist: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveWishlistEdit, loading: savingWishlistEdit } = useAsyncAction(
+    async (id: string, v: any) => { await updateItem("wishlists", id, v); },
+    { onSuccess: () => setEditWishlistId(null), onError: (e: any) => showToast?.(`Failed to save watchlist: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveNewWishlistItem, loading: savingNewWishlistItem } = useAsyncAction(
+    async (v: any, watchlistId: string) => { await addItem("wishlistItems", { ...v, watchlistId }); },
+    { onSuccess: () => { setShowWishlistItemModal(false); setWishlistItemTarget(null); }, onError: (e: any) => showToast?.(`Failed to add stock to watchlist: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveWishlistItemEdit, loading: savingWishlistItemEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("wishlistItems", id, { targetPrice: v.targetPrice, notes: v.notes });
+    },
+    { onSuccess: () => setEditWishlistItemId(null), onError: (e: any) => showToast?.(`Failed to save watchlist item: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: saveBrokerImport, loading: savingBrokerImport } = useAsyncAction(
+    async (
+      newStocks: any[],
+      sells: any[],
+      stockUpdates: { id: string; qty: string }[],
+      stockRemovals: string[]
+    ) => {
+      for (const t of newStocks) await addItem("stocks", t);
+      for (const s of sells) await addItem("stockSells", s);
+      for (const u of stockUpdates) await updateItem("stocks", u.id, { qty: u.qty });
+      for (const id of stockRemovals) await removeItem("stocks", id);
+    },
+    { onSuccess: () => setShowBrokerImport(false), onError: (e: any) => showToast?.(`Failed to import broker data: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   React.useEffect(() => {
     localStorage.setItem("finance_demat_sort", sortBy);
@@ -6442,20 +6545,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         <DematModal
           activeProfile={activeProfile}
           onClose={() => setShowDemat(false)}
-          onSave={(v: any) => {
-            addItem("demat", v);
-            setShowDemat(false);
-          }}
+          onSave={saveNewDemat}
+          saving={savingNewDemat}
         />
       )}
       {editDematId && (
         <DematModal
           initial={state.demat.find((d: any) => d.id === editDematId)}
           onClose={() => setEditDematId(null)}
-          onSave={(v: any) => {
-            updateItem("demat", editDematId, v);
-            setEditDematId(null);
-          }}
+          onSave={(v: any) => saveDematEdit(editDematId, v)}
+          saving={savingDematEdit}
         />
       )}
       {showStock && (
@@ -6467,11 +6566,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             setShowStock(false);
             setStockDefaults(null);
           }}
-          onSave={(v: any) => {
-            addItem("stocks", v);
-            setShowStock(false);
-            setStockDefaults(null);
-          }}
+          onSave={saveNewStock}
+          saving={savingNewStock}
         />
       )}
       {editStockId && (
@@ -6479,22 +6575,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           demats={state.demat}
           initial={state.stocks.find((x: any) => x.id === editStockId)}
           onClose={() => setEditStockId(null)}
-          onSave={(v: any) => {
-            updateItem("stocks", editStockId, v);
-            setEditStockId(null);
-          }}
+          onSave={(v: any) => saveStockEdit(editStockId, v)}
+          saving={savingStockEdit}
         />
       )}
       {sellLot && (
         <SellStockModal
           lot={sellLot}
           onClose={() => setSellLot(null)}
-          onSave={(sellRecord: any, remainingQty: number) => {
-            addItem("stockSells", sellRecord);
-            if (remainingQty <= 0) removeItem("stocks", sellLot.id);
-            else updateItem("stocks", sellLot.id, { qty: String(remainingQty) });
-            setSellLot(null);
-          }}
+          onSave={(sellRecord: any, remainingQty: number) =>
+            saveSellStock(sellLot.id, sellRecord, remainingQty)
+          }
+          saving={savingSellStock}
         />
       )}
       {fifoSellGroup && (
@@ -6506,64 +6598,34 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           }
           demats={state.demat}
           onClose={() => setFifoSellGroup(null)}
-          onSave={(allocs: FifoAlloc[], sellPrice: number, sellDate: string, broker: string) => {
-            allocs.forEach((alloc, i) => {
-              addItem("stockSells", {
-                id: `ss-${Date.now()}-${i}`,
-                owner: alloc.lot.owner || "self",
-                symbol: fifoSellGroup.base,
-                exchange: fifoSellGroup.exchange,
-                qty: alloc.consume,
-                buyPrice: alloc.buyPrice,
-                buyDate: alloc.lot.buyDate || "",
-                sellPrice,
-                sellDate,
-                broker,
-                dematId: alloc.lot.dematId || "",
-                profit: Number(alloc.pnl.toFixed(2)),
-              });
-              if (alloc.fullyConsumed) removeItem("stocks", alloc.lot.id);
-              else
-                updateItem("stocks", alloc.lot.id, {
-                  qty: String(Number(alloc.lot.qty) - alloc.consume),
-                });
-            });
-            setFifoSellGroup(null);
-          }}
+          onSave={(allocs: FifoAlloc[], sellPrice: number, sellDate: string, broker: string) =>
+            saveFifoSell(fifoSellGroup, allocs, sellPrice, sellDate, broker)
+          }
+          saving={savingFifoSell}
         />
       )}
       {splitBonusGroup && (
         <SplitBonusModal
           group={splitBonusGroup}
           onClose={() => setSplitBonusGroup(null)}
-          onApply={(updates: any[], actionLog: any, removals: string[] = []) => {
-            updates.forEach((u: any) =>
-              updateItem("stocks", u.id, { qty: u.qty, avgPrice: u.avgPrice })
-            );
-            removals.forEach((id: string) => removeItem("stocks", id));
-            addItem("corporateActions", actionLog);
-            setSplitBonusGroup(null);
-          }}
+          onApply={saveSplitBonus}
+          saving={savingSplitBonus}
         />
       )}
 
       {showWishlistModal && (
         <WishlistModal
           onClose={() => setShowWishlistModal(false)}
-          onSave={(v: any) => {
-            addItem("wishlists", v);
-            setShowWishlistModal(false);
-          }}
+          onSave={saveNewWishlist}
+          saving={savingNewWishlist}
         />
       )}
       {editWishlistId && (
         <WishlistModal
           initial={wishlists.find((wl: any) => wl.id === editWishlistId)}
           onClose={() => setEditWishlistId(null)}
-          onSave={(v: any) => {
-            updateItem("wishlists", editWishlistId, v);
-            setEditWishlistId(null);
-          }}
+          onSave={(v: any) => saveWishlistEdit(editWishlistId, v)}
+          saving={savingWishlistEdit}
         />
       )}
       {showWishlistItemModal && wishlistItemTarget && (
@@ -6575,11 +6637,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             setShowWishlistItemModal(false);
             setWishlistItemTarget(null);
           }}
-          onSave={(v: any) => {
-            addItem("wishlistItems", { ...v, watchlistId: wishlistItemTarget });
-            setShowWishlistItemModal(false);
-            setWishlistItemTarget(null);
-          }}
+          onSave={(v: any) => saveNewWishlistItem(v, wishlistItemTarget)}
+          saving={savingNewWishlistItem}
         />
       )}
       {editWishlistItemId &&
@@ -6592,13 +6651,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               wishlistName={wl?.name || "Watchlist"}
               initial={item}
               onClose={() => setEditWishlistItemId(null)}
-              onSave={(v: any) => {
-                updateItem("wishlistItems", editWishlistItemId, {
-                  targetPrice: v.targetPrice,
-                  notes: v.notes,
-                });
-                setEditWishlistItemId(null);
-              }}
+              onSave={(v: any) => saveWishlistItemEdit(editWishlistItemId, v)}
+              saving={savingWishlistItemEdit}
             />
           );
         })()}
@@ -6608,25 +6662,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           existingStocks={state.stocks || []}
           demats={state.demat || []}
           onClose={() => setShowBrokerImport(false)}
-          onImport={(
-            newStocks: any[],
-            sells: any[],
-            stockUpdates: { id: string; qty: string }[],
-            stockRemovals: string[]
-          ) => {
-            newStocks.forEach((t: any) => addItem("stocks", t));
-            sells.forEach((s: any) => addItem("stockSells", s));
-            stockUpdates.forEach((u) => updateItem("stocks", u.id, { qty: u.qty }));
-            stockRemovals.forEach((id) => removeItem("stocks", id));
-            setShowBrokerImport(false);
-          }}
+          onImport={saveBrokerImport}
+          saving={savingBrokerImport}
         />
       )}
     </div>
   );
 }
 
-function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: any) {
+function DematModal({ onClose, onSave, initial = null, activeProfile = "all", saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
@@ -6672,7 +6716,12 @@ function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: 
           />
         </Field>
       </div>
-      <ModalActions onSave={() => isValid && onSave(f)} onClose={onClose} disabled={!isValid} />
+      <ModalActions
+        onSave={() => isValid && onSave(f)}
+        onClose={onClose}
+        disabled={!isValid || saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
@@ -6684,6 +6733,7 @@ function StockModal({
   initial = null,
   defaults = null,
   activeProfile = "all",
+  saving = false,
 }: any) {
   const { familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
@@ -6805,12 +6855,17 @@ function StockModal({
           onChange={(e) => setF({ ...f, buyDate: e.target.value })}
         />
       </Field>
-      <ModalActions onSave={() => isValid && onSave(f)} onClose={onClose} disabled={!isValid} />
+      <ModalActions
+        onSave={() => isValid && onSave(f)}
+        onClose={onClose}
+        disabled={!isValid || saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
 
-function SellStockModal({ lot, onClose, onSave }: any) {
+function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
   const [f, setF] = useState({
     sellQty: String(lot.qty),
     sellPrice: String(lot.currentPrice || ""),
@@ -6922,12 +6977,17 @@ function SellStockModal({ lot, onClose, onSave }: any) {
           )}
         </div>
       )}
-      <ModalActions onSave={handleSave} onClose={onClose} disabled={!isValid} />
+      <ModalActions
+        onSave={handleSave}
+        onClose={onClose}
+        disabled={!isValid || saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
 
-function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
+function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = false }: any) {
   const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
   const sortedForDefault = [...group.lots].sort((a: any, b: any) => {
     if (!a.buyDate && !b.buyDate) return 0;
@@ -7346,13 +7406,14 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
         onSave={() => isValid && onSave(allocs, sellPriceNum, f.sellDate, f.broker)}
         onClose={onClose}
         saveLabel="Confirm Sell"
-        disabled={!isValid || allocs.length === 0}
+        disabled={!isValid || allocs.length === 0 || saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
-function SplitBonusModal({ group, onClose, onApply }: any) {
+function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
   const [type, setType] = useState<"split" | "bonus">("split");
   const [ratioN, setRatioN] = useState("2");
   const [ratioM, setRatioM] = useState("1");
@@ -7552,7 +7613,8 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
         onSave={handleApply}
         onClose={onClose}
         saveLabel="Apply Action"
-        disabled={!isValid}
+        disabled={!isValid || saving}
+        loading={saving}
       />
     </Modal>
   );
