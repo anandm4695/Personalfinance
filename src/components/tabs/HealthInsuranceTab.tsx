@@ -31,6 +31,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const POLICY_TYPES = [
   { value: "family_floater", label: "Family Floater" },
@@ -155,7 +156,7 @@ const EMPTY: any = {
   claims: [],
 };
 
-function PolicyForm({ initial, onSave, onClose }: any) {
+function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [members, setMembers] = useState<{ name: string; relation: string }[]>(
@@ -441,7 +442,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
         />
       </Field>
 
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Policy" />
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Policy" disabled={saving} loading={saving} />
     </Modal>
   );
 }
@@ -451,7 +452,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
 // opening the whole Edit Policy modal (same reasoning as Loans Given's dedicated
 // "Add Payment" modal vs. its full loan-edit form). Appends to the policy's `claims`
 // jsonb array (column already exists — see database/64_health_insurance.sql).
-function ClaimForm({ policy, onSave, onClose }: any) {
+function ClaimForm({ policy, onSave, onClose, saving = false }: any) {
   const [date, setDate] = useState(today());
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -517,12 +518,12 @@ function ClaimForm({ policy, onSave, onClose }: any) {
           <span style={{ fontSize: 13 }}>Settled / paid out</span>
         </label>
       </Field>
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Log Claim" />
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Log Claim" disabled={saving} loading={saving} />
     </Modal>
   );
 }
 
-export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: any) {
+export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, showToast }: any) {
   const policies = state.healthInsurance || [];
   const [modal, setModal] = useState<any>(null);
   const [claimModal, setClaimModal] = useState<any>(null);
@@ -562,28 +563,43 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
   const totalClaimedAmount = allClaims.reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
   const pendingClaims = allClaims.filter((c: any) => !c.settled).length;
 
-  const save = (data: any) => {
-    if (data.id && policies.find((p: any) => p.id === data.id)) {
-      updateItem("healthInsurance", data.id, data);
-    } else {
-      addItem("healthInsurance", data);
-    }
-    setModal(null);
-  };
+  const { run: save, loading: savingPolicy } = useAsyncAction(
+    async (data: any) => {
+      if (data.id && policies.find((p: any) => p.id === data.id)) {
+        await updateItem("healthInsurance", data.id, data);
+      } else {
+        await addItem("healthInsurance", data);
+      }
+    },
+    { onSuccess: () => setModal(null), onError: (e: any) => showToast?.(`Failed to save policy: ${e?.message || "Unknown error"}`, "error") }
+  );
 
-  const saveClaim = (claims: any[]) => {
-    if (!claimModal) return;
-    updateItem("healthInsurance", claimModal.id, { ...claimModal, claims });
-    setClaimModal(null);
-  };
+  const { run: saveClaim, loading: savingClaim } = useAsyncAction(
+    async (claims: any[]) => {
+      if (!claimModal) return;
+      await updateItem("healthInsurance", claimModal.id, { ...claimModal, claims });
+    },
+    { onSuccess: () => setClaimModal(null), onError: (e: any) => showToast?.(`Failed to save claim: ${e?.message || "Unknown error"}`, "error") }
+  );
 
+  const { run: removeClaimRun } = useAsyncAction(
+    async (policy: any, claimId: string) => {
+      await updateItem("healthInsurance", policy.id, {
+        ...policy,
+        claims: (policy.claims || []).filter((c: any) => c.id !== claimId),
+      });
+    },
+    { onError: (e: any) => showToast?.(`Failed to delete claim: ${e?.message || "Unknown error"}`, "error") }
+  );
   const removeClaim = (policy: any, claimId: string) => {
     if (!window.confirm("Delete this claim record?")) return;
-    updateItem("healthInsurance", policy.id, {
-      ...policy,
-      claims: (policy.claims || []).filter((c: any) => c.id !== claimId),
-    });
+    removeClaimRun(policy, claimId);
   };
+
+  const { run: deletePolicy } = useAsyncAction(
+    async (id: string) => { await removeItem("healthInsurance", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete policy: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   return (
     <div>
@@ -837,7 +853,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
                     <button
                       onClick={() => {
                         if (window.confirm(`Delete "${p.insurer}" policy?`))
-                          removeItem("healthInsurance", p.id);
+                          deletePolicy(p.id);
                       }}
                       aria-label={`Delete ${p.insurer} policy`}
                       title="Delete policy"
@@ -1087,11 +1103,17 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
           initial={modal?.id ? modal : undefined}
           onSave={save}
           onClose={() => setModal(null)}
+          saving={savingPolicy}
         />
       )}
 
       {claimModal !== null && (
-        <ClaimForm policy={claimModal} onSave={saveClaim} onClose={() => setClaimModal(null)} />
+        <ClaimForm
+          policy={claimModal}
+          onSave={saveClaim}
+          onClose={() => setClaimModal(null)}
+          saving={savingClaim}
+        />
       )}
     </div>
   );
