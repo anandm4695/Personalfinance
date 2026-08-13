@@ -13,15 +13,25 @@ import {
   TrendingDown,
   Package,
   X,
+  Link2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact } from "../../utils/finance";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
+import { Badge } from "../ui/Badge";
+import { Drawer } from "../ui/Drawer";
 import { Prv } from "../../context/PrivacyContext";
 import { DataTable } from "../design-system/DataTable";
+
+const cashTxnAccountLabel = (a: any): string => {
+  if (!a) return "";
+  const last4 = a.accountNumber ? `····${String(a.accountNumber).slice(-4)}` : "";
+  const suffix = [a.type, last4].filter(Boolean).join(" ");
+  return suffix ? `${a.bankName} – ${suffix}` : a.bankName;
+};
 
 const th = {
   textAlign: "left" as const,
@@ -456,6 +466,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
     "all" | "stocks_bought" | "stocks_sold" | "mf_bought" | "mf_sold" | "cash_ledger"
   >("all");
   const [txnDematId, setTxnDematId] = useState<string | null>(null);
+  const [viewCashTxnId, setViewCashTxnId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortState, setSortState] = useState<Record<string, { key: string; dir: SortDir }>>({});
 
@@ -1949,6 +1960,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               data={cashTransactionsSorted}
               hideSearch
               keyExtractor={(t: any) => t.id}
+              onRowClick={(t: any) => setViewCashTxnId(t.id)}
+              rowAriaLabel={(t: any) => `View details for ${t.note || "transaction"} on ${fmtDate(t.date)}`}
               sortKey={sortState.cash_ledger?.key || null}
               sortDirection={sortState.cash_ledger?.dir || "asc"}
               onSortChange={(key: any) => toggleSort("cash_ledger", key)}
@@ -1956,7 +1969,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => removeItem("transactions", t.id)}
+                  onClick={(e: any) => {
+                    e.stopPropagation();
+                    removeItem("transactions", t.id);
+                  }}
                   title="Delete"
                   aria-label="Delete transaction"
                   style={{
@@ -2033,6 +2049,104 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           )}
         </div>
       )}
+      {viewCashTxnId &&
+        (() => {
+          const t = cashTransactionsInFY.find((tx: any) => tx.id === viewCashTxnId);
+          if (!t) return null;
+          const bank = (state.bankAccounts || []).find((b: any) => b.id === t.accountId);
+          const isCredit = t.type === "credit";
+          const row = (label: string, value: React.ReactNode) =>
+            value ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 16,
+                  padding: "12px 0",
+                  borderBottom: `1px solid ${THEME.line}`,
+                }}
+              >
+                <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>{label}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, textAlign: "right" }}>
+                  {value}
+                </span>
+              </div>
+            ) : null;
+          return (
+            <Drawer title="Transaction Details" onClose={() => setViewCashTxnId(null)}>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "8px 0 20px",
+                  borderBottom: `1px solid ${THEME.line}`,
+                  marginBottom: 4,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 30,
+                    fontWeight: 900,
+                    letterSpacing: "-0.03em",
+                    fontVariantNumeric: "tabular-nums",
+                    color: isCredit ? THEME.sage : THEME.rust,
+                  }}
+                >
+                  {isCredit ? "+" : "-"}
+                  <Prv>{fmtINRExact(t.amount)}</Prv>
+                </div>
+                {(t.category === "Transfer" || t.linkedType) && (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      justifyContent: "center",
+                      marginTop: 10,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {t.category === "Transfer" && <Badge variant="accent">↔ Transfer</Badge>}
+                    {t.linkedType && (
+                      <Badge
+                        variant="accent"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                      >
+                        <Link2 size={10} /> Linked
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+              {row("Note", t.note)}
+              {row(
+                "Date",
+                t.date
+                  ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : null
+              )}
+              {row("Category", t.category)}
+              {row("Account", bank ? cashTxnAccountLabel(bank) : null)}
+              {row("Narration", t.narration)}
+              {row("Description", t.description)}
+              {row("Reference", t.referenceNumber)}
+              <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+                <Button
+                  variant="secondary"
+                  style={{ flex: 1, color: THEME.rust }}
+                  onClick={() => {
+                    removeItem("transactions", t.id);
+                    setViewCashTxnId(null);
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </Drawer>
+          );
+        })()}
     </div>
   );
 }
