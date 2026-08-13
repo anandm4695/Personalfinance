@@ -3582,6 +3582,7 @@ function FinanceDashboard() {
                   fetchMfNavs={fetchMfNavs}
                   fetchingMfNavs={fetchingMfNavs}
                   mfMarketDataTs={mfMarketDataTs}
+                  showToast={showToast}
                 />
               )}
               {tab === "tax" && (

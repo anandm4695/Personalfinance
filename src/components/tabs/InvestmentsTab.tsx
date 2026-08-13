@@ -44,6 +44,7 @@ import {
   calcXIRR,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -221,7 +222,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
 /* ══════════════════════════════════════════════════════════════════════
    ADD INVESTMENT MODAL
 ══════════════════════════════════════════════════════════════════════ */
-const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any) => {
+const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", saving }: any) => {
   const { mfCategories, familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const subMeta = SUBS.find((s) => s.id === sub);
@@ -1199,6 +1200,8 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all" }: any
         onSave={handleSave}
         onClose={onClose}
         saveLabel={`Add ${subMeta?.label || ""}`}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -1219,6 +1222,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   fetchMfNavs,
   fetchingMfNavs,
   mfMarketDataTs,
+  showToast,
 }) => {
   const [sub, setSub] = useState(subTab || "fd");
   const [showModal, setShowModal] = useState(false);
@@ -1233,10 +1237,16 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     count: s.stateKey ? (state[s.stateKey]?.length ?? 0) : undefined,
   }));
 
-  const handleSave = (key: string, data: any) => {
-    addItem(key, data);
-    setShowModal(false);
-  };
+  const { run: handleSave, loading: savingInvestment } = useAsyncAction(
+    async (key: string, data: any) => {
+      await addItem(key, data);
+    },
+    {
+      onSuccess: () => setShowModal(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to save: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   const canAdd = sub !== "income" && sub !== "dividends";
 
@@ -1380,6 +1390,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
+            showToast={showToast}
           />
         );
       case "rd":
@@ -1389,6 +1400,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
+            showToast={showToast}
           />
         );
       case "bond":
@@ -1398,6 +1410,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
+            showToast={showToast}
           />
         );
       case "ppf":
@@ -1407,6 +1420,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
+            showToast={showToast}
           />
         );
       case "nps":
@@ -1416,6 +1430,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
+            showToast={showToast}
           />
         );
       case "epf":
@@ -1425,6 +1440,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
+            showToast={showToast}
           />
         );
       case "mf":
@@ -1441,10 +1457,18 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             fetchMfNavs={fetchMfNavs}
             fetchingMfNavs={fetchingMfNavs}
             mfMarketDataTs={mfMarketDataTs}
+            showToast={showToast}
           />
         );
       case "dividends":
-        return <DividendTracker state={state} addItem={addItem} removeItem={removeItem} />;
+        return (
+          <DividendTracker
+            state={state}
+            addItem={addItem}
+            removeItem={removeItem}
+            showToast={showToast}
+          />
+        );
       case "income":
         return <YieldTracker state={state} />;
       default:
@@ -1676,6 +1700,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           onClose={() => setShowModal(false)}
           onSave={handleSave}
           activeProfile={activeProfile}
+          saving={savingInvestment}
         />
       )}
     </div>
@@ -1683,7 +1708,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 };
 
 /* ── Edit Bond Modal ────────────────────────────────────────────────── */
-function EditBondModal({ bond: initial, onClose, onSave }: any) {
+function EditBondModal({ bond: initial, onClose, onSave, saving }: any) {
   const labelStyle = {
     fontSize: 10,
     fontWeight: 700,
@@ -1970,13 +1995,19 @@ function EditBondModal({ bond: initial, onClose, onSave }: any) {
           />
         </Field>
       </div>
-      <ModalActions onSave={handleSave} onClose={onClose} saveLabel="Save Changes" />
+      <ModalActions
+        onSave={handleSave}
+        onClose={onClose}
+        saveLabel="Save Changes"
+        disabled={saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
 
 /* ── Edit FD Modal ───────────────────────────────────────────────────── */
-function EditFDModal({ fd: initial, onClose, onSave }: any) {
+function EditFDModal({ fd: initial, onClose, onSave, saving }: any) {
   const [form, setForm] = useState({
     bank: initial.bank || "",
     principal: initial.principal != null ? String(initial.principal) : "",
@@ -2084,13 +2115,15 @@ function EditFDModal({ fd: initial, onClose, onSave }: any) {
         onSave={() => form.bank && form.principal && form.rate && onSave(form)}
         onClose={onClose}
         saveLabel="Save Changes"
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
 /* ── Edit RD Modal ───────────────────────────────────────────────────── */
-function EditRDModal({ rd: initial, onClose, onSave }: any) {
+function EditRDModal({ rd: initial, onClose, onSave, saving }: any) {
   const [form, setForm] = useState({
     bank: initial.bank || "",
     monthly: initial.monthly != null ? String(initial.monthly) : "",
@@ -2168,13 +2201,15 @@ function EditRDModal({ rd: initial, onClose, onSave }: any) {
         onSave={() => form.bank && form.monthly && form.rate && onSave(form)}
         onClose={onClose}
         saveLabel="Save Changes"
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
 /* ── Edit MF Modal ────────────────────────────────────────────────────── */
-function EditMFModal({ mf: initial, onClose, onSave, activeProfile = "all" }: any) {
+function EditMFModal({ mf: initial, onClose, onSave, activeProfile = "all", saving }: any) {
   const { mfCategories, familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [form, setForm] = useState({
@@ -2367,13 +2402,15 @@ function EditMFModal({ mf: initial, onClose, onSave, activeProfile = "all" }: an
         }}
         onClose={onClose}
         saveLabel="Save Changes"
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
 /* ── Edit NPS Modal ────────────────────────────────────────────────────── */
-function EditNPSModal({ nps: initial, onClose, onSave }: any) {
+function EditNPSModal({ nps: initial, onClose, onSave, saving }: any) {
   const [form, setForm] = useState({
     tier: initial.tier || "I",
     pran: initial.pran || "",
@@ -2577,7 +2614,13 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
           />
         </Field>
       )}
-      <ModalActions onSave={() => onSave(form)} onClose={onClose} saveLabel="Save Changes" />
+      <ModalActions
+        onSave={() => onSave(form)}
+        onClose={onClose}
+        saveLabel="Save Changes"
+        disabled={saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
@@ -2693,8 +2736,18 @@ function InvestmentEmptyState({
 }
 
 /* ── FD Section ─────────────────────────────────────────────────────── */
-function FDSection({ items, removeItem, updateItem, onAdd }: any) {
+function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editFD, setEditFD] = useState<any>(null);
+  const { run: saveFDEdit, loading: savingFDEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("fixedDeposits", id, v);
+    },
+    {
+      onSuccess: () => setEditFD(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save fixed deposit: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   const fdDaysLeft = (f: any) => {
     if (!f.maturityDate) return null;
@@ -3060,10 +3113,8 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
         <EditFDModal
           fd={editFD}
           onClose={() => setEditFD(null)}
-          onSave={(updated: any) => {
-            updateItem("fixedDeposits", editFD.id, updated);
-            setEditFD(null);
-          }}
+          onSave={(updated: any) => saveFDEdit(editFD.id, updated)}
+          saving={savingFDEdit}
         />
       )}
     </div>
@@ -3071,8 +3122,18 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
 }
 
 /* ── RD Section ─────────────────────────────────────────────────────── */
-function RDSection({ items, removeItem, updateItem, onAdd }: any) {
+function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editRD, setEditRD] = useState<any>(null);
+  const { run: saveRDEdit, loading: savingRDEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("recurringDeposits", id, v);
+    },
+    {
+      onSuccess: () => setEditRD(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save recurring deposit: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
   // Fixed chart-extension token (not the user-selectable accent) — a raw hex
   // here would go stale in dark mode and could collide with the active
   // accent preset.
@@ -3399,10 +3460,8 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
         <EditRDModal
           rd={editRD}
           onClose={() => setEditRD(null)}
-          onSave={(updated: any) => {
-            updateItem("recurringDeposits", editRD.id, updated);
-            setEditRD(null);
-          }}
+          onSave={(updated: any) => saveRDEdit(editRD.id, updated)}
+          saving={savingRDEdit}
         />
       )}
     </div>
@@ -3410,8 +3469,17 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
 }
 
 /* ── Bond Section ───────────────────────────────────────────────────── */
-function BondSection({ items, removeItem, updateItem, onAdd }: any) {
+function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editBond, setEditBond] = useState<any>(null);
+  const { run: saveBondEdit, loading: savingBondEdit } = useAsyncAction(
+    async (id: string, v: any) => {
+      await updateItem("bonds", id, v);
+    },
+    {
+      onSuccess: () => setEditBond(null),
+      onError: (e: any) => showToast?.(`Failed to save bond: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   const totalInvested = items.reduce(
     (s: number, b: any) =>
@@ -3842,10 +3910,8 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
         <EditBondModal
           bond={editBond}
           onClose={() => setEditBond(null)}
-          onSave={(updated: any) => {
-            updateItem("bonds", editBond.id, updated);
-            setEditBond(null);
-          }}
+          onSave={(updated: any) => saveBondEdit(editBond.id, updated)}
+          saving={savingBondEdit}
         />
       )}
     </div>
@@ -3853,7 +3919,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
 }
 
 /* ── PPF Transaction Modal ───────────────────────────────────────────── */
-function PPFTransactionModal({ onClose, onSave, initial }: any) {
+function PPFTransactionModal({ onClose, onSave, initial, saving }: any) {
   const [form, setForm] = useState(
     initial || { date: today(), type: "deposit", amount: "", note: "" }
   );
@@ -3902,6 +3968,8 @@ function PPFTransactionModal({ onClose, onSave, initial }: any) {
         onSave={() => valid && onSave(form)}
         onClose={onClose}
         saveLabel={initial ? "Save Changes" : "Add Transaction"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -4796,7 +4864,7 @@ function PPFCsvPanel({ onImport }: any) {
 // Lets the balance be reconciled after the bank/post-office credits the annual PPF interest —
 // previously PPF had no edit path at all, so `p.balance` was frozen at whatever was entered
 // once when the account was first added (see PPFAccountCard's ledger-fallback comment below).
-function EditPPFModal({ ppf: initial, onClose, onSave }: any) {
+function EditPPFModal({ ppf: initial, onClose, onSave, saving }: any) {
   const [form, setForm] = useState({
     institution: initial.institution || initial.bank || "",
     accountNumber: initial.accountNumber || "",
@@ -4837,19 +4905,22 @@ function EditPPFModal({ ppf: initial, onClose, onSave }: any) {
         onSave={() => form.institution && onSave({ ...form, balance: Number(form.balance) || 0 })}
         onClose={onClose}
         saveLabel="Save Changes"
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
 /* ── PPF Account Card with Ledger ────────────────────────────────────── */
-function PPFAccountCard({ p, removeItem, updateItem }: any) {
+function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
   const [txs, setTxs] = useState<any[]>(p.transactions || []);
   const [showLedger, setShowLedger] = useState(false);
   const [showTxModal, setShowTxModal] = useState(false);
   const [editTx, setEditTx] = useState<any>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showEditAccount, setShowEditAccount] = useState(false);
+  const [savingTx, setSavingTx] = useState(false);
 
   const sorted = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalDeposits = txs
@@ -4866,25 +4937,46 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
   const balanceFromLedger = manualBalance === 0 && txs.length > 0;
   const displayBalance = manualBalance > 0 ? manualBalance : ledgerNet;
 
-  const persist = (updated: any[]) => {
+  const persist = async (updated: any[]) => {
     setTxs(updated);
-    updateItem("ppf", p.id, { transactions: updated });
+    try {
+      await updateItem("ppf", p.id, { transactions: updated });
+      return true;
+    } catch (e: any) {
+      showToast?.(`Failed to save PPF transaction: ${e?.message || "Unknown error"}`, "error");
+      return false;
+    }
   };
 
-  const saveTx = (form: any) => {
+  const saveTx = async (form: any) => {
     const updated = editTx
       ? txs.map((t) => (t.id === editTx.id ? { ...form, id: editTx.id } : t))
       : [...txs, { ...form, id: uid() }];
-    persist(updated);
-    setShowTxModal(false);
-    setEditTx(null);
+    setSavingTx(true);
+    const ok = await persist(updated);
+    setSavingTx(false);
+    if (ok) {
+      setShowTxModal(false);
+      setEditTx(null);
+    }
   };
 
   const removeTx = (id: string) => persist(txs.filter((t) => t.id !== id));
-  const importRows = (rows: any[]) => {
-    persist([...txs, ...rows]);
-    setShowCsvImport(false);
+  const importRows = async (rows: any[]) => {
+    const ok = await persist([...txs, ...rows]);
+    if (ok) setShowCsvImport(false);
   };
+
+  const { run: saveAccountEdit, loading: savingAccountEdit } = useAsyncAction(
+    async (updated: any) => {
+      await updateItem("ppf", p.id, updated);
+    },
+    {
+      onSuccess: () => setShowEditAccount(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to save PPF account: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   const btnGhost = {
     background: "transparent",
@@ -5218,6 +5310,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
             setEditTx(null);
           }}
           onSave={saveTx}
+          saving={savingTx}
         />
       )}
 
@@ -5226,10 +5319,8 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
         <EditPPFModal
           ppf={p}
           onClose={() => setShowEditAccount(false)}
-          onSave={(updated: any) => {
-            updateItem("ppf", p.id, updated);
-            setShowEditAccount(false);
-          }}
+          onSave={(updated: any) => saveAccountEdit(updated)}
+          saving={savingAccountEdit}
         />
       )}
     </Card>
@@ -5237,7 +5328,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
 }
 
 /* ── PPF Section ────────────────────────────────────────────────────── */
-const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
+const PPFSection = ({ items, removeItem, updateItem, onAdd, showToast }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0 ? (
       <InvestmentEmptyState
@@ -5259,7 +5350,13 @@ const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
         }}
       >
         {items.map((p: any) => (
-          <PPFAccountCard key={p.id} p={p} removeItem={removeItem} updateItem={updateItem} />
+          <PPFAccountCard
+            key={p.id}
+            p={p}
+            removeItem={removeItem}
+            updateItem={updateItem}
+            showToast={showToast}
+          />
         ))}
       </div>
     )}
@@ -5371,7 +5468,7 @@ function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: a
 }
 
 /* ── NPS Transaction Modal ──────────────────────────────────────────── */
-function NPSTransactionModal({ onClose, onSave, initial }: any) {
+function NPSTransactionModal({ onClose, onSave, initial, saving }: any) {
   const [form, setForm] = useState(() => {
     if (!initial)
       return {
@@ -5847,7 +5944,7 @@ function NPSCsvPanel({ onImport }: any) {
 }
 
 /* ── NPS Account Card ────────────────────────────────────────────────── */
-function NPSAccountCard({ n, removeItem, updateItem }: any) {
+function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
   const pfmColor = NPS_PFM_COLOR[n.fundManager] || NPS_ORANGE;
   const isActive = n.investmentChoice === "Active";
 
@@ -5857,29 +5954,51 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
   const [editTx, setEditTx] = useState<any>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showEditAccount, setShowEditAccount] = useState(false);
+  const [savingTx, setSavingTx] = useState(false);
 
   useEffect(() => {
     setTxs(n.transactions || []);
   }, [n.id]);
 
-  const persistTxs = (updated: any[]) => {
+  const persistTxs = async (updated: any[]) => {
     setTxs(updated);
-    updateItem("nps", n.id, { transactions: updated });
+    try {
+      await updateItem("nps", n.id, { transactions: updated });
+      return true;
+    } catch (e: any) {
+      showToast?.(`Failed to save NPS transaction: ${e?.message || "Unknown error"}`, "error");
+      return false;
+    }
   };
 
-  const saveTx = (form: any) => {
+  const saveTx = async (form: any) => {
     const entry = { ...form, id: editTx ? editTx.id : uid() };
     const updated = editTx ? txs.map((t) => (t.id === editTx.id ? entry : t)) : [...txs, entry];
-    persistTxs(updated);
-    setShowTxModal(false);
-    setEditTx(null);
+    setSavingTx(true);
+    const ok = await persistTxs(updated);
+    setSavingTx(false);
+    if (ok) {
+      setShowTxModal(false);
+      setEditTx(null);
+    }
   };
 
   const removeTx = (id: string) => persistTxs(txs.filter((t) => t.id !== id));
-  const importRows = (rows: any[]) => {
-    persistTxs([...txs, ...rows]);
-    setShowCsvImport(false);
+  const importRows = async (rows: any[]) => {
+    const ok = await persistTxs([...txs, ...rows]);
+    if (ok) setShowCsvImport(false);
   };
+
+  const { run: saveAccountEdit, loading: savingAccountEdit } = useAsyncAction(
+    async (updated: any) => {
+      await updateItem("nps", n.id, updated);
+    },
+    {
+      onSuccess: () => setShowEditAccount(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to save NPS account: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   const sortedTxs = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalEmployee = txs.reduce((s, t) => s + (Number(t.employeeAmount) || 0), 0);
@@ -6385,16 +6504,15 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
             setEditTx(null);
           }}
           onSave={saveTx}
+          saving={savingTx}
         />
       )}
       {showEditAccount && (
         <EditNPSModal
           nps={n}
           onClose={() => setShowEditAccount(false)}
-          onSave={(updated: any) => {
-            updateItem("nps", n.id, updated);
-            setShowEditAccount(false);
-          }}
+          onSave={(updated: any) => saveAccountEdit(updated)}
+          saving={savingAccountEdit}
         />
       )}
     </Card>
@@ -6402,7 +6520,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
 }
 
 /* ── NPS Section ────────────────────────────────────────────────────── */
-function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
+function NPSSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const totalCorpus = items.reduce((s: number, n: any) => {
     const bal = Number(n.balance) || 0;
     const txTotal = (n.transactions || []).reduce(
@@ -6522,7 +6640,13 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
           {/* NPS account cards */}
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
             {items.map((n: any) => (
-              <NPSAccountCard key={n.id} n={n} removeItem={removeItem} updateItem={updateItem} />
+              <NPSAccountCard
+                key={n.id}
+                n={n}
+                removeItem={removeItem}
+                updateItem={updateItem}
+                showToast={showToast}
+              />
             ))}
           </div>
         </>
@@ -6544,7 +6668,7 @@ const EPF_TX_TYPES = [
   { value: "withdrawal", label: "Withdrawal", color: THEME.rust },
 ];
 
-function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: any) {
+function EPFTransactionModal({ onClose, onSave, initial, establishments = [], saving }: any) {
   const [form, setForm] = useState(() => {
     if (!initial)
       return {
@@ -6904,6 +7028,8 @@ function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: 
         onSave={() => valid && onSave(form)}
         onClose={onClose}
         saveLabel={initial ? "Save Changes" : "Add Transaction"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -7284,7 +7410,7 @@ function EPFCsvPanel({ onImport }: any) {
 }
 
 /* ── Add / Edit Establishment (Service History) ─────────────────────── */
-function AddEstablishmentModal({ onClose, onSave, initial }: any) {
+function AddEstablishmentModal({ onClose, onSave, initial, saving }: any) {
   const [form, setForm] = useState(
     initial || {
       employerName: "",
@@ -7398,12 +7524,14 @@ function AddEstablishmentModal({ onClose, onSave, initial }: any) {
         onSave={() => form.employerName.trim() && onSave(form)}
         onClose={onClose}
         saveLabel={initial ? "Save Changes" : "Add Establishment"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
-function EditEPFModal({ epf: initial, onClose, onSave }: any) {
+function EditEPFModal({ epf: initial, onClose, onSave, saving }: any) {
   const [form, setForm] = useState({
     uan: initial.uan || initial.accountNumber || "",
     employer: initial.employer || initial.bank || "",
@@ -7443,12 +7571,14 @@ function EditEPFModal({ epf: initial, onClose, onSave }: any) {
         onSave={() => valid && onSave(form)}
         onClose={onClose}
         saveLabel="Save Changes"
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
-function EPFAccountCard({ p, removeItem, updateItem }: any) {
+function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
   const [txs, setTxs] = useState<any[]>(p.transactions || []);
   const [ests, setEsts] = useState<any[]>(p.establishments || []);
   const [showLedger, setShowLedger] = useState(false);
@@ -7459,6 +7589,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const [showEstModal, setShowEstModal] = useState(false);
   const [editEst, setEditEst] = useState<any>(null);
   const [transferPrefill, setTransferPrefill] = useState<any>(null);
+  const [savingTx, setSavingTx] = useState(false);
+  const [savingEst, setSavingEst] = useState(false);
 
   // Sync local state when the selected EPF record changes (p.id change = different record).
   // Intentionally omit p.transactions and p.establishments: adding them would re-run on every
@@ -7594,16 +7726,28 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   estsRef.current = ests;
 
   /* ── persist ── */
-  const persistTxs = (updated: any[]) => {
+  const persistTxs = async (updated: any[]) => {
     setTxs(updated);
-    updateItem("epf", p.id, { transactions: updated, establishments: estsRef.current });
+    try {
+      await updateItem("epf", p.id, { transactions: updated, establishments: estsRef.current });
+      return true;
+    } catch (e: any) {
+      showToast?.(`Failed to save EPF transaction: ${e?.message || "Unknown error"}`, "error");
+      return false;
+    }
   };
-  const persistEsts = (updated: any[]) => {
+  const persistEsts = async (updated: any[]) => {
     setEsts(updated);
-    updateItem("epf", p.id, { transactions: txsRef.current, establishments: updated });
+    try {
+      await updateItem("epf", p.id, { transactions: txsRef.current, establishments: updated });
+      return true;
+    } catch (e: any) {
+      showToast?.(`Failed to save EPF establishment: ${e?.message || "Unknown error"}`, "error");
+      return false;
+    }
   };
 
-  const saveTx = (form: any) => {
+  const saveTx = async (form: any) => {
     let entry: any;
     if (form.type === "monthly_contribution") {
       entry = {
@@ -7663,26 +7807,45 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
     const updated = editTx
       ? txs.map((t) => (t.id === editTx.id ? { ...entry, id: editTx.id } : t))
       : [...txs, { ...entry, id: uid() }];
-    persistTxs(updated);
-    setShowTxModal(false);
-    setEditTx(null);
+    setSavingTx(true);
+    const ok = await persistTxs(updated);
+    setSavingTx(false);
+    if (ok) {
+      setShowTxModal(false);
+      setEditTx(null);
+    }
   };
   const removeTx = (id: string) => persistTxs(txs.filter((t) => t.id !== id));
-  const importRows = (rows: any[]) => {
-    persistTxs([...txs, ...rows]);
-    setShowCsvImport(false);
+  const importRows = async (rows: any[]) => {
+    const ok = await persistTxs([...txs, ...rows]);
+    if (ok) setShowCsvImport(false);
   };
 
-  const saveEst = (form: any) => {
+  const saveEst = async (form: any) => {
     const clean = { ...form, ncpDays: Number(form.ncpDays || 0) };
     const updated = editEst
       ? ests.map((e) => (e.id === editEst.id ? { ...clean, id: editEst.id } : e))
       : [...ests, { ...clean, id: uid() }];
-    persistEsts(updated);
-    setShowEstModal(false);
-    setEditEst(null);
+    setSavingEst(true);
+    const ok = await persistEsts(updated);
+    setSavingEst(false);
+    if (ok) {
+      setShowEstModal(false);
+      setEditEst(null);
+    }
   };
   const removeEst = (id: string) => persistEsts(ests.filter((e) => e.id !== id));
+
+  const { run: saveAccountEdit, loading: savingAccountEdit } = useAsyncAction(
+    async (updated: any) => {
+      await updateItem("epf", p.id, { ...updated, transactions: txs, establishments: ests });
+    },
+    {
+      onSuccess: () => setShowEditAccount(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to save EPF account: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   /* ── sorted ledger split ── */
   const sortedTxs = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -8992,6 +9155,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             setTransferPrefill(null);
           }}
           onSave={saveTx}
+          saving={savingTx}
         />
       )}
       {showEstModal && (
@@ -9002,16 +9166,15 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             setEditEst(null);
           }}
           onSave={saveEst}
+          saving={savingEst}
         />
       )}
       {showEditAccount && (
         <EditEPFModal
           epf={p}
           onClose={() => setShowEditAccount(false)}
-          onSave={(updated: any) => {
-            updateItem("epf", p.id, { ...updated, transactions: txs, establishments: ests });
-            setShowEditAccount(false);
-          }}
+          onSave={(updated: any) => saveAccountEdit(updated)}
+          saving={savingAccountEdit}
         />
       )}
     </Card>
@@ -9123,7 +9286,7 @@ function EPFEmptyState({ onAdd }: any) {
 }
 
 /* ── EPF Section ─────────────────────────────────────────────────────── */
-const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
+const EPFSection = ({ items, removeItem, updateItem, onAdd, showToast }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0 ? (
       <EPFEmptyState onAdd={onAdd} />
@@ -9136,7 +9299,13 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
         }}
       >
         {items.map((e: any) => (
-          <EPFAccountCard key={e.id} p={e} removeItem={removeItem} updateItem={updateItem} />
+          <EPFAccountCard
+            key={e.id}
+            p={e}
+            removeItem={removeItem}
+            updateItem={updateItem}
+            showToast={showToast}
+          />
         ))}
       </div>
     )}
@@ -9961,6 +10130,7 @@ function MFSection({
   fetchMfNavs,
   fetchingMfNavs,
   mfMarketDataTs,
+  showToast,
 }: any) {
   const { privacyMode } = usePrivacy();
   const getLiveNav = (m: any) => liveMfNav(m, mfMarketData);
@@ -10045,6 +10215,88 @@ function MFSection({
       onProgress?.(i + 1, rows.length);
     }
   };
+
+  const { run: saveMFEdit, loading: savingMFEdit } = useAsyncAction(
+    async (id: string, updated: any) => {
+      await updateItem("mutualFunds", id, updated);
+    },
+    {
+      onSuccess: () => setEditMF(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save mutual fund: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: saveMFSell, loading: savingMFSell } = useAsyncAction(
+    async (mf: any, sellRecord: any, remainingUnits: number) => {
+      await addItem("mfSells", sellRecord);
+      if (remainingUnits <= 0) {
+        await removeItem("mutualFunds", mf.id);
+      } else {
+        const newInvested = Number(mf.buyNav || 0) * remainingUnits;
+        await updateItem("mutualFunds", mf.id, {
+          units: String(remainingUnits),
+          invested: String(
+            newInvested || (Number(mf.invested || 0) * remainingUnits) / Number(mf.units)
+          ),
+        });
+      }
+    },
+    {
+      onSuccess: () => setSellMF(null),
+      onError: (e: any) => showToast?.(`Failed to save sale: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: saveFifoSell, loading: savingFifoSell } = useAsyncAction(
+    async (group: any, allocs: any[], sellNav: number, sellDate: string) => {
+      for (let i = 0; i < allocs.length; i++) {
+        const alloc = allocs[i];
+        await addItem("mfSells", {
+          id: `mfs-${Date.now()}-${i}`,
+          owner: alloc.lot.owner || "self",
+          scheme: group.fundName || group.schemeName,
+          // Preserved from the live lot so CapitalGainsTab.isEquityMF() can
+          // use the user's actual Equity/Debt classification instead of
+          // falling back to guessing from the fund name text — see the
+          // matching comment in SellMFModal's single-lot sell path above.
+          category: alloc.lot.category || "",
+          units: alloc.consume,
+          buyNav: alloc.buyNav,
+          buyDate: alloc.lot.buyDate || "",
+          sellNav,
+          sellDate,
+          profit: Number(alloc.pnl.toFixed(2)),
+        });
+        if (alloc.fullyConsumed) {
+          await removeItem("mutualFunds", alloc.lot.id);
+        } else {
+          const remaining = Number(alloc.lot.units) - alloc.consume;
+          const newInvested = Number(alloc.lot.buyNav || 0) * remaining;
+          await updateItem("mutualFunds", alloc.lot.id, {
+            units: String(remaining),
+            invested: String(
+              newInvested || (Number(alloc.lot.invested || 0) * remaining) / Number(alloc.lot.units)
+            ),
+          });
+        }
+      }
+    },
+    {
+      onSuccess: () => setFifoSellMFGroup(null),
+      onError: (e: any) => showToast?.(`Failed to save sale: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: saveAddLot, loading: savingAddLot } = useAsyncAction(
+    async (data: any) => {
+      await addItem("mutualFunds", data);
+    },
+    {
+      onSuccess: () => setAddLotGroup(null),
+      onError: (e: any) => showToast?.(`Failed to add lot: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
 
   const toggleLotExpand = (gKey: string) => {
     setLotExpandedGroups((prev) => {
@@ -10601,9 +10853,13 @@ function MFSection({
           {showCsvImport && (
             <div style={{ marginBottom: 16 }}>
               <MFCsvPanel
-                onImport={(rows: any[]) => {
-                  handleImport(rows);
-                  setShowCsvImport(false);
+                onImport={async (rows: any[]) => {
+                  try {
+                    await handleImport(rows);
+                    setShowCsvImport(false);
+                  } catch (e: any) {
+                    showToast?.(`Failed to import: ${e?.message || "Unknown error"}`, "error");
+                  }
                 }}
                 onClose={() => setShowCsvImport(false)}
               />
@@ -12392,10 +12648,8 @@ function MFSection({
         <EditMFModal
           mf={editMF}
           onClose={() => setEditMF(null)}
-          onSave={(updated: any) => {
-            updateItem("mutualFunds", editMF.id, updated);
-            setEditMF(null);
-          }}
+          onSave={(updated: any) => saveMFEdit(editMF.id, updated)}
+          saving={savingMFEdit}
           activeProfile={activeProfile}
         />
       )}
@@ -12403,70 +12657,28 @@ function MFSection({
         <SellMFModal
           mf={sellMF}
           onClose={() => setSellMF(null)}
-          onSave={(sellRecord: any, remainingUnits: number) => {
-            addItem("mfSells", sellRecord);
-            if (remainingUnits <= 0) removeItem("mutualFunds", sellMF.id);
-            else {
-              const newInvested = Number(sellMF.buyNav || 0) * remainingUnits;
-              updateItem("mutualFunds", sellMF.id, {
-                units: String(remainingUnits),
-                invested: String(
-                  newInvested ||
-                    (Number(sellMF.invested || 0) * remainingUnits) / Number(sellMF.units)
-                ),
-              });
-            }
-            setSellMF(null);
-          }}
+          onSave={(sellRecord: any, remainingUnits: number) =>
+            saveMFSell(sellMF, sellRecord, remainingUnits)
+          }
+          saving={savingMFSell}
         />
       )}
       {fifoSellMFGroup && (
         <FifoSellMFModal
           group={fifoSellMFGroup}
           onClose={() => setFifoSellMFGroup(null)}
-          onSave={(allocs: any[], sellNav: number, sellDate: string) => {
-            allocs.forEach((alloc: any, i: number) => {
-              addItem("mfSells", {
-                id: `mfs-${Date.now()}-${i}`,
-                owner: alloc.lot.owner || "self",
-                scheme: fifoSellMFGroup.fundName || fifoSellMFGroup.schemeName,
-                // Preserved from the live lot so CapitalGainsTab.isEquityMF() can
-                // use the user's actual Equity/Debt classification instead of
-                // falling back to guessing from the fund name text — see the
-                // matching comment in SellMFModal's single-lot sell path above.
-                category: alloc.lot.category || "",
-                units: alloc.consume,
-                buyNav: alloc.buyNav,
-                buyDate: alloc.lot.buyDate || "",
-                sellNav,
-                sellDate,
-                profit: Number(alloc.pnl.toFixed(2)),
-              });
-              if (alloc.fullyConsumed) removeItem("mutualFunds", alloc.lot.id);
-              else {
-                const remaining = Number(alloc.lot.units) - alloc.consume;
-                const newInvested = Number(alloc.lot.buyNav || 0) * remaining;
-                updateItem("mutualFunds", alloc.lot.id, {
-                  units: String(remaining),
-                  invested: String(
-                    newInvested ||
-                      (Number(alloc.lot.invested || 0) * remaining) / Number(alloc.lot.units)
-                  ),
-                });
-              }
-            });
-            setFifoSellMFGroup(null);
-          }}
+          onSave={(allocs: any[], sellNav: number, sellDate: string) =>
+            saveFifoSell(fifoSellMFGroup, allocs, sellNav, sellDate)
+          }
+          saving={savingFifoSell}
         />
       )}
       {addLotGroup && (
         <AddLotMFModal
           group={addLotGroup}
           onClose={() => setAddLotGroup(null)}
-          onSave={(data: any) => {
-            addItem("mutualFunds", data);
-            setAddLotGroup(null);
-          }}
+          onSave={(data: any) => saveAddLot(data)}
+          saving={savingAddLot}
         />
       )}
     </div>
@@ -12474,7 +12686,7 @@ function MFSection({
 }
 
 /* ── Add Lot MF Modal ──────────────────────────────────────────────── */
-function AddLotMFModal({ group, onClose, onSave }: any) {
+function AddLotMFModal({ group, onClose, onSave, saving }: any) {
   const ref = group.refLot || {};
   const [f, setF] = useState({
     buyDate: today(),
@@ -12672,13 +12884,19 @@ function AddLotMFModal({ group, onClose, onSave }: any) {
         </div>
       )}
 
-      <ModalActions onSave={handleSave} onClose={onClose} saveLabel="Add Lot" />
+      <ModalActions
+        onSave={handleSave}
+        onClose={onClose}
+        saveLabel="Add Lot"
+        disabled={saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
 
 /* ── Sell MF Modal ─────────────────────────────────────────────────── */
-function SellMFModal({ mf, onClose, onSave }: any) {
+function SellMFModal({ mf, onClose, onSave, saving }: any) {
   const totalUnits = Number(mf.units) || 0;
   const buyNav = Number(mf.buyNav) || 0;
   const currentNav = Number(mf.currentNav) || 0;
@@ -12837,13 +13055,19 @@ function SellMFModal({ mf, onClose, onSave }: any) {
           )}
         </div>
       )}
-      <ModalActions onSave={handleSave} onClose={onClose} saveLabel="Confirm Sell" />
+      <ModalActions
+        onSave={handleSave}
+        onClose={onClose}
+        saveLabel="Confirm Sell"
+        disabled={saving}
+        loading={saving}
+      />
     </Modal>
   );
 }
 
 /* ── Bulk Sell MF Modal ─────────────────────────────────────────────── */
-function FifoSellMFModal({ group, onClose, onSave }: any) {
+function FifoSellMFModal({ group, onClose, onSave, saving }: any) {
   const lots = group.lots;
   const totalUnits = lots.reduce((s: number, l: any) => s + (Number(l.units) || 0), 0);
 
@@ -13233,15 +13457,17 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
         onSave={() => isValid && onSave(allocs, sellNavNum, f.sellDate)}
         onClose={onClose}
         saveLabel="Confirm Sell"
-        disabled={!isValid || allocs.length === 0}
+        disabled={!isValid || allocs.length === 0 || saving}
+        loading={saving}
       />
     </Modal>
   );
 }
 
 /* ── Dividend Tracker ──────────────────────────────────────────────── */
-const DividendTracker = ({ state, addItem, removeItem }: any) => {
+const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
   const [showForm, setShowForm] = React.useState(false);
+  const [savingDividend, setSavingDividend] = React.useState(false);
   const [form, setForm] = React.useState({
     symbol: "",
     fundName: "",
@@ -13473,30 +13699,39 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
               variant="accent"
               size="sm"
               style={{ marginTop: 12 }}
-              onClick={() => {
+              disabled={savingDividend}
+              loading={savingDividend}
+              onClick={async () => {
                 if (!form.amount) return;
-                addItem("dividends", {
-                  symbol: form.symbol,
-                  fundName: form.fundName,
-                  type: form.type,
-                  amount: Number(form.amount) || 0,
-                  tds: Number(form.tds) || 0,
-                  paymentDate: form.paymentDate,
-                  fy: form.fy,
-                  note: form.note,
-                  owner: "self",
-                });
-                setForm({
-                  symbol: "",
-                  fundName: "",
-                  type: "stock",
-                  amount: "",
-                  tds: "",
-                  paymentDate: today(),
-                  fy: state?.profile?.fy || getCurrentFY(),
-                  note: "",
-                });
-                setShowForm(false);
+                setSavingDividend(true);
+                try {
+                  await addItem("dividends", {
+                    symbol: form.symbol,
+                    fundName: form.fundName,
+                    type: form.type,
+                    amount: Number(form.amount) || 0,
+                    tds: Number(form.tds) || 0,
+                    paymentDate: form.paymentDate,
+                    fy: form.fy,
+                    note: form.note,
+                    owner: "self",
+                  });
+                  setForm({
+                    symbol: "",
+                    fundName: "",
+                    type: "stock",
+                    amount: "",
+                    tds: "",
+                    paymentDate: today(),
+                    fy: state?.profile?.fy || getCurrentFY(),
+                    note: "",
+                  });
+                  setShowForm(false);
+                } catch (e: any) {
+                  showToast?.(`Failed to save dividend: ${e?.message || "Unknown error"}`, "error");
+                } finally {
+                  setSavingDividend(false);
+                }
               }}
             >
               Save Dividend
