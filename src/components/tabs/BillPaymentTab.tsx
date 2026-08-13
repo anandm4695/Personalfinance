@@ -31,6 +31,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // Bill category colors — fixed THEME tokens instead of raw hex so tags stay
 // theme-aware in dark mode and never coincidentally match a user-selectable
@@ -114,7 +115,7 @@ const EMPTY_PAYMENT = {
   notes: "",
 };
 
-function BillForm({ initial, onSave, onClose }: any) {
+function BillForm({ initial, onSave, onClose, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY_BILL, ...initial });
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
@@ -238,12 +239,12 @@ function BillForm({ initial, onSave, onClose }: any) {
           placeholder="Optional notes"
         />
       </Field>
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Bill" />
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Bill" disabled={saving} loading={saving} />
     </Modal>
   );
 }
 
-function PaymentForm({ bill, onSave, onClose }: any) {
+function PaymentForm({ bill, onSave, onClose, saving = false }: any) {
   const [form, setForm] = useState({ ...EMPTY_PAYMENT, amount: bill?.amount || "" });
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
@@ -313,12 +314,12 @@ function PaymentForm({ bill, onSave, onClose }: any) {
           />
         </Field>
       </div>
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Log Payment" />
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Log Payment" disabled={saving} loading={saving} />
     </Modal>
   );
 }
 
-export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) {
+export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToast }: any) {
   const { privacyMode } = usePrivacy();
   const bills: any[] = state.billPayments || [];
   const history: any[] = state.billPaymentHistory || [];
@@ -344,19 +345,30 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
     .filter((b) => !b.paid && b.daysLeft <= 7)
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
-  const saveBill = (data: any) => {
-    if (data.id && bills.find((b: any) => b.id === data.id)) {
-      updateItem("billPayments", data.id, data);
-    } else {
-      addItem("billPayments", data);
-    }
-    setModal(null);
-  };
+  const { run: saveBill, loading: savingBill } = useAsyncAction(
+    async (data: any) => {
+      if (data.id && bills.find((b: any) => b.id === data.id)) {
+        await updateItem("billPayments", data.id, data);
+      } else {
+        await addItem("billPayments", data);
+      }
+    },
+    { onSuccess: () => setModal(null), onError: (e: any) => showToast?.(`Failed to save bill: ${e?.message || "Unknown error"}`, "error") }
+  );
 
-  const savePayment = (data: any) => {
-    addItem("billPaymentHistory", data);
-    setPayModal(null);
-  };
+  const { run: savePayment, loading: savingPayment } = useAsyncAction(
+    async (data: any) => { await addItem("billPaymentHistory", data); },
+    { onSuccess: () => setPayModal(null), onError: (e: any) => showToast?.(`Failed to save payment: ${e?.message || "Unknown error"}`, "error") }
+  );
+
+  const { run: deleteBill } = useAsyncAction(
+    async (id: string) => { await removeItem("billPayments", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete bill: ${e?.message || "Unknown error"}`, "error") }
+  );
+  const { run: deletePaymentRecord } = useAsyncAction(
+    async (id: string) => { await removeItem("billPaymentHistory", id); },
+    { onError: (e: any) => showToast?.(`Failed to delete payment record: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   return (
     <div>
@@ -565,7 +577,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     <button
                       onClick={() => {
                         if (window.confirm(`Delete "${b.nickname || b.provider}"?`))
-                          removeItem("billPayments", b.id);
+                          deleteBill(b.id);
                       }}
                       aria-label="Delete bill"
                       className="icon-btn danger"
@@ -658,7 +670,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                                       `Delete this payment record from ${h.paidDate}? This cannot be undone.`
                                     )
                                   ) {
-                                    removeItem("billPaymentHistory", h.id);
+                                    deletePaymentRecord(h.id);
                                   }
                                 }}
                                 aria-label="Delete payment record"
@@ -695,10 +707,16 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
           initial={modal?.id ? modal : undefined}
           onSave={saveBill}
           onClose={() => setModal(null)}
+          saving={savingBill}
         />
       )}
       {payModal !== null && (
-        <PaymentForm bill={payModal} onSave={savePayment} onClose={() => setPayModal(null)} />
+        <PaymentForm
+          bill={payModal}
+          onSave={savePayment}
+          onClose={() => setPayModal(null)}
+          saving={savingPayment}
+        />
       )}
     </div>
   );
