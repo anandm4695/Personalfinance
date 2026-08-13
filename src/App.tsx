@@ -3705,6 +3705,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  showToast={showToast}
                 />
               )}
               {tab === "goals" && (

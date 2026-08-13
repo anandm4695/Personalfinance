@@ -26,6 +26,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 // Add `years` to `date` without JS's Date.setFullYear() month-overflow bug: a Feb-29
@@ -171,7 +172,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
   );
 };
 
-const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
+const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any) => {
   const { familyProfiles } = useMasterData();
   const todayStr = (() => {
     const d = new Date();
@@ -1583,6 +1584,8 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         onSave={handleSave}
         onClose={onClose}
         saveLabel={isEdit ? "Update Policy" : "Add Policy"}
+        disabled={saving}
+        loading={saving}
       />
     </Modal>
   );
@@ -1668,7 +1671,7 @@ const fmtDate = (dateStr: string) => {
   }
 };
 
-export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updateItem }: any) {
+export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updateItem, showToast }: any) {
   const { privacyMode } = usePrivacy();
   const [modal, setModal] = useState<null | "lic" | "term" | "invest">(null);
   const [editPolicy, setEditPolicy] = useState<any>(null);
@@ -1726,16 +1729,25 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     none: "No income data to calculate adequacy",
   }[adequacyLevel];
 
-  const handleSave = (key: string, data: any, isEdit: boolean = false) => {
-    if (isEdit) {
-      updateItem(key, data.id, data);
-    } else {
-      const { id: _ignored, ...itemWithoutId } = data;
-      addItem(key, itemWithoutId);
+  const { run: handleSave, loading: savingPolicy } = useAsyncAction(
+    async (key: string, data: any, isEdit: boolean = false) => {
+      if (isEdit) {
+        await updateItem(key, data.id, data);
+      } else {
+        const { id: _ignored, ...itemWithoutId } = data;
+        await addItem(key, itemWithoutId);
+      }
+    },
+    {
+      onSuccess: () => { setModal(null); setEditPolicy(null); },
+      onError: (e: any) => showToast?.(`Failed to save policy: ${e?.message || "Unknown error"}`, "error"),
     }
-    setModal(null);
-    setEditPolicy(null);
-  };
+  );
+
+  const { run: deletePolicy, loading: deletingPolicy } = useAsyncAction(
+    async (key: string, id: string) => { await removeItem(key, id); },
+    { onError: (e: any) => showToast?.(`Failed to delete policy: ${e?.message || "Unknown error"}`, "error") }
+  );
 
   const downloadCSV = () => {
     const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -2372,7 +2384,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <button
                           onClick={() => {
                             if (window.confirm(`Delete "${l.planName}" policy?`))
-                              removeItem("lic", l.id);
+                              deletePolicy("lic", l.id);
                           }}
                           aria-label={`Delete ${l.planName} policy`}
                           title="Delete policy"
@@ -2699,7 +2711,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <button
                           onClick={() => {
                             if (window.confirm(`Delete "${t.planName || "Term Plan"}"?`))
-                              removeItem("termPlans", t.id);
+                              deletePolicy("termPlans", t.id);
                           }}
                           aria-label={`Delete ${t.planName || "Term Plan"}`}
                           title="Delete policy"
@@ -3032,7 +3044,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <button
                           onClick={() => {
                             if (window.confirm(`Delete "${ip.planName || "Investment Plan"}"?`))
-                              removeItem("investmentPlans", ip.id);
+                              deletePolicy("investmentPlans", ip.id);
                           }}
                           aria-label={`Delete ${ip.planName || "Investment Plan"}`}
                           title="Delete policy"
@@ -3297,6 +3309,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             setEditPolicy(null);
           }}
           onSave={handleSave}
+          saving={savingPolicy}
         />
       )}
     </div>
