@@ -297,65 +297,72 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
     const existingMFs = state.mutualFunds || [];
     setImportProgress({ done: 0, total: toImport.length });
 
-    for (let i = 0; i < toImport.length; i++) {
-      const f = toImport[i];
-      // Match by folio when both sides have one recorded — the same scheme name
-      // can legitimately exist under multiple folios, so name must never override
-      // a folio mismatch. Only fall back to name matching when neither side has
-      // folio info to compare.
-      const existing = existingMFs.find((m) => {
-        if (m.folioNumber && f.folio) return m.folioNumber === f.folio;
-        return (
-          !m.folioNumber &&
-          !f.folio &&
-          (m.name || m.scheme || "").toLowerCase() === f.scheme.toLowerCase()
-        );
-      });
+    try {
+      for (let i = 0; i < toImport.length; i++) {
+        const f = toImport[i];
+        // Match by folio when both sides have one recorded — the same scheme name
+        // can legitimately exist under multiple folios, so name must never override
+        // a folio mismatch. Only fall back to name matching when neither side has
+        // folio info to compare.
+        const existing = existingMFs.find((m) => {
+          if (m.folioNumber && f.folio) return m.folioNumber === f.folio;
+          return (
+            !m.folioNumber &&
+            !f.folio &&
+            (m.name || m.scheme || "").toLowerCase() === f.scheme.toLowerCase()
+          );
+        });
 
-      if (existing) {
-        // A re-import overwrites `units` with the CAS closing balance but previously left
-        // `invested` (cost basis) untouched — if units changed since the last import (new
-        // SIP installments, or a partial redemption), that silently corrupts the average
-        // cost per unit and any downstream P&L/LTCG math. Scale the cost basis by the same
-        // units ratio instead, same "avg cost per unit x remaining/new units" convention
-        // used for the redemption-cost-basis fix below in mergeMode. This snapshot format
-        // has no per-transaction cost data, so it's a best-effort carry-forward of the
-        // existing average cost, not a precise recomputation of newly purchased units.
-        const existingUnits = parseFloat(existing.units || "0");
-        const existingInvested = parseFloat(existing.invested || "0");
-        const newUnits = parseFloat(f.units || "0");
-        const avgCostPerUnit = existingUnits > 0 ? existingInvested / existingUnits : 0;
-        const newInvested =
-          avgCostPerUnit > 0 && newUnits !== existingUnits
-            ? avgCostPerUnit * newUnits
-            : existingInvested;
-        await updateItem("mutualFunds", existing.id, {
-          units: f.units,
-          currentNav: f.nav,
-          name: f.scheme,
-          category: f.category,
-          folioNumber: f.folio || existing.folioNumber,
-          invested: String(newInvested.toFixed(2)),
-        });
-      } else {
-        await addItem("mutualFunds", {
-          name: f.scheme,
-          category: f.category,
-          folioNumber: f.folio,
-          units: f.units,
-          buyNav: f.value && f.units ? f.value / f.units : "",
-          currentNav: f.nav,
-          invested: f.value || "",
-          owner,
-        });
+        if (existing) {
+          // A re-import overwrites `units` with the CAS closing balance but previously left
+          // `invested` (cost basis) untouched — if units changed since the last import (new
+          // SIP installments, or a partial redemption), that silently corrupts the average
+          // cost per unit and any downstream P&L/LTCG math. Scale the cost basis by the same
+          // units ratio instead, same "avg cost per unit x remaining/new units" convention
+          // used for the redemption-cost-basis fix below in mergeMode. This snapshot format
+          // has no per-transaction cost data, so it's a best-effort carry-forward of the
+          // existing average cost, not a precise recomputation of newly purchased units.
+          const existingUnits = parseFloat(existing.units || "0");
+          const existingInvested = parseFloat(existing.invested || "0");
+          const newUnits = parseFloat(f.units || "0");
+          const avgCostPerUnit = existingUnits > 0 ? existingInvested / existingUnits : 0;
+          const newInvested =
+            avgCostPerUnit > 0 && newUnits !== existingUnits
+              ? avgCostPerUnit * newUnits
+              : existingInvested;
+          await updateItem("mutualFunds", existing.id, {
+            units: f.units,
+            currentNav: f.nav,
+            name: f.scheme,
+            category: f.category,
+            folioNumber: f.folio || existing.folioNumber,
+            invested: String(newInvested.toFixed(2)),
+          });
+        } else {
+          await addItem("mutualFunds", {
+            name: f.scheme,
+            category: f.category,
+            folioNumber: f.folio,
+            units: f.units,
+            buyNav: f.value && f.units ? f.value / f.units : "",
+            currentNav: f.nav,
+            invested: f.value || "",
+            owner,
+          });
+        }
+        setImportProgress({ done: i + 1, total: toImport.length });
       }
-      setImportProgress({ done: i + 1, total: toImport.length });
-    }
 
-    setImported(toImport.length);
-    setImporting(false);
-    setImportProgress(null);
-    setParsedFunds([]);
+      setImported(toImport.length);
+      setParsedFunds([]);
+    } catch (e) {
+      setParseError(
+        `Import failed partway through (${e?.message || "unknown error"}) — some holdings above may already be saved. Re-check your list before importing again.`
+      );
+    } finally {
+      setImporting(false);
+      setImportProgress(null);
+    }
   };
 
   const stats = useMemo(() => {

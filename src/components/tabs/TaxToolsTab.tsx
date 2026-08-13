@@ -989,6 +989,8 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
       });
       setNewEntry({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
       setShowAdd(false);
+    } catch (e) {
+      showToast?.(`Failed to save 26AS entry: ${e?.message || "Unknown error"}`, "error");
     } finally {
       setSaving(false);
     }
@@ -1448,7 +1450,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
 
 // ── Main Tab ─────────────────────────────────────────────────────────────────
 
-export const TaxToolsTab = ({ state, metrics, addItem, removeItem, updateItem }) => {
+export const TaxToolsTab = ({ state, metrics, addItem, removeItem, updateItem, showToast }) => {
   const [activeSection, setActiveSection] = useState("advance");
 
   const sections = [

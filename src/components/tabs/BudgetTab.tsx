@@ -92,9 +92,11 @@ export function BudgetTab({
   updateItem,
   metrics: _metrics,
   activeProfile = "all",
+  showToast,
 }: any) {
   const { privacyMode } = usePrivacy();
   const { familyProfiles } = useMasterData();
+  const [postingId, setPostingId] = useState<string | null>(null);
   const getOwnerName = (ownerId: string) =>
     familyProfiles.find((p: any) => p.id === ownerId)?.name || ownerId || "Self";
   const [activeSubTab, setActiveSubTab] = useState("budget"); // "budget" or "recurring"
@@ -494,15 +496,22 @@ export function BudgetTab({
 
     const defaultAccId = expense.accountId || state.bankAccounts[0]?.id || "";
 
-    await addItem("transactions", {
-      owner: expense.owner || "self",
-      date: payDate,
-      accountId: defaultAccId,
-      amount: expense.amount,
-      type: "debit",
-      category: expense.category,
-      note: `${expense.name} (Recurring)`,
-    });
+    setPostingId(expense.id);
+    try {
+      await addItem("transactions", {
+        owner: expense.owner || "self",
+        date: payDate,
+        accountId: defaultAccId,
+        amount: expense.amount,
+        type: "debit",
+        category: expense.category,
+        note: `${expense.name} (Recurring)`,
+      });
+    } catch (e: any) {
+      showToast?.(`Failed to record payment: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setPostingId(null);
+    }
   };
 
   const downloadCSV = () => {
@@ -2046,6 +2055,8 @@ export function BudgetTab({
                             variant="accent"
                             size="xs"
                             onClick={() => handleQuickPostTransaction(re)}
+                            loading={postingId === re.id}
+                            disabled={postingId === re.id}
                             style={{
                               padding: "4px 8px",
                               fontSize: 11,

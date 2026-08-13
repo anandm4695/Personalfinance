@@ -47,6 +47,7 @@ import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const GOLD_TYPES = [
@@ -77,7 +78,7 @@ const SORT_OPTIONS = [
   { id: "name", label: "Name (A-Z)" },
 ];
 
-export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSettings }) => {
+export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSettings, showToast }) => {
   const { familyProfiles } = useMasterData();
   const { privacyMode } = usePrivacy();
   const [showModal, setShowModal] = useState(false);
@@ -240,16 +241,24 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
     );
   };
 
-  const handleSave = async () => {
-    if (editingId) {
-      await updateItem("goldHoldings", editingId, form);
-    } else {
-      await addItem("goldHoldings", { ...form, id: uid() });
+  const { run: handleSave, loading: savingGold } = useAsyncAction(
+    async () => {
+      if (editingId) {
+        await updateItem("goldHoldings", editingId, form);
+      } else {
+        await addItem("goldHoldings", { ...form, id: uid() });
+      }
+    },
+    {
+      onSuccess: () => {
+        setShowModal(false);
+        setForm({ ...EMPTY_GOLD });
+        setEditingId(null);
+      },
+      onError: (e) =>
+        showToast?.(`Failed to save gold holding: ${e?.message || "Unknown error"}`, "error"),
     }
-    setShowModal(false);
-    setForm({ ...EMPTY_GOLD });
-    setEditingId(null);
-  };
+  );
 
   const handleEdit = (h) => {
     setForm({
@@ -982,7 +991,8 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
           <ModalActions
             onSave={handleSave}
             onClose={() => setShowModal(false)}
-            disabled={!form.grams}
+            disabled={!form.grams || savingGold}
+            loading={savingGold}
           />
         </Modal>
       )}

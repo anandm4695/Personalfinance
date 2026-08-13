@@ -3717,6 +3717,7 @@ function FinanceDashboard() {
                   updateItem={updateItem}
                   metrics={metrics}
                   activeProfile={activeProfile}
+                  showToast={showToast}
                 />
               )}
               {tab === "ai" && <AIAssistantTab state={filteredState} metrics={metrics} />}
@@ -3747,6 +3748,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
+                  showToast={showToast}
                 />
               )}
               {tab === "annualreport" && (
@@ -3862,6 +3864,7 @@ function FinanceDashboard() {
                   removeItem={removeItem}
                   updateItem={updateItem}
                   updateSettings={updateSettings}
+                  showToast={showToast}
                 />
               )}
               {tab === "healthinsurance" && (
