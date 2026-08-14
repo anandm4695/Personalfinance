@@ -996,9 +996,12 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
     }
   };
 
-  const deleteEntry = (id, deductor) => {
-    if (window.confirm(`Delete this 26AS entry from ${deductor || "this deductor"}? This cannot be undone.`)) {
-      removeItem("form26as", id);
+  const deleteEntry = async (id, deductor) => {
+    if (!window.confirm(`Delete this 26AS entry from ${deductor || "this deductor"}? This cannot be undone.`)) return;
+    try {
+      await removeItem("form26as", id);
+    } catch (e) {
+      showToast?.(`Failed to delete 26AS entry: ${e?.message || "Unknown error"}`, "error");
     }
   };
 
