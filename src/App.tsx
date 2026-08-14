@@ -2053,6 +2053,14 @@ function FinanceDashboard() {
             cleanItem[k] = isNaN(parsed) ? null : parsed;
           }
         }
+        // health_insurance.policy_number/policy_name are `NOT NULL DEFAULT ''` in the
+        // DB but genuinely optional in the UI (no required-field validation) — the
+        // blanket ""->null conversion above turns a left-blank field into an explicit
+        // null, which overrides the column default and fails the NOT NULL constraint.
+        if (key === "healthInsurance") {
+          if (cleanItem.policy_number === null) cleanItem.policy_number = "";
+          if (cleanItem.policy_name === null) cleanItem.policy_name = "";
+        }
 
         // Use upsert (INSERT ... ON CONFLICT DO UPDATE) so retries are idempotent.
         // If the first request reached Supabase but the response was lost, a plain INSERT
@@ -2829,6 +2837,14 @@ function FinanceDashboard() {
             finalPatch[k] = isNaN(parsed) ? null : parsed;
           }
         }
+        // health_insurance.policy_number/policy_name are `NOT NULL DEFAULT ''` in the
+        // DB but genuinely optional in the UI (no required-field validation) — the
+        // blanket ""->null conversion above turns a left-blank field into an explicit
+        // null, which overrides the column default and fails the NOT NULL constraint.
+        if (key === "healthInsurance") {
+          if (finalPatch.policy_number === null) finalPatch.policy_number = "";
+          if (finalPatch.policy_name === null) finalPatch.policy_name = "";
+        }
 
         const isNetErr = (msg?: string) =>
           !!(
@@ -3112,7 +3128,13 @@ function FinanceDashboard() {
       ...push("life_events", data.lifeEvents),
       ...push("watchlists", data.wishlists),
       ...push("watchlist_items", data.wishlistItems),
-      ...push("health_insurance", data.healthInsurance),
+      ...push("health_insurance", data.healthInsurance, (item) => ({
+        // policy_number/policy_name are `NOT NULL DEFAULT ''` — cleanItem's blanket
+        // ""->null conversion breaks the NOT NULL constraint for a legitimately
+        // blank (optional in the UI) field. See the same guard in addItem/updateItem.
+        policy_number: item.policyNumber || "",
+        policy_name: item.policyName || "",
+      })),
       ...push("credit_scores", data.creditScores),
       ...push("bill_payments", data.billPayments),
       ...push("bill_payment_history", data.billPaymentHistory),
