@@ -3279,52 +3279,82 @@ function FinanceDashboard() {
     }
     const input = e.target;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      let parsed;
-      try {
-        parsed = JSON.parse(ev.target.result);
-      } catch {
-        showToast("Invalid backup file — check JSON format", "error");
-        input.value = "";
-        return;
-      }
-      if (!parsed || typeof parsed !== "object" || !parsed.profile || typeof parsed.profile !== "object") {
-        showToast("Invalid backup — not a valid finance export", "error");
-        input.value = "";
-        return;
-      }
-
-      const fileRecords = countRecords(parsed);
-      const currentRecords = countRecords(state);
-      const backupDateStr = parsed._exportedAt
-        ? new Date(parsed._exportedAt).toLocaleString()
-        : parsed._exportDate || "an unknown date";
-
-      setConfirmDialog({
-        message:
-          `Restore "${file.name}"?\n` +
-          `Backup created: ${backupDateStr} · ${fileRecords} records\n\n` +
-          `This will permanently replace your current data (${currentRecords} records) on this device` +
-          `${session?.user?.id && session.user.id !== "offline-user" ? " and in the cloud" : ""}. ` +
-          `This cannot be undone — export a fresh backup first if you want to keep what you have now.`,
-        confirmLabel: "Yes, restore backup",
-        onConfirm: async () => {
-          setState({ ...DEFAULT_STATE, ...parsed });
-          showToast("Restoring backup and syncing to cloud...");
-          logActivity("IMPORT", `Imported backup from ${file.name}`, { fileName: file.name });
-          try {
-            await pushBackupToSupabase(parsed);
-            showToast("Backup fully restored ✓", "success");
-          } catch (err) {
-            console.error("Cloud sync after restore failed", err);
-            showToast(
-              "Backup restored locally, but syncing to the cloud failed — check your connection.",
-              "warn"
-            );
-          }
-        },
-      });
+    // On macOS, files inside an iCloud-synced folder (Downloads, Desktop) that haven't
+    // fully downloaded to disk yet can make the OS file picker return a file the
+    // browser then fails to read — with no onload AND no thrown exception, just
+    // silence. Without this handler that read the same as "the button did nothing."
+    reader.onerror = () => {
+      console.error("Backup file read failed", reader.error);
+      showToast(
+        "Couldn't read that file — if it's in iCloud Drive/Downloads, make sure it's fully downloaded (not just a cloud placeholder) and try again.",
+        "error"
+      );
       input.value = "";
+    };
+    reader.onload = (ev) => {
+      // Everything below (not just JSON.parse) must be guarded — an uncaught
+      // exception inside a FileReader callback is invisible to the user: no
+      // toast, no error boundary, nothing but a silent console.error. That
+      // reads to the user as "I picked the file and nothing happened."
+      try {
+        let parsed;
+        try {
+          parsed = JSON.parse(ev.target.result);
+        } catch {
+          showToast("Invalid backup file — check JSON format", "error");
+          input.value = "";
+          return;
+        }
+        if (
+          !parsed ||
+          typeof parsed !== "object" ||
+          !parsed.profile ||
+          typeof parsed.profile !== "object"
+        ) {
+          showToast("Invalid backup — not a valid finance export", "error");
+          input.value = "";
+          return;
+        }
+
+        const fileRecords = countRecords(parsed);
+        const currentRecords = countRecords(state);
+        const backupDateStr = parsed._exportedAt
+          ? new Date(parsed._exportedAt).toLocaleString()
+          : parsed._exportDate || "an unknown date";
+
+        setConfirmDialog({
+          message:
+            `Restore "${file.name}"?\n` +
+            `Backup created: ${backupDateStr} · ${fileRecords} records\n\n` +
+            `This will permanently replace your current data (${currentRecords} records) on this device` +
+            `${session?.user?.id && session.user.id !== "offline-user" ? " and in the cloud" : ""}. ` +
+            `This cannot be undone — export a fresh backup first if you want to keep what you have now.`,
+          confirmLabel: "Yes, restore backup",
+          onConfirm: async () => {
+            setState({ ...DEFAULT_STATE, ...parsed });
+            showToast("Restoring backup and syncing to cloud...");
+            logActivity("IMPORT", `Imported backup from ${file.name}`, { fileName: file.name });
+            try {
+              await pushBackupToSupabase(parsed);
+              showToast("Backup fully restored ✓", "success");
+            } catch (err) {
+              console.error("Cloud sync after restore failed", err);
+              showToast(
+                "Backup restored locally, but syncing to the cloud failed — check your connection.",
+                "warn"
+              );
+            }
+          },
+        });
+        input.value = "";
+      } catch (err) {
+        console.error("Restore failed unexpectedly", err);
+        showToast(
+          `Restore failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+          "error"
+        );
+        input.value = "";
+      }
     };
     reader.readAsText(file);
   };
