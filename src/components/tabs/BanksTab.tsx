@@ -821,15 +821,20 @@ export function BanksTab({
         });
       } else {
         const totalSigned = ordered.reduce((s, t) => s + signed(t), 0);
-        let running = getDisplayBalance(acc) - totalSigned;
-        // A lone transaction has no reconstruction ambiguity to warn about: its
-        // resulting balance is exactly the account's current balance, not a guess
-        // that assumes untracked history doesn't exist. Treat it as confirmed so a
-        // freshly-created account's very first manual entry isn't flagged "estimated".
-        const soleTxn = ordered.length === 1;
+        const openingBalance = getDisplayBalance(acc) - totalSigned;
+        // openingBalance is what the account must have held *before* its earliest
+        // recorded transaction. When it's ~0, nothing was assumed to exist before
+        // this ledger started — every rupee of the current balance is accounted for
+        // by a transaction we have, so the reconstruction can't be hiding untracked
+        // history. That's only ever false when the account was created with a
+        // nonzero starting balance (a pre-existing account being logged from some
+        // point onward), which is the genuine "may not be the whole story" case the
+        // banner is meant to warn about.
+        const builtFromZero = Math.abs(openingBalance) < 0.01;
+        let running = openingBalance;
         ordered.forEach((t) => {
           running += signed(t);
-          map[t.id] = { value: running, confirmed: soleTxn };
+          map[t.id] = { value: running, confirmed: builtFromZero };
         });
       }
     });
