@@ -3651,6 +3651,7 @@ function FinanceDashboard() {
               {tab === "banks" && (
                 <BanksTab
                   state={filteredState}
+                  fullState={state}
                   addItem={addItem}
                   addTransactions={addTransactions}
                   removeItem={removeItem}

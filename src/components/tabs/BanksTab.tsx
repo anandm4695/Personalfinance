@@ -364,6 +364,7 @@ function getCategoryStyle(cat: string) {
 
 export function BanksTab({
   state,
+  fullState,
   addItem,
   addTransactions,
   removeItem,
@@ -709,15 +710,27 @@ export function BanksTab({
   // forward from the opening balance implied by that current balance. Computed
   // from the full unfiltered history so the figure stays the true historical
   // balance even while the table itself is filtered, searched, or re-sorted.
+  //
+  // Critically, this must use `fullState` (the raw, un-profile-filtered state from
+  // App.tsx), NOT `state` — when a specific family member is the active profile,
+  // `state` here is `filteredState`, which drops bank accounts AND transactions
+  // that belong to a different owner (App.tsx's getFilteredStateForProfile). A
+  // joint account or a transaction logged under a different owner than its
+  // account would then either vanish entirely (account filtered out) or silently
+  // undercount that account's real transaction history (some of its transactions
+  // filtered out while others remain), throwing every balance for that account
+  // off by a constant amount. `fullState` always has every account/transaction
+  // regardless of the active profile, so the passbook math stays correct.
+  const balanceSource = fullState || state;
   const balanceAfterTxn = useMemo(() => {
     const map: Record<string, number> = {};
     const byAccount: Record<string, any[]> = {};
-    state.transactions.forEach((t: any) => {
+    (balanceSource.transactions || []).forEach((t: any) => {
       if (!t.accountId) return;
       (byAccount[t.accountId] ||= []).push(t);
     });
     Object.entries(byAccount).forEach(([accountId, txns]) => {
-      const acc = state.bankAccounts.find((a: any) => a.id === accountId);
+      const acc = (balanceSource.bankAccounts || []).find((a: any) => a.id === accountId);
       if (!acc) return;
       const signed = (t: any) => (t.type === "credit" ? Number(t.amount || 0) : -Number(t.amount || 0));
       // Sort oldest → newest by date. There's no reliable creation-timestamp field, so
@@ -741,7 +754,7 @@ export function BanksTab({
       });
     });
     return map;
-  }, [state.transactions, state.bankAccounts]);
+  }, [balanceSource.transactions, balanceSource.bankAccounts]);
 
   const totalBalance = state.bankAccounts.reduce(
     (acc: any, a: any) => acc + getDisplayBalance(a),
