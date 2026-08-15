@@ -596,6 +596,13 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         }
 
         const note = noteIdx >= 0 ? cols[noteIdx] || "" : "";
+        // Real bank statement exports carry their own per-row closing balance —
+        // ground truth from the bank, not something the app should re-derive.
+        // BanksTab's running-balance column prefers this over reconstructing
+        // backward from today's balance, which breaks down when the imported
+        // rows only cover a slice of the account's real history.
+        const statementBalance =
+          balIdx >= 0 && cols[balIdx] ? String(cleanNumeric(cols[balIdx])) : "";
 
         const row = {
           date: isoDate,
@@ -606,6 +613,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           narration,
           referenceNumber: "",
           accountId: smartAccountId || firstAccountId,
+          statementBalance,
           selected: true,
           isDuplicate: false,
         };

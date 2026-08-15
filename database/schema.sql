@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   linked_id               text,                               -- 43
   reference_number        text,                               -- 46
   linked_principal_amount numeric,                            -- 82
+  statement_balance       numeric,                             -- 93 (bank-stated closing balance from CSV)
   created_at              timestamp with time zone DEFAULT now()
 );
 

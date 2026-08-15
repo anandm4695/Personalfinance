@@ -182,6 +182,8 @@ export const NUMERIC_COLS = new Set([
   "other_deductions",
   "total_deductions",
   "net_salary",
+  // transactions
+  "statement_balance",
 ]);
 
 export const TABLE_MAP: Record<string, string> = {

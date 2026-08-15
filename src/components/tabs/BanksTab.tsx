@@ -705,11 +705,27 @@ export function BanksTab({
   const getDisplayBalance = (acc: any): number => Number(acc?.balance || 0);
 
   // Running balance after each transaction — a passbook-style "Balance" column.
-  // acc.balance only holds the CURRENT balance, so we walk each account's full
-  // transaction history (not the filtered/paged view) oldest-first and work
-  // forward from the opening balance implied by that current balance. Computed
-  // from the full unfiltered history so the figure stays the true historical
-  // balance even while the table itself is filtered, searched, or re-sorted.
+  // acc.balance only holds the CURRENT balance, so by default we walk each
+  // account's full transaction history (not the filtered/paged view) oldest-first
+  // and work forward from the opening balance implied by that current balance.
+  // Computed from the full unfiltered history so the figure stays the true
+  // historical balance even while the table itself is filtered, searched, or
+  // re-sorted.
+  //
+  // That backward-from-today reconstruction is only valid when the entered
+  // transactions are a COMPLETE, gapless record of the account's real activity —
+  // which doesn't hold for an account whose transactions came from importing an
+  // old bank statement CSV covering just a slice of its history (e.g. a handful
+  // of months from years ago), while `acc.balance` reflects today. Reconstructing
+  // backward from today across a huge unrecorded gap produces balances that don't
+  // match what the bank statement actually said. Real bank CSV exports carry
+  // their own per-row closing balance, though, which CsvImportModal's Smart
+  // Import already detects and now stores on the transaction as
+  // `statementBalance` — that's ground truth from the bank itself, so it takes
+  // priority: the walk resets to it whenever present, and only computes forward
+  // via debit/credit deltas across the gaps between ground-truth points (or, for
+  // an account with no statement-sourced transactions at all, via the same
+  // backward-from-current-balance approach as before).
   //
   // Critically, this must use `fullState` (the raw, un-profile-filtered state from
   // App.tsx), NOT `state` — when a specific family member is the active profile,
@@ -722,8 +738,14 @@ export function BanksTab({
   // off by a constant amount. `fullState` always has every account/transaction
   // regardless of the active profile, so the passbook math stays correct.
   const balanceSource = fullState || state;
+  // Each entry also carries `confirmed` — true only when the value came directly
+  // from a bank-stated `statementBalance`, false when it's computed via deltas
+  // (whether bridging a gap between two ground-truth points, or, for an account
+  // with no statement data at all, reconstructed backward from today's balance).
+  // The table/drawer/export all show a visual cue for unconfirmed figures so an
+  // incomplete import history reads as "estimated", not as a silently wrong fact.
   const balanceAfterTxn = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { value: number; confirmed: boolean }> = {};
     const byAccount: Record<string, any[]> = {};
     (balanceSource.transactions || []).forEach((t: any) => {
       if (!t.accountId) return;
@@ -733,6 +755,12 @@ export function BanksTab({
       const acc = (balanceSource.bankAccounts || []).find((a: any) => a.id === accountId);
       if (!acc) return;
       const signed = (t: any) => (t.type === "credit" ? Number(t.amount || 0) : -Number(t.amount || 0));
+      const statementBalanceOf = (t: any): number | null => {
+        if (t.statementBalance === undefined || t.statementBalance === null || t.statementBalance === "")
+          return null;
+        const n = Number(t.statementBalance);
+        return isNaN(n) ? null : n;
+      };
       // Sort oldest → newest by date. There's no reliable creation-timestamp field, so
       // same-day entries are tied by array order — but reversed (descending idx) so the
       // walk processes them in the OPPOSITE order the ledger displays them (which sorts
@@ -746,12 +774,32 @@ export function BanksTab({
           return byDate !== 0 ? byDate : b.idx - a.idx;
         })
         .map((x) => x.t);
-      const totalSigned = ordered.reduce((s, t) => s + signed(t), 0);
-      let running = getDisplayBalance(acc) - totalSigned;
-      ordered.forEach((t) => {
-        running += signed(t);
-        map[t.id] = running;
-      });
+
+      const hasGroundTruth = ordered.some((t) => statementBalanceOf(t) !== null);
+      if (hasGroundTruth) {
+        // Reset to the bank-stated balance whenever a row has one; compute forward
+        // via deltas everywhere else. Rows before the first ground-truth row (rare —
+        // a statement CSV normally states a balance on every line) are left unset
+        // rather than guessed, since there's nothing reliable to anchor them to.
+        let running: number | null = null;
+        ordered.forEach((t) => {
+          const stmt = statementBalanceOf(t);
+          if (stmt !== null) {
+            running = stmt;
+            map[t.id] = { value: running, confirmed: true };
+          } else if (running !== null) {
+            running += signed(t);
+            map[t.id] = { value: running, confirmed: false };
+          }
+        });
+      } else {
+        const totalSigned = ordered.reduce((s, t) => s + signed(t), 0);
+        let running = getDisplayBalance(acc) - totalSigned;
+        ordered.forEach((t) => {
+          running += signed(t);
+          map[t.id] = { value: running, confirmed: false };
+        });
+      }
     });
     return map;
   }, [balanceSource.transactions, balanceSource.bankAccounts]);
@@ -835,11 +883,22 @@ export function BanksTab({
 
   const exportTxnsToCSV = () => {
     if (!sortedTxns || sortedTxns.length === 0) return;
-    const headers = ["Date", "Account", "Type", "Category", "Note", "Reference Number", "Amount", "Balance"];
+    const headers = [
+      "Date",
+      "Account",
+      "Type",
+      "Category",
+      "Note",
+      "Reference Number",
+      "Amount",
+      "Balance",
+      "Balance Confirmed",
+    ];
     const csvRows = [
       headers.join(","),
       ...sortedTxns.map((t: any) => {
         const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
+        const bal = balanceAfterTxn[t.id];
         return [
           t.date || "",
           bank ? accountLabel(bank) : "",
@@ -848,7 +907,8 @@ export function BanksTab({
           t.note || "",
           t.referenceNumber || "",
           t.amount ?? "",
-          t.id in balanceAfterTxn ? balanceAfterTxn[t.id] : "",
+          bal ? bal.value : "",
+          bal ? (bal.confirmed ? "Yes" : "Estimated") : "",
         ]
           .map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`)
           .join(",");
@@ -2016,11 +2076,28 @@ export function BanksTab({
                   key: "balance",
                   header: "Balance",
                   align: "right",
-                  accessor: (t: any) => (
-                    <span style={{ color: THEME.ink, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
-                      {t.id in balanceAfterTxn ? <Prv>{fmtINRExact(balanceAfterTxn[t.id])}</Prv> : "—"}
-                    </span>
-                  ),
+                  accessor: (t: any) => {
+                    const bal = balanceAfterTxn[t.id];
+                    if (!bal) return <span style={{ color: THEME.muted }}>—</span>;
+                    return (
+                      <span
+                        style={{
+                          color: bal.confirmed ? THEME.ink : THEME.muted,
+                          fontVariantNumeric: "tabular-nums",
+                          fontWeight: bal.confirmed ? 700 : 600,
+                          fontStyle: bal.confirmed ? "normal" : "italic",
+                        }}
+                        title={
+                          bal.confirmed
+                            ? "Confirmed — the bank statement's own stated balance for this transaction"
+                            : "Estimated — no bank-stated balance on record for this transaction, computed from nearby transaction amounts"
+                        }
+                      >
+                        {!bal.confirmed && "~"}
+                        <Prv>{fmtINRExact(bal.value)}</Prv>
+                      </span>
+                    );
+                  },
                 },
               ]}
               data={pagedTxns}
@@ -2637,8 +2714,13 @@ export function BanksTab({
               )}
               {row("Account", bank ? accountLabel(bank) : null)}
               {row(
-                "Balance After",
-                t.id in balanceAfterTxn ? <Prv>{fmtINRExact(balanceAfterTxn[t.id])}</Prv> : null
+                balanceAfterTxn[t.id]?.confirmed ? "Balance After" : "Balance After (Estimated)",
+                balanceAfterTxn[t.id] ? (
+                  <span title={balanceAfterTxn[t.id].confirmed ? undefined : "No bank-stated balance on record for this transaction — computed from nearby transaction amounts"}>
+                    {!balanceAfterTxn[t.id].confirmed && "~"}
+                    <Prv>{fmtINRExact(balanceAfterTxn[t.id].value)}</Prv>
+                  </span>
+                ) : null
               )}
               {row("Narration", t.narration)}
               {row("Reference", t.referenceNumber)}
