@@ -681,7 +681,19 @@ export function BanksTab({
         return 0;
       });
     } else {
-      txns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      txns.sort((a, b) => {
+        const byDate = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (byDate !== 0) return byDate;
+        // Same-day tie: prefer the real logged-at timestamp (newest first, matching
+        // this list's overall newest-first order) over falling through to array
+        // order, whenever both rows actually have one and it distinguishes them —
+        // see the matching tiebreak in balanceAfterTxn for why this can't always
+        // resolve the order (e.g. rows from the same bulk CSV import share one).
+        const ca = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
+        const cb = b.createdAt ? new Date(b.createdAt).getTime() : NaN;
+        if (!isNaN(ca) && !isNaN(cb) && ca !== cb) return cb - ca;
+        return 0;
+      });
     }
     return txns;
   }, [filteredTxns, sortField, sortDirection]);
@@ -788,42 +800,55 @@ export function BanksTab({
         const n = Number(t.statementBalance);
         return isNaN(n) ? null : n;
       };
-      // Sort oldest → newest by date. There's no reliable creation-timestamp field, so
-      // same-day entries are tied by array order — but reversed (descending idx) so the
-      // walk processes them in the OPPOSITE order the ledger displays them (which sorts
-      // newest-first and, being a stable sort, keeps ties in ascending array order). That
-      // makes the top-most row of a same-day tie the one processed *last* here, so it's
-      // the row that lands on the true current balance instead of a row further down.
+      // Sort oldest → newest by date. Same-day entries are tied by the row's actual
+      // `createdAt` (when Supabase logged it) whenever that's known and distinguishes
+      // them — real evidence beats a guess. When it can't (missing, or several rows
+      // sharing one `createdAt` because they landed in the same bulk CSV import),
+      // fall back to reversed array order (descending idx) so the walk processes
+      // same-day ties in the OPPOSITE order the ledger displays them (which sorts
+      // newest-first and, being a stable sort, keeps ties in ascending array order —
+      // see the matching tiebreak in sortedTxns). Either way, this makes the top-most
+      // row of a same-day tie the one processed *last* here, so it's the row that
+      // lands on the true current balance instead of a row further down.
+      const createdAtOf = (t: any): number | null => {
+        if (!t.createdAt) return null;
+        const n = new Date(t.createdAt).getTime();
+        return isNaN(n) ? null : n;
+      };
       const withIdx = txns
         .map((t, idx) => ({ t, idx }))
         .sort((a, b) => {
           const byDate = (a.t.date || "").localeCompare(b.t.date || "");
           if (byDate !== 0) return byDate;
+          const ca = createdAtOf(a.t);
+          const cb = createdAtOf(b.t);
+          if (ca !== null && cb !== null && ca !== cb) return ca - cb;
           return b.idx - a.idx;
         });
       let ordered = withIdx.map((x) => x.t);
 
-      // Same-day transactions have no reliable time-of-day, so the order above is only
-      // a guess — and applying a same-day debit before the credit that actually covers
-      // it can make the running balance dip below zero, even though a real (non-overdraft)
-      // account never held that dip; it's purely an artifact of guessing the wrong order.
-      // Fix that with the SMALLEST possible reorder: only when the next transaction would
-      // push the running balance negative, pull the nearest not-yet-used same-day credit
-      // forward just far enough to cover it. (An earlier version blanket-moved every
-      // same-day credit ahead of every same-day debit, which "fixed" the dip but also
-      // silently detached a debit's computed balance from the row directly above it in
-      // the table whenever the day held more transactions than the dip actually needed
-      // reordered.)
+      // Even a same-day order backed by real `createdAt` timestamps, or the idx
+      // fallback above, is only a guess at what the bank actually did — and applying
+      // a same-day debit before the credit that actually covers it can make the
+      // running balance dip below zero, even though a real (non-overdraft) account
+      // never held that dip; it's purely an artifact of guessing the wrong order. Fix
+      // that with the SMALLEST possible reorder: only when the next transaction would
+      // push the running balance negative, pull the nearest not-yet-used same-day
+      // credit forward just far enough to cover it, rather than blanket-moving every
+      // same-day credit ahead of every same-day debit (which "fixes" the dip but also
+      // detaches a debit's computed balance from the row directly above it in the
+      // table whenever the day held more transactions than the dip actually needed
+      // reordered).
       //
-      // But even the minimal reorder above is still just ONE valid guess among several —
-      // whenever a day mixes credits and debits, other equally-valid non-negative orderings
-      // exist that land the *other* same-day rows on different numbers. Only the day's most
-      // recent row (its smallest idx — the topmost displayed row of the tie, which anchors
-      // to the day's real closing balance) is invariant no matter which order actually
-      // happened. Every other row on a mixed-sign day is a guess dressed up as a number, so
-      // ALL of them — not just the ones this particular reorder happened to move — are
-      // flagged via `orderEstimated`, regardless of whether the chosen ordering left a given
-      // row's position untouched.
+      // Whether the REMAINING rows on that day can be trusted depends on how the order
+      // was decided. If every row in a mixed-sign day has its own distinct `createdAt`,
+      // that's real evidence, so only the specific rows the reorder above still had to
+      // move (a genuine conflict between that evidence and staying non-negative) get
+      // flagged. If `createdAt` couldn't fully order the day (missing, or a shared
+      // timestamp from one bulk import), the whole ordering is a guess, and everything
+      // but the day's most recent row — the one that anchors to the day's real closing
+      // balance no matter what order actually happened — gets flagged via
+      // `orderEstimated`.
       const orderAmbiguous = new Set<string>();
       {
         // Reordering within a day can't change that day's own net (it's the same set of
@@ -859,12 +884,16 @@ export function BanksTab({
         groups.forEach((group) => {
           const hasCredit = group.some((x) => signed(x.t) > 0);
           const hasDebit = group.some((x) => signed(x.t) < 0);
-          if (hasCredit && hasDebit && group.length > 1) {
-            // The anchor is the row with the smallest idx (the day's topmost/most recent
-            // display row) — every other row in this mixed-sign day is order-ambiguous.
-            const anchorIdx = Math.min(...group.map((x) => x.idx));
+          const isMixedDay = hasCredit && hasDebit && group.length > 1;
+          const createdAtKeys = group.map((x) => createdAtOf(x.t));
+          const hasDefiniteOrder =
+            createdAtKeys.every((k) => k !== null) && new Set(createdAtKeys).size === group.length;
+          if (isMixedDay && !hasDefiniteOrder) {
+            // No real evidence for this day — the anchor (its last-processed / most
+            // recent row) is the only one that's still certain either way.
+            const anchor = group[group.length - 1];
             group.forEach((x) => {
-              if (x.idx !== anchorIdx) orderAmbiguous.add(x.t.id);
+              if (x !== anchor) orderAmbiguous.add(x.t.id);
             });
           }
           let running = enteringBalanceByDate[group[0].t.date || ""] || 0;
@@ -876,6 +905,13 @@ export function BanksTab({
               if (creditIdx !== -1) {
                 const [credit] = queue.splice(creditIdx, 1);
                 queue.unshift(credit);
+                if (isMixedDay && hasDefiniteOrder) {
+                  // The logged timestamps said this order was safe from negative
+                  // dips and it wasn't — that's a genuine conflict, not just the
+                  // absence of evidence, so flag exactly the two rows involved.
+                  orderAmbiguous.add(credit.id);
+                  orderAmbiguous.add(next.id);
+                }
                 continue;
               }
             }
