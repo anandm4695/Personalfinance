@@ -3025,6 +3025,15 @@ function FinanceDashboard() {
     const userId = session?.user?.id;
     if (!userId || userId === "offline-user") return;
 
+    // A restore must REPLACE cloud data, not merge with it — upserting alone leaves
+    // rows that exist in the cloud but not in the backup (e.g. items deleted, or added
+    // after the backup was taken) untouched, so they silently reappear on next load and
+    // the restore doesn't actually match what the confirm dialog promised the user.
+    const moduleTables = [...new Set([...Object.values(TABLE_MAP), "net_worth_history"])];
+    for (const table of moduleTables) {
+      await supabase.from(table).delete().eq("user_id", userId);
+    }
+
     const cleanItem = (obj: any) => {
       const r: any = {};
       for (const k in obj) {
