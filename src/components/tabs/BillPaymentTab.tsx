@@ -344,6 +344,22 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
     .map((b) => ({ ...b, ...dueStatus(Number(b.dueDay), billHistory(b.id)[0]?.paidDate) }))
     .filter((b) => !b.paid && b.daysLeft <= 7)
     .sort((a, b) => a.daysLeft - b.daysLeft);
+  const MAX_ALERT_BANNERS = 3;
+
+  // Surface the most urgent bills first — otherwise a bill due today can sit
+  // below one due in three weeks and gets missed on a long list.
+  const sortedBills = bills
+    .map((b: any) => {
+      const bHistory = billHistory(b.id);
+      const lastPaid = bHistory[0];
+      const status = b.dueDay ? dueStatus(Number(b.dueDay), lastPaid?.paidDate) : null;
+      return { ...b, _history: bHistory, _lastPaid: lastPaid, _status: status };
+    })
+    .sort((a, b) => {
+      const da = a._status && !a._status.paid ? a._status.daysLeft : Infinity;
+      const db = b._status && !b._status.paid ? b._status.daysLeft : Infinity;
+      return da - db;
+    });
 
   const { run: saveBill, loading: savingBill } = useAsyncAction(
     async (data: any) => {
@@ -425,10 +441,11 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
         </div>
       )}
 
-      {/* Due alerts */}
+      {/* Due alerts — capped so a long urgent list doesn't push the bill list
+          itself off-screen; the "Due This Week" stat above already carries the total. */}
       {upcomingDue.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          {upcomingDue.map((b) => (
+          {upcomingDue.slice(0, MAX_ALERT_BANNERS).map((b) => (
             <div
               key={b.id}
               style={{
@@ -454,6 +471,11 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
               </Button>
             </div>
           ))}
+          {upcomingDue.length > MAX_ALERT_BANNERS && (
+            <div style={{ fontSize: 12, color: THEME.textMuted, textAlign: "center", padding: "2px 0 4px" }}>
+              +{upcomingDue.length - MAX_ALERT_BANNERS} more due this week
+            </div>
+          )}
         </div>
       )}
 
@@ -475,12 +497,12 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {bills.map((b: any) => {
+          {sortedBills.map((b: any) => {
             const cat = CAT_MAP[b.category] || CAT_MAP.other;
-            const bHistory = billHistory(b.id);
+            const bHistory = b._history;
             const isExpanded = expanded === b.id;
-            const lastPaid = bHistory[0];
-            const status = b.dueDay ? dueStatus(Number(b.dueDay), lastPaid?.paidDate) : null;
+            const lastPaid = b._lastPaid;
+            const status = b._status;
 
             return (
               <Card key={b.id} style={{ borderLeft: `4px solid ${cat.color}` }}>
@@ -536,7 +558,10 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                   {b.autoPay && (
                     <CheckCircle size={16} color={THEME.success} title="Auto-pay enabled" />
                   )}
-                  <div style={{ display: "flex", gap: 4 }}>
+                  {/* marginLeft: auto keeps this cluster right-aligned even when it wraps
+                      to its own line on narrow screens, instead of falling back to the
+                      flex row's left edge under the category icon. */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>
                     <Button size="sm" variant="ghost" onClick={() => setPayModal(b)}>
                       Log
                     </Button>
@@ -587,6 +612,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                         cursor: "pointer",
                         color: THEME.danger,
                         padding: 8,
+                        marginLeft: 4,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
