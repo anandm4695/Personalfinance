@@ -2766,7 +2766,12 @@ export function BanksTab({
       {showImport && (
         <CsvImportModal
           accounts={state.bankAccounts}
-          existingTransactions={state.transactions || []}
+          // Duplicate/backfill matching needs every transaction the account really
+          // has, not the profile-filtered view — otherwise, with a specific family
+          // member active, a transaction owned by someone else wouldn't be seen as
+          // a duplicate and could get re-imported as a second copy. Same reasoning
+          // as balanceAfterTxn above using `fullState` instead of `state`.
+          existingTransactions={balanceSource.transactions || []}
           onClose={() => setShowImport(false)}
           onImport={async (rows: any) => {
             try {
@@ -2780,6 +2785,16 @@ export function BanksTab({
               setShowImport(false);
             } catch (e: any) {
               showToast?.(`Failed to import transactions: ${e?.message || "Unknown error"}`, "error");
+            }
+          }}
+          onBackfillBalance={async (updates: { id: string; statementBalance: string }[]) => {
+            // No success toast here: updateItem never throws on a Supabase error — it
+            // handles every case internally (including the exact "column missing, run
+            // migration" scenario this feature can hit before migration 93 is applied)
+            // and shows its own accurate toast. An unconditional success message here
+            // would contradict that warning and falsely claim the balance was saved.
+            for (const u of updates) {
+              await updateItem("transactions", u.id, { statementBalance: u.statementBalance });
             }
           }}
         />

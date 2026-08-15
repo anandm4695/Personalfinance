@@ -12,6 +12,11 @@ interface CsvImportModalProps {
   existingTransactions?: any[];
   onClose: () => void;
   onImport: (data: any[]) => void;
+  /** Called with { id, statementBalance } pairs for rows the user chose to
+      "backfill" — an already-imported transaction that matched this CSV row
+      but was missing its bank-stated balance (e.g. imported before that field
+      existed). Patches the existing transaction instead of inserting a new one. */
+  onBackfillBalance?: (updates: { id: string; statementBalance: string }[]) => void;
 }
 
 const CATEGORIES = [
@@ -232,6 +237,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   existingTransactions = [],
   onClose,
   onImport,
+  onBackfillBalance,
 }) => {
   const { privacyMode } = usePrivacy();
   const [mode, setMode] = useState<"template" | "smart">("smart");
@@ -377,6 +383,26 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         Math.abs(Number(e.amount) - Number(row.amount)) < 1 &&
         e.type === row.type
     );
+  };
+
+  /* ── Backfill detection ──────────────────────────────────────────────
+     A duplicate row that also carries a bank-stated balance can "backfill"
+     an already-imported transaction that's missing one (e.g. it was
+     imported before Smart Import captured this field) — patching the
+     existing row instead of skipping it outright. Only offered when the
+     match is unambiguous (exactly one candidate); with several same-day,
+     same-amount transactions there's no reliable way to tell which one the
+     balance actually belongs to, so those fall back to a plain skip. */
+  const findBackfillCandidate = (row: any): any | null => {
+    if (!row.statementBalance) return null;
+    const candidates = existingTransactions.filter(
+      (e) =>
+        e.date === row.date &&
+        Math.abs(Number(e.amount) - Number(row.amount)) < 1 &&
+        e.type === row.type &&
+        (e.statementBalance === undefined || e.statementBalance === null || e.statementBalance === "")
+    );
+    return candidates.length === 1 ? candidates[0] : null;
   };
 
   /* ── Smart Import: parse uploaded bank CSV ─────────────────────── */
@@ -596,15 +622,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         }
 
         const note = noteIdx >= 0 ? cols[noteIdx] || "" : "";
-        // Real bank statement exports carry their own per-row closing balance —
-        // ground truth from the bank, not something the app should re-derive.
-        // BanksTab's running-balance column prefers this over reconstructing
-        // backward from today's balance, which breaks down when the imported
-        // rows only cover a slice of the account's real history.
-        const statementBalance =
-          balIdx >= 0 && cols[balIdx] ? String(cleanNumeric(cols[balIdx])) : "";
 
-        const row = {
+        const row: any = {
           date: isoDate,
           amount: String(Math.abs(amount)),
           type: isCredit ? "credit" : "debit",
@@ -613,13 +632,35 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           narration,
           referenceNumber: "",
           accountId: smartAccountId || firstAccountId,
-          statementBalance,
           selected: true,
           isDuplicate: false,
+          backfillId: null as string | null,
         };
+        // Real bank statement exports carry their own per-row closing balance —
+        // ground truth from the bank, not something the app should re-derive.
+        // BanksTab's running-balance column prefers this over reconstructing
+        // backward from today's balance, which breaks down when the imported
+        // rows only cover a slice of the account's real history.
+        //
+        // Only set this key at all when the CSV's header actually had a detected
+        // balance column (balIdx >= 0) — every row in a batch needs the same
+        // shape for Supabase's bulk upsert, and `transactions.statement_balance`
+        // is a new column (migration 93) that may not exist in the DB yet. A CSV
+        // with no balance column at all should keep working immediately; only a
+        // CSV that DOES carry one needs that migration applied first.
+        if (balIdx >= 0) {
+          row.statementBalance = cols[balIdx] ? String(cleanNumeric(cols[balIdx])) : "";
+        }
 
         row.isDuplicate = isDuplicate(row);
-        if (row.isDuplicate) row.selected = false;
+        if (row.isDuplicate) {
+          const candidate = findBackfillCandidate(row);
+          row.backfillId = candidate ? candidate.id : null;
+          // A plain duplicate stays unselected (skipped); a backfill candidate is
+          // selected by default since it's purely additive — it only fills in a
+          // balance that was previously missing, it never changes an amount/date.
+          row.selected = !!row.backfillId;
+        }
 
         rows.push(row);
       }
@@ -658,23 +699,30 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     setSmartPreview((prev) => prev.map((r, i) => (i === idx ? { ...r, note } : r)));
   };
 
+  // A row is "actionable" (togglable) if it's a genuinely new transaction, or a
+  // duplicate that can safely backfill an existing transaction's missing balance.
+  // A plain duplicate (no unambiguous backfill match) stays a locked skip.
+  const isActionable = (r: any) => !r.isDuplicate || !!r.backfillId;
+
   const toggleRow = (idx: number) => {
     setSmartPreview((prev) =>
-      prev.map((r, i) => (i === idx && !r.isDuplicate ? { ...r, selected: !r.selected } : r))
+      prev.map((r, i) => (i === idx && isActionable(r) ? { ...r, selected: !r.selected } : r))
     );
   };
 
   const selectAll = () => {
-    setSmartPreview((prev) => prev.map((r) => ({ ...r, selected: !r.isDuplicate })));
+    setSmartPreview((prev) => prev.map((r) => ({ ...r, selected: isActionable(r) })));
   };
 
   const deselectAll = () => {
     setSmartPreview((prev) => prev.map((r) => ({ ...r, selected: false })));
   };
 
-  const selectedCount = smartPreview.filter((r) => r.selected && !r.isDuplicate).length;
-  const duplicateCount = smartPreview.filter((r) => r.isDuplicate).length;
   const selectedForImport = smartPreview.filter((r) => r.selected && !r.isDuplicate);
+  const selectedForBackfill = smartPreview.filter((r) => r.selected && r.isDuplicate && r.backfillId);
+  const selectedCount = selectedForImport.length;
+  const plainDuplicateCount = smartPreview.filter((r) => r.isDuplicate && !r.backfillId).length;
+  const backfillCount = smartPreview.filter((r) => r.isDuplicate && r.backfillId).length;
   const totalCredits = selectedForImport
     .filter((r) => r.type === "credit")
     .reduce((s, r) => s + Number(r.amount), 0);
@@ -728,10 +776,13 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
   const handleImport = () => {
     if (mode === "smart") {
-      const rows = smartPreview
-        .filter((r) => r.selected && !r.isDuplicate)
-        .map(({ selected, isDuplicate, ...rest }) => rest);
+      const rows = selectedForImport.map(({ selected, isDuplicate, backfillId, ...rest }) => rest);
       if (rows.length > 0) onImport(rows);
+      if (selectedForBackfill.length > 0 && onBackfillBalance) {
+        onBackfillBalance(
+          selectedForBackfill.map((r) => ({ id: r.backfillId, statementBalance: r.statementBalance }))
+        );
+      }
     } else {
       // Safety net: parseCSV already rejects rows that resolve to the
       // "account-id-here" placeholder, but never write it even if preview
@@ -746,7 +797,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
   const activePreview = mode === "smart" ? smartPreview : preview;
   const activeError = mode === "smart" ? smartError : error;
-  const importCount = mode === "smart" ? selectedCount : preview.length;
+  const importCount =
+    mode === "smart" ? selectedForImport.length + selectedForBackfill.length : preview.length;
 
   return (
     <Modal title="Import Transactions (CSV)" onClose={onClose} maxWidth={720}>
@@ -1037,7 +1089,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               >
                 Detected format: {detectedBank}
               </span>
-              {duplicateCount > 0 && (
+              {plainDuplicateCount > 0 && (
                 <span
                   style={{
                     padding: "6px 12px",
@@ -1052,8 +1104,27 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                     gap: 4,
                   }}
                 >
-                  <AlertTriangle size={12} /> {duplicateCount} duplicate
-                  {duplicateCount !== 1 ? "s" : ""} detected
+                  <AlertTriangle size={12} /> {plainDuplicateCount} duplicate
+                  {plainDuplicateCount !== 1 ? "s" : ""} detected
+                </span>
+              )}
+              {backfillCount > 0 && (
+                <span
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: THEME.accent,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <AlertTriangle size={12} /> {backfillCount} already-imported row
+                  {backfillCount !== 1 ? "s" : ""} can have their bank balance backfilled
                 </span>
               )}
             </div>
@@ -1078,6 +1149,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               >
                 <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
                   {smartPreview.length} transactions detected — {selectedCount} selected for import
+                  {selectedForBackfill.length > 0 &&
+                    `, ${selectedForBackfill.length} balance backfill${selectedForBackfill.length !== 1 ? "s" : ""}`}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button
@@ -1175,14 +1248,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                         key={i}
                         style={{
                           borderBottom: `1px solid ${THEME.line}`,
-                          opacity: r.isDuplicate ? 0.45 : 1,
+                          opacity: r.isDuplicate && !r.backfillId ? 0.45 : 1,
                         }}
                       >
                         <td style={{ padding: "8px 6px", width: 40, minWidth: 40 }}>
                           <input
                             type="checkbox"
-                            checked={r.selected && !r.isDuplicate}
-                            disabled={r.isDuplicate}
+                            checked={r.selected && isActionable(r)}
+                            disabled={r.isDuplicate && !r.backfillId}
                             onChange={() => toggleRow(i)}
                             aria-label={`Include row: ${r.narration || r.date} for ${
                               privacyMode ? "hidden amount" : fmtINRFull(r.amount)
@@ -1266,7 +1339,21 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                           <Prv>{fmtINRFull(r.amount)}</Prv>
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                          {r.isDuplicate ? (
+                          {r.isDuplicate && r.backfillId ? (
+                            <span
+                              style={{
+                                padding: "2px 8px",
+                                borderRadius: 6,
+                                fontSize: 10,
+                                fontWeight: 600,
+                                background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                                color: THEME.accent,
+                              }}
+                              title="Already imported — will add the bank-stated balance to that existing transaction"
+                            >
+                              Backfill Balance
+                            </span>
+                          ) : r.isDuplicate ? (
                             <span
                               style={{
                                 padding: "2px 8px",
@@ -1329,11 +1416,19 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 <span>
                   Debits: <b style={{ color: THEME.rust }}><Prv>{fmtINRFull(totalDebits)}</Prv></b>
                 </span>
-                {duplicateCount > 0 && (
+                {plainDuplicateCount > 0 && (
                   <span>
                     Skipping:{" "}
                     <b style={{ color: THEME.gold }}>
-                      {duplicateCount} duplicate{duplicateCount !== 1 ? "s" : ""}
+                      {plainDuplicateCount} duplicate{plainDuplicateCount !== 1 ? "s" : ""}
+                    </b>
+                  </span>
+                )}
+                {selectedForBackfill.length > 0 && (
+                  <span>
+                    Backfilling balance on:{" "}
+                    <b style={{ color: THEME.accent }}>
+                      {selectedForBackfill.length} transaction{selectedForBackfill.length !== 1 ? "s" : ""}
                     </b>
                   </span>
                 )}
