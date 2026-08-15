@@ -3248,7 +3248,7 @@ function FinanceDashboard() {
 
           // 1. PHASE 1: Delete all module data across all tables
           const tables = Object.values(TABLE_MAP);
-          const extraTables = ["activity_logs", "user_state"];
+          const extraTables = ["activity_logs", "user_state", "net_worth_history"];
           const allModuleTables = [...new Set([...tables, ...extraTables])];
 
           for (const table of allModuleTables) {
