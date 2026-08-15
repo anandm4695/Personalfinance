@@ -46,6 +46,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Drawer } from "../ui/Drawer";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
+import { ConfirmDialog } from "../ui/Feedback";
 import { Button } from "../ui/Button";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
@@ -368,12 +369,15 @@ export function BanksTab({
   addItem,
   addTransactions,
   removeItem,
+  bulkRemoveTransactions,
   updateItem,
   masterData: _masterData,
   showToast,
 }: any) {
   const [showBank, setShowBank] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
+  const [confirmDeleteAllAcc, setConfirmDeleteAllAcc] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [filterAcc, setFilterAcc] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [search, setSearch] = useState("");
@@ -671,6 +675,19 @@ export function BanksTab({
     }
     return txns;
   }, [filteredTxns, sortField, sortDirection]);
+
+  // Every transaction on the selected account, ignoring the type/search/date filters —
+  // "Delete All Transactions" clears the whole account's history, not just what the
+  // current filters happen to show, so it needs the unfiltered id list.
+  const accTxnIdsForDelete = useMemo(
+    () =>
+      filterAcc === "all"
+        ? []
+        : state.transactions
+            .filter((t: any) => t.accountId === filterAcc)
+            .map((t: any) => t.id),
+    [state.transactions, filterAcc]
+  );
 
   const requestSort = (field: "date" | "amount" | "note" | "category") => {
     if (sortField === field) {
@@ -1766,11 +1783,34 @@ export function BanksTab({
             paddingBottom: 16,
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
             <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
               Transaction Ledger
             </span>
             <Badge variant="accent">{sortedTxns.length} entries</Badge>
+            {filterAcc !== "all" && accTxnIdsForDelete.length > 0 && (
+              <button
+                onClick={() => setConfirmDeleteAllAcc(true)}
+                className="icon-btn danger"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 10px",
+                  borderRadius: 8,
+                  background: "transparent",
+                  border: `1.5px solid ${THEME.rust}`,
+                  color: THEME.rust,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+                title="Delete every transaction recorded for this account"
+              >
+                <Trash2 size={11} />
+                Delete All Transactions
+              </button>
+            )}
           </div>
 
           {/* Segmented presets buttons */}
@@ -1935,6 +1975,44 @@ export function BanksTab({
           </div>
         </div>
 
+        {/* When a single account is selected and none of its rows carry a bank-confirmed
+            statementBalance, every "Balance" figure below is reconstructed backward from
+            today's live balance, which silently assumes the recorded rows are this
+            account's COMPLETE history. For an account whose transactions only cover part
+            of its life (e.g. an old CSV import), that assumption is wrong and the shown
+            balances can be noticeably off — worth calling out up front rather than only
+            via the small "~" + tooltip on each row. */}
+        {filterAcc !== "all" &&
+          accTxnIdsForDelete.length > 0 &&
+          accTxnIdsForDelete.every((id) => !balanceAfterTxn[id]?.confirmed) && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+                padding: "10px 14px",
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
+                fontSize: 12,
+                color: THEME.ink,
+                lineHeight: 1.5,
+              }}
+            >
+              <span style={{ fontWeight: 800, color: THEME.gold, flexShrink: 0 }}>~ Estimated</span>
+              <span>
+                None of this account's transactions carry a bank-confirmed balance, so every
+                figure in the Balance column (marked with "~") is worked backward from
+                today's live balance — not from a real bank statement. That math assumes
+                these are the account's only transactions ever; if your recorded history
+                only covers part of the account's life (e.g. an old CSV import), the
+                Balance column will be inaccurate, especially for older rows. Re-importing
+                via Smart Import (which detects a bank statement's own stated balance per
+                row) fixes this.
+              </span>
+            </div>
+          )}
+
         {/* Ledger Table Container */}
         {sortedTxns.length === 0 ? (
           state.transactions.length === 0 ? (
@@ -2090,7 +2168,7 @@ export function BanksTab({
                         title={
                           bal.confirmed
                             ? "Confirmed — the bank statement's own stated balance for this transaction"
-                            : "Estimated — no bank-stated balance on record for this transaction, computed from nearby transaction amounts"
+                            : "Estimated — no bank-stated balance on record for this transaction. Worked backward from today's live account balance, which assumes your recorded transactions are this account's complete history. If they only cover part of its life (e.g. an old CSV import), this figure can be off."
                         }
                       >
                         {!bal.confirmed && "~"}
@@ -2797,6 +2875,41 @@ export function BanksTab({
               await updateItem("transactions", u.id, { statementBalance: u.statementBalance });
             }
           }}
+        />
+      )}
+      {confirmDeleteAllAcc && (
+        <ConfirmDialog
+          message={`Delete all ${accTxnIdsForDelete.length} transaction${
+            accTxnIdsForDelete.length === 1 ? "" : "s"
+          } recorded for "${accountLabel(
+            state.bankAccounts.find((a: any) => a.id === filterAcc)
+          )}"?\n\nThe account's balance will be adjusted to remove their effect, and any linked records (credit card payments, loan EMIs, insurance premiums, rent, subscription renewals) they auto-posted will be reversed too. This cannot be undone.`}
+          confirmLabel={deletingAll ? "Deleting…" : `Yes, delete all ${accTxnIdsForDelete.length}`}
+          onConfirm={async () => {
+            if (deletingAll) return;
+            setDeletingAll(true);
+            try {
+              if (bulkRemoveTransactions) {
+                await bulkRemoveTransactions(accTxnIdsForDelete);
+              } else {
+                for (const id of accTxnIdsForDelete) {
+                  await removeItem("transactions", id);
+                }
+              }
+              showToast?.(
+                `Deleted ${accTxnIdsForDelete.length} transaction${
+                  accTxnIdsForDelete.length === 1 ? "" : "s"
+                }.`,
+                "success"
+              );
+            } catch (e: any) {
+              showToast?.(`Failed to delete transactions: ${e?.message || "Unknown error"}`, "error");
+            } finally {
+              setDeletingAll(false);
+              setConfirmDeleteAllAcc(false);
+            }
+          }}
+          onCancel={() => setConfirmDeleteAllAcc(false)}
         />
       )}
     </div>

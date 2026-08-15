@@ -2364,6 +2364,89 @@ function FinanceDashboard() {
     });
   };
 
+  // Reverses the auto-posted side effect of a linked bank transaction (credit card
+  // outstanding, loan balance, insurance premium ledger, rent log, subscription renewal
+  // date) on its linked module record. Shared by removeItem (single delete) and
+  // bulkRemoveTransactions (Delete All Transactions) so both keep linked records in sync
+  // the same way instead of two copies of this logic drifting apart.
+  const reverseLinkedTransactionEffect = (txn: any) => {
+    if (!(txn?.linkedType && txn?.linkedId && Number(txn.amount || 0) > 0)) return;
+    const lt = txn.linkedType;
+    const lid = txn.linkedId;
+    const amt = Number(txn.amount || 0);
+    const entryId = `bank-${txn.id}`;
+    if (lt === "creditCards") {
+      const card = (state.creditCards || []).find((c: any) => c.id === lid);
+      if (card) {
+        updateItem("creditCards", lid, {
+          transactions: (card.transactions || []).filter((t: any) => t.id !== entryId),
+          outstanding: Number(card.outstanding || 0) + amt,
+        });
+      }
+    } else if (lt === "loansTaken") {
+      const loan = (state.loansTaken || []).find((l: any) => l.id === lid);
+      if (loan) {
+        // Only the principal portion of the EMI was ever deducted from outstanding
+        // (see autoPostLinkedTransaction) — reverse that exact stored amount rather
+        // than the full transaction amount, which would over-restore the balance.
+        const principalAmt =
+          txn.linkedPrincipalAmount != null ? Number(txn.linkedPrincipalAmount) : amt;
+        updateItem("loansTaken", lid, {
+          outstanding: Number(loan.outstanding || 0) + principalAmt,
+          monthsRemaining: Number(loan.monthsRemaining || 0) + 1,
+        });
+      }
+    } else if (["lic", "termPlans", "investmentPlans"].includes(lt)) {
+      const policy = (state[lt] || []).find((p: any) => p.id === lid);
+      if (policy) {
+        updateItem(lt, lid, {
+          transactions: (policy.transactions || []).filter((t: any) => t.id !== entryId),
+          premiumPaid: Math.max(0, Number(policy.premiumPaid || 0) - amt),
+        });
+      }
+    } else if (lt === "rentedProperties") {
+      const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
+      if (prop) {
+        updateItem("rentedProperties", lid, {
+          payments: (prop.payments || []).filter((p: any) => p.id !== entryId),
+        });
+      }
+    } else if (lt === "rentalProperties") {
+      const prop = (state.rentalProperties || []).find((p: any) => p.id === lid);
+      if (prop) {
+        updateItem("rentalProperties", lid, {
+          receipts: (prop.receipts || []).filter((r: any) => r.id !== entryId),
+        });
+      }
+    } else if (lt === "realEstateProperties") {
+      // lid is "<propertyId>:<costField>" (stampDutyPaid/tdsValue/agreementValuePaid) — see
+      // getLinkConfig's "Real Estate" branch in BanksTab.tsx. No embedded ledger array
+      // to strip an entryId from here; the cost field is a plain scalar, so reversal is
+      // just subtracting the same amount back out (same pattern as loansTaken above).
+      const sep = lid.indexOf(":");
+      const propId = sep >= 0 ? lid.slice(0, sep) : lid;
+      const costField = sep >= 0 ? lid.slice(sep + 1) : "stampDuty";
+      const prop = (state.realEstateProperties || []).find((p: any) => p.id === propId);
+      if (prop) {
+        updateItem("realEstateProperties", propId, {
+          [costField]: Math.max(0, Number(prop[costField] || 0) - amt),
+        });
+      }
+    } else if (lt === "subscriptions") {
+      // BanksTab's autoPostLinkedTransaction advances renewalDate by one cycle when this
+      // transaction is added — roll it back the same amount so deleting the payment
+      // truly undoes it. Uses addMonthsToDateStr (day-of-month clamped to the target
+      // month's length) instead of Date.setMonth, which silently overflows short months.
+      const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
+      if (sub && sub.renewalDate) {
+        const step = sub.cycle === "yearly" ? -12 : sub.cycle === "quarterly" ? -3 : -1;
+        updateItem("subscriptions", lid, {
+          renewalDate: addMonthsToDateStr(sub.renewalDate, step),
+        });
+      }
+    }
+  };
+
   const removeItem = async (key, id) => {
     const userId = session?.user?.id;
     const deletedItem = (state[key] || []).find((x: any) => x.id === id);
@@ -2400,87 +2483,7 @@ function FinanceDashboard() {
     // Reverse any side effect this transaction auto-posted into a linked module record
     // (credit card outstanding, loan balance, insurance premium ledger, rent log) so that
     // record doesn't stay out of sync after the bank transaction itself is deleted.
-    if (txnToDelete?.linkedType && txnToDelete?.linkedId && Number(txnToDelete.amount || 0) > 0) {
-      const lt = txnToDelete.linkedType;
-      const lid = txnToDelete.linkedId;
-      const amt = Number(txnToDelete.amount || 0);
-      const entryId = `bank-${id}`;
-      if (lt === "creditCards") {
-        const card = (state.creditCards || []).find((c: any) => c.id === lid);
-        if (card) {
-          updateItem("creditCards", lid, {
-            transactions: (card.transactions || []).filter((t: any) => t.id !== entryId),
-            outstanding: Number(card.outstanding || 0) + amt,
-          });
-        }
-      } else if (lt === "loansTaken") {
-        const loan = (state.loansTaken || []).find((l: any) => l.id === lid);
-        if (loan) {
-          // Only the principal portion of the EMI was ever deducted from outstanding
-          // (see autoPostLinkedTransaction) — reverse that exact stored amount rather
-          // than the full transaction amount, which would over-restore the balance.
-          const principalAmt =
-            txnToDelete.linkedPrincipalAmount != null
-              ? Number(txnToDelete.linkedPrincipalAmount)
-              : amt;
-          updateItem("loansTaken", lid, {
-            outstanding: Number(loan.outstanding || 0) + principalAmt,
-            monthsRemaining: Number(loan.monthsRemaining || 0) + 1,
-          });
-        }
-      } else if (["lic", "termPlans", "investmentPlans"].includes(lt)) {
-        const policy = (state[lt] || []).find((p: any) => p.id === lid);
-        if (policy) {
-          updateItem(lt, lid, {
-            transactions: (policy.transactions || []).filter((t: any) => t.id !== entryId),
-            premiumPaid: Math.max(0, Number(policy.premiumPaid || 0) - amt),
-          });
-        }
-      } else if (lt === "rentedProperties") {
-        const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
-        if (prop) {
-          updateItem("rentedProperties", lid, {
-            payments: (prop.payments || []).filter((p: any) => p.id !== entryId),
-          });
-        }
-      } else if (lt === "rentalProperties") {
-        const prop = (state.rentalProperties || []).find((p: any) => p.id === lid);
-        if (prop) {
-          updateItem("rentalProperties", lid, {
-            receipts: (prop.receipts || []).filter((r: any) => r.id !== entryId),
-          });
-        }
-      } else if (lt === "realEstateProperties") {
-        // lid is "<propertyId>:<costField>" (stampDutyPaid/tdsValue/agreementValuePaid) — see
-        // getLinkConfig's "Real Estate" branch in BanksTab.tsx. No embedded ledger array
-        // to strip an entryId from here; the cost field is a plain scalar, so reversal is
-        // just subtracting the same amount back out (same pattern as loansTaken above).
-        const sep = lid.indexOf(":");
-        const propId = sep >= 0 ? lid.slice(0, sep) : lid;
-        const costField = sep >= 0 ? lid.slice(sep + 1) : "stampDuty";
-        const prop = (state.realEstateProperties || []).find((p: any) => p.id === propId);
-        if (prop) {
-          updateItem("realEstateProperties", propId, {
-            [costField]: Math.max(0, Number(prop[costField] || 0) - amt),
-          });
-        }
-      } else if (lt === "subscriptions") {
-        // BanksTab's autoPostLinkedTransaction advances renewalDate by one cycle when this
-        // transaction is added — roll it back the same amount so deleting the payment
-        // truly undoes it (previously this branch was missing, so the renewal date stayed
-        // advanced forever after a linked subscription payment was deleted).
-        // Uses addMonthsToDateStr (day-of-month clamped to the target month's length)
-        // instead of Date.setMonth, which silently overflows short months — e.g. rolling
-        // back a monthly cycle from Mar 31 must land on Feb 28, not overflow to Mar 2/3.
-        const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
-        if (sub && sub.renewalDate) {
-          const step = sub.cycle === "yearly" ? -12 : sub.cycle === "quarterly" ? -3 : -1;
-          updateItem("subscriptions", lid, {
-            renewalDate: addMonthsToDateStr(sub.renewalDate, step),
-          });
-        }
-      }
-    }
+    reverseLinkedTransactionEffect(txnToDelete);
 
     setState((s) => {
       const next: any = { ...s, [key]: (s[key] || []).filter((x: any) => x.id !== id) };
@@ -2650,6 +2653,98 @@ function FinanceDashboard() {
     logActivity(`REMOVE_${key.toUpperCase()}`, `Removed ${describeItem(key, deletedItem)}`, {
       id,
       ...(deletedItem || {}),
+    });
+  };
+
+  // Deletes many transactions in one shot (used by "Delete All Transactions" for an
+  // account in BanksTab, so a decade of bad/duplicate history doesn't require clicking
+  // the single-row delete 70+ times). Mirrors removeItem's per-transaction logic —
+  // reverse any linked side effect, reverse the balance delta if it was applied, strip
+  // the ids from masterData's tracking arrays — but batches the state update and the
+  // DB writes into one pass each instead of firing one removeItem call per id. Firing
+  // removeItem in a tight loop would race: its balance reversal re-reads the DB balance
+  // and writes it back per-transaction without awaiting, so overlapping calls could each
+  // read the same stale balance and clobber each other's write. Computing one combined
+  // delta per account up front and writing it once avoids that entirely.
+  const bulkRemoveTransactions = async (ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    const userId = session?.user?.id;
+    const idSet = new Set(ids);
+    const txnsToDelete = (state.transactions || []).filter((t: any) => idSet.has(t.id));
+    if (txnsToDelete.length === 0) return;
+    const appliedIds: string[] = state.masterData?.balanceAppliedTxnIds || [];
+    const appliedSet = new Set(appliedIds);
+
+    txnsToDelete.forEach((t: any) => reverseLinkedTransactionEffect(t));
+
+    const deltas: Record<string, number> = {};
+    txnsToDelete.forEach((t: any) => {
+      if (appliedSet.has(t.id) && t.accountId) {
+        const delta = t.type === "credit" ? -Number(t.amount || 0) : Number(t.amount || 0);
+        deltas[t.accountId] = (deltas[t.accountId] || 0) + delta;
+      }
+    });
+
+    setState((s) => {
+      const next: any = {
+        ...s,
+        transactions: (s.transactions || []).filter((t: any) => !idSet.has(t.id)),
+      };
+      next.bankAccounts = (s.bankAccounts || []).map((a: any) =>
+        deltas[a.id] ? { ...a, balance: Number(a.balance || 0) + deltas[a.id] } : a
+      );
+      const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
+      const curAppliedIds: string[] = s.masterData?.balanceAppliedTxnIds || [];
+      const newMaster = {
+        ...(s.masterData || DEFAULT_MASTER_DATA),
+        reconciledTxnIds: reconIds.filter((rid) => !idSet.has(rid)),
+        balanceAppliedTxnIds: curAppliedIds.filter((rid) => !idSet.has(rid)),
+      };
+      next.masterData = newMaster;
+      masterDataRef.current = newMaster;
+      return next;
+    });
+
+    if (userId && userId !== "offline-user") {
+      const { error } = await supabase.from("transactions").delete().in("id", ids);
+      if (error) {
+        console.error("[Bulk Delete Transactions]", error.message);
+        showToast(`Delete sync failed: ${error.message}`, "error");
+        fetchAllData();
+        return;
+      }
+
+      for (const accountId of Object.keys(deltas)) {
+        const delta = deltas[accountId];
+        // Re-read fresh balance from DB right before writing (rather than trusting the
+        // pre-delete local value) to avoid clobbering a concurrent change to this account.
+        const { data: freshAccount, error: fetchErr } = await supabase
+          .from("bank_accounts")
+          .select("balance")
+          .eq("id", accountId)
+          .single();
+        if (fetchErr) {
+          console.error("[Bulk Balance fetch]", fetchErr.message);
+          continue;
+        }
+        if (freshAccount) {
+          const { error: updateErr } = await supabase
+            .from("bank_accounts")
+            .update({ balance: Number(freshAccount.balance || 0) + delta })
+            .eq("id", accountId);
+          if (updateErr) console.error("[Bulk Balance update]", updateErr.message);
+        }
+      }
+
+      const latestMaster = masterDataRef.current || state.masterData || DEFAULT_MASTER_DATA;
+      const { error: masterErr } = await supabase
+        .from("user_settings")
+        .upsert({ user_id: userId, master_data: latestMaster });
+      if (masterErr) console.error("[Bulk masterData sync]", masterErr.message);
+    }
+
+    logActivity("BULK_DELETE_TRANSACTIONS", `Deleted ${ids.length} transactions`, {
+      count: ids.length,
     });
   };
 
@@ -3664,6 +3759,7 @@ function FinanceDashboard() {
                   addItem={addItem}
                   addTransactions={addTransactions}
                   removeItem={removeItem}
+                  bulkRemoveTransactions={bulkRemoveTransactions}
                   updateItem={updateItem}
                   masterData={state.masterData || DEFAULT_MASTER_DATA}
                   updateMasterData={updateMasterData}
