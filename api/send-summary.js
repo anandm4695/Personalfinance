@@ -226,6 +226,28 @@ function monthLabel() {
   return nowIST().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 }
 
+// ── Escalation-aware rent ────────────────────────────────────────────────────
+// Mirrors src/utils/finance.ts's getEffectiveRent (this backend can't import
+// that TS module, so the tier-walk logic is duplicated here). Without this,
+// the "upcoming dues" rent line used the flat monthlyRent field, which goes
+// stale the moment a rented-in property's lease escalates to its next tier —
+// same class of bug fixed across 6+ other tabs (Emergency Fund, Section 80, etc).
+function getEffectiveRent(p, yearMonth) {
+  const tiers = p.escalationTiers;
+  if (!tiers || !tiers.length || !p.agreementStart) return Number(p.monthlyRent || 0);
+  const refMonth = yearMonth || today().slice(0, 7);
+  const [refY, refM] = refMonth.split("-").map(Number);
+  const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
+  const monthsElapsed = (refY - startY) * 12 + (refM - startM);
+  if (monthsElapsed < 0) return Number(tiers[0]?.amount || p.monthlyRent || 0);
+  let cumulative = 0;
+  for (const tier of tiers) {
+    cumulative += Number(tier.durationMonths || 12);
+    if (monthsElapsed < cumulative) return Number(tier.amount || 0);
+  }
+  return Number(tiers[tiers.length - 1]?.amount || p.monthlyRent || 0);
+}
+
 // ── Compute all summary metrics from state ─────────────────────────────────────
 function computeSummary(state) {
   const now = nowIST();
@@ -675,7 +697,7 @@ function computeSummary(state) {
         dues.push({
           date: d,
           label: `${p.propertyName || "Rent"}`,
-          amount: Number(p.monthlyRent || 0),
+          amount: getEffectiveRent(p, curYm),
           type: "emi",
         });
     }

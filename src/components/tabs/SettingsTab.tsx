@@ -1970,6 +1970,48 @@ const WEEKDAYS = [
   { value: 0, label: "Sunday" },
 ];
 
+// Cron fires once daily at 8:00 AM IST (see api/send-summary.js's shouldSendNow +
+// vercel.json's "30 2 * * *" = 2:30 UTC = 8:00 IST). Mirrors the backend's own
+// nowIST() shift-trick so "next scheduled" always agrees with when the cron
+// actually evaluates shouldSendNow, instead of drifting from the viewer's local time zone.
+function nextScheduledSendIST(frequency: string, day: number): Date {
+  const IST_OFFSET_MS = 330 * 60000;
+  const ist = new Date(Date.now() + IST_OFFSET_MS); // read via getUTC* as if it were IST wall-clock
+  const curDate = ist.getUTCDate();
+  const curDay = ist.getUTCDay();
+  const pastCutoff = ist.getUTCHours() >= 8;
+  const at8AmIST = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d, 2, 30, 0));
+  const daysInMonth = (y: number, m: number) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+
+  if (frequency === "daily") {
+    const t = new Date(ist.getTime());
+    t.setUTCDate(t.getUTCDate() + (pastCutoff ? 1 : 0));
+    return at8AmIST(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+  }
+
+  if (frequency === "weekly") {
+    let delta = (day - curDay + 7) % 7;
+    if (delta === 0 && pastCutoff) delta = 7;
+    const t = new Date(ist.getTime());
+    t.setUTCDate(t.getUTCDate() + delta);
+    return at8AmIST(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+  }
+
+  // monthly — same last-day-of-month clamp as the backend's shouldSendNow
+  let y = ist.getUTCFullYear();
+  let m = ist.getUTCMonth();
+  let effDay = Math.min(day, daysInMonth(y, m));
+  if (!(curDate < effDay || (curDate === effDay && !pastCutoff))) {
+    m += 1;
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    effDay = Math.min(day, daysInMonth(y, m));
+  }
+  return at8AmIST(y, m, effDay);
+}
+
 function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any) {
   const es = emailSettings || {};
   const enabled = !!es.emailEnabled;
@@ -2308,6 +2350,38 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 </div>
               );
             })()}
+            {address && (
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 14,
+                  borderTop: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                }}
+              >
+                <Calendar size={16} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    Next scheduled send
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                    {(() => {
+                      const next = nextScheduledSendIST(frequency, day);
+                      const hoursAway = (next.getTime() - Date.now()) / 3600000;
+                      const label =
+                        hoursAway < 20
+                          ? "Today, 8:00 AM IST"
+                          : hoursAway < 44
+                            ? "Tomorrow, 8:00 AM IST"
+                            : `${next.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}, 8:00 AM IST`;
+                      return label;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Email address */}
