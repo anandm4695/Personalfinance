@@ -703,6 +703,46 @@ export function BanksTab({
   // transactions and desyncs this tab's numbers from the rest of the app.
   const getDisplayBalance = (acc: any): number => Number(acc?.balance || 0);
 
+  // Running balance after each transaction — a passbook-style "Balance" column.
+  // acc.balance only holds the CURRENT balance, so we walk each account's full
+  // transaction history (not the filtered/paged view) oldest-first and work
+  // forward from the opening balance implied by that current balance. Computed
+  // from the full unfiltered history so the figure stays the true historical
+  // balance even while the table itself is filtered, searched, or re-sorted.
+  const balanceAfterTxn = useMemo(() => {
+    const map: Record<string, number> = {};
+    const byAccount: Record<string, any[]> = {};
+    state.transactions.forEach((t: any) => {
+      if (!t.accountId) return;
+      (byAccount[t.accountId] ||= []).push(t);
+    });
+    Object.entries(byAccount).forEach(([accountId, txns]) => {
+      const acc = state.bankAccounts.find((a: any) => a.id === accountId);
+      if (!acc) return;
+      const signed = (t: any) => (t.type === "credit" ? Number(t.amount || 0) : -Number(t.amount || 0));
+      // Sort oldest → newest by date. There's no reliable creation-timestamp field, so
+      // same-day entries are tied by array order — but reversed (descending idx) so the
+      // walk processes them in the OPPOSITE order the ledger displays them (which sorts
+      // newest-first and, being a stable sort, keeps ties in ascending array order). That
+      // makes the top-most row of a same-day tie the one processed *last* here, so it's
+      // the row that lands on the true current balance instead of a row further down.
+      const ordered = txns
+        .map((t, idx) => ({ t, idx }))
+        .sort((a, b) => {
+          const byDate = (a.t.date || "").localeCompare(b.t.date || "");
+          return byDate !== 0 ? byDate : b.idx - a.idx;
+        })
+        .map((x) => x.t);
+      const totalSigned = ordered.reduce((s, t) => s + signed(t), 0);
+      let running = getDisplayBalance(acc) - totalSigned;
+      ordered.forEach((t) => {
+        running += signed(t);
+        map[t.id] = running;
+      });
+    });
+    return map;
+  }, [state.transactions, state.bankAccounts]);
+
   const totalBalance = state.bankAccounts.reduce(
     (acc: any, a: any) => acc + getDisplayBalance(a),
     0
@@ -782,7 +822,7 @@ export function BanksTab({
 
   const exportTxnsToCSV = () => {
     if (!sortedTxns || sortedTxns.length === 0) return;
-    const headers = ["Date", "Account", "Type", "Category", "Note", "Reference Number", "Amount"];
+    const headers = ["Date", "Account", "Type", "Category", "Note", "Reference Number", "Amount", "Balance"];
     const csvRows = [
       headers.join(","),
       ...sortedTxns.map((t: any) => {
@@ -795,6 +835,7 @@ export function BanksTab({
           t.note || "",
           t.referenceNumber || "",
           t.amount ?? "",
+          t.id in balanceAfterTxn ? balanceAfterTxn[t.id] : "",
         ]
           .map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`)
           .join(",");
@@ -1958,6 +1999,16 @@ export function BanksTab({
                     </span>
                   ),
                 },
+                {
+                  key: "balance",
+                  header: "Balance",
+                  align: "right",
+                  accessor: (t: any) => (
+                    <span style={{ color: THEME.ink, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
+                      {t.id in balanceAfterTxn ? <Prv>{fmtINRExact(balanceAfterTxn[t.id])}</Prv> : "—"}
+                    </span>
+                  ),
+                },
               ]}
               data={pagedTxns}
               hideSearch
@@ -2572,6 +2623,10 @@ export function BanksTab({
                 ) : null
               )}
               {row("Account", bank ? accountLabel(bank) : null)}
+              {row(
+                "Balance After",
+                t.id in balanceAfterTxn ? <Prv>{fmtINRExact(balanceAfterTxn[t.id])}</Prv> : null
+              )}
               {row("Narration", t.narration)}
               {row("Reference", t.referenceNumber)}
               <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
