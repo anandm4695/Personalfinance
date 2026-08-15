@@ -822,9 +822,14 @@ export function BanksTab({
       } else {
         const totalSigned = ordered.reduce((s, t) => s + signed(t), 0);
         let running = getDisplayBalance(acc) - totalSigned;
+        // A lone transaction has no reconstruction ambiguity to warn about: its
+        // resulting balance is exactly the account's current balance, not a guess
+        // that assumes untracked history doesn't exist. Treat it as confirmed so a
+        // freshly-created account's very first manual entry isn't flagged "estimated".
+        const soleTxn = ordered.length === 1;
         ordered.forEach((t) => {
           running += signed(t);
-          map[t.id] = { value: running, confirmed: false };
+          map[t.id] = { value: running, confirmed: soleTxn };
         });
       }
     });
@@ -3126,6 +3131,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
     referenceNumber: "",
     toAccountId: defaultToId,
     linkedKey: "",
+    statementBalance: "",
   });
   const isTransfer = f.type === "transfer";
 
@@ -3353,6 +3359,21 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
           placeholder="Cheque or reference number (optional)"
         />
       </Field>
+      {!isTransfer && (
+        <Field label="Account Balance After This Transaction (optional)">
+          <input
+            style={input}
+            type="number"
+            value={f.statementBalance}
+            onChange={(e) => setF({ ...f, statementBalance: e.target.value })}
+            placeholder="e.g. exact balance shown in your bank statement/app"
+          />
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+            If you know the exact resulting balance, enter it here to mark this transaction as
+            bank-confirmed instead of estimated in the ledger.
+          </div>
+        </Field>
+      )}
       <ModalActions
         onSave={() =>
           Number(f.amount) > 0 &&
@@ -3380,6 +3401,10 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
     note: txn?.note || "",
     narration: txn?.narration || "",
     referenceNumber: txn?.referenceNumber || "",
+    statementBalance:
+      txn?.statementBalance === undefined || txn?.statementBalance === null
+        ? ""
+        : String(txn.statementBalance),
   });
   return (
     <Modal title="Edit Transaction" onClose={onClose}>
@@ -3535,6 +3560,19 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
           onChange={(e) => setF({ ...f, referenceNumber: e.target.value })}
           placeholder="Cheque or reference number (optional)"
         />
+      </Field>
+      <Field label="Account Balance After This Transaction (optional)">
+        <input
+          style={input}
+          type="number"
+          value={f.statementBalance}
+          onChange={(e) => setF({ ...f, statementBalance: e.target.value })}
+          placeholder="e.g. exact balance shown in your bank statement/app"
+        />
+        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+          If you know the exact resulting balance, enter it here to mark this transaction as
+          bank-confirmed instead of estimated in the ledger.
+        </div>
       </Field>
       <ModalActions
         onSave={() => Number(f.amount) > 0 && f.accountId && onSave(f)}
