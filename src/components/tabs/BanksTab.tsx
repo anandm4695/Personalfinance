@@ -772,7 +772,7 @@ export function BanksTab({
   // The table/drawer/export all show a visual cue for unconfirmed figures so an
   // incomplete import history reads as "estimated", not as a silently wrong fact.
   const balanceAfterTxn = useMemo(() => {
-    const map: Record<string, { value: number; confirmed: boolean }> = {};
+    const map: Record<string, { value: number; confirmed: boolean; orderEstimated?: boolean }> = {};
     const byAccount: Record<string, any[]> = {};
     (balanceSource.transactions || []).forEach((t: any) => {
       if (!t.accountId) return;
@@ -794,24 +794,84 @@ export function BanksTab({
       // newest-first and, being a stable sort, keeps ties in ascending array order). That
       // makes the top-most row of a same-day tie the one processed *last* here, so it's
       // the row that lands on the true current balance instead of a row further down.
-      //
-      // Within a same-day tie, credits are additionally walked before debits. Insertion
-      // order has no relation to time-of-day (data is often backfilled long after the
-      // fact), so without this a same-day debit can land before the credit that offsets
-      // it purely by array-order luck — e.g. a ₹0-net day (one debit, matching credits)
-      // showing the account dipping into a negative balance it never actually held.
-      // Real (non-overdraft) accounts can't go negative, so whenever a same-day debit
-      // can be covered by that day's credits, prefer the ordering that avoids the
-      // fictitious dip; only show negative when the day's own numbers require it.
-      const ordered = txns
+      let ordered = txns
         .map((t, idx) => ({ t, idx }))
         .sort((a, b) => {
           const byDate = (a.t.date || "").localeCompare(b.t.date || "");
           if (byDate !== 0) return byDate;
-          const byType = (a.t.type === "credit" ? 0 : 1) - (b.t.type === "credit" ? 0 : 1);
-          return byType !== 0 ? byType : b.idx - a.idx;
+          return b.idx - a.idx;
         })
         .map((x) => x.t);
+
+      // Same-day transactions have no reliable time-of-day, so the order above is only
+      // a guess — and applying a same-day debit before the credit that actually covers
+      // it can make the running balance dip below zero, even though a real (non-overdraft)
+      // account never held that dip; it's purely an artifact of guessing the wrong order.
+      // Fix that with the SMALLEST possible reorder: only when the next transaction would
+      // push the running balance negative, pull the nearest not-yet-used same-day credit
+      // forward just far enough to cover it. (An earlier version blanket-moved every
+      // same-day credit ahead of every same-day debit, which "fixed" the dip but also
+      // silently detached a debit's computed balance from the row directly above it in
+      // the table whenever the day held more transactions than the dip actually needed
+      // reordered — e.g. a transfer-out debit ended up computed as if it happened after
+      // every reimbursement credit that day, even ones logged well after it, making the
+      // Balance column jump by an amount that didn't match the adjacent row's Debit/Credit
+      // figure. This keeps the walk as close to natural order as possible, and flags via
+      // `orderEstimated` exactly the rows whose position had to move.)
+      const sameDayReordered = new Set<string>();
+      {
+        // Reordering within a day can't change that day's own net (it's the same set of
+        // deltas in a different order), so the balance a day is entered with is
+        // order-independent — safe to compute with one pass over the natural order above.
+        const enteringBalanceByDate: Record<string, number> = {};
+        let runningForEntering = 0;
+        let lastDate: string | null = null;
+        ordered.forEach((t) => {
+          const d = t.date || "";
+          if (d !== lastDate) {
+            enteringBalanceByDate[d] = runningForEntering;
+            lastDate = d;
+          }
+          runningForEntering += signed(t);
+        });
+
+        const groups: any[][] = [];
+        let currentGroup: any[] = [];
+        let currentDate: string | null = null;
+        ordered.forEach((t) => {
+          const d = t.date || "";
+          if (d !== currentDate) {
+            if (currentGroup.length) groups.push(currentGroup);
+            currentGroup = [];
+            currentDate = d;
+          }
+          currentGroup.push(t);
+        });
+        if (currentGroup.length) groups.push(currentGroup);
+
+        const reorderedFull: any[] = [];
+        groups.forEach((group) => {
+          let running = enteringBalanceByDate[group[0].date || ""] || 0;
+          const queue = [...group];
+          while (queue.length) {
+            const next = queue[0];
+            if (signed(next) < 0 && running + signed(next) < -0.005) {
+              const creditIdx = queue.findIndex((t) => signed(t) > 0);
+              if (creditIdx !== -1) {
+                const [credit] = queue.splice(creditIdx, 1);
+                queue.unshift(credit);
+                sameDayReordered.add(credit.id);
+                sameDayReordered.add(next.id);
+                continue;
+              }
+            }
+            queue.shift();
+            reorderedFull.push(next);
+            running += signed(next);
+          }
+        });
+        ordered = reorderedFull;
+      }
 
       const hasGroundTruth = ordered.some((t) => statementBalanceOf(t) !== null);
       if (hasGroundTruth) {
@@ -827,7 +887,7 @@ export function BanksTab({
             map[t.id] = { value: running, confirmed: true };
           } else if (running !== null) {
             running += signed(t);
-            map[t.id] = { value: running, confirmed: false };
+            map[t.id] = { value: running, confirmed: false, orderEstimated: sameDayReordered.has(t.id) };
           }
         });
       } else {
@@ -845,12 +905,21 @@ export function BanksTab({
         let running = openingBalance;
         ordered.forEach((t) => {
           running += signed(t);
-          map[t.id] = { value: running, confirmed: builtFromZero };
+          const orderEstimated = sameDayReordered.has(t.id);
+          map[t.id] = { value: running, confirmed: builtFromZero && !orderEstimated, orderEstimated };
         });
       }
     });
     return map;
   }, [balanceSource.transactions, balanceSource.bankAccounts]);
+
+  const balanceTitle = (bal?: { confirmed: boolean; orderEstimated?: boolean }): string | undefined => {
+    if (!bal) return undefined;
+    if (bal.confirmed) return "Confirmed — the bank statement's own stated balance for this transaction";
+    if (bal.orderEstimated)
+      return "Estimated — this transaction shares a date with another and the exact order they happened in isn't recorded. Reordered so the balance never dips into an impossible negative; the adjacent row's balance may not match a simple add/subtract of this row's amount.";
+    return "Estimated — no bank-stated balance on record for this transaction. Worked backward from today's live account balance, which assumes your recorded transactions are this account's complete history. If they only cover part of its life (e.g. an old CSV import), this figure can be off.";
+  };
 
   const totalBalance = state.bankAccounts.reduce(
     (acc: any, a: any) => acc + getDisplayBalance(a),
@@ -2196,11 +2265,7 @@ export function BanksTab({
                           fontWeight: bal.confirmed ? 700 : 600,
                           fontStyle: bal.confirmed ? "normal" : "italic",
                         }}
-                        title={
-                          bal.confirmed
-                            ? "Confirmed — the bank statement's own stated balance for this transaction"
-                            : "Estimated — no bank-stated balance on record for this transaction. Worked backward from today's live account balance, which assumes your recorded transactions are this account's complete history. If they only cover part of its life (e.g. an old CSV import), this figure can be off."
-                        }
+                        title={balanceTitle(bal)}
                       >
                         {!bal.confirmed && "~"}
                         <Prv>{fmtINRExact(bal.value)}</Prv>
@@ -2825,7 +2890,7 @@ export function BanksTab({
               {row(
                 balanceAfterTxn[t.id]?.confirmed ? "Balance After" : "Balance After (Estimated)",
                 balanceAfterTxn[t.id] ? (
-                  <span title={balanceAfterTxn[t.id].confirmed ? undefined : "No bank-stated balance on record for this transaction — computed from nearby transaction amounts"}>
+                  <span title={balanceTitle(balanceAfterTxn[t.id])}>
                     {!balanceAfterTxn[t.id].confirmed && "~"}
                     <Prv>{fmtINRExact(balanceAfterTxn[t.id].value)}</Prv>
                   </span>
