@@ -89,6 +89,15 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   omnicard: "omnicard.in",
 };
 
+/** Deterministic, legible background color for the initials fallback avatar */
+const bankInitialsColor = (bankName: string) => {
+  const s = bankName || "?";
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash << 5) - hash + s.charCodeAt(i);
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 55%, 38%)`;
+};
+
 const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) => {
   const name = (bankName || "").toLowerCase();
   let domain = "";
@@ -141,6 +150,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         <img
           src={imgSrc}
           alt={bankName}
+          referrerPolicy="no-referrer"
           style={{ width: "80%", height: "80%", objectFit: "contain" }}
           onError={handleError}
         />
@@ -154,7 +164,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         width: size,
         height: size,
         borderRadius: 10,
-        background: `color-mix(in srgb, var(--t-line) 40%, transparent)`,
+        background: bankInitialsColor(bankName),
         border: `1px solid var(--t-line)`,
         display: "flex",
         alignItems: "center",
@@ -162,7 +172,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: size / 2.5, fontWeight: 800, color: "var(--t-muted)" }}>
+      <span style={{ fontSize: size / 2.5, fontWeight: 800, color: "#fff" }}>
         {(bankName || "").slice(0, 2).toUpperCase() || "?"}
       </span>
     </div>
@@ -1595,6 +1605,7 @@ function CCList({
           background: isClosed
             ? `linear-gradient(135deg, #3a3a42 0%, #2a2a32 100%)`
             : getCardGradient(c.issuer),
+          paddingTop: isClosed ? 34 : 42,
           paddingBottom: isClosed ? 20 : 60,
           opacity: isClosed ? 0.8 : 1,
           filter: isClosed ? "grayscale(35%)" : "none",

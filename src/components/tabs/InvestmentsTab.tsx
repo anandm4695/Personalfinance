@@ -9378,6 +9378,15 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "muthoot fin": "muthootfin.com",
 };
 
+/** Deterministic, legible color for the initials fallback avatar when no accentColor is given */
+function bankInitialsColor(name: string): string {
+  const s = name || "?";
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash << 5) - hash + s.charCodeAt(i);
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 55%, 38%)`;
+}
+
 function getBankDomain(name: string): string {
   const n = (name || "").toLowerCase().trim();
   for (const [k, d] of Object.entries(BANK_LOGO_DOMAINS)) {
@@ -9396,7 +9405,7 @@ const BankLogo = ({
   accentColor?: string;
 }) => {
   const domain = getBankDomain(name);
-  const color = accentColor || THEME.accent;
+  const color = accentColor || bankInitialsColor(name);
   const [imgSrc, setImgSrc] = React.useState<string | null>(
     domain ? `https://logos.hunter.io/${domain}` : null
   );
@@ -9453,6 +9462,7 @@ const BankLogo = ({
           src={imgSrc}
           alt={name}
           onError={handleError}
+          referrerPolicy="no-referrer"
           style={{ width: "80%", height: "80%", objectFit: "contain" }}
         />
       </div>

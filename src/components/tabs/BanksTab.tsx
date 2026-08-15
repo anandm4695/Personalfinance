@@ -147,6 +147,15 @@ function getAccountTheme(type: string) {
   return ACCOUNT_TYPE_THEMES.savings;
 }
 
+/** Deterministic, legible background color for the initials fallback avatar */
+const bankInitialsColor = (bankName: string) => {
+  const s = bankName || "?";
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash << 5) - hash + s.charCodeAt(i);
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 55%, 38%)`;
+};
+
 const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) => {
   const name = (bankName || "").toLowerCase();
   let domain = "";
@@ -199,6 +208,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         <img
           src={imgSrc}
           alt={bankName}
+          referrerPolicy="no-referrer"
           style={{ width: "80%", height: "80%", objectFit: "contain" }}
           onError={handleError}
         />
@@ -212,7 +222,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         width: size,
         height: size,
         borderRadius: 10,
-        background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+        background: bankInitialsColor(bankName),
         border: `1px solid ${THEME.line}`,
         display: "flex",
         alignItems: "center",
@@ -220,8 +230,8 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: size / 2.5, fontWeight: 800, color: THEME.muted }}>
-        {bankName.slice(0, 2).toUpperCase()}
+      <span style={{ fontSize: size / 2.5, fontWeight: 800, color: "#fff" }}>
+        {(bankName || "").slice(0, 2).toUpperCase() || "?"}
       </span>
     </div>
   );
