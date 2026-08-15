@@ -794,14 +794,14 @@ export function BanksTab({
       // newest-first and, being a stable sort, keeps ties in ascending array order). That
       // makes the top-most row of a same-day tie the one processed *last* here, so it's
       // the row that lands on the true current balance instead of a row further down.
-      let ordered = txns
+      const withIdx = txns
         .map((t, idx) => ({ t, idx }))
         .sort((a, b) => {
           const byDate = (a.t.date || "").localeCompare(b.t.date || "");
           if (byDate !== 0) return byDate;
           return b.idx - a.idx;
-        })
-        .map((x) => x.t);
+        });
+      let ordered = withIdx.map((x) => x.t);
 
       // Same-day transactions have no reliable time-of-day, so the order above is only
       // a guess — and applying a same-day debit before the credit that actually covers
@@ -813,12 +813,18 @@ export function BanksTab({
       // same-day credit ahead of every same-day debit, which "fixed" the dip but also
       // silently detached a debit's computed balance from the row directly above it in
       // the table whenever the day held more transactions than the dip actually needed
-      // reordered — e.g. a transfer-out debit ended up computed as if it happened after
-      // every reimbursement credit that day, even ones logged well after it, making the
-      // Balance column jump by an amount that didn't match the adjacent row's Debit/Credit
-      // figure. This keeps the walk as close to natural order as possible, and flags via
-      // `orderEstimated` exactly the rows whose position had to move.)
-      const sameDayReordered = new Set<string>();
+      // reordered.)
+      //
+      // But even the minimal reorder above is still just ONE valid guess among several —
+      // whenever a day mixes credits and debits, other equally-valid non-negative orderings
+      // exist that land the *other* same-day rows on different numbers. Only the day's most
+      // recent row (its smallest idx — the topmost displayed row of the tie, which anchors
+      // to the day's real closing balance) is invariant no matter which order actually
+      // happened. Every other row on a mixed-sign day is a guess dressed up as a number, so
+      // ALL of them — not just the ones this particular reorder happened to move — are
+      // flagged via `orderEstimated`, regardless of whether the chosen ordering left a given
+      // row's position untouched.
+      const orderAmbiguous = new Set<string>();
       {
         // Reordering within a day can't change that day's own net (it's the same set of
         // deltas in a different order), so the balance a day is entered with is
@@ -835,24 +841,34 @@ export function BanksTab({
           runningForEntering += signed(t);
         });
 
-        const groups: any[][] = [];
-        let currentGroup: any[] = [];
+        const groups: { t: any; idx: number }[][] = [];
+        let currentGroup: { t: any; idx: number }[] = [];
         let currentDate: string | null = null;
-        ordered.forEach((t) => {
-          const d = t.date || "";
+        withIdx.forEach((x) => {
+          const d = x.t.date || "";
           if (d !== currentDate) {
             if (currentGroup.length) groups.push(currentGroup);
             currentGroup = [];
             currentDate = d;
           }
-          currentGroup.push(t);
+          currentGroup.push(x);
         });
         if (currentGroup.length) groups.push(currentGroup);
 
         const reorderedFull: any[] = [];
         groups.forEach((group) => {
-          let running = enteringBalanceByDate[group[0].date || ""] || 0;
-          const queue = [...group];
+          const hasCredit = group.some((x) => signed(x.t) > 0);
+          const hasDebit = group.some((x) => signed(x.t) < 0);
+          if (hasCredit && hasDebit && group.length > 1) {
+            // The anchor is the row with the smallest idx (the day's topmost/most recent
+            // display row) — every other row in this mixed-sign day is order-ambiguous.
+            const anchorIdx = Math.min(...group.map((x) => x.idx));
+            group.forEach((x) => {
+              if (x.idx !== anchorIdx) orderAmbiguous.add(x.t.id);
+            });
+          }
+          let running = enteringBalanceByDate[group[0].t.date || ""] || 0;
+          const queue = group.map((x) => x.t);
           while (queue.length) {
             const next = queue[0];
             if (signed(next) < 0 && running + signed(next) < -0.005) {
@@ -860,8 +876,6 @@ export function BanksTab({
               if (creditIdx !== -1) {
                 const [credit] = queue.splice(creditIdx, 1);
                 queue.unshift(credit);
-                sameDayReordered.add(credit.id);
-                sameDayReordered.add(next.id);
                 continue;
               }
             }
@@ -887,7 +901,7 @@ export function BanksTab({
             map[t.id] = { value: running, confirmed: true };
           } else if (running !== null) {
             running += signed(t);
-            map[t.id] = { value: running, confirmed: false, orderEstimated: sameDayReordered.has(t.id) };
+            map[t.id] = { value: running, confirmed: false, orderEstimated: orderAmbiguous.has(t.id) };
           }
         });
       } else {
@@ -905,7 +919,7 @@ export function BanksTab({
         let running = openingBalance;
         ordered.forEach((t) => {
           running += signed(t);
-          const orderEstimated = sameDayReordered.has(t.id);
+          const orderEstimated = orderAmbiguous.has(t.id);
           map[t.id] = { value: running, confirmed: builtFromZero && !orderEstimated, orderEstimated };
         });
       }
