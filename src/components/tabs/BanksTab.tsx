@@ -794,11 +794,22 @@ export function BanksTab({
       // newest-first and, being a stable sort, keeps ties in ascending array order). That
       // makes the top-most row of a same-day tie the one processed *last* here, so it's
       // the row that lands on the true current balance instead of a row further down.
+      //
+      // Within a same-day tie, credits are additionally walked before debits. Insertion
+      // order has no relation to time-of-day (data is often backfilled long after the
+      // fact), so without this a same-day debit can land before the credit that offsets
+      // it purely by array-order luck — e.g. a ₹0-net day (one debit, matching credits)
+      // showing the account dipping into a negative balance it never actually held.
+      // Real (non-overdraft) accounts can't go negative, so whenever a same-day debit
+      // can be covered by that day's credits, prefer the ordering that avoids the
+      // fictitious dip; only show negative when the day's own numbers require it.
       const ordered = txns
         .map((t, idx) => ({ t, idx }))
         .sort((a, b) => {
           const byDate = (a.t.date || "").localeCompare(b.t.date || "");
-          return byDate !== 0 ? byDate : b.idx - a.idx;
+          if (byDate !== 0) return byDate;
+          const byType = (a.t.type === "credit" ? 0 : 1) - (b.t.type === "credit" ? 0 : 1);
+          return byType !== 0 ? byType : b.idx - a.idx;
         })
         .map((x) => x.t);
 
