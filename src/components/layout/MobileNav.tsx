@@ -31,6 +31,7 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const drawerMouseDownOnBackdrop = useRef(false);
 
   useEffect(() => {
     if (drawerOpen) {
@@ -211,7 +212,15 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
       {drawerOpen && (
         <div
           className="mobile-nav-drawer-backdrop"
-          onClick={() => setDrawerOpen(false)}
+          onMouseDown={(e) => {
+            drawerMouseDownOnBackdrop.current = e.target === e.currentTarget;
+          }}
+          onClick={(e) => {
+            if (drawerMouseDownOnBackdrop.current && e.target === e.currentTarget) {
+              setDrawerOpen(false);
+            }
+            drawerMouseDownOnBackdrop.current = false;
+          }}
           style={{
             position: "fixed",
             inset: 0,
@@ -226,7 +235,6 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
         >
           <div
             ref={drawerRef}
-            onClick={(e) => e.stopPropagation()}
             className="mobile-nav-drawer"
             style={{
               position: "absolute",

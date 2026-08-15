@@ -583,6 +583,7 @@ function FinanceDashboard() {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const shortcutsMouseDownOnBackdrop = useRef(false);
   // Body scroll lock while the keyboard-shortcuts help is open — this panel is
   // hand-rolled (not the shared Modal component, since it's a static reference
   // list with no form state) so it needs the same lock the shared Modal gets for free.
@@ -4177,9 +4178,19 @@ function FinanceDashboard() {
 
         {/* ── KEYBOARD SHORTCUTS HELP ── */}
         {showShortcuts && (
-          <div className="modal-backdrop" onClick={() => setShowShortcuts(false)}>
+          <div
+            className="modal-backdrop"
+            onMouseDown={(e) => {
+              shortcutsMouseDownOnBackdrop.current = e.target === e.currentTarget;
+            }}
+            onClick={(e) => {
+              if (shortcutsMouseDownOnBackdrop.current && e.target === e.currentTarget) {
+                setShowShortcuts(false);
+              }
+              shortcutsMouseDownOnBackdrop.current = false;
+            }}
+          >
             <div
-              onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-labelledby="shortcuts-modal-title"

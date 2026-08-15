@@ -67,8 +67,26 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, []);
 
+  // Only close on a genuine click on the backdrop itself: both mousedown and
+  // mouseup/click must start and end on the backdrop. This prevents the
+  // common case of a user clicking/drag-selecting text inside the form and
+  // the pointer drifting past the panel edge before release, which would
+  // otherwise register as a backdrop click and silently discard the form.
+  const mouseDownOnBackdrop = React.useRef(false);
+
   const content = (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => {
+        mouseDownOnBackdrop.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (mouseDownOnBackdrop.current && e.target === e.currentTarget) {
+          onClose();
+        }
+        mouseDownOnBackdrop.current = false;
+      }}
+    >
       <div
         ref={panelRef}
         className="modal-panel"
@@ -76,7 +94,6 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: `min(${maxWidth}px, 95vw)` }}
       >
         <div className="modal-header">

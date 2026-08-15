@@ -39,9 +39,22 @@ export function ConfirmDialog({
     gap: 6,
   };
 
+  const mouseDownOnBackdropRef = React.useRef(false);
+
   return ReactDOM.createPortal(
-    <div className="modal-backdrop" onClick={onCancel}>
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => {
+        mouseDownOnBackdropRef.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (mouseDownOnBackdropRef.current && e.target === e.currentTarget) {
+          onCancel();
+        }
+        mouseDownOnBackdropRef.current = false;
+      }}
+    >
+      <div className="modal-panel" style={{ maxWidth: 420 }}>
         <div className="modal-header">
           <div
             style={{
