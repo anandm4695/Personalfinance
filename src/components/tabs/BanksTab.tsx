@@ -26,6 +26,7 @@ import {
   Link2,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -779,6 +780,37 @@ export function BanksTab({
   const animMonthlyExpense = useAnimatedNumber(monthlyExpense);
   const animSavingsRate = useAnimatedNumber(monthlySavingsRate);
 
+  const exportTxnsToCSV = () => {
+    if (!sortedTxns || sortedTxns.length === 0) return;
+    const headers = ["Date", "Account", "Type", "Category", "Note", "Reference Number", "Amount"];
+    const csvRows = [
+      headers.join(","),
+      ...sortedTxns.map((t: any) => {
+        const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
+        return [
+          t.date || "",
+          bank ? accountLabel(bank) : "",
+          t.type || "",
+          t.category || "",
+          t.note || "",
+          t.referenceNumber || "",
+          t.amount ?? "",
+        ]
+          .map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`)
+          .join(",");
+      }),
+    ];
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bank-transactions-${today()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* ── HEADER & ACTIONS ────────────────────────────────────────────────── */}
@@ -806,6 +838,16 @@ export function BanksTab({
             title="Import transactions from CSV"
           >
             Import CSV
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Download size={14} />}
+            onClick={exportTxnsToCSV}
+            disabled={sortedTxns.length === 0}
+            title="Export transactions matching the current filters to CSV"
+          >
+            Export CSV
           </Button>
           <Button variant="accent" size="sm" icon={<Plus size={14} />} onClick={() => setShowTxn(true)}>
             Transaction
