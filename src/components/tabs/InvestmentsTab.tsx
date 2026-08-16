@@ -10239,7 +10239,12 @@ function MFSection({
 
   const { run: saveMFSell, loading: savingMFSell } = useAsyncAction(
     async (mf: any, sellRecord: any, remainingUnits: number) => {
-      await addItem("mfSells", sellRecord);
+      const sellSaved = await addItem("mfSells", sellRecord);
+      if (sellSaved && sellSaved.success === false) {
+        // Sale record failed to persist to Supabase — stop here so the
+        // holding isn't shrunk/deleted for a sale that doesn't exist in the DB.
+        throw new Error("Sale could not be saved — holding was not changed.");
+      }
       if (remainingUnits <= 0) {
         await removeItem("mutualFunds", mf.id);
       } else {
@@ -10262,7 +10267,7 @@ function MFSection({
     async (group: any, allocs: any[], sellNav: number, sellDate: string) => {
       for (let i = 0; i < allocs.length; i++) {
         const alloc = allocs[i];
-        await addItem("mfSells", {
+        const sellSaved = await addItem("mfSells", {
           id: `mfs-${Date.now()}-${i}`,
           owner: alloc.lot.owner || "self",
           scheme: group.fundName || group.schemeName,
@@ -10278,6 +10283,16 @@ function MFSection({
           sellDate,
           profit: Number(alloc.pnl.toFixed(2)),
         });
+        if (sellSaved && sellSaved.success === false) {
+          // Stop processing further lots so a failure partway through the FIFO
+          // sweep doesn't shrink/delete holdings for lots whose sale never made
+          // it to the DB. Lots before this one are already saved and applied.
+          throw new Error(
+            i === 0
+              ? "Sale could not be saved — no lots were changed."
+              : `Sale failed after ${i} of ${allocs.length} lot(s) — remaining lots were not changed.`
+          );
+        }
         if (alloc.fullyConsumed) {
           await removeItem("mutualFunds", alloc.lot.id);
         } else {

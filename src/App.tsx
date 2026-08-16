@@ -1993,6 +1993,7 @@ function FinanceDashboard() {
     const newId =
       itemWithOwner.id && (isUuid(itemWithOwner.id) || isTextIdTable) ? itemWithOwner.id : uid();
 
+    let syncFailed = false;
     setState((s) => {
       const next: any = {
         ...s,
@@ -2196,6 +2197,7 @@ function FinanceDashboard() {
           showToast(`⚠️ DB table missing — run ${migFile} in Supabase SQL Editor`, "error");
           setMissingTables((prev) => (prev.includes(table) ? prev : [...prev, table]));
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+          syncFailed = true;
         } else {
           // Schema / auth / constraint error — revert immediately and show details
           console.error(`Supabase Upsert Error (${table}):`, {
@@ -2214,6 +2216,7 @@ function FinanceDashboard() {
           }
           showToast(errMsg, "error");
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+          syncFailed = true;
         }
       }
     }
@@ -2221,6 +2224,7 @@ function FinanceDashboard() {
       ...item,
       id: newId,
     });
+    return { success: !syncFailed, id: newId };
   };
 
   const addTransactions = async (txns: any[]) => {

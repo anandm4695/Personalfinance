@@ -291,7 +291,8 @@ CREATE TABLE IF NOT EXISTS public.mf_sells (
   buy_date   date,
   sell_date  date,
   profit     numeric DEFAULT 0,
-  created_at timestamp with time zone DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  category   text                                                 -- 94 (Equity/Debt, for capital-gains tax classification)
 );
 
 ALTER TABLE public.mf_sells ENABLE ROW LEVEL SECURITY;
