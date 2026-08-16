@@ -150,7 +150,7 @@ const CARD_COLOR_MAP: Array<{ keys: string[]; g: Gradient }> = [
   { keys: ["sbi", "state bank"], g: { from: "#1565C0", to: "#0A3880" } },
   { keys: ["axis"], g: { from: "#820000", to: "#3D0000" } },
   { keys: ["kotak"], g: { from: "#C0392B", to: "#6B0000" } },
-  { keys: ["indusind"], g: { from: "#145A32", to: "#072E18" } },
+  { keys: ["indusind", "indusland"], g: { from: "#145A32", to: "#072E18" } },
   { keys: ["yes bank", "yes first"], g: { from: "#0047AB", to: "#002366" } },
   { keys: ["standard chartered"], g: { from: "#006400", to: "#003200" } },
   { keys: ["rbl"], g: { from: "#003087", to: "#001A4D" } },

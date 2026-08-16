@@ -9325,6 +9325,7 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "yes bank": "yesbank.in",
   "yes ": "yesbank.in",
   indusind: "indusind.com",
+  indusland: "indusind.com", // common misspelling of IndusInd
   rbl: "rblbank.com",
   federal: "federalbank.co.in",
   idfc: "idfcfirstbank.com",
