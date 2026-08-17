@@ -227,6 +227,7 @@ const referenceDateForFY = (fyStartYear: number): string => {
 type GainType = "EQUITY_STCG" | "EQUITY_LTCG" | "DEBT_STCG" | "DEBT_LTCG";
 
 interface ClassifiedSell {
+  id?: string;
   name: string;
   buyDate: string;
   buyPrice: number;
@@ -239,6 +240,10 @@ interface ClassifiedSell {
   estimatedTax: number;
   gainType: GainType;
   assetType: "Stock" | "Mutual Fund";
+  // true when this MF sell has no confirmed Equity/Debt category — from itself
+  // or a still-live matching holding — so its gain type/tax rate above are
+  // only a best-effort guess from the fund's name text (see isEquityMF).
+  categoryGuessed?: boolean;
 }
 
 interface UnrealizedHolding {
@@ -309,7 +314,8 @@ const classifySells = (
     const buyTotal = (Number(m.buyNav || m.buyPrice) || 0) * units;
     const sellTotal = (Number(m.sellNav || m.sellPrice) || 0) * units;
     const profit = m.profit != null ? Number(m.profit) : sellTotal - buyTotal;
-    const equity = isEquityMF({ ...m, category: resolveMFSellCategory(m, mfCategoryIndex) });
+    const resolvedCategory = resolveMFSellCategory(m, mfCategoryIndex);
+    const equity = isEquityMF({ ...m, category: resolvedCategory });
 
     let gainType: GainType;
     let taxRate: number;
@@ -332,6 +338,7 @@ const classifySells = (
     }
 
     result.push({
+      id: m.id,
       name: m.name || m.scheme || "Unknown MF",
       buyDate: m.buyDate,
       buyPrice: buyTotal,
@@ -344,6 +351,7 @@ const classifySells = (
       estimatedTax: 0,
       gainType,
       assetType: "Mutual Fund",
+      categoryGuessed: !resolvedCategory,
     });
   }
 
@@ -487,6 +495,93 @@ const CardHeading = ({ icon: Icon, title, color = THEME.accent }: any) => (
   </div>
 );
 
+/* ── Category Fix Badge ──────────────────────────────────────────
+   Shown on an MF sell row whose Equity/Debt category couldn't be confirmed
+   (neither the sale record nor any still-live matching holding had one, so
+   the gain type/tax rate shown is only a best-effort guess from the fund's
+   name text). Lets the user resolve it inline — the fix is written straight
+   back to the mf_sells row so it's permanent, not just a display patch. */
+const CategoryFixBadge = ({
+  sellId,
+  onFix,
+}: {
+  sellId?: string;
+  onFix?: (id: string, category: string) => Promise<void> | void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  if (!sellId || !onFix) {
+    return (
+      <span title="Equity/Debt could not be confirmed for this sale — showing a best-effort guess based on the fund's name.">
+        <AlertTriangle size={12} color={THEME.gold} />
+      </span>
+    );
+  }
+
+  const pick = async (category: string) => {
+    setSaving(true);
+    await onFix(sellId, category);
+    setSaving(false);
+    setOpen(false);
+  };
+
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        title="Equity/Debt not confirmed for this sale — showing a best-effort guess. Click to set it."
+        aria-label="Fix mutual fund tax category"
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+        }}
+      >
+        <AlertTriangle size={12} color={THEME.gold} />
+      </button>
+      {open && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            marginTop: 4,
+            zIndex: 20,
+            background: "var(--surface-0)",
+            border: `1px solid ${THEME.line}`,
+            borderRadius: 8,
+            boxShadow: "var(--shadow-card)",
+            padding: 8,
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            minWidth: 150,
+          }}
+        >
+          <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
+            This fund is actually:
+          </span>
+          <Button variant="secondary" size="sm" disabled={saving} onClick={() => pick("Equity")}>
+            Equity
+          </Button>
+          <Button variant="secondary" size="sm" disabled={saving} onClick={() => pick("Debt")}>
+            Debt
+          </Button>
+        </div>
+      )}
+    </span>
+  );
+};
+
 /* ══════════════════════════════════════════════════════════════════
    TRANSACTION TABLE
    ══════════════════════════════════════════════════════════════════ */
@@ -495,10 +590,12 @@ const TransactionTable = ({
   rows,
   title,
   color,
+  onFixCategory,
 }: {
   rows: ClassifiedSell[];
   title: string;
   color: string;
+  onFixCategory?: (id: string, category: string) => Promise<void> | void;
 }) => {
   const [expanded, setExpanded] = useState(true);
   if (!rows.length) return null;
@@ -600,7 +697,12 @@ const TransactionTable = ({
                     {r.name}
                   </td>
                   <td style={tdStyle}>
-                    <Badge variant="muted">{r.assetType}</Badge>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Badge variant="muted">{r.assetType}</Badge>
+                      {r.assetType === "Mutual Fund" && r.categoryGuessed && (
+                        <CategoryFixBadge sellId={r.id} onFix={onFixCategory} />
+                      )}
+                    </div>
                   </td>
                   <td
                     style={{
@@ -671,8 +773,19 @@ const TransactionTable = ({
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════ */
 
-export const CapitalGainsTab = ({ state }: { state: any }) => {
+export const CapitalGainsTab = ({
+  state,
+  updateItem,
+}: {
+  state: any;
+  updateItem?: (key: string, id: string, patch: any) => Promise<any>;
+}) => {
   const { privacyMode } = usePrivacy();
+
+  const handleFixMFCategory = async (id: string, category: string) => {
+    if (!updateItem) return;
+    await updateItem("mfSells", id, { category });
+  };
   const fyOptions = useMemo(
     () => buildFYOptions(state.stockSells || [], state.mfSells || []),
     [state.stockSells, state.mfSells]
@@ -1284,6 +1397,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
               rows={byType.groups[activeDetailTab]}
               title={detailTabs.find((t) => t.key === activeDetailTab)?.label || ""}
               color={detailTabs.find((t) => t.key === activeDetailTab)?.color || THEME.accent}
+              onFixCategory={handleFixMFCategory}
             />
           ) : (
             <div

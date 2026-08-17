@@ -3915,7 +3915,9 @@ function FinanceDashboard() {
                   onNavigateToTab={setTab}
                 />
               )}
-              {tab === "capitalgains" && <CapitalGainsTab state={filteredState} />}
+              {tab === "capitalgains" && (
+                <CapitalGainsTab state={filteredState} updateItem={updateItem} />
+              )}
               {tab === "taxtools" && (
                 <TaxToolsTab
                   state={filteredState}
