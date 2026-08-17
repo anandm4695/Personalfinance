@@ -55,6 +55,34 @@ export const isEquityMF = (mf: any): boolean => {
   return EQUITY_CATEGORIES.some((k) => cat.includes(k));
 };
 
+const mfKey = (name: string, owner: string) =>
+  `${(name || "").trim().toLowerCase()}|${owner || "self"}`;
+
+// mf_sells rows written before migration 94 (2026-08-16) never got a `category`
+// column to write into — Supabase silently stripped the field on save (PGRST204
+// auto-retry, see App.tsx), so those historical sale records have no category
+// and isEquityMF() falls all the way back to guessing Equity/Debt from the fund
+// NAME text. A plain name like "Axis Bluechip Fund" matches none of
+// EQUITY_CATEGORIES, so it silently misfiles into the Debt STCG/LTCG tab
+// instead of Equity. Recover the real category from the user's still-live
+// holding of the same fund (same name + owner) before falling back to the
+// keyword guess — fixes the classification for any fund not yet fully sold
+// off, with zero risk since it only fills in a value that's currently empty.
+const buildMFCategoryIndex = (mutualFunds: any[]): Map<string, string> => {
+  const idx = new Map<string, string>();
+  for (const mf of mutualFunds || []) {
+    if (!mf.category) continue;
+    const key = mfKey(mf.name || mf.scheme, mf.owner);
+    if (!idx.has(key)) idx.set(key, mf.category);
+  }
+  return idx;
+};
+
+const resolveMFSellCategory = (m: any, categoryIndex: Map<string, string>): string => {
+  if (m.category) return m.category;
+  return categoryIndex.get(mfKey(m.name || m.scheme, m.owner)) || "";
+};
+
 // Parse a "YYYY-MM-DD" string as a local-midnight Date instead of letting the
 // Date constructor treat it as UTC (per the ISO-8601 spec, a date-only string
 // parses as UTC). Reading local getters (getMonth/getDate) off a UTC-parsed
@@ -241,7 +269,8 @@ interface UnrealizedHolding {
 const classifySells = (
   stockSells: any[],
   mfSells: any[],
-  fyStartYear: number
+  fyStartYear: number,
+  mfCategoryIndex: Map<string, string>
 ): ClassifiedSell[] => {
   const result: ClassifiedSell[] = [];
 
@@ -280,7 +309,7 @@ const classifySells = (
     const buyTotal = (Number(m.buyNav || m.buyPrice) || 0) * units;
     const sellTotal = (Number(m.sellNav || m.sellPrice) || 0) * units;
     const profit = m.profit != null ? Number(m.profit) : sellTotal - buyTotal;
-    const equity = isEquityMF(m);
+    const equity = isEquityMF({ ...m, category: resolveMFSellCategory(m, mfCategoryIndex) });
 
     let gainType: GainType;
     let taxRate: number;
@@ -656,10 +685,15 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
 
   const currentFYStartYear = getCurrentFYStartYear();
 
+  const mfCategoryIndex = useMemo(
+    () => buildMFCategoryIndex(state.mutualFunds || []),
+    [state.mutualFunds]
+  );
+
   /* ── Classify Sells (for whichever FY is selected in the dropdown) ── */
   const classified = useMemo(
-    () => classifySells(state.stockSells || [], state.mfSells || [], fyStartYear),
-    [state.stockSells, state.mfSells, fyStartYear]
+    () => classifySells(state.stockSells || [], state.mfSells || [], fyStartYear, mfCategoryIndex),
+    [state.stockSells, state.mfSells, fyStartYear, mfCategoryIndex]
   );
 
   /* ── Compute Totals by Type (for the selected FY) ──────────────── */
@@ -681,8 +715,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
     () =>
       isViewingCurrentFY
         ? classified
-        : classifySells(state.stockSells || [], state.mfSells || [], currentFYStartYear),
-    [isViewingCurrentFY, classified, state.stockSells, state.mfSells, currentFYStartYear]
+        : classifySells(state.stockSells || [], state.mfSells || [], currentFYStartYear, mfCategoryIndex),
+    [isViewingCurrentFY, classified, state.stockSells, state.mfSells, currentFYStartYear, mfCategoryIndex]
   );
   const currentFYTotals = useMemo(
     () =>
