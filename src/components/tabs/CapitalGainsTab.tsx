@@ -225,6 +225,7 @@ const referenceDateForFY = (fyStartYear: number): string => {
 
 /* ── Classification Types ──────────────────────────────────────── */
 type GainType = "EQUITY_STCG" | "EQUITY_LTCG" | "DEBT_STCG" | "DEBT_LTCG";
+const GAIN_TYPE_ORDER: GainType[] = ["EQUITY_STCG", "EQUITY_LTCG", "DEBT_STCG", "DEBT_LTCG"];
 
 interface ClassifiedSell {
   id?: string;
@@ -792,7 +793,12 @@ export const CapitalGainsTab = ({
   );
 
   const [fyStartYear, setFyStartYear] = useState(getCurrentFYStartYear);
-  const [activeDetailTab, setActiveDetailTab] = useState<GainType>("EQUITY_STCG");
+  // null = user hasn't manually picked a tab yet — default to whichever gain
+  // type actually has transactions (STCG/LTCG/Equity/Debt in that priority
+  // order) instead of always opening on Equity STCG, which can be empty while
+  // all of a user's real activity sits under a different tab (e.g. all
+  // long-term MF sales), making the report look like it's missing data.
+  const [manualActiveDetailTab, setManualActiveDetailTab] = useState<GainType | null>(null);
   const [showUnrealized, setShowUnrealized] = useState(true);
   const [showHarvesting, setShowHarvesting] = useState(true);
 
@@ -814,6 +820,12 @@ export const CapitalGainsTab = ({
     () => computeGainTotals(classified, fyStartYear),
     [classified, fyStartYear]
   );
+
+  const activeDetailTab: GainType =
+    manualActiveDetailTab ??
+    GAIN_TYPE_ORDER.find((k) => byType.groups[k].length > 0) ??
+    "EQUITY_STCG";
+  const setActiveDetailTab = setManualActiveDetailTab;
 
   // Tax-loss harvesting concerns a hypothetical sale made TODAY, to offset
   // whatever realized gains exist in the CURRENTLY OPEN financial year — it
