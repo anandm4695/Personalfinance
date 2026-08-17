@@ -288,6 +288,18 @@ function FinanceDashboard() {
   // Tracks latest masterData synchronously inside setState callbacks, so rapid back-to-back
   // addItem calls (e.g. transfer = debit + credit) don't overwrite each other's DB upsert.
   const masterDataRef = useRef<any>(null);
+  // Tracks which user id fetchAllData has already run for. Supabase's onAuthStateChange fires
+  // a brand-new `session` object on TOKEN_REFRESHED (automatic, roughly hourly) and on tab-focus
+  // regain, not just on real sign-in — without this guard, the full-refetch effect below would
+  // re-run then too, and its setState unconditionally replaces every collection with the DB
+  // snapshot. Any addItem/updateItem still mid-flight (optimistic UI update already shown, upsert
+  // not yet landed) would get silently wiped by that snapshot, since it can't know about writes
+  // that haven't reached Postgres yet. This is the "I entered data and it didn't stick" bug.
+  const lastFetchedUserIdRef = useRef<string | null>(null);
+  // Counts in-flight primary add/update/delete writes to Supabase. Used only to warn on tab
+  // close/refresh mid-save (see the beforeunload effect below) — closing the tab before the
+  // network request lands aborts it, silently losing an item that was already shown in the UI.
+  const pendingWritesRef = useRef(0);
   const { privacyMode, setPrivacyMode } = usePrivacy();
   const [sidebarMinimized, setSidebarMinimized] = useState(() => {
     try {
@@ -1269,9 +1281,17 @@ function FinanceDashboard() {
       return;
     }
 
+    // Only do the full cloud refetch on an actual sign-in (new user id), not on every
+    // background token refresh for the same already-loaded user — see lastFetchedUserIdRef.
+    if (lastFetchedUserIdRef.current === userId) {
+      setLoaded(true);
+      return;
+    }
+
     (async () => {
       try {
         await fetchAllData();
+        lastFetchedUserIdRef.current = userId;
       } catch (e) {
         console.error("Supabase load failed", e);
         showToast("Cloud fetch failed. Check your DB setup.", "error");
@@ -1280,6 +1300,20 @@ function FinanceDashboard() {
       }
     })();
   }, [fetchAllData, session, showToast]);
+
+  // Warn before closing/refreshing the tab while a save is still in flight — the optimistic
+  // UI update already shows the item, but closing now aborts the network request before it
+  // reaches Supabase, permanently losing it. See pendingWritesRef.
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingWritesRef.current > 0) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   // Global mouse tracker for Spotlight effect — throttled with rAF to avoid per-frame thrashing
   useEffect(() => {
@@ -2077,7 +2111,14 @@ function FinanceDashboard() {
 
         const tryUpsert = () => supabase.from(table).upsert(cleanItem, { onConflict: "id" });
 
-        let { error: firstErr } = await tryUpsert();
+        pendingWritesRef.current++;
+        let firstErrResult;
+        try {
+          firstErrResult = await tryUpsert();
+        } finally {
+          pendingWritesRef.current--;
+        }
+        let { error: firstErr } = firstErrResult;
 
         if (!firstErr) {
           // Auto-update bank balance in DB when a transaction is recorded
@@ -2555,7 +2596,13 @@ function FinanceDashboard() {
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
       if (table) {
-        const { error } = await supabase.from(table).delete().eq("id", id);
+        pendingWritesRef.current++;
+        let error;
+        try {
+          ({ error } = await supabase.from(table).delete().eq("id", id));
+        } finally {
+          pendingWritesRef.current--;
+        }
         if (error) {
           console.error(`Supabase Delete Error (${table}):`, error.message);
           showToast(`Delete sync failed: ${error.message}`, "error");
@@ -2954,7 +3001,13 @@ function FinanceDashboard() {
             msg?.includes("network")
           );
         const doUpdate = (patch: any) => supabase.from(table).update(patch).eq("id", id);
-        const { error } = await doUpdate(finalPatch);
+        pendingWritesRef.current++;
+        let error;
+        try {
+          ({ error } = await doUpdate(finalPatch));
+        } finally {
+          pendingWritesRef.current--;
+        }
         if (!error && wasApplied && oldTxn) {
           const updatedTxn = { ...oldTxn, ...patch };
           const oldDelta =
@@ -3115,6 +3168,7 @@ function FinanceDashboard() {
     }
     setDemoMode(false);
     setSession(null);
+    lastFetchedUserIdRef.current = null;
     setState(DEFAULT_STATE);
     setActiveProfile("all");
     try {
