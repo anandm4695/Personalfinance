@@ -46,7 +46,8 @@ import { Field } from "../ui/Form";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
@@ -875,7 +876,7 @@ export function BudgetTab({
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRFull(totalBudget)}</Prv>
+                        <Money value={totalBudget} variant="full" />
                       </div>
                     </div>
                     <div>
@@ -897,7 +898,7 @@ export function BudgetTab({
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRFull(totalSpent)}</Prv>
+                        <Money value={totalSpent} variant="full" />
                       </div>
                     </div>
                     <div>
@@ -919,11 +920,13 @@ export function BudgetTab({
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>
-                          {totalSpent > totalBudget
-                            ? `-${fmtINRFull(totalSpent - totalBudget)}`
-                            : fmtINRFull(remaining)}
-                        </Prv>
+                        {totalSpent > totalBudget ? (
+                          <>
+                            -<Money value={totalSpent - totalBudget} variant="full" />
+                          </>
+                        ) : (
+                          <Money value={remaining} variant="full" />
+                        )}
                       </div>
                     </div>
                     <div>
@@ -1255,26 +1258,30 @@ export function BudgetTab({
                           },
                           {
                             label: "Spent so far",
-                            val: fmtINRFull(totalSpent),
+                            val: <Money value={totalSpent} variant="full" />,
                             color: THEME.ink,
-                            isCurrency: true,
                           },
                           {
                             label: "Daily average",
-                            val:
-                              fmtINRFull(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day",
+                            val: (
+                              <>
+                                <Money value={daysPassed > 0 ? totalSpent / daysPassed : 0} variant="full" />{" "}
+                                / day
+                              </>
+                            ),
                             color: THEME.muted,
-                            isCurrency: true,
                           },
                           {
                             label: "Projected month-end",
-                            val: fmtINRFull(
-                              daysPassed > 0 ? (totalSpent / daysPassed) * daysInMonth : 0
+                            val: (
+                              <Money
+                                value={daysPassed > 0 ? (totalSpent / daysPassed) * daysInMonth : 0}
+                                variant="full"
+                              />
                             ),
                             color: burnColor,
-                            isCurrency: true,
                           },
-                        ].map(({ label, val, color, isCurrency }) => (
+                        ].map(({ label, val, color }) => (
                           <div
                             key={label}
                             style={{
@@ -1288,7 +1295,7 @@ export function BudgetTab({
                             <span
                               style={{ fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}
                             >
-                              {isCurrency ? <Prv>{val}</Prv> : val}
+                              {val}
                             </span>
                           </div>
                         ))}
@@ -1505,15 +1512,19 @@ export function BudgetTab({
                           </div>
                         </div>
                         <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                          <Prv>{fmtINRFull(spent)}</Prv>{" "}
+                          <Money value={spent} variant="full" />{" "}
                           <span style={{ fontWeight: 400, opacity: 0.7 }}>of</span>{" "}
-                          <Prv>{fmtINRFull(budget)}</Prv>
+                          <Money value={budget} variant="full" />
                           <span style={{ marginLeft: 8, color: over ? THEME.rust : THEME.sage }}>
-                            <Prv>
-                              {over
-                                ? `(${fmtINRFull(spent - budget)} over)`
-                                : `(${fmtINRFull(budget - spent)} left)`}
-                            </Prv>
+                            {over ? (
+                              <>
+                                (<Money value={spent - budget} variant="full" /> over)
+                              </>
+                            ) : (
+                              <>
+                                (<Money value={budget - spent} variant="full" /> left)
+                              </>
+                            )}
                           </span>
                         </div>
                         {rolledOver > 0 && (
@@ -1529,7 +1540,7 @@ export function BudgetTab({
                             }}
                           >
                             <Repeat size={10} />
-                            <Prv>{fmtINRFull(rolledOver)}</Prv> rolled over from last month
+                            <Money value={rolledOver} variant="full" /> rolled over from last month
                           </div>
                         )}
                       </div>
@@ -1585,7 +1596,7 @@ export function BudgetTab({
                       >
                         <span>
                           Day {daysPassed}/{daysInMonth} · Projected{" "}
-                          <Prv>{fmtINRFull(projected)}</Prv>
+                          <Money value={projected} variant="full" />
                         </span>
                         <span style={{ color: projectedPct > 105 ? THEME.rust : THEME.sage }}>
                           {projectedPct.toFixed(0)}% expected
@@ -1612,9 +1623,9 @@ export function BudgetTab({
                       >
                         <Target size={12} />
                         <span>
-                          At this pace, you'll spend <Prv>{fmtINRFull(projected)}</Prv>{" "}
+                          At this pace, you'll spend <Money value={projected} variant="full" />{" "}
                           <span style={{ fontWeight: 800 }}>
-                            (<Prv>{fmtINRFull(projected - budget)}</Prv> over budget)
+                            (<Money value={projected - budget} variant="full" /> over budget)
                           </span>
                         </span>
                       </div>
@@ -1639,10 +1650,10 @@ export function BudgetTab({
                             {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                             <span>
                               {isUp ? "+" : ""}
-                              <Prv>{fmtINRFull(Math.abs(delta))}</Prv> vs last month
+                              <Money value={Math.abs(delta)} variant="full" /> vs last month
                             </span>
                             <span style={{ color: THEME.muted, fontWeight: 400, marginLeft: 2 }}>
-                              (<Prv>{fmtINRFull(prevSpent)}</Prv> last month)
+                              (<Money value={prevSpent} variant="full" /> last month)
                             </span>
                           </div>
                         );
@@ -1677,7 +1688,7 @@ export function BudgetTab({
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <AlertTriangle size={16} color={THEME.gold} />
                   <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
-                    Unbudgeted Spending — <Prv>{fmtINRFull(totalUnbudgetedSpent)}</Prv>
+                    Unbudgeted Spending — <Money value={totalUnbudgetedSpent} variant="full" />
                   </span>
                 </div>
                 <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
@@ -1710,7 +1721,7 @@ export function BudgetTab({
                         <Icon size={13} color={THEME.gold} />
                         <span>{cat}</span>
                         <span style={{ color: THEME.gold }}>
-                          <Prv>{fmtINRFull(amt as number)}</Prv>
+                          <Money value={amt as number} variant="full" />
                         </span>
                       </div>
                     );
@@ -1976,7 +1987,7 @@ export function BudgetTab({
                           }}
                         >
                           <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                            <Prv>{fmtINRFull(re.amount)}</Prv>
+                            <Money value={re.amount} variant="full" />
                           </span>
                           <span style={{ opacity: 0.4 }}>·</span>
                           <span style={{ textTransform: "capitalize" }}>
@@ -2048,7 +2059,7 @@ export function BudgetTab({
                               style={{ textDecoration: "underline", cursor: "pointer" }}
                               title={`Recorded on ${match.date}: ${match.note}`}
                             >
-                              <Prv>{fmtINRFull(match.amount)}</Prv> on {fmtDate(match.date)}
+                              <Money value={match.amount} variant="full" /> on {fmtDate(match.date)}
                             </span>
                           </div>
                         )}
@@ -2258,7 +2269,7 @@ export function BudgetTab({
                             {p.landlordName || p.landlords?.[0]?.name || "Landlord"}
                             {tierIdx >= 0 && tiers && (
                               <span style={{ marginLeft: 6, color: THEME.accent, fontWeight: 700 }}>
-                                · Y{tierIdx + 1}: <Prv>{fmtINRFull(tiers[tierIdx].amount)}</Prv>/mo
+                                · Y{tierIdx + 1}: <Money value={tiers[tierIdx].amount} variant="full" />/mo
                               </span>
                             )}
                           </div>
@@ -2281,14 +2292,14 @@ export function BudgetTab({
                                 marginTop: 2,
                               }}
                             >
-                              Paid <Prv>{fmtINRFull(paidThisMonth - effectiveRent)}</Prv> extra this
+                              Paid <Money value={paidThisMonth - effectiveRent} variant="full" /> extra this
                               month
                             </div>
                           )}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontSize: 16, fontWeight: 800, color: statusColor }}>
-                            <Prv>{fmtINRFull(effectiveRent)}</Prv>
+                            <Money value={effectiveRent} variant="full" />
                           </div>
                           <div
                             style={{
@@ -2329,7 +2340,7 @@ export function BudgetTab({
                         Total rental commitment this month
                       </span>
                       <span style={{ fontSize: 14, fontWeight: 800, color: THEME.rust }}>
-                        <Prv>{fmtINRFull(total)}</Prv>
+                        <Money value={total} variant="full" />
                       </span>
                     </div>
                   );
