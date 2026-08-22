@@ -44,6 +44,7 @@ import {
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
@@ -882,20 +883,47 @@ export function DematTab({
   const [search, setSearch] = useState("");
 
   const { run: saveNewDemat, loading: savingNewDemat } = useAsyncAction(
-    async (v: any) => { await addItem("demat", v); },
-    { onSuccess: () => setShowDemat(false), onError: (e: any) => showToast?.(`Failed to add demat account: ${e?.message || "Unknown error"}`, "error") }
+    async (v: any) => {
+      await addItem("demat", v);
+    },
+    {
+      onSuccess: () => setShowDemat(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to add demat account: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveDematEdit, loading: savingDematEdit } = useAsyncAction(
-    async (id: string, v: any) => { await updateItem("demat", id, v); },
-    { onSuccess: () => setEditDematId(null), onError: (e: any) => showToast?.(`Failed to save demat account: ${e?.message || "Unknown error"}`, "error") }
+    async (id: string, v: any) => {
+      await updateItem("demat", id, v);
+    },
+    {
+      onSuccess: () => setEditDematId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save demat account: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveNewStock, loading: savingNewStock } = useAsyncAction(
-    async (v: any) => { await addItem("stocks", v); },
-    { onSuccess: () => { setShowStock(false); setStockDefaults(null); }, onError: (e: any) => showToast?.(`Failed to add stock: ${e?.message || "Unknown error"}`, "error") }
+    async (v: any) => {
+      await addItem("stocks", v);
+    },
+    {
+      onSuccess: () => {
+        setShowStock(false);
+        setStockDefaults(null);
+      },
+      onError: (e: any) =>
+        showToast?.(`Failed to add stock: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveStockEdit, loading: savingStockEdit } = useAsyncAction(
-    async (id: string, v: any) => { await updateItem("stocks", id, v); },
-    { onSuccess: () => setEditStockId(null), onError: (e: any) => showToast?.(`Failed to save stock: ${e?.message || "Unknown error"}`, "error") }
+    async (id: string, v: any) => {
+      await updateItem("stocks", id, v);
+    },
+    {
+      onSuccess: () => setEditStockId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save stock: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveSellStock, loading: savingSellStock } = useAsyncAction(
     async (lotId: string, sellRecord: any, remainingQty: number) => {
@@ -903,10 +931,20 @@ export function DematTab({
       if (remainingQty <= 0) await removeItem("stocks", lotId);
       else await updateItem("stocks", lotId, { qty: String(remainingQty) });
     },
-    { onSuccess: () => setSellLot(null), onError: (e: any) => showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error") }
+    {
+      onSuccess: () => setSellLot(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveFifoSell, loading: savingFifoSell } = useAsyncAction(
-    async (group: any, allocs: FifoAlloc[], sellPrice: number, sellDate: string, broker: string) => {
+    async (
+      group: any,
+      allocs: FifoAlloc[],
+      sellPrice: number,
+      sellDate: string,
+      broker: string
+    ) => {
       for (let i = 0; i < allocs.length; i++) {
         const alloc = allocs[i];
         await addItem("stockSells", {
@@ -930,7 +968,11 @@ export function DematTab({
           });
       }
     },
-    { onSuccess: () => setFifoSellGroup(null), onError: (e: any) => showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error") }
+    {
+      onSuccess: () => setFifoSellGroup(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveSplitBonus, loading: savingSplitBonus } = useAsyncAction(
     async (updates: any[], actionLog: any, removals: string[] = []) => {
@@ -942,25 +984,54 @@ export function DematTab({
       }
       await addItem("corporateActions", actionLog);
     },
-    { onSuccess: () => setSplitBonusGroup(null), onError: (e: any) => showToast?.(`Failed to apply corporate action: ${e?.message || "Unknown error"}`, "error") }
+    {
+      onSuccess: () => setSplitBonusGroup(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to apply corporate action: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveNewWishlist, loading: savingNewWishlist } = useAsyncAction(
-    async (v: any) => { await addItem("wishlists", v); },
-    { onSuccess: () => setShowWishlistModal(false), onError: (e: any) => showToast?.(`Failed to add watchlist: ${e?.message || "Unknown error"}`, "error") }
+    async (v: any) => {
+      await addItem("wishlists", v);
+    },
+    {
+      onSuccess: () => setShowWishlistModal(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to add watchlist: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveWishlistEdit, loading: savingWishlistEdit } = useAsyncAction(
-    async (id: string, v: any) => { await updateItem("wishlists", id, v); },
-    { onSuccess: () => setEditWishlistId(null), onError: (e: any) => showToast?.(`Failed to save watchlist: ${e?.message || "Unknown error"}`, "error") }
+    async (id: string, v: any) => {
+      await updateItem("wishlists", id, v);
+    },
+    {
+      onSuccess: () => setEditWishlistId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save watchlist: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveNewWishlistItem, loading: savingNewWishlistItem } = useAsyncAction(
-    async (v: any, watchlistId: string) => { await addItem("wishlistItems", { ...v, watchlistId }); },
-    { onSuccess: () => { setShowWishlistItemModal(false); setWishlistItemTarget(null); }, onError: (e: any) => showToast?.(`Failed to add stock to watchlist: ${e?.message || "Unknown error"}`, "error") }
+    async (v: any, watchlistId: string) => {
+      await addItem("wishlistItems", { ...v, watchlistId });
+    },
+    {
+      onSuccess: () => {
+        setShowWishlistItemModal(false);
+        setWishlistItemTarget(null);
+      },
+      onError: (e: any) =>
+        showToast?.(`Failed to add stock to watchlist: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveWishlistItemEdit, loading: savingWishlistItemEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("wishlistItems", id, { targetPrice: v.targetPrice, notes: v.notes });
     },
-    { onSuccess: () => setEditWishlistItemId(null), onError: (e: any) => showToast?.(`Failed to save watchlist item: ${e?.message || "Unknown error"}`, "error") }
+    {
+      onSuccess: () => setEditWishlistItemId(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to save watchlist item: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
   const { run: saveBrokerImport, loading: savingBrokerImport } = useAsyncAction(
     async (
@@ -974,7 +1045,11 @@ export function DematTab({
       for (const u of stockUpdates) await updateItem("stocks", u.id, { qty: u.qty });
       for (const id of stockRemovals) await removeItem("stocks", id);
     },
-    { onSuccess: () => setShowBrokerImport(false), onError: (e: any) => showToast?.(`Failed to import broker data: ${e?.message || "Unknown error"}`, "error") }
+    {
+      onSuccess: () => setShowBrokerImport(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to import broker data: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
 
   React.useEffect(() => {
@@ -1001,19 +1076,19 @@ export function DematTab({
         state.stocks
           .filter((s: any) => Number(s.qty) > 0)
           .reduce((acc: any, s: any) => {
-          const base = s.symbol.replace(/\.(NS|BO)$/i, "");
-          const exch = s.exchange || "NSE";
-          const key = `${base}|${exch}`;
-          if (!acc[key])
-            acc[key] = {
-              base,
-              exchange: exch,
-              yfSym: `${base}.${exch === "BSE" ? "BO" : "NS"}`,
-              lots: [],
-            };
-          acc[key].lots.push(s);
-          return acc;
-        }, {})
+            const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+            const exch = s.exchange || "NSE";
+            const key = `${base}|${exch}`;
+            if (!acc[key])
+              acc[key] = {
+                base,
+                exchange: exch,
+                yfSym: `${base}.${exch === "BSE" ? "BO" : "NS"}`,
+                lots: [],
+              };
+            acc[key].lots.push(s);
+            return acc;
+          }, {})
       ),
     [state.stocks]
   );
@@ -1217,7 +1292,10 @@ export function DematTab({
   const totalDividendsReceived = useMemo(() => {
     const heldSymbols = new Set(
       filteredStocks.map((st: any) =>
-        (st.symbol || "").replace(/\.(NS|BO)$/i, "").trim().toUpperCase()
+        (st.symbol || "")
+          .replace(/\.(NS|BO)$/i, "")
+          .trim()
+          .toUpperCase()
       )
     );
     return (state.dividends || [])
@@ -1948,7 +2026,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     lineHeight: 1,
                   }}
                 >
-                  <Prv>{fmtINRFull(animatedTotalValue)}</Prv>
+                  <Money value={animatedTotalValue} variant="full" />
                 </div>
                 <div
                   style={{
@@ -1959,7 +2037,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   }}
                 >
                   <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                    Invested: <Prv>{fmtINRFull(totalInvested)}</Prv>
+                    Invested: <Money value={totalInvested} variant="full" />
                   </div>
                   {pnl !== 0 && (
                     <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`}>
@@ -2041,7 +2119,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     lineHeight: 1,
                   }}
                 >
-                  <Prv>{(animatedTotalDaysPnL >= 0 ? "+" : "") + fmtINRFull(animatedTotalDaysPnL)}</Prv>
+                  {animatedTotalDaysPnL >= 0 ? "+" : ""}
+                  <Money value={animatedTotalDaysPnL} variant="full" />
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {totalDaysPnL !== 0 ? (
@@ -2113,7 +2192,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     lineHeight: 1,
                   }}
                 >
-                  <Prv>{(animatedPnl >= 0 ? "+" : "") + fmtINRFull(animatedPnl)}</Prv>
+                  {animatedPnl >= 0 ? "+" : ""}
+                  <Money value={animatedPnl} variant="full" />
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {totalInvested ? (
@@ -2289,7 +2369,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         >
                           {d.broker || "Broker"}
                         </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <div
+                          style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}
+                        >
                           <span
                             style={{
                               fontSize: 10,
@@ -2429,7 +2511,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          <Prv>{fmtINRFull(dematInvested)}</Prv>
+                          <Money value={dematInvested} variant="full" />
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
@@ -2453,7 +2535,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          <Prv>{fmtINRFull(dematValue)}</Prv>
+                          <Money value={dematValue} variant="full" />
                         </div>
                       </div>
                     </div>
@@ -2472,7 +2554,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         >
                           {dematPnl >= 0 ? "▲" : "▼"} {dematPnlPct.toFixed(2)}% &nbsp;(
                           {dematPnl >= 0 ? "+" : ""}
-                          <Prv>{fmtINRFull(dematPnl)}</Prv>)
+                          <Money value={dematPnl} variant="full" />)
                         </span>
                       ) : (
                         <span style={{ fontSize: 12, color: THEME.muted }}>No holdings</span>
@@ -2794,7 +2876,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 <tbody>
                   {visibleGroups.map(({ base, exchange, yfSym, lots }) => {
                     const md = marketData[yfSym];
-                    const totalQty = lots.reduce((s: number, l: any) => s + (Number(l.qty) || 0), 0);
+                    const totalQty = lots.reduce(
+                      (s: number, l: any) => s + (Number(l.qty) || 0),
+                      0
+                    );
                     const totalInv = lots.reduce(
                       (s: number, l: any) => s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0),
                       0
@@ -2892,7 +2977,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           onClick={() => toggleExpand(yfSym)}
                           style={{
                             cursor: "pointer",
-                            background: isExpanded ? `color-mix(in srgb, ${THEME.accent} 4%, transparent)` : "transparent",
+                            background: isExpanded
+                              ? `color-mix(in srgb, ${THEME.accent} 4%, transparent)`
+                              : "transparent",
                             transition: "background 0.15s ease",
                             borderBottom: `1px solid ${THEME.line}`,
                           }}
@@ -3014,11 +3101,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           </td>
 
                           <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                            <Prv>{fmtINRFull(totalInv)}</Prv>
+                            <Money value={totalInv} variant="full" />
                           </td>
 
                           <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
-                            <Prv>{fmtINRFull(totalCurr)}</Prv>
+                            <Money value={totalCurr} variant="full" />
                           </td>
 
                           {/* Portfolio Weight column with allocation bar */}
@@ -3068,10 +3155,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     color: totalQty * changeAmt >= 0 ? THEME.sage : THEME.rust,
                                   }}
                                 >
-                                  <Prv>
-                                    {totalQty * changeAmt >= 0 ? "+" : ""}
-                                    {fmtINRFull(totalQty * changeAmt)}
-                                  </Prv>
+                                  {totalQty * changeAmt >= 0 ? "+" : ""}
+                                  <Money value={totalQty * changeAmt} variant="full" />
                                 </div>
                                 <div
                                   style={{
@@ -3097,10 +3182,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                               }}
                             >
-                              <Prv>
-                                {totalPnl >= 0 ? "+" : ""}
-                                {fmtINRFull(totalPnl)}
-                              </Prv>
+                              {totalPnl >= 0 ? "+" : ""}
+                              <Money value={totalPnl} variant="full" />
                             </div>
                             <div
                               style={{
@@ -3188,9 +3271,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               fontSize: 12,
                                               fontWeight: 800,
                                               color:
-                                                periodChange.amount >= 0
-                                                  ? THEME.sage
-                                                  : THEME.rust,
+                                                periodChange.amount >= 0 ? THEME.sage : THEME.rust,
                                             }}
                                           >
                                             {periodChange.amount >= 0 ? "+" : "-"}₹
@@ -3257,79 +3338,93 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     >
                                       {charts && charts.length > 2 ? (
                                         <>
-                                          <div style={{ width: "100%", height: 150, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                            <AreaChart
-                                              data={charts}
-                                              margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                                          <div
+                                            style={{
+                                              width: "100%",
+                                              height: 150,
+                                              position: "relative",
+                                            }}
+                                          >
+                                            <ResponsiveContainer
+                                              width="100%"
+                                              height="100%"
+                                              minWidth={0}
                                             >
-                                              <defs>
-                                                <linearGradient
-                                                  id={`ig-${base}`}
-                                                  x1="0"
-                                                  y1="0"
-                                                  x2="0"
-                                                  y2="1"
-                                                >
-                                                  <stop
-                                                    offset="5%"
-                                                    stopColor={
-                                                      chartChangeAmt >= 0
-                                                        ? THEME.sage
-                                                        : THEME.rust
-                                                    }
-                                                    stopOpacity={0.3}
-                                                  />
-                                                  <stop
-                                                    offset="95%"
-                                                    stopColor={
-                                                      chartChangeAmt >= 0
-                                                        ? THEME.sage
-                                                        : THEME.rust
-                                                    }
-                                                    stopOpacity={0.01}
-                                                  />
-                                                </linearGradient>
-                                              </defs>
-                                              <XAxis
-                                                dataKey="t"
-                                                tick={{ fontSize: 9, fill: "var(--t-muted)" }}
-                                                interval="preserveStartEnd"
-                                                axisLine={false}
-                                                tickLine={false}
-                                              />
-                                              <YAxis hide domain={["auto", "auto"]} />
-                                              <Tooltip
-                                                cursor={{ stroke: THEME.line }}
-                                                contentStyle={{
-                                                  fontSize: 11,
-                                                  background:
-                                                    "rgba(var(--t-card-bg-rgb, 255, 255, 255), 0.8)",
-                                                  backdropFilter: "blur(12px)",
-                                                  WebkitBackdropFilter: "blur(12px)",
-                                                  border: `1.5px solid ${THEME.line}`,
-                                                  borderRadius: 10,
-                                                  color: THEME.ink,
-                                                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
-                                                }}
-                                                labelStyle={{ color: THEME.ink }}
-                                                itemStyle={{ color: THEME.ink }}
-                                                formatter={(v: any) => [
-                                                  privacyMode ? "••••" : `₹${Number(v).toFixed(2)}`,
-                                                  "Price",
-                                                ]}
-                                              />
-                                              <Area
-                                                type="monotone"
-                                                dataKey="p"
-                                                stroke={
-                                                  chartChangeAmt >= 0 ? THEME.sage : THEME.rust
-                                                }
-                                                strokeWidth={1.5}
-                                                fill={`url(#ig-${base})`}
-                                                dot={false}
-                                              />
-                                            </AreaChart>
-                                          </ResponsiveContainer></div>
+                                              <AreaChart
+                                                data={charts}
+                                                margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                                              >
+                                                <defs>
+                                                  <linearGradient
+                                                    id={`ig-${base}`}
+                                                    x1="0"
+                                                    y1="0"
+                                                    x2="0"
+                                                    y2="1"
+                                                  >
+                                                    <stop
+                                                      offset="5%"
+                                                      stopColor={
+                                                        chartChangeAmt >= 0
+                                                          ? THEME.sage
+                                                          : THEME.rust
+                                                      }
+                                                      stopOpacity={0.3}
+                                                    />
+                                                    <stop
+                                                      offset="95%"
+                                                      stopColor={
+                                                        chartChangeAmt >= 0
+                                                          ? THEME.sage
+                                                          : THEME.rust
+                                                      }
+                                                      stopOpacity={0.01}
+                                                    />
+                                                  </linearGradient>
+                                                </defs>
+                                                <XAxis
+                                                  dataKey="t"
+                                                  tick={{ fontSize: 9, fill: "var(--t-muted)" }}
+                                                  interval="preserveStartEnd"
+                                                  axisLine={false}
+                                                  tickLine={false}
+                                                />
+                                                <YAxis hide domain={["auto", "auto"]} />
+                                                <Tooltip
+                                                  cursor={{ stroke: THEME.line }}
+                                                  contentStyle={{
+                                                    fontSize: 11,
+                                                    background:
+                                                      "rgba(var(--t-card-bg-rgb, 255, 255, 255), 0.8)",
+                                                    backdropFilter: "blur(12px)",
+                                                    WebkitBackdropFilter: "blur(12px)",
+                                                    border: `1.5px solid ${THEME.line}`,
+                                                    borderRadius: 10,
+                                                    color: THEME.ink,
+                                                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
+                                                  }}
+                                                  labelStyle={{ color: THEME.ink }}
+                                                  itemStyle={{ color: THEME.ink }}
+                                                  formatter={(v: any) => [
+                                                    privacyMode
+                                                      ? "••••"
+                                                      : `₹${Number(v).toFixed(2)}`,
+                                                    "Price",
+                                                  ]}
+                                                />
+                                                <Area
+                                                  type="monotone"
+                                                  dataKey="p"
+                                                  stroke={
+                                                    chartChangeAmt >= 0 ? THEME.sage : THEME.rust
+                                                  }
+                                                  strokeWidth={1.5}
+                                                  fill={`url(#ig-${base})`}
+                                                  dot={false}
+                                                />
+                                              </AreaChart>
+                                            </ResponsiveContainer>
+                                          </div>
                                           <div
                                             style={{
                                               display: "flex",
@@ -3695,7 +3790,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     // CapitalGainsTab.isLongTerm — a naive "> 365 days" check
                                                     // disagreed with the actual tax report near month/leap-year
                                                     // boundaries.
-                                                    const isLTCG = isLongTerm(lot.buyDate, today(), 12);
+                                                    const isLTCG = isLongTerm(
+                                                      lot.buyDate,
+                                                      today(),
+                                                      12
+                                                    );
                                                     return (
                                                       <span
                                                         style={{
@@ -3743,10 +3842,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     fontVariantNumeric: "tabular-nums",
                                                   }}
                                                 >
-                                                  <Prv>
-                                                    {lPnl >= 0 ? "+" : ""}
-                                                    {fmtINRFull(lPnl)}
-                                                  </Prv>
+                                                  {lPnl >= 0 ? "+" : ""}
+                                                  <Money value={lPnl} variant="full" />
                                                 </div>
                                                 {lot.buyDate &&
                                                   (() => {
@@ -3779,7 +3876,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   fontVariantNumeric: "tabular-nums",
                                                 }}
                                               >
-                                                <Prv>{fmtINRFull(lCurr)}</Prv>
+                                                <Money value={lCurr} variant="full" />
                                               </td>
                                               <td
                                                 style={{
@@ -3908,10 +4005,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               fontVariantNumeric: "tabular-nums",
                                             }}
                                           >
-                                            <Prv>
-                                              {totalPnl >= 0 ? "+" : ""}
-                                              {fmtINRFull(totalPnl)}
-                                            </Prv>
+                                            {totalPnl >= 0 ? "+" : ""}
+                                            <Money value={totalPnl} variant="full" />
                                           </div>
                                         </td>
                                         <td
@@ -3925,7 +4020,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             fontVariantNumeric: "tabular-nums",
                                           }}
                                         >
-                                          <Prv>{fmtINRFull(totalCurr)}</Prv>
+                                          <Money value={totalCurr} variant="full" />
                                         </td>
                                         <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
                                       </tr>
@@ -4187,12 +4282,12 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         lineHeight: 1,
                       }}
                     >
-                      <Prv>{fmtINRFull(animatedTotalValue)}</Prv>
+                      <Money value={animatedTotalValue} variant="full" />
                     </div>
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
                     >
-                      Invested: <Prv>{fmtINRFull(totalInvested)}</Prv>
+                      Invested: <Money value={totalInvested} variant="full" />
                     </div>
                   </div>
                 </Card>
@@ -4252,7 +4347,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         lineHeight: 1,
                       }}
                     >
-                      <Prv>{(animatedPnl >= 0 ? "+" : "") + fmtINRFull(animatedPnl)}</Prv>
+                      {animatedPnl >= 0 ? "+" : ""}
+                      <Money value={animatedPnl} variant="full" />
                     </div>
                     <div
                       style={{
@@ -4324,11 +4420,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         lineHeight: 1,
                       }}
                     >
-                      {totalInvested ? (
-                        <Prv>{animatedNetReturnPct.toFixed(2) + "%"}</Prv>
-                      ) : (
-                        "—"
-                      )}
+                      {totalInvested ? <Prv>{animatedNetReturnPct.toFixed(2) + "%"}</Prv> : "—"}
                     </div>
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
@@ -4575,7 +4667,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         <div
                           style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 2 }}
                         >
-                          <Prv>{fmtINRFull(totalValue)}</Prv>
+                          <Money value={totalValue} variant="full" />
                         </div>
                       </div>
                       <div>
@@ -4738,42 +4830,44 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   </div>
 
                   <div style={{ width: "100%", height: 220, position: "relative" }}>
-                    <div style={{ width: "100%", height: 220, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                      <PieChart>
-                        <Pie
-                          data={portfolioScoreData.stockWeights.slice(0, 7)}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={85}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {portfolioScoreData.stockWeights
-                            .slice(0, 7)
-                            .map((entry: any, index: number) => {
-                              const hues = [210, 160, 42, 12, 280, 190, 330];
-                              const color = `hsl(${hues[index % hues.length]}, 60%, 50%)`;
-                              return <Cell key={`cell-${index}`} fill={color} />;
-                            })}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value: any) => [
-                            <Prv>{fmtINRFull(value || 0)}</Prv>,
-                            "Current Value",
-                          ]}
-                          contentStyle={{
-                            background: "var(--surface-0)",
-                            border: `1px solid ${THEME.line}`,
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: THEME.ink,
-                          }}
-                          labelStyle={{ color: THEME.ink }}
-                          itemStyle={{ color: THEME.ink }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer></div>
+                    <div style={{ width: "100%", height: 220, position: "relative" }}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <PieChart>
+                          <Pie
+                            data={portfolioScoreData.stockWeights.slice(0, 7)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={85}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            {portfolioScoreData.stockWeights
+                              .slice(0, 7)
+                              .map((entry: any, index: number) => {
+                                const hues = [210, 160, 42, 12, 280, 190, 330];
+                                const color = `hsl(${hues[index % hues.length]}, 60%, 50%)`;
+                                return <Cell key={`cell-${index}`} fill={color} />;
+                              })}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value: any) => [
+                              <Money value={value || 0} variant="full" />,
+                              "Current Value",
+                            ]}
+                            contentStyle={{
+                              background: "var(--surface-0)",
+                              border: `1px solid ${THEME.line}`,
+                              borderRadius: 8,
+                              fontSize: 12,
+                              color: THEME.ink,
+                            }}
+                            labelStyle={{ color: THEME.ink }}
+                            itemStyle={{ color: THEME.ink }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
 
                   {/* Legend list of top stocks */}
@@ -4845,7 +4939,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         const hues = [210, 160, 42, 12, 280, 190, 330, 100];
                         const color = `hsl(${hues[idx % hues.length]}, 60%, 50%)`;
                         return (
-                          <div key={s.sector} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div
+                            key={s.sector}
+                            style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                          >
                             <div
                               style={{
                                 display: "flex",
@@ -4914,8 +5011,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 // on what "Nifty 50 1Y return" means. See BENCHMARK_DATA_ASOF disclaimer
                 // rendered below — these are illustrative long-run averages, not live data.
                 const benchmarks = [
-                  { name: INDEX_BENCHMARKS.nifty50.label, ...INDEX_BENCHMARKS.nifty50, color: THEME.accent },
-                  { name: INDEX_BENCHMARKS.sensex.label, ...INDEX_BENCHMARKS.sensex, color: THEME.muted },
+                  {
+                    name: INDEX_BENCHMARKS.nifty50.label,
+                    ...INDEX_BENCHMARKS.nifty50,
+                    color: THEME.accent,
+                  },
+                  {
+                    name: INDEX_BENCHMARKS.sensex.label,
+                    ...INDEX_BENCHMARKS.sensex,
+                    color: THEME.muted,
+                  },
                   {
                     name: INDEX_BENCHMARKS.niftyMidcap.label,
                     ...INDEX_BENCHMARKS.niftyMidcap,
@@ -5028,7 +5133,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               Total Invested
                             </span>
                             <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                              <Prv>{fmtINRFull(totalInvested)}</Prv>
+                              <Money value={totalInvested} variant="full" />
                             </span>
                           </div>
                           <div
@@ -5046,7 +5151,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               Current Value
                             </span>
                             <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                              <Prv>{fmtINRFull(totalValue)}</Prv>
+                              <Money value={totalValue} variant="full" />
                             </span>
                           </div>
                           <div
@@ -5124,7 +5229,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 Dividends Received
                               </span>
                               <span style={{ fontSize: 14, fontWeight: 800, color: THEME.sage }}>
-                                <Prv>+{fmtINRFull(totalDividendsReceived)}</Prv>
+                                +<Money value={totalDividendsReceived} variant="full" />
                               </span>
                             </div>
                           )}
@@ -5151,10 +5256,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     pnl + totalDividendsReceived >= 0 ? THEME.sage : THEME.rust,
                                 }}
                               >
-                                <Prv>
-                                  {pnl + totalDividendsReceived >= 0 ? "+" : ""}
-                                  {fmtINRFull(pnl + totalDividendsReceived)}
-                                </Prv>
+                                {pnl + totalDividendsReceived >= 0 ? "+" : ""}
+                                <Money value={pnl + totalDividendsReceived} variant="full" />
                               </span>
                             </div>
                           )}
@@ -5174,7 +5277,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               style={{
                                 padding: "8px 14px",
                                 borderRadius: 10,
-                                background: alpha >= 0 ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)` : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+                                background:
+                                  alpha >= 0
+                                    ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)`
+                                    : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
                                 border: `1.5px solid ${alpha >= 0 ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `color-mix(in srgb, ${THEME.rust} 25%, transparent)`}`,
                                 display: "flex",
                                 alignItems: "center",
@@ -5235,48 +5341,53 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             padding: "16px 12px",
                           }}
                         >
-                          <div style={{ width: "100%", height: 200, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                            <BarChart
-                              data={barChartData}
-                              layout="vertical"
-                              margin={{ top: 4, right: 40, bottom: 4, left: 10 }}
-                            >
-                              <XAxis
-                                type="number"
-                                tick={{ fontSize: 11, fill: "var(--t-muted)" }}
-                                axisLine={false}
-                                tickLine={false}
-                                domain={[0, "auto"]}
-                                unit="%"
-                              />
-                              <YAxis
-                                type="category"
-                                dataKey="name"
-                                tick={{ fontSize: 11, fill: "var(--t-ink)", fontWeight: 600 }}
-                                axisLine={false}
-                                tickLine={false}
-                                width={110}
-                              />
-                              <Tooltip
-                                cursor={{ fill: THEME.line, opacity: 0.4 }}
-                                contentStyle={{
-                                  fontSize: 12,
-                                  background: "var(--surface-0)",
-                                  border: `1px solid ${THEME.line}`,
-                                  borderRadius: 8,
-                                  color: THEME.ink,
-                                }}
-                                labelStyle={{ color: THEME.ink }}
-                                itemStyle={{ color: THEME.ink }}
-                                formatter={(value: any) => [`${Number(value).toFixed(1)}%`, "CAGR"]}
-                              />
-                              <Bar dataKey="return" radius={[0, 6, 6, 0]} barSize={22}>
-                                {barChartData.map((entry, index) => (
-                                  <Cell key={`bar-${index}`} fill={entry.fill} />
-                                ))}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer></div>
+                          <div style={{ width: "100%", height: 200, position: "relative" }}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                              <BarChart
+                                data={barChartData}
+                                layout="vertical"
+                                margin={{ top: 4, right: 40, bottom: 4, left: 10 }}
+                              >
+                                <XAxis
+                                  type="number"
+                                  tick={{ fontSize: 11, fill: "var(--t-muted)" }}
+                                  axisLine={false}
+                                  tickLine={false}
+                                  domain={[0, "auto"]}
+                                  unit="%"
+                                />
+                                <YAxis
+                                  type="category"
+                                  dataKey="name"
+                                  tick={{ fontSize: 11, fill: "var(--t-ink)", fontWeight: 600 }}
+                                  axisLine={false}
+                                  tickLine={false}
+                                  width={110}
+                                />
+                                <Tooltip
+                                  cursor={{ fill: THEME.line, opacity: 0.4 }}
+                                  contentStyle={{
+                                    fontSize: 12,
+                                    background: "var(--surface-0)",
+                                    border: `1px solid ${THEME.line}`,
+                                    borderRadius: 8,
+                                    color: THEME.ink,
+                                  }}
+                                  labelStyle={{ color: THEME.ink }}
+                                  itemStyle={{ color: THEME.ink }}
+                                  formatter={(value: any) => [
+                                    `${Number(value).toFixed(1)}%`,
+                                    "CAGR",
+                                  ]}
+                                />
+                                <Bar dataKey="return" radius={[0, 6, 6, 0]} barSize={22}>
+                                  {barChartData.map((entry, index) => (
+                                    <Cell key={`bar-${index}`} fill={entry.fill} />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -5316,7 +5427,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           overflowX: "auto",
                         }}
                       >
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 420 }}>
+                        <table
+                          style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                            fontSize: 13,
+                            minWidth: 420,
+                          }}
+                        >
                           <thead>
                             <tr style={{ background: "var(--surface-0)" }}>
                               <th style={{ ...th, paddingLeft: 16 }}>Index</th>
@@ -5327,7 +5445,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             </tr>
                           </thead>
                           <tbody>
-                            <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)` }}>
+                            <tr
+                              style={{
+                                background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+                              }}
+                            >
                               <td
                                 style={{
                                   ...td,
@@ -6092,7 +6214,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
                                     {/* Expandable chart drawer */}
                                     {isItemExpanded && (
-                                      <tr style={{ background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)` }}>
+                                      <tr
+                                        style={{
+                                          background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+                                        }}
+                                      >
                                         <td
                                           colSpan={7}
                                           style={{
@@ -6149,8 +6275,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                         }}
                                                       >
                                                         {periodChange.amount >= 0 ? "+" : "-"}₹
-                                                        {Math.abs(periodChange.amount).toFixed(2)}{" "}
-                                                        ({periodChange.amount >= 0 ? "+" : "-"}
+                                                        {Math.abs(periodChange.amount).toFixed(2)} (
+                                                        {periodChange.amount >= 0 ? "+" : "-"}
                                                         {Math.abs(periodChange.pct).toFixed(2)}%)
                                                       </div>
                                                     )}
@@ -6215,85 +6341,99 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 >
                                                   {charts && charts.length > 2 ? (
                                                     <>
-                                                      <div style={{ width: "100%", height: 150, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                                        <AreaChart
-                                                          data={charts}
-                                                          margin={{
-                                                            top: 4,
-                                                            right: 4,
-                                                            bottom: 0,
-                                                            left: 0,
-                                                          }}
+                                                      <div
+                                                        style={{
+                                                          width: "100%",
+                                                          height: 150,
+                                                          position: "relative",
+                                                        }}
+                                                      >
+                                                        <ResponsiveContainer
+                                                          width="100%"
+                                                          height="100%"
+                                                          minWidth={0}
                                                         >
-                                                          <defs>
-                                                            <linearGradient
-                                                              id={`wl-ig-${it.symbol}`}
-                                                              x1="0"
-                                                              y1="0"
-                                                              x2="0"
-                                                              y2="1"
-                                                            >
-                                                              <stop
-                                                                offset="5%"
-                                                                stopColor={
-                                                                  chartChangeAmt >= 0
-                                                                    ? THEME.sage
-                                                                    : THEME.rust
-                                                                }
-                                                                stopOpacity={0.35}
-                                                              />
-                                                              <stop
-                                                                offset="95%"
-                                                                stopColor={
-                                                                  chartChangeAmt >= 0
-                                                                    ? THEME.sage
-                                                                    : THEME.rust
-                                                                }
-                                                                stopOpacity={0.02}
-                                                              />
-                                                            </linearGradient>
-                                                          </defs>
-                                                          <XAxis
-                                                            dataKey="t"
-                                                            tick={{
-                                                              fontSize: 9,
-                                                              fill: "var(--t-muted)",
+                                                          <AreaChart
+                                                            data={charts}
+                                                            margin={{
+                                                              top: 4,
+                                                              right: 4,
+                                                              bottom: 0,
+                                                              left: 0,
                                                             }}
-                                                            interval="preserveStartEnd"
-                                                            axisLine={false}
-                                                            tickLine={false}
-                                                          />
-                                                          <YAxis hide domain={["auto", "auto"]} />
-                                                          <Tooltip
-                                                            cursor={{ stroke: THEME.line }}
-                                                            contentStyle={{
-                                                              fontSize: 12,
-                                                              background: "var(--surface-0)",
-                                                              border: `1px solid ${THEME.line}`,
-                                                              borderRadius: 6,
-                                                              color: THEME.ink,
-                                                            }}
-                                                            labelStyle={{ color: THEME.ink }}
-                                                            itemStyle={{ color: THEME.ink }}
-                                                            formatter={(v: any) => [
-                                                              privacyMode ? "••••" : `₹${Number(v).toFixed(2)}`,
-                                                              "Price",
-                                                            ]}
-                                                          />
-                                                          <Area
-                                                            type="monotone"
-                                                            dataKey="p"
-                                                            stroke={
-                                                              chartChangeAmt >= 0
-                                                                ? THEME.sage
-                                                                : THEME.rust
-                                                            }
-                                                            strokeWidth={1.5}
-                                                            fill={`url(#wl-ig-${it.symbol})`}
-                                                            dot={false}
-                                                          />
-                                                        </AreaChart>
-                                                      </ResponsiveContainer></div>
+                                                          >
+                                                            <defs>
+                                                              <linearGradient
+                                                                id={`wl-ig-${it.symbol}`}
+                                                                x1="0"
+                                                                y1="0"
+                                                                x2="0"
+                                                                y2="1"
+                                                              >
+                                                                <stop
+                                                                  offset="5%"
+                                                                  stopColor={
+                                                                    chartChangeAmt >= 0
+                                                                      ? THEME.sage
+                                                                      : THEME.rust
+                                                                  }
+                                                                  stopOpacity={0.35}
+                                                                />
+                                                                <stop
+                                                                  offset="95%"
+                                                                  stopColor={
+                                                                    chartChangeAmt >= 0
+                                                                      ? THEME.sage
+                                                                      : THEME.rust
+                                                                  }
+                                                                  stopOpacity={0.02}
+                                                                />
+                                                              </linearGradient>
+                                                            </defs>
+                                                            <XAxis
+                                                              dataKey="t"
+                                                              tick={{
+                                                                fontSize: 9,
+                                                                fill: "var(--t-muted)",
+                                                              }}
+                                                              interval="preserveStartEnd"
+                                                              axisLine={false}
+                                                              tickLine={false}
+                                                            />
+                                                            <YAxis hide domain={["auto", "auto"]} />
+                                                            <Tooltip
+                                                              cursor={{ stroke: THEME.line }}
+                                                              contentStyle={{
+                                                                fontSize: 12,
+                                                                background: "var(--surface-0)",
+                                                                border: `1px solid ${THEME.line}`,
+                                                                borderRadius: 6,
+                                                                color: THEME.ink,
+                                                              }}
+                                                              labelStyle={{ color: THEME.ink }}
+                                                              itemStyle={{ color: THEME.ink }}
+                                                              formatter={(v: any) => [
+                                                                privacyMode
+                                                                  ? "••••"
+                                                                  : `₹${Number(v).toFixed(2)}`,
+                                                                "Price",
+                                                              ]}
+                                                            />
+                                                            <Area
+                                                              type="monotone"
+                                                              dataKey="p"
+                                                              stroke={
+                                                                chartChangeAmt >= 0
+                                                                  ? THEME.sage
+                                                                  : THEME.rust
+                                                              }
+                                                              strokeWidth={1.5}
+                                                              fill={`url(#wl-ig-${it.symbol})`}
+                                                              dot={false}
+                                                            />
+                                                          </AreaChart>
+                                                        </ResponsiveContainer>
+                                                      </div>
                                                       <div
                                                         style={{
                                                           display: "flex",
@@ -6344,7 +6484,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                             {" / "}
                                                             <b style={{ color: THEME.rust }}>
                                                               {md.weekLow52 != null ? (
-                                                                <Prv>₹{md.weekLow52.toFixed(2)}</Prv>
+                                                                <Prv>
+                                                                  ₹{md.weekLow52.toFixed(2)}
+                                                                </Prv>
                                                               ) : (
                                                                 "—"
                                                               )}
@@ -6670,7 +6812,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
   );
 }
 
-function DematModal({ onClose, onSave, initial = null, activeProfile = "all", saving = false }: any) {
+function DematModal({
+  onClose,
+  onSave,
+  initial = null,
+  activeProfile = "all",
+  saving = false,
+}: any) {
   const { familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
@@ -6899,9 +7047,8 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
   return (
     <Modal title={`Sell ${lot.base || lot.symbol}`} onClose={onClose}>
       <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
-        Holding: <b>{lot.qty}</b> shares @ avg{" "}
-        <Prv>₹{Number(lot.avgPrice).toFixed(2)}</Prv> · Lot bought{" "}
-        {lot.buyDate || "—"}
+        Holding: <b>{lot.qty}</b> shares @ avg <Prv>₹{Number(lot.avgPrice).toFixed(2)}</Prv> · Lot
+        bought {lot.buyDate || "—"}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Sell Qty">
@@ -6938,7 +7085,11 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
       <Field label="Broker">
         {lot.broker ? (
           <input
-            style={{ ...input, background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`, cursor: "default" }}
+            style={{
+              ...input,
+              background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+              cursor: "default",
+            }}
             value={f.broker}
             readOnly
           />
@@ -6956,7 +7107,10 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: profit >= 0 ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)` : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
+            background:
+              profit >= 0
+                ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
+                : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
             marginTop: 4,
           }}
         >
@@ -7164,7 +7318,10 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = 
                     key={a.lot.id}
                     style={{
                       borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined,
-                      background: i % 2 === 0 ? "transparent" : `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+                      background:
+                        i % 2 === 0
+                          ? "transparent"
+                          : `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
                     }}
                   >
                     <td style={{ ...td, padding: "9px 12px", borderBottom: "none" }}>
@@ -7276,7 +7433,9 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = 
                           padding: "2px 7px",
                           borderRadius: 4,
                           fontWeight: 800,
-                          background: a.isLTCG ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+                          background: a.isLTCG
+                            ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                            : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                           color: a.isLTCG ? THEME.sage : THEME.gold,
                         }}
                       >
@@ -7294,7 +7453,10 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = 
             style={{
               padding: "14px 16px",
               borderRadius: 10,
-              background: totalPnl >= 0 ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)` : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
+              background:
+                totalPnl >= 0
+                  ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)`
+                  : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
               border: `1px solid ${totalPnl >= 0 ? `color-mix(in srgb, ${THEME.sage} 33%, transparent)` : `color-mix(in srgb, ${THEME.rust} 33%, transparent)`}`,
               marginBottom: 4,
             }}
@@ -7461,7 +7623,11 @@ function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
       .filter((c: any) => c.floored > 0)
       .map((c: any) => {
         const newAvg = (c.oldQty * c.oldAvg) / c.floored;
-        return { id: c.lot.id, qty: String(c.floored), avgPrice: String(Number(newAvg.toFixed(4))) };
+        return {
+          id: c.lot.id,
+          qty: String(c.floored),
+          avgPrice: String(Number(newAvg.toFixed(4))),
+        };
       });
     const removals = lotCalcs.filter((c: any) => c.floored <= 0).map((c: any) => c.lot.id);
     const actionLog = {
@@ -7518,7 +7684,9 @@ function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
           padding: "14px 16px",
           borderRadius: 10,
           border: `2px solid ${actionDate ? THEME.sage : THEME.rust}`,
-          background: actionDate ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)` : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+          background: actionDate
+            ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
+            : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
           marginBottom: 16,
         }}
       >
