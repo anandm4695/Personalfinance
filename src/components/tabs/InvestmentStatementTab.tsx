@@ -34,6 +34,7 @@ import {
   exportArrayToCSV,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -185,7 +186,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
           />
           <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name || label}:</span>
           <span style={{ fontWeight: 700, color: THEME.ink }}>
-            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
+            <Prv>{formatter ? formatter(p.value) : <Money value={p.value} variant="full" />}</Prv>
           </span>
         </div>
       ))}
@@ -1032,7 +1033,7 @@ export const InvestmentStatementTab = ({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          <Prv>{fmtINRFull(animatedTotalCurrent)}</Prv>
+          <Money value={animatedTotalCurrent} variant="full" />
         </div>
         <div
           style={{
@@ -1045,11 +1046,11 @@ export const InvestmentStatementTab = ({
           }}
         >
           <span>
-            Invested <Prv>{fmtINRFull(summary.totalInvested)}</Prv>
+            Invested <Money value={summary.totalInvested} variant="full" />
           </span>
           <span>
             {summary.totalGain >= 0 ? "+" : ""}
-            <Prv>{fmtINRFull(summary.totalGain)}</Prv> gain/loss
+            <Money value={summary.totalGain} variant="full" /> gain/loss
           </span>
           {summary.weightedCAGR != null && (
             <span>Weighted CAGR {summary.weightedCAGR.toFixed(1)}%</span>
@@ -1082,16 +1083,14 @@ export const InvestmentStatementTab = ({
                       {row.label}
                     </td>
                     <td style={tdRight}>
-                      <Prv>{fmtINRFull(row.invested)}</Prv>
+                      <Money value={row.invested} variant="full" />
                     </td>
                     <td style={tdRight}>
-                      <Prv>{fmtINRFull(row.current)}</Prv>
+                      <Money value={row.current} variant="full" />
                     </td>
                     <td style={{ ...tdRight, color: plColor(row.gain), fontWeight: 700 }}>
-                      <Prv>
-                        {plSign(row.gain)}
-                        {fmtINRFull(row.gain)}
-                      </Prv>
+                      {plSign(row.gain)}
+                      <Money value={row.gain} variant="full" />
                     </td>
                     <td style={{ ...tdRight, fontWeight: 600 }}>{row.rateLabel}</td>
                     <td style={{ ...tdRight, paddingRight: 16, fontWeight: 600 }}>
@@ -1109,10 +1108,10 @@ export const InvestmentStatementTab = ({
               >
                 <td style={{ ...tdBold, paddingLeft: 16 }}>Total</td>
                 <td style={tdBoldRight}>
-                  <Prv>{fmtINRFull(summary.totalInvested)}</Prv>
+                  <Money value={summary.totalInvested} variant="full" />
                 </td>
                 <td style={tdBoldRight}>
-                  <Prv>{fmtINRFull(summary.totalCurrent)}</Prv>
+                  <Money value={summary.totalCurrent} variant="full" />
                 </td>
                 <td
                   style={{
@@ -1120,10 +1119,8 @@ export const InvestmentStatementTab = ({
                     color: plColor(summary.totalGain),
                   }}
                 >
-                  <Prv>
-                    {plSign(summary.totalGain)}
-                    {fmtINRFull(summary.totalGain)}
-                  </Prv>
+                  {plSign(summary.totalGain)}
+                  <Money value={summary.totalGain} variant="full" />
                 </td>
                 <td style={tdBoldRight}>
                   {summary.weightedCAGR != null ? `${summary.weightedCAGR.toFixed(1)}%` : "--"}
@@ -1197,19 +1194,17 @@ export const InvestmentStatementTab = ({
                           </td>
                           <td style={{ ...tdRight, fontWeight: 600 }}>{totalQty}</td>
                           <td style={tdRight}>
-                            <Prv>{fmtINRFull(avgPrice)}</Prv>
+                            <Money value={avgPrice} variant="full" />
                           </td>
                           <td style={tdRight}>
-                            <Prv>{fmtINRFull(livePrice)}</Prv>
+                            <Money value={livePrice} variant="full" />
                           </td>
                           <td style={{ ...tdRight, fontWeight: 700 }}>
-                            <Prv>{fmtINRFull(currentValue)}</Prv>
+                            <Money value={currentValue} variant="full" />
                           </td>
                           <td style={{ ...tdRight, color: plColor(pl), fontWeight: 700 }}>
-                            <Prv>
-                              {plSign(pl)}
-                              {fmtINRFull(pl)}
-                            </Prv>
+                            {plSign(pl)}
+                            <Money value={pl} variant="full" />
                           </td>
                           <td style={{ ...tdRight, color: plColor(plPct), fontWeight: 700 }}>
                             {fmtPct(plPct)}
@@ -1322,16 +1317,14 @@ export const InvestmentStatementTab = ({
                             <Prv>{currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "--"}</Prv>
                           </td>
                           <td style={tdRight}>
-                            <Prv>{fmtINRFull(invested)}</Prv>
+                            <Money value={invested} variant="full" />
                           </td>
                           <td style={{ ...tdRight, fontWeight: 700 }}>
-                            <Prv>{fmtINRFull(currentValue)}</Prv>
+                            <Money value={currentValue} variant="full" />
                           </td>
                           <td style={{ ...tdRight, color: plColor(pl), fontWeight: 700 }}>
-                            <Prv>
-                              {plSign(pl)}
-                              {fmtINRFull(pl)}
-                            </Prv>
+                            {plSign(pl)}
+                            <Money value={pl} variant="full" />
                           </td>
                           <td
                             style={{
@@ -1399,7 +1392,7 @@ export const InvestmentStatementTab = ({
                             {fd.bank || "--"}
                           </td>
                           <td style={{ ...tdRight, fontWeight: 700 }}>
-                            <Prv>{fmtINRFull(principal)}</Prv>
+                            <Money value={principal} variant="full" />
                           </td>
                           <td style={{ ...tdRight, fontWeight: 600 }}>
                             {rate > 0 ? `${rate}%` : "--"}
@@ -1407,7 +1400,7 @@ export const InvestmentStatementTab = ({
                           <td style={td}>{fd.startDate || "--"}</td>
                           <td style={td}>{fd.maturityDate || "--"}</td>
                           <td style={{ ...tdRight, fontWeight: 700 }}>
-                            <Prv>{fmtINRFull(matAmount)}</Prv>
+                            <Money value={matAmount} variant="full" />
                           </td>
                           <td
                             style={{
@@ -1476,12 +1469,12 @@ export const InvestmentStatementTab = ({
                             {rd.bank || "--"}
                           </td>
                           <td style={tdRight}>
-                            <Prv>{fmtINRFull(monthly)}</Prv>
+                            <Money value={monthly} variant="full" />
                           </td>
                           <td style={tdRight}>{months || "--"}</td>
                           <td style={tdRight}>{rate > 0 ? `${rate}%` : "--"}</td>
                           <td style={{ ...tdRight, paddingRight: 16, fontWeight: 700 }}>
-                            <Prv>{fmtINRFull(matAmount)}</Prv>
+                            <Money value={matAmount} variant="full" />
                           </td>
                         </tr>
                       );
@@ -1536,7 +1529,7 @@ export const InvestmentStatementTab = ({
                             {b.name || "--"}
                           </td>
                           <td style={{ ...tdRight, fontWeight: 700 }}>
-                            <Prv>{fmtINRFull(faceValue)}</Prv>
+                            <Money value={faceValue} variant="full" />
                           </td>
                           <td style={tdRight}>{coupon > 0 ? `${coupon}%` : "--"}</td>
                           <td style={tdRight}>{ytm > 0 ? `${ytm}%` : "--"}</td>
@@ -1601,7 +1594,7 @@ export const InvestmentStatementTab = ({
                             {p.accountNumber || "--"}
                           </td>
                           <td style={{ ...tdRight, fontWeight: 700 }}>
-                            <Prv>{fmtINRFull(balance)}</Prv>
+                            <Money value={balance} variant="full" />
                           </td>
                           <td
                             style={{
@@ -1611,7 +1604,11 @@ export const InvestmentStatementTab = ({
                               fontWeight: 700,
                             }}
                           >
-                            <Prv>{thisYearDeposit > 0 ? fmtINRFull(thisYearDeposit) : "--"}</Prv>
+                            {thisYearDeposit > 0 ? (
+                              <Money value={thisYearDeposit} variant="full" />
+                            ) : (
+                              "--"
+                            )}
                           </td>
                         </tr>
                       );
@@ -1669,21 +1666,18 @@ export const InvestmentStatementTab = ({
                           </Badge>
                         </td>
                         <td style={{ ...tdRight, paddingRight: 16, fontWeight: 700 }}>
-                          <Prv>
-                            {fmtINRFull(
-                              (() => {
-                                const bal = Number(n.balance) || 0;
-                                if (bal > 0) return bal;
-                                return (n.transactions || []).reduce(
-                                  (ss: number, t: any) =>
-                                    ss +
-                                    (Number(t.employeeAmount) || 0) +
-                                    (Number(t.employerAmount) || 0),
-                                  0
-                                );
-                              })()
-                            )}
-                          </Prv>
+                          <Money
+                            value={(() => {
+                              const bal = Number(n.balance) || 0;
+                              if (bal > 0) return bal;
+                              return (n.transactions || []).reduce(
+                                (ss: number, t: any) =>
+                                  ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+                                0
+                              );
+                            })()}
+                            variant="full"
+                          />
                         </td>
                       </tr>
                     ))}
@@ -1729,7 +1723,7 @@ export const InvestmentStatementTab = ({
                         </td>
                         <td style={{ ...td, fontSize: 12, color: THEME.muted }}>{e.uan || "--"}</td>
                         <td style={{ ...tdRight, paddingRight: 16, fontWeight: 700 }}>
-                          <Prv>{fmtINRFull(calculateEpfBalance(e))}</Prv>
+                          <Money value={calculateEpfBalance(e)} variant="full" />
                         </td>
                       </tr>
                     ))}
@@ -1788,20 +1782,19 @@ export const InvestmentStatementTab = ({
                           </Badge>
                         </td>
                         <td style={tdRight}>
-                          <Prv>
-                            {fmtINRFull(
-                              (() => {
-                                const txTotal = (l.transactions || []).reduce(
-                                  (sum: number, t: any) => sum + Number(t.amount || 0),
-                                  0
-                                );
-                                return txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
-                              })()
-                            )}
-                          </Prv>
+                          <Money
+                            value={(() => {
+                              const txTotal = (l.transactions || []).reduce(
+                                (sum: number, t: any) => sum + Number(t.amount || 0),
+                                0
+                              );
+                              return txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
+                            })()}
+                            variant="full"
+                          />
                         </td>
                         <td style={{ ...tdRight, fontWeight: 700 }}>
-                          <Prv>{fmtINRFull(Number(l.sumAssured) || 0)}</Prv>
+                          <Money value={Number(l.sumAssured) || 0} variant="full" />
                         </td>
                         <td style={{ ...td, paddingRight: 16 }}>{l.maturityDate || "--"}</td>
                       </tr>
@@ -1828,22 +1821,22 @@ export const InvestmentStatementTab = ({
                           </Badge>
                         </td>
                         <td style={tdRight}>
-                          <Prv>
-                            {fmtINRFull(
-                              (() => {
-                                const txTotal = (ip.transactions || []).reduce(
-                                  (sum: number, t: any) => sum + Number(t.amount || 0),
-                                  0
-                                );
-                                return txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
-                              })()
-                            )}
-                          </Prv>
+                          <Money
+                            value={(() => {
+                              const txTotal = (ip.transactions || []).reduce(
+                                (sum: number, t: any) => sum + Number(t.amount || 0),
+                                0
+                              );
+                              return txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
+                            })()}
+                            variant="full"
+                          />
                         </td>
                         <td style={{ ...tdRight, fontWeight: 700 }}>
-                          <Prv>
-                            {fmtINRFull(Number(ip.expectedMaturityAmount || ip.sumAssured) || 0)}
-                          </Prv>
+                          <Money
+                            value={Number(ip.expectedMaturityAmount || ip.sumAssured) || 0}
+                            variant="full"
+                          />
                         </td>
                         <td style={{ ...td, paddingRight: 16 }}>{ip.maturityDate || "--"}</td>
                       </tr>
@@ -1920,16 +1913,14 @@ export const InvestmentStatementTab = ({
                               {grams > 0 ? grams.toFixed(2) : "--"}
                             </td>
                             <td style={tdRight}>
-                              <Prv>{fmtINRFull(invested)}</Prv>
+                              <Money value={invested} variant="full" />
                             </td>
                             <td style={{ ...tdRight, fontWeight: 700 }}>
-                              <Prv>{fmtINRFull(currentValue)}</Prv>
+                              <Money value={currentValue} variant="full" />
                             </td>
                             <td style={{ ...tdRight, color: plColor(pl), fontWeight: 700 }}>
-                              <Prv>
-                                {plSign(pl)}
-                                {fmtINRFull(pl)}
-                              </Prv>
+                              {plSign(pl)}
+                              <Money value={pl} variant="full" />
                             </td>
                             <td
                               style={{
@@ -2015,16 +2006,14 @@ export const InvestmentStatementTab = ({
                               {(share * 100).toFixed(0)}%
                             </td>
                             <td style={tdRight}>
-                              <Prv>{fmtINRFull(invested)}</Prv>
+                              <Money value={invested} variant="full" />
                             </td>
                             <td style={{ ...tdRight, fontWeight: 700 }}>
-                              <Prv>{fmtINRFull(currentValue)}</Prv>
+                              <Money value={currentValue} variant="full" />
                             </td>
                             <td style={{ ...tdRight, color: plColor(gain), fontWeight: 700 }}>
-                              <Prv>
-                                {plSign(gain)}
-                                {fmtINRFull(gain)}
-                              </Prv>
+                              {plSign(gain)}
+                              <Money value={gain} variant="full" />
                             </td>
                             <td
                               style={{
@@ -2233,7 +2222,7 @@ export const InvestmentStatementTab = ({
                           marginTop: 1,
                         }}
                       >
-                        <Prv>{fmtINRFull(d.value)}</Prv> &bull; {pct}%
+                        <Money value={d.value} variant="full" /> &bull; {pct}%
                       </div>
                     </div>
                   </div>
