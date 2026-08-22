@@ -25,7 +25,8 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS & HELPERS
@@ -641,10 +642,10 @@ const TransactionTable = ({
                 color: totalProfit >= 0 ? THEME.sage : THEME.rust,
               }}
             >
-              <Prv>P&L: {fmtINRFull(totalProfit)}</Prv>
+              P&L: <Money value={totalProfit} variant="full" />
             </span>
             <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 12 }}>
-              <Prv>Tax: {fmtINRFull(totalTax)}</Prv>
+              Tax: <Money value={totalTax} variant="full" />
             </span>
           </div>
           {expanded ? (
@@ -716,7 +717,7 @@ const TransactionTable = ({
                     {fmtDate(r.buyDate)}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                    <Prv>{fmtINRFull(r.buyPrice)}</Prv>
+                    <Money value={r.buyPrice} variant="full" />
                   </td>
                   <td
                     style={{
@@ -729,7 +730,7 @@ const TransactionTable = ({
                     {fmtDate(r.sellDate)}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                    <Prv>{fmtINRFull(r.sellPrice)}</Prv>
+                    <Money value={r.sellPrice} variant="full" />
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>{r.qty}</td>
                   <td
@@ -750,7 +751,7 @@ const TransactionTable = ({
                       color: r.profit >= 0 ? THEME.sage : THEME.rust,
                     }}
                   >
-                    <Prv>{fmtINRFull(r.profit)}</Prv>
+                    <Money value={r.profit} variant="full" />
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", color: THEME.muted }}>
                     {(r.taxRate * 100).toFixed(1)}%
@@ -758,7 +759,7 @@ const TransactionTable = ({
                   <td
                     style={{ ...tdStyle, textAlign: "right", fontWeight: 600, color: THEME.rust }}
                   >
-                    <Prv>{fmtINRFull(r.estimatedTax)}</Prv>
+                    <Money value={r.estimatedTax} variant="full" />
                   </td>
                 </tr>
               ))}
@@ -1130,7 +1131,7 @@ export const CapitalGainsTab = ({
         of buying it and the profit is <b style={{ color: THEME.ink }}>Short-Term (STCG)</b>, taxed
         at {stcgRate * 100}%. Hold it longer and it's{" "}
         <b style={{ color: THEME.ink }}>Long-Term (LTCG)</b>, taxed at only {ltcgRate * 100}% — and
-        the first <Prv>{fmtINRFull(ltcgExemptionLimit)}</Prv> of LTCG each financial year is
+        the first <Money value={ltcgExemptionLimit} variant="full" /> of LTCG each financial year is
         tax-free
         (Section 112A exemption).
       </div>
@@ -1273,7 +1274,7 @@ export const CapitalGainsTab = ({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRFull(byType.totals[g.key])}</Prv>
+              <Money value={byType.totals[g.key]} variant="full" />
             </div>
             <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
               Tax @ {g.rate} · {byType.groups[g.key].length} txns
@@ -1327,10 +1328,10 @@ export const CapitalGainsTab = ({
             <span
               style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}
             >
-              <Prv>{fmtINRFull(ltcgExemptionUsed)}</Prv>
+              <Money value={ltcgExemptionUsed} variant="full" />
             </span>
             <span style={{ fontSize: 12, color: THEME.muted, marginLeft: 4 }}>
-              / <Prv>{fmtINRFull(ltcgExemptionLimit)}</Prv>
+              / <Money value={ltcgExemptionLimit} variant="full" />
             </span>
           </div>
         </div>
@@ -1345,7 +1346,7 @@ export const CapitalGainsTab = ({
             "Exemption fully utilized"
           ) : (
             <>
-              <Prv>{fmtINRFull(ltcgExemptionLimit - ltcgExemptionUsed)}</Prv> remaining exemption
+              <Money value={ltcgExemptionLimit - ltcgExemptionUsed} variant="full" /> remaining exemption
             </>
           )}
         </div>
@@ -1530,10 +1531,10 @@ export const CapitalGainsTab = ({
                         {fmtDate(h.buyDate)}
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                        <Prv>{fmtINRFull(h.buyPrice)}</Prv>
+                        <Money value={h.buyPrice} variant="full" />
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                        <Prv>{fmtINRFull(h.currentPrice)}</Prv>
+                        <Money value={h.currentPrice} variant="full" />
                       </td>
                       <td
                         style={{
@@ -1543,7 +1544,7 @@ export const CapitalGainsTab = ({
                           color: h.unrealizedPL >= 0 ? THEME.sage : THEME.rust,
                         }}
                       >
-                        <Prv>{fmtINRFull(h.unrealizedPL)}</Prv>
+                        <Money value={h.unrealizedPL} variant="full" />
                       </td>
                       <td
                         style={{
@@ -1643,9 +1644,10 @@ export const CapitalGainsTab = ({
                   </strong>{" "}
                   with unrealized losses. Selling them could save up to{" "}
                   <strong style={{ color: THEME.sage }}>
-                    <Prv>
-                      {fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))}
-                    </Prv>
+                    <Money
+                      value={harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0)}
+                      variant="full"
+                    />
                   </strong>{" "}
                   in taxes by offsetting your realized gains in {currentFYLabel}
                   {!isViewingCurrentFY ? ` (the currently open FY, not the ${fyLabel} shown above)` : ""}.
@@ -1703,10 +1705,10 @@ export const CapitalGainsTab = ({
                             color: THEME.rust,
                           }}
                         >
-                          <Prv>{fmtINRFull(h.unrealizedPL)}</Prv>
+                          <Money value={h.unrealizedPL} variant="full" />
                         </td>
                         <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                          <Prv>{fmtINRFull(h.usableLoss)}</Prv>
+                          <Money value={h.usableLoss} variant="full" />
                         </td>
                         <td
                           style={{
@@ -1716,7 +1718,7 @@ export const CapitalGainsTab = ({
                             color: THEME.sage,
                           }}
                         >
-                          <Prv>{fmtINRFull(h.potentialSaving)}</Prv>
+                          <Money value={h.potentialSaving} variant="full" />
                         </td>
                         <td style={tdStyle}>
                           <Badge variant={h.wouldBeType.includes("LTCG") ? "sage" : "gold"}>
@@ -1752,7 +1754,7 @@ export const CapitalGainsTab = ({
         <span>
           <strong>Disclaimer:</strong> Tax estimates are approximate. For {fyLabel}: Equity STCG at{" "}
           {stcgRate * 100}%, Equity LTCG at {ltcgRate * 100}% above{" "}
-          <Prv>{fmtINRFull(ltcgExemptionLimit)}</Prv> exemption. Debt MFs purchased after 1 Apr 2023
+          <Money value={ltcgExemptionLimit} variant="full" /> exemption. Debt MFs purchased after 1 Apr 2023
           are taxed at slab rate regardless of holding period, with no LTCG or indexation benefit
           ever, no matter how long they are held. Actual liability may vary based on your income
           slab, surcharge, cess, and indexation benefits. Consult a tax professional for ITR
