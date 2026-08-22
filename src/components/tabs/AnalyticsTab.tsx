@@ -78,6 +78,7 @@ import { THEME, PIE_COLORS } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
 import {
   fmtINRFull,
+  maskCurrencyInText,
   getCCDueDate,
   rdMaturity,
   fdMaturity,
@@ -101,6 +102,7 @@ import { Field, Input, Select } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StockLogo } from "./DematTab";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 
 // ─── BADGE CATALOG ───────────────────────────────────────────────────────────
 // Each category is a sequential tier chain. Badges unlock when the previous tier
@@ -3700,10 +3702,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         const items = [
           {
             label: "Net Worth",
-            value: fmtINRFull(animatedNetWorth),
+            value: <Money value={animatedNetWorth} variant="full" />,
             color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust,
             Icon: TrendingUp,
-            money: true,
           },
           {
             label: "Savings Rate",
@@ -3713,33 +3714,34 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           },
           {
             label: "Monthly Income",
-            value: fmtINRFull(animatedMonthIncome),
+            value: <Money value={animatedMonthIncome} variant="full" />,
             color: THEME.sage,
             Icon: ArrowUpRight,
-            money: true,
           },
           {
             label: "Monthly Spend",
-            value: fmtINRFull(animatedMonthExpense),
+            value: <Money value={animatedMonthExpense} variant="full" />,
             color: THEME.rust,
             Icon: Receipt,
-            money: true,
           },
           {
             label: "Est. Tax",
-            value: fmtINRFull(animatedTaxDue),
+            value: <Money value={animatedTaxDue} variant="full" />,
             color: metrics.taxDue > 0 ? THEME.rust : THEME.sage,
             Icon: Landmark,
-            money: true,
           },
           ...(momNetWorthDelta
             ? [
                 {
                   label: "MoM Change",
-                  value: `${animatedMomDelta >= 0 ? "+" : ""}${fmtINRFull(animatedMomDelta)}`,
+                  value: (
+                    <>
+                      {animatedMomDelta >= 0 ? "+" : ""}
+                      <Money value={animatedMomDelta} variant="full" />
+                    </>
+                  ),
                   color: momNetWorthDelta.delta >= 0 ? THEME.sage : THEME.rust,
                   Icon: momNetWorthDelta.delta >= 0 ? ArrowUpRight : ArrowDownRight,
-                  money: true,
                 },
               ]
             : []),
@@ -3764,7 +3766,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               marginBottom: 24,
             }}
           >
-            {items.map(({ label, value, color, Icon, money }) => (
+            {items.map(({ label, value, color, Icon }) => (
               <div
                 key={label}
                 className="card-lift"
@@ -3817,7 +3819,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {money ? <Prv>{value}</Prv> : value}
+                  {value}
                 </div>
               </div>
             ))}
@@ -4250,7 +4252,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {ins.money ? <Prv>{ins.value}</Prv> : ins.value}
+                          {ins.money ? maskCurrencyInText(ins.value, privacyMode) : ins.value}
                         </div>
                       </div>
                     </div>
@@ -4426,7 +4428,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     color: "#fff",
                   }}
                 >
-                  <Prv>{fmtINRFull(animatedNetWorth)}</Prv>
+                  <Money value={animatedNetWorth} variant="full" />
                 </div>
                 <div
                   style={{
@@ -4455,7 +4457,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     % equity ratio
                   </div>
                   <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
-                    · Total assets <Prv>{fmtINRFull(metrics.totalAssets)}</Prv>
+                    · Total assets <Money value={metrics.totalAssets} variant="full" />
                   </div>
                   {momNetWorthDelta && (
                     <div
@@ -4475,7 +4477,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <ArrowDownRight size={13} />
                       )}
                       {momNetWorthDelta.delta >= 0 ? "+" : ""}
-                      <Prv>{fmtINRFull(momNetWorthDelta.delta)}</Prv> MoM (
+                      <Money value={momNetWorthDelta.delta} variant="full" /> MoM (
                       {momNetWorthDelta.pct >= 0 ? "+" : ""}
                       {momNetWorthDelta.pct.toFixed(1)}%)
                     </div>
@@ -4808,7 +4810,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </span>
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>
-                    Liabilities <Prv>{fmtINRFull(metrics.totalLiabilities)}</Prv>
+                    Liabilities <Money value={metrics.totalLiabilities} variant="full" />
                   </div>
                 </div>
               </Card>
@@ -4896,10 +4898,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             fontWeight: 500,
                           }}
                         >
-                          Cash <Prv>{fmtINRFull(metrics.cashInBanks)}</Prv> · MF+Stocks{" "}
-                          <Prv>{fmtINRFull(metrics.mfValue + metrics.stockValue)}</Prv>
+                          Cash <Money value={metrics.cashInBanks} variant="full" /> · MF+Stocks{" "}
+                          <Money value={metrics.mfValue + metrics.stockValue} variant="full" />
                           <br />
-                          Locked <Prv>{fmtINRFull(locked)}</Prv> · Target ≥30%
+                          Locked <Money value={locked} variant="full" /> · Target ≥30%
                         </div>
                       </>
                     );
@@ -4961,7 +4963,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           }}
                         >
                           {isPos ? "+" : ""}
-                          <Prv>{fmtINRFull(pnl)}</Prv>
+                          <Money value={pnl} variant="full" />
                         </div>
                         <div
                           style={{
@@ -4982,7 +4984,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           {Math.abs(returnPct).toFixed(1)}% overall return
                         </div>
                         <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
-                          Unrealised · Invested <Prv>{fmtINRFull(invested)}</Prv>
+                          Unrealised · Invested <Money value={invested} variant="full" />
                         </div>
                       </>
                     );
@@ -5361,7 +5363,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               color: d.isFdMaturity ? THEME.sage : THEME.ink,
                             }}
                           >
-                            <Prv>{fmtINRFull(d.amount)}</Prv>
+                            <Money value={d.amount} variant="full" />
                           </div>
                           {d.isFdMaturity ? (
                             <Badge variant="sage" style={{ fontSize: 10, marginTop: 4 }}>
@@ -5699,7 +5701,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     {[
                       {
                         label: "Liquid Balance",
-                        value: fmtINRFull(efLiquidBalance),
+                        value: <Money value={efLiquidBalance} variant="full" />,
                         sub:
                           nearTermFDs > 0
                             ? `Incl. ${privacyMode ? "••••" : fmtINRFull(nearTermFDs)} near-term FDs`
@@ -5708,19 +5710,19 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       },
                       {
                         label: "Monthly Expense",
-                        value: fmtINRFull(efMonthlyExpense),
+                        value: <Money value={efMonthlyExpense} variant="full" />,
                         sub: "Average monthly spend",
                         color: THEME.muted,
                       },
                       {
                         label: "Target (6 months)",
-                        value: fmtINRFull(efTarget),
+                        value: <Money value={efTarget} variant="full" />,
                         sub: "Recommended buffer",
                         color: THEME.gold,
                       },
                       {
                         label: efShortfall > 0 ? "Shortfall" : "Surplus",
-                        value: fmtINRFull(Math.abs(efShortfall)),
+                        value: <Money value={Math.abs(efShortfall)} variant="full" />,
                         sub: efShortfall > 0 ? "Amount needed" : "Above target",
                         color: efShortfall > 0 ? THEME.rust : THEME.sage,
                       },
@@ -5755,7 +5757,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             marginBottom: 4,
                           }}
                         >
-                          <Prv>{item.value}</Prv>
+                          {item.value}
                         </div>
                         <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
                           {item.sub}
@@ -5850,7 +5852,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         }}
                       >
                         {wealthVelocity.avg >= 0 ? "+" : ""}
-                        <Prv>{fmtINRFull(wealthVelocity.avg)}</Prv>
+                        <Money value={wealthVelocity.avg} variant="full" />
                       </div>
                       <div
                         style={{ fontSize: 11, color: THEME.muted, marginTop: 6, fontWeight: 600 }}
@@ -5877,7 +5879,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           }}
                         >
                           {wealthVelocity.latest >= 0 ? "+" : ""}
-                          <Prv>{fmtINRFull(wealthVelocity.latest)}</Prv>
+                          <Money value={wealthVelocity.latest} variant="full" />
                         </span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -5905,7 +5907,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <span style={{ fontSize: 12, color: THEME.muted }}>At this pace</span>
                         <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
                           {wealthVelocity.avg >= 0 ? "+" : ""}
-                          <Prv>{fmtINRFull(wealthVelocity.avg * 12)}</Prv>/yr
+                          <Money value={wealthVelocity.avg * 12} variant="full" />/yr
                         </span>
                       </div>
                     </div>
@@ -5970,7 +5972,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             marginBottom: 14,
                           }}
                         >
-                          <Prv>{fmtINRFull(totalEMI)}</Prv>
+                          <Money value={totalEMI} variant="full" />
                           <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>
                             /mo
                           </span>
@@ -6009,11 +6011,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     {l.loanName || l.bank || "Loan"}
                                   </div>
                                   <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-                                    Payoff: {timeStr} · <Prv>{fmtINRFull(outstanding)}</Prv> left
+                                    Payoff: {timeStr} · <Money value={outstanding} variant="full" /> left
                                   </div>
                                 </div>
                                 <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>
-                                  <Prv>{fmtINRFull(emi)}</Prv>/mo
+                                  <Money value={emi} variant="full" />/mo
                                 </span>
                               </div>
                             );
@@ -6260,7 +6262,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 }}
                               >
                                 <Prv>
-                                  {row.isPercent ? `${row.v1.toFixed(1)}%` : fmtINRFull(row.v1)}
+                                  {row.isPercent ? (
+                                    `${row.v1.toFixed(1)}%`
+                                  ) : (
+                                    <Money value={row.v1} variant="full" />
+                                  )}
                                 </Prv>
                               </td>
                               <td
@@ -6272,7 +6278,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 }}
                               >
                                 <Prv>
-                                  {row.isPercent ? `${row.v2.toFixed(1)}%` : fmtINRFull(row.v2)}
+                                  {row.isPercent ? (
+                                    `${row.v2.toFixed(1)}%`
+                                  ) : (
+                                    <Money value={row.v2} variant="full" />
+                                  )}
                                 </Prv>
                               </td>
                               <td
@@ -6297,9 +6307,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <ArrowDownRight size={14} style={{ color: changeColor }} />
                                   ) : null}
                                   <Prv>
-                                    {row.isPercent
-                                      ? `${row.change > 0 ? "+" : ""}${row.change.toFixed(1)} pp`
-                                      : `${row.change > 0 ? "+" : ""}${fmtINRFull(Math.abs(row.change))}`}
+                                    {row.isPercent ? (
+                                      `${row.change > 0 ? "+" : ""}${row.change.toFixed(1)} pp`
+                                    ) : (
+                                      <>
+                                        {row.change > 0 ? "+" : ""}
+                                        <Money value={Math.abs(row.change)} variant="full" />
+                                      </>
+                                    )}
                                   </Prv>
                                 </div>
                               </td>
@@ -7021,7 +7036,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             }}
                           >
                             {t.type === "credit" ? "+" : "-"}
-                            <Prv>{fmtINRFull(t.amount)}</Prv>
+                            <Money value={t.amount} variant="full" />
                           </div>
                           <span
                             style={{
@@ -7193,7 +7208,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     lineHeight: 1.1,
                   }}
                 >
-                  {money ? <Prv>{value}</Prv> : value}
+                  {money ? maskCurrencyInText(value, privacyMode) : value}
                 </div>
                 {delta !== null && (
                   <div
@@ -7913,20 +7928,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   {[
                     {
                       label: "YTD Income",
-                      value: fmtINRFull(animatedYtdIncome),
-                      money: true,
+                      value: <Money value={animatedYtdIncome} variant="full" />,
                       color: ytdData.ytdIncome > 0 ? THEME.sage : THEME.muted,
                     },
                     {
                       label: "YTD Expense",
-                      value: fmtINRFull(animatedYtdExpense),
-                      money: true,
+                      value: <Money value={animatedYtdExpense} variant="full" />,
                       color: ytdData.ytdExpense > 0 ? THEME.rust : THEME.muted,
                     },
                     {
                       label: "YTD Savings",
-                      value: fmtINRFull(animatedYtdSavings),
-                      money: true,
+                      value: <Money value={animatedYtdSavings} variant="full" />,
                       color:
                         ytdData.ytdIncome === 0 && ytdData.ytdExpense === 0
                           ? THEME.muted
@@ -7937,7 +7949,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     {
                       label: "YTD Savings Rate",
                       value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
-                      money: false,
                       color:
                         ytdData.ytdIncome === 0
                           ? THEME.muted
@@ -7947,7 +7958,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               ? THEME.gold
                               : THEME.rust,
                     },
-                  ].map(({ label, value, money, color }) => (
+                  ].map(({ label, value, color }) => (
                     <div
                       key={label}
                       style={{
@@ -7972,7 +7983,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div
                         style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em" }}
                       >
-                        {money ? <Prv>{value}</Prv> : value}
+                        {value}
                       </div>
                     </div>
                   ))}
@@ -8058,7 +8069,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           letterSpacing: "-0.03em",
                         }}
                       >
-                        <Prv>{fmtINRFull(familyNW)}</Prv>
+                        <Money value={familyNW} variant="full" />
                       </div>
                     </div>
 
@@ -8112,7 +8123,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                         color: barColors[i % barColors.length],
                                       }}
                                     >
-                                      <Prv>{fmtINRFull(p.nw)}</Prv>
+                                      <Money value={p.nw} variant="full" />
                                     </span>
                                   </div>
                                 </div>
@@ -8184,7 +8195,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               Total Cover
                             </div>
                             <div style={{ fontSize: 18, fontWeight: 900, color: THEME.accent }}>
-                              <Prv>{fmtINRFull(familyCover)}</Prv>
+                              <Money value={familyCover} variant="full" />
                             </div>
                           </div>
                           <div
@@ -8236,10 +8247,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               }}
                             >
                               <span>
-                                Coverage: <Prv>{fmtINRFull(familyCover)}</Prv>
+                                Coverage: <Money value={familyCover} variant="full" />
                               </span>
                               <span>
-                                Ideal (10x): <Prv>{fmtINRFull(idealCover)}</Prv>
+                                Ideal (10x): <Money value={idealCover} variant="full" />
                               </span>
                             </div>
                             <div
@@ -8277,7 +8288,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 }}
                               >
                                 <AlertTriangle size={12} />
-                                Gap of <Prv>{fmtINRFull(idealCover - familyCover)}</Prv> — consider
+                                Gap of <Money value={idealCover - familyCover} variant="full" /> — consider
                                 increasing term insurance
                               </div>
                             )}
@@ -8302,7 +8313,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               >
                                 <span style={{ color: THEME.muted }}>{p.name}</span>
                                 <span style={{ fontWeight: 700, color: THEME.ink }}>
-                                  <Prv>{fmtINRFull(p.totalCover)}</Prv>
+                                  <Money value={p.totalCover} variant="full" />
                                 </span>
                               </div>
                             ))}
@@ -8333,7 +8344,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
             </div>
             <div className="sub-tab-hero-badge">
-              <IndianRupee size={12} /> <Prv>{fmtINRFull(metrics.totalAssets)}</Prv> assets
+              <IndianRupee size={12} /> <Money value={metrics.totalAssets} variant="full" /> assets
             </div>
           </div>
           <div
@@ -8520,16 +8531,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           width: "100%",
                         }}
                       >
-                        <Prv>
-                          {fmtINRFull(
+                        <Money
+                          value={
                             activeAssetIndex !== null
                               ? assetBreakdown[activeAssetIndex]?.value
                               : selectedAssetClass
-                                ? assetBreakdown.find((x) => x.name === selectedAssetClass)
-                                    ?.value || 0
+                                ? assetBreakdown.find((x) => x.name === selectedAssetClass)?.value || 0
                                 : metrics.totalAssets
-                          )}
-                        </Prv>
+                          }
+                          variant="full"
+                        />
                       </span>
                       <span
                         style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginTop: 2 }}
@@ -8626,7 +8637,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 )}
                               </div>
                               <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                                <Prv>{fmtINRFull(item.value)}</Prv>
+                                <Money value={item.value} variant="full" />
                               </span>
                             </div>
                           ));
@@ -8712,7 +8723,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   marginLeft: 8,
                                 }}
                               >
-                                <Prv>{fmtINRFull(item.value)}</Prv>
+                                <Money value={item.value} variant="full" />
                               </span>
                             </div>
                           );
@@ -8742,7 +8753,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   >
                     <span style={{ fontWeight: 700 }}>Total Assets</span>
                     <span style={{ fontWeight: 800, color: THEME.sage }}>
-                      <Prv>{fmtINRFull(metrics.totalAssets)}</Prv>
+                      <Money value={metrics.totalAssets} variant="full" />
                     </span>
                   </div>
                   <div className="progress-track">
@@ -8755,7 +8766,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   >
                     <span style={{ fontWeight: 700 }}>Total Liabilities</span>
                     <span style={{ fontWeight: 800, color: THEME.rust }}>
-                      <Prv>{fmtINRFull(metrics.totalLiabilities)}</Prv>
+                      <Money value={metrics.totalLiabilities} variant="full" />
                     </span>
                   </div>
                   <div className="progress-track">
@@ -8787,7 +8798,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       color: isPositive ? THEME.accent : THEME.rust,
                     }}
                   >
-                    <Prv>{fmtINRFull(metrics.netWorth)}</Prv>
+                    <Money value={metrics.netWorth} variant="full" />
                   </div>
                 </div>
               </div>
@@ -8831,7 +8842,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                     {lastTradingDayPerformance.topGainer ? (
-                      <Prv>{fmtINRFull(lastTradingDayPerformance.topGainer.price)}</Prv>
+                      <Money value={lastTradingDayPerformance.topGainer.price} variant="full" />
                     ) : (
                       "₹0"
                     )}
@@ -8869,7 +8880,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                     {lastTradingDayPerformance.topLoser ? (
-                      <Prv>{fmtINRFull(lastTradingDayPerformance.topLoser.price)}</Prv>
+                      <Money value={lastTradingDayPerformance.topLoser.price} variant="full" />
                     ) : (
                       "₹0"
                     )}
@@ -8911,14 +8922,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <span style={{ fontSize: 16, fontWeight: 800, color: THEME.muted }}>
                     {lastTradingDayPerformance.noChangeStocks &&
                     lastTradingDayPerformance.noChangeStocks.length > 0 ? (
-                      <Prv>
-                        {fmtINRFull(
+                      <Money
+                        value={
                           lastTradingDayPerformance.noChangeStocks.reduce(
                             (sum: number, x: any) => sum + x.price,
                             0
                           ) / lastTradingDayPerformance.noChangeStocks.length
-                        )}
-                      </Prv>
+                        }
+                        variant="full"
+                      />
                     ) : (
                       "₹0"
                     )}
@@ -9027,7 +9039,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   {portfolioPct}%
                                 </span>
                                 <span style={{ fontWeight: 700, color: THEME.muted }}>
-                                  <Prv>{fmtINRFull(s.value)}</Prv>
+                                  <Money value={s.value} variant="full" />
                                 </span>
                               </div>
                             </div>
@@ -9226,17 +9238,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             width: "100%",
                           }}
                         >
-                          <Prv>
-                            {fmtINRFull(
+                          <Money
+                            value={
                               activeCapIndex !== null
                                 ? metrics.stockCapBreakdown[activeCapIndex]?.value
                                 : selectedCapClass
-                                  ? metrics.stockCapBreakdown.find(
-                                      (x) => x.name === selectedCapClass
-                                    )?.value || 0
+                                  ? metrics.stockCapBreakdown.find((x) => x.name === selectedCapClass)
+                                      ?.value || 0
                                   : metrics.stockValue
-                            )}
-                          </Prv>
+                            }
+                            variant="full"
+                          />
                         </span>
                         <span
                           style={{ fontSize: 10, fontWeight: 700, color: THEME.sage, marginTop: 1 }}
@@ -9334,7 +9346,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   )}
                                 </div>
                                 <span style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>
-                                  <Prv>{fmtINRFull(item.value)}</Prv>
+                                  <Money value={item.value} variant="full" />
                                 </span>
                               </div>
                             ));
@@ -9422,7 +9434,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     marginLeft: 6,
                                   }}
                                 >
-                                  <Prv>{fmtINRFull(item.value)}</Prv>
+                                  <Money value={item.value} variant="full" />
                                 </span>
                               </div>
                             );
@@ -9504,7 +9516,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           {h.base}
                         </span>
                         <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                          <Prv>{fmtINRFull(h.totalValue)}</Prv>
+                          <Money value={h.totalValue} variant="full" />
                         </span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -9681,7 +9693,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       letterSpacing: "-0.01em",
                     }}
                   >
-                    <Prv>{fmtINRFull(value)}</Prv>
+                    <Money value={value} variant="full" />
                   </div>
                 </div>
               ))}
@@ -9717,7 +9729,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  <Prv>{fmtINRFull(passiveIncomeData.totalPassive)}</Prv>
+                  <Money value={passiveIncomeData.totalPassive} variant="full" />
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -10044,7 +10056,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   }}
                                 >
                                   {isBuy ? "+" : "−"}
-                                  <Prv>{fmtINRFull(absDiff)}</Prv>
+                                  <Money value={absDiff} variant="full" />
                                 </div>
                                 <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
                                   {isBuy ? "Buy / Add" : "Reduce"}
@@ -10242,7 +10254,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <div
                                       style={{ fontSize: 14, fontWeight: 800, color: THEME.sage }}
                                     >
-                                      +<Prv>{fmtINRFull(amount)}</Prv>
+                                      +<Money value={amount} variant="full" />
                                     </div>
                                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
                                       {((amount / amt) * 100).toFixed(0)}% of new capital
@@ -10569,7 +10581,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   marginLeft: 12,
                                 }}
                               >
-                                <Prv>{fmtINRFull(mf.value)}</Prv>
+                                <Money value={mf.value} variant="full" />
                               </div>
                             </div>
                           ))}
@@ -10599,7 +10611,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Indirect Overlap Exposure
                           </div>
                           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.accent }}>
-                            <Prv>{fmtINRFull(totalOverlapValue)}</Prv>
+                            <Money value={totalOverlapValue} variant="full" />
                           </div>
                         </div>
                         <div>
@@ -10703,7 +10715,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <div
                                       style={{ fontSize: 11, fontWeight: 700, color: THEME.ink }}
                                     >
-                                      <Prv>{fmtINRFull(data.directValue)}</Prv>
+                                      <Money value={data.directValue} variant="full" />
                                     </div>
                                   </div>
                                   <div>
@@ -10715,7 +10727,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <div
                                       style={{ fontSize: 11, fontWeight: 700, color: THEME.accent }}
                                     >
-                                      <Prv>{fmtINRFull(data.indirectValue)}</Prv>
+                                      <Money value={data.indirectValue} variant="full" />
                                     </div>
                                   </div>
                                   <div>
@@ -10727,7 +10739,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <div
                                       style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}
                                     >
-                                      <Prv>{fmtINRFull(totalExposure)}</Prv>
+                                      <Money value={totalExposure} variant="full" />
                                     </div>
                                   </div>
                                 </div>
@@ -10750,7 +10762,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                       <span style={{ fontWeight: 600, color: THEME.ink }}>
                                         {f.name.length > 22 ? f.name.slice(0, 22) + "..." : f.name}
                                       </span>{" "}
-                                      (Est: <Prv>{fmtINRFull(f.estimatedValue)}</Prv>)
+                                      (Est: <Money value={f.estimatedValue} variant="full" />)
                                     </span>
                                   ))}
                                 </div>
@@ -11284,19 +11296,19 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   {[
                     {
                       label: "FIRE Corpus Needed",
-                      value: <Prv>{fmtINRFull(fireData.fireCorpus)}</Prv>,
+                      value: <Money value={fireData.fireCorpus} variant="full" />,
                       sub: `25 × annual spend`,
                       color: THEME.ink,
                     },
                     {
                       label: "Annual Spend",
-                      value: <Prv>{fmtINRFull(fireData.annualExpense)}</Prv>,
+                      value: <Money value={fireData.annualExpense} variant="full" />,
                       sub: `${privacyMode ? "••••" : fmtINRFull(metrics.monthExpense)}/mo`,
                       color: THEME.ink,
                     },
                     {
                       label: "Current Net Worth",
-                      value: <Prv>{fmtINRFull(metrics.netWorth)}</Prv>,
+                      value: <Money value={metrics.netWorth} variant="full" />,
                       sub: "your wealth base",
                       color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust,
                     },
@@ -11304,7 +11316,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       label: "Remaining to FIRE",
                       value:
                         fireData.fireCorpus > metrics.netWorth ? (
-                          <Prv>{fmtINRFull(fireData.fireCorpus - Math.max(metrics.netWorth, 0))}</Prv>
+                          <Money value={fireData.fireCorpus - Math.max(metrics.netWorth, 0)} variant="full" />
                         ) : (
                           "FI Achieved!"
                         ),
@@ -11735,7 +11747,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     >
                       <span style={{ color: THEME.muted }}>One-time Windfall (₹)</span>
                       <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                        {windfallAmount > 0 ? <Prv>{fmtINRFull(windfallAmount)}</Prv> : "None"}
+                        {windfallAmount > 0 ? <Money value={windfallAmount} variant="full" /> : "None"}
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -11827,7 +11839,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     >
                       <span style={{ color: THEME.muted }}>One-time Major Expense (₹)</span>
                       <span style={{ color: THEME.rust, fontWeight: 800 }}>
-                        {extraExpenseAmount > 0 ? <Prv>{fmtINRFull(extraExpenseAmount)}</Prv> : "None"}
+                        {extraExpenseAmount > 0 ? <Money value={extraExpenseAmount} variant="full" /> : "None"}
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -12222,7 +12234,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <span style={{ color: THEME.muted, fontWeight: 500 }}>{label}</span>
                   </div>
                   <span style={{ fontWeight: 700 }}>
-                    <Prv>{fmtINRFull(value)}</Prv>
+                    <Money value={value} variant="full" />
                   </span>
                 </div>
               ))}
@@ -12242,7 +12254,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     color: taxData80C.remaining > 0 ? THEME.rust : THEME.sage,
                   }}
                 >
-                  <Prv>{fmtINRFull(taxData80C.remaining)}</Prv>
+                  <Money value={taxData80C.remaining} variant="full" />
                 </span>
               </div>
             </div>
@@ -12356,7 +12368,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             letterSpacing: "-0.03em",
                           }}
                         >
-                          <Prv>{fmtINRFull(Math.abs(remainingSafe))}</Prv>
+                          <Money value={Math.abs(remainingSafe)} variant="full" />
                         </div>
                         <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
                           {remainingSafe > 0
@@ -12390,7 +12402,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Income
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                            <Prv>{fmtINRFull(income)}</Prv>
+                            <Money value={income} variant="full" />
                           </div>
                         </div>
                         <div style={{ textAlign: "center" }}>
@@ -12407,7 +12419,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Spent
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>
-                            <Prv>{fmtINRFull(spent)}</Prv>
+                            <Money value={spent} variant="full" />
                           </div>
                         </div>
                         <div style={{ textAlign: "center" }}>
@@ -12424,7 +12436,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             To Save
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
-                            <Prv>{fmtINRFull(savingsTarget)}</Prv>
+                            <Money value={savingsTarget} variant="full" />
                           </div>
                         </div>
                       </div>
@@ -12541,10 +12553,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     lineHeight: 1.5,
                   }}
                 >
-                  Your active goals need <Prv>{fmtINRFull(goalHealth[0].totalMonthlyNeeded)}</Prv>
+                  Your active goals need <Money value={goalHealth[0].totalMonthlyNeeded} variant="full" />
                   /mo combined, but current monthly savings is only{" "}
-                  <Prv>{fmtINRFull(Math.max(0, metrics.monthIncome - metrics.monthExpense))}</Prv> —
-                  short by <Prv>{fmtINRFull(goalHealth[0].combinedShortfall)}</Prv>/mo. Some goals
+                  <Money value={Math.max(0, metrics.monthIncome - metrics.monthExpense)} variant="full" /> —
+                  short by <Money value={goalHealth[0].combinedShortfall} variant="full" />/mo. Some goals
                   below may look affordable alone but not all can be funded at once.
                 </div>
               )}
@@ -12636,8 +12648,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           }}
                         >
                           <span>
-                            <Prv>{fmtINRFull(g.savedAmount)}</Prv> of{" "}
-                            <Prv>{fmtINRFull(g.targetAmount)}</Prv>
+                            <Money value={g.savedAmount} variant="full" /> of{" "}
+                            <Money value={g.targetAmount} variant="full" />
                           </span>
                           {!g.achieved && g.monthsLeft > 0 && (
                             <span
@@ -12646,7 +12658,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 fontWeight: 700,
                               }}
                             >
-                              Need <Prv>{fmtINRFull(g.monthlyNeeded)}</Prv>/mo ·{" "}
+                              Need <Money value={g.monthlyNeeded} variant="full" />/mo ·{" "}
                               {g.onTrack ? "On track ✓" : "Behind ✗"}
                             </span>
                           )}
@@ -12798,12 +12810,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             {[
                               {
                                 label: "Harvested Loss",
-                                value: <Prv>{fmtINRFull(selectedTotalLoss)}</Prv>,
+                                value: <Money value={selectedTotalLoss} variant="full" />,
                                 color: THEME.rust,
                               },
                               {
                                 label: "Est. Tax Saving",
-                                value: <Prv>{fmtINRFull(selectedEstSavings)}</Prv>,
+                                value: <Money value={selectedEstSavings} variant="full" />,
                                 color: THEME.sage,
                               },
                               {
@@ -12932,7 +12944,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                           marginLeft: 8,
                                         }}
                                       >
-                                        −<Prv>{fmtINRFull(item.loss)}</Prv>
+                                        −<Money value={item.loss} variant="full" />
                                       </span>
                                     </div>
                                     <div
@@ -13200,15 +13212,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           lineHeight: 1,
                         }}
                       >
-                        <Prv>{fmtINRFull(Math.round(sipNeeded))}</Prv>
+                        <Money value={Math.round(sipNeeded)} variant="full" />
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>
-                        Total invested: <Prv>{fmtINRFull(Math.round(sipTotal))}</Prv>
+                        Total invested: <Money value={Math.round(sipTotal)} variant="full" />
                       </div>
                       <div
                         style={{ fontSize: 12, color: THEME.sage, marginTop: 4, fontWeight: 600 }}
                       >
-                        Gains: <Prv>{fmtINRFull(Math.round(FV - sipTotal))}</Prv>
+                        Gains: <Money value={Math.round(FV - sipTotal)} variant="full" />
                       </div>
                     </div>
                     <div
@@ -13240,15 +13252,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           lineHeight: 1,
                         }}
                       >
-                        <Prv>{fmtINRFull(Math.round(lumpNeeded))}</Prv>
+                        <Money value={Math.round(lumpNeeded)} variant="full" />
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>
-                        Grows to <Prv>{fmtINRFull(FV)}</Prv> in {sipLsYears}y
+                        Grows to <Money value={FV} variant="full" /> in {sipLsYears}y
                       </div>
                       <div
                         style={{ fontSize: 12, color: THEME.sage, marginTop: 4, fontWeight: 600 }}
                       >
-                        Gains: <Prv>{fmtINRFull(Math.round(lumpGrowth))}</Prv>
+                        Gains: <Money value={Math.round(lumpGrowth)} variant="full" />
                       </div>
                     </div>
                   </div>
@@ -13312,7 +13324,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 {spendingData.total > 0 && (
                   <div className="sub-tab-hero-badge">
-                    <ArrowDownRight size={12} /> <Prv>{fmtINRFull(spendingData.total)}</Prv> spent
+                    <ArrowDownRight size={12} /> <Money value={spendingData.total} variant="full" /> spent
                   </div>
                 )}
               </div>
@@ -13419,7 +13431,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             }}
                           >
                             <span style={{ fontWeight: 700, color: THEME.rust }}>
-                              <Prv>{fmtINRFull(spendingData.total)}</Prv>
+                              <Money value={spendingData.total} variant="full" />
                             </span>
                             {spendVsPrev !== null && (
                               <span
@@ -13752,8 +13764,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               width: "100%",
                             }}
                           >
-                            <Prv>
-                              {fmtINRFull(
+                            <Money
+                              value={
                                 activeExpenseIndex !== null
                                   ? spendingData.breakdown[activeExpenseIndex]?.value
                                   : selectedExpenseCategory
@@ -13761,8 +13773,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                         (x: any) => x.name === selectedExpenseCategory
                                       )?.value || 0
                                     : spendingData.total
-                              )}
-                            </Prv>
+                              }
+                              variant="full"
+                            />
                           </span>
                           <span
                             style={{
@@ -13867,7 +13880,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     )}
                                   </div>
                                   <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                                    <Prv>{fmtINRFull(item.value)}</Prv>
+                                    <Money value={item.value} variant="full" />
                                   </span>
                                 </div>
                               ));
@@ -13957,7 +13970,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                       marginLeft: 8,
                                     }}
                                   >
-                                    <Prv>{fmtINRFull(item.value)}</Prv>
+                                    <Money value={item.value} variant="full" />
                                   </span>
                                 </div>
                               );
@@ -14004,7 +14017,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             >
                               <span style={{ fontSize: 14, fontWeight: 700 }}>{cat.name}</span>
                               <span style={{ fontSize: 14, fontWeight: 800 }}>
-                                <Prv>{fmtINRFull(cat.value)}</Prv>
+                                <Money value={cat.value} variant="full" />
                               </span>
                             </div>
                             <div className="progress-track">
@@ -14075,7 +14088,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             >
                               <span style={{ fontSize: 13, fontWeight: 700 }}>{cat.name}</span>
                               <span style={{ fontSize: 14, fontWeight: 800 }}>
-                                <Prv>{fmtINRFull(cat.value)}</Prv>
+                                <Money value={cat.value} variant="full" />
                               </span>
                             </div>
                             <div
@@ -14087,7 +14100,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               }}
                             >
                               <span>
-                                {prevMonthLabel}: {prevVal > 0 ? <Prv>{fmtINRFull(prevVal)}</Prv> : "—"}
+                                {prevMonthLabel}: {prevVal > 0 ? <Money value={prevVal} variant="full" /> : "—"}
                               </span>
                               {isNew ? (
                                 <span style={{ color: THEME.gold, fontWeight: 700 }}>
@@ -14097,7 +14110,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 <span
                                   style={{ color: isUp ? THEME.rust : THEME.sage, fontWeight: 700 }}
                                 >
-                                  {isUp ? "▲" : "▼"} <Prv>{fmtINRFull(Math.abs(delta))}</Prv>
+                                  {isUp ? "▲" : "▼"} <Money value={Math.abs(delta)} variant="full" />
                                   {deltaPct !== null ? ` (${Math.abs(deltaPct).toFixed(0)}%)` : ""}
                                 </span>
                               ) : (
@@ -15504,7 +15517,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {evt.frequency ? `${evt.frequency} · ` : ""}
                       {evt.amount > 0 ? (
                         <>
-                          {evt.amountLabel || "Amount"}: <Prv>{fmtINRFull(evt.amount)}</Prv>
+                          {evt.amountLabel || "Amount"}: <Money value={evt.amount} variant="full" />
                         </>
                       ) : (
                         "Scheduled"
@@ -15656,7 +15669,7 @@ const HeroStat = ({
           lineHeight: 1,
         }}
       >
-        <Prv>{fmtINRFull(value)}</Prv>
+        <Money value={value} variant="full" />
       </div>
     </div>
   );
