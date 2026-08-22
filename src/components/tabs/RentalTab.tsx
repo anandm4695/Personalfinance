@@ -33,7 +33,7 @@ import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
@@ -697,11 +697,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  <Prv>{fmtINRFull(animOutMonthlyRent)}</Prv>
+                  <Money value={animOutMonthlyRent} variant="full" />
                 </div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                  <Prv>{fmtINRFull(outThisFY)}</Prv> received so far this FY, of{" "}
-                  <Prv>{fmtINRFull(outExpectedFY)}</Prv> expected across {propertiesOut.length}{" "}
+                  <Money value={outThisFY} variant="full" /> received so far this FY, of{" "}
+                  <Money value={outExpectedFY} variant="full" /> expected across {propertiesOut.length}{" "}
                   propert{propertiesOut.length !== 1 ? "ies" : "y"}
                 </div>
               </Card>
@@ -730,7 +730,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                   formatValue={fmtINRFull}
                   sub={
                     <>
-                      of <Prv>{fmtINRFull(outExpectedFY)}</Prv> annual target
+                      of <Money value={outExpectedFY} variant="full" /> annual target
                     </>
                   }
                   icon={<TrendingUp />}
@@ -919,7 +919,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             )}
                             {" · "}
                             <span style={{ color: THEME.accent }}>
-                              <Prv>{fmtINRExact(getEffectiveRent(p))}</Prv>/mo
+                              <Money value={getEffectiveRent(p)} variant="exact" />/mo
                             </span>
                             {p.escalationTiers?.length > 1 && (
                               <span
@@ -978,7 +978,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: <Prv>{fmtINRExact(tier.amount)}</Prv>
+                                    Y{ti + 1}: <Money value={tier.amount} variant="exact" />
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo
@@ -1027,7 +1027,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         flexShrink: 0,
                                       }}
                                     />
-                                    {t.name || `T${ti + 1}`}: <Prv>{fmtINRExact(t.monthlyRent)}</Prv>/mo
+                                    {t.name || `T${ti + 1}`}: <Money value={t.monthlyRent} variant="exact" />/mo
                                   </span>
                                 );
                               })}
@@ -1094,7 +1094,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             Property Value
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.violet }}>
-                            {p.propertyValue ? <Prv>{fmtINRFull(p.propertyValue)}</Prv> : "—"}
+                            {p.propertyValue ? <Money value={p.propertyValue} variant="full" /> : "—"}
                           </div>
                         </div>
                         <div
@@ -1118,13 +1118,12 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             FY Received
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
-                            <Prv>
-                              {fmtINRFull(
-                                (p.receipts || [])
-                                  .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
-                                  .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
-                              )}
-                            </Prv>
+                            <Money
+                              value={(p.receipts || [])
+                                .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
+                                .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)}
+                              variant="full"
+                            />
                           </div>
                         </div>
                         <div
@@ -1148,19 +1147,18 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             Deposit Held
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.gold }}>
-                            <Prv>
-                              {fmtINRFull(
-                                Math.max(
-                                  0,
-                                  getActualSecurityDeposit(p) -
-                                    (p.depositDeductions || []).reduce(
-                                      (ss: number, dd: any) => ss + Number(dd.amount || 0),
-                                      0
-                                    ) -
-                                    Number(p.depositReturned || 0)
-                                )
+                            <Money
+                              value={Math.max(
+                                0,
+                                getActualSecurityDeposit(p) -
+                                  (p.depositDeductions || []).reduce(
+                                    (ss: number, dd: any) => ss + Number(dd.amount || 0),
+                                    0
+                                  ) -
+                                  Number(p.depositReturned || 0)
                               )}
-                            </Prv>
+                              variant="full"
+                            />
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
                             <div
@@ -1173,7 +1171,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             >
                               Agreed:{" "}
                               <span style={{ color: THEME.gold }}>
-                                <Prv>{fmtINRExact(p.securityDeposit || 0)}</Prv>
+                                <Money value={p.securityDeposit || 0} variant="exact" />
                               </span>
                             </div>
                           ) : p.depositReceivedDate ? (
@@ -1218,7 +1216,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             >
                               <span>FY Collection</span>
                               <span style={{ color: barColor }}>
-                                {pct.toFixed(0)}% of <Prv>{fmtINRFull(expected)}</Prv> expected
+                                {pct.toFixed(0)}% of <Money value={expected} variant="full" /> expected
                               </span>
                             </div>
                             <div className="progress-track">
@@ -1707,7 +1705,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                                 color: THEME.sage,
                               }}
                                             >
-                                              +<Prv>{fmtINRExact(r.amount)}</Prv>
+                                              +<Money value={r.amount} variant="exact" />
                                             </td>
                                             <td style={{ padding: "6px 10px", color: THEME.muted }}>
                                               {r.note || "—"}
@@ -1776,7 +1774,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                       <span
                                         style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}
                                       >
-                                        +<Prv>{fmtINRExact(r.amount)}</Prv>
+                                        +<Money value={r.amount} variant="exact" />
                                       </span>
                                       <button
                                         onClick={() =>
@@ -1935,7 +1933,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               }}
                             >
                               Returned to tenant so far:{" "}
-                              <Prv>{fmtINRExact(p.depositReturned)}</Prv>
+                              <Money value={p.depositReturned} variant="exact" />
                             </div>
                           )}
 
@@ -1988,7 +1986,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}
                                     >
-                                      +<Prv>{fmtINRExact(r.amount)}</Prv>
+                                      +<Money value={r.amount} variant="exact" />
                                     </span>
                                     <button
                                       onClick={() => handleRemoveDepositOut(p, r.id)}
@@ -2078,7 +2076,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}
                                     >
-                                      -<Prv>{fmtINRExact(r.amount)}</Prv>
+                                      -<Money value={r.amount} variant="exact" />
                                     </span>
                                     <button
                                       onClick={() =>
@@ -2170,11 +2168,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  <Prv>{fmtINRFull(animInMonthlyRent)}</Prv>
+                  <Money value={animInMonthlyRent} variant="full" />
                 </div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                  <Prv>{fmtINRFull(inThisFY)}</Prv> paid so far this FY, of{" "}
-                  <Prv>{fmtINRFull(inExpectedFY)}</Prv> expected commitment
+                  <Money value={inThisFY} variant="full" /> paid so far this FY, of{" "}
+                  <Money value={inExpectedFY} variant="full" /> expected commitment
                 </div>
               </Card>
 
@@ -2193,7 +2191,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                   formatValue={fmtINRFull}
                   sub={
                     <>
-                      of <Prv>{fmtINRFull(inExpectedFY)}</Prv> annual commitment
+                      of <Money value={inExpectedFY} variant="full" /> annual commitment
                     </>
                   }
                   icon={<Receipt />}
@@ -2380,7 +2378,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             )}
                             {" · "}
                             <span style={{ color: THEME.rust }}>
-                              <Prv>{fmtINRExact(getEffectiveRent(p))}</Prv>/mo
+                              <Money value={getEffectiveRent(p)} variant="exact" />/mo
                             </span>
                             {p.escalationTiers?.length > 1 && (
                               <span
@@ -2439,7 +2437,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: <Prv>{fmtINRExact(tier.amount)}</Prv>
+                                    Y{ti + 1}: <Money value={tier.amount} variant="exact" />
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo
@@ -2491,7 +2489,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         flexShrink: 0,
                                       }}
                                     />
-                                    {ll.name || `L${li + 1}`}: <Prv>{fmtINRFull(share)}</Prv>/mo (
+                                    {ll.name || `L${li + 1}`}: <Money value={share} variant="full" />/mo (
                                     {ll.splitPct}%)
                                   </span>
                                 );
@@ -2559,13 +2557,12 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             FY Paid
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.rust }}>
-                            <Prv>
-                              {fmtINRFull(
-                                (p.payments || [])
-                                  .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
-                                  .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
-                              )}
-                            </Prv>
+                            <Money
+                              value={(p.payments || [])
+                                .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
+                                .reduce((s: number, r: any) => s + Number(r.amount || 0), 0)}
+                              variant="full"
+                            />
                           </div>
                         </div>
                         <div
@@ -2589,11 +2586,10 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             Deposit Paid
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
-                            <Prv>
-                              {fmtINRFull(
-                                Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0))
-                              )}
-                            </Prv>
+                            <Money
+                              value={Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0))}
+                              variant="full"
+                            />
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
                             <div
@@ -2606,7 +2602,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             >
                               Agreed:{" "}
                               <span style={{ color: THEME.sage }}>
-                                <Prv>{fmtINRExact(p.securityDeposit || 0)}</Prv>
+                                <Money value={p.securityDeposit || 0} variant="exact" />
                               </span>
                             </div>
                           ) : p.depositPaidDate ? (
@@ -2651,7 +2647,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                             >
                               <span>FY Payments</span>
                               <span style={{ color: barColor }}>
-                                {pct.toFixed(0)}% of <Prv>{fmtINRFull(expected)}</Prv> expected
+                                {pct.toFixed(0)}% of <Money value={expected} variant="full" /> expected
                               </span>
                             </div>
                             <div className="progress-track">
@@ -3144,7 +3140,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                                 color: THEME.rust,
                                               }}
                                             >
-                                              -<Prv>{fmtINRExact(r.amount)}</Prv>
+                                              -<Money value={r.amount} variant="exact" />
                                             </td>
                                             <td style={{ padding: "6px 10px", color: THEME.muted }}>
                                               {r.note || "—"}
@@ -3213,7 +3209,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                       <span
                                         style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}
                                       >
-                                        -<Prv>{fmtINRExact(r.amount)}</Prv>
+                                        -<Money value={r.amount} variant="exact" />
                                       </span>
                                       <button
                                         onClick={() =>
@@ -3371,7 +3367,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                 border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                               }}
                             >
-                              Refunded to you so far: <Prv>{fmtINRExact(p.depositReturned)}</Prv>
+                              Refunded to you so far: <Money value={p.depositReturned} variant="exact" />
                             </div>
                           )}
 
@@ -3424,7 +3420,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}
                                     >
-                                      -<Prv>{fmtINRExact(r.amount)}</Prv>
+                                      -<Money value={r.amount} variant="exact" />
                                     </span>
                                     <button
                                       onClick={() =>
@@ -3548,7 +3544,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                         : "-"
                       : sign
                     : ""}
-                  <Prv>{fmtINRFull(Math.abs(value))}</Prv>
+                  <Money value={Math.abs(value)} variant="full" />
                 </div>
               </div>
             ))}
