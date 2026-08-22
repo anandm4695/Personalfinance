@@ -27,7 +27,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /** Card section header — icon + label, matching the convention used across
@@ -705,7 +705,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
               >
                 <div style={{ fontSize: 12, color: THEME.textSecondary }}>{label}</div>
                 <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color }}>
-                  <Prv>{fmtINRFull(value)}</Prv>
+                  <Money value={value} variant="full" />
                 </div>
               </div>
             ))}
@@ -721,7 +721,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Gross Total Income</div>
           <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.accent }}>
-            <Prv>{fmtINRFull(animatedTotalIncome)}</Prv>
+            <Money value={animatedTotalIncome} variant="full" />
           </div>
         </div>
         </>
@@ -753,13 +753,13 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
           >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80C (max ₹1.5L)</div>
             <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.sage }}>
-              <Prv>{fmtINRFull(deductions.sec80C)}</Prv>
+              <Money value={deductions.sec80C} variant="full" />
             </div>
             <div style={{ fontSize: 11, color: THEME.textSecondary, marginTop: 4 }}>
-              PPF: <Prv>{fmtINRFull(deductions.ppfContrib)}</Prv> | ELSS:{" "}
-              <Prv>{fmtINRFull(deductions.elss)}</Prv> | LIC:{" "}
-              <Prv>{fmtINRFull(deductions.licPremium)}</Prv> | EPF:{" "}
-              <Prv>{fmtINRFull(deductions.epfContrib)}</Prv>
+              PPF: <Money value={deductions.ppfContrib} variant="full" /> | ELSS:{" "}
+              <Money value={deductions.elss} variant="full" /> | LIC:{" "}
+              <Money value={deductions.licPremium} variant="full" /> | EPF:{" "}
+              <Money value={deductions.epfContrib} variant="full" />
             </div>
             <div className="progress-track" style={{ height: 4, marginTop: 8 }}>
               <div
@@ -783,7 +783,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
               className="tabular-nums"
               style={{ fontSize: 18, fontWeight: 700, color: THEME.violet }}
             >
-              <Prv>{fmtINRFull(deductions.sec80CCD1B)}</Prv>
+              <Money value={deductions.sec80CCD1B} variant="full" />
             </div>
             <div className="progress-track" style={{ height: 4, marginTop: 8 }}>
               <div
@@ -807,7 +807,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
               Section 80D — Health Insurance (max ₹25K self + ₹25K parents)
             </div>
             <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}>
-              <Prv>{fmtINRFull(deductions.sec80D)}</Prv>
+              <Money value={deductions.sec80D} variant="full" />
             </div>
           </div>
           <div
@@ -822,7 +822,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
               Section 24 — Home Loan Interest (max ₹2L)
             </div>
             <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.gold }}>
-              <Prv>{fmtINRFull(deductions.sec24)}</Prv>
+              <Money value={deductions.sec24} variant="full" />
             </div>
           </div>
         </div>
@@ -837,7 +837,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Total Deductions</div>
           <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.sage }}>
-            <Prv>{fmtINRFull(animatedTotalDeductions)}</Prv>
+            <Money value={animatedTotalDeductions} variant="full" />
           </div>
         </div>
       </Card>
@@ -861,13 +861,13 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: THEME.textSecondary }}>TDS Deducted</span>
               <span style={{ fontWeight: 600, color: THEME.text }}>
-                <Prv>{fmtINRFull(taxPaid.tds)}</Prv>
+                <Money value={taxPaid.tds} variant="full" />
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: THEME.textSecondary }}>Advance Tax Paid</span>
               <span style={{ fontWeight: 600, color: THEME.text }}>
-                <Prv>{fmtINRFull(taxPaid.advanceTax)}</Prv>
+                <Money value={taxPaid.advanceTax} variant="full" />
               </span>
             </div>
             <div
@@ -880,7 +880,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             >
               <span style={{ fontWeight: 600, color: THEME.text }}>Total Tax Paid</span>
               <span className="tabular-nums" style={{ fontWeight: 700, fontSize: 18, color: THEME.accent }}>
-                <Prv>{fmtINRFull(animatedTotalTaxPaid)}</Prv>
+                <Money value={animatedTotalTaxPaid} variant="full" />
               </span>
             </div>
           </div>
@@ -928,7 +928,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
                     color: d.isPast ? THEME.sage : THEME.text,
                   }}
                 >
-                  <Prv>{fmtINRFull(d.due)}</Prv>
+                  <Money value={d.due} variant="full" />
                 </span>
               </div>
             ))}
