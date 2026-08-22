@@ -47,7 +47,8 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -204,7 +205,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   color: entry.dataKey === "Cumulative" ? "var(--t-accent)" : "var(--t-ink)",
                 }}
               >
-                <Prv>{fmtINRFull(entry.value)}</Prv>
+                <Money value={entry.value} variant="full" />
               </span>
             </div>
           );
@@ -868,7 +869,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{fmtINRFull(animatedGrandInflow)}</Prv>
+            <Money value={animatedGrandInflow} variant="full" />
           </div>
 
           {/* Composition bar */}
@@ -907,10 +908,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               }}
             >
               <span>
-                Regular: <Prv>{fmtINRFull(totalInflow)}</Prv>
+                Regular: <Money value={totalInflow} variant="full" />
               </span>
               <span>
-                Events: <Prv>{fmtINRFull(eventInflow)}</Prv>
+                Events: <Money value={eventInflow} variant="full" />
               </span>
             </div>
           </div>
@@ -975,7 +976,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{fmtINRFull(animatedGrandOutflow)}</Prv>
+            <Money value={animatedGrandOutflow} variant="full" />
           </div>
 
           {/* Composition bar */}
@@ -1014,10 +1015,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               }}
             >
               <span>
-                Regular: <Prv>{fmtINRFull(totalOutflow)}</Prv>
+                Regular: <Money value={totalOutflow} variant="full" />
               </span>
               <span>
-                Events: <Prv>{fmtINRFull(eventOutflow)}</Prv>
+                Events: <Money value={eventOutflow} variant="full" />
               </span>
             </div>
           </div>
@@ -1085,7 +1086,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{(animatedNetCashFlow < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedNetCashFlow))}</Prv>
+            {animatedNetCashFlow < 0 ? "-" : ""}
+            <Money value={Math.abs(animatedNetCashFlow)} variant="full" />
           </div>
 
           {/* Cash Flow Ratio indicator */}
@@ -1183,7 +1185,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{(animatedNetMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedNetMonthly))}</Prv>
+            {animatedNetMonthly < 0 ? "-" : ""}
+            <Money value={Math.abs(animatedNetMonthly)} variant="full" />
           </div>
 
           {/* Monthly progress indicator */}
@@ -1214,10 +1217,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               }}
             >
               <span>
-                In: <Prv>{fmtINRFull(totalMonthlyInflow)}</Prv>
+                In: <Money value={totalMonthlyInflow} variant="full" />
               </span>
               <span>
-                Out: <Prv>{fmtINRFull(totalMonthlyOutflow)}</Prv>
+                Out: <Money value={totalMonthlyOutflow} variant="full" />
               </span>
             </div>
           </div>
@@ -1452,7 +1455,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>{fmtINRExact(item.monthly)}</Prv>
+                            <Money value={item.monthly} variant="exact" />
                           </span>
                           <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
                             /mo
@@ -1468,7 +1471,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
+                            <Money value={item.monthly * forecastMonths} variant="exact" />
                           </span>
                           <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
                             {forecastMonths}-mo Total
@@ -1502,7 +1505,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRExact(totalMonthlyInflow)}</Prv>
+                        <Money value={totalMonthlyInflow} variant="exact" />
                       </span>
                       <span
                         style={{
@@ -1524,7 +1527,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRExact(totalInflow)}</Prv>
+                        <Money value={totalInflow} variant="exact" />
                       </span>
                       <span
                         style={{
@@ -1658,7 +1661,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>{fmtINRExact(item.monthly)}</Prv>
+                            <Money value={item.monthly} variant="exact" />
                           </span>
                           <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
                             /mo
@@ -1674,7 +1677,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
+                            <Money value={item.monthly * forecastMonths} variant="exact" />
                           </span>
                           <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
                             {forecastMonths}-mo Total
@@ -1708,7 +1711,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRExact(totalMonthlyOutflow)}</Prv>
+                        <Money value={totalMonthlyOutflow} variant="exact" />
                       </span>
                       <span
                         style={{
@@ -1730,7 +1733,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRExact(totalOutflow)}</Prv>
+                        <Money value={totalOutflow} variant="exact" />
                       </span>
                       <span
                         style={{
@@ -1956,10 +1959,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>
-                              {isInflow ? "+" : "-"}
-                              {fmtINRExact(event.amount)}
-                            </Prv>
+                            {isInflow ? "+" : "-"}
+                            <Money value={event.amount} variant="exact" />
                           </div>
                         </div>
                       </div>
