@@ -44,6 +44,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
 
@@ -889,7 +890,7 @@ export function CreditTab({
                 {
                   label: "Total Limit",
                   sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
-                  value: <Prv>{fmtINRFull(totalLimit)}</Prv>,
+                  value: <Money value={totalLimit} variant="full" />,
                   color: "var(--t-accent)",
                   borderColor: "var(--t-accent)",
                   iconBg: `color-mix(in srgb, var(--t-accent) 10%, transparent)`,
@@ -912,7 +913,7 @@ export function CreditTab({
                 {
                   label: "Outstanding",
                   sub: utilPct > 0 ? `${utilPct}% utilization` : "No balance due",
-                  value: <Prv>{fmtINRFull(totalOutstandingCC)}</Prv>,
+                  value: <Money value={totalOutstandingCC} variant="full" />,
                   color: "var(--t-rust)",
                   borderColor: "var(--t-rust)",
                   iconBg: `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
@@ -942,7 +943,7 @@ export function CreditTab({
                       : activeCards.length === 0 && state.creditCards.length > 0
                         ? "All cards closed"
                         : "No cards yet",
-                  value: <Prv>{fmtINRFull(totalAvailable)}</Prv>,
+                  value: <Money value={totalAvailable} variant="full" />,
                   color: "var(--t-sage)",
                   borderColor: "var(--t-sage)",
                   iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
@@ -966,7 +967,7 @@ export function CreditTab({
                       {
                         label: "Annual Fees / yr",
                         sub: `${feeCardCount} card${feeCardCount !== 1 ? "s" : ""} · ${privacyMode ? "••••" : fmtINRFull(Math.round(totalAnnualFees / 12))}/mo`,
-                        value: <Prv>{fmtINRFull(totalAnnualFees)}</Prv>,
+                        value: <Money value={totalAnnualFees} variant="full" />,
                         color: "var(--t-gold)",
                         borderColor: "var(--t-gold)",
                         iconBg: `color-mix(in srgb, var(--t-gold) 10%, transparent)`,
@@ -1926,7 +1927,7 @@ function CCList({
               Outstanding
             </div>
             <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}>
-              <Prv>{fmtINRFull(c.outstanding)}</Prv>
+              <Money value={c.outstanding} variant="full" />
             </div>
           </div>
           <div>
@@ -1942,7 +1943,7 @@ function CCList({
               {c.sharedGroup ? "Sub-Limit" : "Limit"}
             </div>
             <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}>
-              <Prv>{fmtINRFull(c.limit)}</Prv>
+              <Money value={c.limit} variant="full" />
             </div>
           </div>
         </div>
@@ -1966,7 +1967,7 @@ function CCList({
           <div>
             Fee:{" "}
             <strong style={{ color: "#fff" }}>
-              <Prv>{fmtINRExact(c.annualFee)}</Prv>
+              <Money value={c.annualFee} variant="exact" />
               {c.feeMonth
                 ? ` · ${Number(c.feeDay) || 1} ${MONTH_NAMES[Number(c.feeMonth) - 1]}`
                 : ""}
@@ -2015,7 +2016,7 @@ function CCList({
             </span>
             {Number(c.rewardPointValue) > 0 && (
               <span style={{ color: THEME.gold, fontWeight: 700 }}>
-                ≈ <Prv>{fmtINRFull(Number(c.rewardPointsBalance) * Number(c.rewardPointValue))}</Prv>
+                ≈ <Money value={Number(c.rewardPointsBalance) * Number(c.rewardPointValue)} variant="full" />
               </span>
             )}
           </div>
@@ -2150,7 +2151,7 @@ function CCList({
                 : "rgba(255,255,255,0.85)";
             const label = (
               <>
-                Annual fee <Prv>{fmtINRExact(c.annualFee)}</Prv>{" "}
+                Annual fee <Money value={c.annualFee} variant="exact" />{" "}
                 {daysLeft === 0
                   ? "due today!"
                   : daysLeft === 1
@@ -2472,7 +2473,7 @@ function CCList({
                     Pool Limit
                   </div>
                   <div style={{ fontWeight: 800, color: THEME.ink }}>
-                    {groupLimit > 0 ? <Prv>{fmtINRFull(groupLimit)}</Prv> : "Not set"}
+                    {groupLimit > 0 ? <Money value={groupLimit} variant="full" /> : "Not set"}
                   </div>
                 </div>
                 <div>
@@ -2489,7 +2490,7 @@ function CCList({
                     Combined Used
                   </div>
                   <div style={{ fontWeight: 800, color: barColor }}>
-                    <Prv>{fmtINRFull(groupOutstanding)}</Prv>
+                    <Money value={groupOutstanding} variant="full" />
                   </div>
                 </div>
                 <div>
@@ -2506,7 +2507,7 @@ function CCList({
                     Available
                   </div>
                   <div style={{ fontWeight: 800, color: THEME.sage }}>
-                    {groupLimit > 0 ? <Prv>{fmtINRFull(groupAvailable)}</Prv> : "—"}
+                    {groupLimit > 0 ? <Money value={groupAvailable} variant="full" /> : "—"}
                   </div>
                 </div>
               </div>
@@ -2766,14 +2767,14 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
         {[
           {
             label: "Total Charges",
-            value: <Prv>{fmtINRFull(totalCharges)}</Prv>,
+            value: <Money value={totalCharges} variant="full" />,
             color: THEME.rust,
             bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
             border: `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
           },
           {
             label: "Net Outstanding",
-            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
+            value: <Money value={totalOutstanding} variant="full" />,
             color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
             bg: totalOutstanding > 0 ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)` : `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
             border: totalOutstanding > 0 ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` : `color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
@@ -3172,10 +3173,8 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                             color: Number(r.amount) >= 0 ? THEME.rust : THEME.sage,
                           }}
                         >
-                          <Prv>
-                            {Number(r.amount) >= 0 ? "+" : ""}
-                            {fmtINRExact(r.amount)}
-                          </Prv>
+                          {Number(r.amount) >= 0 ? "+" : ""}
+                          <Money value={r.amount} variant="exact" />
                         </td>
                       </tr>
                     ))}
@@ -3284,7 +3283,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
               align: "right",
               accessor: (t: any) => (
                 <span style={{ fontWeight: 700, color: Number(t.amount) >= 0 ? THEME.rust : THEME.sage }}>
-                  <Prv>{fmtINRExact(t.amount)}</Prv>
+                  <Money value={t.amount} variant="exact" />
                 </span>
               ),
             },
@@ -3339,7 +3338,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
           }}
         >
-          <Prv>{fmtINRFull(totalOutstanding)}</Prv>
+          <Money value={totalOutstanding} variant="full" />
         </div>
       </div>
     </Modal>
@@ -3385,7 +3384,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
   const prepaidStats = [
     {
       label: "Combined Balance",
-      value: <Prv>{fmtINRFull(totalBalance)}</Prv>,
+      value: <Money value={totalBalance} variant="full" />,
       sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
       color: "var(--t-sage)",
       icon: <Wallet size={16} />,
@@ -3393,7 +3392,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
     },
     {
       label: "Total Loaded",
-      value: <Prv>{fmtINRFull(totalLoaded)}</Prv>,
+      value: <Money value={totalLoaded} variant="full" />,
       sub: "Total funds loaded into cards",
       color: "var(--t-accent)",
       icon: <ArrowUp size={16} />,
@@ -3401,7 +3400,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
     },
     {
       label: "Total Spent",
-      value: <Prv>{fmtINRFull(totalSpent)}</Prv>,
+      value: <Money value={totalSpent} variant="full" />,
       sub: "Total expenditures on cards",
       color: "var(--t-rust)",
       icon: <ArrowDown size={16} />,
@@ -3968,7 +3967,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  <Prv>{fmtINRFull(balance)}</Prv>
+                  <Money value={balance} variant="full" />
                 </div>
               </div>
               <div
@@ -3984,13 +3983,13 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 <div>
                   Loaded:{" "}
                   <b style={{ color: "#6ee7b7" }}>
-                    <Prv>{fmtINRFull(loaded)}</Prv>
+                    <Money value={loaded} variant="full" />
                   </b>
                 </div>
                 <div>
                   Spent:{" "}
                   <b style={{ color: "#ff8888" }}>
-                    <Prv>{fmtINRFull(spent)}</Prv>
+                    <Money value={spent} variant="full" />
                   </b>
                 </div>
               </div>
@@ -4257,21 +4256,21 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
         {[
           {
             label: "Total Loaded",
-            value: <Prv>{fmtINRFull(totalLoaded)}</Prv>,
+            value: <Money value={totalLoaded} variant="full" />,
             color: THEME.sage,
             bg: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
             border: `color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
           },
           {
             label: "Total Spent",
-            value: <Prv>{fmtINRFull(totalSpent)}</Prv>,
+            value: <Money value={totalSpent} variant="full" />,
             color: THEME.rust,
             bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
             border: `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
           },
           {
             label: "Balance",
-            value: <Prv>{fmtINRFull(balance)}</Prv>,
+            value: <Money value={balance} variant="full" />,
             color: balance >= 0 ? THEME.sage : THEME.rust,
             bg: balance >= 0 ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)` : `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
             border: balance >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
@@ -4683,10 +4682,8 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                             color: r.type === "load" ? THEME.sage : THEME.rust,
                           }}
                         >
-                          <Prv>
-                            {r.type === "load" ? "+" : "−"}
-                            {fmtINRExact(r.amount)}
-                          </Prv>
+                          {r.type === "load" ? "+" : "−"}
+                          <Money value={r.amount} variant="exact" />
                         </td>
                       </tr>
                     ))}
@@ -4851,10 +4848,8 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               align: "right",
               accessor: (t: any) => (
                 <span style={{ fontWeight: 700, color: t.type === "load" ? THEME.sage : THEME.rust }}>
-                  <Prv>
-                    {t.type === "load" ? "+" : "−"}
-                    {fmtINRExact(t.amount)}
-                  </Prv>
+                  {t.type === "load" ? "+" : "−"}
+                  <Money value={t.amount} variant="exact" />
                 </span>
               ),
             },
@@ -5015,21 +5010,21 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
         {[
           {
             label: "Total Borrowed",
-            value: <Prv>{fmtINRFull(totalPrincipal)}</Prv>,
+            value: <Money value={totalPrincipal} variant="full" />,
             sub: `${items.length} active loan${items.length !== 1 ? "s" : ""}`,
             color: "var(--t-muted)",
             Icon: TrendingDown,
           },
           {
             label: "Outstanding Balance",
-            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
+            value: <Money value={totalOutstanding} variant="full" />,
             sub: totalOutstanding > 0 ? "Debt remaining" : "All paid off",
             color: "var(--t-rust)",
             Icon: Wallet,
           },
           {
             label: "Monthly EMI Outflow",
-            value: <Prv>{fmtINRFull(totalEMI)}</Prv>,
+            value: <Money value={totalEMI} variant="full" />,
             sub: "Combined monthly payment",
             color: "var(--t-accent)",
             Icon: Calendar,
@@ -5212,7 +5207,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     marginTop: 2,
                   }}
                 >
-                  <Prv>{fmtINRFull(outstanding)}</Prv>
+                  <Money value={outstanding} variant="full" />
                 </div>
               </div>
 
@@ -5251,14 +5246,14 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                 {[
                   {
                     k: "Principal",
-                    v: <Prv>{fmtINRExact(l.principal)}</Prv>,
+                    v: <Money value={l.principal} variant="exact" />,
                     color: "var(--t-muted)",
                   },
                   {
                     k: "EMI Amount",
                     v: (
                       <>
-                        <Prv>{fmtINRExact(emi)}</Prv>/mo
+                        <Money value={emi} variant="exact" />/mo
                       </>
                     ),
                     color: "var(--t-accent)",
@@ -5285,7 +5280,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     ? [
                         {
                           k: "Total Paid",
-                          v: <Prv>{fmtINRExact(paid)}</Prv>,
+                          v: <Money value={paid} variant="exact" />,
                           color: "var(--t-sage)",
                         },
                       ]
@@ -5294,7 +5289,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     ? [
                         {
                           k: "Est. Interest Left",
-                          v: <Prv>{fmtINRExact(interestRemaining)}</Prv>,
+                          v: <Money value={interestRemaining} variant="exact" />,
                           color: "var(--t-rust)",
                         },
                       ]
@@ -5514,7 +5509,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                   Full Loan Settlement
                                 </strong>
                                 You will completely close this loan today, saving **
-                                <Prv>{fmtINRFull(interestRemaining)}</Prv>** in estimated remaining
+                                <Money value={interestRemaining} variant="full" />** in estimated remaining
                                 interest!
                                 </span>
                               </div>
@@ -5550,7 +5545,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                 },
                                 {
                                   label: "Interest Saved",
-                                  value: <Prv>{fmtINRFull(interestSaved)}</Prv>,
+                                  value: <Money value={interestSaved} variant="full" />,
                                   color: "var(--t-sage)",
                                 },
                                 {
@@ -5664,7 +5659,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
         {[
           {
             label: "Total Lent",
-            value: <Prv>{fmtINRFull(totalLent)}</Prv>,
+            value: <Money value={totalLent} variant="full" />,
             sub:
               `${activeCount} active loan${activeCount !== 1 ? "s" : ""}` +
               (settledCount > 0 ? ` · ${settledCount} settled` : ""),
@@ -5673,7 +5668,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
           },
           {
             label: "Outstanding",
-            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
+            value: <Money value={totalOutstanding} variant="full" />,
             sub: totalOutstanding > 0 ? "Pending recovery" : "Fully recovered",
             color: totalOutstanding > 0 ? "var(--t-gold)" : "var(--t-sage)",
             Icon: IndianRupee,
@@ -5967,7 +5962,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                     marginTop: 2,
                   }}
                 >
-                  <Prv>{fmtINRFull(outstanding)}</Prv>
+                  <Money value={outstanding} variant="full" />
                 </div>
               </div>
 
@@ -6004,7 +5999,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                 {[
-                  { k: "Principal", v: <Prv>{fmtINRExact(principal)}</Prv>, color: "var(--t-muted)" },
+                  { k: "Principal", v: <Money value={principal} variant="exact" />, color: "var(--t-muted)" },
                   {
                     k: "Interest ROI",
                     v: rate ? `${rate.toFixed(2)}%` : "—",
@@ -6012,13 +6007,17 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                   },
                   {
                     k: "Accrued Int.",
-                    v: rate ? <Prv>{fmtINRExact(accruedInterest)}</Prv> : "—",
+                    v: rate ? <Money value={accruedInterest} variant="exact" /> : "—",
                     color: rate && accruedInterest > 0 ? "var(--t-sage)" : "var(--t-muted)",
                     tooltip: "Simple interest accrued to date",
                   },
                   {
                     k: "Est. Maturity",
-                    v: <Prv>{rate ? fmtINRExact(maturityValue) : fmtINRExact(principal)}</Prv>,
+                    v: rate ? (
+                      <Money value={maturityValue} variant="exact" />
+                    ) : (
+                      <Money value={principal} variant="exact" />
+                    ),
                     color: rate ? "var(--t-accent)" : "var(--t-muted)",
                     tooltip: "Principal + estimated interest at maturity",
                   },
@@ -6202,7 +6201,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                                       color: "var(--t-sage)",
                                     }}
                                   >
-                                    <Prv>{fmtINRExact(p.amount)}</Prv>
+                                    <Money value={p.amount} variant="exact" />
                                   </div>
                                   <div style={{ fontSize: 10, color: "var(--t-muted)" }}>
                                     {fmtLoanDate(p.date)}
@@ -6858,21 +6857,21 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
         {[
           {
             label: isBorrowed ? "Total Borrowed" : "Total Lent",
-            value: <Prv>{fmtINRFull(totalBorrowed)}</Prv>,
+            value: <Money value={totalBorrowed} variant="full" />,
             sub: "Principal amount",
             color: isBorrowed ? "var(--t-rust)" : "var(--t-accent)",
             Icon: isBorrowed ? TrendingDown : TrendingUp,
           },
           {
             label: isBorrowed ? "Total Repaid" : "Received Back",
-            value: <Prv>{fmtINRFull(totalPaid)}</Prv>,
+            value: <Money value={totalPaid} variant="full" />,
             sub: "Payment history",
             color: "var(--t-sage)",
             Icon: CheckCircle2,
           },
           {
             label: "Outstanding",
-            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
+            value: <Money value={totalOutstanding} variant="full" />,
             sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled",
             color: totalOutstanding > 0 ? accentColor : "var(--t-sage)",
             Icon: Wallet,
@@ -7181,7 +7180,13 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                       marginTop: 2,
                     }}
                   >
-                    <Prv>{overpaid ? fmtINRFull(overpaidAmt) : settled ? "₹0" : fmtINRFull(outstanding)}</Prv>
+                    {overpaid ? (
+                      <Money value={overpaidAmt} variant="full" />
+                    ) : settled ? (
+                      <Money value={0} variant="full" />
+                    ) : (
+                      <Money value={outstanding} variant="full" />
+                    )}
                   </div>
                 </div>
 
@@ -7324,7 +7329,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                           align: "right",
                           accessor: (t: any) => (
                             <span style={{ fontWeight: 800, color: accentColor, fontVariantNumeric: "tabular-nums" }}>
-                              <Prv>{fmtINRExact(t.amount)}</Prv>
+                              <Money value={t.amount} variant="exact" />
                             </span>
                           ),
                         },
@@ -7379,7 +7384,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>{fmtINRExact(totalT)}</Prv>
+                            <Money value={totalT} variant="exact" />
                           </td>
                           <td colSpan={2} style={td}></td>
                         </tr>
@@ -7443,7 +7448,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                           align: "right",
                           accessor: (p: any) => (
                             <span style={{ fontWeight: 800, color: "var(--t-sage)", fontVariantNumeric: "tabular-nums" }}>
-                              <Prv>{fmtINRExact(p.amount)}</Prv>
+                              <Money value={p.amount} variant="exact" />
                             </span>
                           ),
                         },
@@ -7498,7 +7503,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>{fmtINRExact(totalP)}</Prv>
+                            <Money value={totalP} variant="exact" />
                           </td>
                           <td colSpan={2} style={td}></td>
                         </tr>
@@ -7524,11 +7529,15 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                       }}
                     >
                       {overpaid ? (
-                        <Prv>{`Overpaid by ${fmtINRFull(overpaidAmt)}`}</Prv>
+                        <>
+                          Overpaid by <Money value={overpaidAmt} variant="full" />
+                        </>
                       ) : settled ? (
                         "Fully Settled ✓"
                       ) : (
-                        <Prv>{`${fmtINRFull(outstanding)} pending`}</Prv>
+                        <>
+                          <Money value={outstanding} variant="full" /> pending
+                        </>
                       )}
                     </span>
                   </div>
@@ -8566,7 +8575,7 @@ function DebtPayoffOptimizer({ state }: any) {
                         transition: "all 0.2s ease",
                       }}
                     >
-                      +<Prv>{fmtINRFull(val)}</Prv>
+                      +<Money value={val} variant="full" />
                     </button>
                   );
                 })}
@@ -8634,7 +8643,7 @@ function DebtPayoffOptimizer({ state }: any) {
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRExact(interestSaved)}</Prv>
+              <Money value={interestSaved} variant="exact" />
             </div>
             <div style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", fontWeight: 600 }}>
               Debt-Free:{" "}
@@ -8670,7 +8679,7 @@ function DebtPayoffOptimizer({ state }: any) {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  <Prv>{fmtINRExact(standardInterest)}</Prv>
+                  <Money value={standardInterest} variant="exact" />
                 </div>
               </div>
               <div>
@@ -8693,7 +8702,7 @@ function DebtPayoffOptimizer({ state }: any) {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  <Prv>{fmtINRExact(currentInterest)}</Prv>
+                  <Money value={currentInterest} variant="exact" />
                 </div>
               </div>
             </div>
@@ -8786,7 +8795,7 @@ function DebtPayoffOptimizer({ state }: any) {
           }}
         >
           At this Extra Repayment + Windfall, <b style={{ color: THEME.ink }}>{cheaperPlan}</b>{" "}
-          saves <Prv>{fmtINRExact(interestDiffVsOtherPlan)}</Prv> more interest
+          saves <Money value={interestDiffVsOtherPlan} variant="exact" /> more interest
           {monthsDiffVsOtherPlan !== 0 &&
             ` and clears debt ${Math.abs(monthsDiffVsOtherPlan)} month${Math.abs(monthsDiffVsOtherPlan) !== 1 ? "s" : ""} ${monthsDiffVsOtherPlan > 0 ? "sooner" : "later"}`}{" "}
           than {cheaperPlan === "Avalanche" ? "Snowball" : "Avalanche"}.
@@ -8955,12 +8964,12 @@ function DebtPayoffOptimizer({ state }: any) {
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
                     >
-                      Balance: <Prv>{fmtINRExact(l.outstanding)}</Prv> &bull;{" "}
-                      {l.emiIsEstimate ? "Est. Min Due" : "EMI"}: <Prv>{fmtINRExact(l.emi)}</Prv>/mo
+                      Balance: <Money value={l.outstanding} variant="exact" /> &bull;{" "}
+                      {l.emiIsEstimate ? "Est. Min Due" : "EMI"}: <Money value={l.emi} variant="exact" />/mo
                       {rolledOver > 0 && (
                         <>
                           {" "}
-                          &bull; <span style={{ color: THEME.sage }}>+<Prv>{fmtINRExact(rolledOver)}</Prv> extra applied</span>
+                          &bull; <span style={{ color: THEME.sage }}>+<Money value={rolledOver} variant="exact" /> extra applied</span>
                         </>
                       )}
                     </div>
