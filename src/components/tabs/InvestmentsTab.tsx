@@ -44,6 +44,7 @@ import {
   calcXIRR,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Card } from "../ui/Card";
@@ -452,7 +453,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
             >
               <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
               <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
-                <Prv>{fmtINRFull(fdMaturity(Number(fd.principal), Number(fd.rate), Number(fd.years)))}</Prv>
+                <Money value={fdMaturity(Number(fd.principal), Number(fd.rate), Number(fd.years))} variant="full" />
               </span>
             </div>
           )}
@@ -721,10 +722,10 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
                   }}
                 >
                   {[
-                    ["Total Principal", fmtINRFull(totalPrincipal)],
-                    ["Total Accrued Interest", fmtINRFull(totalAccrued)],
-                    ["Total Consideration", fmtINRFull(totalConsideration)],
-                    ["Total Investment", fmtINRFull(totalInvestment)],
+                    ["Total Principal", totalPrincipal],
+                    ["Total Accrued Interest", totalAccrued],
+                    ["Total Consideration", totalConsideration],
+                    ["Total Investment", totalInvestment],
                   ].map(([lbl, val]) => (
                     <div key={lbl}>
                       <div
@@ -739,7 +740,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
                         {lbl}
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                        <Prv>{val}</Prv>
+                        <Money value={val} variant="full" />
                       </div>
                     </div>
                   ))}
@@ -1163,7 +1164,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
                     <div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
                       <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-                        <Prv>{fmtINRFull(autoInvested)}</Prv>
+                        <Money value={autoInvested} variant="full" />
                       </div>
                     </div>
                   )}
@@ -1171,7 +1172,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
                     <div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
                       <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
-                        <Prv>{fmtINRFull(currentValue)}</Prv>
+                        <Money value={currentValue} variant="full" />
                       </div>
                     </div>
                   )}
@@ -1504,20 +1505,23 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         {[
           {
             label: "Total Invested",
-            value: <Prv>{fmtINRFull(totalPrincipal)}</Prv>,
+            value: <Money value={totalPrincipal} variant="full" />,
             color: THEME.accent,
             Icon: IndianRupee,
           },
           {
             label: "Current Value",
-            value: <Prv>{fmtINRFull(totalCurrent)}</Prv>,
+            value: <Money value={totalCurrent} variant="full" />,
             color: THEME.sage,
             Icon: TrendingUp,
           },
           {
             label: "Net Returns",
             value: (
-              <Prv>{`${netGain >= 0 ? "+" : "-"}${fmtINRFull(Math.abs(netGain))}`}</Prv>
+              <>
+                {netGain >= 0 ? "+" : "-"}
+                <Money value={Math.abs(netGain)} variant="full" />
+              </>
             ),
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: netGain >= 0 ? TrendingUp : TrendingDown,
@@ -1951,10 +1955,10 @@ function EditBondModal({ bond: initial, onClose, onSave, saving }: any) {
           }}
         >
           {[
-            ["Total Principal", fmtINRFull(totalPrincipal)],
-            ["Total Accrued Interest", fmtINRFull(totalAccrued)],
-            ["Total Consideration", fmtINRFull(totalConsideration)],
-            ["Total Investment", fmtINRFull(totalInvestment)],
+            ["Total Principal", totalPrincipal],
+            ["Total Accrued Interest", totalAccrued],
+            ["Total Consideration", totalConsideration],
+            ["Total Investment", totalInvestment],
           ].map(([lbl, val]) => (
             <div key={lbl}>
               <div
@@ -1969,7 +1973,7 @@ function EditBondModal({ bond: initial, onClose, onSave, saving }: any) {
                 {lbl}
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                <Prv>{val}</Prv>
+                <Money value={val} variant="full" />
               </div>
             </div>
           ))}
@@ -2107,7 +2111,7 @@ function EditFDModal({ fd: initial, onClose, onSave, saving }: any) {
         >
           <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
           <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
-            <Prv>{fmtINRFull(maturity)}</Prv>
+            <Money value={maturity} variant="full" />
           </span>
         </div>
       )}
@@ -2193,7 +2197,7 @@ function EditRDModal({ rd: initial, onClose, onSave, saving }: any) {
         >
           <span style={{ fontSize: 11, color: THEME.muted }}>Projected Maturity</span>
           <span style={{ fontWeight: 900, color: THEME.cyan, fontSize: 15 }}>
-            <Prv>{fmtINRFull(maturity)}</Prv>
+            <Money value={maturity} variant="full" />
           </span>
         </div>
       )}
@@ -2366,14 +2370,14 @@ function EditMFModal({ mf: initial, onClose, onSave, activeProfile = "all", savi
           <div>
             <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
             <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-              <Prv>{fmtINRFull(costBasis)}</Prv>
+              <Money value={costBasis} variant="full" />
             </div>
           </div>
           {currentValue > 0 && (
             <div>
               <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
               <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
-                <Prv>{fmtINRFull(currentValue)}</Prv>
+                <Money value={currentValue} variant="full" />
               </div>
             </div>
           )}
@@ -2797,13 +2801,13 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
             {[
               {
                 label: "Total Invested",
-                value: <Prv>{fmtINRFull(totalInvested)}</Prv>,
+                value: <Money value={totalInvested} variant="full" />,
                 color: FD_AMBER,
                 Icon: IndianRupee,
               },
               {
                 label: "Total Maturity",
-                value: <Prv>{fmtINRFull(totalMaturity)}</Prv>,
+                value: <Money value={totalMaturity} variant="full" />,
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
@@ -2987,7 +2991,7 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       marginBottom: 14,
                     }}
                   >
-                    <Prv>{fmtINRFull(Number(f.principal))}</Prv>
+                    <Money value={Number(f.principal)} variant="full" />
                   </div>
 
                   <div
@@ -3076,17 +3080,17 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     <div>
                       <div style={lbl}>Current Accrued</div>
                       <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
-                        <Prv>{fmtINRFull(accrued)}</Prv>
+                        <Money value={accrued} variant="full" />
                       </div>
                       <div style={{ fontSize: 10, color: gain >= 0 ? THEME.sage : THEME.rust }}>
                         {gain >= 0 ? "+" : ""}
-                        <Prv>{fmtINRFull(gain)}</Prv> · {gainPct.toFixed(1)}%
+                        <Money value={gain} variant="full" /> · {gainPct.toFixed(1)}%
                       </div>
                     </div>
                     <div>
                       <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
                       <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
-                        <Prv>{fmtINRFull(maturity)}</Prv>
+                        <Money value={maturity} variant="full" />
                       </div>
                       {!isMatured && daysLeft !== null && (
                         <div
@@ -3191,19 +3195,19 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                 {[
                   {
                     label: "Monthly SIP Total",
-                    value: <Prv>{fmtINRFull(totalMonthly)}</Prv>,
+                    value: <Money value={totalMonthly} variant="full" />,
                     color: RD_BLUE,
                     Icon: Repeat,
                   },
                   {
                     label: "Total Deposited",
-                    value: <Prv>{fmtINRFull(totalDeposited)}</Prv>,
+                    value: <Money value={totalDeposited} variant="full" />,
                     color: THEME.accent,
                     Icon: IndianRupee,
                   },
                   {
                     label: "Projected Maturity",
-                    value: <Prv>{fmtINRFull(totalMaturity)}</Prv>,
+                    value: <Money value={totalMaturity} variant="full" />,
                     color: THEME.sage,
                     Icon: TrendingUp,
                   },
@@ -3369,7 +3373,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       letterSpacing: "-0.02em",
                     }}
                   >
-                    <Prv>{fmtINRFull(Number(r.monthly))}</Prv>
+                    <Money value={Number(r.monthly)} variant="full" />
                     <span style={{ fontSize: 14, color: THEME.muted }}>/mo</span>
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14 }}>
@@ -3437,16 +3441,16 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     <div>
                       <div style={lbl}>Deposited</div>
                       <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
-                        <Prv>{fmtINRFull(deposited)}</Prv>
+                        <Money value={deposited} variant="full" />
                       </div>
                       <div style={{ fontSize: 10, color: THEME.sage }}>
-                        +<Prv>{fmtINRFull(gain)}</Prv> interest
+                        +<Money value={gain} variant="full" /> interest
                       </div>
                     </div>
                     <div>
                       <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
                       <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
-                        <Prv>{fmtINRFull(isMatured ? currentVal : fullMaturity)}</Prv>
+                        <Money value={isMatured ? currentVal : fullMaturity} variant="full" />
                       </div>
                     </div>
                   </div>
@@ -3714,12 +3718,12 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       marginBottom: couponEarned > 0 ? 4 : 16,
                     }}
                   >
-                    <Prv>{fmtINRFull(investmentAmt)}</Prv>
+                    <Money value={investmentAmt} variant="full" />
                   </div>
                   {couponEarned > 0 && (
                     <div style={{ fontSize: 10, color: THEME.sage, marginBottom: 16 }}>
-                      +<Prv>{fmtINRFull(couponEarned)}</Prv> coupon earned to date ·{" "}
-                      <Prv>{fmtINRFull(currentVal)}</Prv> current value
+                      +<Money value={couponEarned} variant="full" /> coupon earned to date ·{" "}
+                      <Money value={currentVal} variant="full" /> current value
                     </div>
                   )}
 
@@ -3738,7 +3742,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       ["Units", b.numberOfUnits || "—"],
                       [
                         "FV/Unit",
-                        b.faceValuePerUnit ? <Prv>{fmtINRFull(b.faceValuePerUnit)}</Prv> : "—",
+                        b.faceValuePerUnit ? <Money value={b.faceValuePerUnit} variant="full" /> : "—",
                       ],
                     ].map(([l, v]) => (
                       <div
@@ -3790,7 +3794,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     <div>
                       <div style={lbl}>Annual Income</div>
                       <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
-                        {annualCoupon > 0 ? <Prv>{fmtINRFull(annualCoupon)}</Prv> : "—"}
+                        {annualCoupon > 0 ? <Money value={annualCoupon} variant="full" /> : "—"}
                       </div>
                       {b.interestPaymentDate && (
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
@@ -3855,7 +3859,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       <div key={label as string}>
                         <div style={lbl}>{label}</div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink }}>
-                          {val ? <Prv>{fmtINRFull(val)}</Prv> : "—"}
+                          {val ? <Money value={val} variant="full" /> : "—"}
                         </div>
                       </div>
                     ))}
@@ -3883,7 +3887,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       <span style={{ fontSize: 10, color: THEME.muted }}>
                         Charges:{" "}
                         <span style={{ color: THEME.ink, fontWeight: 600 }}>
-                          <Prv>{fmtINRFull(charges)}</Prv>
+                          <Money value={charges} variant="full" />
                         </span>
                       </span>
                     )}
@@ -4476,7 +4480,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.units}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.currentNav}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>
-                      <Prv>{fmtINRFull(Number(r.invested))}</Prv>
+                      <Money value={Number(r.invested)} variant="full" />
                     </td>
                     <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.owner || "self"}</td>
                   </tr>
@@ -4846,7 +4850,7 @@ function PPFCsvPanel({ onImport }: any) {
                       </span>
                     </td>
                     <td style={{ padding: "6px 10px", fontWeight: 700 }}>
-                      <Prv>{fmtINRFull(r.amount)}</Prv>
+                      <Money value={r.amount} variant="full" />
                     </td>
                     <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
                   </tr>
@@ -5059,7 +5063,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
         )}
       </div>
       <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>
-        <Prv>{fmtINRFull(displayBalance)}</Prv>
+        <Money value={displayBalance} variant="full" />
       </div>
 
       {/* Stats row */}
@@ -5098,7 +5102,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                 <Icon size={10} color={color} /> {label}
               </div>
               <div style={{ fontSize: 15, fontWeight: 800, color }}>
-                <Prv>{fmtINRFull(value)}</Prv>
+                <Money value={value} variant="full" />
               </div>
               <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
                 {
@@ -5221,7 +5225,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                       }}
                     >
                       {t.type === "withdrawal" ? "-" : "+"}
-                      <Prv>{fmtINRFull(t.amount)}</Prv>
+                      <Money value={t.amount} variant="full" />
                     </td>
                     <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.note || "—"}</td>
                     <td style={{ padding: "8px 10px", textAlign: "right" as const }}>
@@ -5553,11 +5557,11 @@ function NPSTransactionModal({ onClose, onSave, initial, saving }: any) {
             fontWeight: 700,
           }}
         >
-          Total: <Prv>{fmtINRFull(empAmt + erAmt)}</Prv>
+          Total: <Money value={empAmt + erAmt} variant="full" />
           {empAmt > 0 && erAmt > 0 && (
             <span style={{ color: THEME.muted, fontWeight: 500 }}>
               {" "}
-              (Employee: <Prv>{fmtINRFull(empAmt)}</Prv> + Employer: <Prv>{fmtINRFull(erAmt)}</Prv>)
+              (Employee: <Money value={empAmt} variant="full" /> + Employer: <Money value={erAmt} variant="full" />)
             </span>
           )}
         </div>
@@ -5927,10 +5931,10 @@ function NPSCsvPanel({ onImport }: any) {
                       {r.uploadedBy || "—"}
                     </td>
                     <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.accent }}>
-                      {r.employeeAmount > 0 ? <Prv>{fmtINRFull(r.employeeAmount)}</Prv> : "—"}
+                      {r.employeeAmount > 0 ? <Money value={r.employeeAmount} variant="full" /> : "—"}
                     </td>
                     <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.cyan }}>
-                      {r.employerAmount > 0 ? <Prv>{fmtINRFull(r.employerAmount)}</Prv> : "—"}
+                      {r.employerAmount > 0 ? <Money value={r.employerAmount} variant="full" /> : "—"}
                     </td>
                   </tr>
                 ))}
@@ -6146,7 +6150,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                 marginBottom: 12,
               }}
             >
-              <Prv>{fmtINRFull(displayCorpus)}</Prv>
+              <Money value={displayCorpus} variant="full" />
             </div>
           </>
         );
@@ -6200,7 +6204,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                 {label}
               </div>
               <div style={{ fontSize: 13, fontWeight: 800, color }}>
-                <Prv>{fmtINRFull(value)}</Prv>
+                <Money value={value} variant="full" />
               </div>
             </div>
           ))}
@@ -6239,7 +6243,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
       {/* Annual contribution from account fields */}
       {annualTotal > 0 && totalContributed === 0 && (
         <div style={{ marginTop: 8, fontSize: 10, color: THEME.cyan, fontWeight: 600 }}>
-          Annual estimate: <Prv>{fmtINRFull(annualTotal)}</Prv>/yr
+          Annual estimate: <Money value={annualTotal} variant="full" />/yr
           {Number(n.employerContribution) > 0 ? " (incl. employer — 80CCD(2))" : ""}
         </div>
       )}
@@ -6409,7 +6413,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                             color: t.employeeAmount > 0 ? THEME.accent : THEME.muted,
                           }}
                         >
-                          {t.employeeAmount > 0 ? <Prv>{fmtINRFull(t.employeeAmount)}</Prv> : "—"}
+                          {t.employeeAmount > 0 ? <Money value={t.employeeAmount} variant="full" /> : "—"}
                         </td>
                         <td
                           style={{
@@ -6419,7 +6423,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                             color: t.employerAmount > 0 ? THEME.cyan : THEME.muted,
                           }}
                         >
-                          {t.employerAmount > 0 ? <Prv>{fmtINRFull(t.employerAmount)}</Prv> : "—"}
+                          {t.employerAmount > 0 ? <Money value={t.employerAmount} variant="full" /> : "—"}
                         </td>
                         <td style={{ padding: "8px 12px", whiteSpace: "nowrap" as const }}>
                           <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
@@ -6473,7 +6477,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                           color: THEME.accent,
                         }}
                       >
-                        <Prv>{fmtINRFull(totalEmployee)}</Prv>
+                        <Money value={totalEmployee} variant="full" />
                       </td>
                       <td
                         style={{
@@ -6483,7 +6487,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                           color: THEME.cyan,
                         }}
                       >
-                        <Prv>{fmtINRFull(totalEmployer)}</Prv>
+                        <Money value={totalEmployer} variant="full" />
                       </td>
                       <td />
                     </tr>
@@ -7394,7 +7398,7 @@ function EPFCsvPanel({ onImport }: any) {
                         </span>
                       </td>
                       <td style={{ padding: "6px 10px", fontWeight: 700 }}>
-                        <Prv>{fmtINRFull(r.amount)}</Prv>
+                        <Money value={r.amount} variant="full" />
                       </td>
                       <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
                     </tr>
@@ -7939,7 +7943,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
           marginBottom: hasPassbook ? 10 : 20,
         }}
       >
-        <Prv>{fmtINRFull(displayCorpus)}</Prv>
+        <Money value={displayCorpus} variant="full" />
       </div>
       {hasPassbook && (
         <div
@@ -7995,7 +7999,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                 {label}
               </div>
               <div style={{ fontSize: 13, fontWeight: 800, color }}>
-                <Prv>{fmtINRFull(value)}</Prv>
+                <Money value={value} variant="full" />
               </div>
             </div>
           ))}
@@ -8324,7 +8328,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                               {label}
                             </div>
                             <div style={{ fontSize: 11, fontWeight: 800, color }}>
-                              <Prv>{fmtINRFull(value)}</Prv>
+                              <Money value={value} variant="full" />
                             </div>
                           </div>
                         ))}
@@ -8344,7 +8348,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                           <span
                             style={{ fontWeight: 800, color: isCurrent ? THEME.accent : THEME.ink }}
                           >
-                            <Prv>{fmtINRFull(estClosing)}</Prv>
+                            <Money value={estClosing} variant="full" />
                           </span>
                         </div>
                       </div>
@@ -8448,7 +8452,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                 {s.label}
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>
-                <Prv>{fmtINRFull(s.value)}</Prv>
+                <Money value={s.value} variant="full" />
               </div>
             </div>
           ))}
@@ -8802,7 +8806,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                   }}
                                 >
                                   {!isIntRow && !isTransferRow && t.epfWages ? (
-                                    <Prv>{fmtINRFull(t.epfWages)}</Prv>
+                                    <Money value={t.epfWages} variant="full" />
                                   ) : (
                                     "—"
                                   )}
@@ -8815,7 +8819,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                   }}
                                 >
                                   {!isIntRow && !isTransferRow && t.epsWages ? (
-                                    <Prv>{fmtINRFull(t.epsWages)}</Prv>
+                                    <Money value={t.epsWages} variant="full" />
                                   ) : (
                                     "—"
                                   )}
@@ -8828,7 +8832,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                     color: numColor(THEME.accent),
                                   }}
                                 >
-                                  <Prv>{fmtINRFull(empVal)}</Prv>
+                                  <Money value={empVal} variant="full" />
                                 </td>
                                 <td
                                   style={{
@@ -8838,7 +8842,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                     color: numColor(THEME.cyan),
                                   }}
                                 >
-                                  <Prv>{fmtINRFull(erVal)}</Prv>
+                                  <Money value={erVal} variant="full" />
                                 </td>
                                 <td
                                   style={{
@@ -8848,7 +8852,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                     color: isIntRow || isTransferRow ? THEME.muted : THEME.gold,
                                   }}
                                 >
-                                  <Prv>{fmtINRFull(penVal)}</Prv>
+                                  <Money value={penVal} variant="full" />
                                 </td>
                                 <td style={{ padding: "6px 10px" }}>
                                   <div
@@ -8926,13 +8930,12 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                 fontWeight: 800,
                               }}
                             >
-                              <Prv>
-                                {fmtINRFull(
-                                  passbookRows
-                                    .filter((t) => t.type === "monthly_contribution")
-                                    .reduce((s, t) => s + Number(t.epfWages || 0), 0)
-                                )}
-                              </Prv>
+                              <Money
+                                value={passbookRows
+                                  .filter((t) => t.type === "monthly_contribution")
+                                  .reduce((s, t) => s + Number(t.epfWages || 0), 0)}
+                                variant="full"
+                              />
                             </td>
                             <td
                               style={{
@@ -8941,13 +8944,12 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                 fontWeight: 800,
                               }}
                             >
-                              <Prv>
-                                {fmtINRFull(
-                                  passbookRows
-                                    .filter((t) => t.type === "monthly_contribution")
-                                    .reduce((s, t) => s + Number(t.epsWages || 0), 0)
-                                )}
-                              </Prv>
+                              <Money
+                                value={passbookRows
+                                  .filter((t) => t.type === "monthly_contribution")
+                                  .reduce((s, t) => s + Number(t.epsWages || 0), 0)}
+                                variant="full"
+                              />
                             </td>
                             <td
                               style={{
@@ -8957,27 +8959,24 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                 color: THEME.accent,
                               }}
                             >
-                              <Prv>
-                                {fmtINRFull(
-                                  passbookRows.reduce((s, t) => {
-                                    if (t.type === "interest_credit")
-                                      return (
-                                        s +
-                                        Number(
-                                          t.employeeShare !== undefined
-                                            ? t.employeeShare
-                                            : t.amount || 0
-                                        )
-                                      );
-                                    if (t.type === "transfer_in") {
-                                      const erT = Number(t.employerShare || 0);
-                                      const penT = Number(t.pensionShare || 0);
-                                      return s + (Number(t.amount || 0) - erT - penT);
-                                    }
-                                    return s + Number(t.employeeShare || 0);
-                                  }, 0)
-                                )}
-                              </Prv>
+                              <Money
+                                value={passbookRows.reduce((s, t) => {
+                                  if (t.type === "interest_credit")
+                                    return (
+                                      s +
+                                      Number(
+                                        t.employeeShare !== undefined ? t.employeeShare : t.amount || 0
+                                      )
+                                    );
+                                  if (t.type === "transfer_in") {
+                                    const erT = Number(t.employerShare || 0);
+                                    const penT = Number(t.pensionShare || 0);
+                                    return s + (Number(t.amount || 0) - erT - penT);
+                                  }
+                                  return s + Number(t.employeeShare || 0);
+                                }, 0)}
+                                variant="full"
+                              />
                             </td>
                             <td
                               style={{
@@ -8987,11 +8986,10 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                 color: THEME.cyan,
                               }}
                             >
-                              <Prv>
-                                {fmtINRFull(
-                                  passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0)
-                                )}
-                              </Prv>
+                              <Money
+                                value={passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0)}
+                                variant="full"
+                              />
                             </td>
                             <td
                               style={{
@@ -9001,13 +8999,12 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                 color: THEME.gold,
                               }}
                             >
-                              <Prv>
-                                {fmtINRFull(
-                                  passbookRows
-                                    .filter((t) => t.type === "monthly_contribution")
-                                    .reduce((s, t) => s + Number(t.pensionShare || 0), 0)
-                                )}
-                              </Prv>
+                              <Money
+                                value={passbookRows
+                                  .filter((t) => t.type === "monthly_contribution")
+                                  .reduce((s, t) => s + Number(t.pensionShare || 0), 0)}
+                                variant="full"
+                              />
                             </td>
                             <td />
                           </tr>
@@ -9079,7 +9076,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                             }}
                           >
                             {isOut ? "-" : "+"}
-                            <Prv>{fmtINRFull(t.amount)}</Prv>
+                            <Money value={t.amount} variant="full" />
                           </td>
                           <td
                             style={{
@@ -9729,7 +9726,7 @@ const MFInsightsBarList = ({ rows }: { rows: Array<{ name: string; value: number
                 {r.pct.toFixed(1)}%
               </span>
               <span style={{ fontWeight: 700, color: THEME.muted }}>
-                <Prv>{fmtINRFull(r.value)}</Prv>
+                <Money value={r.value} variant="full" />
               </span>
             </div>
           </div>
@@ -9994,7 +9991,7 @@ function MFInsights({ items, getLiveNav }: any) {
             </div>
             <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 340 }}>
               Across {schemeWeights.length} fund{schemeWeights.length === 1 ? "" : "s"} worth{" "}
-              <Prv>{fmtINRFull(totalValue)}</Prv>.
+              <Money value={totalValue} variant="full" />.
             </div>
           </div>
         </div>
@@ -10587,20 +10584,24 @@ function MFSection({
             {[
               {
                 label: "Total Invested",
-                value: <Prv>{fmtINRFull(totalInvested)}</Prv>,
+                value: <Money value={totalInvested} variant="full" />,
                 color: THEME.accent,
                 Icon: IndianRupee,
               },
               {
                 label: "Current Value",
-                value: <Prv>{fmtINRFull(totalCurrent)}</Prv>,
+                value: <Money value={totalCurrent} variant="full" />,
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
               {
                 label: "Day's P&L",
                 value: hasDaysPnLData ? (
-                  <Prv>{`${totalDaysPnL >= 0 ? "+" : ""}${fmtINRFull(totalDaysPnL)} (${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}%)`}</Prv>
+                  <>
+                    {totalDaysPnL >= 0 ? "+" : ""}
+                    <Money value={totalDaysPnL} variant="full" /> ({totalDaysPnL >= 0 ? "+" : ""}
+                    {totalDaysPnLPct.toFixed(2)}%)
+                  </>
                 ) : (
                   "—"
                 ),
@@ -10610,7 +10611,10 @@ function MFSection({
               {
                 label: "Overall P&L",
                 value: (
-                  <Prv>{`${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`}</Prv>
+                  <>
+                    {totalPnl >= 0 ? "+" : ""}
+                    <Money value={Math.abs(totalPnl)} variant="full" />
+                  </>
                 ),
                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                 Icon: totalPnl >= 0 ? TrendingUp : TrendingDown,
@@ -11115,13 +11119,13 @@ function MFSection({
                                     <span style={{ color: THEME.muted, fontWeight: 600 }}>
                                       Invested:{" "}
                                       <b style={{ color: THEME.ink }}>
-                                        <Prv>{fmtINRFull(sectionInvested)}</Prv>
+                                        <Money value={sectionInvested} variant="full" />
                                       </b>
                                     </span>
                                     <span style={{ color: THEME.muted, fontWeight: 600 }}>
                                       Value:{" "}
                                       <b style={{ color: THEME.ink }}>
-                                        <Prv>{fmtINRFull(sectionValue)}</Prv>
+                                        <Money value={sectionValue} variant="full" />
                                       </b>
                                     </span>
                                     <span
@@ -11131,7 +11135,7 @@ function MFSection({
                                       }}
                                     >
                                       {sectionPnl >= 0 ? "+" : ""}
-                                      <Prv>{fmtINRFull(sectionPnl)}</Prv> ({sectionPnlPct >= 0 ? "+" : ""}
+                                      <Money value={sectionPnl} variant="full" /> ({sectionPnlPct >= 0 ? "+" : ""}
                                       {sectionPnlPct.toFixed(2)}%)
                                     </span>
                                   </div>
@@ -11336,10 +11340,10 @@ function MFSection({
                                     </div>
                                   </td>
                                   <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}>
-                                    <Prv>{fmtINRFull(grpInvested)}</Prv>
+                                    <Money value={grpInvested} variant="full" />
                                   </td>
                                   <td style={{ ...mfTd, textAlign: "right", fontWeight: 800 }}>
-                                    <Prv>{fmtINRFull(grpCurrent)}</Prv>
+                                    <Money value={grpCurrent} variant="full" />
                                     {grpStale && (
                                       <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 600 }}>
                                         NAV unavailable
@@ -11402,7 +11406,7 @@ function MFSection({
                                             }}
                                           >
                                             {dayPnl >= 0 ? "+" : ""}
-                                            <Prv>{fmtINRFull(dayPnl)}</Prv>
+                                            <Money value={dayPnl} variant="full" />
                                           </div>
                                           <div
                                             style={{
@@ -11430,7 +11434,7 @@ function MFSection({
                                           }}
                                         >
                                           {grpPnl >= 0 ? "+" : ""}
-                                          <Prv>{fmtINRFull(grpPnl)}</Prv>
+                                          <Money value={grpPnl} variant="full" />
                                         </div>
                                         <div
                                           style={{
@@ -12061,7 +12065,7 @@ function MFSection({
                                                               }}
                                                             >
                                                               {lotPnl >= 0 ? "+" : ""}
-                                                              <Prv>{fmtINRFull(lotPnl)}</Prv>
+                                                              <Money value={lotPnl} variant="full" />
                                                             </div>
                                                             {cagr !== null && (
                                                               <div
@@ -12095,7 +12099,7 @@ function MFSection({
                                                           fontWeight: 800,
                                                         }}
                                                       >
-                                                        <Prv>{fmtINRFull(lotCurr)}</Prv>
+                                                        <Money value={lotCurr} variant="full" />
                                                         {lotStale && (
                                                           <div
                                                             style={{
@@ -12397,7 +12401,7 @@ function MFSection({
                         {[
                           {
                             label: "Total Annual Cost",
-                            value: <Prv>{fmtINRFull(totalAnnualCost)}</Prv>,
+                            value: <Money value={totalAnnualCost} variant="full" />,
                             color: THEME.rust,
                           },
                           {
@@ -12412,7 +12416,7 @@ function MFSection({
                           },
                           {
                             label: "Annual Savings Possible",
-                            value: <Prv>{fmtINRFull(totalAnnualSaving)}</Prv>,
+                            value: <Money value={totalAnnualSaving} variant="full" />,
                             color: THEME.accent,
                           },
                         ].map(({ label, value, color }) => (
@@ -12497,7 +12501,7 @@ function MFSection({
                                   {yrs} Years
                                 </div>
                                 <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>
-                                  <Prv>{fmtINRFull(compoundSaving(totalAnnualSaving, yrs))}</Prv>
+                                  <Money value={compoundSaving(totalAnnualSaving, yrs)} variant="full" />
                                 </div>
                               </div>
                             ))}
@@ -12575,7 +12579,7 @@ function MFSection({
                                     fontVariantNumeric: "tabular-nums",
                                   }}
                                 >
-                                  <Prv>{fmtINRFull(f.currentValue)}</Prv>
+                                  <Money value={f.currentValue} variant="full" />
                                 </td>
                                 <td
                                   style={{
@@ -12630,7 +12634,7 @@ function MFSection({
                                     fontVariantNumeric: "tabular-nums",
                                   }}
                                 >
-                                  <Prv>{fmtINRFull(f.annualCost)}</Prv>
+                                  <Money value={f.annualCost} variant="full" />
                                 </td>
                                 <td
                                   style={{
@@ -12642,7 +12646,11 @@ function MFSection({
                                     fontVariantNumeric: "tabular-nums",
                                   }}
                                 >
-                                  <Prv>{f.annualSaving > 0 ? fmtINRFull(f.annualSaving) : "—"}</Prv>
+                                  {f.annualSaving > 0 ? (
+                                    <Money value={f.annualSaving} variant="full" />
+                                  ) : (
+                                    "—"
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -13832,10 +13840,10 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
                           color: THEME.sage,
                         }}
                       >
-                        <Prv>{fmtINRFull(d.amount)}</Prv>
+                        <Money value={d.amount} variant="full" />
                       </td>
                       <td style={{ padding: "10px 12px", textAlign: "right", color: THEME.rust }}>
-                        <Prv>{fmtINRFull(d.tds)}</Prv>
+                        <Money value={d.tds} variant="full" />
                       </td>
                       <td style={{ padding: "10px 12px", color: THEME.muted }}>
                         {d.paymentDate || "-"}
@@ -13905,10 +13913,10 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
                       FY {fy}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 800 }}>
-                      <Prv>{fmtINRFull(data.amount)}</Prv>
+                      <Money value={data.amount} variant="full" />
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted }}>
-                      TDS: <Prv>{fmtINRFull(data.tds)}</Prv> · {data.count} records
+                      TDS: <Money value={data.tds} variant="full" /> · {data.count} records
                     </div>
                   </div>
                 ))}
@@ -14022,7 +14030,7 @@ const DRIPSimulator = ({
             Total Received
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>
-            <Prv>{fmtINRFull(totalDividends)}</Prv>
+            <Money value={totalDividends} variant="full" />
           </div>
         </Card>
         <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.sage}` }}>
@@ -14038,7 +14046,7 @@ const DRIPSimulator = ({
             If Reinvested at 12%
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>
-            <Prv>{fmtINRFull(dripAt12)}</Prv>
+            <Money value={dripAt12} variant="full" />
           </div>
         </Card>
         <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.accent}` }}>
@@ -14054,7 +14062,7 @@ const DRIPSimulator = ({
             If Reinvested at 15%
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>
-            <Prv>{fmtINRFull(dripAt15)}</Prv>
+            <Money value={dripAt15} variant="full" />
           </div>
         </Card>
         <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.gold}` }}>
@@ -14070,7 +14078,7 @@ const DRIPSimulator = ({
             Opportunity Cost
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold, marginTop: 4 }}>
-            <Prv>{fmtINRFull(dripAt12 - totalDividends)}</Prv>
+            <Money value={dripAt12 - totalDividends} variant="full" />
           </div>
           <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>at 12% CAGR</div>
         </Card>
@@ -14125,7 +14133,7 @@ const DRIPSimulator = ({
             Received
           </div>
           <div style={{ fontSize: 20, fontWeight: 800 }}>
-            <Prv>{fmtINRFull(totalDividends)}</Prv>
+            <Money value={totalDividends} variant="full" />
           </div>
           {/* Bar */}
           <div
@@ -14170,7 +14178,7 @@ const DRIPSimulator = ({
             If Reinvested at {DRIP_RATES[selectedRateIdx].label}
           </div>
           <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}>
-            <Prv>{fmtINRFull(dripValue)}</Prv>
+            <Money value={dripValue} variant="full" />
           </div>
           {/* Bar */}
           <div
@@ -14211,9 +14219,9 @@ const DRIPSimulator = ({
           <TrendingUp size={16} style={{ color: THEME.sage, flexShrink: 0 }} />
           <span style={{ fontSize: 12, fontWeight: 600, color: THEME.sage }}>
             You missed{" "}
-            <Prv>
-              <b>{fmtINRFull(opportunityCost)}</b>
-            </Prv>{" "}
+            <b>
+              <Money value={opportunityCost} variant="full" />
+            </b>{" "}
             in potential growth by not reinvesting dividends at {DRIP_RATES[selectedRateIdx].label}{" "}
             CAGR
           </span>
@@ -14384,10 +14392,13 @@ const YieldTracker = ({ state }: any) => {
         {[
           {
             label: "Annual Yield",
-            value: <Prv>{fmtINRFull(totalAnnual)}</Prv>,
+            value: <Money value={totalAnnual} variant="full" />,
             sub:
               estimatedAnnual > 0 ? (
-                <Prv>{`${fmtINRFull(contractualAnnual)} contractual + ${fmtINRFull(estimatedAnnual)} est. NPS growth`}</Prv>
+                <>
+                  <Money value={contractualAnnual} variant="full" /> contractual +{" "}
+                  <Money value={estimatedAnnual} variant="full" /> est. NPS growth
+                </>
               ) : (
                 "Interest, coupons & dividends combined"
               ),
@@ -14396,14 +14407,14 @@ const YieldTracker = ({ state }: any) => {
           },
           {
             label: "Monthly Income",
-            value: <Prv>{fmtINRFull(totalMonthly)}</Prv>,
+            value: <Money value={totalMonthly} variant="full" />,
             sub: "Average cash flow / month",
             color: THEME.sage,
             Icon: Receipt,
           },
           {
             label: "Daily Passive",
-            value: <Prv>{fmtINRFull(totalAnnual / 365)}</Prv>,
+            value: <Money value={totalAnnual / 365} variant="full" />,
             sub: "₹ earned every day",
             color: THEME.gold,
             Icon: Zap,
@@ -14540,7 +14551,7 @@ const YieldTracker = ({ state }: any) => {
                     </div>
                     <div style={{ textAlign: "right" as const }}>
                       <div style={{ fontSize: 14, fontWeight: 900, color }}>
-                        <Prv>{fmtINRFull(value)}</Prv>
+                        <Money value={value} variant="full" />
                       </div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>
                         {sharePct.toFixed(1)}% share
@@ -14593,7 +14604,7 @@ const YieldTracker = ({ state }: any) => {
                 Total Annual Yield
               </div>
               <div style={{ fontSize: 24, fontWeight: 900, color: THEME.accent }}>
-                <Prv>{fmtINRFull(totalAnnual)}</Prv>
+                <Money value={totalAnnual} variant="full" />
               </div>
             </div>
             <div style={{ textAlign: "right" as const }}>
@@ -14609,7 +14620,7 @@ const YieldTracker = ({ state }: any) => {
                 Monthly Avg.
               </div>
               <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
-                <Prv>{fmtINRFull(totalMonthly)}</Prv>
+                <Money value={totalMonthly} variant="full" />
               </div>
             </div>
           </div>
