@@ -30,8 +30,6 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
-  fmtINRFull,
-  fmtINRExact,
   today,
   autoCateg,
   getLocalDateString,
@@ -39,6 +37,7 @@ import {
   getEffectiveRent,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -1200,7 +1199,7 @@ export function BanksTab({
                 lineHeight: 1,
               }}
             >
-              <Prv>{fmtINRFull(animTotalBalance)}</Prv>
+              <Money value={animTotalBalance} variant="full" />
             </div>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
               {state.bankAccounts.length} Connected Account
@@ -1264,7 +1263,7 @@ export function BanksTab({
                 lineHeight: 1,
               }}
             >
-              <Prv>{fmtINRFull(animMonthlyIncome)}</Prv>
+              <Money value={animMonthlyIncome} variant="full" />
             </div>
             <div style={{ fontSize: 11, color: THEME.sage, fontWeight: 700, marginTop: 4 }}>
               Inflow cash positions
@@ -1327,7 +1326,7 @@ export function BanksTab({
                 lineHeight: 1,
               }}
             >
-              <Prv>{fmtINRFull(animMonthlyExpense)}</Prv>
+              <Money value={animMonthlyExpense} variant="full" />
             </div>
             <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
               Outflow cash ledger
@@ -1431,7 +1430,7 @@ export function BanksTab({
                 >
                   <span>
                     Net Savings:{" "}
-                    <Prv>{fmtINRFull(Math.max(0, monthlyIncome - monthlyExpense))}</Prv>
+                    <Money value={Math.max(0, monthlyIncome - monthlyExpense)} variant="full" />
                   </span>
                   <span>Monthly Buffer</span>
                 </div>
@@ -1521,7 +1520,7 @@ export function BanksTab({
                               fontWeight: 700,
                             }}
                           >
-                            <Prv>{fmtINRFull(c.amount)}</Prv> ({percentage.toFixed(0)}%)
+                            <Money value={c.amount} variant="full" /> ({percentage.toFixed(0)}%)
                           </span>
                         </div>
                         <div
@@ -1867,7 +1866,7 @@ export function BanksTab({
                         lineHeight: 1,
                       }}
                     >
-                      <Prv>{fmtINRFull(getDisplayBalance(a))}</Prv>
+                      <Money value={getDisplayBalance(a)} variant="full" />
                     </div>
                   </div>
                   <div
@@ -2285,7 +2284,7 @@ export function BanksTab({
                   align: "right",
                   accessor: (t: any) => (
                     <span style={{ color: THEME.rust, fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
-                      {t.type === "debit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
+                      {t.type === "debit" ? <Money value={t.amount} variant="exact" /> : ""}
                     </span>
                   ),
                 },
@@ -2297,7 +2296,7 @@ export function BanksTab({
                   align: "right",
                   accessor: (t: any) => (
                     <span style={{ color: THEME.sage, fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
-                      {t.type === "credit" ? <Prv>{fmtINRExact(t.amount)}</Prv> : ""}
+                      {t.type === "credit" ? <Money value={t.amount} variant="exact" /> : ""}
                     </span>
                   ),
                 },
@@ -2319,7 +2318,7 @@ export function BanksTab({
                         title={balanceTitle(bal)}
                       >
                         {!bal.confirmed && "~"}
-                        <Prv>{fmtINRExact(bal.value)}</Prv>
+                        <Money value={bal.value} variant="exact" />
                       </span>
                     );
                   },
@@ -2342,7 +2341,7 @@ export function BanksTab({
                 const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
                 const handleSaveInline = async () => {
                   if (!inlineEdit.amount || Number(inlineEdit.amount) <= 0) {
-                    alert("Please enter a valid amount greater than 0");
+                    showToast?.("Please enter a valid amount greater than 0", "warn");
                     return;
                   }
                   setInlineSaving(true);
@@ -2620,7 +2619,7 @@ export function BanksTab({
                         borderTop,
                       }}
                     >
-                      -<Prv>{fmtINRExact(totalDebit)}</Prv>
+                      -<Money value={totalDebit} variant="exact" />
                     </td>
                     <td
                       style={{
@@ -2633,7 +2632,7 @@ export function BanksTab({
                         borderTop,
                       }}
                     >
-                      +<Prv>{fmtINRExact(totalCredit)}</Prv>
+                      +<Money value={totalCredit} variant="exact" />
                     </td>
                     <td
                       style={{
@@ -2647,7 +2646,7 @@ export function BanksTab({
                       }}
                     >
                       {net >= 0 ? "+" : "-"}
-                      <Prv>{fmtINRExact(Math.abs(net))}</Prv>
+                      <Money value={Math.abs(net)} variant="exact" />
                     </td>
                   </tr>
                 );
@@ -2744,7 +2743,7 @@ export function BanksTab({
                       }}
                     >
                       {t.type === "credit" ? "+" : "-"}
-                      <Prv>{fmtINRExact(t.amount)}</Prv>
+                      <Money value={t.amount} variant="exact" />
                     </div>
                   </div>
                   {t.category && (
@@ -2886,7 +2885,7 @@ export function BanksTab({
                   }}
                 >
                   {t.type === "credit" ? "+" : "-"}
-                  <Prv>{fmtINRExact(t.amount)}</Prv>
+                  <Money value={t.amount} variant="exact" />
                 </div>
                 <div
                   style={{
@@ -2943,7 +2942,7 @@ export function BanksTab({
                 balanceAfterTxn[t.id] ? (
                   <span title={balanceTitle(balanceAfterTxn[t.id])}>
                     {!balanceAfterTxn[t.id].confirmed && "~"}
-                    <Prv>{fmtINRExact(balanceAfterTxn[t.id].value)}</Prv>
+                    <Money value={balanceAfterTxn[t.id].value} variant="exact" />
                   </span>
                 ) : null
               )}
@@ -3286,7 +3285,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
         }}
       >
         <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: 13, fontWeight: 800, color }}><Prv>{fmtINRFull(bal)}</Prv></span>
+        <span style={{ fontSize: 13, fontWeight: 800, color }}><Money value={bal} variant="full" /></span>
       </div>
     );
   };
@@ -3352,7 +3351,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
               <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                 Current Balance
               </span>
-              <span style={{ fontSize: 14, fontWeight: 800, color }}><Prv>{fmtINRFull(bal)}</Prv></span>
+              <span style={{ fontSize: 14, fontWeight: 800, color }}><Money value={bal} variant="full" /></span>
             </div>
           );
         })()}
@@ -3629,7 +3628,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
             <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
               Current Balance
             </span>
-            <span style={{ fontSize: 14, fontWeight: 800, color }}><Prv>{fmtINRFull(bal)}</Prv></span>
+            <span style={{ fontSize: 14, fontWeight: 800, color }}><Money value={bal} variant="full" /></span>
           </div>
         );
       })()}
