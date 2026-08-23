@@ -31,6 +31,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
@@ -327,6 +328,9 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
   const [modal, setModal] = useState<any>(null);
   const [payModal, setPayModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
 
   const totalMonthly = bills.reduce((s, b) => s + Number(b.amount || 0), 0);
 
@@ -601,10 +605,12 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Delete "${b.nickname || b.provider}"?`))
-                          deleteBill(b.id);
-                      }}
+                      onClick={() =>
+                        setConfirmAction({
+                          message: `Delete "${b.nickname || b.provider}"?`,
+                          onConfirm: () => deleteBill(b.id),
+                        })
+                      }
                       aria-label="Delete bill"
                       className="icon-btn danger"
                       style={{
@@ -691,15 +697,12 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                                 </Badge>
                               )}
                               <button
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `Delete this payment record from ${h.paidDate}? This cannot be undone.`
-                                    )
-                                  ) {
-                                    deletePaymentRecord(h.id);
-                                  }
-                                }}
+                                onClick={() =>
+                                  setConfirmAction({
+                                    message: `Delete this payment record from ${h.paidDate}? This cannot be undone.`,
+                                    onConfirm: () => deletePaymentRecord(h.id),
+                                  })
+                                }
                                 aria-label="Delete payment record"
                                 className="icon-btn danger"
                                 style={{
@@ -743,6 +746,16 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
           onSave={savePayment}
           onClose={() => setPayModal(null)}
           saving={savingPayment}
+        />
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
