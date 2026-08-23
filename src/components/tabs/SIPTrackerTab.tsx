@@ -32,7 +32,8 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { MFLogo } from "./InvestmentsTab";
@@ -468,7 +469,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
                           {type}
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted }}>
-                          <Prv>{fmtINRFull(amt)}</Prv>/mo · {pct.toFixed(0)}%
+                          <Money value={amt} variant="full" />/mo · {pct.toFixed(0)}%
                         </div>
                       </div>
                     </div>
@@ -1141,17 +1142,17 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{fmtINRExact(currentAmt)}</Prv>
+            <Money value={currentAmt} variant="exact" />
           </span>
           <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginLeft: 4 }}>
             /{sip.frequency === "quarterly" ? "qtr" : "mo"}
           </span>
           <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginLeft: 8 }}>
-            · <Prv>{fmtINRFull(annualAmt)}</Prv>/yr
+            · <Money value={annualAmt} variant="full" />/yr
           </span>
           {hasSteppedUp && (
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500, marginTop: 3 }}>
-              Started at <Prv>{fmtINRExact(sip.amount)}</Prv>
+              Started at <Money value={sip.amount} variant="exact" />
             </div>
           )}
         </div>
@@ -1193,11 +1194,11 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
       {/* Corpus tinted tiles */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
         {[
-          { k: "Invested", v: <Prv>{fmtINRFull(sip.totalInvested)}</Prv>, color: THEME.muted },
-          { k: "Est. Value", v: <Prv>{fmtINRFull(sip.currentCorpus)}</Prv>, color: THEME.sage },
+          { k: "Invested", v: <Money value={sip.totalInvested} variant="full" />, color: THEME.muted },
+          { k: "Est. Value", v: <Money value={sip.currentCorpus} variant="full" />, color: THEME.sage },
           {
             k: sip.isCompleted || isStopped ? "Final" : "Projected",
-            v: <Prv>{fmtINRFull(sip.projectedCorpus)}</Prv>,
+            v: <Money value={sip.projectedCorpus} variant="full" />,
             color: THEME.gold,
           },
         ].map(({ k, v, color }) => (
@@ -1255,7 +1256,7 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
         >
           {sip.estimatedGains > 0 ? (
             <>
-              +<Prv>{fmtINRFull(sip.estimatedGains)}</Prv> ({sip.gainPct.toFixed(1)}% total return)
+              +<Money value={sip.estimatedGains} variant="full" /> ({sip.gainPct.toFixed(1)}% total return)
             </>
           ) : sip.paid === 0 ? (
             "Not started"
@@ -1476,7 +1477,7 @@ function SIPModal({ onClose, onSave, initial, saving = false }: any) {
           {durationYears === 0 && durationMonths === 0 && "< 1 month"}
           <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>
           <strong style={{ color: THEME.ink }}>Total Commitment: </strong>
-          <Prv>{fmtINRFull(totalCommitment)}</Prv>
+          <Money value={totalCommitment} variant="full" />
         </div>
       )}
 
