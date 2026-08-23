@@ -54,6 +54,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
+import { ConfirmDialog } from "../ui/Feedback";
 import { MFCasPanel } from "./MFCasPanel";
 // Shared with CapitalGainsTab so LTCG/STCG shown here always agrees with the actual tax
 // report — see the isLongTerm doc comment there for the Section 2(42A) anniversary-date
@@ -2742,6 +2743,7 @@ function InvestmentEmptyState({
 /* ── FD Section ─────────────────────────────────────────────────────── */
 function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editFD, setEditFD] = useState<any>(null);
+  const [confirmDeleteFD, setConfirmDeleteFD] = useState<any>(null);
   const { run: saveFDEdit, loading: savingFDEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("fixedDeposits", id, v);
@@ -2964,11 +2966,7 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                         size="sm"
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
-                        onClick={() => {
-                          if (window.confirm(`Delete ${f.bank} fixed deposit? This cannot be undone.`)) {
-                            removeItem("fixedDeposits", f.id);
-                          }
-                        }}
+                        onClick={() => setConfirmDeleteFD(f)}
                         aria-label={`Delete ${f.bank} fixed deposit`}
                         title="Delete"
                       />
@@ -3121,6 +3119,16 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
           saving={savingFDEdit}
         />
       )}
+      {confirmDeleteFD && (
+        <ConfirmDialog
+          message={`Delete ${confirmDeleteFD.bank} fixed deposit? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("fixedDeposits", confirmDeleteFD.id);
+            setConfirmDeleteFD(null);
+          }}
+          onCancel={() => setConfirmDeleteFD(null)}
+        />
+      )}
     </div>
   );
 }
@@ -3128,6 +3136,7 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
 /* ── RD Section ─────────────────────────────────────────────────────── */
 function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editRD, setEditRD] = useState<any>(null);
+  const [confirmDeleteRD, setConfirmDeleteRD] = useState<any>(null);
   const { run: saveRDEdit, loading: savingRDEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("recurringDeposits", id, v);
@@ -3346,11 +3355,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                         size="sm"
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
-                        onClick={() => {
-                          if (window.confirm(`Delete ${r.bank} recurring deposit? This cannot be undone.`)) {
-                            removeItem("recurringDeposits", r.id);
-                          }
-                        }}
+                        onClick={() => setConfirmDeleteRD(r)}
                         aria-label={`Delete ${r.bank} recurring deposit`}
                         title="Delete"
                       />
@@ -3468,6 +3473,16 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
           saving={savingRDEdit}
         />
       )}
+      {confirmDeleteRD && (
+        <ConfirmDialog
+          message={`Delete ${confirmDeleteRD.bank} recurring deposit? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("recurringDeposits", confirmDeleteRD.id);
+            setConfirmDeleteRD(null);
+          }}
+          onCancel={() => setConfirmDeleteRD(null)}
+        />
+      )}
     </div>
   );
 }
@@ -3475,6 +3490,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
 /* ── Bond Section ───────────────────────────────────────────────────── */
 function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editBond, setEditBond] = useState<any>(null);
+  const [confirmDeleteBond, setConfirmDeleteBond] = useState<any>(null);
   const { run: saveBondEdit, loading: savingBondEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("bonds", id, v);
@@ -3664,11 +3680,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                         size="sm"
                         icon={<Trash2 size={12} />}
                         style={{ color: THEME.rust }}
-                        onClick={() => {
-                          if (window.confirm(`Delete ${b.issuer || "this bond"}? This cannot be undone.`)) {
-                            removeItem("bonds", b.id);
-                          }
-                        }}
+                        onClick={() => setConfirmDeleteBond(b)}
                         aria-label={`Delete ${b.issuer || "bond"}`}
                         title="Delete"
                       />
@@ -3916,6 +3928,16 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
           onClose={() => setEditBond(null)}
           onSave={(updated: any) => saveBondEdit(editBond.id, updated)}
           saving={savingBondEdit}
+        />
+      )}
+      {confirmDeleteBond && (
+        <ConfirmDialog
+          message={`Delete ${confirmDeleteBond.issuer || "this bond"}? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("bonds", confirmDeleteBond.id);
+            setConfirmDeleteBond(null);
+          }}
+          onCancel={() => setConfirmDeleteBond(null)}
         />
       )}
     </div>
@@ -4925,6 +4947,8 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showEditAccount, setShowEditAccount] = useState(false);
   const [savingTx, setSavingTx] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
 
   const sorted = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalDeposits = txs
@@ -5038,15 +5062,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
             size="sm"
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Delete ${p.institution || p.bank || "this PPF"} account? This cannot be undone.`
-                )
-              ) {
-                removeItem("ppf", p.id);
-              }
-            }}
+            onClick={() => setConfirmDeleteAccount(true)}
             aria-label={`Delete ${p.institution || p.bank || "PPF"} account`}
             title="Delete"
           />
@@ -5250,15 +5266,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                           <Pencil size={12} />
                         </button>
                         <button
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Delete this ${t.type} transaction dated ${t.date}? This cannot be undone.`
-                              )
-                            ) {
-                              removeTx(t.id);
-                            }
-                          }}
+                          onClick={() => setConfirmDeleteTx(t)}
                           aria-label={`Delete ${t.type} transaction dated ${t.date}`}
                           title="Delete"
                           style={{
@@ -5325,6 +5333,26 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
           onClose={() => setShowEditAccount(false)}
           onSave={(updated: any) => saveAccountEdit(updated)}
           saving={savingAccountEdit}
+        />
+      )}
+      {confirmDeleteAccount && (
+        <ConfirmDialog
+          message={`Delete ${p.institution || p.bank || "this PPF"} account? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("ppf", p.id);
+            setConfirmDeleteAccount(false);
+          }}
+          onCancel={() => setConfirmDeleteAccount(false)}
+        />
+      )}
+      {confirmDeleteTx && (
+        <ConfirmDialog
+          message={`Delete this ${confirmDeleteTx.type} transaction dated ${confirmDeleteTx.date}? This cannot be undone.`}
+          onConfirm={() => {
+            removeTx(confirmDeleteTx.id);
+            setConfirmDeleteTx(null);
+          }}
+          onCancel={() => setConfirmDeleteTx(null)}
         />
       )}
     </Card>
@@ -5959,6 +5987,8 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showEditAccount, setShowEditAccount] = useState(false);
   const [savingTx, setSavingTx] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
 
   useEffect(() => {
     setTxs(n.transactions || []);
@@ -6113,13 +6143,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
             size="sm"
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
-            onClick={() => {
-              if (
-                window.confirm(`Delete NPS account${n.pran ? ` ${n.pran}` : ""}? This cannot be undone.`)
-              ) {
-                removeItem("nps", n.id);
-              }
-            }}
+            onClick={() => setConfirmDeleteAccount(true)}
             aria-label={`Delete NPS account${n.pran ? ` ${n.pran}` : ""}`}
             title="Delete"
           />
@@ -6443,11 +6467,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                               size="sm"
                               icon={<Trash2 size={11} />}
                               style={{ color: THEME.rust }}
-                              onClick={() => {
-                                if (window.confirm(`Delete this transaction dated ${t.date}? This cannot be undone.`)) {
-                                  removeTx(t.id);
-                                }
-                              }}
+                              onClick={() => setConfirmDeleteTx(t)}
                               aria-label={`Delete transaction dated ${t.date}`}
                               title="Delete"
                             />
@@ -6517,6 +6537,26 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
           onClose={() => setShowEditAccount(false)}
           onSave={(updated: any) => saveAccountEdit(updated)}
           saving={savingAccountEdit}
+        />
+      )}
+      {confirmDeleteAccount && (
+        <ConfirmDialog
+          message={`Delete NPS account${n.pran ? ` ${n.pran}` : ""}? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("nps", n.id);
+            setConfirmDeleteAccount(false);
+          }}
+          onCancel={() => setConfirmDeleteAccount(false)}
+        />
+      )}
+      {confirmDeleteTx && (
+        <ConfirmDialog
+          message={`Delete this transaction dated ${confirmDeleteTx.date}? This cannot be undone.`}
+          onConfirm={() => {
+            removeTx(confirmDeleteTx.id);
+            setConfirmDeleteTx(null);
+          }}
+          onCancel={() => setConfirmDeleteTx(null)}
         />
       )}
     </Card>
@@ -7595,6 +7635,9 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
   const [transferPrefill, setTransferPrefill] = useState<any>(null);
   const [savingTx, setSavingTx] = useState(false);
   const [savingEst, setSavingEst] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
+  const [confirmDeleteEst, setConfirmDeleteEst] = useState<any>(null);
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
 
   // Sync local state when the selected EPF record changes (p.id change = different record).
   // Intentionally omit p.transactions and p.establishments: adding them would re-run on every
@@ -7910,15 +7953,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
             size="sm"
             icon={<Trash2 size={12} />}
             style={{ color: THEME.rust }}
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Delete EPF account${p.uan || p.accountNumber ? ` ${p.uan || p.accountNumber}` : ""}? This cannot be undone.`
-                )
-              ) {
-                removeItem("epf", p.id);
-              }
-            }}
+            onClick={() => setConfirmDeleteAccount(true)}
             aria-label={`Delete EPF account${p.uan || p.accountNumber ? ` ${p.uan || p.accountNumber}` : ""}`}
             title="Delete"
           />
@@ -8196,13 +8231,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                         <button
                           onClick={() => {
                             if (alreadyTransferred) return;
-                            if (
-                              window.confirm(
-                                `Delete ${est.employerName || "this employer"} service history? This cannot be undone.`
-                              )
-                            ) {
-                              removeEst(est.id);
-                            }
+                            setConfirmDeleteEst(est);
                           }}
                           disabled={alreadyTransferred}
                           aria-label={`Delete ${est.employerName || "employer"} service history`}
@@ -8880,9 +8909,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                     </button>
                                     <button
                                       onClick={() => {
-                                if (window.confirm(`Delete this transaction dated ${t.date}? This cannot be undone.`)) {
-                                  removeTx(t.id);
-                                }
+                                setConfirmDeleteTx(t);
                               }}
                                       aria-label={`Delete transaction dated ${t.date}`}
                                       title="Delete"
@@ -9110,9 +9137,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                               </button>
                               <button
                                 onClick={() => {
-                                if (window.confirm(`Delete this transaction dated ${t.date}? This cannot be undone.`)) {
-                                  removeTx(t.id);
-                                }
+                                setConfirmDeleteTx(t);
                               }}
                                 aria-label={`Delete transaction dated ${t.date}`}
                                 title="Delete"
@@ -9172,6 +9197,36 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
           onClose={() => setShowEditAccount(false)}
           onSave={(updated: any) => saveAccountEdit(updated)}
           saving={savingAccountEdit}
+        />
+      )}
+      {confirmDeleteAccount && (
+        <ConfirmDialog
+          message={`Delete EPF account${p.uan || p.accountNumber ? ` ${p.uan || p.accountNumber}` : ""}? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("epf", p.id);
+            setConfirmDeleteAccount(false);
+          }}
+          onCancel={() => setConfirmDeleteAccount(false)}
+        />
+      )}
+      {confirmDeleteEst && (
+        <ConfirmDialog
+          message={`Delete ${confirmDeleteEst.employerName || "this employer"} service history? This cannot be undone.`}
+          onConfirm={() => {
+            removeEst(confirmDeleteEst.id);
+            setConfirmDeleteEst(null);
+          }}
+          onCancel={() => setConfirmDeleteEst(null)}
+        />
+      )}
+      {confirmDeleteTx && (
+        <ConfirmDialog
+          message={`Delete this transaction dated ${confirmDeleteTx.date}? This cannot be undone.`}
+          onConfirm={() => {
+            removeTx(confirmDeleteTx.id);
+            setConfirmDeleteTx(null);
+          }}
+          onCancel={() => setConfirmDeleteTx(null)}
         />
       )}
     </Card>
@@ -10143,6 +10198,7 @@ function MFSection({
   const { privacyMode } = usePrivacy();
   const getLiveNav = (m: any) => liveMfNav(m, mfMarketData);
   const [editMF, setEditMF] = useState<any>(null);
+  const [confirmDeleteLot, setConfirmDeleteLot] = useState<any>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [navError, setNavError] = useState<Record<string, string>>({});
@@ -12187,13 +12243,10 @@ function MFSection({
                                                             style={{ color: THEME.rust }}
                                                             onClick={(e: any) => {
                                                               e.stopPropagation();
-                                                              if (
-                                                                window.confirm(
-                                                                  `Delete this ${lot.fundName || displayName} lot? This cannot be undone.`
-                                                                )
-                                                              ) {
-                                                                removeItem("mutualFunds", lot.id);
-                                                              }
+                                                              setConfirmDeleteLot({
+                                                                lot,
+                                                                label: lot.fundName || displayName,
+                                                              });
                                                             }}
                                                             aria-label={`Delete ${lot.fundName || displayName} lot`}
                                                             title="Delete"
@@ -12685,6 +12738,16 @@ function MFSection({
           onSave={(updated: any) => saveMFEdit(editMF.id, updated)}
           saving={savingMFEdit}
           activeProfile={activeProfile}
+        />
+      )}
+      {confirmDeleteLot && (
+        <ConfirmDialog
+          message={`Delete this ${confirmDeleteLot.label} lot? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("mutualFunds", confirmDeleteLot.lot.id);
+            setConfirmDeleteLot(null);
+          }}
+          onCancel={() => setConfirmDeleteLot(null)}
         />
       )}
       {sellMF && (
@@ -13502,6 +13565,7 @@ function FifoSellMFModal({ group, onClose, onSave, saving }: any) {
 const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
   const [showForm, setShowForm] = React.useState(false);
   const [savingDividend, setSavingDividend] = React.useState(false);
+  const [confirmDeleteDividend, setConfirmDeleteDividend] = React.useState<any>(null);
   const [form, setForm] = React.useState({
     symbol: "",
     fundName: "",
@@ -13852,15 +13916,7 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
                       <td style={{ padding: "10px 6px" }}>
                         {!d.isAuto && (
                           <button
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Delete this dividend from ${d.symbol || d.fundName || "this holding"}? This cannot be undone.`
-                                )
-                              ) {
-                                removeItem("dividends", d.id);
-                              }
-                            }}
+                            onClick={() => setConfirmDeleteDividend(d)}
                             aria-label={`Delete dividend from ${d.symbol || d.fundName || "holding"}`}
                             title="Delete"
                             style={{
@@ -13928,6 +13984,16 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
       {/* ── DRIP Simulator ──────────────────────────────────────────── */}
       {allDividends.length > 0 && (
         <DRIPSimulator allDividends={allDividends} totalDividends={totalDividends} />
+      )}
+      {confirmDeleteDividend && (
+        <ConfirmDialog
+          message={`Delete this dividend from ${confirmDeleteDividend.symbol || confirmDeleteDividend.fundName || "this holding"}? This cannot be undone.`}
+          onConfirm={() => {
+            removeItem("dividends", confirmDeleteDividend.id);
+            setConfirmDeleteDividend(null);
+          }}
+          onCancel={() => setConfirmDeleteDividend(null)}
+        />
       )}
     </div>
   );
