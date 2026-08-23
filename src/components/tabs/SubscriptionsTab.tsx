@@ -29,6 +29,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // Fixed, validated colorblind-safe order (see THEME.chart1..6 / --t-chart-N in
@@ -218,6 +219,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const updateSub = async (id: string, patch: any) => {
     setTogglingId(id);
@@ -230,8 +232,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     }
   };
 
-  const deleteSub = async (id: string, name: string) => {
-    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const doDeleteSub = async (id: string) => {
     setDeletingId(id);
     try {
       await removeItem("subscriptions", id);
@@ -240,6 +241,10 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const deleteSub = (id: string, name: string) => {
+    setConfirmDelete({ id, name });
   };
 
   const { run: saveNewSub, loading: savingNewSub } = useAsyncAction(
@@ -1119,6 +1124,16 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           onClose={() => setEditSub(null)}
           onSave={saveSubEdit}
           saving={savingSubEdit}
+        />
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`Delete "${confirmDelete.name}"? This cannot be undone.`}
+          onConfirm={() => {
+            doDeleteSub(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
     </div>
