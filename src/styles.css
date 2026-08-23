@@ -245,29 +245,14 @@ body::before {
 }
 
 /* ── Spotlight Hover Effect ────────────────────────────────────── */
+/* The cursor-following radial-gradient glow (::before, driven by --mouse-x/
+   --mouse-y) was removed — in light mode it read as a stray gray/purple
+   shadow box trailing the cursor across cards rather than a subtle glow.
+   Wrapper/content classes stay since Card.tsx/StatCard.tsx still rely on
+   them for stacking + flex layout, just with no visual overlay anymore. */
 .spotlight-wrapper {
   position: relative;
   overflow: hidden;
-}
-.spotlight-wrapper::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    800px circle at var(--mouse-x, 0) var(--mouse-y, 0),
-    color-mix(in srgb, var(--t-accent) 6%, transparent),
-    transparent 40%
-  );
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.spotlight-wrapper:hover::before {
-  opacity: 1;
 }
 .spotlight-content {
   position: relative;
