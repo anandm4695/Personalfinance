@@ -30,7 +30,8 @@ import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../uti
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { EmptyState } from "../ui/EmptyState";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
@@ -163,7 +164,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                <Prv>{fmtINRFull(entry.value)}</Prv>
+                <Money value={entry.value} variant="full" />
               </span>
             </div>
           );
@@ -191,7 +192,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRFull(totalValue)}</Prv>
+              <Money value={totalValue} variant="full" />
             </span>
           </div>
         )}
@@ -424,12 +425,12 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          <Prv>{fmtINRFull(animatedNetWorth)}</Prv>
+          <Money value={animatedNetWorth} variant="full" />
         </div>
         {latestDelta && (
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
             {latestDelta.delta >= 0 ? "+" : "-"}
-            <Prv>{fmtINRFull(Math.abs(latestDelta.delta))}</Prv> (
+            <Money value={Math.abs(latestDelta.delta)} variant="full" /> (
             {latestDelta.pctChange >= 0 ? "+" : ""}
             {latestDelta.pctChange.toFixed(1)}%) vs last month
           </div>
@@ -504,9 +505,8 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   lineHeight: 1,
                 }}
               >
-                <Prv>
-                  {(stats.totalGrowth < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedTotalGrowth))}
-                </Prv>
+                {stats.totalGrowth < 0 ? "-" : ""}
+                <Money value={Math.abs(animatedTotalGrowth)} variant="full" />
               </div>
               <div
                 style={{
@@ -578,9 +578,8 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   lineHeight: 1,
                 }}
               >
-                <Prv>
-                  {(stats.avgMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(animatedAvgMonthly))}
-                </Prv>
+                {stats.avgMonthly < 0 ? "-" : ""}
+                <Money value={Math.abs(animatedAvgMonthly)} variant="full" />
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
                 Net Monthly Wealth Accumulation
@@ -741,7 +740,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   lineHeight: 1,
                 }}
               >
-                <Prv>+{fmtINRFull(animatedBestDelta)}</Prv>
+                +<Money value={animatedBestDelta} variant="full" />
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
                 Growth: +{stats.best?.pctChange.toFixed(1)}% MoM
@@ -804,7 +803,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   lineHeight: 1,
                 }}
               >
-                <Prv>{fmtINRFull(animatedWorstDelta)}</Prv>
+                <Money value={animatedWorstDelta} variant="full" />
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
                 Growth: {stats.worst?.pctChange.toFixed(1)}% MoM
@@ -1337,7 +1336,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 marginTop: 4,
               }}
             >
-              <Prv>{fmtINRFull(animatedProjectedNominal)}</Prv>
+              <Money value={animatedProjectedNominal} variant="full" />
             </div>
           </div>
 
@@ -1371,7 +1370,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 marginTop: 4,
               }}
             >
-              <Prv>{fmtINRFull(animatedProjectedReal)}</Prv>
+              <Money value={animatedProjectedReal} variant="full" />
             </div>
           </div>
         </div>
@@ -1458,7 +1457,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRFull(m.target)}</Prv>
+                        <Money value={m.target} variant="full" />
                       </div>
                       <div
                         style={{
