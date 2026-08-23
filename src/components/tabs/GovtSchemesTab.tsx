@@ -31,6 +31,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
   APY_PENSION_TIERS,
@@ -476,6 +477,7 @@ export function GovtSchemesTab({
   const [modal, setModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sub, setSub] = useState(subTab || "APY");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Sync internal sub when parent drives subTab via sidebar click
   useEffect(() => {
@@ -821,9 +823,7 @@ export function GovtSchemesTab({
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Delete this scheme?`)) deleteScheme(sc.id);
-                      }}
+                      onClick={() => setConfirmDeleteId(sc.id)}
                       className="icon-btn danger"
                       aria-label="Delete scheme"
                       title="Delete"
@@ -937,6 +937,16 @@ export function GovtSchemesTab({
           onSave={save}
           onClose={() => setModal(null)}
           saving={savingScheme}
+        />
+      )}
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message="Delete this scheme?"
+          onConfirm={() => {
+            deleteScheme(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }}
+          onCancel={() => setConfirmDeleteId(null)}
         />
       )}
     </div>
