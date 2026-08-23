@@ -5,6 +5,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { SkeletonTableRows } from "../ui/Skeleton";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
+import { Money } from "../ui/Money";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 
 interface CsvImportModalProps {
@@ -960,7 +961,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                       }}
                     >
                       {r.type === "credit" ? "+" : "−"}
-                      <Prv>{fmtINRFull(r.amount)}</Prv>
+                      <Money value={r.amount} variant="full" />
                     </span>
                     <span style={{ color: THEME.muted, minWidth: 80 }}>{r.category}</span>
                     <span style={{ flex: 1, color: THEME.muted }}>
@@ -1336,7 +1337,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                           }}
                         >
                           {r.type === "credit" ? "+" : "-"}
-                          <Prv>{fmtINRFull(r.amount)}</Prv>
+                          <Money value={r.amount} variant="full" />
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
                           {r.isDuplicate && r.backfillId ? (
@@ -1411,10 +1412,10 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 }}
               >
                 <span>
-                  Credits: <b style={{ color: THEME.sage }}><Prv>{fmtINRFull(totalCredits)}</Prv></b>
+                  Credits: <b style={{ color: THEME.sage }}><Money value={totalCredits} variant="full" /></b>
                 </span>
                 <span>
-                  Debits: <b style={{ color: THEME.rust }}><Prv>{fmtINRFull(totalDebits)}</Prv></b>
+                  Debits: <b style={{ color: THEME.rust }}><Money value={totalDebits} variant="full" /></b>
                 </span>
                 {plainDuplicateCount > 0 && (
                   <span>
