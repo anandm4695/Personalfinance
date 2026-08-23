@@ -30,6 +30,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { EmptyState } from "../ui/EmptyState";
 
 const printStyles = `@media print {
@@ -137,7 +138,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
           />
           <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
           <span style={{ fontWeight: 700, color: THEME.ink }}>
-            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
+            <Prv>{formatter ? formatter(p.value) : <Money value={p.value} variant="full" />}</Prv>
           </span>
         </div>
       ))}
@@ -215,7 +216,7 @@ const ComparisonSplitCard = ({
               letterSpacing: "-0.02em",
             }}
           >
-            <Prv>{fmtINRFull(animatedCurrent)}</Prv>
+            <Money value={animatedCurrent} variant="full" />
           </div>
         </div>
 
@@ -237,7 +238,7 @@ const ComparisonSplitCard = ({
           <div
             style={{ fontSize: 20, fontWeight: 700, color: THEME.muted, letterSpacing: "-0.02em" }}
           >
-            <Prv>{fmtINRFull(animatedPrevious)}</Prv>
+            <Money value={animatedPrevious} variant="full" />
           </div>
         </div>
       </div>
@@ -744,7 +745,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
         {isUp ? "Increased" : "Decreased"}
         {showAmount && (
           <span style={{ fontWeight: 900, marginLeft: 2 }}>
-            <Prv>{fmtINRFull(Math.abs(value))}</Prv>
+            <Money value={Math.abs(value)} variant="full" />
           </span>
         )}
       </Badge>
@@ -1128,10 +1129,10 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
                         {c.category}
                       </td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                        <Prv>{fmtINRFull(c.current)}</Prv>
+                        <Money value={c.current} variant="full" />
                       </td>
                       <td style={{ ...td, textAlign: "right", color: THEME.muted, fontWeight: 500 }}>
-                        <Prv>{fmtINRFull(c.previous)}</Prv>
+                        <Money value={c.previous} variant="full" />
                       </td>
                       <td
                         style={{
@@ -1142,7 +1143,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
                         }}
                       >
                         {c.delta > 0 ? "+" : ""}
-                        <Prv>{fmtINRFull(c.delta)}</Prv>
+                        <Money value={c.delta} variant="full" />
                       </td>
                       <td
                         style={{
