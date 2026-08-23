@@ -44,6 +44,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const EMPTY: any = {
@@ -512,13 +513,13 @@ Return only the JSON, no explanation.`;
               color: netExceedsGross ? THEME.rust : THEME.sage,
             }}
           >
-            {computed.netSalary ? <Prv>{fmtINRFull(Number(computed.netSalary))}</Prv> : "—"}
+            {computed.netSalary ? <Money value={Number(computed.netSalary)} variant="full" /> : "—"}
           </span>
         </div>
         {computed.grossSalary > 0 && computed.totalDeductions > 0 && (
           <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 6, fontWeight: 500 }}>
-            Gross: <Prv>{fmtINRFull(Number(computed.grossSalary))}</Prv> &bull; Deductions:{" "}
-            <Prv>{fmtINRFull(Number(computed.totalDeductions))}</Prv>
+            Gross: <Money value={Number(computed.grossSalary)} variant="full" /> &bull; Deductions:{" "}
+            <Money value={Number(computed.totalDeductions)} variant="full" />
           </div>
         )}
         {netExceedsGross && (
@@ -887,7 +888,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
               value={fmtINRFull(avgNet)}
               numericValue={avgNet}
               formatValue={fmtINRFull}
-              sub={<>All-time: <Prv>{fmtINRFull(allTimeAvgNet)}</Prv>{combinedNote}</>}
+              sub={<>All-time: <Money value={allTimeAvgNet} variant="full" />{combinedNote}</>}
               icon={<TrendingUp />}
               color={THEME.accent}
             />
@@ -1057,7 +1058,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRFull(net)}</Prv>
+                        <Money value={net} variant="full" />
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>net</div>
                     </div>
@@ -1071,7 +1072,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          <Prv>{fmtINRFull(gross)}</Prv>
+                          <Money value={gross} variant="full" />
                         </div>
                         <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                           gross
@@ -1080,7 +1081,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                     )}
                     {Number(s.tds) > 0 && (
                       <Badge variant="rust" style={{ fontSize: 9.5, padding: "2px 8px" }}>
-                        TDS <Prv>{fmtINRFull(Number(s.tds))}</Prv>
+                        TDS <Money value={Number(s.tds)} variant="full" />
                       </Badge>
                     )}
                     <div style={{ display: "flex", gap: 6, marginLeft: 6 }}>
@@ -1218,7 +1219,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                               >
                                 <span>{label}</span>
                                 <span style={{ color: THEME.ink, fontWeight: 600 }}>
-                                  <Prv>{fmtINRFull(Number(val))}</Prv>
+                                  <Money value={Number(val)} variant="full" />
                                 </span>
                               </div>
                             ))}
@@ -1237,7 +1238,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                           >
                             <span>Gross Salary</span>
                             <span>
-                              <Prv>{fmtINRFull(Number(s.grossSalary || 0))}</Prv>
+                              <Money value={Number(s.grossSalary || 0)} variant="full" />
                             </span>
                           </div>
                         </div>
@@ -1291,7 +1292,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                               >
                                 <span>{label}</span>
                                 <span style={{ color: THEME.ink, fontWeight: 600 }}>
-                                  <Prv>{fmtINRFull(Number(val))}</Prv>
+                                  <Money value={Number(val)} variant="full" />
                                 </span>
                               </div>
                             ))}
@@ -1310,7 +1311,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                           >
                             <span>Total Deductions</span>
                             <span>
-                              <Prv>{fmtINRFull(Number(s.totalDeductions || 0))}</Prv>
+                              <Money value={Number(s.totalDeductions || 0)} variant="full" />
                             </span>
                           </div>
                         </div>
