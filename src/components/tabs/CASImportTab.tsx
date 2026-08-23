@@ -21,9 +21,9 @@ import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { PdfPasswordPrompt } from "../ui/PdfPasswordPrompt";
+import { Money } from "../ui/Money";
 import { useCasPdfExtract } from "../../hooks/useCasPdfExtract";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { Prv } from "../../context/PrivacyContext";
 
 const MF_CATEGORY_MAP = {
   equity: "Equity",
@@ -660,7 +660,7 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
                   >
                     <div style={{ fontSize: 12, color: THEME.textSecondary }}>{cat}</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: THEME.text }}>
-                      <Prv>{fmtINRFull(val)}</Prv>
+                      <Money value={val} variant="full" />
                     </div>
                   </div>
                 ))}
@@ -846,7 +846,7 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
                           color: THEME.text,
                         }}
                       >
-                        <Prv>{fmtINRFull(f.value)}</Prv>
+                        <Money value={f.value} variant="full" />
                       </td>
                     </tr>
                   ))}
