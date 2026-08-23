@@ -25,7 +25,8 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
@@ -172,7 +173,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
   );
 };
 
-const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any) => {
+const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showToast }: any) => {
   const { familyProfiles } = useMasterData();
   const todayStr = (() => {
     const d = new Date();
@@ -403,7 +404,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
 
   const handleAutoGenerateTransactions = () => {
     if (!lic.commencementDate || !lic.annualPremium) {
-      alert("Please select a Commencement Date and enter an Annual Premium first.");
+      showToast?.("Please select a Commencement Date and enter an Annual Premium first.", "warn");
       return;
     }
     const existingCount = (lic.transactions || []).length;
@@ -451,7 +452,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
 
   const handleTermAutoGenerateTransactions = () => {
     if (!term.startDate || !term.annualPremium) {
-      alert("Please select a Commencement Date and enter an Annual Premium first.");
+      showToast?.("Please select a Commencement Date and enter an Annual Premium first.", "warn");
       return;
     }
     const existingCount = (term.transactions || []).length;
@@ -499,7 +500,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
 
   const handleInvestAutoGenerateTransactions = () => {
     if (!invest.commencementDate || !invest.annualPremium) {
-      alert("Please select a Commencement Date and enter an Annual Premium first.");
+      showToast?.("Please select a Commencement Date and enter an Annual Premium first.", "warn");
       return;
     }
     const existingCount = (invest.transactions || []).length;
@@ -781,7 +782,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          <Prv>{fmtINRExact(t.amount)}</Prv>
+                          <Money value={t.amount} variant="exact" />
                         </span>
                         <Button
                           variant="ghost"
@@ -878,9 +879,10 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                 Expected Total:{" "}
                 <span style={{ color: THEME.ink, fontWeight: 800 }}>
                   {lic.annualPremium && lic.policyTerm ? (
-                    <Prv>
-                      {fmtINRExact(Number(lic.annualPremium) * parseInt(lic.policyTerm, 10))}
-                    </Prv>
+                    <Money
+                      value={Number(lic.annualPremium) * parseInt(lic.policyTerm, 10)}
+                      variant="exact"
+                    />
                   ) : (
                     "—"
                   )}
@@ -889,14 +891,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
               <span>
                 Calculated Paid:{" "}
                 <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                  <Prv>
-                    {fmtINRFull(
-                      (lic.transactions || []).reduce(
-                        (sum: number, t: any) => sum + Number(t.amount || 0),
-                        0
-                      )
+                  <Money
+                    value={(lic.transactions || []).reduce(
+                      (sum: number, t: any) => sum + Number(t.amount || 0),
+                      0
                     )}
-                  </Prv>
+                    variant="full"
+                  />
                 </span>
               </span>
               <span>
@@ -925,7 +926,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                             (sum: number, t: any) => sum + Number(t.amount || 0),
                             0
                           );
-                        return bal <= 0 ? "Fully Paid" : <Prv>{fmtINRFull(bal)}</Prv>;
+                        return bal <= 0 ? "Fully Paid" : <Money value={bal} variant="full" />;
                       })()
                     : "—"}
                 </span>
@@ -1110,7 +1111,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          <Prv>{fmtINRExact(t.amount)}</Prv>
+                          <Money value={t.amount} variant="exact" />
                         </span>
                         <Button
                           variant="ghost"
@@ -1207,12 +1208,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                 Expected Total:{" "}
                 <span style={{ color: THEME.ink, fontWeight: 800 }}>
                   {invest.annualPremium && (invest.premiumPayingTerm || invest.policyTerm) ? (
-                    <Prv>
-                      {fmtINRFull(
+                    <Money
+                      value={
                         Number(invest.annualPremium) *
-                          parseInt(invest.premiumPayingTerm || invest.policyTerm, 10)
-                      )}
-                    </Prv>
+                        parseInt(invest.premiumPayingTerm || invest.policyTerm, 10)
+                      }
+                      variant="full"
+                    />
                   ) : (
                     "—"
                   )}
@@ -1221,14 +1223,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
               <span>
                 Calculated Paid:{" "}
                 <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                  <Prv>
-                    {fmtINRFull(
-                      (invest.transactions || []).reduce(
-                        (sum: number, t: any) => sum + Number(t.amount || 0),
-                        0
-                      )
+                  <Money
+                    value={(invest.transactions || []).reduce(
+                      (sum: number, t: any) => sum + Number(t.amount || 0),
+                      0
                     )}
-                  </Prv>
+                    variant="full"
+                  />
                 </span>
               </span>
               <span>
@@ -1259,7 +1260,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                             (sum: number, t: any) => sum + Number(t.amount || 0),
                             0
                           );
-                        return bal <= 0 ? "Fully Paid" : <Prv>{fmtINRFull(bal)}</Prv>;
+                        return bal <= 0 ? "Fully Paid" : <Money value={bal} variant="full" />;
                       })()
                     : "—"}
                 </span>
@@ -1422,7 +1423,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          <Prv>{fmtINRExact(t.amount)}</Prv>
+                          <Money value={t.amount} variant="exact" />
                         </span>
                         <Button
                           variant="ghost"
@@ -1519,12 +1520,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                 Expected Total:{" "}
                 <span style={{ color: THEME.ink, fontWeight: 800 }}>
                   {term.annualPremium && (term.premiumPayingTerm || term.term) ? (
-                    <Prv>
-                      {fmtINRFull(
+                    <Money
+                      value={
                         Number(term.annualPremium) *
-                          parseInt(term.premiumPayingTerm || term.term, 10)
-                      )}
-                    </Prv>
+                        parseInt(term.premiumPayingTerm || term.term, 10)
+                      }
+                      variant="full"
+                    />
                   ) : (
                     "—"
                   )}
@@ -1533,14 +1535,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
               <span>
                 Calculated Paid:{" "}
                 <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                  <Prv>
-                    {fmtINRFull(
-                      (term.transactions || []).reduce(
-                        (sum: number, t: any) => sum + Number(t.amount || 0),
-                        0
-                      )
+                  <Money
+                    value={(term.transactions || []).reduce(
+                      (sum: number, t: any) => sum + Number(t.amount || 0),
+                      0
                     )}
-                  </Prv>
+                    variant="full"
+                  />
                 </span>
               </span>
               <span>
@@ -1571,7 +1572,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false }: any
                             (sum: number, t: any) => sum + Number(t.amount || 0),
                             0
                           );
-                        return bal <= 0 ? "Fully Paid" : <Prv>{fmtINRFull(bal)}</Prv>;
+                        return bal <= 0 ? "Fully Paid" : <Money value={bal} variant="full" />;
                       })()
                     : "—"}
                 </span>
@@ -2083,7 +2084,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     }}
                   >
                     <span style={{ color: THEME.muted }}>
-                      <Prv>{fmtINRExact(p.premium)}</Prv>
+                      <Money value={p.premium} variant="exact" />
                     </span>
                     <span style={{ color: urgencyColor }}>
                       {isOverdue
@@ -2328,7 +2329,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.rust }}>
-                          <Prv>{fmtINRFull(l.sumAssured)}</Prv> assured
+                          <Money value={l.sumAssured} variant="full" /> assured
                         </span>
                         {l.policyNumber && (
                           <>
@@ -2347,14 +2348,14 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        <Prv>{fmtINRExact(l.annualPremium)}</Prv>
+                        <Money value={l.annualPremium} variant="exact" />
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>
                       </div>
                       {monthlyPremium > 0 && (
                         <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          <Prv>{fmtINRFull(Math.round(monthlyPremium))}</Prv>/mo
+                          <Money value={Math.round(monthlyPremium)} variant="full" />/mo
                         </div>
                       )}
                       <div
@@ -2514,13 +2515,13 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
                       Paid:{" "}
                       <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                        <Prv>{fmtINRFull(paid)}</Prv>
+                        <Money value={paid} variant="full" />
                       </span>
                       {surrenderVal > 0 && (
                         <>
                           <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>Surrender est:{" "}
                           <span style={{ color: THEME.accent, fontWeight: 800 }}>
-                            <Prv>{fmtINRFull(surrenderVal)}</Prv>
+                            <Money value={surrenderVal} variant="full" />
                           </span>
                         </>
                       )}
@@ -2655,7 +2656,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.accent }}>
-                          <Prv>{fmtINRFull(t.coverAmount)}</Prv> cover
+                          <Money value={t.coverAmount} variant="full" /> cover
                         </span>
                         {t.insurer && (
                           <>
@@ -2674,14 +2675,14 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        <Prv>{fmtINRExact(t.annualPremium)}</Prv>
+                        <Money value={t.annualPremium} variant="exact" />
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>
                       </div>
                       {monthlyPremium > 0 && (
                         <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          <Prv>{fmtINRFull(Math.round(monthlyPremium))}</Prv>/mo
+                          <Money value={Math.round(monthlyPremium)} variant="full" />/mo
                         </div>
                       )}
                       <div
@@ -2846,7 +2847,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
                       Paid:{" "}
                       <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                        <Prv>{fmtINRFull(paid)}</Prv>
+                        <Money value={paid} variant="full" />
                       </span>
                       {expectedTotal > 0 && (
                         <>
@@ -2854,7 +2855,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           <span
                             style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}
                           >
-                            {isPaid ? "Fully Paid" : <Prv>{fmtINRFull(balance)}</Prv>}
+                            {isPaid ? "Fully Paid" : <Money value={balance} variant="full" />}
                           </span>
                         </>
                       )}
@@ -2988,7 +2989,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.sage }}>
-                          <Prv>{fmtINRFull(ip.expectedMaturityAmount)}</Prv> maturity
+                          <Money value={ip.expectedMaturityAmount} variant="full" /> maturity
                         </span>
                         {ip.insurer && (
                           <>
@@ -3007,14 +3008,14 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        <Prv>{fmtINRExact(ip.annualPremium)}</Prv>
+                        <Money value={ip.annualPremium} variant="exact" />
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>
                       </div>
                       {monthlyPremium > 0 && (
                         <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          <Prv>{fmtINRFull(Math.round(monthlyPremium))}</Prv>/mo
+                          <Money value={Math.round(monthlyPremium)} variant="full" />/mo
                         </div>
                       )}
                       <div
@@ -3160,7 +3161,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           Invested
                         </div>
                         <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-                          <Prv>{fmtINRFull(paid)}</Prv>
+                          <Money value={paid} variant="full" />
                         </div>
                       </div>
                       {expectedTotal > 0 && (
@@ -3193,7 +3194,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                               fontSize: 13,
                             }}
                           >
-                            {isPaid ? "Fully Paid" : <Prv>{fmtINRFull(balance)}</Prv>}
+                            {isPaid ? "Fully Paid" : <Money value={balance} variant="full" />}
                           </div>
                         </div>
                       )}
@@ -3221,7 +3222,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             At Maturity
                           </div>
                           <div style={{ fontWeight: 800, color: THEME.sage, fontSize: 13 }}>
-                            <Prv>{fmtINRFull(ip.expectedMaturityAmount)}</Prv>
+                            <Money value={ip.expectedMaturityAmount} variant="full" />
                           </div>
                           {maturityGain > 0 && expectedTotal > 0 && (
                             <div style={{ fontSize: 9, color: THEME.sage, fontWeight: 700 }}>
