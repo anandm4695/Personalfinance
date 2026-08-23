@@ -36,6 +36,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const BUREAUS = ["CIBIL", "Experian", "CRIF", "Equifax"];
@@ -521,6 +522,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
   const [bureau, setBureau] = useState("CIBIL");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const distinctOwners = useMemo(
     () => Array.from(new Set(scores.map((s) => s.owner).filter(Boolean))),
@@ -1092,10 +1094,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                       </Badge>
                       
                       <button
-                        onClick={() => {
-                          if (window.confirm("Delete this entry?"))
-                            deleteScore(s.id);
-                        }}
+                        onClick={() => setConfirmDeleteId(s.id)}
                         aria-label="Delete credit score entry"
                         style={{
                           background: "none",
@@ -1163,6 +1162,16 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
           onSave={save}
           onClose={() => setModal(null)}
           saving={savingScore}
+        />
+      )}
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message="Delete this entry?"
+          onConfirm={() => {
+            deleteScore(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }}
+          onCancel={() => setConfirmDeleteId(null)}
         />
       )}
     </div>
