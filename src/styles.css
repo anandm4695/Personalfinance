@@ -1114,7 +1114,7 @@ tbody tr:hover td {
   border: 1px solid var(--t-line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
-  z-index: 400;
+  z-index: var(--z-dropdown);
   animation: slideDown 0.18s var(--ease-out);
   overflow: hidden;
 }
