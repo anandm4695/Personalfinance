@@ -27,7 +27,8 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // Fixed, validated colorblind-safe order (see THEME.chart1..6 / --t-chart-N in
@@ -448,11 +449,11 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                 metrics?.monthIncome > 0 ? (
                   <>
                     {((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income ·{" "}
-                    <Prv>{fmtINRFull(totalAnnual)}</Prv>/yr
+                    <Money value={totalAnnual} variant="full" />/yr
                   </>
                 ) : (
                   <>
-                    Projected monthly spend · <Prv>{fmtINRFull(totalAnnual)}</Prv>/yr
+                    Projected monthly spend · <Money value={totalAnnual} variant="full" />/yr
                   </>
                 )
               }
@@ -590,7 +591,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                       textAlign: "right",
                     }}
                   >
-                    <Prv>{fmtINRFull(c.monthly)}</Prv>
+                    <Money value={c.monthly} variant="full" />
                   </span>
                 </div>
               ))}
@@ -616,11 +617,10 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             </span>
             <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
               (
-              <Prv>
-                {fmtINRFull(
-                  upcomingSubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0)
-                )}
-              </Prv>{" "}
+              <Money
+                value={upcomingSubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0)}
+                variant="full"
+              />{" "}
               total)
             </span>
           </div>
@@ -650,7 +650,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                         : days < 0
                           ? `${Math.abs(days)}d overdue`
                           : `${days}d`}{" "}
-                      · <Prv>{fmtINRExact(s.amount)}</Prv>
+                      · <Money value={s.amount} variant="exact" />
                     </div>
                   </div>
                 </div>
@@ -712,7 +712,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                   <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>{cat}</span>
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                     {subs.length} service{subs.length !== 1 ? "s" : ""} ·{" "}
-                    <Prv>{fmtINRFull(catMonthly)}</Prv>
+                    <Money value={catMonthly} variant="full" />
                     /mo
                   </span>
                 </button>
@@ -780,7 +780,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                 }}
                               >
                                 <span style={{ color: THEME.accent, whiteSpace: "nowrap" }}>
-                                  <Prv>{fmtINRExact(s.amount)}</Prv>
+                                  <Money value={s.amount} variant="exact" />
                                 </span>
                                 <span style={{ opacity: 0.4 }}>·</span>
                                 <span style={{ textTransform: "capitalize", whiteSpace: "nowrap" }}>
@@ -854,7 +854,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                   <TrendingUp size={11} style={{ flexShrink: 0 }} />
                                   <span>
                                     Price {Number(s.lastPaidAmount) > Number(s.amount) ? "increased" : "changed"}
-                                    {" "}to <Prv>{fmtINRExact(s.lastPaidAmount)}</Prv>
+                                    {" "}to <Money value={s.lastPaidAmount} variant="exact" />
                                   </span>
                                   <button
                                     onClick={() => updateSub(s.id, { amount: s.lastPaidAmount })}
@@ -879,7 +879,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
 
                             <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
                               <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                                <Prv>{fmtINRExact(monthly)}</Prv>
+                                <Money value={monthly} variant="exact" />
                               </div>
                               <div
                                 style={{
@@ -910,7 +910,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                     RENEWAL:
                                   </span>
                                   <span style={{ color: THEME.accent }}>
-                                    <Prv>{fmtINRExact(s.amount)}</Prv>
+                                    <Money value={s.amount} variant="exact" />
                                   </span>
                                 </div>
                               )}
@@ -1004,7 +1004,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                 <span style={{ fontWeight: 800, fontSize: 13, color: THEME.muted }}>Paused</span>
                 <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                   {pausedSubs.length} service{pausedSubs.length !== 1 ? "s" : ""} ·{" "}
-                  <Prv>{fmtINRFull(pausedMonthlySavings)}</Prv>/mo saved
+                  <Money value={pausedMonthlySavings} variant="full" />/mo saved
                 </span>
               </div>
               <div
@@ -1052,12 +1052,12 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             </Badge>
                           </div>
                           <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                            <Prv>{fmtINRExact(s.amount)}</Prv> · {s.cycle}
+                            <Money value={s.amount} variant="exact" /> · {s.cycle}
                           </div>
                         </div>
                         <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.muted }}>
-                            <Prv>{fmtINRExact(monthly)}</Prv>/mo
+                            <Money value={monthly} variant="exact" />/mo
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
