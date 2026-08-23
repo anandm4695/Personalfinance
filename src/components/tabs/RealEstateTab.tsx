@@ -29,7 +29,8 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // Sentinel owner id for a co-owner who isn't one of this household's tracked
@@ -1467,7 +1468,7 @@ function PropertyCard({
                 letterSpacing: "-0.02em",
               }}
             >
-              <Prv>{value ? fmtINRFull(Number(value)) : "—"}</Prv>
+              {value ? <Money value={Number(value)} variant="full" /> : "—"}
             </div>
           </div>
           ));
@@ -1506,16 +1507,16 @@ function PropertyCard({
               }}
             >
               {gain >= 0 ? "▲" : "▼"} {isSold ? "Realised" : "Unrealised"}{" "}
-              {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv> (
+              {gain >= 0 ? "Gain" : "Loss"}: <Money value={Math.abs(gain)} variant="full" /> (
               {gain >= 0 ? "+" : "−"}
               {Math.abs(gainPct).toFixed(1)}%)
             </span>
             <span style={{ fontSize: 11, color: THEME.muted }}>
-              Cost: <Prv>{fmtINRFull(totalCost)}</Prv>
+              Cost: <Money value={totalCost} variant="full" />
               {isSold ? (
                 <>
                   {" "}
-                  · Net sale: <Prv>{fmtINRFull(saleProceeds)}</Prv>
+                  · Net sale: <Money value={saleProceeds} variant="full" />
                 </>
               ) : (
                 ""
@@ -1549,10 +1550,10 @@ function PropertyCard({
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: THEME.sage }}>
-                <Prv>{fmtINRFull(totalPaid)}</Prv>
+                <Money value={totalPaid} variant="full" />
               </span>
               <span style={{ fontSize: 11, color: THEME.muted }}>
-                of <Prv>{fmtINRFull(totalDemanded)}</Prv>
+                of <Money value={totalDemanded} variant="full" />
               </span>
               <span
                 style={{
@@ -1615,7 +1616,7 @@ function PropertyCard({
                   flexShrink: 0,
                 }}
               />
-              Outstanding: <Prv>{fmtINRFull(outstanding)}</Prv>
+              Outstanding: <Money value={outstanding} variant="full" />
             </div>
           )}
         </div>
@@ -1735,10 +1736,10 @@ function PropertyCard({
                             <td style={td}>{fmtDate(d.dueDate)}</td>
                             <td style={{ ...td, fontWeight: 600 }}>{d.milestone || "—"}</td>
                             <td style={{ ...td, textAlign: "right" }}>
-                              <Prv>{d.amount ? fmtINRFull(Number(d.amount)) : "—"}</Prv>
+                              {d.amount ? <Money value={Number(d.amount)} variant="full" /> : "—"}
                             </td>
                             <td style={{ ...td, textAlign: "right" }}>
-                              <Prv>{d.gstAmount ? fmtINRFull(Number(d.gstAmount)) : "—"}</Prv>
+                              {d.gstAmount ? <Money value={Number(d.gstAmount)} variant="full" /> : "—"}
                             </td>
                             <td
                               style={{
@@ -1748,7 +1749,11 @@ function PropertyCard({
                                 color: THEME.accent,
                               }}
                             >
-                              <Prv>{d.totalAmount ? fmtINRFull(Number(d.totalAmount)) : "—"}</Prv>
+                              {d.totalAmount ? (
+                                <Money value={Number(d.totalAmount)} variant="full" />
+                              ) : (
+                                "—"
+                              )}
                             </td>
                             <td style={td}>
                               <span
@@ -1863,7 +1868,7 @@ function PropertyCard({
                                 color: THEME.sage,
                               }}
                             >
-                              <Prv>+{fmtINRFull(Number(p.amount))}</Prv>
+                              +<Money value={Number(p.amount)} variant="full" />
                             </td>
                             <td style={td}>
                               <span
@@ -1942,7 +1947,7 @@ function PropertyCard({
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRFull(totalPaid)}</Prv>
+                        <Money value={totalPaid} variant="full" />
                       </td>
                       <td colSpan={5} style={{ borderBottom: divider }} />
                     </tr>
@@ -2212,14 +2217,14 @@ export function RealEstateTab({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRFull(stats.portfolioValue)}</Prv>
+              <Money value={stats.portfolioValue} variant="full" />
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
               {stats.appreciation >= 0 ? "Up " : "Down "}
-              <Prv>{fmtINRFull(Math.abs(stats.appreciation))}</Prv> (
+              <Money value={Math.abs(stats.appreciation)} variant="full" /> (
               {stats.appreciation >= 0 ? "+" : "−"}
               {Math.abs(stats.appreciationPct).toFixed(1)}%) against{" "}
-              <Prv>{fmtINRFull(stats.totalInvested)}</Prv> invested (agreement + stamp + TDS)
+              <Money value={stats.totalInvested} variant="full" /> invested (agreement + stamp + TDS)
             </div>
           </Card>
 
@@ -2233,7 +2238,7 @@ export function RealEstateTab({
           >
             <StatCard
               label="Total Invested"
-              value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>}
+              value={<Money value={stats.totalInvested} variant="full" />}
               numericValue={stats.totalInvested}
               formatValue={fmtINRFull}
               sub="Agreement + Stamp + TDS"
@@ -2242,7 +2247,7 @@ export function RealEstateTab({
             />
             <StatCard
               label="Total Paid"
-              value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>}
+              value={<Money value={stats.totalPaid} variant="full" />}
               numericValue={stats.totalPaid}
               formatValue={fmtINRFull}
               sub="All payments"
@@ -2251,7 +2256,7 @@ export function RealEstateTab({
             />
             <StatCard
               label="Outstanding"
-              value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>}
+              value={<Money value={stats.outstanding} variant="full" />}
               numericValue={stats.outstanding}
               formatValue={fmtINRFull}
               sub="Demands pending"
@@ -2263,7 +2268,7 @@ export function RealEstateTab({
               value={
                 <>
                   {stats.appreciation >= 0 ? "+" : "−"}
-                  <Prv>{fmtINRFull(Math.abs(stats.appreciation))}</Prv>
+                  <Money value={Math.abs(stats.appreciation)} variant="full" />
                 </>
               }
               numericValue={stats.appreciation}
