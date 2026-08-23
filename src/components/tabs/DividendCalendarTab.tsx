@@ -25,6 +25,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
 import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { StockLogo } from "./DematTab";
 import { DataTable, Column } from "../design-system/DataTable";
 
@@ -478,7 +479,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       align: "right",
       accessor: (r) => (
         <span style={{ fontWeight: 700 }}>
-          <Prv>{fmtINRExact(r.currentValue)}</Prv>
+          <Money value={r.currentValue} variant="exact" />
         </span>
       ),
     },
@@ -542,7 +543,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
             color: r.estDivIncome > 0 ? THEME.sage : THEME.muted,
           }}
         >
-          {r.estDivIncome > 0 ? <Prv>{fmtINRExact(r.estDivIncome)}</Prv> : "—"}
+          {r.estDivIncome > 0 ? <Money value={r.estDivIncome} variant="exact" /> : "—"}
         </span>
       ),
     },
@@ -574,7 +575,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       align: "right",
       accessor: (d) => (
         <span style={{ fontWeight: 700 }}>
-          <Prv>{fmtINRExact(Number(d.amount || 0))}</Prv>
+          <Money value={Number(d.amount || 0)} variant="exact" />
         </span>
       ),
     },
@@ -584,7 +585,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       align: "right",
       accessor: (d) => (
         <span style={{ color: THEME.rust }}>
-          <Prv>{fmtINRExact(Number(d.tds || 0))}</Prv>
+          <Money value={Number(d.tds || 0)} variant="exact" />
         </span>
       ),
     },
@@ -594,7 +595,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       align: "right",
       accessor: (d) => (
         <span style={{ fontWeight: 700, color: THEME.sage }}>
-          <Prv>{fmtINRExact(Number(d.amount || 0) - Number(d.tds || 0))}</Prv>
+          <Money value={Number(d.amount || 0) - Number(d.tds || 0)} variant="exact" />
         </span>
       ),
     },
@@ -968,7 +969,9 @@ export function DividendCalendarTab({ state, marketData }: any) {
                       style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginTop: 2 }}
                     >
                       {r.estDivIncome > 0 ? (
-                        <Prv>Est. {fmtINRExact(r.estDivIncome)}</Prv>
+                        <>
+                          Est. <Money value={r.estDivIncome} variant="exact" />
+                        </>
                       ) : (
                         `${r.qty.toLocaleString("en-IN")} shares`
                       )}
@@ -1275,7 +1278,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
                   Gross Received
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
-                  <Prv>{fmtINRExact(mfTotals.gross)}</Prv>
+                  <Money value={mfTotals.gross} variant="exact" />
                 </div>
               </div>
               <div>
@@ -1283,7 +1286,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
                   TDS Deducted
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: THEME.rust }}>
-                  <Prv>{fmtINRExact(mfTotals.tds)}</Prv>
+                  <Money value={mfTotals.tds} variant="exact" />
                 </div>
               </div>
               <div>
@@ -1291,7 +1294,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
                   Net Received
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: THEME.sage }}>
-                  <Prv>{fmtINRExact(mfTotals.gross - mfTotals.tds)}</Prv>
+                  <Money value={mfTotals.gross - mfTotals.tds} variant="exact" />
                 </div>
               </div>
             </div>
