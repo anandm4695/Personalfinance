@@ -45,6 +45,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
+import { ConfirmDialog } from "../ui/Feedback";
 
 const TYPE_COLORS: Record<string, string> = {
   "Credit Card": THEME.rust,
@@ -157,6 +158,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
   const [show, setShow] = useState(false);
   const [editingReminder, setEditingReminder] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [confirmDeleteReminder, setConfirmDeleteReminder] = useState<any>(null);
   const { run: saveNewReminder, loading: savingNewReminder } = useAsyncAction(
     async (v: any) => { await addItem("reminders", v); },
     { onSuccess: () => setShow(false), onError: (e: any) => showToast?.(`Failed to add reminder: ${e?.message || "Unknown error"}`, "error") }
@@ -861,11 +863,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  if (window.confirm(`Delete "${r.title}"? This cannot be undone.`)) {
-                    deleteReminder(r.id);
-                  }
-                }}
+                onClick={() => setConfirmDeleteReminder(r)}
                 style={{ padding: 6, color: THEME.rust }}
                 title="Delete"
                 aria-label="Delete reminder"
@@ -1727,9 +1725,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                if (window.confirm(`Delete "${r.title}"? This cannot be undone.`)) {
-                                  deleteReminder(r.id);
-                                }
+                                setConfirmDeleteReminder(r);
                               }}
                               style={{ padding: 6, color: THEME.rust }}
                               title="Delete"
@@ -1905,6 +1901,16 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
           onClose={() => setEditingReminder(null)}
           onSave={saveReminderEdit}
           saving={savingReminderEdit}
+        />
+      )}
+      {confirmDeleteReminder && (
+        <ConfirmDialog
+          message={`Delete "${confirmDeleteReminder.title}"? This cannot be undone.`}
+          onConfirm={() => {
+            deleteReminder(confirmDeleteReminder.id);
+            setConfirmDeleteReminder(null);
+          }}
+          onCancel={() => setConfirmDeleteReminder(null)}
         />
       )}
     </div>
