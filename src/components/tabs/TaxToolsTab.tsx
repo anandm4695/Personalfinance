@@ -28,6 +28,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // Escapes user-controlled free-text before it's interpolated into an HTML
@@ -959,6 +960,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
   const entries = state.form26as || [];
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [newEntry, setNewEntry] = useState({
     deductor: "",
     tan: "",
@@ -997,13 +999,15 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
     }
   };
 
-  const deleteEntry = async (id, deductor) => {
-    if (!window.confirm(`Delete this 26AS entry from ${deductor || "this deductor"}? This cannot be undone.`)) return;
+  const doDeleteEntry = async (id) => {
     try {
       await removeItem("form26as", id);
     } catch (e) {
       showToast?.(`Failed to delete 26AS entry: ${e?.message || "Unknown error"}`, "error");
     }
+  };
+  const deleteEntry = (id, deductor) => {
+    setConfirmDeleteId({ id, deductor });
   };
 
   // Entries created before the Supabase migration (imported/legacy data)
@@ -1448,6 +1452,16 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
           )}
         </div>
       </Card>
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message={`Delete this 26AS entry from ${confirmDeleteId.deductor || "this deductor"}? This cannot be undone.`}
+          onConfirm={() => {
+            doDeleteEntry(confirmDeleteId.id);
+            setConfirmDeleteId(null);
+          }}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
+      )}
     </div>
   );
 };
