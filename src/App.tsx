@@ -244,6 +244,22 @@ function FinanceDashboard() {
     }
   });
   const [loaded, setLoaded] = useState(false);
+  // Captured once at mount, before `state` gets overwritten by fetchAllData's response —
+  // distinguishes "returning user, cached data already in state, background refresh in
+  // flight" (should render immediately, exactly as today) from "cold cache, nothing to
+  // show yet" (should hold on a loading screen rather than flash EmptyState/₹0 and then
+  // snap to the real numbers once fetchAllData resolves).
+  const [hadCachedDataAtMount] = useState(() => {
+    try {
+      return loadState() !== null;
+    } catch {
+      return false;
+    }
+  });
+  // Distinct from `loaded` below, which gets set true the moment there's no session yet
+  // (well before login) and is never reset false when a real fetch subsequently starts —
+  // this tracks the actual fetchAllData() async window, nothing else.
+  const [isFetchingInitialData, setIsFetchingInitialData] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
@@ -1289,6 +1305,7 @@ function FinanceDashboard() {
     }
 
     (async () => {
+      setIsFetchingInitialData(true);
       try {
         await fetchAllData();
         lastFetchedUserIdRef.current = userId;
@@ -1297,6 +1314,7 @@ function FinanceDashboard() {
         showToast("Cloud fetch failed. Check your DB setup.", "error");
       } finally {
         setLoaded(true);
+        setIsFetchingInitialData(false);
       }
     })();
   }, [fetchAllData, session, showToast]);
@@ -3631,6 +3649,20 @@ function FinanceDashboard() {
         />
       </div>
     );
+  }
+
+  // Cold cache (new device/browser, cleared storage) + a real fetchAllData in flight:
+  // without this, the dashboard below would render off DEFAULT_STATE's empty arrays for
+  // as long as the fetch takes — every tab's EmptyState and ₹0 stats — then snap to the
+  // real numbers once it resolves. That's a misleading flash, not just a blank one, so
+  // hold on the same branded LoadingScreen used for the auth check above instead.
+  // isFetchingInitialData (not `loaded`) is the correct signal here — `loaded` gets set
+  // true the moment there's no session yet (well before login) and is never reset false
+  // when a real fetch subsequently starts, so it doesn't actually track "is data ready."
+  // Doesn't affect the common warm-cache case (hadCachedDataAtMount true), which renders
+  // immediately as before regardless of fetch state.
+  if (!hadCachedDataAtMount && isFetchingInitialData) {
+    return <LoadingScreen />;
   }
 
   return (
