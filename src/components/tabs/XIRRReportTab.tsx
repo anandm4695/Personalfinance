@@ -37,7 +37,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { DataTable, Column } from "../design-system/DataTable";
 
 // Canonical section order — keeps the per-type table ordering stable across
@@ -571,7 +571,7 @@ export function XIRRReportTab({ state }: any) {
       key: "invested",
       header: "Invested",
       align: "right",
-      accessor: (row) => <Prv>{fmtINRExact(row.invested)}</Prv>,
+      accessor: (row) => <Money value={row.invested} variant="exact" />,
     },
     {
       key: "currentValue",
@@ -579,7 +579,7 @@ export function XIRRReportTab({ state }: any) {
       align: "right",
       accessor: (row) => (
         <span style={{ fontWeight: 700 }}>
-          <Prv>{fmtINRExact(row.currentValue)}</Prv>
+          <Money value={row.currentValue} variant="exact" />
         </span>
       ),
     },
@@ -592,14 +592,12 @@ export function XIRRReportTab({ state }: any) {
         const gainPct = row.invested > 0 ? (gain / row.invested) * 100 : 0;
         return (
           <span style={{ color: gain >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
-            <Prv>
-              {gain >= 0 ? "+" : ""}
-              {fmtINRExact(Math.abs(gain))}
-              <span style={{ fontSize: 11, marginLeft: 5, opacity: 0.8, fontWeight: 500 }}>
-                ({gainPct >= 0 ? "+" : ""}
-                {gainPct.toFixed(1)}%)
-              </span>
-            </Prv>
+            {gain >= 0 ? "+" : ""}
+            <Money value={Math.abs(gain)} variant="exact" />
+            <span style={{ fontSize: 11, marginLeft: 5, opacity: 0.8, fontWeight: 500 }}>
+              ({gainPct >= 0 ? "+" : ""}
+              {gainPct.toFixed(1)}%)
+            </span>
           </span>
         );
       },
@@ -948,13 +946,13 @@ export function XIRRReportTab({ state }: any) {
                   <span style={{ color: THEME.muted, fontWeight: 500 }}>
                     Invested:{" "}
                     <b style={{ color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
-                      <Prv>{fmtINRExact(typeInvested)}</Prv>
+                      <Money value={typeInvested} variant="exact" />
                     </b>
                   </span>
                   <span style={{ color: THEME.muted, fontWeight: 500 }}>
                     Value:{" "}
                     <b style={{ color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
-                      <Prv>{fmtINRExact(typeCurrent)}</Prv>
+                      <Money value={typeCurrent} variant="exact" />
                     </b>
                   </span>
                   <span
@@ -965,7 +963,7 @@ export function XIRRReportTab({ state }: any) {
                     }}
                   >
                     {typeGain >= 0 ? "+" : ""}
-                    <Prv>{fmtINRExact(Math.abs(typeGain))}</Prv>
+                    <Money value={Math.abs(typeGain)} variant="exact" />
                   </span>
                 </div>
               </div>
@@ -1064,7 +1062,7 @@ export function XIRRReportTab({ state }: any) {
                             Invested
                           </div>
                           <div style={{ fontSize: 12.5, fontWeight: 600, color: THEME.ink, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                            <Prv>{fmtINRExact(row.invested)}</Prv>
+                            <Money value={row.invested} variant="exact" />
                           </div>
                         </div>
                         <div>
@@ -1072,7 +1070,7 @@ export function XIRRReportTab({ state }: any) {
                             Current
                           </div>
                           <div style={{ fontSize: 12.5, fontWeight: 700, color: THEME.ink, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                            <Prv>{fmtINRExact(row.currentValue)}</Prv>
+                            <Money value={row.currentValue} variant="exact" />
                           </div>
                         </div>
                         <div>
@@ -1088,10 +1086,8 @@ export function XIRRReportTab({ state }: any) {
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>
-                              {gain >= 0 ? "+" : ""}
-                              {fmtINRExact(Math.abs(gain))}
-                            </Prv>{" "}
+                            {gain >= 0 ? "+" : ""}
+                            <Money value={Math.abs(gain)} variant="exact" />{" "}
                             <span style={{ fontSize: 10.5, opacity: 0.8, fontWeight: 500 }}>
                               ({gainPct >= 0 ? "+" : ""}
                               {gainPct.toFixed(1)}%)
