@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { GoalModal } from "../modals/GoalModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
@@ -255,7 +255,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               {animatedOverallPct.toFixed(1)}%
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-              <Prv>{fmtINRFull(totalSaved)}</Prv> saved of <Prv>{fmtINRFull(totalTarget)}</Prv>{" "}
+              <Money value={totalSaved} variant="full" /> saved of <Money value={totalTarget} variant="full" />{" "}
               across {state.goals.length} goal{state.goals.length !== 1 ? "s" : ""}
             </div>
           </Card>
@@ -420,11 +420,11 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted }}>
                         <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                          <Prv>{fmtINRFull(p.saved)}</Prv>
+                          <Money value={p.saved} variant="full" />
                         </span>
                         <span style={{ opacity: 0.6 }}>
                           {" "}
-                          / <Prv>{fmtINRFull(p.target)}</Prv>
+                          / <Money value={p.target} variant="full" />
                         </span>
                       </div>
                     </div>
@@ -778,7 +778,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       }}
                     />
                     <span style={{ fontSize: 12, color: THEME.muted }}>
-                      to <Prv>{fmtINRFull(g.currentAmount)}</Prv> saved
+                      to <Money value={g.currentAmount} variant="full" /> saved
                     </span>
                     <Button
                       size="sm"
@@ -842,14 +842,14 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     <div
                       style={{ fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 800 }}
                     >
-                      <Prv>{fmtINRFull(g.currentAmount)}</Prv>{" "}
+                      <Money value={g.currentAmount} variant="full" />{" "}
                       <span style={{ color: THEME.muted, fontSize: 15 }}>
-                        / <Prv>{fmtINRFull(effectiveTarget)}</Prv>
+                        / <Money value={effectiveTarget} variant="full" />
                       </span>
                     </div>
                     {showInflation && inflatedTarget > nominalTarget && (
                       <div style={{ fontSize: 11, color: THEME.gold, marginTop: 2 }}>
-                        Nominal: <Prv>{fmtINRFull(nominalTarget)}</Prv> → Inflation-adjusted @{" "}
+                        Nominal: <Money value={nominalTarget} variant="full" /> → Inflation-adjusted @{" "}
                         {inflationRate}%
                       </div>
                     )}
@@ -927,12 +927,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       {[
                         {
                           label: "Saved",
-                          value: <Prv>{fmtINRFull(g.currentAmount)}</Prv>,
+                          value: <Money value={g.currentAmount} variant="full" />,
                           color: THEME.sage,
                         },
                         {
                           label: "Remaining",
-                          value: <Prv>{fmtINRFull(remaining)}</Prv>,
+                          value: <Money value={remaining} variant="full" />,
                           color: THEME.rust,
                         },
                         ...(g.targetDate
@@ -1037,7 +1037,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                           <div style={{ fontSize: 12, color: THEME.muted }}>
                             Monthly needed:{" "}
                             <span style={{ fontWeight: 800, color: THEME.ink }}>
-                              <Prv>{fmtINRFull(monthlyNeeded)}</Prv>
+                              <Money value={monthlyNeeded} variant="full" />
                             </span>
                             <span style={{ fontSize: 10 }}> /mo</span>
                           </div>
@@ -1131,7 +1131,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                                     <div
                                       style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}
                                     >
-                                      <Prv>{fmtINRFull(sip)}</Prv>/mo
+                                      <Money value={sip} variant="full" />/mo
                                     </div>
                                   </div>
                                 );
