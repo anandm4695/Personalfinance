@@ -42,6 +42,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
+import { Money } from "../ui/Money";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
@@ -623,7 +624,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 marginTop: 2,
               }}
             >
-              <Prv>{fmtINRFull(animatedTotal)}</Prv>
+              <Money value={animatedTotal} variant="full" />
             </div>
           </div>
         </div>
@@ -1275,7 +1276,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                       color: s.overweight ? THEME.rust : THEME.sage,
                     }}
                   >
-                    <Prv>{fmtINRFull(s.diffAmt)}</Prv>
+                    <Money value={s.diffAmt} variant="full" />
                   </div>
                   <Badge
                     variant={s.overweight ? "rust" : "sage"}
@@ -1353,7 +1354,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               >
                 <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{d.name}</span>
                 <span style={{ fontSize: 13.5, fontWeight: 900, color: THEME.sage }}>
-                  <Prv>{fmtINRFull(d.amount)}</Prv>
+                  <Money value={d.amount} variant="full" />
                 </span>
               </div>
             ))}
@@ -1473,7 +1474,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     </Badge>
                   </td>
                   <td style={{ ...tdRight, fontWeight: 700 }}>
-                    <Prv>{fmtINRFull(row.value)}</Prv>
+                    <Money value={row.value} variant="full" />
                   </td>
                   <td style={{ ...tdRight, paddingRight: 16, color: THEME.muted, fontWeight: 600 }}>
                     {allocation.total ? ((row.value / allocation.total) * 100).toFixed(1) : 0}%
