@@ -18,6 +18,7 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { GoalModal } from "../modals/GoalModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
@@ -62,6 +63,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   const [sipInputs, setSipInputs] = useState<Record<string, string>>({});
   const [showInflation, setShowInflation] = useState(false);
   const [inflationRate, setInflationRate] = useState("6");
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { run: runAddGoal, loading: addingGoal } = useAsyncAction(
     async (v: any) => {
@@ -713,9 +715,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Delete goal "${g.name}"?`)) deleteGoal(g.id);
-                      }}
+                      onClick={() => setConfirmDelete({ id: g.id, name: g.name })}
                       style={{
                         background: "none",
                         border: "none",
@@ -1298,6 +1298,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
           onClose={() => setEditGoal(null)}
           onSave={(v: any) => runUpdateGoal(editGoal.id, v)}
           saving={updatingGoal}
+        />
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`Delete goal "${confirmDelete.name}"?`}
+          onConfirm={() => {
+            deleteGoal(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
     </div>
