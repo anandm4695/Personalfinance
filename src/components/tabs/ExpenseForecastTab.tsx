@@ -27,10 +27,11 @@ import {
   ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, exportArrayToCSV } from "../../utils/finance";
+import { fmtINR, fmtINRFull, exportArrayToCSV, maskCurrencyInText } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
+import { Money } from "../ui/Money";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
@@ -365,7 +366,14 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
           formatValue={fmtINRFull}
           icon={<TrendingUp />}
           color="var(--accent)"
-          sub={nextMonth ? `Range ${fmtINR(nextMonth.lower)} – ${fmtINR(nextMonth.upper)}` : undefined}
+          sub={
+            nextMonth
+              ? maskCurrencyInText(
+                  `Range ${fmtINR(nextMonth.lower)} – ${fmtINR(nextMonth.upper)}`,
+                  privacyMode
+                )
+              : undefined
+          }
         />
         <StatCard
           label="Annual Projection"
@@ -724,10 +732,10 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
                     )}
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                    <Prv>{fmtINRFull(c.avg)}</Prv>
+                    <Money value={c.avg} variant="full" />
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                    <Prv>{fmtINRFull(c.recentAvg)}</Prv>
+                    <Money value={c.recentAvg} variant="full" />
                   </td>
                   <td style={{ ...td, textAlign: "center" }}>
                     <span
@@ -778,7 +786,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
                     </span>
                   </td>
                   <td style={{ ...td, textAlign: "right", color: THEME.muted, fontWeight: 500 }}>
-                    <Prv>{fmtINRFull(c.min)}</Prv>
+                    <Money value={c.min} variant="full" />
                   </td>
                   <td
                     style={{
@@ -789,7 +797,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
                       paddingRight: 16,
                     }}
                   >
-                    <Prv>{fmtINRFull(c.max)}</Prv>
+                    <Money value={c.max} variant="full" />
                   </td>
                 </tr>
               ))}
