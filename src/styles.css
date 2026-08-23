@@ -203,7 +203,7 @@ body {
   overflow-x: hidden;
   transition:
     background-color 0.3s var(--ease-premium),
-    color 0.2s ease;
+    color var(--motion-base) ease;
 }
 
 /* ── Ambient Aurora Background ─────────────────────────────────── */
@@ -394,7 +394,7 @@ table {
 /* Hover row highlight */
 tbody tr:hover td {
   background: color-mix(in srgb, var(--t-accent) 4%, transparent) !important;
-  transition: background 0.12s ease;
+  transition: background var(--motion-fast) ease;
 }
 
 /* Striped rows option */
@@ -1450,7 +1450,7 @@ button[style*="background:none"]:not([disabled]):hover {
   height: 2px;
   background: var(--t-accent);
   border-radius: 2px 2px 0 0;
-  transition: transform 0.2s var(--ease-out);
+  transition: transform var(--motion-base) var(--ease-out);
 }
 .desktop-tab-nav button:hover::after {
   transform: translateX(-50%) scaleX(0.5);
@@ -1460,8 +1460,8 @@ button[style*="background:none"]:not([disabled]):hover {
 /* ── Card hover lift ───────────────────────────────────────────── */
 .card-lift {
   transition:
-    transform 0.2s var(--ease-premium),
-    box-shadow 0.2s var(--ease-premium);
+    transform var(--motion-base) var(--ease-premium),
+    box-shadow var(--motion-base) var(--ease-premium);
 }
 .card-lift:hover {
   transform: translateY(-2px);
@@ -1544,7 +1544,7 @@ tr:last-child td {
   border-bottom: none;
 }
 .table-row-hover {
-  transition: background 0.12s ease;
+  transition: background var(--motion-fast) ease;
 }
 .table-row-hover:hover {
   background: color-mix(in srgb, var(--t-accent) 5%, transparent);
@@ -2254,7 +2254,7 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
 
 /* ── Demat Collapsible Drawer Transitions ── */
 .demat-holdings-row {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all var(--motion-base) cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .demat-holdings-row:hover {
@@ -2341,7 +2341,7 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
 .demat-stat-card-glow {
   transition:
     box-shadow 0.3s ease,
-    transform 0.2s ease;
+    transform var(--motion-base) ease;
 }
 .demat-stat-card-glow:hover {
   transform: translateY(-2px);
@@ -2361,7 +2361,7 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  transition: opacity 0.2s;
+  transition: opacity var(--motion-base);
 }
 .demat-trend-pill.up {
   background: color-mix(in srgb, var(--t-sage) 12%, transparent);
@@ -2438,8 +2438,8 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   font-size: 13px;
   line-height: 1.55;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform var(--motion-base) ease,
+    box-shadow var(--motion-base) ease;
 }
 .demat-insight-card:hover {
   transform: translateX(3px);
