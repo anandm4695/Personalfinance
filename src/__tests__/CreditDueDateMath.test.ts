@@ -6,7 +6,7 @@
 // the native Date constructor overflow into the following month.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { getNextFeeDate } from "../components/tabs/CreditTab";
-import { dueStatus } from "../components/tabs/BillPaymentTab";
+import { dueStatus } from "../utils/dueStatus";
 
 afterEach(() => {
   vi.useRealTimers();

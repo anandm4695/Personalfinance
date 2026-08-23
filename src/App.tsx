@@ -1,6 +1,6 @@
 // @ts-nocheck
 import "./styles.css";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import {
   Search,
   X,
@@ -8,6 +8,7 @@ import {
   Moon,
   LogOut,
   RefreshCw,
+  Loader2,
   CheckCheck,
   Clock,
   Download,
@@ -70,59 +71,86 @@ import { LoadingScreen } from "./components/layout/LoadingScreen";
 import { MobileNav } from "./components/layout/MobileNav";
 
 // Tab Imports
-import { AnalyticsTab } from "./components/tabs/AnalyticsTab";
-import { InvestmentsTab } from "./components/tabs/InvestmentsTab";
-import { TaxVaultTab } from "./components/tabs/TaxVaultTab";
-import { RentalTab } from "./components/tabs/RentalTab";
-import { BanksTab } from "./components/tabs/BanksTab";
-import { DematTab } from "./components/tabs/DematTab";
-import { TxnHistoryTab } from "./components/tabs/TxnHistoryTab";
-import { CreditTab } from "./components/tabs/CreditTab";
-import { SubscriptionsTab as SubsTab } from "./components/tabs/SubscriptionsTab";
-import { SIPTrackerTab } from "./components/tabs/SIPTrackerTab";
-import { InsuranceSummaryTab } from "./components/tabs/InsuranceSummaryTab";
-import { GoalsTab } from "./components/tabs/GoalsTab";
-import { BudgetTab } from "./components/tabs/BudgetTab";
-import { RemindersTab } from "./components/tabs/RemindersTab";
-import { CalculatorsTab } from "./components/tabs/CalculatorsTab";
-import { SettingsTab } from "./components/tabs/SettingsTab";
-import { AIAssistantTab } from "./components/tabs/AIAssistantTab";
-import { RealEstateTab } from "./components/tabs/RealEstateTab";
-import { VehiclesTab } from "./components/tabs/VehiclesTab";
-import { CashFlowTab } from "./components/tabs/CashFlowTab";
-import { CalendarTab } from "./components/tabs/CalendarTab";
-import { XIRRReportTab } from "./components/tabs/XIRRReportTab";
-import { DividendCalendarTab } from "./components/tabs/DividendCalendarTab";
-import { CapitalGainsTab } from "./components/tabs/CapitalGainsTab";
-import { TaxToolsTab } from "./components/tabs/TaxToolsTab";
-import { AnnualReportTab } from "./components/tabs/AnnualReportTab";
-import { InvestmentStatementTab } from "./components/tabs/InvestmentStatementTab";
-import { ExpenseTrendsTab } from "./components/tabs/ExpenseTrendsTab";
-import { FamilyViewTab } from "./components/tabs/FamilyViewTab";
-import { EmergencyFundTab } from "./components/tabs/EmergencyFundTab";
-import { NomineeTrackerTab } from "./components/tabs/NomineeTrackerTab";
-import { DocumentVaultTab } from "./components/tabs/DocumentVaultTab";
-import { RebalancingTab } from "./components/tabs/RebalancingTab";
-import { NetWorthTimelineTab } from "./components/tabs/NetWorthTimelineTab";
+// Tab components are lazy-loaded (React.lazy + Suspense below) instead of imported
+// eagerly — with 52 tabs all statically imported, every tab's code shipped in the
+// single main bundle regardless of which one a session ever visits (2.9MB+ chunk).
+// Splitting per-tab means a session only downloads the tabs it actually opens.
+const lazyTab = (loader, exportName) => React.lazy(() => loader().then((m) => ({ default: m[exportName] })));
 
-import { CASImportTab } from "./components/tabs/CASImportTab";
-import { LoanAmortizationTab } from "./components/tabs/LoanAmortizationTab";
-import { FIREPlannerTab } from "./components/tabs/FIREPlannerTab";
-import { LifeEventPlannerTab } from "./components/tabs/LifeEventPlannerTab";
-import { TaxFilingHelperTab } from "./components/tabs/TaxFilingHelperTab";
-import { HealthInsuranceTab } from "./components/tabs/HealthInsuranceTab";
-import { CreditScoreTab } from "./components/tabs/CreditScoreTab";
-import { BillPaymentTab } from "./components/tabs/BillPaymentTab";
-import { GovtSchemesTab } from "./components/tabs/GovtSchemesTab";
-import { SalarySlipTab } from "./components/tabs/SalarySlipTab";
-import { SmartAlertsTab } from "./components/tabs/SmartAlertsTab";
-import { ExpenseForecastTab } from "./components/tabs/ExpenseForecastTab";
-import { DataExportTab } from "./components/tabs/DataExportTab";
-import { ComparisonReportsTab } from "./components/tabs/ComparisonReportsTab";
-import { Section80TrackerTab } from "./components/tabs/Section80TrackerTab";
-import { GoldSGBTab } from "./components/tabs/GoldSGBTab";
-import { AuditLogTab } from "./components/tabs/AuditLogTab";
-import { PerformanceBenchmarkTab } from "./components/tabs/PerformanceBenchmarkTab";
+const AnalyticsTab = lazyTab(() => import("./components/tabs/AnalyticsTab"), "AnalyticsTab");
+const InvestmentsTab = lazyTab(() => import("./components/tabs/InvestmentsTab"), "InvestmentsTab");
+const TaxVaultTab = lazyTab(() => import("./components/tabs/TaxVaultTab"), "TaxVaultTab");
+const RentalTab = lazyTab(() => import("./components/tabs/RentalTab"), "RentalTab");
+const BanksTab = lazyTab(() => import("./components/tabs/BanksTab"), "BanksTab");
+const DematTab = lazyTab(() => import("./components/tabs/DematTab"), "DematTab");
+const TxnHistoryTab = lazyTab(() => import("./components/tabs/TxnHistoryTab"), "TxnHistoryTab");
+const CreditTab = lazyTab(() => import("./components/tabs/CreditTab"), "CreditTab");
+const SubsTab = lazyTab(() => import("./components/tabs/SubscriptionsTab"), "SubscriptionsTab");
+const SIPTrackerTab = lazyTab(() => import("./components/tabs/SIPTrackerTab"), "SIPTrackerTab");
+const InsuranceSummaryTab = lazyTab(() => import("./components/tabs/InsuranceSummaryTab"), "InsuranceSummaryTab");
+const GoalsTab = lazyTab(() => import("./components/tabs/GoalsTab"), "GoalsTab");
+const BudgetTab = lazyTab(() => import("./components/tabs/BudgetTab"), "BudgetTab");
+const RemindersTab = lazyTab(() => import("./components/tabs/RemindersTab"), "RemindersTab");
+const CalculatorsTab = lazyTab(() => import("./components/tabs/CalculatorsTab"), "CalculatorsTab");
+const SettingsTab = lazyTab(() => import("./components/tabs/SettingsTab"), "SettingsTab");
+const AIAssistantTab = lazyTab(() => import("./components/tabs/AIAssistantTab"), "AIAssistantTab");
+const RealEstateTab = lazyTab(() => import("./components/tabs/RealEstateTab"), "RealEstateTab");
+const VehiclesTab = lazyTab(() => import("./components/tabs/VehiclesTab"), "VehiclesTab");
+const CashFlowTab = lazyTab(() => import("./components/tabs/CashFlowTab"), "CashFlowTab");
+const CalendarTab = lazyTab(() => import("./components/tabs/CalendarTab"), "CalendarTab");
+const XIRRReportTab = lazyTab(() => import("./components/tabs/XIRRReportTab"), "XIRRReportTab");
+const DividendCalendarTab = lazyTab(() => import("./components/tabs/DividendCalendarTab"), "DividendCalendarTab");
+const CapitalGainsTab = lazyTab(() => import("./components/tabs/CapitalGainsTab"), "CapitalGainsTab");
+const TaxToolsTab = lazyTab(() => import("./components/tabs/TaxToolsTab"), "TaxToolsTab");
+const AnnualReportTab = lazyTab(() => import("./components/tabs/AnnualReportTab"), "AnnualReportTab");
+const InvestmentStatementTab = lazyTab(() => import("./components/tabs/InvestmentStatementTab"), "InvestmentStatementTab");
+const ExpenseTrendsTab = lazyTab(() => import("./components/tabs/ExpenseTrendsTab"), "ExpenseTrendsTab");
+const FamilyViewTab = lazyTab(() => import("./components/tabs/FamilyViewTab"), "FamilyViewTab");
+const EmergencyFundTab = lazyTab(() => import("./components/tabs/EmergencyFundTab"), "EmergencyFundTab");
+const NomineeTrackerTab = lazyTab(() => import("./components/tabs/NomineeTrackerTab"), "NomineeTrackerTab");
+const DocumentVaultTab = lazyTab(() => import("./components/tabs/DocumentVaultTab"), "DocumentVaultTab");
+const RebalancingTab = lazyTab(() => import("./components/tabs/RebalancingTab"), "RebalancingTab");
+const NetWorthTimelineTab = lazyTab(() => import("./components/tabs/NetWorthTimelineTab"), "NetWorthTimelineTab");
+
+const CASImportTab = lazyTab(() => import("./components/tabs/CASImportTab"), "CASImportTab");
+const LoanAmortizationTab = lazyTab(() => import("./components/tabs/LoanAmortizationTab"), "LoanAmortizationTab");
+const FIREPlannerTab = lazyTab(() => import("./components/tabs/FIREPlannerTab"), "FIREPlannerTab");
+const LifeEventPlannerTab = lazyTab(() => import("./components/tabs/LifeEventPlannerTab"), "LifeEventPlannerTab");
+const TaxFilingHelperTab = lazyTab(() => import("./components/tabs/TaxFilingHelperTab"), "TaxFilingHelperTab");
+const HealthInsuranceTab = lazyTab(() => import("./components/tabs/HealthInsuranceTab"), "HealthInsuranceTab");
+const CreditScoreTab = lazyTab(() => import("./components/tabs/CreditScoreTab"), "CreditScoreTab");
+const BillPaymentTab = lazyTab(() => import("./components/tabs/BillPaymentTab"), "BillPaymentTab");
+const GovtSchemesTab = lazyTab(() => import("./components/tabs/GovtSchemesTab"), "GovtSchemesTab");
+const SalarySlipTab = lazyTab(() => import("./components/tabs/SalarySlipTab"), "SalarySlipTab");
+const SmartAlertsTab = lazyTab(() => import("./components/tabs/SmartAlertsTab"), "SmartAlertsTab");
+const ExpenseForecastTab = lazyTab(() => import("./components/tabs/ExpenseForecastTab"), "ExpenseForecastTab");
+const DataExportTab = lazyTab(() => import("./components/tabs/DataExportTab"), "DataExportTab");
+const ComparisonReportsTab = lazyTab(() => import("./components/tabs/ComparisonReportsTab"), "ComparisonReportsTab");
+const Section80TrackerTab = lazyTab(() => import("./components/tabs/Section80TrackerTab"), "Section80TrackerTab");
+const GoldSGBTab = lazyTab(() => import("./components/tabs/GoldSGBTab"), "GoldSGBTab");
+const AuditLogTab = lazyTab(() => import("./components/tabs/AuditLogTab"), "AuditLogTab");
+const PerformanceBenchmarkTab = lazyTab(() => import("./components/tabs/PerformanceBenchmarkTab"), "PerformanceBenchmarkTab");
+
+// Shown only on a cold cache, while a lazy tab chunk downloads — keeps the sidebar/
+// header stable instead of the full-page LoadingScreen (which is for initial auth only).
+function TabLoadingFallback() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Loading"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "40vh",
+        color: "var(--t-muted)",
+      }}
+    >
+      <Loader2 size={26} className="animate-spin" />
+    </div>
+  );
+}
 
 // Workspace Imports
 import { CommandKModal } from "./components/workspace/CommandKModal";
@@ -3798,6 +3826,7 @@ function FinanceDashboard() {
                   : undefined
               }
             >
+              <Suspense fallback={<TabLoadingFallback />}>
               {tab === "analytics" && (
                 <AnalyticsTab
                   metrics={metrics}
@@ -4242,6 +4271,7 @@ function FinanceDashboard() {
                   setAppTab={setTab}
                 />
               )}
+              </Suspense>
             </div>
           </main>
 

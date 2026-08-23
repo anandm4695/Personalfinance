@@ -31,7 +31,7 @@ import {
 } from "../utils/finance";
 import { SCHEME_RULES, projectSchemeValue } from "../utils/govtSchemes";
 import { Money } from "../components/ui/Money";
-import { dueStatus } from "../components/tabs/BillPaymentTab";
+import { dueStatus } from "../utils/dueStatus";
 
 /**
  * Single source of truth for "what financial events/payments are coming up" —

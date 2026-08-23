@@ -9,7 +9,7 @@ import {
   alertDismissKey,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
-import { dueStatus } from "../components/tabs/BillPaymentTab";
+import { dueStatus } from "../utils/dueStatus";
 import { useMilestoneEvents } from "./useFinancialEvents";
 
 export type Alert = {
