@@ -48,6 +48,7 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
@@ -86,6 +87,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_GOLD });
   const [sortBy, setSortBy] = useState("value");
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   // Gold price is entered here but consumed by many other tabs (Net Worth,
   // Analytics, Rebalancing, Family View, Benchmark) — it's synced through
@@ -694,11 +696,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                     <Edit2 size={14} />
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm(`Delete "${h.name || h.typeInfo.label}" holding? This cannot be undone.`)) {
-                        deleteHolding(h.id);
-                      }
-                    }}
+                    onClick={() => setConfirmDelete({ id: h.id, label: h.name || h.typeInfo.label })}
                     className="icon-btn danger"
                     aria-label="Delete holding"
                     title="Delete"
@@ -999,6 +997,16 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
             loading={savingGold}
           />
         </Modal>
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`Delete "${confirmDelete.label}" holding? This cannot be undone.`}
+          onConfirm={() => {
+            deleteHolding(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );
