@@ -47,6 +47,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { isLongTerm, isEquityMF } from "./CapitalGainsTab";
 import { computeNetWorthAsOf } from "../../utils/netWorthAsOf";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
@@ -365,7 +366,7 @@ const GlassTooltip = ({ active, payload, label }: any) => {
             />
             <span style={{ color: THEME.muted }}>{item.name}:</span>
             <span style={{ color: THEME.ink }}>
-              <Prv>{fmtINRFull(item.value)}</Prv>
+              <Money value={item.value} variant="full" />
             </span>
           </div>
         ))}
@@ -1347,7 +1348,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         icon: Receipt,
         text: (
           <>
-            Highest single expense: <Prv>{fmtINRFull(e.amount)}</Prv> —{" "}
+            Highest single expense: <Money value={e.amount} variant="full" /> —{" "}
             {e.note || e.category || "Transaction"} ({e.date || ""})
           </>
         ),
@@ -1390,7 +1391,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         icon: TrendingUp,
         text: (
           <>
-            Largest investment: <Prv>{fmtINRFull(largest.amount)}</Prv> in {largest.name}
+            Largest investment: <Money value={largest.amount} variant="full" /> in {largest.name}
           </>
         ),
         color: THEME.sage,
@@ -1832,7 +1833,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRFull(m.curr)}</Prv>
+                        <Money value={m.curr} variant="full" />
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
                         {m.deltaPct >= 0 ? (
@@ -1845,7 +1846,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                           {m.deltaPct.toFixed(0)}%
                         </span>
                         <span style={{ fontSize: 10, color: THEME.muted }}>
-                          vs <Prv>{fmtINRFull(m.prev)}</Prv>
+                          vs <Money value={m.prev} variant="full" />
                         </span>
                       </div>
                     </div>
@@ -2102,7 +2103,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       />
                       <span style={{ flex: 1, fontSize: 12, color: THEME.muted }}>{cat.name}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(cat.value)}</Prv>
+                        <Money value={cat.value} variant="full" />
                       </span>
                       <span
                         style={{
@@ -2208,7 +2209,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       />
                       <span style={{ flex: 1, fontSize: 12, color: THEME.muted }}>{cat.name}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(cat.value)}</Prv>
+                        <Money value={cat.value} variant="full" />
                       </span>
                     </div>
                   ))}
@@ -2458,7 +2459,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                           </span>
                         </div>
                         <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>
-                          <Prv>{fmtINRFull(a.value)}</Prv>
+                          <Money value={a.value} variant="full" />
                           <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>
                             {assetAllocation.total > 0
                               ? ((a.value / assetAllocation.total) * 100).toFixed(0)
@@ -2489,7 +2490,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                         Total Assets
                       </span>
                       <span style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
-                        <Prv>{fmtINRFull(assetAllocation.total)}</Prv>
+                        <Money value={assetAllocation.total} variant="full" />
                       </span>
                     </div>
                   </div>
@@ -2624,7 +2625,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       <span>
                         Coverage is {insuranceData.adequacyRatio.toFixed(1)}x annual income.
                         Recommended: at least 10x (
-                        <Prv>{fmtINRFull(incomeData.totalIncome * 10)}</Prv>).
+                        <Money value={incomeData.totalIncome * 10} variant="full" />).
                       </span>
                     </div>
                   )}
@@ -2725,7 +2726,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                           {g.name}
                         </span>
                         <span style={{ fontSize: 11, color: THEME.muted }}>
-                          <Prv>{fmtINRFull(g.saved)}</Prv> / <Prv>{fmtINRFull(g.target)}</Prv>
+                          <Money value={g.saved} variant="full" /> / <Money value={g.target} variant="full" />
                           <span
                             style={{
                               marginLeft: 4,
