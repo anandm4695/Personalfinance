@@ -168,6 +168,9 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
 
   return ReactDOM.createPortal(
     <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="false"
       style={{
         position: "fixed",
         bottom: 32,
@@ -184,6 +187,7 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
         return (
           <div
             key={t.id}
+            role={t.type === "error" ? "alert" : undefined}
             style={{
               background: "var(--surface-0)",
               border: `1px solid color-mix(in srgb, ${cfg.accent} 30%, transparent)`,
