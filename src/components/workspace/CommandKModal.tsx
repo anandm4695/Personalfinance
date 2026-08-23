@@ -10,6 +10,9 @@ interface CommandKModalProps {
   isPrivacyMode?: boolean;
 }
 
+const CMDK_FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 // Subsequence fuzzy match: a literal substring hit scores highest (earlier
 // match position wins ties), falling back to an in-order character
 // subsequence match (with a bonus for consecutive runs) so terse queries
@@ -46,10 +49,21 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Body scroll lock, initial focus, and focus-restore-on-close — same
+  // contract as Modal.tsx/ConfirmDialog, which this palette never had
+  // despite being a full-screen dialog opened via a global shortcut.
   useEffect(() => {
     if (isOpen) {
+      const previouslyFocused = document.activeElement as HTMLElement | null;
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
       setTimeout(() => inputRef.current?.focus(), 50);
+      return () => {
+        document.body.style.overflow = previousOverflow;
+        previouslyFocused?.focus?.();
+      };
     } else {
       setQuery("");
     }
@@ -134,6 +148,20 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
           onSelectTab(item.id, item.subTab);
           onClose();
         }
+      } else if (e.key === "Tab" && containerRef.current) {
+        const focusable = Array.from(
+          containerRef.current.querySelectorAll<HTMLElement>(CMDK_FOCUSABLE_SELECTOR)
+        ).filter((el) => !el.hasAttribute("disabled"));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -162,7 +190,11 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
       onClick={onClose}
     >
       <div
+        ref={containerRef}
         className="cmd-modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         style={{
           width: "100%",
           maxWidth: "640px",

@@ -25,6 +25,9 @@ const PRIMARY_TABS = [
   { id: "cc", label: "Credit", icon: CreditCard },
 ];
 
+const DRAWER_FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSearch, setDrawerSearch] = useState("");
@@ -33,24 +36,46 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const drawerMouseDownOnBackdrop = useRef(false);
 
+  // Body scroll lock, initial focus, and focus-restore-on-close — same
+  // contract as Modal.tsx/ConfirmDialog/CommandKModal, which this drawer's
+  // own comment already implied ("matching .drawer-backdrop") but never had.
   useEffect(() => {
     if (drawerOpen) {
+      const previouslyFocused = document.activeElement as HTMLElement | null;
       document.body.style.overflow = "hidden";
       setTimeout(() => searchInputRef.current?.focus(), 300);
+      return () => {
+        document.body.style.overflow = "";
+        previouslyFocused?.focus?.();
+      };
     } else {
-      document.body.style.overflow = "";
       setDrawerSearch("");
       setExpandedGroup(null);
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [drawerOpen]);
 
   useEffect(() => {
     if (!drawerOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDrawerOpen(false);
+      if (e.key === "Escape") {
+        setDrawerOpen(false);
+        return;
+      }
+      if (e.key === "Tab" && drawerRef.current) {
+        const focusable = Array.from(
+          drawerRef.current.querySelectorAll<HTMLElement>(DRAWER_FOCUSABLE_SELECTOR)
+        ).filter((el) => !el.hasAttribute("disabled"));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -236,6 +261,10 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
           <div
             ref={drawerRef}
             className="mobile-nav-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            tabIndex={-1}
             style={{
               position: "absolute",
               bottom: 0,
