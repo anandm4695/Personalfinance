@@ -50,6 +50,7 @@ import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
@@ -3372,6 +3373,9 @@ function vehicleUrgencyRank(v: any): number {
 export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast }: any) {
   const vehicles: any[] = state.vehicles || [];
   const [sortBy, setSortBy] = useState<"default" | "value" | "urgency">("default");
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
 
   const sortedVehicles = useMemo(() => {
     if (sortBy === "default") return vehicles;
@@ -3465,7 +3469,10 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
     { onError: (e: any) => showToast?.(`Failed to delete vehicle: ${e?.message || "Unknown error"}`, "error") }
   );
   const confirmDeleteVehicle = (id: string) => {
-    if (window.confirm("Delete this vehicle and all its service records?")) handleDeleteVehicle(id);
+    setConfirmAction({
+      message: "Delete this vehicle and all its service records?",
+      onConfirm: () => handleDeleteVehicle(id),
+    });
   };
 
   const { run: handleSaveService, loading: savingService } = useAsyncAction(
@@ -3499,8 +3506,10 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
     { onError: (e: any) => showToast?.(`Failed to delete service record: ${e?.message || "Unknown error"}`, "error") }
   );
   const confirmDeleteService = (vehicleId: string, serviceId: string) => {
-    if (window.confirm("Are you sure you want to delete this service record?"))
-      handleDeleteService(vehicleId, serviceId);
+    setConfirmAction({
+      message: "Are you sure you want to delete this service record?",
+      onConfirm: () => handleDeleteService(vehicleId, serviceId),
+    });
   };
 
   const { run: handleSaveInsurance, loading: savingInsurance } = useAsyncAction(
@@ -3548,8 +3557,10 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
     { onError: (e: any) => showToast?.(`Failed to delete insurance record: ${e?.message || "Unknown error"}`, "error") }
   );
   const confirmDeleteInsurance = (vehicleId: string, insuranceId: string) => {
-    if (window.confirm("Are you sure you want to delete this insurance record?"))
-      handleDeleteInsurance(vehicleId, insuranceId);
+    setConfirmAction({
+      message: "Are you sure you want to delete this insurance record?",
+      onConfirm: () => handleDeleteInsurance(vehicleId, insuranceId),
+    });
   };
 
   return (
@@ -3817,6 +3828,16 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
           onClose={() => setInsuranceModal({ open: false })}
           onSave={handleSaveInsurance}
           saving={savingInsurance}
+        />
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
