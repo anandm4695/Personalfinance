@@ -388,6 +388,9 @@ export function BanksTab({
   const [showTxn, setShowTxn] = useState(false);
   const [confirmDeleteAllAcc, setConfirmDeleteAllAcc] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
   const [filterAcc, setFilterAcc] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [search, setSearch] = useState("");
@@ -1745,15 +1748,12 @@ export function BanksTab({
                   <Edit3 size={12} />
                 </button>
                 <button
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Delete "${a.bankName}" account? Transactions linked to it will lose their account label. This cannot be undone.`
-                      )
-                    ) {
-                      removeItem("bankAccounts", a.id);
-                    }
-                  }}
+                  onClick={() =>
+                    setConfirmAction({
+                      message: `Delete "${a.bankName}" account? Transactions linked to it will lose their account label. This cannot be undone.`,
+                      onConfirm: () => removeItem("bankAccounts", a.id),
+                    })
+                  }
                   className="icon-btn danger"
                   style={{
                     ...iconBtn,
@@ -2551,13 +2551,10 @@ export function BanksTab({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (
-                        window.confirm(
-                          `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
-                        )
-                      ) {
-                        removeItem("transactions", t.id);
-                      }
+                      setConfirmAction({
+                        message: `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`,
+                        onConfirm: () => removeItem("transactions", t.id),
+                      });
                     }}
                     className="icon-btn danger"
                     style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "transparent" }}
@@ -3056,6 +3053,16 @@ export function BanksTab({
             }
           }}
           onCancel={() => setConfirmDeleteAllAcc(false)}
+        />
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
