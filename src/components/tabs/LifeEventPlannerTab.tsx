@@ -38,7 +38,8 @@ import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const EVENT_TYPES = [
@@ -334,9 +335,9 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
           )}
           <span>
             Funding every upcoming event needs{" "}
-            <Prv>{fmtINRFull(totalMonthlySIP)}</Prv>/month — that&apos;s{" "}
+            <Money value={totalMonthlySIP} variant="full" />/month — that&apos;s{" "}
             <strong>{Math.min(999, (totalMonthlySIP / monthlySurplus) * 100).toFixed(0)}%</strong>{" "}
-            of your current monthly surplus (<Prv>{fmtINRFull(monthlySurplus)}</Prv>).
+            of your current monthly surplus (<Money value={monthlySurplus} variant="full" />).
             {totalMonthlySIP > monthlySurplus &&
               " Consider stretching timelines or re-prioritizing lower-priority goals."}
           </span>
@@ -358,7 +359,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                 tick={{ fontSize: 11, fill: THEME.muted }}
               />
               <Tooltip
-                formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
+                formatter={(v) => <Money value={v} variant="full" />}
                 cursor={{ fill: "var(--t-line)", opacity: 0.4 }}
                 contentStyle={tooltipStyle()}
                 labelStyle={{ color: "var(--t-ink)" }}
@@ -521,25 +522,25 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                   <div>
                     <div style={{ color: THEME.muted, fontSize: 11 }}>Today's Cost</div>
                     <div style={{ fontWeight: 600, color: THEME.ink }}>
-                      <Prv>{fmtINRFull(e.estimatedCost)}</Prv>
+                      <Money value={e.estimatedCost} variant="full" />
                     </div>
                   </div>
                   <div>
                     <div style={{ color: THEME.muted, fontSize: 11 }}>Inflation-Adjusted</div>
                     <div style={{ fontWeight: 600, color: THEME.rust }}>
-                      <Prv>{fmtINRFull(e.inflatedCost)}</Prv>
+                      <Money value={e.inflatedCost} variant="full" />
                     </div>
                   </div>
                   <div>
                     <div style={{ color: THEME.muted, fontSize: 11 }}>Saved So Far</div>
                     <div style={{ fontWeight: 600, color: THEME.sage }}>
-                      <Prv>{fmtINRFull(e.currentSaved)}</Prv>
+                      <Money value={e.currentSaved} variant="full" />
                     </div>
                   </div>
                   <div>
                     <div style={{ color: THEME.muted, fontSize: 11 }}>Monthly SIP Needed</div>
                     <div style={{ fontWeight: 600, color: THEME.accent }}>
-                      <Prv>{fmtINRFull(e.monthlySIP)}</Prv>
+                      <Money value={e.monthlySIP} variant="full" />
                     </div>
                   </div>
                 </div>
