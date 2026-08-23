@@ -4,6 +4,9 @@ import ReactDOM from "react-dom";
 import { X } from "lucide-react";
 import { THEME } from "../../utils/constants";
 
+const CONFIRM_FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export function ConfirmDialog({
   message,
   onConfirm,
@@ -16,13 +19,53 @@ export function ConfirmDialog({
   confirmLabel?: string;
   btnGhost?: any;
 }) {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const onCancelRef = React.useRef(onCancel);
+  onCancelRef.current = onCancel;
+
+  // Escape-to-cancel, Tab focus-trap, body scroll lock, initial focus, and
+  // focus-restore on close — same contract as Modal.tsx/Drawer.tsx, which
+  // this dialog had never had despite sharing their .modal-backdrop/.modal-panel
+  // CSS and being the app's most-used confirmation dialog.
   React.useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const panel = panelRef.current;
+    if (panel) {
+      const firstFocusable = panel.querySelector<HTMLElement>(CONFIRM_FOCUSABLE_SELECTOR);
+      (firstFocusable || panel).focus();
+    }
+
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") {
+        onCancelRef.current();
+        return;
+      }
+      if (e.key === "Tab" && panelRef.current) {
+        const focusable = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(CONFIRM_FOCUSABLE_SELECTOR)
+        ).filter((el) => !el.hasAttribute("disabled"));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onCancel]);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, []);
 
   const cancelBtnStyle: React.CSSProperties = {
     background: "transparent",
@@ -54,7 +97,15 @@ export function ConfirmDialog({
         mouseDownOnBackdropRef.current = false;
       }}
     >
-      <div className="modal-panel" style={{ maxWidth: 420 }}>
+      <div
+        ref={panelRef}
+        className="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Confirm Action"
+        tabIndex={-1}
+        style={{ maxWidth: 420 }}
+      >
         <div className="modal-header">
           <div
             style={{
