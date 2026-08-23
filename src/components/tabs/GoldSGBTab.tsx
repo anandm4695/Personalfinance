@@ -46,7 +46,8 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
@@ -372,7 +373,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 }}
                 style={{ fontSize: 13, fontWeight: 600, color: THEME.gold, cursor: "pointer" }}
               >
-                <Prv>{fmtINRFull(goldPrice)}</Prv>/g
+                <Money value={goldPrice} variant="full" />/g
               </span>
             )}
           </div>
@@ -450,13 +451,13 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRFull(animatedTotalValue)}</Prv>
+              <Money value={animatedTotalValue} variant="full" />
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
               {stats.totalGrams.toFixed(2)}g held ·{" "}
               {stats.totalPnL >= 0 ? "Up " : "Down "}
-              <Prv>{fmtINRFull(Math.abs(stats.totalPnL))}</Prv> against{" "}
-              <Prv>{fmtINRFull(stats.totalInvested)}</Prv> invested
+              <Money value={Math.abs(stats.totalPnL)} variant="full" /> against{" "}
+              <Money value={stats.totalInvested} variant="full" /> invested
             </div>
           </Card>
 
@@ -540,7 +541,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
+                  formatter={(v) => <Money value={v} variant="full" />}
                   contentStyle={{
                     background: "var(--surface-0)",
                     border: `1px solid ${THEME.line}`,
@@ -578,7 +579,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: THEME.text }}>
-                      <Prv>{fmtINRFull(t.value)}</Prv>
+                      <Money value={t.value} variant="full" />
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textSecondary }}>
                       {t.grams.toFixed(2)}g
@@ -729,23 +730,21 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Current Value</div>
                   <div style={{ fontWeight: 600, color: h.typeInfo.color }}>
-                    <Prv>{fmtINRFull(h.currentValue)}</Prv>
+                    <Money value={h.currentValue} variant="full" />
                   </div>
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Invested</div>
                   <div style={{ fontWeight: 600 }}>
-                    <Prv>{fmtINRFull(h.invested)}</Prv>
+                    <Money value={h.invested} variant="full" />
                   </div>
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>P&L</div>
                   {h.hasPurchasePrice ? (
                     <div style={{ fontWeight: 600, color: h.pnl >= 0 ? THEME.sage : THEME.rust }}>
-                      <Prv>
-                        {h.pnl >= 0 ? "+" : ""}
-                        {fmtINRFull(h.pnl)}
-                      </Prv>{" "}
+                      {h.pnl >= 0 ? "+" : ""}
+                      <Money value={h.pnl} variant="full" />{" "}
                       ({h.pnlPct.toFixed(1)}%)
                       {h.cagr != null && (
                         <span style={{ fontSize: 11, color: THEME.textSecondary, fontWeight: 500 }}>
@@ -774,7 +773,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                         Interest Earned
                       </div>
                       <div style={{ fontWeight: 600, color: THEME.sage }}>
-                        <Prv>{fmtINRFull(h.interest)}</Prv>
+                        <Money value={h.interest} variant="full" />
                       </div>
                     </div>
                     {h.maturityDate && (
