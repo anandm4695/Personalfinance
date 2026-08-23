@@ -40,6 +40,7 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input, Select } from "../ui/Form";
+import { ConfirmDialog } from "../ui/Feedback";
 
 const CONTACT_ROLES = ["Lawyer", "CA", "Financial Advisor", "Insurance Agent", "Other"];
 
@@ -144,6 +145,9 @@ export const NomineeTrackerTab = ({
   const [filter, setFilter] = useState<FilterMode>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("asset");
   const [search, setSearch] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
   const [assignModal, setAssignModal] = useState<FlatAsset | null>(null);
   const [assignName, setAssignName] = useState("");
   const [assignRelation, setAssignRelation] = useState("Spouse");
@@ -1121,15 +1125,12 @@ export const NomineeTrackerTab = ({
                     icon={<Trash2 size={12} />}
                     loading={deletingWill}
                     disabled={deletingWill}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Delete Will Document dated ${doc.date || "not specified"}? This cannot be undone.`
-                        )
-                      ) {
-                        deleteWillDoc(doc.id);
-                      }
-                    }}
+                    onClick={() =>
+                      setConfirmAction({
+                        message: `Delete Will Document dated ${doc.date || "not specified"}? This cannot be undone.`,
+                        onConfirm: () => deleteWillDoc(doc.id),
+                      })
+                    }
                   >
                     Delete
                   </Button>
@@ -1336,11 +1337,12 @@ export const NomineeTrackerTab = ({
                     <Edit2 size={13} />
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm(`Delete contact "${c.name}"? This cannot be undone.`)) {
-                        deleteContact(c.id);
-                      }
-                    }}
+                    onClick={() =>
+                      setConfirmAction({
+                        message: `Delete contact "${c.name}"? This cannot be undone.`,
+                        onConfirm: () => deleteContact(c.id),
+                      })
+                    }
                     disabled={deletingContact}
                     className="card-lift"
                     aria-label={`Delete contact ${c.name}`}
@@ -1663,6 +1665,16 @@ export const NomineeTrackerTab = ({
             loading={savingContact}
           />
         </Modal>
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
     </div>
   );
