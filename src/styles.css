@@ -1843,7 +1843,7 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
     width: auto;
     max-height: 60vh;
     border-radius: 16px;
-    z-index: 500 !important;
+    z-index: var(--z-modal) !important;
   }
 
   /* Tables: smaller text, horizontal scroll */
@@ -2929,7 +2929,7 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
     width: auto !important;
     max-height: 55vh;
     border-radius: 16px !important;
-    z-index: 500 !important;
+    z-index: var(--z-modal) !important;
   }
 
   /* ── PROFILE MENU: mobile fullwidth ── */
