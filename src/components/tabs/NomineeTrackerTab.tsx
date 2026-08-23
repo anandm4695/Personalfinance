@@ -30,6 +30,7 @@ import {
   type FlatAsset,
 } from "../../utils/nomineeTracker";
 import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
@@ -543,7 +544,7 @@ export const NomineeTrackerTab = ({
           />
           <NomineeStatCard
             label="Value at Risk"
-            value={<Prv>{fmtINRFull(valueAtRisk)}</Prv>}
+            value={<Money value={valueAtRisk} variant="full" />}
             numericValue={valueAtRisk}
             formatValue={fmtINRFull}
             mask
@@ -762,7 +763,7 @@ export const NomineeTrackerTab = ({
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      <Prv>{fmtINRFull(g.total)}</Prv>
+                      <Money value={g.total} variant="full" />
                     </div>
                   </div>
                 </div>
@@ -939,7 +940,7 @@ export const NomineeTrackerTab = ({
                               marginTop: 2,
                             }}
                           >
-                            <Prv>{fmtINRFull(asset.value)}</Prv>
+                            <Money value={asset.value} variant="full" />
                           </div>
                         </div>
 
@@ -1448,7 +1449,7 @@ export const NomineeTrackerTab = ({
               </div>
             )}
             <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 700, marginTop: 8 }}>
-              Value: <Prv>{fmtINRFull(assignModal.value)}</Prv>
+              Value: <Money value={assignModal.value} variant="full" />
             </div>
           </div>
 
