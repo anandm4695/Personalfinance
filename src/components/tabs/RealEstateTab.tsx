@@ -31,6 +31,7 @@ import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 // Sentinel owner id for a co-owner who isn't one of this household's tracked
@@ -1988,6 +1989,9 @@ export function RealEstateTab({
   const [showPropertyModal, setShowPropertyModal] = useState(false);
   const [editProperty, setEditProperty] = useState<any>(null);
   const [demandForProperty, setDemandForProperty] = useState<any>(null);
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
   const [editDemand, setEditDemand] = useState<any>(null);
   const [paymentForProperty, setPaymentForProperty] = useState<any>(null);
   const [editPayment, setEditPayment] = useState<any>(null);
@@ -2308,24 +2312,27 @@ export function RealEstateTab({
             payments={payments.filter((p) => p.propertyId === property.id)}
             onEditProperty={(p: any) => setEditProperty(p)}
             onDeleteProperty={(id: string) => {
-              if (
-                window.confirm(
-                  "Delete this property? Its demand letters and payment records will be deleted too. This cannot be undone."
-                )
-              )
-                deleteProperty(id);
+              setConfirmAction({
+                message:
+                  "Delete this property? Its demand letters and payment records will be deleted too. This cannot be undone.",
+                onConfirm: () => deleteProperty(id),
+              });
             }}
             onAddDemand={(p: any) => setDemandForProperty(p)}
             onEditDemand={(d: any) => setEditDemand(d)}
             onDeleteDemand={(id: string) => {
-              if (window.confirm("Delete this demand letter? This cannot be undone."))
-                deleteDemand(id);
+              setConfirmAction({
+                message: "Delete this demand letter? This cannot be undone.",
+                onConfirm: () => deleteDemand(id),
+              });
             }}
             onAddPayment={(p: any) => setPaymentForProperty(p)}
             onEditPayment={(p: any) => setEditPayment(p)}
             onDeletePayment={(id: string) => {
-              if (window.confirm("Delete this payment record? This cannot be undone."))
-                deletePayment(id);
+              setConfirmAction({
+                message: "Delete this payment record? This cannot be undone.",
+                onConfirm: () => deletePayment(id),
+              });
             }}
           />
         ))
@@ -2378,6 +2385,16 @@ export function RealEstateTab({
           }}
           onSave={handleSavePayment}
           saving={savingPayment}
+        />
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
