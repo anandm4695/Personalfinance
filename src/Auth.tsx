@@ -1093,6 +1093,19 @@ const AF_STYLES = `
   color: var(--af-text); font-weight: 400; min-width: 0;
 }
 .af-inp-padded { padding-left: 8px; }
+/* Chrome/Edge paint autofilled fields with a native yellow background that ignores
+   our own background rules and pokes out past the rounded wrapper's edge — this
+   neutralizes it so an autofilled field still matches the rest of the input. */
+.af-inp:-webkit-autofill,
+.af-inp:-webkit-autofill:hover,
+.af-inp:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--af-text);
+  transition: background-color 9999s ease-in-out 0s;
+  box-shadow: 0 0 0 1000px #F8FAFC inset;
+}
+.af-inp-wrap.af-focused .af-inp:-webkit-autofill {
+  box-shadow: 0 0 0 1000px #FFFFFF inset;
+}
 .af-inp-icon {
   display: flex; align-items: center; padding-left: 13px; color: #94A3B8; flex-shrink: 0;
   transition: color 0.15s;

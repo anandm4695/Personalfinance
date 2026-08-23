@@ -1981,7 +1981,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const prevVal = prev.netWorth ?? prev.net_worth ?? 0;
     const delta = latestVal - prevVal;
     const pct = prevVal !== 0 ? (delta / Math.abs(prevVal)) * 100 : 0;
-    return { delta, pct };
+    // Snapshots aren't guaranteed to be adjacent calendar months (a user who skips a
+    // few months, or a freshly-reopened account, leaves a gap) — labeling a multi-month
+    // jump as "MoM Change" misrepresents the pace of change, so size the label to the
+    // actual gap instead of always assuming exactly one month.
+    const [latestY, latestM] = latest.month.split("-").map(Number);
+    const [prevY, prevM] = prev.month.split("-").map(Number);
+    const monthsGap = (latestY - prevY) * 12 + (latestM - prevM);
+    const label = monthsGap === 1 ? "MoM Change" : monthsGap > 1 ? `${monthsGap}-Month Change` : "Change";
+    return { delta, pct, monthsGap, label };
   }, [state.netWorthHistory, activeProfile]);
 
   const wealthVelocity = useMemo(() => {
@@ -3733,7 +3741,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           ...(momNetWorthDelta
             ? [
                 {
-                  label: "MoM Change",
+                  label: momNetWorthDelta.label,
                   value: (
                     <>
                       {animatedMomDelta >= 0 ? "+" : ""}
@@ -4477,7 +4485,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <ArrowDownRight size={13} />
                       )}
                       {momNetWorthDelta.delta >= 0 ? "+" : ""}
-                      <Money value={momNetWorthDelta.delta} variant="full" /> MoM (
+                      <Money value={momNetWorthDelta.delta} variant="full" />{" "}
+                      {momNetWorthDelta.monthsGap === 1
+                        ? "MoM"
+                        : `${momNetWorthDelta.monthsGap}mo`}{" "}
+                      (
                       {momNetWorthDelta.pct >= 0 ? "+" : ""}
                       {momNetWorthDelta.pct.toFixed(1)}%)
                     </div>
