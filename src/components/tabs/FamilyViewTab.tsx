@@ -36,7 +36,6 @@ import { THEME, PIE_COLORS } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
-  fmtINR,
   fmtINRFull,
   rdMaturity,
   calculateEpfBalance,
@@ -1439,8 +1438,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tick={{ fill: THEME.muted, fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v) => (privacyMode ? "••••" : fmtINR(v))}
-                    width={64}
+                    tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
+                    width={92}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                   <Legend
@@ -1462,7 +1461,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       <LabelList
                         dataKey={m.name}
                         position="top"
-                        formatter={(v: number) => (v > 0 ? (privacyMode ? "••••" : fmtINR(v)) : "")}
+                        formatter={(v: number) => (v > 0 ? (privacyMode ? "••••" : fmtINRFull(v)) : "")}
                         style={{ fill: THEME.muted, fontSize: 9, fontWeight: 700 }}
                       />
                     </Bar>
