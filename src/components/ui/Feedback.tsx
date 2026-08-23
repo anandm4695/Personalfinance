@@ -121,7 +121,7 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
         position: "fixed",
         bottom: 32,
         right: 20,
-        zIndex: 9999,
+        zIndex: "var(--z-toast)",
         display: "flex",
         flexDirection: "column",
         gap: 10,

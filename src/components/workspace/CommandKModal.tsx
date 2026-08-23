@@ -148,7 +148,7 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999,
+        zIndex: "var(--z-cmdk)",
         background: "rgba(0, 0, 0, 0.65)",
         backdropFilter: "blur(12px)",
         display: "flex",

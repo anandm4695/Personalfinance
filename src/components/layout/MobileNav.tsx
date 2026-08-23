@@ -224,7 +224,7 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 9998,
+            zIndex: "var(--z-drawer)",
             // Ink-tinted, matching .modal-backdrop / .drawer-backdrop in styles.css
             // instead of a pure-black overlay, so all dismissible surfaces share one hue.
             background: "rgba(15,23,42,0.45)",
