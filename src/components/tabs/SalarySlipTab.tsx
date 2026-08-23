@@ -45,6 +45,7 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const EMPTY: any = {
@@ -565,6 +566,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
   const [expanded, setExpanded] = useState<string | null>(null);
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const apiKey = state?.settings?.geminiApiKey || "";
 
   const ownerName = (id: string) => familyProfiles.find((p: any) => p.id === id)?.name || id;
@@ -1128,10 +1130,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                         <Pencil size={13} />
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm("Delete this salary slip?"))
-                            deleteSlip(s.id);
-                        }}
+                        onClick={() => setConfirmDeleteId(s.id)}
                         className="card-lift"
                         title="Delete"
                         aria-label="Delete salary slip"
@@ -1352,6 +1351,16 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
           existingSlips={slips}
           familyProfiles={familyProfiles}
           saving={savingSlip}
+        />
+      )}
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message="Delete this salary slip?"
+          onConfirm={() => {
+            deleteSlip(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }}
+          onCancel={() => setConfirmDeleteId(null)}
         />
       )}
     </div>
