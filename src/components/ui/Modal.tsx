@@ -29,6 +29,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   // Escape-to-close, body scroll lock, and initial focus.
   React.useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -64,6 +65,7 @@ export const Modal: React.FC<ModalProps> = ({
     return () => {
       window.removeEventListener("keydown", handler);
       document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
     };
   }, []);
 
