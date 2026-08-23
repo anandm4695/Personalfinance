@@ -4986,6 +4986,7 @@ function LoanEmptyState({ type, onAdd }: any) {
 }
 
 function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
+  const { familyProfiles } = useMasterData();
   const [prepayExpanded, setPrepayExpanded] = useState<Set<string>>(new Set());
   const [prepayInputs, setPrepayInputs] = useState<Record<string, string>>({});
 
@@ -5115,6 +5116,8 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               : null;
           const barColor =
             paidPct > 60 ? "var(--t-sage)" : paidPct > 30 ? "var(--t-gold)" : "var(--t-rust)";
+          const ownerProfile = familyProfiles.find((p: any) => p.id === l.owner);
+          const ownerLabel = ownerProfile ? ownerProfile.name : "Self";
 
           return (
             <InvestCard
@@ -5165,6 +5168,18 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     }}
                   >
                     {l.lender}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: "var(--t-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      marginTop: 2,
+                    }}
+                  >
+                    Profile: {ownerLabel}
                   </div>
                 </div>
                 {isPaidOff && (
