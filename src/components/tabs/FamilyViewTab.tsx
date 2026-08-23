@@ -50,7 +50,8 @@ import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 
 // Family-member swatch colors. Deliberately drawn from the app's fixed
 // "extension" tokens (--t-violet/--t-cyan/--t-pink/--t-gold — see THEME
@@ -192,7 +193,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                <Prv>{fmtINRFull(value)}</Prv>
+                <Money value={value} variant="full" />
               </span>
             </div>
           );
@@ -753,7 +754,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   textShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
                 }}
               >
-                <Prv>{fmtINRFull(totalNetWorth)}</Prv>
+                <Money value={totalNetWorth} variant="full" />
               </div>
             </div>
           </div>
@@ -844,7 +845,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >
-                    <Prv>{fmtINRFull(m.netWorth)}</Prv>
+                    <Money value={m.netWorth} variant="full" />
                   </span>
                   <span
                     style={{
@@ -1027,7 +1028,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <Prv>{fmtINRFull(d.value)}</Prv>
+                        <Money value={d.value} variant="full" />
                       </span>
                       <Badge
                         variant="accent"
@@ -1118,7 +1119,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       letterSpacing: "-0.03em",
                     }}
                   >
-                    <Prv>{fmtINRFull(m.netWorth)}</Prv>
+                    <Money value={m.netWorth} variant="full" />
                   </div>
                   <div style={{ fontSize: 10, color: THEME.muted, marginTop: 1 }}>Net Worth</div>
                 </div>
@@ -1160,7 +1161,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          <Prv>{fmtINRFull(m.totalAssets)}</Prv>
+                          <Money value={m.totalAssets} variant="full" />
                         </div>
                       </div>
                       <div
@@ -1192,7 +1193,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          <Prv>{fmtINRFull(m.totalLiabilities)}</Prv>
+                          <Money value={m.totalLiabilities} variant="full" />
                         </div>
                       </div>
                     </>
@@ -1367,7 +1368,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                             marginLeft: 12,
                           }}
                         >
-                          <Prv>{fmtINRFull(h.value)}</Prv>
+                          <Money value={h.value} variant="full" />
                         </div>
                       </div>
                     ))}
@@ -1540,11 +1541,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     }}
                   >
                     <span>
-                      LIC: <Prv>{fmtINRFull(m.licCover)}</Prv>
+                      LIC: <Money value={m.licCover} variant="full" />
                     </span>
                     <span style={{ opacity: 0.3 }}>|</span>
                     <span>
-                      Term: <Prv>{fmtINRFull(m.termCover)}</Prv>
+                      Term: <Money value={m.termCover} variant="full" />
                     </span>
                   </div>
                 </div>
@@ -1559,7 +1560,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       letterSpacing: "-0.01em",
                     }}
                   >
-                    <Prv>{fmtINRFull(m.totalLifeCover)}</Prv>
+                    <Money value={m.totalLifeCover} variant="full" />
                   </div>
                   <div style={{ fontSize: 11, marginTop: 3 }}>
                     {hasIncome ? (
