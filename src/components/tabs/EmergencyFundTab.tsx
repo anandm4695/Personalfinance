@@ -26,7 +26,7 @@ import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const TIER_COLOR = { critical: THEME.rust, building: THEME.gold, healthy: THEME.accent, excellent: THEME.sage };
@@ -361,7 +361,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                         {r.label}
                       </span>
                       <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(r.value)}</Prv>
+                        <Money value={r.value} variant="full" />
                       </span>
                       <span
                         style={{
@@ -469,7 +469,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                           {e.label}
                         </span>
                         <span style={{ fontWeight: 700, fontSize: 13, color: THEME.ink }}>
-                          <Prv>{fmtINRFull(e.amount)}</Prv>
+                          <Money value={e.amount} variant="full" />
                         </span>
                         <span
                           style={{
@@ -525,12 +525,12 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                   Sum of Tracked Commitments
                 </span>
                 <span style={{ fontWeight: 900, fontSize: 15, color: THEME.ink }}>
-                  <Prv>{fmtINRFull(breakdownTotal)}</Prv>
+                  <Money value={breakdownTotal} variant="full" />
                 </span>
               </div>
               {usesDifferentTotal && (
                 <div style={{ fontSize: 11, color: THEME.muted, padding: "0 4px" }}>
-                  The <Prv>{fmtINRFull(data.monthlyExpense)}</Prv> used above for months-covered comes from
+                  The <Money value={data.monthlyExpense} variant="full" /> used above for months-covered comes from
                   your Budget total, which doesn't line up 1:1 with these itemized commitments.
                 </div>
               )}
@@ -724,13 +724,13 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                   >
                     Recommended Savings Target
                   </strong>
-                  To bridge the target gap of <Prv>{fmtINRFull(data.gap)}</Prv>, allocate{" "}
+                  To bridge the target gap of <Money value={data.gap} variant="full" />, allocate{" "}
                   <strong>
-                    <Prv>{fmtINRFull(data.gap / 6)}</Prv>/month
+                    <Money value={data.gap / 6} variant="full" />/month
                   </strong>{" "}
                   for 6 months, or{" "}
                   <strong>
-                    <Prv>{fmtINRFull(data.gap / 12)}</Prv>/month
+                    <Money value={data.gap / 12} variant="full" />/month
                   </strong>{" "}
                   for 12 months.
                 </div>
@@ -764,7 +764,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                   </strong>
                   {monthsToTarget !== null ? (
                     <>
-                      You're saving <Prv>{fmtINRFull(monthlySurplus)}</Prv>/month on average. Keep
+                      You're saving <Money value={monthlySurplus} variant="full" />/month on average. Keep
                       that up and you'll close the gap in{" "}
                       <strong>
                         {monthsToTarget < 1
