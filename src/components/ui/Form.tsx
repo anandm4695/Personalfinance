@@ -10,13 +10,21 @@ interface FieldProps {
 
 export const Field: React.FC<FieldProps> = ({ label, children, style, error }) => {
   const autoId = React.useId();
+  const errorId = `${autoId}-error`;
   const onlyChild =
     React.Children.count(children) === 1 && React.isValidElement(children)
       ? (children as React.ReactElement<any>)
       : null;
   const fieldId = onlyChild?.props?.id || autoId;
-  const content =
-    onlyChild && !onlyChild.props?.id ? React.cloneElement(onlyChild, { id: fieldId }) : children;
+  const content = onlyChild
+    ? React.cloneElement(onlyChild, {
+        id: onlyChild.props?.id || fieldId,
+        "aria-invalid": error ? true : onlyChild.props?.["aria-invalid"],
+        "aria-describedby": error
+          ? [onlyChild.props?.["aria-describedby"], errorId].filter(Boolean).join(" ")
+          : onlyChild.props?.["aria-describedby"],
+      })
+    : children;
 
   return (
     <div style={{ marginBottom: 16, ...style }}>
@@ -35,7 +43,11 @@ export const Field: React.FC<FieldProps> = ({ label, children, style, error }) =
         {label}
       </label>
       {content}
-      {error && <div style={{ fontSize: 11, color: "var(--t-rust)", marginTop: 4 }}>{error}</div>}
+      {error && (
+        <div id={errorId} role="alert" style={{ fontSize: 11, color: "var(--t-rust)", marginTop: 4 }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 };
