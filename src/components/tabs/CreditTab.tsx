@@ -43,6 +43,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
+import { ConfirmDialog } from "../ui/Feedback";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
@@ -1575,6 +1576,7 @@ function CCList({
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const [closingId, setClosingId] = useState<string | null>(null);
   const [closeDate, setCloseDate] = useState(today());
+  const [confirmDeleteCard, setConfirmDeleteCard] = useState<any>(null);
 
   const activeCards = items.filter((c: any) => (c.status || "active").toLowerCase() !== "closed");
   const closedCards = items.filter((c: any) => (c.status || "active").toLowerCase() === "closed");
@@ -1696,14 +1698,7 @@ function CCList({
             <Edit3 size={14} />
           </button>
           <button
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Delete "${c.issuer || "this card"}${c.last4 ? ` ····${c.last4}` : ""}" and its entire transaction ledger? This cannot be undone.`
-                )
-              )
-                onRemove(c.id);
-            }}
+            onClick={() => setConfirmDeleteCard(c)}
             aria-label="Remove card"
             style={{
               background: "transparent",
@@ -2552,12 +2547,23 @@ function CCList({
           }}
         />
       )}
+      {confirmDeleteCard && (
+        <ConfirmDialog
+          message={`Delete "${confirmDeleteCard.issuer || "this card"}${confirmDeleteCard.last4 ? ` ····${confirmDeleteCard.last4}` : ""}" and its entire transaction ledger? This cannot be undone.`}
+          onConfirm={() => {
+            onRemove(confirmDeleteCard.id);
+            setConfirmDeleteCard(null);
+          }}
+          onCancel={() => setConfirmDeleteCard(null)}
+        />
+      )}
     </div>
   );
 }
 
 function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   const { ccTransactionCategories: cats } = useMasterData();
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
 
   // If the card has a manually-entered outstanding but no ledger transactions yet,
   // seed the ledger with an "Opening Balance" entry so the outstanding is not lost
@@ -2761,6 +2767,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   };
 
   return (
+    <>
     <Modal title={`${card.issuer} — Transactions`} onClose={onClose} maxWidth={920}>
       {/* Summary tiles */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
@@ -3302,15 +3309,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                 <Edit3 size={14} />
               </button>
               <button
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      `Delete this transaction${t.merchant ? ` at ${t.merchant}` : ""} dated ${t.date}? This cannot be undone.`
-                    )
-                  ) {
-                    removeTx(t.id);
-                  }
-                }}
+                onClick={() => setConfirmDeleteTx(t)}
                 aria-label="Delete transaction"
                 style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer" }}
               >
@@ -3342,6 +3341,17 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
         </div>
       </div>
     </Modal>
+    {confirmDeleteTx && (
+      <ConfirmDialog
+        message={`Delete this transaction${confirmDeleteTx.merchant ? ` at ${confirmDeleteTx.merchant}` : ""} dated ${confirmDeleteTx.date}? This cannot be undone.`}
+        onConfirm={() => {
+          removeTx(confirmDeleteTx.id);
+          setConfirmDeleteTx(null);
+        }}
+        onCancel={() => setConfirmDeleteTx(null)}
+      />
+    )}
+    </>
   );
 }
 
@@ -3350,6 +3360,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const [closingId, setClosingId] = useState<string | null>(null);
   const [closeDate, setCloseDate] = useState(today());
+  const [confirmDeleteCard, setConfirmDeleteCard] = useState<any>(null);
   const selected = items.find((c: any) => c.id === selectedId);
 
   const computeStats = (txns: any[]) => {
@@ -3668,14 +3679,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   <Edit3 size={14} />
                 </button>
                 <button
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Delete "${p.cardName || p.name || p.provider || "this prepaid card"}" and its entire transaction ledger? This cannot be undone.`
-                      )
-                    )
-                      onRemove(p.id);
-                  }}
+                  onClick={() => setConfirmDeleteCard(p)}
                   aria-label="Remove card"
                   style={{
                     background: "transparent",
@@ -4081,12 +4085,23 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
           onUpdate={(newTxns: any) => onUpdateCard(selected.id, { transactions: newTxns })}
         />
       )}
+      {confirmDeleteCard && (
+        <ConfirmDialog
+          message={`Delete "${confirmDeleteCard.cardName || confirmDeleteCard.name || confirmDeleteCard.provider || "this prepaid card"}" and its entire transaction ledger? This cannot be undone.`}
+          onConfirm={() => {
+            onRemove(confirmDeleteCard.id);
+            setConfirmDeleteCard(null);
+          }}
+          onCancel={() => setConfirmDeleteCard(null)}
+        />
+      )}
     </div>
   );
 }
 
 function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
   const [txs, setTxs] = useState<any[]>(prepaid.transactions || []);
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [txType, setTxType] = useState<"load" | "spend">("spend");
   const [form, setForm] = useState({ date: today(), amount: "", note: "", category: "Food" });
@@ -4249,6 +4264,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
   const cardName = prepaid.cardName || prepaid.name || prepaid.provider || "Prepaid Card";
 
   return (
+    <>
     <Modal title={`${cardName} — Transactions`} onClose={onClose} maxWidth={920}>
       <div
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}
@@ -4868,15 +4884,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                 <Edit3 size={13} />
               </button>
               <button
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      `Delete this transaction${t.note ? ` ("${t.note}")` : ""} dated ${t.date}? This cannot be undone.`
-                    )
-                  ) {
-                    removeTx(t.id);
-                  }
-                }}
+                onClick={() => setConfirmDeleteTx(t)}
                 aria-label="Delete transaction"
                 style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer", padding: 4 }}
               >
@@ -4887,6 +4895,17 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
         />
       </div>
     </Modal>
+    {confirmDeleteTx && (
+      <ConfirmDialog
+        message={`Delete this transaction${confirmDeleteTx.note ? ` ("${confirmDeleteTx.note}")` : ""} dated ${confirmDeleteTx.date}? This cannot be undone.`}
+        onConfirm={() => {
+          removeTx(confirmDeleteTx.id);
+          setConfirmDeleteTx(null);
+        }}
+        onCancel={() => setConfirmDeleteTx(null)}
+      />
+    )}
+    </>
   );
 }
 
@@ -4989,6 +5008,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
   const { familyProfiles } = useMasterData();
   const [prepayExpanded, setPrepayExpanded] = useState<Set<string>>(new Set());
   const [prepayInputs, setPrepayInputs] = useState<Record<string, string>>({});
+  const [confirmDeleteLoan, setConfirmDeleteLoan] = useState<any>(null);
 
   if (!items.length) return <LoanEmptyState type="taken" onAdd={onAdd} />;
 
@@ -5122,10 +5142,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
           return (
             <InvestCard
               key={l.id}
-              onRemove={() => {
-                if (window.confirm(`Delete "${l.type || l.lender || "this loan"}"? This cannot be undone.`))
-                  onRemove(l.id);
-              }}
+              onRemove={() => setConfirmDeleteLoan(l)}
               onEdit={() => onEdit(l.id)}
               cardStyle={{
                 borderTop: `4px solid ${isPaidOff ? "var(--t-sage)" : "var(--t-rust)"}`,
@@ -5614,6 +5631,16 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
           );
         })}
       </Grid>
+      {confirmDeleteLoan && (
+        <ConfirmDialog
+          message={`Delete "${confirmDeleteLoan.type || confirmDeleteLoan.lender || "this loan"}"? This cannot be undone.`}
+          onConfirm={() => {
+            onRemove(confirmDeleteLoan.id);
+            setConfirmDeleteLoan(null);
+          }}
+          onCancel={() => setConfirmDeleteLoan(null)}
+        />
+      )}
     </div>
   );
 }
@@ -5633,6 +5660,8 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
 
   const [historyExpanded, setHistoryExpanded] = useState<Set<string>>(new Set());
   const [paymentTarget, setPaymentTarget] = useState<any>(null);
+  const [confirmDeleteLoan, setConfirmDeleteLoan] = useState<any>(null);
+  const [confirmUndoPayment, setConfirmUndoPayment] = useState<any>(null);
 
   const fmtLoanDate = (d: string) =>
     d
@@ -5816,10 +5845,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
           return (
             <InvestCard
               key={l.id}
-              onRemove={() => {
-                if (window.confirm(`Delete the loan given to "${l.borrower || "this person"}"? This cannot be undone.`))
-                  onRemove(l.id);
-              }}
+              onRemove={() => setConfirmDeleteLoan(l)}
               onEdit={() => onEdit(l.id)}
               cardStyle={{
                 borderTop: `4px solid ${isOverdue ? "var(--t-rust)" : isPaidOff ? "var(--t-sage)" : "var(--t-accent)"}`,
@@ -6224,17 +6250,13 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                                   </div>
                                 </div>
                                 <button
-                                  onClick={() => {
-                                    if (
-                                      !window.confirm(
-                                        "Undo this payment? The amount will be added back to the outstanding balance."
-                                      )
-                                    )
-                                      return;
-                                    const updated = payments.filter((x: any) => x.id !== p.id);
-                                    const restored = outstanding + Number(p.amount || 0);
-                                    onUpdate(l.id, { payments: updated, outstanding: restored });
-                                  }}
+                                  onClick={() =>
+                                    setConfirmUndoPayment({
+                                      loanId: l.id,
+                                      updated: payments.filter((x: any) => x.id !== p.id),
+                                      restored: outstanding + Number(p.amount || 0),
+                                    })
+                                  }
                                   style={{
                                     color: "var(--t-muted)",
                                     background: "transparent",
@@ -6279,6 +6301,30 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
             onClose={() => setPaymentTarget(null)}
           />
         </Modal>
+      )}
+      {confirmDeleteLoan && (
+        <ConfirmDialog
+          message={`Delete the loan given to "${confirmDeleteLoan.borrower || "this person"}"? This cannot be undone.`}
+          onConfirm={() => {
+            onRemove(confirmDeleteLoan.id);
+            setConfirmDeleteLoan(null);
+          }}
+          onCancel={() => setConfirmDeleteLoan(null)}
+        />
+      )}
+      {confirmUndoPayment && (
+        <ConfirmDialog
+          message="Undo this payment? The amount will be added back to the outstanding balance."
+          confirmLabel="Yes, undo"
+          onConfirm={() => {
+            onUpdate(confirmUndoPayment.loanId, {
+              payments: confirmUndoPayment.updated,
+              outstanding: confirmUndoPayment.restored,
+            });
+            setConfirmUndoPayment(null);
+          }}
+          onCancel={() => setConfirmUndoPayment(null)}
+        />
       )}
     </div>
   );
@@ -6783,6 +6829,9 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
   const [addPersonOpen, setAddPersonOpen] = useState(false);
   const [trancheTarget, setTrancheTarget] = useState<any>(null);
   const [paymentTarget, setPaymentTarget] = useState<any>(null);
+  const [confirmDeletePerson, setConfirmDeletePerson] = useState<any>(null);
+  const [confirmDeleteTranche, setConfirmDeleteTranche] = useState<any>(null);
+  const [confirmDeletePayment, setConfirmDeletePayment] = useState<any>(null);
   const now = new Date();
 
   const totalBorrowed = items.reduce(
@@ -7231,12 +7280,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (
-                        window.confirm(
-                          `Delete "${person.person || "this person"}" and all their loan/payment history? This cannot be undone.`
-                        )
-                      )
-                        onRemove(person.id);
+                      setConfirmDeletePerson(person);
                     }}
                     style={{
                       ...iconBtn,
@@ -7374,12 +7418,12 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                           onMouseLeave={(e) => {
                             e.currentTarget.style.color = "var(--t-muted)";
                           }}
-                          onClick={() => {
-                            if (!window.confirm("Delete this loan tranche? This cannot be undone."))
-                              return;
-                            const updated = tranches.filter((x: any) => x.id !== t.id);
-                            onUpdate(person.id, { tranches: updated });
-                          }}
+                          onClick={() =>
+                            setConfirmDeleteTranche({
+                              personId: person.id,
+                              updated: tranches.filter((x: any) => x.id !== t.id),
+                            })
+                          }
                           aria-label="Delete tranche"
                         >
                           <Trash2 size={12} />
@@ -7493,12 +7537,12 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                           onMouseLeave={(e) => {
                             e.currentTarget.style.color = "var(--t-muted)";
                           }}
-                          onClick={() => {
-                            if (!window.confirm("Delete this payment record? This cannot be undone."))
-                              return;
-                            const updated = payments.filter((x: any) => x.id !== p.id);
-                            onUpdate(person.id, { payments: updated });
-                          }}
+                          onClick={() =>
+                            setConfirmDeletePayment({
+                              personId: person.id,
+                              updated: payments.filter((x: any) => x.id !== p.id),
+                            })
+                          }
                           aria-label="Delete payment"
                         >
                           <Trash2 size={12} />
@@ -7609,6 +7653,36 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
             onClose={() => setPaymentTarget(null)}
           />
         </Modal>
+      )}
+      {confirmDeletePerson && (
+        <ConfirmDialog
+          message={`Delete "${confirmDeletePerson.person || "this person"}" and all their loan/payment history? This cannot be undone.`}
+          onConfirm={() => {
+            onRemove(confirmDeletePerson.id);
+            setConfirmDeletePerson(null);
+          }}
+          onCancel={() => setConfirmDeletePerson(null)}
+        />
+      )}
+      {confirmDeleteTranche && (
+        <ConfirmDialog
+          message="Delete this loan tranche? This cannot be undone."
+          onConfirm={() => {
+            onUpdate(confirmDeleteTranche.personId, { tranches: confirmDeleteTranche.updated });
+            setConfirmDeleteTranche(null);
+          }}
+          onCancel={() => setConfirmDeleteTranche(null)}
+        />
+      )}
+      {confirmDeletePayment && (
+        <ConfirmDialog
+          message="Delete this payment record? This cannot be undone."
+          onConfirm={() => {
+            onUpdate(confirmDeletePayment.personId, { payments: confirmDeletePayment.updated });
+            setConfirmDeletePayment(null);
+          }}
+          onCancel={() => setConfirmDeletePayment(null)}
+        />
       )}
     </div>
   );
