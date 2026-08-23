@@ -44,7 +44,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 
 // Maps each event type to the tab a user would go to in order to actually
 // act on it (edit the policy, pay the bill, etc). Used by the optional
@@ -497,14 +497,14 @@ export const FinancialCalendarTab = ({
                         <div
                           style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, marginTop: 6 }}
                         >
-                          +<Prv>{fmtINRExact(data.inflow)}</Prv>
+                          +<Money value={data.inflow} variant="exact" />
                         </div>
                       )}
                       {data.outflow > 0 && (
                         <div
                           style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginTop: 2 }}
                         >
-                          -<Prv>{fmtINRExact(data.outflow)}</Prv>
+                          -<Money value={data.outflow} variant="exact" />
                         </div>
                       )}
                     </div>
@@ -700,7 +700,7 @@ export const FinancialCalendarTab = ({
                           <div className="fincal-event-amount" style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
                               {hasAmount ? (
-                                <Prv>{fmtINRExact(event.maturityAmount || event.amount)}</Prv>
+                                <Money value={event.maturityAmount || event.amount} variant="exact" />
                               ) : (
                                 <span style={{ color: THEME.muted, fontWeight: 500 }}>Reminder</span>
                               )}
