@@ -38,7 +38,8 @@ import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 // Reuses BillPaymentTab's exact "is this bill paid for its current cycle" formula
 // (cross-referenced against billPaymentHistory) instead of re-deriving a second,
 // inevitably-divergent version of the same logic here. This is the same shared
@@ -655,7 +656,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
                   fontWeight: 500,
                 }}
               >
-                — <Prv>{fmtINRExact(selectedMonthTotal)}</Prv> total
+                — <Money value={selectedMonthTotal} variant="exact" /> total
               </span>
             </div>
             <button
@@ -892,7 +893,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
                         marginTop: 1,
                       }}
                     >
-                      <Prv>{fmtINR(dayTotal)}</Prv>
+                      <Money value={dayTotal} variant="compact" />
                     </div>
                   )}
                 </div>
@@ -960,7 +961,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
                         </Badge>
                       )}
                       <span style={{ marginLeft: "auto", color: cfg.color, fontWeight: 700 }}>
-                        <Prv>{fmtINRExact(p.amount)}</Prv>
+                        <Money value={p.amount} variant="exact" />
                       </span>
                       {canMarkPaid && (
                         <Button
@@ -1030,7 +1031,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
                         fontWeight: 600,
                       }}
                     >
-                      <Prv>{fmtINRExact(typeTotal)}</Prv>
+                      <Money value={typeTotal} variant="exact" />
                     </span>
                   </div>
                   {typePayments.map((p, i) => {
@@ -1162,7 +1163,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <Prv>{fmtINRExact(p.amount)}</Prv>
+                            <Money value={p.amount} variant="exact" />
                           </div>
                           {canMarkPaid && (
                             <Button
@@ -1196,7 +1197,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
           >
             <span>Total for {MONTH_NAMES[viewDate.month]}</span>
             <span style={{ fontVariantNumeric: "tabular-nums" }}>
-              <Prv>{fmtINRExact(selectedMonthTotal)}</Prv>
+              <Money value={selectedMonthTotal} variant="exact" />
             </span>
           </div>
         </div>
