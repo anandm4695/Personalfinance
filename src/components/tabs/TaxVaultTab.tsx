@@ -56,6 +56,7 @@ import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { Modal, ModalActions } from "../ui/Modal";
 import { EmptyState } from "../ui/EmptyState";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
@@ -1370,6 +1371,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   const [simulatedHarvestIds, setSimulatedHarvestIds] = useState<string[]>([]);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [expandedTipId, setExpandedTipId] = useState<string | null>(null);
+  const [confirmDeletePayment, setConfirmDeletePayment] = useState<any>(null);
   const { privacyMode } = usePrivacy();
 
   const { run: saveNewTaxPayment, loading: savingTaxPayment } = useAsyncAction(
@@ -4516,15 +4518,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Delete this tax payment dated ${p.date}? This cannot be undone.`
-                          )
-                        ) {
-                          deleteTaxPayment(p.id);
-                        }
-                      }}
+                      onClick={() => setConfirmDeletePayment(p)}
                       style={{ padding: 6, color: THEME.rust }}
                       title="Delete"
                       aria-label="Delete tax payment"
@@ -5353,6 +5347,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           onClose={() => setShowModal(false)}
           onSave={saveNewTaxPayment}
           saving={savingTaxPayment}
+        />
+      )}
+      {confirmDeletePayment && (
+        <ConfirmDialog
+          message={`Delete this tax payment dated ${confirmDeletePayment.date}? This cannot be undone.`}
+          onConfirm={() => {
+            deleteTaxPayment(confirmDeletePayment.id);
+            setConfirmDeletePayment(null);
+          }}
+          onCancel={() => setConfirmDeletePayment(null)}
         />
       )}
     </div>
