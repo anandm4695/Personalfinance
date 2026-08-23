@@ -24,6 +24,7 @@ import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 import { Drawer } from "../ui/Drawer";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { Prv } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
@@ -292,6 +293,9 @@ const SoldTable = ({
     async (collection: string, id: string) => { await removeItem(collection, id); },
     { onError: (e: any) => showToast?.(`Failed to delete sale record: ${e?.message || "Unknown error"}`, "error") }
   );
+  const [confirmDelete, setConfirmDelete] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
   const total = rows.reduce((s: number, r: any) => s + Number(r.profit || 0), 0);
   if (rows.length === 0)
     return (
@@ -300,6 +304,7 @@ const SoldTable = ({
       />
     );
   return (
+    <>
     <DataTable
       columns={[
         {
@@ -423,9 +428,10 @@ const SoldTable = ({
           onClick={() => {
             const name =
               type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") || "this stock" : s.scheme || "this fund";
-            if (window.confirm(`Delete this sale record for "${name}"? This cannot be undone.`)) {
-              deleteSaleRecord(type === "stock" ? "stockSells" : "mfSells", s.id);
-            }
+            setConfirmDelete({
+              message: `Delete this sale record for "${name}"? This cannot be undone.`,
+              onConfirm: () => deleteSaleRecord(type === "stock" ? "stockSells" : "mfSells", s.id),
+            });
           }}
           title="Delete"
           aria-label="Delete sale record"
@@ -466,6 +472,17 @@ const SoldTable = ({
         </tr>
       }
     />
+    {confirmDelete && (
+      <ConfirmDialog
+        message={confirmDelete.message}
+        onConfirm={() => {
+          confirmDelete.onConfirm();
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    )}
+    </>
   );
 };
 
@@ -483,6 +500,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
   const [viewCashTxnId, setViewCashTxnId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortState, setSortState] = useState<Record<string, { key: string; dir: SortDir }>>({});
+  const [confirmDeleteTxn, setConfirmDeleteTxn] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
 
   const { run: deleteCashTxn } = useAsyncAction(
     async (id: string) => { await removeItem("transactions", id); },
@@ -1990,13 +2010,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   size="sm"
                   onClick={(e: any) => {
                     e.stopPropagation();
-                    if (
-                      window.confirm(
-                        `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
-                      )
-                    ) {
-                      deleteCashTxn(t.id);
-                    }
+                    setConfirmDeleteTxn({
+                      message: `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`,
+                      onConfirm: () => deleteCashTxn(t.id),
+                    });
                   }}
                   title="Delete"
                   aria-label="Delete transaction"
@@ -2162,14 +2179,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   variant="secondary"
                   style={{ flex: 1, color: THEME.rust }}
                   onClick={() => {
-                    if (
-                      window.confirm(
-                        `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`
-                      )
-                    ) {
-                      deleteCashTxn(t.id);
-                      setViewCashTxnId(null);
-                    }
+                    setConfirmDeleteTxn({
+                      message: `Delete this transaction${t.note ? ` ("${t.note}")` : ""}? This cannot be undone.`,
+                      onConfirm: () => {
+                        deleteCashTxn(t.id);
+                        setViewCashTxnId(null);
+                      },
+                    });
                   }}
                 >
                   Delete
@@ -2178,6 +2194,16 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
             </Drawer>
           );
         })()}
+      {confirmDeleteTxn && (
+        <ConfirmDialog
+          message={confirmDeleteTxn.message}
+          onConfirm={() => {
+            confirmDeleteTxn.onConfirm();
+            setConfirmDeleteTxn(null);
+          }}
+          onCancel={() => setConfirmDeleteTxn(null)}
+        />
+      )}
     </div>
   );
 }
