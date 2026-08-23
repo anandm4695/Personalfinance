@@ -30,6 +30,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
+import { Money } from "../ui/Money";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
@@ -464,7 +465,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
               <span style={{ fontSize: 13, fontWeight: 600, color: b.color }}>{b.label}</span>
               <span style={{ fontSize: 13 }}>{b.nickname || b.provider}</span>
               <span style={{ fontSize: 13, color: THEME.textMuted, marginLeft: "auto" }}>
-                <Prv>{fmtINRFull(Number(b.amount))}</Prv>
+                <Money value={Number(b.amount)} variant="full" />
               </span>
               <Button size="sm" onClick={() => setPayModal(b)}>
                 Pay Now
@@ -531,7 +532,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>
-                      <Prv>{fmtINRFull(Number(b.amount))}</Prv>
+                      <Money value={Number(b.amount)} variant="full" />
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>
                       {b.dueDay ? `Due on ${b.dueDay}${ordinal(Number(b.dueDay))}` : ""}
@@ -677,7 +678,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                                 })}
                               </span>
                               <span style={{ fontWeight: 600 }}>
-                                <Prv>{fmtINRFull(Number(h.amount))}</Prv>
+                                <Money value={Number(h.amount)} variant="full" />
                               </span>
                               {h.unitsConsumed && (
                                 <span style={{ color: THEME.textMuted }}>
