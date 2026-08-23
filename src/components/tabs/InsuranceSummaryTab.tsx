@@ -27,6 +27,7 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
@@ -354,6 +355,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
 
   const [newTxDate, setNewTxDate] = useState(todayStr);
   const [newTxAmount, setNewTxAmount] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
   // Previously the Save button's validation guard (`if (!x) return;`) failed
   // silently — an incomplete form just did nothing with zero feedback, leaving
   // the user unsure whether the click registered at all. Surface the specific
@@ -408,14 +412,17 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
       return;
     }
     const existingCount = (lic.transactions || []).length;
-    if (
-      existingCount > 0 &&
-      !window.confirm(
-        `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`
-      )
-    ) {
+    if (existingCount > 0) {
+      setConfirmAction({
+        message: `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`,
+        onConfirm: doGenerateLicTransactions,
+      });
       return;
     }
+    doGenerateLicTransactions();
+  };
+
+  const doGenerateLicTransactions = () => {
     const commDate = new Date(lic.commencementDate);
     const premium = Number(lic.annualPremium);
     const payTerm = lic.premiumPayingTerm ? parseInt(lic.premiumPayingTerm, 10) : null;
@@ -456,14 +463,17 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
       return;
     }
     const existingCount = (term.transactions || []).length;
-    if (
-      existingCount > 0 &&
-      !window.confirm(
-        `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`
-      )
-    ) {
+    if (existingCount > 0) {
+      setConfirmAction({
+        message: `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`,
+        onConfirm: doGenerateTermTransactions,
+      });
       return;
     }
+    doGenerateTermTransactions();
+  };
+
+  const doGenerateTermTransactions = () => {
     const commDate = new Date(term.startDate);
     const premium = Number(term.annualPremium);
     const payTerm = term.premiumPayingTerm ? parseInt(term.premiumPayingTerm, 10) : null;
@@ -504,14 +514,17 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
       return;
     }
     const existingCount = (invest.transactions || []).length;
-    if (
-      existingCount > 0 &&
-      !window.confirm(
-        `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`
-      )
-    ) {
+    if (existingCount > 0) {
+      setConfirmAction({
+        message: `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`,
+        onConfirm: doGenerateInvestTransactions,
+      });
       return;
     }
+    doGenerateInvestTransactions();
+  };
+
+  const doGenerateInvestTransactions = () => {
     const commDate = new Date(invest.commencementDate);
     const premium = Number(invest.annualPremium);
     const payTerm = invest.premiumPayingTerm ? parseInt(invest.premiumPayingTerm, 10) : null;
@@ -610,6 +623,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
   const isEdit = !!policy;
 
   return (
+    <>
     <Modal
       title={`${isEdit ? "Edit" : "Add"} ${sub === "lic" ? "LIC Policy" : sub === "invest" ? "Investment Plan" : "Term Plan"}`}
       onClose={onClose}
@@ -1589,6 +1603,18 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
         loading={saving}
       />
     </Modal>
+    {confirmAction && (
+      <ConfirmDialog
+        message={confirmAction.message}
+        confirmLabel="Yes, replace"
+        onConfirm={() => {
+          confirmAction.onConfirm();
+          setConfirmAction(null);
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
+    )}
+    </>
   );
 };
 
@@ -1749,6 +1775,11 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     async (key: string, id: string) => { await removeItem(key, id); },
     { onError: (e: any) => showToast?.(`Failed to delete policy: ${e?.message || "Unknown error"}`, "error") }
   );
+  const [confirmDeletePolicy, setConfirmDeletePolicy] = useState<{
+    message: string;
+    key: string;
+    id: string;
+  } | null>(null);
 
   const downloadCSV = () => {
     const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -2383,10 +2414,13 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Delete "${l.planName}" policy?`))
-                              deletePolicy("lic", l.id);
-                          }}
+                          onClick={() =>
+                            setConfirmDeletePolicy({
+                              message: `Delete "${l.planName}" policy?`,
+                              key: "lic",
+                              id: l.id,
+                            })
+                          }
                           aria-label={`Delete ${l.planName} policy`}
                           title="Delete policy"
                           style={{
@@ -2710,10 +2744,13 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Delete "${t.planName || "Term Plan"}"?`))
-                              deletePolicy("termPlans", t.id);
-                          }}
+                          onClick={() =>
+                            setConfirmDeletePolicy({
+                              message: `Delete "${t.planName || "Term Plan"}"?`,
+                              key: "termPlans",
+                              id: t.id,
+                            })
+                          }
                           aria-label={`Delete ${t.planName || "Term Plan"}`}
                           title="Delete policy"
                           style={{
@@ -3043,10 +3080,13 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Delete "${ip.planName || "Investment Plan"}"?`))
-                              deletePolicy("investmentPlans", ip.id);
-                          }}
+                          onClick={() =>
+                            setConfirmDeletePolicy({
+                              message: `Delete "${ip.planName || "Investment Plan"}"?`,
+                              key: "investmentPlans",
+                              id: ip.id,
+                            })
+                          }
                           aria-label={`Delete ${ip.planName || "Investment Plan"}`}
                           title="Delete policy"
                           style={{
@@ -3311,6 +3351,16 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           }}
           onSave={handleSave}
           saving={savingPolicy}
+        />
+      )}
+      {confirmDeletePolicy && (
+        <ConfirmDialog
+          message={confirmDeletePolicy.message}
+          onConfirm={() => {
+            deletePolicy(confirmDeletePolicy.key, confirmDeletePolicy.id);
+            setConfirmDeletePolicy(null);
+          }}
+          onCancel={() => setConfirmDeletePolicy(null)}
         />
       )}
     </div>
