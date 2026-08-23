@@ -32,6 +32,7 @@ import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 
 const th: React.CSSProperties = {
   padding: "14px 16px",
@@ -334,7 +335,7 @@ export const LoanAmortizationTab = ({ state }) => {
             <>
               <Badge variant="muted">{loanData.name}</Badge>
               <Badge variant="accent">
-                <IndianRupee size={13} /> EMI <Prv>{fmtINRExact(baseAmort.emi)}</Prv>
+                <IndianRupee size={13} /> EMI <Money value={baseAmort.emi} variant="exact" />
               </Badge>
             </>
           )
@@ -709,7 +710,7 @@ export const LoanAmortizationTab = ({ state }) => {
                     Interest Saved
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
-                    <Prv>{fmtINRFull(savings.interestSaved)}</Prv>
+                    <Money value={savings.interestSaved} variant="full" />
                   </div>
                 </div>
                 <div
@@ -1101,13 +1102,13 @@ export const LoanAmortizationTab = ({ state }) => {
                         <td style={tdCenter}>{row.month}</td>
                         <td style={tdCenter}>{row.dateLabel}</td>
                         <td style={td}>
-                          <Prv>{fmtINRExact(row.emi)}</Prv>
+                          <Money value={row.emi} variant="exact" />
                         </td>
                         <td style={{ ...td, color: THEME.sage, fontWeight: 600 }}>
-                          <Prv>{fmtINRExact(row.principal)}</Prv>
+                          <Money value={row.principal} variant="exact" />
                         </td>
                         <td style={{ ...td, color: THEME.rust, fontWeight: 600 }}>
-                          <Prv>{fmtINRExact(row.interest)}</Prv>
+                          <Money value={row.interest} variant="exact" />
                         </td>
                         <td
                           style={{
@@ -1116,7 +1117,7 @@ export const LoanAmortizationTab = ({ state }) => {
                             color: THEME.ink,
                           }}
                         >
-                          <Prv>{fmtINRExact(row.balance)}</Prv>
+                          <Money value={row.balance} variant="exact" />
                         </td>
                       </tr>
                     ))}
