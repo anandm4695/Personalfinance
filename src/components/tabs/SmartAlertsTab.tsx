@@ -16,12 +16,12 @@ import {
   Target,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, today, monthsBetween } from "../../utils/finance";
+import { today, monthsBetween } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { EmptyState } from "../ui/EmptyState";
 
 const DISMISSED_ALERTS_KEY = "finance-dismissed-alerts";
@@ -140,11 +140,11 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           detail: (
             <>
               {"So far this month: "}
-              <Prv>{fmtINRExact(thisMonthSpend)}</Prv>
+              <Money value={thisMonthSpend} variant="exact" />
               {" vs typical pace: "}
-              <Prv>{fmtINRExact(expectedToDate)}</Prv>
+              <Money value={expectedToDate} variant="exact" />
               {` (${((thisMonthSpend / expectedToDate - 1) * 100).toFixed(0)}% higher, avg full month: `}
-              <Prv>{fmtINRExact(avg)}</Prv>
+              <Money value={avg} variant="exact" />
               {")"}
             </>
           ),
@@ -163,9 +163,9 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           detail: (
             <>
               {"So far this month: "}
-              <Prv>{fmtINRExact(thisMonthSpend)}</Prv>
+              <Money value={thisMonthSpend} variant="exact" />
               {" vs typical pace: "}
-              <Prv>{fmtINRExact(expectedToDate)}</Prv>
+              <Money value={expectedToDate} variant="exact" />
               {" — are all expenses logged?"}
             </>
           ),
@@ -208,9 +208,9 @@ export const SmartAlertsTab = ({ state, metrics }) => {
             title: `${cat} spending spiked`,
             detail: (
               <>
-                <Prv>{fmtINRExact(thisMonth)}</Prv>
+                <Money value={thisMonth} variant="exact" />
                 {" this month vs avg "}
-                <Prv>{fmtINRExact(avg)}</Prv>
+                <Money value={avg} variant="exact" />
                 {` — ${((thisMonth / avg - 1) * 100).toFixed(0)}% higher`}
               </>
             ),
@@ -237,7 +237,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
             detail: (
               <>
                 {`${b.name || "Bond"} — Face Value: `}
-                <Prv>{fmtINRExact(b.faceValue || b.totalInvestmentAmount)}</Prv>
+                <Money value={b.faceValue || b.totalInvestmentAmount} variant="exact" />
               </>
             ),
             icon: Clock,
@@ -313,7 +313,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           detail: (
             <>
               {`Progress: ${progress.toFixed(0)}% — Need `}
-              <Prv>{fmtINRExact(Number(g.targetAmount) - Number(g.currentAmount))}</Prv>
+              <Money value={Number(g.targetAmount) - Number(g.currentAmount)} variant="exact" />
               {" more"}
             </>
           ),
@@ -341,7 +341,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           detail: (
             <>
               {`Progress: ${progress.toFixed(0)}% — Need `}
-              <Prv>{fmtINRExact(Math.max(0, Number(e.estimatedCost) - Number(e.currentSaved)))}</Prv>
+              <Money value={Math.max(0, Number(e.estimatedCost) - Number(e.currentSaved))} variant="exact" />
               {" more"}
             </>
           ),
@@ -374,7 +374,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
         title: "Subscriptions are 15%+ of expenses",
         detail: (
           <>
-            <Prv>{fmtINRExact(monthlySubs)}</Prv>
+            <Money value={monthlySubs} variant="exact" />
             {"/month on subscriptions. Review for unused ones."}
           </>
         ),
