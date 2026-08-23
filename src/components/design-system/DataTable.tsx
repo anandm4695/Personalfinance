@@ -197,6 +197,26 @@ export function DataTable<T extends Record<string, any>>({
                   <th
                     key={col.key}
                     onClick={() => handleSort(col)}
+                    tabIndex={col.sortable ? 0 : undefined}
+                    onKeyDown={
+                      col.sortable
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleSort(col);
+                            }
+                          }
+                        : undefined
+                    }
+                    aria-sort={
+                      col.sortable
+                        ? isActiveSort
+                          ? effectiveSortDirection === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                        : undefined
+                    }
                     style={{
                       padding: "10px 16px",
                       fontSize: "11px",
