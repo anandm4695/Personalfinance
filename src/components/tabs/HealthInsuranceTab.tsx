@@ -31,6 +31,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const POLICY_TYPES = [
@@ -528,6 +529,9 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
   const [modal, setModal] = useState<any>(null);
   const [claimModal, setClaimModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
 
   const totalCover = policies.reduce((s: number, p: any) => s + Number(p.sumInsured || 0), 0);
   const totalAnnualPremium = policies.reduce(
@@ -592,8 +596,10 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
     { onError: (e: any) => showToast?.(`Failed to delete claim: ${e?.message || "Unknown error"}`, "error") }
   );
   const removeClaim = (policy: any, claimId: string) => {
-    if (!window.confirm("Delete this claim record?")) return;
-    removeClaimRun(policy, claimId);
+    setConfirmAction({
+      message: "Delete this claim record?",
+      onConfirm: () => removeClaimRun(policy, claimId),
+    });
   };
 
   const { run: deletePolicy } = useAsyncAction(
@@ -857,10 +863,12 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Delete "${p.insurer}" policy?`))
-                          deletePolicy(p.id);
-                      }}
+                      onClick={() =>
+                        setConfirmAction({
+                          message: `Delete "${p.insurer}" policy?`,
+                          onConfirm: () => deletePolicy(p.id),
+                        })
+                      }
                       aria-label={`Delete ${p.insurer} policy`}
                       title="Delete policy"
                       style={{
@@ -1119,6 +1127,16 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
           onSave={saveClaim}
           onClose={() => setClaimModal(null)}
           saving={savingClaim}
+        />
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
