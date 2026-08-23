@@ -30,7 +30,7 @@ import {
   getEffectiveRent,
 } from "../utils/finance";
 import { SCHEME_RULES, projectSchemeValue } from "../utils/govtSchemes";
-import { Prv } from "../context/PrivacyContext";
+import { Money } from "../components/ui/Money";
 import { dueStatus } from "../components/tabs/BillPaymentTab";
 
 /**
@@ -108,7 +108,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         icon: Landmark,
         // Amount deliberately NOT embedded in the plain-text `name` (rendered
         // unmasked as the card title) — it's already shown correctly masked via
-        // <Prv> in the amount column and in `detail` below; embedding it here too
+        // <Money> in the amount column and in `detail` below; embedding it here too
         // would leak the principal in Privacy Mode.
         name: fd.bank || "FD",
         date: fd.maturityDate,
@@ -119,7 +119,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.accent,
         detail: (
           <>
-            {fd.rate}% p.a. • Principal: <Prv>{fmtINRExact(fd.principal)}</Prv>
+            {fd.rate}% p.a. • Principal: <Money value={fd.principal} variant="exact" />
           </>
         ),
       });
@@ -146,7 +146,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         icon: Repeat,
         // Amount deliberately NOT embedded in the plain-text `name` (rendered
         // unmasked as the card title) — the monthly instalment amount now
-        // moves to `detail` wrapped in <Prv> instead, alongside the amount
+        // moves to `detail` wrapped in <Money> instead, alongside the amount
         // column, so Privacy Mode actually hides it.
         name: rd.bank || "RD",
         date: matDate,
@@ -157,7 +157,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.violet,
         detail: (
           <>
-            {rd.rate}% p.a. • {rd.tenureMonths} months • <Prv>{fmtINRExact(rd.monthly)}</Prv>/mo
+            {rd.rate}% p.a. • {rd.tenureMonths} months • <Money value={rd.monthly} variant="exact" />/mo
           </>
         ),
       });
@@ -181,7 +181,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         detail: (
           <>
             Coupon: {b.coupon || 0}% • Face Value:{" "}
-            <Prv>{fmtINRExact(b.faceValue || b.totalPrincipalAmount)}</Prv>
+            <Money value={b.faceValue || b.totalPrincipalAmount} variant="exact" />
           </>
         ),
       });
@@ -221,7 +221,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.sage,
         detail: (
           <>
-            Based on last dividend of <Prv>{fmtINRExact(lastDiv.amount)}</Prv> on{" "}
+            Based on last dividend of <Money value={lastDiv.amount} variant="exact" /> on{" "}
             {formatDate(lastDiv.date)}
           </>
         ),
@@ -266,7 +266,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
           color: THEME.pink,
           detail: (
             <>
-              Annual Premium: <Prv>{fmtINRExact(premium)}</Prv>
+              Annual Premium: <Money value={premium} variant="exact" />
             </>
           ),
         });
@@ -296,7 +296,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.chart3,
         detail: (
           <>
-            {p.policyName ? `${p.policyName} • ` : ""}Premium: <Prv>{fmtINRExact(annualPrem)}</Prv>
+            {p.policyName ? `${p.policyName} • ` : ""}Premium: <Money value={annualPrem} variant="exact" />
           </>
         ),
       });
@@ -322,7 +322,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.rust,
         detail: (
           <>
-            EMI: <Prv>{fmtINRExact(l.emi)}</Prv> • Outstanding: <Prv>{fmtINRExact(l.outstanding)}</Prv>
+            EMI: <Money value={l.emi} variant="exact" /> • Outstanding: <Money value={l.outstanding} variant="exact" />
           </>
         ),
       });
@@ -348,7 +348,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.sage,
         detail: (
           <>
-            Outstanding: <Prv>{fmtINRExact(outstanding)}</Prv>
+            Outstanding: <Money value={outstanding} variant="exact" />
             {l.rate ? ` • ${l.rate}% p.a.` : ""}
           </>
         ),
@@ -394,7 +394,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.accent,
         detail: (
           <>
-            Annual Fee: <Prv>{fmtINRExact(feeAmt)}</Prv>
+            Annual Fee: <Money value={feeAmt} variant="exact" />
           </>
         ),
       });
@@ -418,7 +418,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.gold,
         detail: (
           <>
-            {s.cycle} • <Prv>{fmtINRExact(s.amount)}</Prv>
+            {s.cycle} • <Money value={s.amount} variant="exact" />
           </>
         ),
       });
@@ -446,7 +446,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.sage,
         detail: (
           <>
-            Balance: <Prv>{fmtINRExact(p.balance)}</Prv>
+            Balance: <Money value={p.balance} variant="exact" />
           </>
         ),
       });
@@ -477,7 +477,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         detail: (
           <>
             {sc.interestRate ? `${sc.interestRate}% p.a. • ` : ""}Balance:{" "}
-            <Prv>{fmtINRExact(sc.currentBalance)}</Prv>
+            <Money value={sc.currentBalance} variant="exact" />
           </>
         ),
       });
@@ -505,7 +505,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.pink,
         detail: (
           <>
-            Annual Premium: <Prv>{fmtINRExact(premium)}</Prv>
+            Annual Premium: <Money value={premium} variant="exact" />
           </>
         ),
       });
@@ -547,11 +547,11 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.gold,
         detail: (
           <>
-            Demand: <Prv>{fmtINRExact(totalAmt)}</Prv>
+            Demand: <Money value={totalAmt} variant="exact" />
             {paidForDemand > 0 ? (
               <>
                 {" "}
-                • Paid: <Prv>{fmtINRExact(paidForDemand)}</Prv>
+                • Paid: <Money value={paidForDemand} variant="exact" />
               </>
             ) : (
               ""
@@ -608,7 +608,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
           color: THEME.sage,
           detail: (
             <>
-              Expected: <Prv>{fmtINRExact(rentAmt)}</Prv>
+              Expected: <Money value={rentAmt} variant="exact" />
             </>
           ),
         });
@@ -640,7 +640,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.gold,
         detail: (
           <>
-            Balance: <Prv>{fmtINRExact(Math.max(0, loaded - spent))}</Prv> — use or transfer before
+            Balance: <Money value={Math.max(0, loaded - spent)} variant="exact" /> — use or transfer before
             expiry
           </>
         ),
@@ -724,11 +724,11 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         color: THEME.pink,
         detail: (
           <>
-            Target: <Prv>{fmtINRExact(cost)}</Prv>
+            Target: <Money value={cost} variant="exact" />
             {saved > 0 ? (
               <>
                 {" "}
-                • Saved: <Prv>{fmtINRExact(saved)}</Prv>
+                • Saved: <Money value={saved} variant="exact" />
               </>
             ) : (
               ""
