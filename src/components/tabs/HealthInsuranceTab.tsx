@@ -30,7 +30,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const POLICY_TYPES = [
@@ -123,7 +123,7 @@ function hasRoomRentCap(p: any): boolean {
 // rule-of-thumb minimum for a metro/tier-1 hospitalisation today.
 const ADEQUACY_PER_MEMBER_MIN = 500000;
 // Returns the raw per-member figure (not a pre-formatted string) so the caller can wrap
-// just the money portion in <Prv> — the sum-insured-per-member number is exactly the kind
+// just the money portion in <Money> — the sum-insured-per-member number is exactly the kind
 // of sensitive figure Privacy Mode is meant to blur, and embedding it in a plain string
 // (as this used to do) meant it always rendered unmasked.
 function coverageAdequacyNote(p: any): number | null {
@@ -637,7 +637,13 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
             value={fmtINRFull(totalAnnualPremium)}
             numericValue={totalAnnualPremium}
             formatValue={fmtINRFull}
-            sub={sec80DEstimate > 0 ? <Prv>{`≈ ${fmtINRFull(sec80DEstimate)} eligible for 80D`}</Prv> : undefined}
+            sub={
+              sec80DEstimate > 0 ? (
+                <>
+                  ≈ <Money value={sec80DEstimate} variant="full" /> eligible for 80D
+                </>
+              ) : undefined
+            }
             icon={<Heart size={18} />}
             color={THEME.danger}
           />
@@ -674,7 +680,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
         >
           <FileText size={12} />
           {allClaims.length} claim{allClaims.length !== 1 ? "s" : ""} filed ·{" "}
-          <Prv>{fmtINRFull(totalClaimedAmount)}</Prv> total claimed
+          <Money value={totalClaimedAmount} variant="full" /> total claimed
           {pendingClaims > 0 ? ` · ${pendingClaims} pending settlement` : ""}
         </div>
       )}
@@ -766,7 +772,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 700, fontSize: 16, color: THEME.success }}>
-                      <Prv>{fmtINRFull(Number(p.sumInsured || 0))}</Prv>
+                      <Money value={Number(p.sumInsured || 0)} variant="full" />
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>cover</div>
                     {adequacyNote && (
@@ -782,14 +788,14 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                         }}
                         title="Rough rule-of-thumb: ₹5L+ cover per insured member for a metro/tier-1 hospitalisation"
                       >
-                        <AlertTriangle size={10} /> <Prv>{`~${fmtINRFull(adequacyNote)}`}</Prv>/member
-                        — consider a top-up
+                        <AlertTriangle size={10} /> ~<Money value={adequacyNote} variant="full" />
+                        /member — consider a top-up
                       </div>
                     )}
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      <Prv>{fmtINRFull(annual)}/yr</Prv>
+                      <Money value={annual} variant="full" />/yr
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>premium</div>
                   </div>
@@ -941,7 +947,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       )}
                       {Number(p.noClaimBonus) > 0 && (
                         <div style={{ fontSize: 12, color: THEME.textMuted }}>
-                          NCB: <Prv>{fmtINRFull(Number(p.noClaimBonus))}</Prv>
+                          NCB: <Money value={Number(p.noClaimBonus)} variant="full" />
                         </div>
                       )}
                       {p.hospitalNetwork && (
@@ -1047,7 +1053,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                     : "—"}
                                 </span>
                                 <span style={{ fontWeight: 600 }}>
-                                  <Prv>{fmtINRFull(Number(c.amount || 0))}</Prv>
+                                  <Money value={Number(c.amount || 0)} variant="full" />
                                 </span>
                                 {c.description && (
                                   <span style={{ color: THEME.textMuted, flex: 1, minWidth: 0 }}>
