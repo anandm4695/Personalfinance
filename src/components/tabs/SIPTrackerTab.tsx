@@ -34,6 +34,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { MFLogo } from "./InvestmentsTab";
@@ -75,6 +76,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
   const [editSip, setEditSip] = useState<any>(null);
   const [sipProjRate, setSipProjRate] = useState("12");
   const [sortBy, setSortBy] = useState<string>("amount");
+  const [confirmDeleteSip, setConfirmDeleteSip] = useState<any>(null);
   const todayStr = today();
 
   const deleteSip = async (id: string) => {
@@ -587,11 +589,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
                     key={sip.id}
                     sip={sip}
                     onEdit={() => setEditSip(sip)}
-                    onRemove={() => {
-                      if (window.confirm(`Delete "${sip.scheme || "this SIP"}"? This cannot be undone.`)) {
-                        deleteSip(sip.id);
-                      }
-                    }}
+                    onRemove={() => setConfirmDeleteSip(sip)}
                     onStatusChange={(newStatus: string) => changeSipStatus(sip.id, newStatus)}
                   />
                 ))}
@@ -627,11 +625,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
                     key={sip.id}
                     sip={sip}
                     onEdit={() => setEditSip(sip)}
-                    onRemove={() => {
-                      if (window.confirm(`Delete "${sip.scheme || "this SIP"}"? This cannot be undone.`)) {
-                        deleteSip(sip.id);
-                      }
-                    }}
+                    onRemove={() => setConfirmDeleteSip(sip)}
                     onStatusChange={(newStatus: string) => changeSipStatus(sip.id, newStatus)}
                   />
                 ))}
@@ -802,6 +796,16 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
           saving={savingSipEdit}
         />
       )}
+      {confirmDeleteSip && (
+        <ConfirmDialog
+          message={`Delete "${confirmDeleteSip.scheme || "this SIP"}"? This cannot be undone.`}
+          onConfirm={() => {
+            deleteSip(confirmDeleteSip.id);
+            setConfirmDeleteSip(null);
+          }}
+          onCancel={() => setConfirmDeleteSip(null)}
+        />
+      )}
     </div>
   );
 }
@@ -810,6 +814,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
 function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
   const { familyProfiles } = useMasterData();
   const { privacyMode } = usePrivacy();
+  const [confirmStop, setConfirmStop] = useState(false);
   const isPaused = sip.status === "paused";
   const isStopped = sip.status === "stopped";
   const isOverdue = sip.daysUntilDue !== null && sip.daysUntilDue < 0;
@@ -854,6 +859,7 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
     : null;
 
   return (
+    <>
     <Card
       style={{ padding: "18px 20px", borderTop: `3px solid ${statusColor}`, position: "relative" }}
     >
@@ -1061,15 +1067,7 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    `Stop "${sip.scheme || "this SIP"}"? It will no longer count toward your monthly SIP total or show due-date reminders. You can resume it any time.`
-                  )
-                ) {
-                  onStatusChange?.("stopped");
-                }
-              }}
+              onClick={() => setConfirmStop(true)}
               style={{ padding: 6, color: THEME.rust }}
               title="Stop SIP"
               aria-label="Stop SIP"
@@ -1285,6 +1283,18 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
         )}
       </div>
     </Card>
+    {confirmStop && (
+      <ConfirmDialog
+        message={`Stop "${sip.scheme || "this SIP"}"? It will no longer count toward your monthly SIP total or show due-date reminders. You can resume it any time.`}
+        confirmLabel="Yes, stop"
+        onConfirm={() => {
+          onStatusChange?.("stopped");
+          setConfirmStop(false);
+        }}
+        onCancel={() => setConfirmStop(false)}
+      />
+    )}
+    </>
   );
 }
 
