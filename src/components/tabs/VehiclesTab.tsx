@@ -41,14 +41,15 @@ import {
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { fmtINRFull, fmtINRExact, today as todayFn } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, maskCurrencyInText, today as todayFn } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
@@ -1222,17 +1223,18 @@ function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
         >
           Ex-showroom total:{" "}
           <strong style={{ color: "var(--text)" }}>
-            <Prv>
-              {fmtINRFull(
+            <Money
+              value={
                 Number(f.purchaseBasicCost || 0) +
-                  Number(f.purchaseCgstAmount || 0) +
-                  Number(f.purchaseSgstAmount || 0)
-              )}
-            </Prv>
+                Number(f.purchaseCgstAmount || 0) +
+                Number(f.purchaseSgstAmount || 0)
+              }
+              variant="full"
+            />
           </strong>
           {" · "}Basic + RTO + Accessories:{" "}
           <strong style={{ color: "var(--text)" }}>
-            <Prv>{fmtINRFull(onRoadTotal)}</Prv>
+            <Money value={onRoadTotal} variant="full" />
           </strong>
           {onRoadTotal > 0 && Number(f.purchasePrice || 0) !== onRoadTotal && (
             <>
@@ -1642,7 +1644,7 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
           </span>
           {rec.cost > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
-              <Prv>{fmtINRFull(rec.cost)}</Prv>
+              <Money value={rec.cost} variant="full" />
             </span>
           )}
           {rec.odometer > 0 && (
@@ -1925,7 +1927,7 @@ function InsuranceModal({ existing, vehicleName, onClose, onSave, saving = false
         <div style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", marginBottom: 16 }}>
           Total Premium:{" "}
           <strong style={{ color: "var(--text)" }}>
-            <Prv>{fmtINRFull(totalPremium)}</Prv>
+            <Money value={totalPremium} variant="full" />
           </strong>
         </div>
       )}
@@ -2004,7 +2006,7 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
           </span>
           {rec.totalPremium > 0 && (
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--t-rust)" }}>
-              <Prv>{fmtINRFull(rec.totalPremium)}</Prv>
+              <Money value={rec.totalPremium} variant="full" />
             </span>
           )}
           {rec.policyNumber && (
@@ -2419,7 +2421,7 @@ function VehicleCard({
                 letterSpacing: "-0.03em",
               }}
             >
-              <Prv>{fmtINRFull(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}</Prv>
+              <Money value={Number(vehicle.currentValue || vehicle.purchasePrice || 0)} variant="full" />
             </div>
             {deprPct !== null && (
               <div
@@ -2590,7 +2592,7 @@ function VehicleCard({
                         {item.label}
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-                        {item.val}
+                        {maskCurrencyInText(item.val, privacyMode)}
                       </div>
                       {status && (
                         <div style={{ marginTop: 4 }}>
@@ -2736,7 +2738,7 @@ function VehicleCard({
                             letterSpacing: "-0.02em",
                           }}
                         >
-                          <Prv>{card.value}</Prv>
+                          {maskCurrencyInText(card.value, privacyMode)}
                         </div>
                         <div
                           style={{
@@ -2746,7 +2748,7 @@ function VehicleCard({
                             lineHeight: 1.3,
                           }}
                         >
-                          {card.sub}
+                          {maskCurrencyInText(card.sub, privacyMode)}
                         </div>
                       </div>
                     </div>
@@ -2912,7 +2914,7 @@ function VehicleCard({
                               tickFormatter={(v) => (privacyMode ? "••••" : `₹${v}`)}
                             />
                             <Tooltip
-                              formatter={(v: any) => [<Prv>{fmtINRFull(v)}</Prv>, "Spend"]}
+                              formatter={(v: any) => [<Money value={v} variant="full" />, "Spend"]}
                               contentStyle={{
                                 background: "var(--surface-0, var(--surface))",
                                 borderColor: "var(--t-line, var(--border))",
@@ -3052,7 +3054,7 @@ function VehicleCard({
                   }}
                 >
                   ({sh.length} record{sh.length !== 1 ? "s" : ""} · Total{" "}
-                  <Prv>{fmtINRFull(totalServiceCost)}</Prv>)
+                  <Money value={totalServiceCost} variant="full" />)
                 </span>
               </h4>
               {lastService && (
@@ -3206,7 +3208,7 @@ function VehicleCard({
                           />
                           <span>{st.label}:</span>
                           <span style={{ fontWeight: 800 }}>
-                            <Prv>{fmtINRFull(cost)}</Prv>
+                            <Money value={cost} variant="full" />
                           </span>
                         </span>
                       );
@@ -3246,7 +3248,7 @@ function VehicleCard({
                   }}
                 >
                   ({ih.length} record{ih.length !== 1 ? "s" : ""} · Total{" "}
-                  <Prv>{fmtINRFull(totalInsurancePremium)}</Prv>)
+                  <Money value={totalInsurancePremium} variant="full" />)
                 </span>
               </h4>
               {lastInsurance && (
@@ -3687,17 +3689,17 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <Prv>{fmtINRFull(animatedFleetValue)}</Prv>
+              <Money value={animatedFleetValue} variant="full" />
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
               {totalPurchasePrice ? (
                 <>
-                  <Prv>Bought for {fmtINRFull(totalPurchasePrice)}</Prv> across{" "}
+                  Bought for <Money value={totalPurchasePrice} variant="full" /> across{" "}
                   {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""}
                   {totalCurrentValue < totalPurchasePrice ? (
                     <>
                       {" · down "}
-                      <Prv>{fmtINRFull(totalPurchasePrice - totalCurrentValue)}</Prv>
+                      <Money value={totalPurchasePrice - totalCurrentValue} variant="full" />
                       {" from depreciation"}
                     </>
                   ) : (
