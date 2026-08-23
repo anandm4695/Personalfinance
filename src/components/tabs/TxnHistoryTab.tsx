@@ -23,6 +23,7 @@ import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 import { Drawer } from "../ui/Drawer";
+import { Money } from "../ui/Money";
 import { Prv } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
@@ -1845,8 +1846,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
               subText={
                 cashTransactionsInFY.length > 0 ? (
                   <>
-                    Inflow <Prv>+{fmtINRFull(totalCredits)}</Prv> · Outflow{" "}
-                    <Prv>-{fmtINRFull(totalDebits)}</Prv>
+                    Inflow +<Money value={totalCredits} variant="full" /> · Outflow{" "}
+                    -<Money value={totalDebits} variant="full" />
                     {hasTransfers ? " (excl. self-transfers)" : ""}
                   </>
                 ) : undefined
@@ -1947,10 +1948,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                     const isCredit = t.type === "credit";
                     return (
                       <span style={{ color: isCredit ? THEME.sage : THEME.rust, fontWeight: 800, fontSize: 14 }}>
-                        <Prv>
-                          {isCredit ? "+" : "-"}
-                          {fmtINRFull(amount)}
-                        </Prv>
+                        {isCredit ? "+" : "-"}
+                        <Money value={amount} variant="full" />
                       </span>
                     );
                   },
@@ -2118,7 +2117,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   }}
                 >
                   {isCredit ? "+" : "-"}
-                  <Prv>{fmtINRExact(t.amount)}</Prv>
+                  <Money value={t.amount} variant="exact" />
                 </div>
                 {(t.category === "Transfer" || t.linkedType) && (
                   <div
