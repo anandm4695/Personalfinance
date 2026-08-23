@@ -59,6 +59,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
+import { ConfirmDialog } from "../ui/Feedback";
 import { BrokerImportModal } from "../modals/BrokerImportModal";
 
 // Broker logo domains for Clearbit
@@ -851,6 +852,9 @@ export function DematTab({
   showToast,
 }: any) {
   const { privacyMode } = usePrivacy();
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
   const [showStock, setShowStock] = useState(false);
@@ -2391,13 +2395,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           <CardActions
                             onEdit={() => setEditDematId(d.id)}
                             onRemove={() => {
-                              if (
-                                window.confirm(
-                                  `Delete "${d.broker || "this"}" demat account? Stock lots linked to it will lose their account association. This cannot be undone.`
-                                )
-                              ) {
-                                removeItem("demat", d.id);
-                              }
+                              setConfirmAction({
+                                message: `Delete "${d.broker || "this"}" demat account? Stock lots linked to it will lose their account association. This cannot be undone.`,
+                                onConfirm: () => removeItem("demat", d.id),
+                              });
                             }}
                           />
                         </div>
@@ -3922,13 +3923,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      if (
-                                                        window.confirm(
-                                                          `Delete this ${base} lot (${lot.qty} shares)? This cannot be undone.`
-                                                        )
-                                                      ) {
-                                                        removeItem("stocks", lot.id);
-                                                      }
+                                                      setConfirmAction({
+                                                        message: `Delete this ${base} lot (${lot.qty} shares)? This cannot be undone.`,
+                                                        onConfirm: () => removeItem("stocks", lot.id),
+                                                      });
                                                     }}
                                                     className="icon-btn danger"
                                                     style={{ ...iconBtn, padding: 5 }}
@@ -5888,10 +5886,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`Delete watchlist "${wl.name}" and all its stocks?`)) {
-                            removeItem("wishlists", wl.id);
-                            if (expandedWishlistId === wl.id) setExpandedWishlistId(null);
-                          }
+                          setConfirmAction({
+                            message: `Delete watchlist "${wl.name}" and all its stocks?`,
+                            onConfirm: () => {
+                              removeItem("wishlists", wl.id);
+                              if (expandedWishlistId === wl.id) setExpandedWishlistId(null);
+                            },
+                          });
                         }}
                         className="icon-btn danger"
                         style={iconBtn}
@@ -6195,15 +6196,12 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           <button
                                             className="icon-btn danger"
                                             style={iconBtn}
-                                            onClick={() => {
-                                              if (
-                                                window.confirm(
-                                                  `Remove ${it.symbol} from this wishlist?`
-                                                )
-                                              ) {
-                                                removeItem("wishlistItems", it.id);
-                                              }
-                                            }}
+                                            onClick={() =>
+                                              setConfirmAction({
+                                                message: `Remove ${it.symbol} from this wishlist?`,
+                                                onConfirm: () => removeItem("wishlistItems", it.id),
+                                              })
+                                            }
                                             title="Remove from watchlist"
                                           >
                                             <X size={14} />
@@ -6806,6 +6804,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           onClose={() => setShowBrokerImport(false)}
           onImport={saveBrokerImport}
           saving={savingBrokerImport}
+        />
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
