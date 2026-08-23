@@ -30,7 +30,8 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const SWR_DEFAULT = 4; // Safe Withdrawal Rate
@@ -651,11 +652,11 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             lineHeight: 1.05,
           }}
         >
-          <Prv>{fmtINRFull(animatedFireNumber)}</Prv>
+          <Money value={animatedFireNumber} variant="full" />
         </div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
           Needed at age {targetAge} to sustain{" "}
-          <Prv>{fmtINRFull(fireCalc.expenseAtRetirement / 12)}</Prv>/mo of expenses at a{" "}
+          <Money value={fireCalc.expenseAtRetirement / 12} variant="full" />/mo of expenses at a{" "}
           {swr}% withdrawal rate
         </div>
       </Card>
@@ -761,8 +762,8 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               />
             </div>
             <div style={{ marginTop: 8, fontSize: 12, color: THEME.textSecondary }}>
-              <Prv>{fmtINRFull(fireCalc.currentNW)}</Prv> of{" "}
-              <Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>
+              <Money value={fireCalc.currentNW} variant="full" /> of{" "}
+              <Money value={fireCalc.fireNumber} variant="full" />
             </div>
           </div>
           <div>
@@ -792,8 +793,8 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 "You've reached Coast FIRE! You can stop saving and still retire on time."
               ) : (
                 <>
-                  <Prv>{fmtINRFull(fireCalc.currentNW)}</Prv> of{" "}
-                  <Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>
+                  <Money value={fireCalc.currentNW} variant="full" /> of{" "}
+                  <Money value={fireCalc.coastFIRE} variant="full" />
                 </>
               )}
             </div>
@@ -912,10 +913,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               <IndianRupee size={12} /> Expense at Retirement
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text }}>
-              <Prv>{fmtINRFull(fireCalc.expenseAtRetirement / 12)}</Prv>/mo
+              <Money value={fireCalc.expenseAtRetirement / 12} variant="full" />/mo
             </div>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              <Prv>{fmtINRFull(fireCalc.expenseAtRetirement)}</Prv>/year (inflation adjusted)
+              <Money value={fireCalc.expenseAtRetirement} variant="full" />/year (inflation adjusted)
             </div>
           </div>
           {fireCalc.pensionIncome > 0 && (
@@ -930,7 +931,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             >
               <div style={{ fontSize: 12, color: THEME.textSecondary }}>Est. Pension Income</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
-                <Prv>{fmtINRFull(fireCalc.pensionIncome)}</Prv>/mo
+                <Money value={fireCalc.pensionIncome} variant="full" />/mo
               </div>
               <div style={{ fontSize: 12, color: THEME.textSecondary }}>
                 From NPS&apos;s mandatory 40% annuity (estimated). EPF is fully
@@ -983,7 +984,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                     {m.pct}% {m.pct === 100 ? "— FIRE!" : ""}
                   </div>
                   <div style={{ fontSize: 11, color: THEME.textSecondary }}>
-                    <Prv>{fmtINRFull(m.corpus)}</Prv>
+                    <Money value={m.corpus} variant="full" />
                   </div>
                 </div>
               </div>
@@ -1073,7 +1074,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               width={85}
             />
             <Tooltip
-              formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
+              formatter={(v) => <Money value={v} variant="full" />}
               cursor={{ stroke: THEME.line }}
               contentStyle={{
                 background: THEME.card,
@@ -1140,7 +1141,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 width={85}
               />
               <Tooltip
-                formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
+                formatter={(v) => <Money value={v} variant="full" />}
                 cursor={{ stroke: THEME.line }}
                 contentStyle={{
                   background: THEME.card,
@@ -1167,9 +1168,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             {fireCalc.drawdown[fireCalc.drawdown.length - 1]?.corpus > 0 ? (
               <>
                 Your corpus lasts through age {lifeExpectancy} with{" "}
-                <Prv>
-                  {fmtINRFull(fireCalc.drawdown[fireCalc.drawdown.length - 1].corpus)}
-                </Prv>{" "}
+                <Money
+                  value={fireCalc.drawdown[fireCalc.drawdown.length - 1].corpus}
+                  variant="full"
+                />{" "}
                 remaining.
               </>
             ) : (
