@@ -2,13 +2,13 @@
 import React, { useState, useMemo } from "react";
 import { AlertCircle, Bot, CheckCircle, GitMerge, UploadCloud, X } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, uid } from "../../utils/finance";
+import { uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { PdfPasswordPrompt } from "../ui/PdfPasswordPrompt";
+import { Money } from "../ui/Money";
 import { useCasPdfExtract } from "../../hooks/useCasPdfExtract";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { Prv } from "../../context/PrivacyContext";
 
 interface MFCasPanelProps {
   onImport: (data: any[], onProgress?: (done: number, total: number) => void) => Promise<void> | void;
@@ -939,7 +939,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                       <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.buyNav}</td>
                       <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.units}</td>
                       <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>
-                        <Prv>{fmtINRFull(Number(r.invested))}</Prv>
+                        <Money value={Number(r.invested)} variant="full" />
                       </td>
                     </tr>
                   );
