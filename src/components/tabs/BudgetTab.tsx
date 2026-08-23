@@ -51,6 +51,7 @@ import { Money } from "../ui/Money";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
+import { ConfirmDialog } from "../ui/Feedback";
 
 const CATEGORY_ICONS: Record<string, any> = {
   Food: Utensils,
@@ -102,6 +103,9 @@ export function BudgetTab({
   const getOwnerName = (ownerId: string) =>
     familyProfiles.find((p: any) => p.id === ownerId)?.name || ownerId || "Self";
   const [activeSubTab, setActiveSubTab] = useState("budget"); // "budget" or "recurring"
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
   const [selectedMonth, setSelectedMonth] = useState(() => today().slice(0, 7)); // YYYY-MM
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [editBudget, setEditBudget] = useState<any>(null);
@@ -1561,11 +1565,12 @@ export function BudgetTab({
                           variant="ghost"
                           size="sm"
                           disabled={removingBudget}
-                          onClick={() => {
-                            if (window.confirm(`Delete "${b.category}" budget? This cannot be undone.`)) {
-                              handleRemoveBudget(b);
-                            }
-                          }}
+                          onClick={() =>
+                            setConfirmAction({
+                              message: `Delete "${b.category}" budget? This cannot be undone.`,
+                              onConfirm: () => handleRemoveBudget(b),
+                            })
+                          }
                           style={{ padding: 6, color: THEME.rust }}
                           title="Delete"
                           aria-label={`Delete ${b.category} budget`}
@@ -2104,15 +2109,12 @@ export function BudgetTab({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Delete "${re.name}"? This cannot be undone.`
-                                )
-                              ) {
-                                removeRecurring(re);
-                              }
-                            }}
+                            onClick={() =>
+                              setConfirmAction({
+                                message: `Delete "${re.name}"? This cannot be undone.`,
+                                onConfirm: () => removeRecurring(re),
+                              })
+                            }
                             loading={removingRecurringId === re.id}
                             disabled={togglingRecurringId === re.id || removingRecurringId === re.id}
                             style={{ padding: 6, color: THEME.rust }}
@@ -2399,6 +2401,16 @@ export function BudgetTab({
           onClose={() => setEditRecurring(null)}
           onSave={saveRecurringEdit}
           saving={savingRecurringEdit}
+        />
+      )}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
