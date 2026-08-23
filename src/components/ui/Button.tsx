@@ -37,7 +37,7 @@ export const Button: React.FC<ButtonProps> = ({
           background: "var(--t-accent)",
           color: "#fff",
           border: "none",
-          boxShadow: `0 2px 8px color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
+          boxShadow: `0 2px 6px color-mix(in srgb, ${THEME.accent} 16%, transparent)`,
         };
       case "secondary":
         return {
