@@ -22,7 +22,7 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 
 // Theme-aware — matches the 6 possible deduction-mix pie slices (80C,
 // 80CCD(1B), 80CCD(2), 80D, 80TTA, Sec 24) 1:1, so the pie never falls back
@@ -46,10 +46,10 @@ const ProgressBar = ({ used, limit, color }: { used: number; limit: number; colo
       }}
     >
       <span>
-        <Prv>{fmtINRFull(used)}</Prv> used
+        <Money value={used} variant="full" /> used
       </span>
       <span>
-        <Prv>{fmtINRFull(Math.max(0, limit - used))}</Prv> remaining
+        <Money value={Math.max(0, limit - used)} variant="full" /> remaining
       </span>
     </div>
     <div className="progress-track">
@@ -410,7 +410,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(v) => <Prv>{fmtINRFull(v)}</Prv>}
+                        formatter={(v) => <Money value={v} variant="full" />}
                         contentStyle={{
                           background: "var(--surface-0)",
                           border: `1px solid ${THEME.line}`,
@@ -482,7 +482,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                       className="tabular-nums"
                       style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}
                     >
-                      <Prv>{fmtINRFull(item.amount)}</Prv>
+                      <Money value={item.amount} variant="full" />
                     </span>
                   </div>
                 ))}
@@ -507,7 +507,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                 Additional deduction up to ₹50,000
               </div>
               <div className="amount-md" style={{ color: THEME.violet }}>
-                <Prv>{fmtINRFull(data.sec80CCD1B.used)}</Prv>
+                <Money value={data.sec80CCD1B.used} variant="full" />
               </div>
               <ProgressBar
                 used={data.sec80CCD1B.used}
@@ -526,7 +526,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                   No cap (up to 10% of basic salary)
                 </div>
                 <div className="amount-md" style={{ color: THEME.accent }}>
-                  <Prv>{fmtINRFull(data.sec80CCD2.total)}</Prv>
+                  <Money value={data.sec80CCD2.total} variant="full" />
                 </div>
               </Card>
             )}
@@ -545,8 +545,8 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: THEME.textSecondary }}>Self & Family</span>
                   <span style={{ fontWeight: 600, color: THEME.text }}>
-                    <Prv>{fmtINRFull(data.sec80D.self)}</Prv> /{" "}
-                    <Prv>{fmtINRFull(data.sec80D.selfLimit)}</Prv>
+                    <Money value={data.sec80D.self} variant="full" /> /{" "}
+                    <Money value={data.sec80D.selfLimit} variant="full" />
                   </span>
                 </div>
                 <ProgressBar
@@ -557,8 +557,8 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: THEME.textSecondary }}>Parents</span>
                   <span style={{ fontWeight: 600, color: THEME.text }}>
-                    <Prv>{fmtINRFull(data.sec80D.parents)}</Prv> /{" "}
-                    <Prv>{fmtINRFull(data.sec80D.parentsLimit)}</Prv>
+                    <Money value={data.sec80D.parents} variant="full" /> /{" "}
+                    <Money value={data.sec80D.parentsLimit} variant="full" />
                   </span>
                 </div>
                 <ProgressBar
@@ -578,7 +578,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                 Max deduction: ₹2,00,000 for self-occupied
               </div>
               <div className="amount-md" style={{ color: THEME.gold }}>
-                <Prv>{fmtINRFull(data.sec24.total)}</Prv>
+                <Money value={data.sec24.total} variant="full" />
               </div>
               <ProgressBar used={data.sec24.total} limit={data.sec24.limit} color={THEME.gold} />
             </Card>
@@ -592,7 +592,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                 Max: ₹10,000 on savings account interest
               </div>
               <div className="amount-md" style={{ color: THEME.sage }}>
-                <Prv>{fmtINRFull(data.sec80TTA.total)}</Prv>
+                <Money value={data.sec80TTA.total} variant="full" />
               </div>
               <ProgressBar
                 used={data.sec80TTA.total}
@@ -608,7 +608,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                   HRA Exemption
                 </h4>
                 <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
-                  Based on rent paid: <Prv>{fmtINRFull(data.hra.annualRent)}</Prv>/year
+                  Based on rent paid: <Money value={data.hra.annualRent} variant="full" />/year
                 </div>
                 <div style={{ fontSize: 13, color: THEME.textSecondary }}>
                   Enter full HRA details in Tax Tools for exact calculation.
