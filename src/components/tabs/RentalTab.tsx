@@ -34,6 +34,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
@@ -98,6 +99,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   } | null>(null);
   const [savingLog, setSavingLog] = useState(false);
   const [savingProperty, setSavingProperty] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<{ message: string; onConfirm: () => void } | null>(
+    null
+  );
 
   // CSV Import state
   const [showCsvImport, setShowCsvImport] = useState<string | null>(null);
@@ -395,9 +399,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   };
 
   const handleRemovePayment = (p: any, paymentId: string) => {
-    if (!window.confirm(`Delete this rent payment for "${p.propertyName}"? This cannot be undone.`)) return;
-    const updatedPayments = (p.payments || []).filter((pay: any) => pay.id !== paymentId);
-    updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
+    setConfirmRemove({
+      message: `Delete this rent payment for "${p.propertyName}"? This cannot be undone.`,
+      onConfirm: () => {
+        const updatedPayments = (p.payments || []).filter((pay: any) => pay.id !== paymentId);
+        updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
+      },
+    });
   };
 
   const handleEditPayment = async (p: any, editingId: string, paymentData: any) => {
@@ -432,9 +440,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   };
 
   const handleRemoveReceipt = (p: any, receiptId: string) => {
-    if (!window.confirm(`Delete this rent receipt for "${p.propertyName}"? This cannot be undone.`)) return;
-    const updatedReceipts = (p.receipts || []).filter((rec: any) => rec.id !== receiptId);
-    updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+    setConfirmRemove({
+      message: `Delete this rent receipt for "${p.propertyName}"? This cannot be undone.`,
+      onConfirm: () => {
+        const updatedReceipts = (p.receipts || []).filter((rec: any) => rec.id !== receiptId);
+        updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+      },
+    });
   };
 
   const handleEditReceipt = async (p: any, editingId: string, receiptData: any) => {
@@ -484,12 +496,15 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   };
 
   const handleRemoveDeduction = (p: any, deductionId: string) => {
-    if (!window.confirm(`Delete this deposit deduction for "${p.propertyName}"? This cannot be undone.`))
-      return;
-    const updatedDeductions = (p.depositDeductions || []).filter(
-      (dec: any) => dec.id !== deductionId
-    );
-    updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
+    setConfirmRemove({
+      message: `Delete this deposit deduction for "${p.propertyName}"? This cannot be undone.`,
+      onConfirm: () => {
+        const updatedDeductions = (p.depositDeductions || []).filter(
+          (dec: any) => dec.id !== deductionId
+        );
+        updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
+      },
+    });
   };
 
   const handleAddDepositIn = async (p: any, depositData: any) => {
@@ -509,10 +524,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   };
 
   const handleRemoveDepositIn = (p: any, depositId: string) => {
-    if (!window.confirm(`Delete this deposit-in entry for "${p.propertyName}"? This cannot be undone.`))
-      return;
-    const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
-    updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+    setConfirmRemove({
+      message: `Delete this deposit-in entry for "${p.propertyName}"? This cannot be undone.`,
+      onConfirm: () => {
+        const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
+        updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+      },
+    });
   };
 
   const handleEditDepositIn = async (p: any, editingId: string, depositData: any) => {
@@ -547,10 +565,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   };
 
   const handleRemoveDepositOut = (p: any, depositId: string) => {
-    if (!window.confirm(`Delete this deposit-out entry for "${p.propertyName}"? This cannot be undone.`))
-      return;
-    const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
-    updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
+    setConfirmRemove({
+      message: `Delete this deposit-out entry for "${p.propertyName}"? This cannot be undone.`,
+      onConfirm: () => {
+        const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
+        updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
+      },
+    });
   };
 
   // Deposit RETURN handlers — closes the deposit lifecycle (Received →
@@ -1048,14 +1069,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  "Delete this property? Its entire receipt and deposit ledger will be deleted too. This cannot be undone."
-                                )
-                              )
-                                removeItem("rentalProperties", p.id);
-                            }}
+                            onClick={() =>
+                              setConfirmRemove({
+                                message:
+                                  "Delete this property? Its entire receipt and deposit ledger will be deleted too. This cannot be undone.",
+                                onConfirm: () => removeItem("rentalProperties", p.id),
+                              })
+                            }
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label="Delete property"
@@ -2511,14 +2531,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  "Delete this property? Its entire payment/deduction ledger will be deleted too. This cannot be undone."
-                                )
-                              )
-                                removeItem("rentedProperties", p.id);
-                            }}
+                            onClick={() =>
+                              setConfirmRemove({
+                                message:
+                                  "Delete this property? Its entire payment/deduction ledger will be deleted too. This cannot be undone.",
+                                onConfirm: () => removeItem("rentedProperties", p.id),
+                              })
+                            }
                             style={{ padding: 6, color: THEME.rust }}
                             title="Delete"
                             aria-label="Delete property"
@@ -3667,6 +3686,16 @@ export const RentalTab: React.FC<RentalTabProps> = ({
           onClose={() => setShowLogModal(null)}
           onSave={(data: any) => handleReturnDepositIn(showLogModal.property, data)}
           saving={savingLog}
+        />
+      )}
+      {confirmRemove && (
+        <ConfirmDialog
+          message={confirmRemove.message}
+          onConfirm={() => {
+            confirmRemove.onConfirm();
+            setConfirmRemove(null);
+          }}
+          onCancel={() => setConfirmRemove(null)}
         />
       )}
     </div>
