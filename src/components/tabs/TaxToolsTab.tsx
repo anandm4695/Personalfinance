@@ -26,7 +26,8 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 // Escapes user-controlled free-text before it's interpolated into an HTML
@@ -275,7 +276,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                 Auto-Detected Annual Income
               </div>
               <div style={{ fontSize: 18, fontWeight: 700, color: THEME.ink }}>
-                <Prv>{fmtINRFull(projectedIncome)}</Prv>
+                <Money value={projectedIncome} variant="full" />
               </div>
             </div>
             <div>
@@ -335,11 +336,11 @@ const AdvanceTaxSection = ({ state, metrics }) => {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Prv>{fmtINRFull(animatedRemaining)}</Prv>
+            <Money value={animatedRemaining} variant="full" />
           </div>
           <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
-            Net tax due <Prv>{fmtINRFull(netTaxDue)}</Prv> · already paid{" "}
-            <Prv>{fmtINRFull(totalPaid)}</Prv>
+            Net tax due <Money value={netTaxDue} variant="full" /> · already paid{" "}
+            <Money value={totalPaid} variant="full" />
           </div>
         </div>
       </Card>
@@ -353,17 +354,17 @@ const AdvanceTaxSection = ({ state, metrics }) => {
         }}
       >
         {[
-          { label: "Estimated Tax", value: fmtINRFull(animatedTaxLiability), color: THEME.accent },
-          { label: "TDS Already Paid", value: fmtINRFull(animatedTdsPaid), color: THEME.sage },
-          { label: "Net Tax Due", value: fmtINRFull(animatedNetTaxDue), color: THEME.gold },
-          { label: "Advance Tax Paid", value: fmtINRFull(animatedTotalPaid), color: THEME.accent },
+          { label: "Estimated Tax", value: animatedTaxLiability, color: THEME.accent },
+          { label: "TDS Already Paid", value: animatedTdsPaid, color: THEME.sage },
+          { label: "Net Tax Due", value: animatedNetTaxDue, color: THEME.gold },
+          { label: "Advance Tax Paid", value: animatedTotalPaid, color: THEME.accent },
         ].map((s, i) => (
           <Card key={i}>
             <div style={{ padding: 14, textAlign: "center" }}>
               <div
                 style={{ fontSize: 20, fontWeight: 800, color: s.color, letterSpacing: "-0.03em" }}
               >
-                <Prv>{s.value}</Prv>
+                <Money value={s.value} variant="full" />
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
                 {s.label}
@@ -442,7 +443,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
-                      <Prv>{fmtINRFull(installment)}</Prv>
+                      <Money value={installment} variant="full" />
                     </div>
                     {isCurrent && daysLeft > 0 && (
                       <div style={{ fontSize: 11, color: THEME.gold, fontWeight: 600 }}>
@@ -828,7 +829,7 @@ const HraReceiptSection = ({ state }) => {
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{m.label}</div>
                       {rent > 0 && (
                         <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                          <Prv>{fmtINRFull(rent)}</Prv>
+                          <Money value={rent} variant="full" />
                         </div>
                       )}
                     </button>
@@ -848,7 +849,7 @@ const HraReceiptSection = ({ state }) => {
                   <div style={{ fontSize: 14, color: THEME.ink }}>
                     <strong>{months.length}</strong> months selected • Total:{" "}
                     <strong>
-                      <Prv>{fmtINRFull(getReceiptData().reduce((s, r) => s + r.amount, 0))}</Prv>
+                      <Money value={getReceiptData().reduce((s, r) => s + r.amount, 0)} variant="full" />
                     </strong>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -907,7 +908,7 @@ const HraReceiptSection = ({ state }) => {
                       >
                         <span>Tenant: {tenantName}</span>
                         <span style={{ fontWeight: 700, color: THEME.ink }}>
-                          <Prv>{fmtINRFull(r.amount)}</Prv>
+                          <Money value={r.amount} variant="full" />
                         </span>
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
@@ -1087,7 +1088,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
               26AS / AIS Total
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
-              <Prv>{fmtINRFull(animatedTotal26AS)}</Prv>
+              <Money value={animatedTotal26AS} variant="full" />
             </div>
           </div>
         </Card>
@@ -1095,7 +1096,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>App Records</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
-              <Prv>{fmtINRFull(animatedTotalApp)}</Prv>
+              <Money value={animatedTotalApp} variant="full" />
             </div>
           </div>
         </Card>
@@ -1117,7 +1118,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                   <CheckCircle2 size={18} /> Match
                 </span>
               ) : (
-                <Prv>{fmtINRFull(animatedMismatch)}</Prv>
+                <Money value={animatedMismatch} variant="full" />
               )}
             </div>
           </div>
@@ -1347,7 +1348,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                         <Badge variant="muted">{e.section}</Badge>
                       </td>
                       <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(e.amount)}</Prv>
+                        <Money value={e.amount} variant="full" />
                       </td>
                       <td style={{ padding: "8px 10px" }}>
                         {isEntryMatched(e.amount) ? (
@@ -1427,7 +1428,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                       </td>
                       <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.date || "—"}</td>
                       <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(t.amount)}</Prv>
+                        <Money value={t.amount} variant="full" />
                       </td>
                       <td
                         style={{
