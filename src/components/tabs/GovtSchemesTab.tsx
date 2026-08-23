@@ -30,7 +30,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
-import { Prv } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
   APY_PENSION_TIERS,
@@ -747,7 +747,7 @@ export function GovtSchemesTab({
                   {Number(sc.currentBalance) > 0 && (
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 700, fontSize: 16, color: THEME.success }}>
-                        <Prv>{fmtINRFull(Number(sc.currentBalance))}</Prv>
+                        <Money value={Number(sc.currentBalance)} variant="full" />
                       </div>
                       <div style={{ fontSize: 11, color: THEME.textMuted }}>
                         {meta.balanceCardLabel || "corpus"}
@@ -757,7 +757,7 @@ export function GovtSchemesTab({
                   {Number(sc.pensionAmount) > 0 && (
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 700, fontSize: 15 }}>
-                        <Prv>{fmtINRFull(Number(sc.pensionAmount))}/mo</Prv>
+                        <Money value={Number(sc.pensionAmount)} variant="full" />/mo
                       </div>
                       <div style={{ fontSize: 11, color: THEME.textMuted }}>pension</div>
                     </div>
@@ -765,7 +765,7 @@ export function GovtSchemesTab({
                   {Number(sc.coverageAmount) > 0 && (
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 700, fontSize: 15 }}>
-                        <Prv>{fmtINRFull(Number(sc.coverageAmount))}</Prv>
+                        <Money value={Number(sc.coverageAmount)} variant="full" />
                       </div>
                       <div style={{ fontSize: 11, color: THEME.textMuted }}>coverage</div>
                     </div>
@@ -879,13 +879,13 @@ export function GovtSchemesTab({
                       )}
                       {Number(sc.contributionAmount) > 0 && (
                         <div>
-                          Contribution: <Prv>{fmtINRFull(Number(sc.contributionAmount))}</Prv> /{" "}
+                          Contribution: <Money value={Number(sc.contributionAmount)} variant="full" /> /{" "}
                           {sc.frequency?.replace("_", " ")}
                         </div>
                       )}
                       {Number(sc.premium) > 0 && (
                         <div>
-                          Premium: <Prv>{fmtINRFull(Number(sc.premium))}/yr</Prv>
+                          Premium: <Money value={Number(sc.premium)} variant="full" />/yr
                         </div>
                       )}
                       {sc.bankAccount && <div>Bank: {sc.bankAccount}</div>}
@@ -903,7 +903,7 @@ export function GovtSchemesTab({
                         }}
                       >
                         <TrendingUp size={13} />
-                        {projection.label}: <Prv>{fmtINRFull(projection.value)}</Prv>
+                        {projection.label}: <Money value={projection.value} variant="full" />
                         {projection.mode === "payout" && (
                           <span style={{ fontWeight: 400, color: THEME.textMuted }}>
                             (based on current balance)
