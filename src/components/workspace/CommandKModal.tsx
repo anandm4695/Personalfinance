@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Search, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { NAV_GROUPS } from "../../utils/appConstants";
 
@@ -10,6 +10,31 @@ interface CommandKModalProps {
   isPrivacyMode?: boolean;
 }
 
+// Subsequence fuzzy match: a literal substring hit scores highest (earlier
+// match position wins ties), falling back to an in-order character
+// subsequence match (with a bonus for consecutive runs) so terse queries
+// like "invtx" still find "Investments". Returns null on no match at all.
+function fuzzyScore(text: string, query: string): number | null {
+  const t = text.toLowerCase();
+  const q = query.toLowerCase();
+  if (!q) return 0;
+
+  const literalIdx = t.indexOf(q);
+  if (literalIdx !== -1) return 1000 - literalIdx;
+
+  let tIdx = 0;
+  let score = 0;
+  let consecutive = 0;
+  for (let i = 0; i < q.length; i++) {
+    const foundIdx = t.indexOf(q[i], tIdx);
+    if (foundIdx === -1) return null;
+    consecutive = foundIdx === tIdx ? consecutive + 1 : 0;
+    score += 2 + consecutive;
+    tIdx = foundIdx + 1;
+  }
+  return score;
+}
+
 export const CommandKModal: React.FC<CommandKModalProps> = ({
   isOpen,
   onClose,
@@ -18,7 +43,9 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
   isPrivacyMode,
 }) => {
   const [query, setQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -28,52 +55,92 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
     }
   }, [isOpen]);
 
+  // Flatten nav items for searching (static — only depends on NAV_GROUPS).
+  const allNavItems = useMemo(() => {
+    const items: { id: string; label: string; group: string; icon: any; subTab?: string }[] = [];
+    NAV_GROUPS.forEach((group) => {
+      group.items.forEach((item) => {
+        items.push({
+          id: item.id,
+          label: item.label,
+          group: group.title,
+          icon: item.icon,
+        });
+        if (item.children) {
+          item.children.forEach((child) => {
+            items.push({
+              id: item.id,
+              subTab: child.id,
+              label: `${item.label} › ${child.label}`,
+              group: group.title,
+              icon: child.icon || item.icon,
+            });
+          });
+        }
+      });
+    });
+    return items;
+  }, []);
+
+  const filteredItems = useMemo(() => {
+    const q = query.trim();
+    if (!q) return allNavItems.slice(0, 10);
+    return allNavItems
+      .map((item) => {
+        const labelScore = fuzzyScore(item.label, q);
+        const groupScore = fuzzyScore(item.group, q);
+        if (labelScore === null && groupScore === null) return null;
+        // Label matches rank above group-only matches.
+        const score = Math.max(labelScore ?? -Infinity, (groupScore ?? -Infinity) - 500);
+        return { item, score };
+      })
+      .filter((x): x is { item: (typeof allNavItems)[number]; score: number } => x !== null)
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.item);
+  }, [allNavItems, query]);
+
+  // Keep the selection in range whenever the result set changes, and reset
+  // to the top result whenever the query itself changes.
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  useEffect(() => {
+    itemRefs.current[selectedIndex]?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         if (isOpen) onClose();
-      } else if (e.key === "Escape" && isOpen) {
+        return;
+      }
+      if (!isOpen) return;
+      if (e.key === "Escape") {
         onClose();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((i) => (filteredItems.length ? (i + 1) % filteredItems.length : 0));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((i) =>
+          filteredItems.length ? (i - 1 + filteredItems.length) % filteredItems.length : 0
+        );
+      } else if (e.key === "Enter") {
+        const item = filteredItems[selectedIndex];
+        if (item) {
+          e.preventDefault();
+          onSelectTab(item.id, item.subTab);
+          onClose();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, filteredItems, selectedIndex, onSelectTab]);
 
   if (!isOpen) return null;
-
-  // Flatten nav items for searching
-  const allNavItems: { id: string; label: string; group: string; icon: any; subTab?: string }[] = [];
-  NAV_GROUPS.forEach((group) => {
-    group.items.forEach((item) => {
-      allNavItems.push({
-        id: item.id,
-        label: item.label,
-        group: group.title,
-        icon: item.icon,
-      });
-      if (item.children) {
-        item.children.forEach((child) => {
-          allNavItems.push({
-            id: item.id,
-            subTab: child.id,
-            label: `${item.label} › ${child.label}`,
-            group: group.title,
-            icon: child.icon || item.icon,
-          });
-        });
-      }
-    });
-  });
-
-  const filteredItems = query.trim()
-    ? allNavItems.filter(
-        (item) =>
-          item.label.toLowerCase().includes(query.toLowerCase()) ||
-          item.group.toLowerCase().includes(query.toLowerCase())
-      )
-    : allNavItems.slice(0, 10);
 
   return (
     <div
@@ -191,10 +258,15 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
 
           {filteredItems.map((item, idx) => {
             const Icon = item.icon || ArrowRight;
+            const isSelected = idx === selectedIndex;
             return (
               <div
                 key={`${item.id}-${item.subTab || idx}`}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
                 className="cmd-item"
+                onMouseEnter={() => setSelectedIndex(idx)}
                 onClick={() => {
                   onSelectTab(item.id, item.subTab);
                   onClose();
@@ -207,7 +279,8 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
                   borderRadius: "8px",
                   cursor: "pointer",
                   color: "var(--t-ink)",
-                  transition: "background 0.15s ease",
+                  background: isSelected ? "rgba(99, 102, 241, 0.14)" : "transparent",
+                  transition: "background 0.1s ease",
                 }}
               >
                 <div
