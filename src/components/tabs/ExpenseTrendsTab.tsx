@@ -45,6 +45,7 @@ import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /* ─── STYLES ──────────────────────────────────────────────────────────────── */
@@ -220,7 +221,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
           />
           <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
           <span style={{ fontWeight: 700, color: THEME.ink }}>
-            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
+            <Prv>{formatter ? formatter(p.value) : <Money value={p.value} variant="full" />}</Prv>
           </span>
         </div>
       ))}
@@ -965,7 +966,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         >
                           <div style={{ fontWeight: 800, color: THEME.ink }}>{d.name}</div>
                           <div style={{ color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
-                            <Prv>{fmtINRFull(d.value)}</Prv> ({pct}%)
+                            <Money value={d.value} variant="full" /> ({pct}%)
                           </div>
                         </div>
                       );
@@ -1069,7 +1070,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     />
                     <span style={{ color: THEME.muted, fontWeight: 500 }}>{c.name}</span>
                     <span style={{ fontWeight: 700, color: THEME.ink }}>
-                      <Prv>{fmtINRFull(c.value)}</Prv>
+                      <Money value={c.value} variant="full" />
                     </span>
                   </div>
                 ))}
@@ -1332,10 +1333,10 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         </div>
                       </td>
                       <td style={{ ...td, fontWeight: 600 }}>
-                        <Prv>{fmtINRFull(row.thisMonth)}</Prv>
+                        <Money value={row.thisMonth} variant="full" />
                       </td>
                       <td style={{ ...td, fontWeight: 500, color: THEME.muted }}>
-                        <Prv>{fmtINRFull(row.lastMonth)}</Prv>
+                        <Money value={row.lastMonth} variant="full" />
                       </td>
                       <td style={td}>
                         <span
@@ -1363,10 +1364,10 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         </span>
                       </td>
                       <td style={{ ...td, fontWeight: 600 }}>
-                        <Prv>{fmtINRFull(row.avg3)}</Prv>
+                        <Money value={row.avg3} variant="full" />
                       </td>
                       <td style={{ ...td, fontWeight: 800, fontSize: 14 }}>
-                        <Prv>{fmtINRFull(row.periodTotal)}</Prv>
+                        <Money value={row.periodTotal} variant="full" />
                       </td>
                     </tr>
 
@@ -1437,7 +1438,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                                     <div
                                       style={{ fontWeight: 800, color: THEME.rust, fontSize: 13.5 }}
                                     >
-                                      <Prv>{fmtINRFull(t.amount)}</Prv>
+                                      <Money value={t.amount} variant="full" />
                                     </div>
                                   </div>
                                 ))}
@@ -1547,7 +1548,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         {payload[0]?.payload?.name}
                       </div>
                       <div style={{ color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
-                        <Prv>{fmtINRFull(val)}</Prv> ({pct}%)
+                        <Money value={val} variant="full" /> ({pct}%)
                       </div>
                     </div>
                   );
@@ -1614,8 +1615,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                       {c.category} spending is unusually high
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                      This month: <Prv>{fmtINRFull(c.thisMonth)}</Prv> vs 3-month avg:{" "}
-                      <Prv>{fmtINRFull(c.avg3)}</Prv> (
+                      This month: <Money value={c.thisMonth} variant="full" /> vs 3-month avg:{" "}
+                      <Money value={c.avg3} variant="full" /> (
                       {c.avg3 > 0
                         ? `${((c.thisMonth / c.avg3) * 100 - 100).toFixed(0)}% above average`
                         : "N/A"}
@@ -1648,7 +1649,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   <AlertTriangle size={16} style={{ color: THEME.gold, flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
-                      Large transaction: <Prv>{fmtINRFull(t.amount)}</Prv>
+                      Large transaction: <Money value={t.amount} variant="full" />
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                       {t.narration || t.note || t.description || "No description"} &middot;{" "}
