@@ -40,6 +40,7 @@ import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 const EVENT_TYPES = [
@@ -111,6 +112,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_EVENT });
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const events = useMemo(() => {
     return [...(state.lifeEvents || [])].sort((a, b) =>
@@ -464,11 +466,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                       <Edit2 size={14} />
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Delete "${e.name}" event? This cannot be undone.`)) {
-                          deleteEvent(e.id);
-                        }
-                      }}
+                      onClick={() => setConfirmDelete({ id: e.id, name: e.name })}
                       aria-label={`Delete ${e.name}`}
                       title="Delete"
                       style={{
@@ -703,6 +701,16 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
             disabled={!form.name || !form.targetDate || saving}
           />
         </Modal>
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`Delete "${confirmDelete.name}" event? This cannot be undone.`}
+          onConfirm={() => {
+            deleteEvent(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );
