@@ -825,9 +825,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 gap: 6,
                 fontSize: 12,
                 color: THEME.textSecondary,
+                minHeight: 30,
               }}
             >
-              <Clock size={12} /> Estimated FIRE Age
+              <Clock size={12} style={{ flexShrink: 0 }} /> Estimated FIRE Age
             </div>
             <div
               style={{
@@ -866,9 +867,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 gap: 6,
                 fontSize: 12,
                 color: THEME.textSecondary,
+                minHeight: 30,
               }}
             >
-              <TrendingUp size={12} /> Savings Rate
+              <TrendingUp size={12} style={{ flexShrink: 0 }} /> Savings Rate
             </div>
             <div
               style={{
@@ -908,9 +910,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 gap: 6,
                 fontSize: 12,
                 color: THEME.textSecondary,
+                minHeight: 30,
               }}
             >
-              <IndianRupee size={12} /> Expense at Retirement
+              <IndianRupee size={12} style={{ flexShrink: 0 }} /> Expense at Retirement
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text }}>
               <Money value={fireCalc.expenseAtRetirement / 12} variant="full" />/mo
@@ -929,7 +932,9 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                 border: `1px solid ${THEME.border}`,
               }}
             >
-              <div style={{ fontSize: 12, color: THEME.textSecondary }}>Est. Pension Income</div>
+              <div style={{ fontSize: 12, color: THEME.textSecondary, minHeight: 30 }}>
+                Est. Pension Income
+              </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
                 <Money value={fireCalc.pensionIncome} variant="full" />/mo
               </div>
@@ -1028,7 +1033,15 @@ export const FIREPlannerTab = ({ state, metrics }) => {
                   border: `1px solid ${THEME.border}`,
                 }}
               >
-                <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 6 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: THEME.textSecondary,
+                    lineHeight: 1.3,
+                    minHeight: 30,
+                    marginBottom: 6,
+                  }}
+                >
                   {row.label}
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 700, color }}>
