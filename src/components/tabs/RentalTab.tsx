@@ -1098,6 +1098,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               color: THEME.muted,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
+                              lineHeight: 1.3,
+                              minHeight: 22,
                               marginBottom: 3,
                             }}
                           >
@@ -1122,6 +1124,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               color: THEME.muted,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
+                              lineHeight: 1.3,
+                              minHeight: 22,
                               marginBottom: 3,
                             }}
                           >
@@ -1151,6 +1155,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               color: THEME.muted,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
+                              lineHeight: 1.3,
+                              minHeight: 22,
                               marginBottom: 3,
                             }}
                           >
@@ -2553,6 +2559,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               color: THEME.muted,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
+                              lineHeight: 1.3,
+                              minHeight: 22,
                               marginBottom: 3,
                             }}
                           >
@@ -2582,6 +2590,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               color: THEME.muted,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
+                              lineHeight: 1.3,
+                              minHeight: 22,
                               marginBottom: 3,
                             }}
                           >
@@ -3537,6 +3547,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                     color: THEME.muted,
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
+                    lineHeight: 1.3,
+                    minHeight: 22,
                     marginBottom: 6,
                   }}
                 >

@@ -2648,6 +2648,8 @@ function VehicleCard({
                             fontSize: 11,
                             color: "var(--t-muted, var(--text-muted))",
                             fontWeight: 500,
+                            lineHeight: 1.3,
+                            minHeight: 28,
                             marginBottom: 4,
                           }}
                         >
