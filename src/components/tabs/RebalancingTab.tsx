@@ -671,13 +671,10 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   textAlign: "left",
                   border: `1.5px solid ${active ? "var(--accent)" : THEME.line}`,
                   background: active
-                    ? "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)"
+                    ? "color-mix(in srgb, var(--accent) 8%, var(--surface-0))"
                     : "var(--surface-0)",
                   cursor: "pointer",
-                  boxShadow: active
-                    ? "0 4px 15px color-mix(in srgb, var(--accent) 8%, transparent)"
-                    : "var(--shadow-sm)",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                   display: "flex",
                   flexDirection: "column",
                   gap: 6,

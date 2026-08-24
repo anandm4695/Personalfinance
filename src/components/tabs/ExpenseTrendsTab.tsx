@@ -254,6 +254,7 @@ const PremiumStatCard = ({
       padding: "18px 20px",
       display: "flex",
       flexDirection: "column",
+      justifyContent: "space-between",
       gap: 12,
       transition: "border-color 0.2s var(--ease-premium)",
     }}

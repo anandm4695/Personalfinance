@@ -384,8 +384,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                         padding: "18px 20px",
                         borderRadius: 16,
                         border: `1.5px solid color-mix(in srgb, ${color} 13%, transparent)`,
-                        background: `linear-gradient(135deg, color-mix(in srgb, ${color} 4%, var(--surface-0)) 0%, var(--surface-0) 100%)`,
-                        boxShadow: "0 2px 12px -2px rgba(0, 0, 0, 0.01)",
+                        background: `color-mix(in srgb, ${color} 4%, var(--surface-0))`,
                       }}
                     >
                       <div
