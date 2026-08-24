@@ -1898,20 +1898,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     }
                   }}
                   aria-current={isActive ? "true" : undefined}
-                  className="card-lift"
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 20,
-                    background: isActive
-                      ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
-                      : "var(--surface-0)",
-                    border: `1px solid ${isActive ? THEME.accent : THEME.line}`,
-                    color: THEME.accent,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                  }}
+                  className={`demat-portfolio-pill ${isActive ? "active" : ""}`}
                 >
                   {s.label}
                 </button>

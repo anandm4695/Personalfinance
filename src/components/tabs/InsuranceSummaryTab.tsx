@@ -2401,6 +2401,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           onClick={() => setEditPolicy(l)}
                           aria-label={`Edit ${l.planName} policy`}
                           title="Edit policy"
+                          className="icon-btn"
                           style={{
                             background: "none",
                             border: "none",
@@ -2423,6 +2424,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           }
                           aria-label={`Delete ${l.planName} policy`}
                           title="Delete policy"
+                          className="icon-btn danger"
                           style={{
                             background: "none",
                             border: "none",
@@ -2731,6 +2733,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           onClick={() => setEditPolicy(t)}
                           aria-label={`Edit ${t.planName || "Term Plan"}`}
                           title="Edit policy"
+                          className="icon-btn"
                           style={{
                             background: "none",
                             border: "none",
@@ -2753,6 +2756,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           }
                           aria-label={`Delete ${t.planName || "Term Plan"}`}
                           title="Delete policy"
+                          className="icon-btn danger"
                           style={{
                             background: "none",
                             border: "none",
@@ -3067,6 +3071,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           onClick={() => setEditPolicy(ip)}
                           aria-label={`Edit ${ip.planName || "Investment Plan"}`}
                           title="Edit policy"
+                          className="icon-btn"
                           style={{
                             background: "none",
                             border: "none",
@@ -3089,6 +3094,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           }
                           aria-label={`Delete ${ip.planName || "Investment Plan"}`}
                           title="Delete policy"
+                          className="icon-btn danger"
                           style={{
                             background: "none",
                             border: "none",

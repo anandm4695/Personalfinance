@@ -1212,10 +1212,9 @@ const HRACalculator = () => {
 
   const inputStyle: React.CSSProperties = {
     padding: "8px 10px",
-    borderRadius: 8,
-    border: `1px solid ${THEME.line}`,
+    borderRadius: "var(--radius-md)",
+    border: `1.5px solid ${THEME.line}`,
     fontSize: 13,
-    background: "var(--surface-0)",
     color: THEME.ink,
     width: "100%",
   };

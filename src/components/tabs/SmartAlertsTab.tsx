@@ -578,7 +578,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                         <span
                           style={{
                             padding: "2px 8px",
-                            borderRadius: 6,
+                            borderRadius: "var(--radius-xs)",
                             fontSize: 10,
                             fontWeight: 700,
                             textTransform: "uppercase",

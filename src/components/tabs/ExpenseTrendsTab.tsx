@@ -681,19 +681,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               <button
                 key={opt.key}
                 onClick={() => setPeriod(opt.key)}
-                className="card-lift"
+                className={`demat-portfolio-pill ${active ? "active" : ""}`}
                 aria-pressed={active}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: 16,
-                  background: active ? THEME.accent : "var(--surface-0)",
-                  border: `1px solid ${active ? THEME.accent : THEME.line}`,
-                  color: active ? "#fff" : THEME.ink,
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
               >
                 {opt.label}
               </button>

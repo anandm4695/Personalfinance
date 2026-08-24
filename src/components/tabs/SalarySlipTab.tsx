@@ -1076,7 +1076,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                     <div style={{ display: "flex", gap: 6, marginLeft: 6 }}>
                       <button
                         onClick={() => setExpanded(isExpanded ? null : s.id)}
-                        className="card-lift"
+                        className="icon-btn"
                         aria-label={isExpanded ? "Collapse salary slip details" : "Expand salary slip details"}
                         aria-expanded={isExpanded}
                         style={{
@@ -1090,14 +1090,13 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          transition: "all 0.2s ease",
                         }}
                       >
                         {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                       </button>
                       <button
                         onClick={() => setModal(s)}
-                        className="card-lift"
+                        className="icon-btn"
                         title="Edit"
                         aria-label="Edit salary slip"
                         style={{
@@ -1111,14 +1110,13 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          transition: "all 0.2s ease",
                         }}
                       >
                         <Pencil size={13} />
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(s.id)}
-                        className="card-lift"
+                        className="icon-btn danger"
                         title="Delete"
                         aria-label="Delete salary slip"
                         style={{
@@ -1132,7 +1130,6 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          transition: "all 0.2s ease",
                         }}
                       >
                         <Trash2 size={13} />

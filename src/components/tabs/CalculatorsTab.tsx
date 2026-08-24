@@ -5908,6 +5908,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                               onClick={() =>
                                 setRiSources((prev) => prev.filter((_, i) => i !== idx))
                               }
+                              className="icon-btn danger"
                               style={{
                                 background: "none",
                                 border: "none",

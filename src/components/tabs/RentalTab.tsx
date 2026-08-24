@@ -1796,6 +1796,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         }
                                         title="Edit"
                                         aria-label="Edit receipt"
+                                        className="icon-btn"
                                         style={{
                                           background: "none",
                                           border: "none",
@@ -1811,6 +1812,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         onClick={() => handleRemoveReceipt(p, r.id)}
                                         title="Delete"
                                         aria-label="Delete receipt"
+                                        className="icon-btn danger"
                                         style={{
                                           background: "none",
                                           border: "none",
@@ -2002,6 +2004,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                       onClick={() => handleRemoveDepositOut(p, r.id)}
                                       title="Delete"
                                       aria-label="Delete deposit receipt"
+                                      className="icon-btn danger"
                                       style={{
                                         background: "none",
                                         border: "none",
@@ -2098,6 +2101,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                       }
                                       title="Edit"
                                       aria-label="Edit deduction"
+                                      className="icon-btn"
                                       style={{
                                         background: "none",
                                         border: "none",
@@ -2113,6 +2117,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                       onClick={() => handleRemoveDeduction(p, r.id)}
                                       title="Delete"
                                       aria-label="Delete deduction"
+                                      className="icon-btn danger"
                                       style={{
                                         background: "none",
                                         border: "none",
@@ -3218,6 +3223,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         }
                                         title="Edit"
                                         aria-label="Edit payment"
+                                        className="icon-btn"
                                         style={{
                                           background: "none",
                                           border: "none",
@@ -3233,6 +3239,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                         onClick={() => handleRemovePayment(p, r.id)}
                                         title="Delete"
                                         aria-label="Delete payment"
+                                        className="icon-btn danger"
                                         style={{
                                           background: "none",
                                           border: "none",
@@ -3429,6 +3436,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                       }
                                       title="Edit"
                                       aria-label="Edit deposit payment"
+                                      className="icon-btn"
                                       style={{
                                         background: "none",
                                         border: "none",
@@ -3444,6 +3452,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                       onClick={() => handleRemoveDepositIn(p, r.id)}
                                       title="Delete"
                                       aria-label="Delete deposit payment"
+                                      className="icon-btn danger"
                                       style={{
                                         background: "none",
                                         border: "none",

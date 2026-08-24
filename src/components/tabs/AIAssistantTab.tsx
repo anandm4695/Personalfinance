@@ -2169,6 +2169,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             onClick={() => deleteNote(idx)}
                             title="Delete note"
                             aria-label="Delete note"
+                            className="icon-btn danger"
                             style={{
                               flexShrink: 0,
                               padding: 6,
@@ -2179,18 +2180,6 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
-                              transition: "all 0.15s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = THEME.rust;
-                              e.currentTarget.style.color = THEME.rust;
-                              e.currentTarget.style.background =
-                                "color-mix(in srgb, var(--t-rust) 8%, transparent)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = THEME.line;
-                              e.currentTarget.style.color = THEME.muted;
-                              e.currentTarget.style.background = "transparent";
                             }}
                           >
                             <Trash2 size={12} />

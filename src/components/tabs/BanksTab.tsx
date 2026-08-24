@@ -291,9 +291,8 @@ const TxnEmptyState = ({ onAdd }: any) => (
 const input = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--surface-0)",
   border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
+  borderRadius: "var(--radius-md)",
   color: THEME.ink,
   fontSize: 14,
 };
@@ -1295,7 +1294,7 @@ export function BanksTab({
             >
               <Money value={animMonthlyExpense} variant="full" />
             </div>
-            <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 600, marginTop: 4 }}>
               Outflow cash ledger
             </div>
           </div>

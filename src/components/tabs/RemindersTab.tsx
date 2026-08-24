@@ -769,7 +769,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                   fontSize: 10,
                   fontWeight: 800,
                   padding: "2px 8px",
-                  borderRadius: 6,
+                  borderRadius: "var(--radius-xs)",
                   background: `color-mix(in srgb, ${color} 8%, transparent)`,
                   color,
                   textTransform: "uppercase",
@@ -785,7 +785,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                     fontSize: 10,
                     fontWeight: 800,
                     padding: "2px 8px",
-                    borderRadius: 6,
+                    borderRadius: "var(--radius-xs)",
                     background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
                     color: THEME.sage,
                     letterSpacing: "0.02em",
@@ -811,7 +811,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
               <div
                 style={{
                   padding: "4px 14px",
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-xs)",
                   background: urgencyBg,
                   border: `1px solid color-mix(in srgb, ${urgencyCol} 20%, transparent)`,
                 }}
@@ -1508,25 +1508,25 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                     aria-pressed={active}
                     style={{
                       padding: "5px 14px",
-                      borderRadius: 99,
-                      border: active ? `1.5px solid ${col}` : `1px solid ${THEME.line}`,
-                      background: active ? `color-mix(in srgb, ${col} 8%, transparent)` : "transparent",
+                      borderRadius: 12,
+                      border: "none",
+                      background: active ? `color-mix(in srgb, ${col} 12%, transparent)` : "transparent",
                       color: active ? col : THEME.muted,
                       fontSize: 11,
-                      fontWeight: 700,
+                      fontWeight: active ? 800 : 700,
                       cursor: "pointer",
                       transition: "all 0.18s",
                       letterSpacing: "0.03em",
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
-                        e.currentTarget.style.borderColor = col;
+                        e.currentTarget.style.background = `color-mix(in srgb, ${col} 8%, transparent)`;
                         e.currentTarget.style.color = col;
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!active) {
-                        e.currentTarget.style.borderColor = THEME.line;
+                        e.currentTarget.style.background = "transparent";
                         e.currentTarget.style.color = THEME.muted;
                       }
                     }}

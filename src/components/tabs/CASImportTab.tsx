@@ -823,7 +823,7 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
                         <span
                           style={{
                             padding: "2px 8px",
-                            borderRadius: 6,
+                            borderRadius: "var(--radius-xs)",
                             fontSize: 11,
                             background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
                             color: THEME.accent,

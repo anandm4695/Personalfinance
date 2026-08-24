@@ -463,6 +463,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
             {item}
             <button
               onClick={() => setPendingRemove(item)}
+              className="icon-btn danger"
               style={{
                 background: `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
                 border: "none",
@@ -473,7 +474,6 @@ function EditableList({ listKey, items, onUpdate }: any) {
                 display: "flex",
                 alignItems: "center",
                 borderRadius: "50%",
-                transition: "all 0.12s",
               }}
               title={`Remove ${item}`}
               aria-label={`Remove ${item}`}

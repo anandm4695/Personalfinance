@@ -380,7 +380,6 @@ const actionBtnBase: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  transition: "background 0.15s, color 0.15s",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -925,13 +924,8 @@ function DocRow({
             onClick={() => onOpenFile(doc)}
             aria-label="Open document link"
             title="Open"
+            className="icon-btn"
             style={{ ...actionBtnBase, color: THEME.accent }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 10%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
           >
             {doc.filePath && !doc.url ? <Paperclip size={13} /> : <ExternalLink size={13} />}
           </button>
@@ -940,13 +934,8 @@ function DocRow({
           onClick={() => onEdit(doc)}
           aria-label="Edit document"
           title="Edit"
+          className="icon-btn"
           style={{ ...actionBtnBase, color: THEME.muted }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "color-mix(in srgb, var(--t-line) 60%, transparent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-          }}
         >
           <Pencil size={13} />
         </button>
@@ -954,13 +943,8 @@ function DocRow({
           onClick={() => onDelete(doc.id)}
           aria-label="Delete document"
           title="Delete"
+          className="icon-btn danger"
           style={{ ...actionBtnBase, color: THEME.rust }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-          }}
         >
           <Trash2 size={13} />
         </button>

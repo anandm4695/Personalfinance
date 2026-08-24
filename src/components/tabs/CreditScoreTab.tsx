@@ -1096,6 +1096,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                       <button
                         onClick={() => setConfirmDeleteId(s.id)}
                         aria-label="Delete credit score entry"
+                        className="icon-btn danger"
                         style={{
                           background: "none",
                           border: "none",
@@ -1106,10 +1107,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                           display: "inline-flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          transition: "background 0.2s",
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 8%, transparent)"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "none"}
                       >
                         <Trash2 size={14} />
                       </button>

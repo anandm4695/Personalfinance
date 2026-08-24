@@ -580,24 +580,7 @@ export const NomineeTrackerTab = ({
                 key={f}
                 onClick={() => setFilter(f)}
                 aria-pressed={isActive}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: isActive ? THEME.accent : "transparent",
-                  color: isActive ? "#fff" : THEME.ink,
-                  fontWeight: 700,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive)
-                    e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 8%, transparent)`;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.background = "transparent";
-                }}
+                className={`demat-portfolio-pill ${isActive ? "active" : ""}`}
               >
                 {labels[f]} ({counts[f]})
               </button>
@@ -652,17 +635,7 @@ export const NomineeTrackerTab = ({
                 key={v}
                 onClick={() => setViewMode(v)}
                 aria-pressed={isActive}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: isActive ? THEME.accent : "transparent",
-                  color: isActive ? "#fff" : THEME.ink,
-                  fontWeight: 700,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
+                className={`demat-portfolio-pill ${isActive ? "active" : ""}`}
               >
                 {v === "asset" ? "By Asset" : "By Nominee"}
               </button>
@@ -1247,7 +1220,7 @@ export const NomineeTrackerTab = ({
                 <div style={{ display: "flex", gap: 6 }}>
                   <button
                     onClick={() => openEditContact(c)}
-                    className="card-lift"
+                    className="icon-btn"
                     aria-label={`Edit contact ${c.name}`}
                     title="Edit"
                     style={{
@@ -1261,7 +1234,6 @@ export const NomineeTrackerTab = ({
                       alignItems: "center",
                       justifyContent: "center",
                       color: THEME.muted,
-                      transition: "all 0.2s ease",
                     }}
                   >
                     <Edit2 size={13} />
@@ -1274,7 +1246,7 @@ export const NomineeTrackerTab = ({
                       })
                     }
                     disabled={deletingContact}
-                    className="card-lift"
+                    className="icon-btn danger"
                     aria-label={`Delete contact ${c.name}`}
                     title="Delete"
                     style={{
@@ -1288,7 +1260,6 @@ export const NomineeTrackerTab = ({
                       alignItems: "center",
                       justifyContent: "center",
                       color: THEME.rust,
-                      transition: "all 0.2s ease",
                     }}
                   >
                     <Trash2 size={13} />

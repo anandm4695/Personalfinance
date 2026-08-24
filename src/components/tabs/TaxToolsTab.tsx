@@ -1484,7 +1484,7 @@ export const TaxToolsTab = ({ state, metrics, addItem, removeItem, updateItem, s
       </SectionTitle>
 
       {/* Sub-tab navigation */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
+      <div className="demat-portfolio-bar no-scrollbar">
         {sections.map((s) => {
           const Icon = s.icon;
           const active = activeSection === s.key;
@@ -1493,21 +1493,7 @@ export const TaxToolsTab = ({ state, metrics, addItem, removeItem, updateItem, s
               key={s.key}
               onClick={() => setActiveSection(s.key)}
               aria-pressed={active}
-              className={active ? "" : "btn-ghost"}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 18px",
-                borderRadius: 10,
-                border: `1.5px solid ${active ? THEME.accent : THEME.line}`,
-                background: active ? THEME.accent : "transparent",
-                color: active ? "#fff" : THEME.ink,
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
+              className={`demat-portfolio-pill ${active ? "active" : ""}`}
             >
               <Icon size={15} /> {s.label}
             </button>

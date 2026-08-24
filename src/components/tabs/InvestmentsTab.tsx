@@ -4133,10 +4133,10 @@ function MFCsvPanel({ onImport, onClose }: any) {
   };
 
   const btnStyle = {
-    padding: "6px 14px",
+    padding: "8px 16px",
     fontSize: 12,
     fontWeight: 600,
-    borderRadius: 8,
+    borderRadius: "var(--radius-md)",
     cursor: "pointer",
     fontFamily: "inherit",
     display: "inline-flex",
@@ -4577,8 +4577,8 @@ function PPFCsvPanel({ onImport }: any) {
 
   const btnStyle = {
     padding: "8px 16px",
-    borderRadius: 8,
-    fontWeight: 700,
+    borderRadius: "var(--radius-md)",
+    fontWeight: 600,
     fontSize: 12,
     cursor: "pointer",
   };
@@ -4956,7 +4956,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
   const btnGhost = {
     background: "transparent",
     border: `1px solid ${THEME.line}`,
-    borderRadius: 8,
+    borderRadius: "var(--radius-md)",
     color: THEME.ink,
     cursor: "pointer",
     display: "flex",
@@ -4964,7 +4964,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
     gap: 6,
     fontWeight: 600,
     fontSize: 12,
-    padding: "7px 14px",
+    padding: "8px 16px",
   } as const;
 
   return (
@@ -5200,6 +5200,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                           }}
                           aria-label={`Edit ${t.type} transaction dated ${t.date}`}
                           title="Edit"
+                          className="icon-btn"
                           style={{
                             background: "none",
                             border: "none",
@@ -5216,6 +5217,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                           onClick={() => setConfirmDeleteTx(t)}
                           aria-label={`Delete ${t.type} transaction dated ${t.date}`}
                           title="Delete"
+                          className="icon-btn danger"
                           style={{
                             background: "none",
                             border: "none",
@@ -5659,8 +5661,8 @@ function NPSCsvPanel({ onImport }: any) {
 
   const btnStyle = {
     padding: "8px 16px",
-    borderRadius: 8,
-    fontWeight: 700,
+    borderRadius: "var(--radius-md)",
+    fontWeight: 600,
     fontSize: 12,
     cursor: "pointer",
   } as const;
@@ -6017,7 +6019,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
   const btnGhost = {
     background: "transparent",
     border: `1px solid ${THEME.line}`,
-    borderRadius: 8,
+    borderRadius: "var(--radius-md)",
     color: THEME.ink,
     cursor: "pointer",
     display: "flex",
@@ -6025,7 +6027,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
     gap: 6,
     fontWeight: 600,
     fontSize: 12,
-    padding: "7px 14px",
+    padding: "8px 16px",
   } as const;
 
   return (
@@ -7137,8 +7139,8 @@ function EPFCsvPanel({ onImport }: any) {
 
   const btnStyle = {
     padding: "8px 16px",
-    borderRadius: 8,
-    fontWeight: 700,
+    borderRadius: "var(--radius-md)",
+    fontWeight: 600,
     fontSize: 12,
     cursor: "pointer",
   };
@@ -7601,7 +7603,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
   const btnGhost = {
     background: "transparent",
     border: `1px solid ${THEME.line}`,
-    borderRadius: 8,
+    borderRadius: "var(--radius-md)",
     color: THEME.ink,
     cursor: "pointer",
     display: "flex",
@@ -7609,7 +7611,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
     gap: 6,
     fontWeight: 600,
     fontSize: 12,
-    padding: "7px 14px",
+    padding: "8px 16px",
   } as const;
 
   const fmtDate = (d: string) =>
@@ -8163,6 +8165,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                           }}
                           aria-label={`Edit ${est.employerName || "employer"} service history`}
                           title="Edit"
+                          className="icon-btn"
                           style={{
                             background: "none",
                             border: "none",
@@ -8187,6 +8190,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                               ? "Can't delete — a Transfer In references this employer by name. Deleting it would cause this establishment's own transactions to be double-counted alongside the transfer-in lump sum."
                               : "Delete"
                           }
+                          className="icon-btn danger"
                           style={{
                             background: "none",
                             border: "none",
@@ -8842,6 +8846,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                       }}
                                       aria-label={`Edit transaction dated ${t.date}`}
                                       title="Edit"
+                                      className="icon-btn"
                                       style={{
                                         background: "none",
                                         border: "none",
@@ -8860,6 +8865,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                               }}
                                       aria-label={`Delete transaction dated ${t.date}`}
                                       title="Delete"
+                                      className="icon-btn danger"
                                       style={{
                                         background: "none",
                                         border: "none",
@@ -9070,6 +9076,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                                 }}
                                 aria-label={`Edit transaction dated ${t.date}`}
                                 title="Edit"
+                                className="icon-btn"
                                 style={{
                                   background: "none",
                                   border: "none",
@@ -9088,6 +9095,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                               }}
                                 aria-label={`Delete transaction dated ${t.date}`}
                                 title="Delete"
+                                className="icon-btn danger"
                                 style={{
                                   background: "none",
                                   border: "none",
@@ -13833,6 +13841,7 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
                             onClick={() => setConfirmDeleteDividend(d)}
                             aria-label={`Delete dividend from ${d.symbol || d.fundName || "holding"}`}
                             title="Delete"
+                            className="icon-btn danger"
                             style={{
                               background: "transparent",
                               border: "none",

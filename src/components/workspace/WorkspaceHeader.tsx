@@ -455,6 +455,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                         <div style={{ display: "flex", gap: 8 }}>
                           {alerts.length > 0 && (
                             <button
+                              className="icon-btn"
                               onClick={() => {
                                 const newDismissed = { ...(state.dismissedAlerts || {}) };
                                 alerts.forEach((a) => {
@@ -482,6 +483,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                             </button>
                           )}
                           <button
+                            className="icon-btn"
                             onClick={() => setShowAlerts(false)}
                             aria-label="Close alerts"
                             title="Close alerts"
@@ -572,6 +574,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                               </div>
                               <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                                 <button
+                                  className="icon-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setTab(a.tab);
@@ -583,24 +586,17 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                                     cursor: "pointer",
                                     color: THEME.muted,
                                     padding: 4,
-                                    borderRadius: 4,
+                                    borderRadius: 6,
                                     display: "flex",
                                     alignItems: "center",
                                   }}
                                   title={`Go to ${a.tab}`}
                                   aria-label={`Go to ${a.tab}`}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 10%, transparent)`;
-                                    e.currentTarget.style.color = THEME.accent;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "none";
-                                    e.currentTarget.style.color = THEME.muted;
-                                  }}
                                 >
                                   <ChevronRight size={14} />
                                 </button>
                                 <button
+                                  className="icon-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     updateDismissedAlerts({
@@ -614,20 +610,17 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                                     cursor: "pointer",
                                     color: THEME.muted,
                                     padding: 4,
-                                    borderRadius: 4,
+                                    borderRadius: 6,
                                     display: "flex",
                                     alignItems: "center",
                                   }}
                                   title="Snooze 24h"
                                   aria-label="Snooze alert for 24 hours"
-                                  onMouseEnter={(e) =>
-                                    (e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 15%, transparent)`)
-                                  }
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                                 >
                                   <Clock size={14} />
                                 </button>
                                 <button
+                                  className="icon-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     updateDismissedAlerts({
@@ -641,7 +634,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                                     cursor: "pointer",
                                     color: THEME.muted,
                                     padding: 4,
-                                    borderRadius: 4,
+                                    borderRadius: 6,
                                     fontSize: 10,
                                     fontWeight: 700,
                                     fontFamily: "inherit",
@@ -650,14 +643,11 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                                   }}
                                   title="Snooze 7 days"
                                   aria-label="Snooze alert for 7 days"
-                                  onMouseEnter={(e) =>
-                                    (e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 15%, transparent)`)
-                                  }
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                                 >
                                   7d
                                 </button>
                                 <button
+                                  className="icon-btn danger"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     updateDismissedAlerts({
@@ -671,20 +661,12 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                                     cursor: "pointer",
                                     color: THEME.muted,
                                     padding: 4,
-                                    borderRadius: 4,
+                                    borderRadius: 6,
                                     display: "flex",
                                     alignItems: "center",
                                   }}
                                   title="Dismiss permanently"
                                   aria-label="Dismiss alert permanently"
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = `color-mix(in srgb, var(--t-rust) 15%, transparent)`;
-                                    e.currentTarget.style.color = THEME.rust;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "none";
-                                    e.currentTarget.style.color = THEME.muted;
-                                  }}
                                 >
                                   <Trash2 size={14} />
                                 </button>

@@ -11,9 +11,8 @@ import { Money } from "../ui/Money";
 const input: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--t-paper)",
   border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
+  borderRadius: "var(--radius-md)",
   color: THEME.ink,
   fontSize: 14,
   boxSizing: "border-box",

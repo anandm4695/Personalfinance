@@ -811,7 +811,7 @@ export const AuditLogTab = ({ session }) => {
                       fontSize: 10,
                       fontWeight: 600,
                       padding: "1px 7px",
-                      borderRadius: 10,
+                      borderRadius: "var(--radius-xs)",
                       background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                       color: THEME.accent,
                     }}
@@ -924,7 +924,7 @@ export const AuditLogTab = ({ session }) => {
                             <span
                               style={{
                                 padding: "2px 8px",
-                                borderRadius: 5,
+                                borderRadius: "var(--radius-xs)",
                                 fontSize: 10,
                                 fontWeight: 700,
                                 background: `color-mix(in srgb, ${color} 9%, transparent)`,

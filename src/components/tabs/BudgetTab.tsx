@@ -719,39 +719,14 @@ export function BudgetTab({
         </div>
 
         {/* Sub Navigation Segmented Control */}
-        <div
-          style={{
-            display: "flex",
-            padding: 4,
-            borderRadius: 10,
-            border: `1px solid ${THEME.line}`,
-          }}
-        >
+        <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 0 }}>
           {(["budget", "recurring"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveSubTab(tab)}
               aria-pressed={activeSubTab === tab}
-              style={{
-                border:
-                  activeSubTab === tab
-                    ? `1.5px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`
-                    : "1.5px solid transparent",
-                background:
-                  activeSubTab === tab
-                    ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
-                    : "transparent",
-                color: activeSubTab === tab ? THEME.accent : THEME.muted,
-                padding: "6px 16px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: activeSubTab === tab ? 700 : 500,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
+              className={`demat-portfolio-pill ${activeSubTab === tab ? "active" : ""}`}
+              style={{ padding: "6px 16px" }}
             >
               {tab === "budget" ? <BarChart2 size={13} /> : <Repeat size={13} />}
               {tab === "budget" ? "Budget Tracker" : "Fixed & Recurring"}

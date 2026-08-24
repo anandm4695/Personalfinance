@@ -734,24 +734,25 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const labelStyle = {
     display: "block",
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: 600,
     color: THEME.muted,
     marginBottom: 6,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.05em",
   };
   const inputStyle = {
     width: "100%",
     padding: "10px 12px",
-    background: "var(--t-paper)",
     border: `1.5px solid ${THEME.line}`,
-    borderRadius: 10,
+    borderRadius: "var(--radius-md)",
     color: THEME.ink,
     fontSize: 14,
   };
   const btnStyle = {
     background: "transparent",
-    border: `1px solid ${THEME.line}`,
+    border: `1.5px solid ${THEME.line}`,
     padding: "8px 14px",
-    borderRadius: 8,
+    borderRadius: "var(--radius-md)",
     fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",

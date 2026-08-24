@@ -4175,7 +4175,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     fontSize: 10,
                     fontWeight: 800,
                     padding: "1px 8px",
-                    borderRadius: 20,
+                    borderRadius: "var(--radius-xs)",
                     background: smartInsights.some((ins: any) => ins.color === THEME.rust)
                       ? `color-mix(in srgb, var(--t-rust) 12%, transparent)`
                       : `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
@@ -5568,7 +5568,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         alignItems: "center",
                         gap: 6,
                         padding: "4px 12px",
-                        borderRadius: 20,
+                        borderRadius: "var(--radius-xs)",
                         background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
                         border: `1px solid color-mix(in srgb, ${efStatusColor} 20%, transparent)`,
                       }}
@@ -7012,7 +7012,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               display: "inline-block",
                               marginTop: 4,
                               padding: "2px 8px",
-                              borderRadius: 20,
+                              borderRadius: "var(--radius-xs)",
                               fontSize: 10,
                               fontWeight: 800,
                               textTransform: "uppercase" as const,
@@ -7191,7 +7191,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         positive ? THEME.sage : THEME.rust
                       } 10%, transparent)`,
                       padding: "2px 8px",
-                      borderRadius: 20,
+                      borderRadius: "var(--radius-xs)",
                       width: "fit-content",
                     }}
                   >
@@ -10517,7 +10517,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                         fontSize: 10,
                                         fontWeight: 700,
                                         padding: "1px 8px",
-                                        borderRadius: 20,
+                                        borderRadius: "var(--radius-xs)",
                                         background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
                                         color: THEME.accent,
                                       }}
@@ -10650,7 +10650,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                         fontSize: 9,
                                         fontWeight: 800,
                                         padding: "2px 8px",
-                                        borderRadius: 20,
+                                        borderRadius: "var(--radius-xs)",
                                         background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                                         color: THEME.rust,
                                         textTransform: "uppercase",
@@ -10942,7 +10942,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       gap: 12,
                       background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
                       padding: "6px 14px",
-                      borderRadius: 20,
+                      borderRadius: "var(--radius-xs)",
                       border: `1px solid ${THEME.line}`,
                     }}
                   >
@@ -10993,7 +10993,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           fontSize: 12,
                           fontWeight: 700,
                           padding: "3px 10px",
-                          borderRadius: 20,
+                          borderRadius: "var(--radius-xs)",
                         }}
                       >
                         {label}
@@ -13392,7 +13392,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               <span
                                 style={{
                                   padding: "1px 7px",
-                                  borderRadius: 20,
+                                  borderRadius: "var(--radius-xs)",
                                   fontSize: 11,
                                   fontWeight: 700,
                                   background: `color-mix(in srgb, ${spendVsPrev > 0 ? THEME.rust : THEME.sage} 10%, transparent)`,

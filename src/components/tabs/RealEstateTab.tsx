@@ -264,7 +264,6 @@ const input: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: "var(--radius-md)",
   border: "1.5px solid var(--t-line)",
-  background: "var(--surface-0)",
   color: "var(--t-ink)",
   fontSize: 14,
   fontWeight: 500,
@@ -882,6 +881,7 @@ function OwnerSplitRow({
           <button
             onClick={onDelete}
             aria-label={`Remove owner ${idx + 1}`}
+            className="icon-btn danger"
             style={{
               background: "none",
               border: "none",
@@ -1359,6 +1359,7 @@ function PropertyCard({
             onClick={() => onEditProperty(property)}
             aria-label={`Edit ${property.name}`}
             title="Edit"
+            className="icon-btn"
             style={{
               background: "color-mix(in srgb, var(--t-muted) 8%, transparent)",
               border: `1.5px solid ${THEME.line}`,
@@ -1376,6 +1377,7 @@ function PropertyCard({
             onClick={() => onDeleteProperty(property.id)}
             aria-label={`Delete ${property.name}`}
             title="Delete"
+            className="icon-btn danger"
             style={{
               background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
               border: `1.5px solid color-mix(in srgb, ${THEME.rust} 16%, transparent)`,
@@ -1774,6 +1776,7 @@ function PropertyCard({
                                 onClick={() => onEditDemand(d)}
                                 aria-label={`Edit demand letter dated ${fmtDate(d.demandDate)}`}
                                 title="Edit"
+                                className="icon-btn"
                                 style={{
                                   background: "none",
                                   border: "none",
@@ -1788,6 +1791,7 @@ function PropertyCard({
                                 onClick={() => onDeleteDemand(d.id)}
                                 aria-label={`Delete demand letter dated ${fmtDate(d.demandDate)}`}
                                 title="Delete"
+                                className="icon-btn danger"
                                 style={{
                                   background: "none",
                                   border: "none",
@@ -1895,6 +1899,7 @@ function PropertyCard({
                                 onClick={() => onEditPayment(p)}
                                 aria-label={`Edit payment dated ${fmtDate(p.paymentDate)}`}
                                 title="Edit"
+                                className="icon-btn"
                                 style={{
                                   background: "none",
                                   border: "none",
@@ -1909,6 +1914,7 @@ function PropertyCard({
                                 onClick={() => onDeletePayment(p.id)}
                                 aria-label={`Delete payment dated ${fmtDate(p.paymentDate)}`}
                                 title="Delete"
+                                className="icon-btn danger"
                                 style={{
                                   background: "none",
                                   border: "none",
@@ -2147,7 +2153,7 @@ export function RealEstateTab({
               marginBottom: 12,
             }}
           >
-            <div style={{ display: "flex", gap: 6 }}>
+            <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 0 }}>
               {(
                 [
                   { key: "share", label: "My Share" },
@@ -2159,24 +2165,13 @@ export function RealEstateTab({
                   <button
                     key={opt.key}
                     onClick={() => setValueView(opt.key)}
-                    className="card-lift"
+                    className={`demat-portfolio-pill ${active ? "active" : ""}`}
                     aria-pressed={active}
                     title={
                       opt.key === "share"
                         ? "Shows only your ownership % of each property (matches Dashboard/Net Worth)"
                         : "Shows each property's full value regardless of ownership split"
                     }
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: 16,
-                      background: active ? THEME.accent : "var(--surface-0)",
-                      border: `1px solid ${active ? THEME.accent : THEME.line}`,
-                      color: active ? "#fff" : THEME.ink,
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
                   >
                     {opt.label}
                   </button>

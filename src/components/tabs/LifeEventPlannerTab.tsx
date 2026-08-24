@@ -441,6 +441,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                   <div style={{ display: "flex", gap: 4 }}>
                     <button
                       onClick={() => handleEdit(e)}
+                      className="icon-btn"
                       aria-label={`Edit ${e.name}`}
                       title="Edit"
                       style={{
@@ -457,6 +458,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                     </button>
                     <button
                       onClick={() => setConfirmDelete({ id: e.id, name: e.name })}
+                      className="icon-btn danger"
                       aria-label={`Delete ${e.name}`}
                       title="Delete"
                       style={{

@@ -978,24 +978,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
               key={s.id}
               onClick={() => setActiveSection(s.id)}
               aria-pressed={active}
-              className="card-lift"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 14px",
-                borderRadius: 20,
-                background: active
-                  ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
-                  : "var(--surface-0)",
-                border: `1px solid ${active ? THEME.accent : THEME.line}`,
-                color: active ? THEME.accent : THEME.ink,
-                fontSize: 12.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                whiteSpace: "nowrap",
-              }}
+              className={`demat-portfolio-pill ${active ? "active" : ""}`}
             >
               <Icon size={14} style={{ color: THEME.accent }} />
               <span>{s.label}</span>
@@ -1006,10 +989,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                     borderRadius: "var(--radius-xs)",
                     fontSize: 10,
                     fontWeight: 800,
-                    background: active
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                    color: active ? THEME.darkInk : THEME.accent,
+                    background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
+                    color: THEME.accent,
                     marginLeft: 4,
                   }}
                 >

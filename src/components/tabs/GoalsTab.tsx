@@ -698,6 +698,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     )}
                     <button
                       onClick={() => setEditGoal(g)}
+                      className="icon-btn"
                       style={{
                         background: "none",
                         border: "none",
@@ -707,7 +708,6 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                         alignItems: "center",
                         padding: 4,
                         borderRadius: 6,
-                        transition: "background 0.15s ease, color 0.15s ease",
                       }}
                       title="Edit Goal"
                       aria-label={`Edit goal ${g.name}`}
@@ -716,6 +716,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     </button>
                     <button
                       onClick={() => setConfirmDelete({ id: g.id, name: g.name })}
+                      className="icon-btn danger"
                       style={{
                         background: "none",
                         border: "none",
@@ -725,7 +726,6 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                         alignItems: "center",
                         padding: 4,
                         borderRadius: 6,
-                        transition: "background 0.15s ease, color 0.15s ease",
                       }}
                       title="Delete Goal"
                       aria-label={`Delete goal ${g.name}`}
@@ -1051,17 +1051,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                                 return next;
                               })
                             }
+                            className={`demat-portfolio-pill ${sipExpanded.has(g.id) ? "active" : ""}`}
                             style={{
                               fontSize: 10,
-                              fontWeight: 700,
-                              color: sipExpanded.has(g.id) ? "#fff" : THEME.accent,
-                              background: sipExpanded.has(g.id)
-                                ? THEME.accent
-                                : `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
-                              borderRadius: "var(--radius-xs)",
                               padding: "3px 10px",
-                              cursor: "pointer",
                             }}
                           >
                             SIP Calc {sipExpanded.has(g.id) ? "▲" : "▼"}

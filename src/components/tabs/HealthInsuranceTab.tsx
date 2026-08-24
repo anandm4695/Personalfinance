@@ -416,6 +416,7 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
             onClick={() => removeMember(i)}
             aria-label={`Remove ${m.name}`}
             title={`Remove ${m.name}`}
+            className="icon-btn danger"
             style={{
               marginLeft: "auto",
               background: "none",
@@ -425,7 +426,6 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
               padding: 6,
               display: "flex",
               alignItems: "center",
-            transition: "background 0.15s ease, color 0.15s ease",
             }}
           >
             <X size={14} />
@@ -838,6 +838,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       onClick={() => setModal(p)}
                       aria-label={`Edit ${p.insurer} policy`}
                       title="Edit policy"
+                      className="icon-btn"
                       style={{
                         background: "none",
                         border: "none",
@@ -846,7 +847,6 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                         padding: 6,
                         display: "flex",
                         alignItems: "center",
-                      transition: "background 0.15s ease, color 0.15s ease",
                       }}
                     >
                       <Pencil size={14} />
@@ -860,6 +860,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       }
                       aria-label={`Delete ${p.insurer} policy`}
                       title="Delete policy"
+                      className="icon-btn danger"
                       style={{
                         background: "none",
                         border: "none",
@@ -868,7 +869,6 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                         padding: 6,
                         display: "flex",
                         alignItems: "center",
-                      transition: "background 0.15s ease, color 0.15s ease",
                       }}
                     >
                       <Trash2 size={14} />
@@ -1064,6 +1064,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                   onClick={() => removeClaim(p, c.id)}
                                   aria-label={`Delete claim from ${c.date}`}
                                   title="Delete claim"
+                                  className="icon-btn danger"
                                   style={{
                                     background: "none",
                                     border: "none",

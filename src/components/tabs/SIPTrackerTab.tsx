@@ -1079,6 +1079,7 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
             variant="ghost"
             size="sm"
             onClick={onEdit}
+            className="icon-btn"
             style={{ padding: 6, color: THEME.accent }}
             title="Edit"
             aria-label="Edit SIP"
@@ -1089,6 +1090,7 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
             variant="ghost"
             size="sm"
             onClick={onRemove}
+            className="icon-btn danger"
             style={{ padding: 6, color: THEME.rust }}
             title="Delete"
             aria-label="Delete SIP"
@@ -1271,7 +1273,7 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
               fontSize: 10,
               fontWeight: 700,
               padding: "3px 8px",
-              borderRadius: 6,
+              borderRadius: "var(--radius-xs)",
               background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
               border: `1px solid ${THEME.line}`,
               color: THEME.muted,

@@ -489,9 +489,9 @@ const btnGhost = {
   border: `1.5px solid ${THEME.line}`,
   color: THEME.ink,
   padding: "8px 14px",
-  fontSize: 13,
-  fontWeight: 500,
-  borderRadius: 10,
+  fontSize: 14,
+  fontWeight: 600,
+  borderRadius: "var(--radius-md)",
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
@@ -501,9 +501,8 @@ const btnGhost = {
 const input = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--surface-0)",
   border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
+  borderRadius: "var(--radius-md)",
   color: THEME.ink,
   fontSize: 14,
 };

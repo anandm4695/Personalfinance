@@ -501,10 +501,10 @@ const btnSolid = {
   gap: 8,
   padding: "8px 16px",
   background: THEME.accent,
-  color: THEME.darkInk,
+  color: "#fff",
   border: "none",
-  borderRadius: 8,
-  fontWeight: 700,
+  borderRadius: "var(--radius-md)",
+  fontWeight: 600,
   fontSize: 13,
   cursor: "pointer",
 };
@@ -531,9 +531,8 @@ const btnAccent = {
 const input = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--t-paper)",
   border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
+  borderRadius: "var(--radius-md)",
   color: THEME.ink,
   fontSize: 14,
 };

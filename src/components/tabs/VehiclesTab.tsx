@@ -1693,7 +1693,7 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
       <div style={{ display: "flex", gap: 6, flexShrink: 0, alignSelf: "center" }}>
         <button
           onClick={onEdit}
-          className="card-interactive"
+          className="icon-btn"
           title="Edit"
           aria-label="Edit service record"
           style={{
@@ -1706,23 +1706,13 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s",
-            boxShadow: "var(--shadow-xs)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "var(--t-accent)";
-            e.currentTarget.style.borderColor = "var(--t-accent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--t-muted)";
-            e.currentTarget.style.borderColor = "var(--t-line)";
           }}
         >
           <Edit2 size={12} />
         </button>
         <button
           onClick={onDelete}
-          className="card-interactive"
+          className="icon-btn danger"
           title="Delete"
           aria-label="Delete service record"
           style={{
@@ -1735,17 +1725,6 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s",
-            boxShadow: "var(--shadow-xs)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
-            e.currentTarget.style.borderColor = "var(--t-rust)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background =
-              "color-mix(in srgb, var(--surface-0) 90%, transparent)";
-            e.currentTarget.style.borderColor = "var(--t-line)";
           }}
         >
           <Trash2 size={12} />
@@ -2039,7 +2018,7 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
       <div style={{ display: "flex", gap: 6, flexShrink: 0, alignSelf: "center" }}>
         <button
           onClick={onEdit}
-          className="card-interactive"
+          className="icon-btn"
           title="Edit"
           aria-label="Edit insurance record"
           style={{
@@ -2052,23 +2031,13 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s",
-            boxShadow: "var(--shadow-xs)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "var(--t-accent)";
-            e.currentTarget.style.borderColor = "var(--t-accent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--t-muted)";
-            e.currentTarget.style.borderColor = "var(--t-line)";
           }}
         >
           <Edit2 size={12} />
         </button>
         <button
           onClick={onDelete}
-          className="card-interactive"
+          className="icon-btn danger"
           title="Delete"
           aria-label="Delete insurance record"
           style={{
@@ -2081,17 +2050,6 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s",
-            boxShadow: "var(--shadow-xs)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "color-mix(in srgb, var(--t-rust) 10%, transparent)";
-            e.currentTarget.style.borderColor = "var(--t-rust)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background =
-              "color-mix(in srgb, var(--surface-0) 90%, transparent)";
-            e.currentTarget.style.borderColor = "var(--t-line)";
           }}
         >
           <Trash2 size={12} />

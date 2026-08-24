@@ -655,7 +655,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                             fontSize: 10,
                             fontWeight: 700,
                             padding: "1px 7px",
-                            borderRadius: 999,
+                            borderRadius: "var(--radius-xs)",
                             background:
                               h.maturityStatus === "Matured"
                                 ? `color-mix(in srgb, ${THEME.sage} 18%, transparent)`

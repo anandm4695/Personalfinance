@@ -980,7 +980,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
                   <div
                     style={{
                       padding: "4px 12px",
-                      borderRadius: 8,
+                      borderRadius: "var(--radius-xs)",
                       background: `color-mix(in srgb, ${uc} 12%, transparent)`,
                       color: uc,
                       fontSize: 11,

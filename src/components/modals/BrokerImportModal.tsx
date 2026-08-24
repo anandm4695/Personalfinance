@@ -141,9 +141,8 @@ type ParsedTrade = {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--surface-0)",
   border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
+  borderRadius: "var(--radius-md)",
   color: THEME.ink,
   fontSize: 14,
 };
@@ -796,7 +795,7 @@ export function BrokerImportModal({
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 16 }}>
             <Button variant="ghost" onClick={() => setStep(1)}>
               Back
             </Button>
@@ -1025,7 +1024,7 @@ export function BrokerImportModal({
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <Button variant="ghost" onClick={() => setStep(2)} disabled={saving}>
               Back
             </Button>

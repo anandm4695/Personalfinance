@@ -777,7 +777,6 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
               border: `1.5px solid ${THEME.line}`,
               padding: "4px",
               borderRadius: 16,
-              boxShadow: "var(--shadow-sm)",
               flexWrap: "wrap",
             }}
           >
@@ -792,20 +791,8 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
               <button
                 key={m.id}
                 onClick={() => handleModeChange(m.id)}
-                className={active ? "" : "btn-ghost"}
+                className={`demat-portfolio-pill ${active ? "active" : ""}`}
                 aria-pressed={active}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 12,
-                  background: active ? THEME.accent : "transparent",
-                  border: "none",
-                  color: active ? "#fff" : THEME.ink,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                }}
               >
                 {m.label}
               </button>
