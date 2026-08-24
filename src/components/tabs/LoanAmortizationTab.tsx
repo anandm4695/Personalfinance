@@ -662,11 +662,9 @@ export const LoanAmortizationTab = ({ state }) => {
             <Card
               style={{
                 padding: 24,
-                background:
-                  "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+                background: "var(--surface-0)",
                 border: `1.5px solid ${THEME.line}`,
                 borderLeft: `4px solid ${THEME.sage}`,
-                boxShadow: "var(--shadow-sm)",
               }}
             >
               <h3

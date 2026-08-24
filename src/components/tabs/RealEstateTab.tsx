@@ -1435,11 +1435,19 @@ function PropertyCard({
             style={{
               padding: "14px 18px",
               background: value
-                ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, var(--t-card-bg)) 0%, var(--t-card-bg) 100%)`
+                ? `color-mix(in srgb, ${color} 5%, var(--t-card-bg))`
                 : "var(--t-card-bg)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                marginBottom: 6,
+                minHeight: 26,
+              }}
+            >
               <div
                 style={{
                   width: 6,
@@ -1456,6 +1464,7 @@ function PropertyCard({
                   color: THEME.muted,
                   textTransform: "uppercase" as const,
                   letterSpacing: "0.06em",
+                  lineHeight: 1.3,
                 }}
               >
                 {label}
@@ -1483,10 +1492,7 @@ function PropertyCard({
             style={{
               padding: "10px 24px",
               borderBottom: divider,
-              background:
-                gain >= 0
-                  ? `linear-gradient(90deg, color-mix(in srgb, ${THEME.sage} 7%, transparent) 0%, transparent 100%)`
-                  : `linear-gradient(90deg, color-mix(in srgb, ${THEME.rust} 7%, transparent) 0%, transparent 100%)`,
+              background: `color-mix(in srgb, ${gain >= 0 ? THEME.sage : THEME.rust} 7%, transparent)`,
               display: "flex",
               alignItems: "center",
               gap: 10,
