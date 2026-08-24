@@ -99,6 +99,7 @@ const PremiumDrillDownCard = ({
       padding: "20px 22px",
       display: "flex",
       flexDirection: "column",
+      justifyContent: "space-between",
       gap: 12,
       cursor: onClick ? "pointer" : "default",
       position: "relative",

@@ -818,6 +818,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             borderTop: `4px solid ${THEME.sage}`,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-between",
             gap: 12,
           }}
         >
@@ -913,6 +914,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             borderTop: `4px solid ${THEME.rust}`,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-between",
             gap: 12,
           }}
         >
@@ -1008,6 +1010,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             borderTop: `4px solid ${netCashFlow >= 0 ? THEME.sage : THEME.rust}`,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-between",
             gap: 12,
           }}
         >
@@ -1107,6 +1110,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             borderTop: `4px solid ${netMonthly >= 0 ? THEME.sage : THEME.rust}`,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-between",
             gap: 12,
           }}
         >

@@ -1949,6 +1949,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 borderTop: `4px solid ${THEME.accent}`,
                 display: "flex",
                 flexDirection: "column",
+                justifyContent: "space-between",
                 gap: 12,
               }}
             >
@@ -2027,6 +2028,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 borderTop: `4px solid ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust}`,
                 display: "flex",
                 flexDirection: "column",
+                justifyContent: "space-between",
                 gap: 12,
               }}
             >
@@ -2094,6 +2096,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
                 display: "flex",
                 flexDirection: "column",
+                justifyContent: "space-between",
                 gap: 12,
               }}
             >
@@ -2160,6 +2163,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
                 display: "flex",
                 flexDirection: "column",
+                justifyContent: "space-between",
                 gap: 12,
               }}
             >
@@ -4165,6 +4169,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     borderTop: `4px solid ${THEME.accent}`,
                     display: "flex",
                     flexDirection: "column",
+                    justifyContent: "space-between",
                     gap: 12,
                   }}
                 >
@@ -4220,6 +4225,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
                     display: "flex",
                     flexDirection: "column",
+                    justifyContent: "space-between",
                     gap: 12,
                   }}
                 >
@@ -4288,6 +4294,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
                     display: "flex",
                     flexDirection: "column",
+                    justifyContent: "space-between",
                     gap: 12,
                   }}
                 >
@@ -4348,6 +4355,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
                     display: "flex",
                     flexDirection: "column",
+                    justifyContent: "space-between",
                     gap: 12,
                   }}
                 >

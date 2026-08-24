@@ -577,10 +577,10 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
 
 const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: any) => (
   <div
-    className={`glass card-lift ${className}`}
+    className={`card-lift ${className}`}
     style={{
       ...card,
-      background: "transparent",
+      background: "var(--t-card-bg)",
       position: "relative",
       borderRadius: 16,
       border: "1px solid var(--t-line)",
@@ -1035,6 +1035,7 @@ export function CreditTab({
                           padding: "18px 20px",
                           display: "flex",
                           flexDirection: "column",
+                          justifyContent: "space-between",
                           gap: 12,
                         }}
                       >
@@ -3439,6 +3440,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 padding: "18px 20px",
                 display: "flex",
                 flexDirection: "column",
+                justifyContent: "space-between",
                 gap: 12,
               }}
             >
@@ -5007,6 +5009,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               padding: "18px 20px",
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >
@@ -5667,6 +5670,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
               padding: "18px 20px",
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >
@@ -6877,6 +6881,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
               padding: "18px 20px",
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >

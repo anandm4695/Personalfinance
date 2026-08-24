@@ -1154,6 +1154,7 @@ export function BanksTab({
             borderTop: `4px solid ${THEME.accent}`,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-between",
             gap: 12,
           }}
         >
@@ -1206,6 +1207,7 @@ export function BanksTab({
             borderTop: `4px solid ${THEME.sage}`,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-between",
             gap: 12,
           }}
         >
@@ -1257,6 +1259,7 @@ export function BanksTab({
             borderTop: `4px solid ${THEME.rust}`,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-between",
             gap: 12,
           }}
         >
@@ -1738,6 +1741,7 @@ export function BanksTab({
                   padding: "20px 24px 20px 28px",
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "space-between",
                   gap: 16,
                   width: "100%",
                   height: "100%",

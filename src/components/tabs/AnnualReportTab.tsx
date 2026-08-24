@@ -401,6 +401,7 @@ const PremiumStatCard = ({
       padding: "20px 22px",
       display: "flex",
       flexDirection: "column",
+      justifyContent: "space-between",
       gap: 12,
       boxShadow:
         "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
