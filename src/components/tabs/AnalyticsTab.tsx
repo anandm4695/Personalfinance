@@ -3789,7 +3789,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   gap: 8,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, minHeight: 26 }}>
                   <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                     <Icon size={17} color={color} />
                   </div>
@@ -3800,6 +3800,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       color: THEME.muted,
                       textTransform: "uppercase" as const,
                       letterSpacing: "0.08em",
+                      lineHeight: 1.3,
                     }}
                   >
                     {label}
@@ -5720,6 +5721,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             color: THEME.muted,
                             textTransform: "uppercase",
                             letterSpacing: "0.08em",
+                            lineHeight: 1.3,
+                            minHeight: 26,
                             marginBottom: 6,
                           }}
                         >
@@ -7143,6 +7146,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   border: `1px solid ${THEME.line}`,
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "space-between",
                   gap: 8,
                   cursor: "default",
                 }}
@@ -9627,7 +9631,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     border: `1px solid color-mix(in srgb, ${color} 11%, transparent)`,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 8,
+                      minHeight: 24,
+                    }}
+                  >
                     <div
                       style={{
                         width: 24,
@@ -9637,6 +9649,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        flexShrink: 0,
                       }}
                     >
                       <Icon size={12} color="#fff" />
@@ -9648,6 +9661,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         fontWeight: 700,
                         textTransform: "uppercase" as const,
                         letterSpacing: "0.03em",
+                        lineHeight: 1.3,
                       }}
                     >
                       {label}
@@ -11302,6 +11316,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           fontWeight: 700,
                           textTransform: "uppercase" as const,
                           letterSpacing: "0.08em",
+                          lineHeight: 1.3,
+                          minHeight: 26,
                           marginBottom: 6,
                         }}
                       >

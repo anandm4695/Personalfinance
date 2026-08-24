@@ -1430,6 +1430,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   padding: "18px 20px",
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "space-between",
                   gap: 12,
                 }}
               >
@@ -2824,7 +2825,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        minHeight: 28,
+                        marginBottom: 4,
+                      }}
                     >
                       Current Runway
                     </div>
@@ -2848,7 +2856,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        minHeight: 28,
+                        marginBottom: 4,
+                      }}
                     >
                       Projected FIRE Year
                     </div>
@@ -2870,7 +2885,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        minHeight: 28,
+                        marginBottom: 4,
+                      }}
                     >
                       Savings Needed to Close Gap
                     </div>
@@ -2896,7 +2918,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     }}
                   >
                     <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        minHeight: 28,
+                        marginBottom: 4,
+                      }}
                     >
                       4% Rule Status
                     </div>
@@ -4725,6 +4754,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                       color: THEME.muted,
+                      lineHeight: 1.3,
+                      minHeight: 26,
                     }}
                   >
                     10-Yr Baseline Wealth
@@ -4751,6 +4782,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                       color: THEME.muted,
+                      lineHeight: 1.3,
+                      minHeight: 26,
                     }}
                   >
                     10-Yr Sandbox Wealth
@@ -4785,6 +4818,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                       color: THEME.muted,
+                      lineHeight: 1.3,
+                      minHeight: 26,
                     }}
                   >
                     Net Scenario Drag / Benefit
