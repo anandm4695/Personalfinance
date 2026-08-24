@@ -2617,7 +2617,6 @@ function EditNPSModal({ nps: initial, onClose, onSave, saving }: any) {
 /* ── Investment-specific empty state ────────────────────────────────── */
 function InvestmentEmptyState({
   icon: Icon,
-  gradient,
   dotColor,
   title,
   description,
@@ -2630,11 +2629,10 @@ function InvestmentEmptyState({
       style={{
         padding: "54px 36px",
         textAlign: "center" as const,
-        background:
-          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        background: "var(--t-card-bg)",
         border: `1.5px solid ${THEME.line}`,
         borderRadius: 20,
-        boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
+        boxShadow: "var(--shadow-card)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -2643,19 +2641,14 @@ function InvestmentEmptyState({
     >
       <div
         style={{
-          width: 68,
-          height: 68,
-          borderRadius: 22,
-          background: gradient,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           margin: "0 auto 24px",
-          boxShadow: `0 8px 24px -4px color-mix(in srgb, ${dotColor} 30%, transparent)`,
-          border: "2px solid rgba(255, 255, 255, 0.2)",
+          color: dotColor,
         }}
       >
-        <Icon size={32} color={THEME.darkInk} />
+        <Icon size={44} strokeWidth={1.5} />
       </div>
       <div
         style={{

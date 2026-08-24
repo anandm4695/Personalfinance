@@ -408,9 +408,6 @@ const EmptyHint = ({ text }: { text: string }) => (
 
 function InformalEmptyState({ isBorrowed, onAdd }: any) {
   const Icon = isBorrowed ? TrendingDown : TrendingUp;
-  const gradient = isBorrowed
-    ? "linear-gradient(135deg, var(--t-rust) 0%, color-mix(in srgb, var(--t-rust) 65%, white) 100%)"
-    : "linear-gradient(135deg, var(--t-accent) 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)";
   const dotColor = isBorrowed ? "var(--t-rust)" : "var(--t-accent)";
   const pills = isBorrowed
     ? [
@@ -429,17 +426,14 @@ function InformalEmptyState({ isBorrowed, onAdd }: any) {
     <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
-          background: gradient,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           margin: "0 auto 20px",
+          color: dotColor,
         }}
       >
-        <Icon size={30} color="#fff" />
+        <Icon size={40} strokeWidth={1.5} />
       </div>
       <div
         style={{
@@ -4883,9 +4877,6 @@ function loanOrdinalSuffix(d: number) {
 function LoanEmptyState({ type, onAdd }: any) {
   const isTaken = type === "taken";
   const Icon = isTaken ? TrendingDown : TrendingUp;
-  const gradient = isTaken
-    ? "linear-gradient(135deg, var(--t-rust) 0%, color-mix(in srgb, var(--t-rust) 65%, white) 100%)"
-    : "linear-gradient(135deg, var(--t-accent) 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)";
   const dotColor = isTaken ? "var(--t-rust)" : "var(--t-accent)";
   const pills = isTaken
     ? ["Home / Car / Personal Loans", "EMI Tracking", "Payoff Progress", "Interest Remaining"]
@@ -4894,17 +4885,14 @@ function LoanEmptyState({ type, onAdd }: any) {
     <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
-          background: gradient,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           margin: "0 auto 20px",
+          color: dotColor,
         }}
       >
-        <Icon size={30} color="#fff" />
+        <Icon size={40} strokeWidth={1.5} />
       </div>
       <div
         style={{
@@ -8622,9 +8610,9 @@ function DebtPayoffOptimizer({ state }: any) {
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
-            border: "1.5px solid rgba(255, 255, 255, 0.1)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+            background: "#0B1220",
+            border: "1.5px solid rgba(255, 255, 255, 0.08)",
+            borderTop: "2px solid var(--t-gold)",
             color: "#fff",
             borderRadius: 16,
           }}
@@ -8760,14 +8748,13 @@ function DebtPayoffOptimizer({ state }: any) {
                   borderRadius: 14,
                   border: `1.5px solid ${active ? plan.color : THEME.line}`,
                   background: active
-                    ? `linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, ${plan.color} 8%, var(--surface-0)) 100%)`
+                    ? `color-mix(in srgb, ${plan.color} 8%, var(--surface-0))`
                     : "var(--surface-0)",
                   color: active ? plan.color : THEME.ink,
                   fontWeight: 800,
                   cursor: "pointer",
                   textAlign: "left",
-                  boxShadow: active ? "0 4px 15px rgba(0, 0, 0, 0.05)" : "var(--shadow-sm)",
-                  transition: "all 0.25s ease",
+                  transition: "border-color 0.2s ease",
                 }}
               >
                 <div style={{ fontSize: 13.5, fontWeight: 800 }}>{plan.label}</div>
