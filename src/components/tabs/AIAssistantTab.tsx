@@ -1878,7 +1878,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
   if (!apiKey) {
     return (
       <div className="tab-content-enter animate-fade-in-up">
-        <SectionTitle sub="Get hyper-personalised insights from your AI Financial Advisor">
+        <SectionTitle sub="Ask questions about your money and get answers grounded in your real numbers">
           AI Advisor
         </SectionTitle>
         <Card style={{ padding: 48, textAlign: "center", border: `1.5px dashed ${THEME.line}` }}>
@@ -1894,7 +1894,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
             <Sparkles size={44} strokeWidth={1.5} />
           </div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, marginBottom: 12 }}>
-            Unlock AI Financial Advice
+            Connect Your AI Advisor
           </h2>
           <p
             style={{
@@ -1905,9 +1905,9 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               lineHeight: 1.7,
             }}
           >
-            Connect your own free Gemini API key to get hyper-personalised financial advice. A
-            summary of your finances is sent to Google's Gemini API to generate each response —
-            your API key itself is stored only on this device.
+            Add your own free Gemini API key to ask questions about your finances and get advice
+            based on your real numbers. A summary of your data is sent to Google's Gemini API to
+            generate each response; your API key stays on this device.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
             <a
