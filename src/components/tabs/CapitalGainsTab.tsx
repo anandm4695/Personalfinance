@@ -1239,8 +1239,9 @@ export const CapitalGainsTab = ({
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 20,
-                fontWeight: 800,
+                fontWeight: 600,
                 color: byType.totals[g.key] >= 0 ? THEME.sage : THEME.rust,
                 letterSpacing: "-0.03em",
                 fontVariantNumeric: "tabular-nums",
