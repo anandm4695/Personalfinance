@@ -349,7 +349,7 @@ Return only the JSON, no explanation.`;
       <div
         style={{
           background:
-            "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)",
+            "var(--surface-0)",
           border: `1.5px solid ${THEME.line}`,
           borderRadius: 14,
           padding: 18,
@@ -494,7 +494,7 @@ Return only the JSON, no explanation.`;
       <div
         style={{
           background:
-            "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)",
+            "var(--surface-0)",
           border: `1.5px solid ${THEME.line}`,
           borderLeft: `4px solid ${netExceedsGross ? THEME.rust : THEME.sage}`,
           borderRadius: 14,
@@ -742,8 +742,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
       {!apiKey && slips.length === 0 && (
         <div
           style={{
-            background:
-              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 6%, var(--surface-0)) 100%)",
+            background: "var(--surface-0)",
             border: `1.5px dashed color-mix(in srgb, var(--accent) 30%, transparent)`,
             borderRadius: 14,
             padding: "16px 20px",
@@ -1160,7 +1159,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                         <div
                           style={{
                             background:
-                              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+                              "var(--surface-0)",
                             border: `1.5px solid ${THEME.line}`,
                             borderLeft: `4px solid ${THEME.sage}`,
                             borderRadius: 12,
@@ -1233,7 +1232,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                         <div
                           style={{
                             background:
-                              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+                              "var(--surface-0)",
                             border: `1.5px solid ${THEME.line}`,
                             borderLeft: `4px solid ${THEME.rust}`,
                             borderRadius: 12,

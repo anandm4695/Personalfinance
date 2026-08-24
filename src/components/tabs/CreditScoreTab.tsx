@@ -645,7 +645,6 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
         .bureau-select-card.active {
           border-color: var(--b-color) !important;
           background: color-mix(in srgb, var(--b-color) 6%, var(--surface-0));
-          box-shadow: 0 4px 18px -4px color-mix(in srgb, var(--b-color) 20%, transparent);
         }
         .credit-score-history-card {
           position: relative;
@@ -656,8 +655,6 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
           transition: all 0.2s;
         }
         .credit-score-history-card:hover {
-          transform: translateY(-2px);
-          box-shadow: var(--shadow-md);
           border-color: var(--t-accent);
         }
         .credit-score-stats-grid {

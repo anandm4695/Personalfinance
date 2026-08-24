@@ -2373,14 +2373,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
           transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .category-browser-card:hover {
-          transform: translateY(-2px);
           border-color: var(--cat-color);
-          box-shadow: 0 6px 20px -5px color-mix(in srgb, var(--cat-color) 12%, transparent);
         }
         .category-browser-card.active {
           border-color: var(--cat-color);
           background: color-mix(in srgb, var(--cat-color) 6%, var(--surface-0));
-          box-shadow: 0 4px 18px -4px color-mix(in srgb, var(--cat-color) 20%, transparent);
         }
         .doc-vault-toolbar {
           display: flex;
@@ -2415,9 +2412,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
           height: 100%;
         }
         .doc-vault-card:hover {
-          transform: translateY(-4px);
           border-color: var(--cat-color);
-          box-shadow: 0 12px 30px -8px color-mix(in srgb, var(--cat-color) 15%, rgba(15, 23, 42, 0.12));
         }
         .coverage-circular-progress {
           display: flex;
