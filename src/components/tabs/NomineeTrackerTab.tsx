@@ -669,7 +669,6 @@ export const NomineeTrackerTab = ({
                 style={{
                   padding: "18px 20px",
                   border: `1.5px solid ${THEME.line}`,
-                  boxShadow: "var(--shadow-sm)",
                 }}
               >
                 <div
@@ -760,7 +759,6 @@ export const NomineeTrackerTab = ({
                   padding: 0,
                   overflow: "hidden",
                   border: `1.5px solid ${THEME.line}`,
-                  boxShadow: "var(--shadow-sm)",
                 }}
               >
                 <button
@@ -1008,8 +1006,6 @@ export const NomineeTrackerTab = ({
               style={{
                 padding: 24,
                 border: `1.5px solid ${THEME.line}`,
-                boxShadow: "var(--shadow-sm)",
-                transition: "all 0.2s ease",
               }}
             >
               <div
@@ -1194,8 +1190,6 @@ export const NomineeTrackerTab = ({
               style={{
                 padding: "20px 22px",
                 border: `1.5px solid ${THEME.line}`,
-                boxShadow: "var(--shadow-sm)",
-                transition: "all 0.2s ease",
               }}
             >
               <div

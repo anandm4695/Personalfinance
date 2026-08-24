@@ -11034,7 +11034,6 @@ function MFSection({
                   borderRadius: 16,
                   border: `1px solid ${THEME.line}`,
                   overflowX: "auto",
-                  boxShadow: "var(--t-card-shadow)",
                   marginBottom: 20,
                 }}
               >

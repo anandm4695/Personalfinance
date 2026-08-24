@@ -1220,8 +1220,6 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   background: "var(--surface-0)",
                   border: `1.5px solid ${THEME.line}`,
                   borderLeft: `5px solid ${s.overweight ? THEME.rust : THEME.sage}`,
-                  boxShadow: "var(--shadow-sm)",
-                  transition: "all 0.25s ease",
                 }}
               >
                 <div

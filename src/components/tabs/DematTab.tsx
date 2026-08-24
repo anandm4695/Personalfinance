@@ -323,7 +323,6 @@ const BrokerLogo = ({
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          boxShadow: `0 4px 14px ${`color-mix(in srgb, ${theme.color} 19%, transparent)`}`,
           overflow: "hidden",
         }}
       >
@@ -352,7 +351,6 @@ const BrokerLogo = ({
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        boxShadow: `0 4px 14px ${`color-mix(in srgb, ${theme.color} 25%, transparent)`}`,
       }}
     >
       <span
@@ -2279,8 +2277,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     justifyContent: "space-between",
                     gap: 16,
                     height: "100%",
-                    boxShadow: `0 4px 16px color-mix(in srgb, ${theme.color} 8%, transparent)`,
-                    transition: "transform 0.2s ease, box-shadow 0.25s ease",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -2727,7 +2723,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 borderRadius: 16,
                 border: `1px solid ${THEME.line}`,
                 overflowX: "auto",
-                boxShadow: "var(--t-card-shadow)",
                 marginBottom: 20,
               }}
             >
@@ -3274,7 +3269,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         borderRadius: 12,
                                         padding: "16px 14px",
                                         boxSizing: "border-box",
-                                        boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
                                       }}
                                     >
                                       {charts && charts.length > 2 ? (

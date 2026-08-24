@@ -311,17 +311,12 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // ─── Shared card shell ────────────────────────────────────────────────────────
-// Premium glassmorphic card with gradient background, double border, and soft shadow
 const cardShell: React.CSSProperties = {
-  background:
-    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 10%, var(--surface-0)) 100%)",
+  background: "var(--t-card-bg)",
   border: "1.5px solid var(--t-line)",
   borderRadius: 18,
-  boxShadow:
-    "0 4px 24px -4px rgba(15,23,42,0.06), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 5%, transparent)",
   overflow: "hidden",
   marginBottom: 20,
-  transition: "box-shadow 0.25s cubic-bezier(0.4,0,0.2,1)",
 };
 
 // ─── Property Modal ──────────────────────────────────────────────────────────

@@ -746,8 +746,6 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
                     borderRadius: 14,
                     background: "var(--surface-0)",
                     border: `1.5px solid ${THEME.line}`,
-                    boxShadow: "var(--shadow-sm)",
-                    transition: "all 0.25s ease",
                   }}
                 >
                   <div

@@ -1599,8 +1599,6 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
         borderLeft: `4px solid ${st.color}`,
         borderRadius: 12,
         padding: "14px 16px",
-        boxShadow: "var(--shadow-xs)",
-        transition: "all 0.2s var(--ease-premium)",
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1940,8 +1938,6 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
         borderLeft: `4px solid ${pt.color}`,
         borderRadius: 12,
         padding: "14px 16px",
-        boxShadow: "var(--shadow-xs)",
-        transition: "all 0.2s var(--ease-premium)",
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -2444,7 +2440,6 @@ function VehicleCard({
                 icon={<Edit2 size={12} />}
                 onClick={onEdit}
                 style={{
-                  boxShadow: "var(--shadow-xs)",
                   background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
                 }}
               >
@@ -2459,7 +2454,6 @@ function VehicleCard({
                 icon={<Shield size={12} />}
                 onClick={onAddInsurance}
                 style={{
-                  boxShadow: "var(--shadow-xs)",
                   background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
                 }}
               >
@@ -2704,8 +2698,6 @@ function VehicleCard({
                       color: "var(--t-accent)",
                       textDecoration: "none",
                       cursor: "pointer",
-                      boxShadow: "var(--shadow-xs)",
-                      transition: "all 0.2s var(--ease-premium)",
                     }}
                   >
                     <FileText size={13} />
@@ -2731,8 +2723,6 @@ function VehicleCard({
                       color: "var(--t-accent)",
                       textDecoration: "none",
                       cursor: "pointer",
-                      boxShadow: "var(--shadow-xs)",
-                      transition: "all 0.2s var(--ease-premium)",
                     }}
                   >
                     <FileText size={13} />
@@ -2758,8 +2748,6 @@ function VehicleCard({
                       color: "var(--t-accent)",
                       textDecoration: "none",
                       cursor: "pointer",
-                      boxShadow: "var(--shadow-xs)",
-                      transition: "all 0.2s var(--ease-premium)",
                     }}
                   >
                     <FileText size={13} />

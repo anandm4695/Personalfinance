@@ -135,7 +135,7 @@ export const ModalActions: React.FC<{
   loading?: boolean;
 }> = ({ onSave, onClose, saveLabel = "Save", cancelLabel = "Cancel", disabled = false, loading = false }) => (
   <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
-    <Button variant="secondary" onClick={onClose} disabled={disabled || loading}>
+    <Button variant="secondary" onClick={onClose} disabled={loading}>
       {cancelLabel}
     </Button>
     <Button variant="accent" onClick={onSave} disabled={disabled} loading={loading}>

@@ -673,8 +673,6 @@ export function DividendCalendarTab({ state, marketData }: any) {
               fontWeight: 700,
               cursor: loading ? "not-allowed" : "pointer",
               opacity: loading ? 0.6 : 1,
-              transition: "all 0.2s ease",
-              boxShadow: "var(--shadow-sm)",
             }}
           >
             <RefreshCw size={14} className={loading ? "spin" : ""} />

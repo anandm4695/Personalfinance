@@ -1030,8 +1030,6 @@ export const LoanAmortizationTab = ({ state }) => {
                     fontWeight: 700,
                     color: THEME.ink,
                     cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    boxShadow: "var(--shadow-sm)",
                   }}
                 >
                   <Download size={14} /> Export CSV
@@ -1049,8 +1047,6 @@ export const LoanAmortizationTab = ({ state }) => {
                     fontWeight: 700,
                     color: THEME.ink,
                     cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    boxShadow: "var(--shadow-sm)",
                   }}
                 >
                   {showTable

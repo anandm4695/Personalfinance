@@ -1663,24 +1663,16 @@ function CCList({
           <button
             onClick={() => onEdit(c.id)}
             aria-label="Edit card"
-            style={{
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "rgba(245,239,227,0.75)",
-            }}
+            className="icon-btn"
+            style={{ ...iconBtn, color: "rgba(245,239,227,0.75)" }}
           >
             <Edit3 size={14} />
           </button>
           <button
             onClick={() => setConfirmDeleteCard(c)}
             aria-label="Remove card"
-            style={{
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "rgba(245,239,227,0.75)",
-            }}
+            className="icon-btn danger"
+            style={{ ...iconBtn, color: "rgba(245,239,227,0.75)" }}
           >
             <Trash2 size={14} />
           </button>
@@ -1757,6 +1749,7 @@ function CCList({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            marginTop: 20,
             marginBottom: 4,
           }}
         >
@@ -2894,6 +2887,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             </div>
             <button
               onClick={downloadTemplate}
+              className="card-interactive"
               style={{
                 fontSize: 11,
                 padding: "4px 12px",
@@ -3006,6 +3000,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
           />
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <button
+              className="card-interactive"
               style={{
                 padding: "8px 18px",
                 borderRadius: 8,
@@ -3275,14 +3270,16 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
               <button
                 onClick={() => startEdit(t)}
                 aria-label="Edit transaction"
-                style={{ background: "transparent", border: "none", color: THEME.muted, cursor: "pointer" }}
+                className="icon-btn"
+                style={{ ...iconBtn, color: THEME.muted }}
               >
                 <Edit3 size={14} />
               </button>
               <button
                 onClick={() => setConfirmDeleteTx(t)}
                 aria-label="Delete transaction"
-                style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer" }}
+                className="icon-btn danger"
+                style={{ ...iconBtn, color: THEME.rust }}
               >
                 <X size={14} />
               </button>
@@ -3625,24 +3622,16 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 <button
                   onClick={() => onEdit(p.id)}
                   aria-label="Edit card"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "rgba(255,255,255,0.75)",
-                  }}
+                  className="icon-btn"
+                  style={{ ...iconBtn, color: "rgba(255,255,255,0.75)" }}
                 >
                   <Edit3 size={14} />
                 </button>
                 <button
                   onClick={() => setConfirmDeleteCard(p)}
                   aria-label="Remove card"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "rgba(255,255,255,0.75)",
-                  }}
+                  className="icon-btn danger"
+                  style={{ ...iconBtn, color: "rgba(255,255,255,0.75)" }}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -3718,6 +3707,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  marginTop: 20,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -4366,6 +4356,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
             </div>
             <button
               onClick={downloadTemplate}
+              className="card-interactive"
               style={{
                 fontSize: 11,
                 padding: "4px 12px",
@@ -4483,6 +4474,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
 
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <button
+              className="card-interactive"
               style={{
                 padding: "8px 18px",
                 borderRadius: 8,
@@ -4835,14 +4827,16 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
               <button
                 onClick={() => editTx(t)}
                 aria-label="Edit transaction"
-                style={{ background: "transparent", border: "none", color: THEME.muted, cursor: "pointer", padding: 4 }}
+                className="icon-btn"
+                style={{ ...iconBtn, color: THEME.muted, padding: 4 }}
               >
                 <Edit3 size={13} />
               </button>
               <button
                 onClick={() => setConfirmDeleteTx(t)}
                 aria-label="Delete transaction"
-                style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer", padding: 4 }}
+                className="icon-btn danger"
+                style={{ ...iconBtn, color: THEME.rust, padding: 4 }}
               >
                 <X size={13} />
               </button>
@@ -5424,7 +5418,6 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                               fontWeight: 800,
                               color: "var(--t-ink)",
                               outline: "none",
-                              boxShadow: "var(--shadow-xs)",
                               transition: "border-color 0.2s ease",
                             }}
                             onFocus={(e) => {
@@ -5801,7 +5794,6 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                       justifyContent: "center",
                       fontSize: 13,
                       fontWeight: 800,
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                     }}
                   >
                     {firstLetter}
@@ -7020,7 +7012,6 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                       justifyContent: "center",
                       fontSize: 14,
                       fontWeight: 800,
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                       flexShrink: 0,
                     }}
                   >
@@ -8916,8 +8907,6 @@ function DebtPayoffOptimizer({ state }: any) {
                     display: "flex",
                     alignItems: "center",
                     gap: 14,
-                    boxShadow: "var(--shadow-sm)",
-                    transition: "all 0.2s ease",
                   }}
                 >
                   <div
@@ -9010,7 +8999,6 @@ function DebtPayoffOptimizer({ state }: any) {
             borderLeft: `4px solid ${selectedPlan === "avalanche" ? THEME.accent : THEME.gold}`,
             background: "var(--t-card-bg)",
             borderRadius: 16,
-            boxShadow: "var(--shadow-sm)",
           }}
         >
           <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>

@@ -583,13 +583,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 className="card-lift"
                 style={{
                   padding: 24,
-                  background:
-                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+                  background: "var(--t-card-bg)",
                   border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.muted}`,
                   borderRadius: 16,
-                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02)",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
                 {/* Header Row: Category/Priority Tags & Action Badges/Buttons */}

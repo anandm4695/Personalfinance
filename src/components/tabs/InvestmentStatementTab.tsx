@@ -230,8 +230,6 @@ const SectionHeader = ({
       background: "var(--surface-0)",
       border: `1.5px solid ${THEME.line}`,
       borderRadius: 14,
-      boxShadow: "var(--shadow-sm)",
-      transition: "all 0.2s ease",
     }}
   >
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
