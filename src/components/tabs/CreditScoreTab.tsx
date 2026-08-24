@@ -369,7 +369,7 @@ function ScoreGauge({ score }: { score: number }) {
             height: 60,
           }}
         >
-          <span style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 600, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1 }}>
             <Prv>{Math.round(animatedScore)}</Prv>
           </span>
           <span
@@ -783,7 +783,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                       </Badge>
                     )}
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: latestScore ? THEME.ink : THEME.muted, letterSpacing: "-0.02em", marginTop: 4 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: latestScore ? THEME.ink : THEME.muted, letterSpacing: "-0.02em", marginTop: 4 }}>
                     {latestScore ? <Prv>{latestScore}</Prv> : "--"}
                   </div>
                   <span style={{ fontSize: 9, color: THEME.muted }}>

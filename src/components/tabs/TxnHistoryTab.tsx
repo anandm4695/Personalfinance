@@ -2082,8 +2082,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
               >
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 30,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     letterSpacing: "-0.03em",
                     fontVariantNumeric: "tabular-nums",
                     color: isCredit ? THEME.sage : THEME.rust,

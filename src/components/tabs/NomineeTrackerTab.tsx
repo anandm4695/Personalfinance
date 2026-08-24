@@ -464,8 +464,9 @@ export const NomineeTrackerTab = ({
           </div>
           <div
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 32,
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: "-0.04em",
               color:
                 coveragePercent === 100

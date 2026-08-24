@@ -8638,8 +8638,9 @@ function DebtPayoffOptimizer({ state }: any) {
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 36,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: "#34D399",
                 marginBottom: 6,
                 letterSpacing: "-0.03em",

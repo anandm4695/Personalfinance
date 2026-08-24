@@ -4200,7 +4200,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           : "New Regime Saves You"
                         : "Both Regimes — Same Tax"}
                     </div>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: THEME.sage }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 600, color: THEME.sage }}>
                       <Money value={regimeVerdict ? regimeVerdict.saving : 0} variant="full" />
                     </div>
                     <div
@@ -4224,7 +4224,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     >
                       Tax Liability (Old Regime)
                     </div>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: THEME.rust }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 600, color: THEME.rust }}>
                       <Money value={taxOldResult.total} variant="full" />
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>

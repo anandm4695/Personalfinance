@@ -329,8 +329,9 @@ const AdvanceTaxSection = ({ state, metrics }) => {
           </div>
           <div
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 36,
-              fontWeight: 900,
+              fontWeight: 600,
               color: remaining > 0 ? THEME.rust : THEME.sage,
               letterSpacing: "-0.03em",
               marginTop: 4,

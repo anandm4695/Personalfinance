@@ -707,7 +707,7 @@ export const LoanAmortizationTab = ({ state }) => {
                   >
                     Interest Saved
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.sage, marginTop: 4 }}>
                     <Money value={savings.interestSaved} variant="full" />
                   </div>
                 </div>
@@ -731,7 +731,7 @@ export const LoanAmortizationTab = ({ state }) => {
                   >
                     Months Saved
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.sage, marginTop: 4 }}>
                     {Math.floor(savings.monthsSaved / 12)}y {savings.monthsSaved % 12}m
                     <span
                       style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginLeft: 6 }}
@@ -760,7 +760,7 @@ export const LoanAmortizationTab = ({ state }) => {
                   >
                     New Closure
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.sage, marginTop: 4 }}>
                     {Math.floor(extraAmort.totalMonths / 12)}y {extraAmort.totalMonths % 12}m
                     {extraAmort.totalMonths > 0 && (
                       <span

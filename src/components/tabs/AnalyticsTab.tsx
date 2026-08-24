@@ -4744,8 +4744,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 38,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color:
                         metrics.debtToAssetRatio < 25
                           ? THEME.sage
@@ -4848,8 +4849,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 38,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             color: ratioColor,
                             lineHeight: 1,
                             marginBottom: 10,
@@ -4942,8 +4944,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 34,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             color: c,
                             lineHeight: 1,
                             marginBottom: 10,
@@ -5411,8 +5414,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 32,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: streakColor,
                           lineHeight: 1,
                           fontVariantNumeric: "tabular-nums",
@@ -8178,7 +8182,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             >
                               Total Cover
                             </div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: THEME.accent }}>
+                            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: THEME.accent }}>
                               <Money value={familyCover} variant="full" />
                             </div>
                           </div>
@@ -8777,8 +8781,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 32,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: isPositive ? THEME.accent : THEME.rust,
                     }}
                   >
@@ -12358,8 +12363,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 32,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             color: remainingSafe > 0 ? THEME.sage : THEME.rust,
                             letterSpacing: "-0.03em",
                           }}
@@ -13194,8 +13200,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 32,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: THEME.accent,
                           letterSpacing: "-0.03em",
                           lineHeight: 1,
@@ -13234,8 +13241,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 32,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: THEME.ink,
                           letterSpacing: "-0.03em",
                           lineHeight: 1,

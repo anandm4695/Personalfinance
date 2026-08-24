@@ -4509,7 +4509,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       {/* Central label */}
                       <div style={{ position: "absolute", textAlign: "center" }}>
                         <div
-                          style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, lineHeight: 1 }}
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 32,
+                            fontWeight: 600,
+                            color: THEME.ink,
+                            lineHeight: 1,
+                          }}
                         >
                           {portfolioScoreData.overall}
                         </div>
