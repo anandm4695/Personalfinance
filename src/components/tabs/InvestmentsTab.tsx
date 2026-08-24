@@ -1546,18 +1546,16 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             key={label}
             className="card-lift"
             style={{
-              background:
-                "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+              background: "var(--t-card-bg)",
               border: `1.5px solid ${THEME.line}`,
               borderTop: `4px solid ${color}`,
               borderRadius: 16,
               padding: "20px 22px",
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
-              boxShadow:
-                "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-              transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+              transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2805,18 +2803,16 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                 key={label}
                 className="card-lift"
                 style={{
-                  background:
-                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  background: "var(--t-card-bg)",
                   border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
                   borderRadius: 16,
                   padding: "18px 20px",
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "space-between",
                   gap: 10,
-                  boxShadow:
-                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -3192,18 +3188,16 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     key={label}
                     className="card-lift"
                     style={{
-                      background:
-                        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                      background: "var(--t-card-bg)",
                       border: `1.5px solid ${THEME.line}`,
                       borderTop: `4px solid ${color}`,
                       borderRadius: 16,
                       padding: "18px 20px",
                       display: "flex",
                       flexDirection: "column",
+                      justifyContent: "space-between",
                       gap: 10,
-                      boxShadow:
-                        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-                      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                      transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -8426,6 +8420,8 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
                   fontWeight: 700,
                   textTransform: "uppercase" as const,
                   letterSpacing: "0.06em",
+                  lineHeight: 1.3,
+                  minHeight: 22,
                   marginBottom: 3,
                 }}
               >
@@ -10644,18 +10640,16 @@ function MFSection({
                 key={label}
                 className="card-lift"
                 style={{
-                  background:
-                    "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  background: "var(--t-card-bg)",
                   border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
                   borderRadius: 16,
                   padding: "18px 20px",
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "space-between",
                   gap: 10,
-                  boxShadow:
-                    "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -12411,6 +12405,8 @@ function MFSection({
                                 color: THEME.muted,
                                 textTransform: "uppercase" as const,
                                 letterSpacing: "0.08em",
+                                lineHeight: 1.3,
+                                minHeight: 26,
                                 marginBottom: 4,
                               }}
                             >
@@ -13598,7 +13594,17 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
             : []),
         ].map(({ label, value, color }) => (
           <Card key={label} style={{ padding: "16px 18px", borderTop: `3px solid ${color}` }}>
-            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</div>
+            <div
+              style={{
+                fontSize: 11,
+                color: THEME.muted,
+                fontWeight: 600,
+                lineHeight: 1.3,
+                minHeight: 28,
+              }}
+            >
+              {label}
+            </div>
             <div style={{ fontSize: 20, fontWeight: 800, color }}>
               <Prv>{value}</Prv>
             </div>
@@ -14014,6 +14020,8 @@ const DRIPSimulator = ({
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: 0.5,
+              lineHeight: 1.3,
+              minHeight: 26,
             }}
           >
             Total Received
@@ -14030,6 +14038,8 @@ const DRIPSimulator = ({
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: 0.5,
+              lineHeight: 1.3,
+              minHeight: 26,
             }}
           >
             If Reinvested at 12%
@@ -14046,6 +14056,8 @@ const DRIPSimulator = ({
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: 0.5,
+              lineHeight: 1.3,
+              minHeight: 26,
             }}
           >
             If Reinvested at 15%
@@ -14062,6 +14074,8 @@ const DRIPSimulator = ({
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: 0.5,
+              lineHeight: 1.3,
+              minHeight: 26,
             }}
           >
             Opportunity Cost
@@ -14427,6 +14441,7 @@ const YieldTracker = ({ state }: any) => {
               padding: "18px 20px",
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >
