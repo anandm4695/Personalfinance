@@ -676,7 +676,7 @@ export function GovtSchemesTab({
                 <span
                   style={{
                     padding: "1px 6px",
-                    borderRadius: 20,
+                    borderRadius: "var(--radius-xs)",
                     fontSize: 10,
                     fontWeight: 800,
                     background: active

@@ -584,7 +584,6 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
       background: "transparent",
       position: "relative",
       borderRadius: 16,
-      boxShadow: "var(--shadow-card)",
       border: "1px solid var(--t-line)",
       ...cardStyle,
     }}
@@ -1028,9 +1027,9 @@ export function CreditTab({
                     {statCards.map(({ label, value, color, sub: subText, icon, iconBg }) => (
                       <div
                         key={label}
-                        className="glass card-lift"
+                        className="card-lift"
                         style={{
-                          background: "transparent",
+                          background: "var(--t-card-bg)",
                           border: `1px solid var(--t-line)`,
                           borderTop: `4px solid ${color}`,
                           borderRadius: 14,
@@ -1038,7 +1037,6 @@ export function CreditTab({
                           display: "flex",
                           flexDirection: "column",
                           gap: 12,
-                          boxShadow: "var(--shadow-card)",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2270,7 +2268,7 @@ function CCList({
                     ? "var(--t-accent)"
                     : "var(--t-muted)"
                   : "transparent",
-              color: viewMode === mode ? THEME.darkInk : "var(--t-muted)",
+              color: viewMode === mode ? "#fff" : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
               cursor: "pointer",
@@ -2341,12 +2339,11 @@ function CCList({
           <div key={groupName} style={{ marginBottom: 32 }}>
             {/* Shared pool banner */}
             <div
-              className="glass"
               style={{
                 marginBottom: 16,
                 padding: "18px 22px",
                 borderRadius: 16,
-                background: "transparent",
+                background: "var(--t-card-bg)",
                 border: `1.5px solid color-mix(in srgb, ${barColor} 30%, transparent)`,
               }}
             >
@@ -3408,7 +3405,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     ? "var(--t-accent)"
                     : "var(--t-muted)"
                   : "transparent",
-              color: viewMode === mode ? THEME.darkInk : "var(--t-muted)",
+              color: viewMode === mode ? "#fff" : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
               cursor: "pointer",
@@ -3434,9 +3431,9 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
           {prepaidStats.map(({ label, value, color, sub: subText, icon, iconBg }) => (
             <div
               key={label}
-              className="glass card-lift"
+              className="card-lift"
               style={{
-                background: "transparent",
+                background: "var(--t-card-bg)",
                 border: `1px solid var(--t-line)`,
                 borderTop: `4px solid ${color}`,
                 borderRadius: 14,
@@ -3444,7 +3441,6 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: "var(--shadow-card)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -5003,9 +4999,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
         ].map(({ label, value, sub, color, Icon }) => (
           <div
             key={label}
-            className="glass card-lift"
+            className="card-lift"
             style={{
-              background: "transparent",
+              background: "var(--t-card-bg)",
               border: `1px solid var(--t-line)`,
               borderTop: `4px solid ${color}`,
               borderRadius: 14,
@@ -5013,7 +5009,6 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              boxShadow: "var(--shadow-card)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -5084,7 +5079,6 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               onEdit={() => onEdit(l.id)}
               cardStyle={{
                 borderTop: `4px solid ${isPaidOff ? "var(--t-sage)" : "var(--t-rust)"}`,
-                boxShadow: "var(--shadow-card)",
               }}
             >
               <div
@@ -5665,9 +5659,9 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
         ].map(({ label, value, sub, color, Icon }) => (
           <div
             key={label}
-            className="glass card-lift"
+            className="card-lift"
             style={{
-              background: "transparent",
+              background: "var(--t-card-bg)",
               border: `1px solid var(--t-line)`,
               borderTop: `4px solid ${color}`,
               borderRadius: 14,
@@ -5675,7 +5669,6 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              boxShadow: "var(--shadow-card)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -6876,9 +6869,9 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
         ].map(({ label, value, sub, color, Icon }) => (
           <div
             key={label}
-            className="glass card-lift"
+            className="card-lift"
             style={{
-              background: "transparent",
+              background: "var(--t-card-bg)",
               border: `1px solid var(--t-line)`,
               borderTop: `4px solid ${color}`,
               borderRadius: 14,
@@ -6886,7 +6879,6 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              boxShadow: "var(--shadow-card)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -6963,14 +6955,13 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
           return (
             <div
               key={person.id}
-              className="glass card-lift"
+              className="card-lift"
               style={{
                 ...card,
-                background: "transparent",
+                background: "var(--t-card-bg)",
                 padding: 0,
                 overflow: "hidden",
                 border: "1px solid var(--t-line)",
-                boxShadow: "var(--shadow-card)",
               }}
             >
               <div

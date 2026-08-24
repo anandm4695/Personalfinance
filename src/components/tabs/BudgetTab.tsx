@@ -1490,7 +1490,7 @@ export function BudgetTab({
                                 background: `color-mix(in srgb, ${statusBadge.color} 7%, transparent)`,
                                 border: `1px solid color-mix(in srgb, ${statusBadge.color} 20%, transparent)`,
                                 padding: "2px 8px",
-                                borderRadius: 20,
+                                borderRadius: "var(--radius-xs)",
                               }}
                             >
                               <StatusIcon size={10} />
@@ -1953,7 +1953,7 @@ export function BudgetTab({
                               color: statusColor,
                               background: statusBg,
                               padding: "2px 8px",
-                              borderRadius: 20,
+                              borderRadius: "var(--radius-xs)",
                               textTransform: "uppercase",
                               letterSpacing: "0.02em",
                             }}

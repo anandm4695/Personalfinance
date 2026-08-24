@@ -3787,7 +3787,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   display: "flex",
                   flexDirection: "column",
                   gap: 8,
-                  boxShadow: "var(--shadow-card)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -7145,7 +7144,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   display: "flex",
                   flexDirection: "column",
                   gap: 8,
-                  boxShadow: "var(--shadow-card)",
                   cursor: "default",
                 }}
               >

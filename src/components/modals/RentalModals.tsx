@@ -656,10 +656,6 @@ export function RentalPropertyModal({ initial, onClose, onSave, saving }: any) {
                   fontSize: 13,
                   cursor: "pointer",
                   transition: "all 0.18s",
-                  boxShadow:
-                    tenantCount === n
-                      ? `0 4px 12px color-mix(in srgb, ${THEME.accent} 35%, transparent)`
-                      : "none",
                 }}
                 onMouseEnter={(e) => {
                   if (tenantCount !== n)
@@ -1372,10 +1368,6 @@ export function RentedInPropertyModal({ initial, onClose, onSave, saving }: any)
                   fontSize: 13,
                   cursor: "pointer",
                   transition: "all 0.18s",
-                  boxShadow:
-                    landlordCount === n
-                      ? `0 4px 12px color-mix(in srgb, ${THEME.accent} 35%, transparent)`
-                      : "none",
                 }}
                 onMouseEnter={(e) => {
                   if (landlordCount !== n)

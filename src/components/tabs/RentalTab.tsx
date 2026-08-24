@@ -654,8 +654,10 @@ export const RentalTab: React.FC<RentalTabProps> = ({
               padding: "8px 20px",
               borderRadius: 10,
               border: "none",
-              background: sub === s.id ? THEME.darkInk : "transparent",
-              color: sub === s.id ? THEME.accent : THEME.muted,
+              background: sub === s.id
+                ? "color-mix(in srgb, var(--t-accent) 12%, transparent)"
+                : "transparent",
+              color: sub === s.id ? "var(--t-accent)" : THEME.muted,
               fontWeight: 800,
               cursor: "pointer",
               transition: "all 0.2s",

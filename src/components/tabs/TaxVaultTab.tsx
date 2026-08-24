@@ -2301,7 +2301,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
-                  boxShadow: "var(--shadow-card)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

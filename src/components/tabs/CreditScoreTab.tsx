@@ -894,7 +894,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                         alignItems: "center",
                         gap: 6,
                         padding: "5px 12px",
-                        borderRadius: 20,
+                        borderRadius: "var(--radius-xs)",
                         background: `color-mix(in srgb, ${b.color} 12%, transparent)`,
                       }}
                     >

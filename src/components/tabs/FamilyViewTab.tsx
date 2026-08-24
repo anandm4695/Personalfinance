@@ -698,8 +698,6 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           marginBottom: 8,
           position: "relative",
           overflow: "hidden",
-          borderRadius: 24,
-          boxShadow: "var(--shadow-xl)",
         }}
       >
         <div style={{ position: "relative", zIndex: 1 }}>
@@ -711,24 +709,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               marginBottom: 32,
             }}
           >
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 18,
-                background: "rgba(255, 255, 255, 0.12)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                border: "1.5px solid rgba(255, 255, 255, 0.15)",
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
-              }}
-            >
-              <Users size={28} color="#fff" />
-            </div>
+            <Users size={26} color="var(--t-gold)" style={{ flexShrink: 0 }} />
             <div>
               <div
                 style={{
@@ -744,13 +725,13 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               </div>
               <div
                 style={{
+                  fontFamily: "var(--font-display)",
                   fontSize: "clamp(32px, 5vw, 46px)",
-                  fontWeight: 900,
+                  fontWeight: 600,
                   color: "#fff",
-                  letterSpacing: "-0.04em",
+                  letterSpacing: "-0.02em",
                   lineHeight: 1,
                   fontVariantNumeric: "tabular-nums",
-                  textShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
                 }}
               >
                 <Money value={totalNetWorth} variant="full" />

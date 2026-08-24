@@ -1431,7 +1431,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
-                  boxShadow: "var(--shadow-card)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2970,7 +2969,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       cursor: "pointer",
                       background: fdrdType === "fd" ? "var(--surface-0)" : "transparent",
                       color: fdrdType === "fd" ? THEME.accent : THEME.muted,
-                      boxShadow: fdrdType === "fd" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: fdrdType === "fd" ? "var(--shadow-sm)" : "none",
                     }}
                   >
                     Fixed Deposit (FD)
@@ -2987,7 +2986,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       cursor: "pointer",
                       background: fdrdType === "rd" ? "var(--surface-0)" : "transparent",
                       color: fdrdType === "rd" ? THEME.accent : THEME.muted,
-                      boxShadow: fdrdType === "rd" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: fdrdType === "rd" ? "var(--shadow-sm)" : "none",
                     }}
                   >
                     Recurring Deposit (RD)
@@ -3153,7 +3152,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       cursor: "pointer",
                       background: lviMode === "sip" ? "var(--surface-0)" : "transparent",
                       color: lviMode === "sip" ? THEME.accent : THEME.muted,
-                      boxShadow: lviMode === "sip" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: lviMode === "sip" ? "var(--shadow-sm)" : "none",
                     }}
                   >
                     Monthly Surplus
@@ -3170,7 +3169,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       cursor: "pointer",
                       background: lviMode === "lumpsum" ? "var(--surface-0)" : "transparent",
                       color: lviMode === "lumpsum" ? THEME.accent : THEME.muted,
-                      boxShadow: lviMode === "lumpsum" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: lviMode === "lumpsum" ? "var(--shadow-sm)" : "none",
                     }}
                   >
                     Lump Sum cash

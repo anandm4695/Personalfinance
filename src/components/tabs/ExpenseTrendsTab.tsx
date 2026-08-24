@@ -255,7 +255,6 @@ const PremiumStatCard = ({
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      boxShadow: "var(--shadow-card)",
       transition: "border-color 0.2s var(--ease-premium)",
     }}
   >

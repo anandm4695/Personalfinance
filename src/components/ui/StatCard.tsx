@@ -58,8 +58,7 @@ export const StatCard = ({
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        boxShadow: "var(--shadow-card)",
-        transition: "all 0.25s var(--ease-premium)",
+        transition: "border-color 0.25s var(--ease-premium)",
       }}
     >
       <div className="spotlight-content" style={{ display: "flex", flexDirection: "column", gap: 10 }}>

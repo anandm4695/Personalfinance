@@ -1859,7 +1859,6 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
               padding: "12px 8px",
               borderRadius: 16,
               border: `1px solid ${THEME.line}`,
-              boxShadow: "var(--shadow-card)",
             }}
           >
             {[
@@ -2914,7 +2913,6 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     justifyContent: "space-between",
                     alignItems: "center",
                     gap: 12,
-                    boxShadow: "var(--shadow-card)",
                     transition: "all 0.25s ease",
                   }}
                 >

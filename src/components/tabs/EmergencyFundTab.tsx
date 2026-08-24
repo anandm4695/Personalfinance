@@ -120,7 +120,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       </SectionTitle>
 
       {/* Main Health Indicator */}
-      <Card className="glass" style={{ background: "transparent", borderRadius: 16 }}>
+      <Card style={{ borderRadius: 16 }}>
         <div
           style={{ padding: 24, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}
         >
@@ -272,7 +272,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       </div>
 
       {/* Liquid Assets Breakdown */}
-      <Card className="glass" style={{ marginTop: 16, background: "transparent" }}>
+      <Card style={{ marginTop: 16 }}>
         <div style={{ padding: 20 }}>
           <div
             style={{
@@ -394,7 +394,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
       {/* Monthly Expense Breakdown */}
       {data.expenseBreakdown.length > 0 && (
-        <Card className="glass" style={{ marginTop: 16, background: "transparent" }}>
+        <Card style={{ marginTop: 16 }}>
           <div style={{ padding: 20 }}>
             <div
               style={{
@@ -530,7 +530,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       )}
 
       {/* Recommendations */}
-      <Card className="glass" style={{ marginTop: 16, background: "transparent" }}>
+      <Card style={{ marginTop: 16 }}>
         <div style={{ padding: 20 }}>
           <div
             style={{

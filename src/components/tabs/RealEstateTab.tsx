@@ -1258,7 +1258,7 @@ function PropertyCard({
                 background: `color-mix(in srgb, ${statusHex} 18%, transparent)`,
                 border: `1.5px solid color-mix(in srgb, ${statusHex} 30%, transparent)`,
                 padding: "3px 10px",
-                borderRadius: 20,
+                borderRadius: "var(--radius-xs)",
                 textTransform: "uppercase" as const,
                 letterSpacing: "0.06em",
               }}
@@ -1273,7 +1273,7 @@ function PropertyCard({
                 background: "var(--surface-1)",
                 border: `1.5px solid ${THEME.line}`,
                 padding: "3px 10px",
-                borderRadius: 20,
+                borderRadius: "var(--radius-xs)",
               }}
             >
               {TYPE_LABELS[property.type] || property.type}
@@ -1341,7 +1341,7 @@ function PropertyCard({
                     background: `color-mix(in srgb, ${accentColor} 12%, transparent)`,
                     border: `1.5px solid color-mix(in srgb, ${accentColor} 25%, transparent)`,
                     padding: "3px 9px",
-                    borderRadius: 20,
+                    borderRadius: "var(--radius-xs)",
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
@@ -1501,7 +1501,7 @@ function PropertyCard({
                     : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                 border: `1.5px solid ${gain >= 0 ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `color-mix(in srgb, ${THEME.rust} 25%, transparent)`}`,
                 padding: "3px 10px",
-                borderRadius: 20,
+                borderRadius: "var(--radius-xs)",
                 letterSpacing: "0.04em",
               }}
             >
@@ -1762,7 +1762,7 @@ function PropertyCard({
                                   color: dHex,
                                   background: `color-mix(in srgb, ${dHex} 22%, transparent)`,
                                   padding: "2px 8px",
-                                  borderRadius: 20,
+                                  borderRadius: "var(--radius-xs)",
                                   textTransform: "capitalize",
                                 }}
                               >
@@ -1877,7 +1877,7 @@ function PropertyCard({
                                   color: THEME.accent,
                                   background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
                                   padding: "2px 8px",
-                                  borderRadius: 20,
+                                  borderRadius: "var(--radius-xs)",
                                 }}
                               >
                                 {p.paymentMode}

@@ -420,7 +420,7 @@ const DematEmptyState = ({ onAdd }: any) => (
           style={{
             fontSize: 11,
             padding: "4px 10px",
-            borderRadius: 20,
+            borderRadius: "var(--radius-xs)",
             background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
             color: THEME.sage,
             fontWeight: 600,
@@ -466,7 +466,7 @@ const StockEmptyState = ({ onAdd }: any) => (
             style={{
               fontSize: 11,
               padding: "5px 12px",
-              borderRadius: 20,
+              borderRadius: "var(--radius-xs)",
               background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
               color: THEME.accent,
               fontWeight: 600,
@@ -1879,7 +1879,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 <span
                   style={{
                     padding: "1px 6px",
-                    borderRadius: 20,
+                    borderRadius: "var(--radius-xs)",
                     fontSize: 10,
                     fontWeight: 800,
                     background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
@@ -2319,7 +2319,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               gap: 5,
                               background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                               padding: "2px 8px",
-                              borderRadius: 20,
+                              borderRadius: "var(--radius-xs)",
                             }}
                           >
                             <span className="broker-live-dot" />
@@ -2500,7 +2500,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           background: `color-mix(in srgb, ${theme.color} 12%, transparent)`,
                           color: theme.color,
                           padding: "3px 10px",
-                          borderRadius: 20,
+                          borderRadius: "var(--radius-xs)",
                           border: `1px solid color-mix(in srgb, ${theme.color} 20%, transparent)`,
                         }}
                       >
@@ -2617,7 +2617,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         alignItems: "center",
                         gap: 6,
                         padding: "5px 12px",
-                        borderRadius: 20,
+                        borderRadius: "var(--radius-xs)",
                         fontSize: 11,
                         fontWeight: 800,
                         background: isOpen
@@ -3494,7 +3494,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
                                         color: THEME.accent,
                                         padding: "1px 8px",
-                                        borderRadius: 20,
+                                        borderRadius: "var(--radius-xs)",
                                         border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
                                       }}
                                     >
@@ -4521,7 +4521,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         background: `color-mix(in srgb, ${portfolioScoreData.statusColor} 15%, transparent)`,
                         color: portfolioScoreData.statusColor,
                         padding: "4px 12px",
-                        borderRadius: 20,
+                        borderRadius: "var(--radius-xs)",
                         border: `1px solid color-mix(in srgb, ${portfolioScoreData.statusColor} 30%, transparent)`,
                         textTransform: "uppercase",
                         letterSpacing: "0.05em",
@@ -5212,7 +5212,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 fontSize: 11,
                                 fontWeight: 800,
                                 padding: "5px 12px",
-                                borderRadius: 20,
+                                borderRadius: "var(--radius-xs)",
                                 background: `color-mix(in srgb, ${ratingColor} 15%, transparent)`,
                                 color: ratingColor,
                                 border: `1px solid color-mix(in srgb, ${ratingColor} 30%, transparent)`,
@@ -5543,7 +5543,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         fontSize: 11,
                         fontWeight: 700,
                         padding: "3px 10px",
-                        borderRadius: 20,
+                        borderRadius: "var(--radius-xs)",
                         background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
                         color: THEME.accent,
                         border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
@@ -5556,7 +5556,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         fontSize: 11,
                         fontWeight: 700,
                         padding: "3px 10px",
-                        borderRadius: 20,
+                        borderRadius: "var(--radius-xs)",
                         background: `color-mix(in srgb, ${THEME.muted} 10%, transparent)`,
                         color: THEME.muted,
                         border: `1px solid color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
@@ -5574,7 +5574,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           fontSize: 11,
                           fontWeight: 800,
                           padding: "3px 10px",
-                          borderRadius: 20,
+                          borderRadius: "var(--radius-xs)",
                           background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                           color: THEME.sage,
                           border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
@@ -5726,7 +5726,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               fontSize: 10,
                               fontWeight: 800,
                               padding: "2px 8px",
-                              borderRadius: 20,
+                              borderRadius: "var(--radius-xs)",
                               background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                               color: THEME.sage,
                               border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
@@ -5743,7 +5743,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           fontSize: 12,
                           fontWeight: 700,
                           padding: "3px 10px",
-                          borderRadius: 20,
+                          borderRadius: "var(--radius-xs)",
                           whiteSpace: "nowrap",
                           border: `1px solid ${`color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 19%, transparent)`}`,
                         }}

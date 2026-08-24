@@ -2214,7 +2214,7 @@ export function BanksTab({
                       <span
                         style={{
                           padding: "2px 8px",
-                          borderRadius: 20,
+                          borderRadius: "var(--radius-xs)",
                           fontSize: 10,
                           fontWeight: 800,
                           background: getCategoryStyle(t.category).bg,
@@ -2713,7 +2713,7 @@ export function BanksTab({
                         display: "inline-block",
                         marginTop: 8,
                         padding: "2px 8px",
-                        borderRadius: 20,
+                        borderRadius: "var(--radius-xs)",
                         fontSize: 10,
                         fontWeight: 800,
                         background: getCategoryStyle(t.category).bg,
@@ -2886,7 +2886,7 @@ export function BanksTab({
                   <span
                     style={{
                       padding: "2px 8px",
-                      borderRadius: 20,
+                      borderRadius: "var(--radius-xs)",
                       fontSize: 10,
                       fontWeight: 800,
                       background: getCategoryStyle(t.category).bg,

@@ -682,7 +682,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                               ? THEME.sage
                               : `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
                           border: `1px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
-                          borderRadius: 20,
+                          borderRadius: "var(--radius-xs)",
                           padding: "3px 10px",
                           cursor: "pointer",
                           display: "inline-flex",
@@ -1059,7 +1059,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                                 ? THEME.accent
                                 : `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                               border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
-                              borderRadius: 20,
+                              borderRadius: "var(--radius-xs)",
                               padding: "3px 10px",
                               cursor: "pointer",
                             }}

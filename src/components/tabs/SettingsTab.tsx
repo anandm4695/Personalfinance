@@ -131,7 +131,7 @@ const PillNav = ({ tabs, active, onChange }: any) => (
                 fontSize: 10,
                 fontWeight: 800,
                 padding: "1px 6px",
-                borderRadius: 20,
+                borderRadius: "var(--radius-xs)",
                 background: `color-mix(in srgb, var(--t-accent) 16%, transparent)`,
                 color: "var(--t-accent)",
               }}
@@ -308,7 +308,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
               fontSize: 11,
               fontWeight: 800,
               padding: "2px 8px",
-              borderRadius: 20,
+              borderRadius: "var(--radius-xs)",
               background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
               color: THEME.accent,
             }}
@@ -452,7 +452,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
               alignItems: "center",
               gap: 5,
               padding: "5px 8px 5px 12px",
-              borderRadius: 20,
+              borderRadius: "var(--radius-xs)",
               fontSize: 13,
               fontWeight: 500,
               background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
@@ -704,7 +704,7 @@ function AppearanceSection({
                   background: "var(--surface-0)",
                   border: `1px solid ${THEME.line}`,
                   padding: "2px 10px",
-                  borderRadius: 20,
+                  borderRadius: "var(--radius-xs)",
                 }}
               >
                 Custom
@@ -756,9 +756,6 @@ function AppearanceSection({
                       overflow: "hidden",
                       cursor: "pointer",
                       background: "var(--t-paper)",
-                      boxShadow: isActive
-                        ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)`
-                        : "none",
                       transition: "all 0.18s",
                       padding: 0,
                       textAlign: "left",
@@ -829,7 +826,7 @@ function AppearanceSection({
                             color: "#fff",
                             background: pal?.light || THEME.accent,
                             padding: "2px 6px",
-                            borderRadius: 20,
+                            borderRadius: "var(--radius-xs)",
                             letterSpacing: "0.05em",
                           }}
                         >
@@ -918,9 +915,6 @@ function AppearanceSection({
                       overflow: "hidden",
                       cursor: "pointer",
                       background: "var(--t-paper)",
-                      boxShadow: isActive
-                        ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)`
-                        : "none",
                       transition: "all 0.18s",
                       padding: 0,
                       textAlign: "left",
@@ -991,7 +985,7 @@ function AppearanceSection({
                             color: "#fff",
                             background: pal?.light || THEME.accent,
                             padding: "2px 6px",
-                            borderRadius: 20,
+                            borderRadius: "var(--radius-xs)",
                             letterSpacing: "0.05em",
                           }}
                         >

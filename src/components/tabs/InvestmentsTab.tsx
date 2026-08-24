@@ -1583,9 +1583,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                     fontSize: 9,
                     fontWeight: 800,
                     padding: "2px 6px",
-                    borderRadius: 20,
-                    background:
-                      netGain >= 0 ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                    borderRadius: "var(--radius-xs)",
+                    background: `color-mix(in srgb, ${netGain >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
                     color: netGain >= 0 ? THEME.sage : THEME.rust,
                     marginLeft: "auto",
                     letterSpacing: "0.02em",
@@ -1662,7 +1661,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                   <span
                     style={{
                       padding: "1px 6px",
-                      borderRadius: 20,
+                      borderRadius: "var(--radius-xs)",
                       fontSize: 10,
                       fontWeight: 800,
                       background: active
@@ -2632,7 +2631,6 @@ function InvestmentEmptyState({
         background: "var(--t-card-bg)",
         border: `1.5px solid ${THEME.line}`,
         borderRadius: 20,
-        boxShadow: "var(--shadow-card)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -6051,7 +6049,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
                   style={{
                     fontSize: 10,
                     padding: "2px 8px",
-                    borderRadius: 20,
+                    borderRadius: "var(--radius-xs)",
                     background: `color-mix(in srgb, ${pfmColor} 9%, transparent)`,
                     color: pfmColor,
                     fontWeight: 700,
@@ -9189,11 +9187,9 @@ function EPFEmptyState({ onAdd }: any) {
       style={{
         padding: "54px 36px",
         textAlign: "center" as const,
-        background:
-          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        background: "var(--t-card-bg)",
         border: `1.5px solid ${THEME.line}`,
         borderRadius: 20,
-        boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -11782,7 +11778,7 @@ function MFSection({
                                                 background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                                                 color: THEME.accent,
                                                 padding: "1px 8px",
-                                                borderRadius: 20,
+                                                borderRadius: "var(--radius-xs)",
                                                 border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
                                               }}
                                             >
@@ -14423,7 +14419,6 @@ const YieldTracker = ({ state }: any) => {
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              boxShadow: "var(--shadow-card)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

@@ -1919,13 +1919,12 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                 alignItems: "center",
                 gap: 8,
                 padding: "11px 24px",
-                borderRadius: 12,
-                background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`,
+                borderRadius: "var(--radius-md)",
+                background: "var(--t-accent)",
                 color: "#fff",
                 fontSize: 14,
-                fontWeight: 700,
+                fontWeight: 600,
                 textDecoration: "none",
-                boxShadow: "0 4px 16px color-mix(in srgb, var(--t-accent) 25%, transparent)",
               }}
             >
               Get Free Gemini API Key <ArrowRight size={16} />
@@ -2271,13 +2270,15 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                       }}
                       onMouseEnter={(e) => {
                         if (!loading) {
-                          e.currentTarget.style.transform = "translateY(-1px)";
-                          e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+                          e.currentTarget.style.borderTopColor = borderColor;
+                          e.currentTarget.style.borderRightColor = borderColor;
+                          e.currentTarget.style.borderBottomColor = borderColor;
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
+                        e.currentTarget.style.borderTopColor = THEME.line;
+                        e.currentTarget.style.borderRightColor = THEME.line;
+                        e.currentTarget.style.borderBottomColor = THEME.line;
                       }}
                     >
                       <div style={{ flexShrink: 0, marginTop: 1 }}>

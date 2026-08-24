@@ -3,6 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { X } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { Button } from "./Button";
 
 const CONFIRM_FOCUSABLE_SELECTOR =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -67,21 +68,6 @@ export function ConfirmDialog({
     };
   }, []);
 
-  const cancelBtnStyle: React.CSSProperties = {
-    background: "transparent",
-    border: `1.5px solid var(--t-line)`,
-    color: "var(--t-ink)",
-    padding: "8px 18px",
-    fontFamily: "var(--t-font, 'Inter', sans-serif)",
-    fontSize: 14,
-    fontWeight: 600,
-    borderRadius: 10,
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-  };
-
   const mouseDownOnBackdropRef = React.useRef(false);
 
   return ReactDOM.createPortal(
@@ -107,16 +93,7 @@ export function ConfirmDialog({
         style={{ maxWidth: 420 }}
       >
         <div className="modal-header">
-          <div
-            style={{
-              fontSize: 17,
-              fontWeight: 800,
-              letterSpacing: "-0.02em",
-              color: "var(--t-ink)",
-            }}
-          >
-            Confirm Action
-          </div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Confirm Action</h2>
           <button className="modal-close-btn" onClick={onCancel} aria-label="Close">
             <X size={16} />
           </button>
@@ -134,21 +111,12 @@ export function ConfirmDialog({
             {message}
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button style={cancelBtnStyle} onClick={onCancel}>
+            <Button variant="secondary" onClick={onCancel}>
               Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              style={{
-                ...cancelBtnStyle,
-                background: THEME.rust,
-                border: `1px solid ${THEME.rust}`,
-                color: "#fff",
-                fontWeight: 700,
-              }}
-            >
+            </Button>
+            <Button variant="danger" onClick={onConfirm}>
               {confirmLabel}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

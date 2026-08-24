@@ -559,7 +559,6 @@ const CategoryFixBadge = ({
             background: "var(--surface-0)",
             border: `1px solid ${THEME.line}`,
             borderRadius: 8,
-            boxShadow: "var(--shadow-card)",
             padding: 8,
             display: "flex",
             flexDirection: "column",
@@ -1220,7 +1219,6 @@ export const CapitalGainsTab = ({
               borderTop: `4px solid ${g.color}`,
               borderRadius: 14,
               padding: "14px 16px",
-              boxShadow: "var(--shadow-card)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>

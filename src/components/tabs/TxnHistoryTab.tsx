@@ -92,8 +92,7 @@ const PremiumDrillDownCard = ({
     aria-pressed={onClick ? !!active : undefined}
     className={`card-base${onClick ? " card-lift" : ""}`}
     style={{
-      background:
-        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+      background: "var(--surface-0)",
       border: `1.5px solid ${active ? THEME.accent : THEME.line}`,
       borderTop: `4px solid ${color}`,
       borderRadius: 16,
@@ -101,7 +100,6 @@ const PremiumDrillDownCard = ({
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      boxShadow: active ? "var(--shadow-card-hover)" : undefined,
       cursor: onClick ? "pointer" : "default",
       position: "relative",
     }}
@@ -171,8 +169,8 @@ const SectionHeader = ({ icon: Icon, title, count, color = THEME.accent, subText
       {count > 0 && (
         <span
           style={{
-            padding: "2px 8px",
-            borderRadius: 20,
+            padding: "3px 8px",
+            borderRadius: "var(--radius-xs)",
             fontSize: 10,
             fontWeight: 800,
             background: `color-mix(in srgb, ${color} 10%, transparent)`,
@@ -1005,7 +1003,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                 <span
                   style={{
                     padding: "1px 6px",
-                    borderRadius: 20,
+                    borderRadius: "var(--radius-xs)",
                     fontSize: 10,
                     fontWeight: 800,
                     background: active
@@ -1916,7 +1914,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                       <span
                         style={{
                           padding: "3px 10px",
-                          borderRadius: 20,
+                          borderRadius: "var(--radius-xs)",
                           fontSize: 10,
                           fontWeight: 800,
                           textTransform: "uppercase",

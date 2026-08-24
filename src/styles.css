@@ -49,8 +49,7 @@
   --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
-  --shadow-focus:
-    0 0 0 2px var(--t-paper), 0 0 0 4px color-mix(in srgb, var(--t-accent) 40%, transparent);
+  --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--t-accent) 35%, transparent);
   --shadow-card:
     0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -357,10 +356,7 @@ tbody tr:hover td {
   background: var(--t-card-bg);
   border: var(--t-card-border);
   border-radius: var(--t-radius);
-  box-shadow: var(--t-card-shadow);
-  transition:
-    box-shadow 0.2s var(--ease-premium),
-    border-color 0.2s var(--ease-premium);
+  transition: border-color 0.2s var(--ease-premium);
 }
 .card-hover:hover {
   border-color: color-mix(in srgb, var(--t-accent) 30%, var(--t-line));
@@ -384,7 +380,6 @@ tbody tr:hover td {
   border: var(--t-card-border);
   border-radius: var(--t-radius);
   padding: var(--card-pad, 20px);
-  box-shadow: var(--t-card-shadow);
   transition: border-color 0.2s var(--ease-premium);
 }
 .tile-card:hover {
@@ -489,8 +484,7 @@ tbody tr:hover td {
   border: var(--t-card-border);
   border-radius: var(--t-radius);
   padding: 22px 22px 22px 26px;
-  box-shadow: var(--t-card-shadow);
-  transition: all 0.3s var(--ease-premium);
+  transition: border-color 0.3s var(--ease-premium);
   position: relative;
   overflow: hidden;
 }
@@ -877,10 +871,7 @@ tbody tr:hover td {
   background: var(--surface-0);
   border-radius: var(--radius-xl);
   border: 1px solid var(--t-line);
-  box-shadow:
-    var(--shadow-2xl),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 560px;
   max-height: 90vh;
@@ -949,8 +940,9 @@ tbody tr:hover td {
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(7, 8, 10, 0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   z-index: var(--z-drawer);
   display: flex;
   justify-content: flex-end;
@@ -959,7 +951,7 @@ tbody tr:hover td {
 .drawer-panel {
   background: var(--surface-0);
   border-left: 1px solid var(--t-line);
-  box-shadow: var(--shadow-2xl);
+  box-shadow: var(--shadow-xl);
   width: min(440px, 100vw);
   height: 100vh;
   overflow: hidden;
@@ -2035,10 +2027,11 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   min-width: 0;
 }
 .sub-tab-hero-title {
-  font-size: 17px;
-  font-weight: 900;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
   color: var(--t-ink);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.2;
   margin-bottom: 3px;
 }
@@ -2053,7 +2046,7 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   align-items: center;
   gap: 5px;
   padding: 5px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-xs);
   font-size: 12px;
   font-weight: 800;
   background: color-mix(in srgb, var(--t-accent) 12%, transparent);
