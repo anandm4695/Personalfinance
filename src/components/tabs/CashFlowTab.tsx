@@ -851,8 +851,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
           <div
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 28,
-              fontWeight: 900,
+              fontWeight: 600,
               color: THEME.ink,
               letterSpacing: "-0.04em",
               fontVariantNumeric: "tabular-nums",
@@ -947,8 +948,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
           <div
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 28,
-              fontWeight: 900,
+              fontWeight: 600,
               color: THEME.ink,
               letterSpacing: "-0.04em",
               fontVariantNumeric: "tabular-nums",
@@ -1058,8 +1060,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
           <div
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 28,
-              fontWeight: 900,
+              fontWeight: 600,
               color: netCashFlow >= 0 ? THEME.sage : THEME.rust,
               letterSpacing: "-0.04em",
               fontVariantNumeric: "tabular-nums",
@@ -1158,8 +1161,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
           <div
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 28,
-              fontWeight: 900,
+              fontWeight: 600,
               color: netMonthly >= 0 ? THEME.sage : THEME.rust,
               letterSpacing: "-0.04em",
               fontVariantNumeric: "tabular-nums",
