@@ -2389,8 +2389,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
           border: 1.5px solid var(--t-line);
           border-radius: 14px;
           overflow: hidden;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: var(--shadow-sm);
+          transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           display: flex;
           flex-direction: column;
           height: 100%;

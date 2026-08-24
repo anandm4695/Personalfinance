@@ -837,7 +837,6 @@ tbody tr:hover td {
   justify-content: center;
   margin-bottom: 8px;
   color: var(--t-muted);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--t-accent) 15%, transparent);
 }
 .empty-state-title {
   font-size: 16px;

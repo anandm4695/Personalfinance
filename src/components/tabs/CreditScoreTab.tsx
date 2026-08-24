@@ -636,8 +636,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
           background: var(--surface-0);
           border: 1.5px solid var(--t-line);
           cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: var(--shadow-sm);
+          transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .bureau-select-card:hover {
           border-color: var(--b-color) !important;
