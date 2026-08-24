@@ -39,26 +39,16 @@ export class ErrorBoundary extends Component<Props, State> {
               textAlign: "center",
             }}
           >
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 20,
-                background: "color-mix(in srgb, var(--t-rust) 12%, transparent)",
-                border: "1.5px solid color-mix(in srgb, var(--t-rust) 25%, transparent)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <AlertTriangle size={28} strokeWidth={2} style={{ color: "var(--t-rust)" }} />
+            <div style={{ display: "flex", alignItems: "center", color: "var(--t-rust)" }}>
+              <AlertTriangle size={40} strokeWidth={1.5} />
             </div>
             <h2
               style={{
+                fontFamily: "var(--font-display, 'Fraunces', Georgia, serif)",
                 margin: 0,
-                fontSize: 18,
-                fontWeight: 800,
-                letterSpacing: "-0.02em",
+                fontSize: 22,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
                 color: "var(--t-ink)",
               }}
             >

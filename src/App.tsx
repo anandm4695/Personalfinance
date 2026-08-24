@@ -3556,7 +3556,7 @@ function FinanceDashboard() {
           style={{
             padding: 40,
             textAlign: "center",
-            background: "linear-gradient(145deg, #0F172A 0%, #1E1B4B 60%, #0B0F1A 100%)",
+            background: "#0B1220",
             color: "#F1F3F9",
             minHeight: "100vh",
             display: "flex",
@@ -3567,8 +3567,16 @@ function FinanceDashboard() {
             fontFamily: "'Inter', sans-serif",
           }}
         >
-          <Settings size={40} style={{ marginBottom: 8, opacity: 0.85 }} />
-          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>
+          <Settings size={40} style={{ marginBottom: 8, opacity: 0.85, color: "var(--t-gold, #C5A152)" }} />
+          <h2
+            style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontSize: 24,
+              fontWeight: 600,
+              margin: 0,
+              letterSpacing: "-0.01em",
+            }}
+          >
             Backend Connection Required
           </h2>
           <p
