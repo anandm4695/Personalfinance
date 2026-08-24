@@ -645,8 +645,9 @@ export const FIREPlannerTab = ({ state, metrics }) => {
         </div>
         <div
           style={{
+            fontFamily: "var(--font-display)",
             fontSize: "clamp(32px, 5vw, 52px)",
-            fontWeight: 900,
+            fontWeight: 600,
             color: "#fff",
             letterSpacing: "-0.03em",
             lineHeight: 1.05,

@@ -1205,8 +1205,9 @@ export function BudgetTab({
                           x={sz / 2}
                           y={sz / 2 - 4}
                           textAnchor="middle"
+                          fontFamily="var(--font-display)"
                           fontSize="18"
-                          fontWeight="900"
+                          fontWeight="600"
                           fill={THEME.ink}
                         >
                           {animatedSpentPct.toFixed(0)}%

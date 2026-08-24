@@ -4405,8 +4405,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: "clamp(42px, 5.5vw, 72px)",
-                    fontWeight: 900,
+                    fontWeight: 600,
                     lineHeight: 1,
                     letterSpacing: "-0.045em",
                     color: "#fff",
