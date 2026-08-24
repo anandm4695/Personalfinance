@@ -52,76 +52,55 @@ export const StatCard = ({
       style={{
         background: "var(--t-card-bg)",
         border: "1px solid var(--t-line)",
-        borderTop: `3px solid ${borderColor || color}`,
-        borderRadius: 16,
-        padding: "20px 22px",
+        borderLeft: `2.5px solid ${borderColor || color}`,
+        borderRadius: 10,
+        padding: "18px 20px",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 10,
         boxShadow: "var(--shadow-card)",
         transition: "all 0.25s var(--ease-premium)",
       }}
     >
-      <div className="spotlight-content" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="spotlight-content" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "var(--t-muted)" }}>
+          {React.cloneElement(icon as React.ReactElement, { size: 13, strokeWidth: 2.25 })}
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background:
-                iconBg ||
-                `linear-gradient(135deg, color-mix(in srgb, ${color} 18%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-              border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
-              boxShadow: `0 4px 12px color-mix(in srgb, ${color} 15%, transparent)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: color,
-              flexShrink: 0,
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
             }}
           >
-            {React.cloneElement(icon as React.ReactElement, { size: 18 })}
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "var(--t-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              {label}
-            </div>
-            {sub && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: subColor || "var(--t-muted)",
-                  fontWeight: subColor ? 700 : 500,
-                  marginTop: 2,
-                  opacity: subColor ? 1 : 0.8,
-                }}
-              >
-                {sub}
-              </div>
-            )}
+            {label}
           </div>
         </div>
         <div
           style={{
-            fontSize: 28,
-            fontWeight: 800,
+            fontFamily: "var(--font-display)",
+            fontSize: 27,
+            fontWeight: 600,
             color: "var(--t-ink)",
-            letterSpacing: "-0.03em",
+            letterSpacing: "-0.01em",
             lineHeight: 1.1,
             fontVariantNumeric: "tabular-nums",
           }}
         >
           {maskInPrivacyMode ? <Prv>{displayValue}</Prv> : displayValue}
         </div>
+        {sub && (
+          <div
+            style={{
+              fontSize: 11.5,
+              color: subColor || "var(--t-muted)",
+              fontWeight: subColor ? 700 : 500,
+              opacity: subColor ? 1 : 0.85,
+            }}
+          >
+            {sub}
+          </div>
+        )}
       </div>
     </div>
   );

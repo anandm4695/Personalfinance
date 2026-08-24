@@ -17,6 +17,7 @@ import {
   TrendingUp,
   ShieldCheck,
 } from "lucide-react";
+import { BrandMark } from "./components/ui/BrandMark";
 
 /* ─── Time-of-day greeting ───────────────────────────────────────────── */
 function getGreeting(): string {
@@ -367,7 +368,7 @@ export default function Auth({
         <div className="af-brand-glow" />
         <div className="af-brand-content">
           <div className="af-brand-logo">
-            <img src="/logo.png" alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
+            <BrandMark size={44} />
             <div>
               <div className="af-brand-name">Personal Finance</div>
               <div className="af-brand-tagline">by Anand Mohta</div>
@@ -404,11 +405,7 @@ export default function Auth({
         <div className="af-card">
           {/* Logo — shown only below 768px; the brand panel carries it on desktop */}
           <div className="af-logo-mobile">
-            <img
-              src="/logo.png"
-              alt="Personal Finance by Anand Mohta"
-              style={{ width: 40, height: 40, objectFit: "contain" }}
-            />
+            <BrandMark size={40} />
             <div>
               <div className="af-logo-name">Personal Finance</div>
               <div className="af-logo-tagline">by Anand Mohta</div>
@@ -938,8 +935,8 @@ export default function Auth({
 const AF_STYLES = `
 /* ── Shell — two-panel layout ──────────── */
 .af-shell {
-  --af-accent: #3F3D9E;
-  --af-accent-hover: #2E2C79;
+  --af-accent: #B8720A;
+  --af-accent-hover: #96600A;
   --af-text: #0F172A;
   --af-text-secondary: #374151;
   --af-border: #E2E8F0;
@@ -959,7 +956,7 @@ const AF_STYLES = `
   min-width: 380px;
   max-width: 540px;
   overflow: hidden;
-  background: linear-gradient(160deg, #1B1846 0%, #2E2A7D 46%, #3F3D9E 100%);
+  background: linear-gradient(165deg, #0B0F1A 0%, #10141F 100%);
   color: #F4F5FF;
   padding: 56px 48px;
   display: flex;
@@ -974,25 +971,27 @@ const AF_STYLES = `
 .af-brand-glow::before {
   content: '';
   position: absolute;
-  top: -140px; right: -160px;
-  width: 460px; height: 460px;
+  top: -90px; right: -110px;
+  width: 380px; height: 380px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(197,161,82,0.32) 0%, rgba(197,161,82,0) 70%);
+  border: 1px solid rgba(197,161,82,0.16);
 }
 .af-brand-glow::after {
   content: '';
   position: absolute;
-  left: -220px; bottom: -260px;
-  width: 420px; height: 420px;
+  top: -90px; right: -110px;
+  width: 380px; height: 380px;
+  margin: 38px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(129,140,248,0.26) 0%, rgba(129,140,248,0) 70%);
+  border: 1px solid rgba(197,161,82,0.1);
 }
 .af-brand-content { position: relative; z-index: 1; max-width: 380px; }
 .af-brand-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
-.af-brand-name { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; color: #fff; }
-.af-brand-tagline { font-size: 11px; font-weight: 500; color: rgba(244,245,255,0.6); margin-top: 3px; }
+.af-brand-name { font-family: 'Fraunces', Georgia, serif; font-size: 16px; font-weight: 600; letter-spacing: -0.005em; line-height: 1; color: #fff; }
+.af-brand-tagline { font-size: 11px; font-weight: 500; color: rgba(244,245,255,0.6); margin-top: 4px; }
 .af-brand-headline {
-  font-size: 33px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.18;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 36px; font-weight: 560; letter-spacing: -0.01em; line-height: 1.16;
   margin: 0 0 16px; color: #fff;
 }
 .af-brand-sub {
@@ -1004,7 +1003,7 @@ const AF_STYLES = `
   display: flex; align-items: center; gap: 11px;
   font-size: 13.5px; font-weight: 500; color: rgba(244,245,255,0.9);
 }
-.af-brand-features li svg { color: #E8B923; flex-shrink: 0; }
+.af-brand-features li svg { color: #C5A152; flex-shrink: 0; }
 
 /* ── Form panel — right ────────────────── */
 .af-form-panel {
@@ -1026,8 +1025,9 @@ const AF_STYLES = `
 /* Mobile-only compact logo row (brand panel carries it on desktop) */
 .af-logo-mobile { display: none; }
 .af-logo-name {
-  font-size: 15px; font-weight: 800;
-  color: var(--af-text); letter-spacing: -0.02em; line-height: 1;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px; font-weight: 600;
+  color: var(--af-text); letter-spacing: -0.005em; line-height: 1;
 }
 .af-logo-tagline {
   font-size: 11px; font-weight: 500;
@@ -1061,8 +1061,8 @@ const AF_STYLES = `
 /* Info banner (reset mode) */
 .af-info-banner {
   display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px; background: rgba(63,61,158,0.06);
-  border-radius: 9px; border: 1px solid rgba(63,61,158,0.15);
+  padding: 11px 14px; background: rgba(184,114,10,0.06);
+  border-radius: 9px; border: 1px solid rgba(184,114,10,0.18);
   margin-bottom: 4px; font-size: 13px; color: var(--af-accent); font-weight: 500;
 }
 
@@ -1188,15 +1188,15 @@ const AF_STYLES = `
 ══════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
   .af-shell {
-    --af-accent: #8583E0;
-    --af-accent-hover: #A5A3F0;
+    --af-accent: #D9AA45;
+    --af-accent-hover: #E8C065;
     --af-text: #F9FAFB;
     --af-text-secondary: #D1D5DB;
     --af-border: #2A3140;
     --af-border-hover: #3D4556;
     --af-page-bg: #0B0E14;
   }
-  .af-brand-panel { background: linear-gradient(160deg, #0E0C28 0%, #1C1958 46%, #2E2A7D 100%); }
+  .af-brand-panel { background: linear-gradient(165deg, #0B0F1A 0%, #10141F 100%); }
   .af-card-sub { color: #9CA3AF; }
   .af-inp-wrap { background: #171C27; }
   .af-inp-wrap.af-focused { background: #1A2030; }
@@ -1205,7 +1205,7 @@ const AF_STYLES = `
   .af-switch-txt { color: #9CA3AF; }
   .af-alert-err { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
   .af-alert-ok  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6EE7B7; }
-  .af-info-banner { background: rgba(133,131,224,0.1); border-color: rgba(133,131,224,0.25); }
+  .af-info-banner { background: rgba(217,170,69,0.1); border-color: rgba(217,170,69,0.25); }
   .af-demo-btn { color: #6B7280; }
   .af-greeting { color: #6B7280; }
   .af-logo-tagline { color: #6B7280; }
@@ -1221,15 +1221,15 @@ const AF_STYLES = `
 }
 
 .dark-theme .af-shell {
-  --af-accent: #8583E0;
-  --af-accent-hover: #A5A3F0;
+  --af-accent: #D9AA45;
+  --af-accent-hover: #E8C065;
   --af-text: #F9FAFB;
   --af-text-secondary: #D1D5DB;
   --af-border: #2A3140;
   --af-border-hover: #3D4556;
   --af-page-bg: #0B0E14;
 }
-.dark-theme .af-brand-panel { background: linear-gradient(160deg, #0E0C28 0%, #1C1958 46%, #2E2A7D 100%); }
+.dark-theme .af-brand-panel { background: linear-gradient(165deg, #0B0F1A 0%, #10141F 100%); }
 .dark-theme .af-card-sub { color: #9CA3AF; }
 .dark-theme .af-inp-wrap { background: #171C27; }
 .dark-theme .af-inp-wrap.af-focused { background: #1A2030; }
@@ -1238,7 +1238,7 @@ const AF_STYLES = `
 .dark-theme .af-switch-txt { color: #9CA3AF; }
 .dark-theme .af-alert-err { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
 .dark-theme .af-alert-ok  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6EE7B7; }
-.dark-theme .af-info-banner { background: rgba(133,131,224,0.1); border-color: rgba(133,131,224,0.25); }
+.dark-theme .af-info-banner { background: rgba(217,170,69,0.1); border-color: rgba(217,170,69,0.25); }
 .dark-theme .af-demo-btn { color: #6B7280; }
 .dark-theme .af-greeting { color: #6B7280; }
 .dark-theme .af-logo-tagline { color: #6B7280; }

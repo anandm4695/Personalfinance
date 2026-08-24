@@ -23,6 +23,7 @@ import { alertDismissKey } from "../../utils/finance";
 import { getNavBreadcrumb } from "../../utils/appConstants";
 import { getIsDemoMode } from "../../supabaseClient";
 import { usePrivacy } from "../../context/PrivacyContext";
+import { BrandMark } from "../ui/BrandMark";
 
 const input: React.CSSProperties = {
   width: "100%",
@@ -160,18 +161,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               }}
             >
               {/* Mobile logo — shown only on small screens */}
-              <img
-                src="/logo.png"
-                alt="Finance"
-                className="mobile-only"
-                style={{
-                  width: 32,
-                  height: 32,
-                  objectFit: "contain",
-                  flexShrink: 0,
-                  filter: "drop-shadow(0 2px 6px rgba(197,161,82,0.3))",
-                }}
-              />
+              <BrandMark size={30} className="mobile-only" style={{ flexShrink: 0 }} />
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}
               >

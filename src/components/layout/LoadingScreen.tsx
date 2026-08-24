@@ -1,4 +1,5 @@
 import React from "react";
+import { BrandMark } from "../ui/BrandMark";
 
 export function LoadingScreen() {
   return (
@@ -19,16 +20,9 @@ export function LoadingScreen() {
         textAlign: "center",
       }}
     >
-      <img
-        src="/logo.png"
-        alt="Personal Finance by Anand Mohta"
-        style={{
-          width: "clamp(72px, 20vw, 110px)",
-          height: "clamp(72px, 20vw, 110px)",
-          objectFit: "contain",
-          filter: "drop-shadow(0 0 24px rgba(197,161,82,0.45))",
-          animation: "pulse-logo 2.4s ease-in-out infinite",
-        }}
+      <BrandMark
+        size={88}
+        style={{ animation: "mark-enter 0.5s var(--ease-premium, ease-out) both" }}
       />
       <div
         style={{
@@ -77,7 +71,7 @@ export function LoadingScreen() {
         Loading your dashboard…
       </span>
       <style>{`
-        @keyframes pulse-logo { 0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(197,161,82,0.35))} 50%{transform:scale(1.04);filter:drop-shadow(0 0 36px rgba(197,161,82,0.55))} }
+        @keyframes mark-enter { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
         @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
       `}</style>
     </div>

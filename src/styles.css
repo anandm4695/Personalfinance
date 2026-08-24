@@ -79,7 +79,11 @@
 
   /* Typography */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --font-display: "Outfit", "Inter", sans-serif;
+  /* Display serif — section headlines, hero/stat figures, the brand wordmark.
+     Deliberately not the body sans: pairing a serif numeral face against the
+     Inter/Outfit UI chrome is what gives the app an edited, considered voice
+     instead of reading as one more Inter-everywhere dashboard template. */
+  --font-display: "Fraunces", "Outfit", Georgia, serif;
   --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
 
   /* Border radius scale */
@@ -518,51 +522,25 @@ tbody tr:hover td {
   }
 }
 
-/* ── Hero card — Executive Grade ───────────────────────────────── */
+/* ── Hero card — flat ledger panel, no glow/mesh animation ───────
+   Previously a 3-layer radial-gradient mesh with a 6s pulsing glow ring —
+   replaced with a flat ink panel and a single hairline brass rule at top,
+   the same restrained language as the rest of the "Ledger" identity. */
 .hero-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    145deg,
-    #0f172a 0%,
-    color-mix(in srgb, var(--t-accent) 15%, #0f172a) 50%,
-    #0f172a 100%
-  ) !important;
-  border-radius: var(--radius-xl);
+  background: #0b1220 !important;
+  border-top: 2px solid var(--t-gold);
+  border-radius: var(--radius-lg);
   padding: clamp(24px, 4vw, 40px);
   color: #fff !important;
-  box-shadow:
-    0 20px 60px rgba(15, 23, 42, 0.4),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.hero-card::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  right: -25%;
-  width: 70%;
-  height: 200%;
-  background: radial-gradient(
-    ellipse at center,
-    color-mix(in srgb, var(--t-accent) 12%, transparent) 0%,
-    transparent 60%
-  );
-  pointer-events: none;
-  animation: glow-pulse 6s ease-in-out infinite;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .hero-card-mesh {
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(
-      circle at 75% 15%,
-      color-mix(in srgb, var(--t-accent) 10%, transparent) 0%,
-      transparent 45%
-    ),
-    radial-gradient(circle at 25% 85%, rgba(52, 211, 153, 0.04) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.02) 0%, transparent 60%);
-  pointer-events: none;
+  display: none;
 }
 
 /* ── Metric insight card — with accent bar ─────────────────────── */
@@ -800,15 +778,6 @@ tbody tr:hover td {
   }
   100% {
     transform: scale(1);
-  }
-}
-@keyframes glow-pulse {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
   }
 }
 @keyframes toastIn {

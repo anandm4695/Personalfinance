@@ -22,9 +22,10 @@ export const SectionTitle: React.FC<SectionTitleProps> = ({ children, sub, right
         <div>
           <h2
             style={{
-              fontSize: "clamp(22px, 4vw, 28px)",
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(23px, 4vw, 30px)",
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
               margin: 0,
               color: "var(--t-ink)",
             }}

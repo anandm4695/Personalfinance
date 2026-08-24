@@ -2,6 +2,7 @@ import React from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { NAV_GROUPS } from "../../utils/appConstants";
+import { BrandMark } from "../ui/BrandMark";
 
 interface WorkspaceSidebarProps {
   tab: string;
@@ -73,24 +74,15 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                 justifyContent: isSidebarCompact ? "center" : "flex-start",
               }}
             >
-              <img
-                src="/logo.png"
-                alt="Personal Finance by Anand Mohta"
-                style={{
-                  width: 40,
-                  height: 40,
-                  objectFit: "contain",
-                  flexShrink: 0,
-                  filter: "drop-shadow(0 2px 8px rgba(197,161,82,0.3))",
-                }}
-              />
+              <BrandMark size={36} style={{ flexShrink: 0 }} />
               {!isSidebarCompact && (
                 <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
                   <div
                     style={{
-                      fontSize: 13,
-                      fontWeight: 800,
-                      letterSpacing: "-0.01em",
+                      fontFamily: "var(--font-display)",
+                      fontSize: 15,
+                      fontWeight: 600,
+                      letterSpacing: "-0.005em",
                       color: THEME.ink,
                       lineHeight: 1.2,
                     }}
