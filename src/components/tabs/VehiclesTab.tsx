@@ -48,6 +48,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
+import { SectionTitle } from "../ui/SectionTitle";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
@@ -3519,36 +3520,20 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
 
   return (
     <div>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          <div
-            style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}
+      <SectionTitle
+        sub={`${vehicles.length} vehicle${vehicles.length !== 1 ? "s" : ""} · Track ownership, service history, insurance and current value`}
+        rightElement={
+          <Button
+            variant="accent"
+            icon={<Plus size={14} />}
+            onClick={() => setVehicleModal({ open: true })}
           >
-            Vehicles
-          </div>
-          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
-            {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} · Track ownership, service
-            history, insurance and current value
-          </div>
-        </div>
-        <Button
-          variant="accent"
-          icon={<Plus size={14} />}
-          onClick={() => setVehicleModal({ open: true })}
-        >
-          Add Vehicle
-        </Button>
-      </div>
+            Add Vehicle
+          </Button>
+        }
+      >
+        Vehicles
+      </SectionTitle>
 
       {/* Sort control */}
       {vehicles.length > 1 && (
