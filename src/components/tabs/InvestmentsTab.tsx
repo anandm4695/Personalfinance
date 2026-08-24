@@ -1594,8 +1594,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 28,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: THEME.ink,
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
@@ -2833,8 +2834,9 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 22,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: THEME.ink,
                     letterSpacing: "-0.03em",
                     lineHeight: 1,
@@ -2939,8 +2941,9 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   <div style={lbl}>Principal</div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 24,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: FD_AMBER,
                       letterSpacing: "-0.02em",
                       marginBottom: 14,
@@ -3218,8 +3221,9 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     </div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 22,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: THEME.ink,
                         letterSpacing: "-0.03em",
                         lineHeight: 1,
@@ -3312,8 +3316,9 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   <div style={lbl}>Monthly Installment</div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 24,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: RD_BLUE,
                       marginBottom: 4,
                       letterSpacing: "-0.02em",
@@ -3664,8 +3669,9 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   <div style={lbl}>Total Investment</div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 26,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: BOND_AMBER,
                       letterSpacing: "-0.02em",
                       marginBottom: couponEarned > 0 ? 4 : 16,
@@ -5019,7 +5025,15 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
           </span>
         )}
       </div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>
+      <div
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 28,
+          fontWeight: 600,
+          color: THEME.sage,
+          letterSpacing: "-0.02em",
+        }}
+      >
         <Money value={displayBalance} variant="full" />
       </div>
 
@@ -6110,8 +6124,9 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 28,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: NPS_ORANGE,
                 letterSpacing: "-0.03em",
                 marginBottom: 12,
@@ -7914,8 +7929,9 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
       </div>
       <div
         style={{
+          fontFamily: "var(--font-display)",
           fontSize: 28,
-          fontWeight: 900,
+          fontWeight: 600,
           color: THEME.accent,
           letterSpacing: "-0.02em",
           marginBottom: hasPassbook ? 10 : 20,
@@ -9968,7 +9984,15 @@ function MFInsights({ items, getLiveNav }: any) {
                 justifyContent: "center",
               }}
             >
-              <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, lineHeight: 1 }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 26,
+                  fontWeight: 600,
+                  color: THEME.ink,
+                  lineHeight: 1,
+                }}
+              >
                 {healthScore}
               </div>
               <div
@@ -10670,8 +10694,9 @@ function MFSection({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 22,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: THEME.ink,
                     letterSpacing: "-0.03em",
                     lineHeight: 1,
@@ -12412,7 +12437,14 @@ function MFSection({
                             >
                               {label}
                             </div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontSize: 18,
+                                fontWeight: 600,
+                                color: THEME.ink,
+                              }}
+                            >
                               <Prv>{value}</Prv>
                             </div>
                           </div>
@@ -14463,8 +14495,9 @@ const YieldTracker = ({ state }: any) => {
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 26,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: THEME.ink,
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
@@ -14583,7 +14616,14 @@ const YieldTracker = ({ state }: any) => {
               >
                 Total Annual Yield
               </div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.accent }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 24,
+                  fontWeight: 600,
+                  color: THEME.accent,
+                }}
+              >
                 <Money value={totalAnnual} variant="full" />
               </div>
             </div>
@@ -14599,7 +14639,14 @@ const YieldTracker = ({ state }: any) => {
               >
                 Monthly Avg.
               </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: THEME.sage,
+                }}
+              >
                 <Money value={totalMonthly} variant="full" />
               </div>
             </div>

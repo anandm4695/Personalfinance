@@ -157,8 +157,9 @@ export const EmergencyFundTab = ({ state, metrics }) => {
             >
               <div
                 style={{
+                  fontFamily: "var(--font-display)",
                   fontSize: 28,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   color: healthColor,
                   lineHeight: 1,
                   letterSpacing: "-0.03em",

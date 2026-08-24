@@ -1977,8 +1977,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: THEME.ink,
                     letterSpacing: "-0.04em",
                     fontVariantNumeric: "tabular-nums",
@@ -2064,8 +2065,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
                     letterSpacing: "-0.04em",
                     fontVariantNumeric: "tabular-nums",
@@ -2131,8 +2133,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: pnl >= 0 ? THEME.sage : THEME.rust,
                     letterSpacing: "-0.04em",
                     fontVariantNumeric: "tabular-nums",
@@ -2203,8 +2206,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color:
                       overallXirr === null
                         ? THEME.muted
@@ -4199,8 +4203,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 24,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: THEME.ink,
                         letterSpacing: "-0.04em",
                         fontVariantNumeric: "tabular-nums",
@@ -4260,8 +4265,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 24,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: pnl >= 0 ? THEME.sage : THEME.rust,
                         letterSpacing: "-0.04em",
                         fontVariantNumeric: "tabular-nums",
@@ -4329,8 +4335,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 24,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: pnl >= 0 ? THEME.sage : THEME.rust,
                         letterSpacing: "-0.04em",
                         fontVariantNumeric: "tabular-nums",
@@ -4395,8 +4402,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 24,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color:
                           overallXirr === null
                             ? THEME.muted

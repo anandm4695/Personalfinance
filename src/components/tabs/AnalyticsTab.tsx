@@ -5145,8 +5145,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       >
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 22,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             lineHeight: 1,
                             color: healthScoreData.scoreColor,
                           }}
@@ -5824,8 +5825,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <div>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 28,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: wealthVelocity.avg >= 0 ? THEME.sage : THEME.rust,
                           lineHeight: 1,
                           letterSpacing: "-0.02em",
@@ -5943,8 +5945,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 26,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             color:
                               foirPct > 50 ? THEME.rust : foirPct > 40 ? THEME.gold : THEME.sage,
                             lineHeight: 1,
@@ -6557,8 +6560,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 28,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color:
                           nominationAudit.pct > 80
                             ? THEME.sage
@@ -7173,8 +7177,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 22,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: positive ? THEME.sage : THEME.rust,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.1,
@@ -7953,7 +7958,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         {label}
                       </div>
                       <div
-                        style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em" }}
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 20,
+                          fontWeight: 600,
+                          color,
+                          letterSpacing: "-0.02em",
+                        }}
                       >
                         {value}
                       </div>
@@ -8035,8 +8046,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 28,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: "#fff",
                           letterSpacing: "-0.03em",
                         }}
@@ -9545,8 +9557,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div style={{ textAlign: "right" }}>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 24,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color:
                       passiveIncomeData.passiveRatio >= 50
                         ? THEME.sage
@@ -9705,8 +9718,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: THEME.sage,
                     letterSpacing: "-0.02em",
                   }}
@@ -11215,8 +11229,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div style={{ textAlign: "right" }}>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 28,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: fireData.progress >= 100 ? THEME.sage : THEME.accent,
                     letterSpacing: "-0.02em",
                   }}
@@ -11474,8 +11489,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <div>
                           <div
                             style={{
+                              fontFamily: "var(--font-display)",
                               fontSize: 26,
-                              fontWeight: 900,
+                              fontWeight: 600,
                               color: THEME.accent,
                               letterSpacing: "-0.03em",
                               lineHeight: 1,
@@ -11536,8 +11552,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ textAlign: "right" }}>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 24,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: THEME.sage,
                       letterSpacing: "-0.02em",
                       display: "flex",
@@ -12136,8 +12153,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div style={{ textAlign: "right" }}>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 24,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: taxData80C.progress >= 100 ? THEME.sage : THEME.accent,
                     letterSpacing: "-0.02em",
                   }}
@@ -14497,7 +14515,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       >
                         LVL
                       </div>
-                      <div style={{ fontSize: 26, fontWeight: 900, color: "#fff" }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 26,
+                          fontWeight: 600,
+                          color: "#fff",
+                        }}
+                      >
                         {habitsBadges.level}
                       </div>
                     </div>

@@ -509,8 +509,9 @@ Return only the JSON, no explanation.`;
           </span>
           <span
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 22,
-              fontWeight: 900,
+              fontWeight: 600,
               color: netExceedsGross ? THEME.rust : THEME.sage,
             }}
           >

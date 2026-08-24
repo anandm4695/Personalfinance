@@ -617,8 +617,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 24,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: THEME.ink,
                 letterSpacing: "-0.03em",
                 marginTop: 2,

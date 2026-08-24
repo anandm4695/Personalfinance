@@ -1085,8 +1085,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 <div style={{ textAlign: "right" }}>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 20,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: THEME.ink,
                       fontVariantNumeric: "tabular-nums",
                       letterSpacing: "-0.03em",

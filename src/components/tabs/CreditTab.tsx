@@ -1057,8 +1057,9 @@ export function CreditTab({
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 26,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             color: THEME.ink,
                             letterSpacing: "-0.04em",
                             lineHeight: 1,
@@ -2385,8 +2386,9 @@ function CCList({
                 <div style={{ textAlign: "right" }}>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 26,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: barColor,
                       letterSpacing: "-0.02em",
                     }}
@@ -3462,8 +3464,9 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
               </div>
               <div
                 style={{
+                  fontFamily: "var(--font-display)",
                   fontSize: 26,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   color: THEME.ink,
                   letterSpacing: "-0.04em",
                   lineHeight: 1,
@@ -5031,8 +5034,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 26,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: "var(--t-ink)",
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
@@ -5165,8 +5169,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: isPaidOff ? "var(--t-sage)" : "var(--t-rust)",
                     fontVariantNumeric: "tabular-nums",
                     letterSpacing: "-0.03em",
@@ -5692,8 +5697,9 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 26,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: "var(--t-ink)",
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
@@ -5913,8 +5919,9 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                 </span>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: isPaidOff
                       ? "var(--t-sage)"
                       : isOverdue
@@ -6903,8 +6910,9 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 26,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: "var(--t-ink)",
                 letterSpacing: "-0.04em",
                 lineHeight: 1,

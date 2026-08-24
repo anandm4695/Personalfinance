@@ -417,8 +417,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
         </div>
         <div
           style={{
+            fontFamily: "var(--font-display)",
             fontSize: "clamp(32px, 5vw, 52px)",
-            fontWeight: 900,
+            fontWeight: 600,
             color: "#fff",
             letterSpacing: "-0.03em",
             lineHeight: 1.05,
@@ -490,8 +491,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             <div>
               <div
                 style={{
+                  fontFamily: "var(--font-display)",
                   fontSize: 24,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   color: THEME.ink,
                   letterSpacing: "-0.04em",
                   fontVariantNumeric: "tabular-nums",
@@ -552,8 +554,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             <div>
               <div
                 style={{
+                  fontFamily: "var(--font-display)",
                   fontSize: 24,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   color: THEME.ink,
                   letterSpacing: "-0.04em",
                   fontVariantNumeric: "tabular-nums",
@@ -610,8 +613,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 <div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 24,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: THEME.ink,
                       letterSpacing: "-0.04em",
                       fontVariantNumeric: "tabular-nums",
@@ -692,8 +696,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             <div>
               <div
                 style={{
+                  fontFamily: "var(--font-display)",
                   fontSize: 24,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   color: THEME.sage,
                   letterSpacing: "-0.04em",
                   fontVariantNumeric: "tabular-nums",
@@ -744,8 +749,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             <div>
               <div
                 style={{
+                  fontFamily: "var(--font-display)",
                   fontSize: 24,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   color: THEME.rust,
                   letterSpacing: "-0.04em",
                   fontVariantNumeric: "tabular-nums",
@@ -1277,8 +1283,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 22,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: THEME.accent,
                 letterSpacing: "-0.02em",
                 fontVariantNumeric: "tabular-nums",
@@ -1311,8 +1318,9 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 22,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: "var(--t-gold)",
                 letterSpacing: "-0.02em",
                 fontVariantNumeric: "tabular-nums",

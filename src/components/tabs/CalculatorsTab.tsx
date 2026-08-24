@@ -1452,8 +1452,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 26,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: THEME.ink,
                     letterSpacing: "-0.04em",
                     lineHeight: 1,
@@ -1728,7 +1729,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     Final Corpus
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: THEME.accent }}>
                     <Money value={animatedStepSipCorpus} variant="full" />
                   </div>
                 </div>
@@ -1752,7 +1753,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     Total Invested
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: THEME.ink }}>
                     <Money value={animatedStepSipInvested} variant="full" />
                   </div>
                 </div>
@@ -1776,7 +1777,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     Net Gains
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: THEME.sage }}>
                     <Money value={animatedStepSipGains} variant="full" />
                   </div>
                 </div>
@@ -1810,7 +1811,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Step-Up SIP Corpus
                     </div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: THEME.gold }}>
                       <Money value={animatedStepSipCorpus} variant="full" />
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
@@ -1830,7 +1831,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Flat SIP Corpus
                     </div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: THEME.ink }}>
                       <Money value={animatedStepSipFlatCorpus} variant="full" />
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
@@ -2025,8 +2026,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 20,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: swpResult.isSustainable
                         ? THEME.sage
                         : swpResult.remainingCorpus > 0
@@ -2059,7 +2061,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     Total Withdrawn
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: THEME.ink }}>
                     <Money value={animatedSwpTotalWithdrawn} variant="full" />
                   </div>
                 </div>
@@ -2097,8 +2099,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 13,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: swpResult.isSustainable
                         ? THEME.sage
                         : swpResult.depletionMonth > 0
@@ -2232,7 +2235,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         >
                           MIN CORPUS NEEDED
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: THEME.gold }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: THEME.gold }}>
                           <Money value={swpResult.minCorpus} variant="full" />
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
@@ -2258,7 +2261,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         >
                           CORPUS SHORTFALL
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: THEME.rust }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: THEME.rust }}>
                           <Money value={swpResult.deficit} variant="full" />
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
@@ -2625,7 +2628,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Retirement Savings Status
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 600, color: THEME.ink, marginTop: 4 }}>
                       {fireResult.percentOnTrack}% Target Achieved
                     </div>
                   </div>
@@ -2836,7 +2839,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Current Runway
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.accent }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.accent }}>
                       {fireResult.currentRunwayYears === Infinity
                         ? "∞"
                         : `${fireResult.currentRunwayYears} yrs`}
@@ -2867,7 +2870,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Projected FIRE Year
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.sage }}>
                       {fireResult.projectedFireYear ? fireResult.projectedFireYear : "N/A"}
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted }}>
@@ -2896,7 +2899,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Savings Needed to Close Gap
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.gold }}>
                       {fireResult.monthlySavingsNeeded > 0 ? (
                         <Money value={animatedFireMonthlySavingsNeeded} variant="full" />
                       ) : (
@@ -2931,8 +2934,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     </div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 22,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust,
                       }}
                     >
@@ -3333,7 +3337,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       >
                         Path A: Prepay Loan
                       </div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: THEME.ink }}>
                         <Money value={animatedLviWealthPrepay} variant="full" />
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
@@ -3379,7 +3383,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       >
                         Path B: Invest Surplus
                       </div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: THEME.ink }}>
                         <Money value={animatedLviWealthInvest} variant="full" />
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
@@ -3421,7 +3425,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <span style={{ fontSize: 13, fontWeight: 700, color: THEME.muted }}>
                     Net Benefit Difference
                   </span>
-                  <span style={{ fontSize: 18, fontWeight: 900, color: THEME.sage }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: THEME.sage }}>
                     <Money value={animatedLviNetBenefit} variant="full" />
                   </span>
                 </div>
@@ -3510,7 +3514,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Starting Net Worth Today
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: THEME.ink }}>
                       <Money value={animatedNwpStart} variant="full" />
                     </div>
                   </div>
@@ -3527,7 +3531,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Projected Value in {nwpYears} Years
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 600, color: THEME.sage }}>
                       <Money value={animatedNwpEnd} variant="full" />
                     </div>
                   </div>
@@ -3539,7 +3543,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Total Growth Multiple
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.gold }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: THEME.gold }}>
                       {nwpData[0]?.value > 0
                         ? `${((nwpData[nwpData.length - 1]?.value || 0) / nwpData[0].value).toFixed(1)}x Capital`
                         : "—"}
@@ -4760,7 +4764,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   >
                     10-Yr Baseline Wealth
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: THEME.ink, marginTop: 4 }}>
                     <Money
                       value={
                         sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)][
@@ -4790,8 +4794,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 18,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color:
                         sandboxResult.endSand >= sandboxResult.endBase ? THEME.sage : THEME.ink,
                       marginTop: 4,
@@ -4826,8 +4831,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 18,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage,
                       marginTop: 4,
                     }}
@@ -5324,7 +5330,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       Tax Saved via Indexation
                     </div>
-                    <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 600, color: THEME.sage }}>
                       <Money value={animatedIdxTaxSaved} variant="full" />
                     </div>
                   </div>
@@ -5568,8 +5574,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 28,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             color: THEME.ink,
                             letterSpacing: "-0.04em",
                             marginBottom: 8,

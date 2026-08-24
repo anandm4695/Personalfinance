@@ -1182,8 +1182,9 @@ export function BanksTab({
           <div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 24,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: THEME.ink,
                 letterSpacing: "-0.04em",
                 fontVariantNumeric: "tabular-nums",
@@ -1235,8 +1236,9 @@ export function BanksTab({
           <div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 24,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: THEME.ink,
                 letterSpacing: "-0.04em",
                 fontVariantNumeric: "tabular-nums",
@@ -1287,8 +1289,9 @@ export function BanksTab({
           <div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 24,
-                fontWeight: 900,
+                fontWeight: 600,
                 color: THEME.ink,
                 letterSpacing: "-0.04em",
                 fontVariantNumeric: "tabular-nums",
@@ -1345,8 +1348,9 @@ export function BanksTab({
               >
                 <span
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 32,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: THEME.ink,
                     letterSpacing: "-0.02em",
                   }}
@@ -1825,8 +1829,9 @@ export function BanksTab({
                     </div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 24,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: THEME.ink,
                         fontVariantNumeric: "tabular-nums",
                         letterSpacing: "-0.02em",
@@ -2841,8 +2846,9 @@ export function BanksTab({
               >
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 30,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     letterSpacing: "-0.03em",
                     fontVariantNumeric: "tabular-nums",
                     color: t.type === "credit" ? THEME.sage : THEME.rust,

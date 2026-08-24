@@ -210,8 +210,9 @@ const ComparisonSplitCard = ({
           </div>
           <div
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 20,
-              fontWeight: 900,
+              fontWeight: 600,
               color: isIncome ? THEME.sage : isNetWorth ? THEME.accent : THEME.ink,
               letterSpacing: "-0.02em",
             }}

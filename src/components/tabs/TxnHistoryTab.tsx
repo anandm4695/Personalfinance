@@ -139,8 +139,9 @@ const PremiumDrillDownCard = ({
 
     <div
       style={{
+        fontFamily: "var(--font-display)",
         fontSize: 26,
-        fontWeight: 900,
+        fontWeight: 600,
         color: THEME.ink,
         letterSpacing: "-0.04em",
         lineHeight: 1,

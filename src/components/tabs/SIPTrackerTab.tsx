@@ -1136,8 +1136,9 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
         <div>
           <span
             style={{
+              fontFamily: "var(--font-display)",
               fontSize: 22,
-              fontWeight: 900,
+              fontWeight: 600,
               color: statusColor,
               fontVariantNumeric: "tabular-nums",
             }}

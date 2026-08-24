@@ -454,8 +454,9 @@ const PremiumStatCard = ({
 
     <div
       style={{
+        fontFamily: "var(--font-display)",
         fontSize: 28,
-        fontWeight: 900,
+        fontWeight: 600,
         color: THEME.ink,
         letterSpacing: "-0.04em",
         lineHeight: 1,
@@ -2921,8 +2922,9 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     </div>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 24,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: m.color,
                         letterSpacing: "-0.03em",
                         fontVariantNumeric: "tabular-nums",

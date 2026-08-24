@@ -744,7 +744,7 @@ const Reconciler26AS = ({
               >
                 Matched
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.sage, marginTop: 4 }}>
                 {reconciled.matched.length}
               </div>
             </Card>
@@ -762,7 +762,7 @@ const Reconciler26AS = ({
               >
                 Unmatched in 26AS
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold, marginTop: 4 }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.gold, marginTop: 4 }}>
                 {reconciled.unmatchedIn26AS.length}
               </div>
             </Card>
@@ -780,7 +780,7 @@ const Reconciler26AS = ({
               >
                 Missing from 26AS
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: THEME.rust, marginTop: 4 }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.rust, marginTop: 4 }}>
                 {reconciled.missingFrom26AS.length}
               </div>
             </Card>
@@ -2327,8 +2327,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 24,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: THEME.ink,
                     letterSpacing: "-0.03em",
                     lineHeight: 1,
@@ -2478,8 +2479,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       </div>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 28,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: regimeVerdict.better === "new" ? THEME.accent : THEME.ink,
                           letterSpacing: "-0.03em",
                         }}
@@ -2566,8 +2568,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       </div>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 28,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: regimeVerdict.better === "old" ? THEME.gold : THEME.ink,
                           letterSpacing: "-0.03em",
                         }}
@@ -3537,7 +3540,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: bannerColor, lineHeight: 1 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 600, color: bannerColor, lineHeight: 1 }}>
                     {Math.abs(daysToITR)}
                   </div>
                   <div
