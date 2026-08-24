@@ -2229,20 +2229,8 @@ export function BudgetTab({
                           gap: 14,
                         }}
                       >
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
-                            background: `color-mix(in srgb, ${statusColor} 9%, transparent)`,
-                            border: `1px solid color-mix(in srgb, ${statusColor} 20%, transparent)`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Home size={18} color={statusColor} />
+                        <div style={{ display: "flex", alignItems: "center", color: statusColor, flexShrink: 0 }}>
+                          <Home size={22} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>

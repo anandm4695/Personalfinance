@@ -1048,19 +1048,7 @@ export function CreditTab({
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 10,
-                              background: iconBg || `color-mix(in srgb, ${color} 10%, transparent)`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color,
-                              flexShrink: 0,
-                            }}
-                          >
+                          <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
                             {icon}
                           </div>
                           <div
@@ -1373,17 +1361,14 @@ function CCEmptyState({ onAdd }: any) {
     <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
-          background: `linear-gradient(135deg,${THEME.accent} 0%,color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           margin: "0 auto 20px",
+          color: "var(--t-muted)",
         }}
       >
-        <CreditCard size={30} color="#fff" />
+        <CreditCard size={40} strokeWidth={1.5} />
       </div>
       <div
         style={{
@@ -1454,17 +1439,14 @@ function PrepaidEmptyState({ onAdd }: any) {
     <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
-          background: "linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           margin: "0 auto 20px",
+          color: "var(--t-muted)",
         }}
       >
-        <Wallet size={30} color="#fff" />
+        <Wallet size={40} strokeWidth={1.5} />
       </div>
       <div
         style={{
@@ -2312,18 +2294,14 @@ function CCList({
         <Card style={{ padding: "40px 32px", textAlign: "center" as const }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 18,
-              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 16px",
-              opacity: 0.85,
+              color: "var(--t-muted)",
             }}
           >
-            <CreditCard size={26} color="#fff" />
+            <CreditCard size={36} strokeWidth={1.5} />
           </div>
           <div
             style={{
@@ -3476,19 +3454,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: iconBg || `color-mix(in srgb, ${color} 10%, transparent)`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color,
-                    flexShrink: 0,
-                  }}
-                >
+                <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
                   {icon}
                 </div>
                 <div
@@ -3527,18 +3493,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
         <Card style={{ padding: "40px 32px", textAlign: "center" as const }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 18,
-              background: "linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 16px",
-              opacity: 0.85,
+              color: "var(--t-muted)",
             }}
           >
-            <Wallet size={26} color="#fff" />
+            <Wallet size={36} strokeWidth={1.5} />
           </div>
           <div
             style={{
@@ -5067,20 +5029,8 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
+              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                <Icon size={22} />
               </div>
               <div
                 style={{
@@ -5741,20 +5691,8 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
+              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                <Icon size={22} />
               </div>
               <div
                 style={{
@@ -6964,20 +6902,8 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
+              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                <Icon size={22} />
               </div>
               <div
                 style={{
@@ -8273,17 +8199,14 @@ function DebtPayoffOptimizer({ state }: any) {
       <Card style={{ padding: "48px 32px", textAlign: "center" }}>
         <div
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 20,
-            background: "linear-gradient(135deg, var(--t-accent) 0%, #a78bfa 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 20px",
+            color: "var(--t-muted)",
           }}
         >
-          <Sparkles size={30} color="#fff" />
+          <Sparkles size={40} strokeWidth={1.5} />
         </div>
         <div
           style={{
@@ -9094,8 +9017,7 @@ function DebtPayoffOptimizer({ state }: any) {
           style={{
             padding: 24,
             borderLeft: `4px solid ${selectedPlan === "avalanche" ? THEME.accent : THEME.gold}`,
-            background:
-              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+            background: "var(--t-card-bg)",
             borderRadius: 16,
             boxShadow: "var(--shadow-sm)",
           }}
@@ -9103,17 +9025,13 @@ function DebtPayoffOptimizer({ state }: any) {
           <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: selectedPlan === "avalanche" ? `color-mix(in srgb, ${THEME.accent} 9%, transparent)` : `color-mix(in srgb, ${THEME.gold} 9%, transparent)`,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                color: selectedPlan === "avalanche" ? THEME.accent : THEME.gold,
                 flexShrink: 0,
               }}
             >
-              <Info size={18} color={selectedPlan === "avalanche" ? THEME.accent : THEME.gold} />
+              <Info size={22} />
             </div>
             <div style={{ flex: 1 }}>
               <h4

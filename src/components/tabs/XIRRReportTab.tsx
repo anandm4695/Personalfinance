@@ -539,17 +539,12 @@ export function XIRRReportTab({ state }: any) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: `color-mix(in srgb, ${row.color} 12%, transparent)`,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            <row.icon size={14} style={{ color: row.color }} />
+            <row.icon size={17} style={{ color: row.color }} />
           </div>
           <div>
             <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 13.5 }}>{row.name}</div>
@@ -787,20 +782,8 @@ export function XIRRReportTab({ state }: any) {
               gap: 14,
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.sage} 14%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.sage,
-                flexShrink: 0,
-              }}
-            >
-              <Trophy size={16} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.sage, flexShrink: 0 }}>
+              <Trophy size={22} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -835,20 +818,8 @@ export function XIRRReportTab({ state }: any) {
               gap: 14,
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.rust} 14%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.rust,
-                flexShrink: 0,
-              }}
-            >
-              <AlertTriangle size={16} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.rust, flexShrink: 0 }}>
+              <AlertTriangle size={22} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -897,20 +868,8 @@ export function XIRRReportTab({ state }: any) {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      background: `color-mix(in srgb, ${items[0]?.color || THEME.accent} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: items[0]?.color || THEME.accent,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <TypeIcon size={14} />
+                  <div style={{ display: "flex", alignItems: "center", color: items[0]?.color || THEME.accent, flexShrink: 0 }}>
+                    <TypeIcon size={18} />
                   </div>
                   <span
                     style={{
@@ -994,17 +953,12 @@ export function XIRRReportTab({ state }: any) {
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div
                           style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: `color-mix(in srgb, ${row.color} 12%, transparent)`,
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
                             flexShrink: 0,
                           }}
                         >
-                          <row.icon size={14} style={{ color: row.color }} />
+                          <row.icon size={17} style={{ color: row.color }} />
                         </div>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div

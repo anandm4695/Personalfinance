@@ -1435,20 +1435,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
+                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                    <Icon size={22} />
                   </div>
                   <div
                     style={{
@@ -4327,19 +4315,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               {/* CFO STOCHASTIC ADVISORY CARD */}
               <Card style={{ padding: 20, borderTop: `4px solid ${THEME.accent}` }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Info size={18} color={THEME.accent} />
+                  <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+                    <Info size={22} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <h4
@@ -4952,19 +4929,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               {/* CEO / CFO STRATEGIC ADVISORY */}
               <Card style={{ padding: 20, borderTop: `4px solid ${THEME.gold}` }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Info size={18} color={THEME.gold} />
+                  <div style={{ display: "flex", alignItems: "center", color: THEME.gold, flexShrink: 0 }}>
+                    <Info size={22} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <h4

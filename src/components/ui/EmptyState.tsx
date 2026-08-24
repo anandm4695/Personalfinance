@@ -19,12 +19,12 @@ interface EmptyStateProps {
 }
 
 /**
- * Shared empty state component — matches the InvestmentsTab (Investments Portfolio) gold standard.
- * Simple dot-bullet pills, clean centered layout, no heavy borders or shadows.
+ * Shared empty state component used across ~45 tabs. Simple dot-bullet
+ * pills, clean centered layout, plain (not boxed) icon in the tab's own
+ * accent color, no heavy borders or shadows.
  */
 export function EmptyState({
   icon: Icon,
-  gradient,
   dotColor,
   title,
   description,
@@ -41,28 +41,24 @@ export function EmptyState({
       {Icon && (
         <div
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 20,
-            background:
-              gradient ||
-              `linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            margin: "0 auto 20px",
+            margin: "0 auto 18px",
+            color: dotColor || "var(--t-accent)",
           }}
         >
-          <Icon size={30} color="#fff" />
+          <Icon size={36} strokeWidth={1.5} />
         </div>
       )}
       <div
         style={{
-          fontSize: 18,
-          fontWeight: 800,
+          fontFamily: "var(--font-display)",
+          fontSize: 19,
+          fontWeight: 600,
           color: THEME.ink,
           marginBottom: 8,
-          letterSpacing: "-0.02em",
+          letterSpacing: "-0.005em",
         }}
       >
         {displayTitle}

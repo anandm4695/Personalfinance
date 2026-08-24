@@ -2241,18 +2241,12 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Stat card glow border effect */
+/* Stat card hover — flat border-color shift, no lift/glow */
 .demat-stat-card-glow {
-  transition:
-    box-shadow 0.3s ease,
-    transform var(--motion-base) ease;
+  transition: border-color 0.2s var(--ease-premium);
 }
 .demat-stat-card-glow:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.08),
-    0 0 0 1px color-mix(in srgb, var(--t-accent) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--t-accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--t-accent) 30%, var(--t-line));
 }
 
 /* Trend pill badge for stat cards */

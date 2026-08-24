@@ -478,20 +478,18 @@ const tdStyle: React.CSSProperties = {
 
 const CardHeading = ({ icon: Icon, title, color = THEME.accent }: any) => (
   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <Icon size={19} style={{ color }} />
+    </div>
     <div
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        fontFamily: "var(--font-display)",
+        fontSize: 15,
+        fontWeight: 600,
+        color: THEME.ink,
+        letterSpacing: "-0.005em",
       }}
     >
-      <Icon size={16} style={{ color }} />
-    </div>
-    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, letterSpacing: "-0.02em" }}>
       {title}
     </div>
   </div>
@@ -1039,20 +1037,8 @@ export const CapitalGainsTab = ({
           Capital Gains Report
         </SectionTitle>
         <Card style={{ padding: "48px 32px", textAlign: "center" }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
-            <FileText size={22} color={THEME.accent} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--t-muted)" }}>
+            <FileText size={32} strokeWidth={1.5} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
             No Capital Gains Data
@@ -1238,20 +1224,8 @@ export const CapitalGainsTab = ({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  background: `color-mix(in srgb, ${g.color} 12%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: g.color,
-                  flexShrink: 0,
-                }}
-              >
-                {React.cloneElement(g.icon, { size: 14 })}
+              <div style={{ display: "flex", alignItems: "center", color: g.color, flexShrink: 0 }}>
+                {React.cloneElement(g.icon, { size: 18 })}
               </div>
               <span
                 style={{
@@ -1294,18 +1268,8 @@ export const CapitalGainsTab = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Shield size={16} style={{ color: THEME.sage }} />
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <Shield size={20} style={{ color: THEME.sage }} />
             </div>
             <div>
               <div

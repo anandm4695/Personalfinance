@@ -789,13 +789,12 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${m.color} 20%, rgba(255, 255, 255, 0.1))`,
+                      borderRadius: "50%",
+                      background: m.color,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                     }}
                   >
                     <MemberIcon size={15} color="#fff" />
@@ -1503,21 +1502,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   flexWrap: "wrap",
                 }}
               >
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 11,
-                    background: `color-mix(in srgb, ${m.color} 12%, transparent)`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: m.color,
-                    flexShrink: 0,
-                    border: `1px solid color-mix(in srgb, ${m.color} 20%, transparent)`,
-                  }}
-                >
-                  <MemberIcon size={18} />
+                <div style={{ display: "flex", alignItems: "center", color: m.color, flexShrink: 0 }}>
+                  <MemberIcon size={24} />
                 </div>
 
                 <div style={{ flex: 1, minWidth: 120 }}>
@@ -1585,49 +1571,16 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   style={{ flexShrink: 0, marginLeft: 6, display: "flex", alignItems: "center" }}
                 >
                   {!hasCoverage ? (
-                    <div
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: "50%",
-                        background: `color-mix(in srgb, ${dangerColor} 12%, transparent)`,
-                        color: dangerColor,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <XCircle size={16} strokeWidth={2.5} />
+                    <div style={{ display: "flex", alignItems: "center", color: dangerColor }}>
+                      <XCircle size={20} strokeWidth={2} />
                     </div>
                   ) : hasIncome && !isAdequate ? (
-                    <div
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: "50%",
-                        background: `color-mix(in srgb, ${warnColor} 12%, transparent)`,
-                        color: warnColor,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <AlertTriangle size={15} strokeWidth={2.5} />
+                    <div style={{ display: "flex", alignItems: "center", color: warnColor }}>
+                      <AlertTriangle size={19} strokeWidth={2} />
                     </div>
                   ) : (
-                    <div
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: "50%",
-                        background: `color-mix(in srgb, ${goodColor} 12%, transparent)`,
-                        color: goodColor,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <CheckCircle2 size={16} strokeWidth={2.5} />
+                    <div style={{ display: "flex", alignItems: "center", color: goodColor }}>
+                      <CheckCircle2 size={20} strokeWidth={2} />
                     </div>
                   )}
                 </div>
@@ -1684,20 +1637,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 marginBottom: 18,
               }}
             >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  color: THEME.gold,
-                }}
-              >
-                <ShieldAlert size={18} />
+              <div style={{ display: "flex", alignItems: "center", flexShrink: 0, color: THEME.gold }}>
+                <ShieldAlert size={22} />
               </div>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>

@@ -342,20 +342,8 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}
                     >
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
-                          background: `color-mix(in srgb, ${r.color} 10%, transparent)`,
-                          color: r.color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon size={14} />
+                      <div style={{ color: r.color, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                        <Icon size={18} />
                       </div>
                       <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: THEME.ink }}>
                         {r.label}

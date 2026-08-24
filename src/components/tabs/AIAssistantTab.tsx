@@ -1884,12 +1884,6 @@ You have access to local tools/functions to retrieve real-time and detailed tran
         <Card style={{ padding: 48, textAlign: "center", border: `1.5px dashed ${THEME.line}` }}>
           <div
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: 20,
-              background:
-                "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 10%, transparent), color-mix(in srgb, var(--t-accent) 10%, transparent))",
-              border: `1.5px solid color-mix(in srgb, var(--t-accent) 20%, transparent)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1897,7 +1891,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               color: THEME.accent,
             }}
           >
-            <Sparkles size={32} />
+            <Sparkles size={44} strokeWidth={1.5} />
           </div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, marginBottom: 12 }}>
             Unlock AI Financial Advice

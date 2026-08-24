@@ -247,8 +247,7 @@ const PremiumStatCard = ({
   <div
     className="card-lift"
     style={{
-      background:
-        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+      background: "var(--t-card-bg)",
       border: `1.5px solid ${THEME.line}`,
       borderTop: `4px solid ${color}`,
       borderRadius: 16,
@@ -256,27 +255,13 @@ const PremiumStatCard = ({
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      boxShadow:
-        "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 color-mix(in srgb, var(--t-ink) 4%, transparent)",
-      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      boxShadow: "var(--shadow-card)",
+      transition: "border-color 0.2s var(--ease-premium)",
     }}
   >
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color,
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={18} />
+      <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+        <Icon size={22} />
       </div>
       <div>
         <div

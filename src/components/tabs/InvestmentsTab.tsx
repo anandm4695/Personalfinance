@@ -1561,22 +1561,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 11,
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-                  border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-                  boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
+              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                <Icon size={22} />
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <div
@@ -2843,22 +2829,8 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
-                      background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-                      border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-                      boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={16} />
+                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                    <Icon size={20} />
                   </div>
                   <div
                     style={{
@@ -3244,22 +3216,8 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 10,
-                          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-                          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-                          boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon size={16} />
+                      <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                        <Icon size={20} />
                       </div>
                       <div
                         style={{
@@ -9251,19 +9209,14 @@ function EPFEmptyState({ onAdd }: any) {
     >
       <div
         style={{
-          width: 68,
-          height: 68,
-          borderRadius: 22,
-          background: `linear-gradient(135deg,${THEME.accent} 0%,${`color-mix(in srgb, ${THEME.accent} 80%, transparent)`} 100%)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           margin: "0 auto 24px",
-          boxShadow: `0 8px 24px -4px color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
-          border: "2px solid rgba(255, 255, 255, 0.2)",
+          color: THEME.accent,
         }}
       >
-        <Shield size={32} color={THEME.darkInk} />
+        <Shield size={44} strokeWidth={1.5} />
       </div>
       <div
         style={{
@@ -10709,22 +10662,8 @@ function MFSection({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
-                      background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-                      border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-                      boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={16} />
+                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                    <Icon size={20} />
                   </div>
                   <div
                     style={{
@@ -12293,20 +12232,8 @@ function MFSection({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 9,
-                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: THEME.gold,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Activity size={16} />
+                  <div style={{ display: "flex", alignItems: "center", color: THEME.gold, flexShrink: 0 }}>
+                    <Activity size={20} />
                   </div>
                   <div style={{ textAlign: "left" }}>
                     <div
@@ -14507,20 +14434,8 @@ const YieldTracker = ({ state }: any) => {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
+              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                <Icon size={22} />
               </div>
               <div
                 style={{
@@ -14592,19 +14507,8 @@ const YieldTracker = ({ state }: any) => {
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
-                          background: `color-mix(in srgb, ${color} 9%, transparent)`,
-                          border: `1px solid ${`color-mix(in srgb, ${color} 19%, transparent)`}`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Icon size={13} color={color} />
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <Icon size={17} color={color} />
                       </div>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>

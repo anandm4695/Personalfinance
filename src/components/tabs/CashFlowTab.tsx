@@ -823,20 +823,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: THEME.sage,
-                }}
-              >
-                <ArrowUpRight size={20} />
+              <div style={{ display: "flex", alignItems: "center", color: THEME.sage }}>
+                <ArrowUpRight size={24} />
               </div>
               <div>
                 <div
@@ -930,20 +918,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: THEME.rust,
-                }}
-              >
-                <ArrowDownRight size={20} />
+              <div style={{ display: "flex", alignItems: "center", color: THEME.rust }}>
+                <ArrowDownRight size={24} />
               </div>
               <div>
                 <div
@@ -1421,20 +1397,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 8,
-                              background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: THEME.sage,
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Icon size={14} />
+                          <div style={{ display: "flex", alignItems: "center", color: THEME.sage, flexShrink: 0 }}>
+                            <Icon size={18} />
                           </div>
                           <div style={{ display: "flex", flexDirection: "column" }}>
                             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
@@ -1627,20 +1591,8 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 8,
-                              background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: THEME.rust,
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Icon size={14} />
+                          <div style={{ display: "flex", alignItems: "center", color: THEME.rust, flexShrink: 0 }}>
+                            <Icon size={18} />
                           </div>
                           <div style={{ display: "flex", flexDirection: "column" }}>
                             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>

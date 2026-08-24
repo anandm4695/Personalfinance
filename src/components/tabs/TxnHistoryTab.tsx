@@ -107,21 +107,8 @@ const PremiumDrillDownCard = ({
     }}
   >
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: color,
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={18} />
+      <div style={{ display: "flex", alignItems: "center", color: color, flexShrink: 0 }}>
+        <Icon size={22} />
       </div>
       <div>
         <div
@@ -175,19 +162,8 @@ const PremiumDrillDownCard = ({
 const SectionHeader = ({ icon: Icon, title, count, color = THEME.accent, subText }: any) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          background: `color-mix(in srgb, ${color} 12%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={16} color={color} />
+      <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+        <Icon size={20} color={color} />
       </div>
       <span style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.015em" }}>
         {title}

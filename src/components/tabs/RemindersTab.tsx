@@ -1392,19 +1392,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                 marginBottom: 24,
               }}
             >
-              <div
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: "50%",
-                  background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 16px",
-                }}
-              >
-                <Check size={28} color={THEME.sage} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: THEME.sage }}>
+                <Check size={40} strokeWidth={1.5} />
               </div>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
                 All Caught Up!
@@ -1645,19 +1634,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                   return (
                     <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.85 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Icon size={15} color={THEME.muted} />
+                        <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                          <Icon size={19} color={THEME.muted} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>

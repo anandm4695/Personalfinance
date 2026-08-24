@@ -861,20 +861,8 @@ function DocRow({
       }}
       className="card-lift"
     >
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 6,
-          background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: cat.color,
-          flexShrink: 0,
-        }}
-      >
-        {React.createElement(cat.icon, { size: 14 })}
+      <div style={{ display: "flex", alignItems: "center", color: cat.color, flexShrink: 0 }}>
+        {React.createElement(cat.icon, { size: 18 })}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -2700,19 +2688,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
             className={`category-browser-card ${filterCategory === "all" ? "active" : ""}`}
             style={{ "--cat-color": THEME.accent } as React.CSSProperties}
           >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9,
-                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.accent,
-              }}
-            >
-              <Folder size={16} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.accent }}>
+              <Folder size={20} />
             </div>
             <span style={{ fontSize: 11, fontWeight: 700, color: filterCategory === "all" ? THEME.accent : THEME.muted }}>
               All Docs
@@ -2759,19 +2736,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                   opacity: count === 0 && !isActive ? 0.5 : 1,
                 } as React.CSSProperties}
               >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 9,
-                    background: `color-mix(in srgb, ${catDef.color} 12%, transparent)`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: catDef.color,
-                  }}
-                >
-                  <Icon size={16} />
+                <div style={{ display: "flex", alignItems: "center", color: catDef.color }}>
+                  <Icon size={20} />
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? catDef.color : THEME.muted }}>
                   {cat}
@@ -2872,19 +2838,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                 const isExpired = days !== null && days < 0;
                 return (
                   <div key={doc.id} className="doc-vault-alert-row">
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 6,
-                        background: `color-mix(in srgb, ${getCategoryColor(doc.category)} 12%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: getCategoryColor(doc.category),
-                      }}
-                    >
-                      {React.createElement(getCategoryIcon(doc.category), { size: 14 })}
+                    <div style={{ display: "flex", alignItems: "center", color: getCategoryColor(doc.category) }}>
+                      {React.createElement(getCategoryIcon(doc.category), { size: 18 })}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div

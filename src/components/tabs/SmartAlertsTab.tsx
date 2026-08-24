@@ -568,19 +568,8 @@ export const SmartAlertsTab = ({ state, metrics }) => {
                   }}
                 >
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: 1 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${levelColors[alert.level]} 20%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={18} color={levelColors[alert.level]} />
+                    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                      <Icon size={22} color={levelColors[alert.level]} />
                     </div>
                     <div>
                       <div

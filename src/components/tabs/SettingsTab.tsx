@@ -2197,19 +2197,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 55%, white))`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Mail size={18} color="#fff" />
+              <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+                <Mail size={22} />
               </div>
               <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>
                 Email Summary Reports
@@ -3052,19 +3041,8 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <Card style={{ padding: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Bot size={18} color="#fff" />
+          <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+            <Bot size={22} />
           </div>
           <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>
             AI Financial Advisor
@@ -3394,17 +3372,14 @@ export function SettingsTab({
           <Card style={{ padding: "48px 24px", textAlign: "center" }}>
             <div
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 20,
-                background: `linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 margin: "0 auto 20px",
+                color: "var(--t-muted)",
               }}
             >
-              <FolderOpen size={30} color="#fff" />
+              <FolderOpen size={40} strokeWidth={1.5} />
             </div>
             <div
               style={{

@@ -148,20 +148,18 @@ const CardHeading = ({ icon: Icon, title, id, color = THEME.accent }: any) => (
       scrollMarginTop: 84,
     }}
   >
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <Icon size={19} style={{ color }} />
+    </div>
     <div
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        fontFamily: "var(--font-display)",
+        fontSize: 16,
+        fontWeight: 600,
+        color: THEME.ink,
+        letterSpacing: "-0.005em",
       }}
     >
-      <Icon size={16} style={{ color }} />
-    </div>
-    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, letterSpacing: "-0.02em" }}>
       {title}
     </div>
   </div>
@@ -415,22 +413,8 @@ const PremiumStatCard = ({
       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 11,
-            background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
-            border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
-            boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: color,
-            flexShrink: 0,
-          }}
-        >
-          <Icon size={18} />
+        <div style={{ display: "flex", alignItems: "center", color: color, flexShrink: 0 }}>
+          <Icon size={24} />
         </div>
         <div>
           <div

@@ -1012,20 +1012,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, var(--accent) 12%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--accent)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Briefcase size={16} />
+                    <div style={{ display: "flex", alignItems: "center", color: "var(--accent)", flexShrink: 0 }}>
+                      <Briefcase size={22} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: 14.5, color: THEME.ink, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

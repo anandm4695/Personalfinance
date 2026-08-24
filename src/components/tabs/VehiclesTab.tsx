@@ -2561,21 +2561,8 @@ function VehicleCard({
                       border: "1px solid var(--t-line, var(--border))",
                     }}
                   >
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 8,
-                        background: `color-mix(in srgb, ${item.color} 10%, transparent)`,
-                        color: item.color,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        marginTop: 2,
-                      }}
-                    >
-                      <Icon size={14} />
+                    <div style={{ color: item.color, display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
+                      <Icon size={18} />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div
@@ -2692,31 +2679,10 @@ function VehicleCard({
                         display: "flex",
                         gap: 12,
                         alignItems: "flex-start",
-                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-1px)";
-                        e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 8,
-                          background: `color-mix(in srgb, ${card.color} 12%, transparent)`,
-                          color: card.color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <CardIcon size={16} />
+                      <div style={{ color: card.color, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                        <CardIcon size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div

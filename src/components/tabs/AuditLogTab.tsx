@@ -869,19 +869,13 @@ export const AuditLogTab = ({ session }) => {
                         {/* Icon */}
                         <div
                           style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 9,
-                            background: `color-mix(in srgb, ${color} 9%, transparent)`,
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
                             flexShrink: 0,
                             marginTop: 1,
-                            border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`,
                           }}
                         >
-                          <Icon size={14} color={color} />
+                          <Icon size={18} color={color} />
                         </div>
 
                         <div style={{ flex: 1, minWidth: 0 }}>

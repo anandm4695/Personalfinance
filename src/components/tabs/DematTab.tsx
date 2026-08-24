@@ -399,18 +399,8 @@ const DematEmptyState = ({ onAdd }: any) => (
       gap: 16,
     }}
   >
-    <div
-      style={{
-        width: 56,
-        height: 56,
-        borderRadius: 18,
-        background: `linear-gradient(135deg, ${THEME.sage} 0%, ${`color-mix(in srgb, ${THEME.sage} 70%, transparent)`} 100%)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Briefcase size={24} color={THEME.darkInk} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t-muted)" }}>
+      <Briefcase size={36} strokeWidth={1.5} />
     </div>
     <div>
       <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No Demat Accounts Added</div>
@@ -458,18 +448,8 @@ const StockEmptyState = ({ onAdd }: any) => (
       gap: 20,
     }}
   >
-    <div
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: 20,
-        background: `linear-gradient(135deg, ${THEME.accent} 0%, ${`color-mix(in srgb, ${THEME.accent} 70%, transparent)`} 100%)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <TrendingUp size={28} color={THEME.darkInk} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t-muted)" }}>
+      <TrendingUp size={40} strokeWidth={1.5} />
     </div>
     <div>
       <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Stock Holdings Yet</div>
@@ -1971,25 +1951,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: `0 4px 16px color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.accent} 18%, transparent), color-mix(in srgb, ${THEME.accent} 8%, transparent))`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: THEME.accent,
-                    flexShrink: 0,
-                    boxShadow: `0 2px 8px color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-                  }}
-                >
-                  <BarChart3 size={18} />
+                <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+                  <BarChart3 size={22} />
                 </div>
                 <div>
                   <div
@@ -2063,25 +2029,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: `0 4px 16px color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 8%, transparent)`,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div
                   style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: `linear-gradient(135deg, color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 18%, transparent), color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 8%, transparent))`,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
                     color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
                     flexShrink: 0,
-                    boxShadow: `0 2px 8px color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 15%, transparent)`,
                   }}
                 >
-                  <Activity size={18} />
+                  <Activity size={22} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
@@ -2137,25 +2096,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: `0 4px 16px color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 8%, transparent)`,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div
                   style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: `linear-gradient(135deg, color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 18%, transparent), color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 8%, transparent))`,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
                     color: pnl >= 0 ? THEME.sage : THEME.rust,
                     flexShrink: 0,
-                    boxShadow: `0 2px 8px color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 15%, transparent)`,
                   }}
                 >
-                  <TrendingUp size={18} />
+                  <TrendingUp size={22} />
                 </div>
                 <div>
                   <div
@@ -2204,26 +2156,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             {/* Card 4: Overall XIRR */}
             <Card
               hover
-              className="demat-stat-card-glow"
               style={{
                 padding: "18px 20px",
                 borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: `0 4px 16px color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 8%, transparent)`,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div
                   style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: `linear-gradient(135deg, color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 18%, transparent), color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 8%, transparent))`,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
                     color:
                       overallXirr === null
                         ? THEME.muted
@@ -2231,10 +2176,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           ? THEME.sage
                           : THEME.rust,
                     flexShrink: 0,
-                    boxShadow: `0 2px 8px color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 15%, transparent)`,
                   }}
                 >
-                  <Percent size={18} />
+                  <Percent size={22} />
                 </div>
                 <div>
                   <div
@@ -4227,19 +4171,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: THEME.accent,
-                        flexShrink: 0,
-                      }}
+                      style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}
                     >
-                      <BarChart3 size={18} />
+                      <BarChart3 size={22} />
                     </div>
                     <div>
                       <div
@@ -4293,18 +4227,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
                         color: pnl >= 0 ? THEME.sage : THEME.rust,
                         flexShrink: 0,
                       }}
                     >
-                      <TrendingUp size={18} />
+                      <TrendingUp size={22} />
                     </div>
                     <div>
                       <div
@@ -4366,18 +4295,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
                         color: pnl >= 0 ? THEME.sage : THEME.rust,
                         flexShrink: 0,
                       }}
                     >
-                      <Percent size={18} />
+                      <Percent size={22} />
                     </div>
                     <div>
                       <div
@@ -4431,13 +4355,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
                         color:
                           overallXirr === null
                             ? THEME.muted
@@ -4447,7 +4366,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         flexShrink: 0,
                       }}
                     >
-                      <Percent size={18} />
+                      <Percent size={22} />
                     </div>
                     <div>
                       <div
@@ -5692,18 +5611,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 gap: 12,
               }}
             >
-              <div
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 18,
-                  background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Star size={28} color={THEME.accent} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t-muted)" }}>
+                <Star size={40} strokeWidth={1.5} />
               </div>
               <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
                 No Watchlists Yet

@@ -3791,19 +3791,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 7,
-                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={13} color={color} />
+                  <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    <Icon size={17} color={color} />
                   </div>
                   <span
                     style={{
@@ -4223,19 +4212,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         borderLeft: `3px solid ${ins.color}`,
                       }}
                     >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 8,
-                          background: `color-mix(in srgb, ${ins.color} 9%, transparent)`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon size={15} color={ins.color} />
+                      <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                        <Icon size={19} color={ins.color} />
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div
@@ -4369,15 +4347,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       height: 30,
                       borderRadius: "50%",
                       flexShrink: 0,
-                      background: "linear-gradient(135deg, #D97706 0%, #FBBF24 55%, #D97706 100%)",
-                      boxShadow: "0 0 12px rgba(217,119,6,0.55), 0 2px 6px rgba(0,0,0,0.3)",
+                      background: "#C5A152",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      fontFamily: "var(--font-display)",
                       fontSize: 14,
-                      fontWeight: 900,
-                      color: "#fff",
-                      border: "1.5px solid rgba(251,191,36,0.6)",
+                      fontWeight: 600,
+                      color: "#0B1220",
                     }}
                   >
                     ₹
@@ -4388,7 +4365,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       height: 5,
                       borderRadius: "50%",
                       background: isPositive ? "#34D399" : "#FB7185",
-                      boxShadow: `0 0 8px ${isPositive ? "rgba(52,211,153,0.6)" : "rgba(251,113,133,0.6)"}`,
                     }}
                   />
                   <span
@@ -5568,19 +5544,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Shield size={18} color={efStatusColor} />
+                      <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                        <Shield size={22} color={efStatusColor} />
                       </div>
                       <div>
                         <div className="section-label" style={{ marginBottom: 0 }}>
@@ -10027,9 +9992,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               <div
                                 style={{
                                   width: 34,
-                                  height: 34,
-                                  borderRadius: 9,
-                                  background: `color-mix(in srgb, ${color} 12%, transparent)`,
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -10038,8 +10000,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               >
                                 <div
                                   style={{
-                                    width: 8,
-                                    height: 8,
+                                    width: 10,
+                                    height: 10,
                                     borderRadius: "50%",
                                     background: color,
                                   }}
@@ -10235,16 +10197,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   <div
                                     style={{
                                       width: 34,
-                                      height: 34,
-                                      borderRadius: 9,
-                                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
                                       flexShrink: 0,
                                     }}
                                   >
-                                    <ArrowUpRight size={16} style={{ color }} />
+                                    <ArrowUpRight size={20} style={{ color }} />
                                   </div>
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 700 }}>
@@ -12893,27 +12852,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   />
                                   <div
                                     style={{
-                                      width: 36,
-                                      height: 36,
-                                      borderRadius: 10,
-                                      background: isChecked
-                                        ? "rgba(239,68,68,0.08)"
-                                        : `color-mix(in srgb, ${THEME.ink} 6%, transparent)`,
                                       display: "flex",
                                       alignItems: "center",
-                                      justifyContent: "center",
                                       flexShrink: 0,
                                       opacity: isChecked ? 1 : 0.4,
                                     }}
                                   >
                                     {item.type === "Stock" ? (
                                       <TrendingUp
-                                        size={16}
+                                        size={20}
                                         color={isChecked ? THEME.rust : THEME.muted}
                                       />
                                     ) : (
                                       <Activity
-                                        size={16}
+                                        size={20}
                                         color={isChecked ? THEME.rust : THEME.muted}
                                       />
                                     )}

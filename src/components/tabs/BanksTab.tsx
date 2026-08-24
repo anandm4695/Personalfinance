@@ -1159,20 +1159,8 @@ export function BanksTab({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.accent,
-                flexShrink: 0,
-              }}
-            >
-              <IndianRupee size={18} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+              <IndianRupee size={22} />
             </div>
             <div>
               <div
@@ -1223,20 +1211,8 @@ export function BanksTab({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.sage,
-                flexShrink: 0,
-              }}
-            >
-              <TrendingUp size={18} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.sage, flexShrink: 0 }}>
+              <TrendingUp size={22} />
             </div>
             <div>
               <div
@@ -1286,20 +1262,8 @@ export function BanksTab({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: THEME.rust,
-                flexShrink: 0,
-              }}
-            >
-              <TrendingDown size={18} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.rust, flexShrink: 0 }}>
+              <TrendingDown size={22} />
             </div>
             <div>
               <div

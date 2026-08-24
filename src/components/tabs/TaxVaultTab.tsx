@@ -2305,20 +2305,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={18} />
+                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
+                    <Icon size={22} />
                   </div>
                   <div
                     style={{
@@ -2405,18 +2393,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 <div style={{ padding: "20px 24px" }}>
                   {/* Header */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Award size={18} color={THEME.accent} />
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <Award size={22} color={THEME.accent} />
                     </div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 900, color: THEME.ink }}>
@@ -3504,19 +3482,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   marginBottom: 28,
                 }}
               >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: `color-mix(in srgb, ${bannerColor} 8%, transparent)`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Calendar size={22} color={bannerColor} />
+                <div style={{ display: "flex", alignItems: "center", color: bannerColor, flexShrink: 0 }}>
+                  <Calendar size={28} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>

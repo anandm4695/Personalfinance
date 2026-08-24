@@ -82,19 +82,7 @@ const NomineeStatCard = ({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: color || THEME.accent,
-            flexShrink: 0,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", color: color || THEME.accent, flexShrink: 0 }}>
           {Icon}
         </div>
         <div
@@ -722,20 +710,8 @@ export const NomineeTrackerTab = ({
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: THEME.accent,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Users size={16} />
+                    <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+                      <Users size={20} />
                     </div>
                     <div>
                       <div style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
@@ -1026,19 +1002,8 @@ export const NomineeTrackerTab = ({
         <Card
           style={{ padding: "40px 24px", textAlign: "center", border: `1.5px solid ${THEME.line}` }}
         >
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
-              background: `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
-            <Scale size={24} color="#fff" />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--t-muted)" }}>
+            <Scale size={36} strokeWidth={1.5} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
             No Will Documents Recorded
@@ -1211,19 +1176,8 @@ export const NomineeTrackerTab = ({
         <Card
           style={{ padding: "40px 24px", textAlign: "center", border: `1.5px solid ${THEME.line}` }}
         >
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
-              background: `linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 65%, white) 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
-            <Users size={24} color="#fff" />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--t-muted)" }}>
+            <Users size={36} strokeWidth={1.5} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
             No Key Contacts Added
@@ -1278,20 +1232,8 @@ export const NomineeTrackerTab = ({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, var(--accent) 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: THEME.accent,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Briefcase size={16} />
+                  <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+                    <Briefcase size={22} />
                   </div>
                   <div>
                     <div style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
