@@ -3786,9 +3786,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 >
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 72,
-                      fontWeight: 950,
-                      letterSpacing: "-0.04em",
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
                       lineHeight: 1,
                       color:
                         stressResult.safetyLevel === "critical"

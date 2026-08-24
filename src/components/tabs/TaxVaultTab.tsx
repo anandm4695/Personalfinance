@@ -2824,11 +2824,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 52,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: "#fff",
                     marginBottom: 4,
-                    letterSpacing: "-0.03em",
+                    letterSpacing: "-0.01em",
                   }}
                 >
                   <Money value={animatedRemainingAdvance} variant="full" />
@@ -2875,7 +2876,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       height: "100%",
                       width: `${progressPct}%`,
                       background: "#fff",
-                      boxShadow: "0 0 15px rgba(255,255,255,0.3)",
                       borderRadius: 10,
                     }}
                   />
@@ -3143,10 +3143,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 48,
-                          fontWeight: 900,
+                          fontWeight: 600,
                           color: countColor,
-                          letterSpacing: "-0.03em",
+                          letterSpacing: "-0.01em",
                           lineHeight: 1,
                         }}
                       >
@@ -4547,12 +4548,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 52,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: "color-mix(in srgb, var(--t-sage) 75%, white)",
                     marginBottom: 4,
-                    letterSpacing: "-0.03em",
-                    textShadow: "0 0 20px color-mix(in srgb, var(--t-sage) 40%, transparent)",
+                    letterSpacing: "-0.01em",
                   }}
                 >
                   <Money value={animatedTotalSaved} variant="full" />
@@ -4607,7 +4608,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           ? `${Math.min(100, (taxCalculations.totalSaved / taxCalculations.actual.totalTax) * 100)}%`
                           : "0%",
                       background: "color-mix(in srgb, var(--t-sage) 75%, white)",
-                      boxShadow: "0 0 15px color-mix(in srgb, var(--t-sage) 55%, transparent)",
                       borderRadius: 10,
                       transition: "width 0.4s",
                     }}

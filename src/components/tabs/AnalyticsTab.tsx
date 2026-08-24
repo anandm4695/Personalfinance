@@ -5585,11 +5585,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div style={{ textAlign: "center", marginBottom: 24 }}>
                     <div
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 42,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         color: efStatusColor,
                         lineHeight: 1,
-                        letterSpacing: "-0.03em",
+                        letterSpacing: "-0.01em",
                       }}
                     >
                       {efRatio.toFixed(1)}
@@ -10982,7 +10983,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   }}
                 >
                   <div style={{ textAlign: "center", minWidth: 100 }}>
-                    <div style={{ fontSize: 48, fontWeight: 900, color, lineHeight: 1 }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 48, fontWeight: 600, color, lineHeight: 1 }}>
                       {pct}th
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>percentile</div>
@@ -14525,10 +14526,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 56,
-                      fontWeight: 900,
+                      fontWeight: 600,
                       lineHeight: 1,
-                      letterSpacing: "-0.045em",
+                      letterSpacing: "-0.01em",
                       color: "#fff",
                     }}
                   >
@@ -14566,7 +14568,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                   >
                     <dashboardData.streakEmoji size={28} color="#fff" />
-                    <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: "#fff" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 42, fontWeight: 600, lineHeight: 1, color: "#fff" }}>
                       {dashboardData.streak}
                     </span>
                     <span style={{ fontSize: 14, color: "rgba(255,255,255,0.55)" }}>mo</span>
