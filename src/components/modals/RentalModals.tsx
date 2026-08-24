@@ -105,18 +105,8 @@ function EscalationTiersSection({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <TrendingUp size={15} color={THEME.accent} />
+          <div style={{ display: "flex", alignItems: "center", color: THEME.accent }}>
+            <TrendingUp size={19} />
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
@@ -633,18 +623,8 @@ export function RentalPropertyModal({ initial, onClose, onSave, saving }: any) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Users size={15} color={THEME.accent} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.accent }}>
+              <Users size={19} />
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>Tenant Details</div>
@@ -1357,18 +1337,8 @@ export function RentedInPropertyModal({ initial, onClose, onSave, saving }: any)
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Users size={15} color={THEME.accent} />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.accent }}>
+              <Users size={19} />
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>

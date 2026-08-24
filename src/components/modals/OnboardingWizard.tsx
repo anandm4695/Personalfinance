@@ -166,23 +166,21 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 16,
+              color: THEME.accent,
             }}
           >
-            <Sparkles size={28} color="#fff" />
+            <Sparkles size={40} strokeWidth={1.5} />
           </div>
           <h2
             style={{
-              fontSize: "clamp(21px, 5vw, 28px)",
-              fontWeight: 900,
-              letterSpacing: "-0.03em",
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(23px, 5vw, 30px)",
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
               marginBottom: 8,
             }}
           >
@@ -247,19 +245,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
             <div
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
                 flexShrink: 0,
                 color: THEME.accent,
               }}
             >
-              {React.createElement(STEPS[step].icon, { size: 19 })}
+              {React.createElement(STEPS[step].icon, { size: 24 })}
             </div>
             <div>
               <div

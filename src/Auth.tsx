@@ -1043,8 +1043,9 @@ const AF_STYLES = `
 /* Card header */
 .af-card-head { margin-bottom: 22px; }
 .af-card-title {
-  font-size: 21px; font-weight: 800;
-  color: var(--af-text); letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 6px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 24px; font-weight: 600;
+  color: var(--af-text); letter-spacing: -0.005em; line-height: 1.2; margin-bottom: 6px;
 }
 .af-card-sub { font-size: 13.5px; color: #64748B; line-height: 1.5; font-weight: 400; }
 
