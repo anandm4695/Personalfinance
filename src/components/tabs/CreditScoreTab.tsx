@@ -640,9 +640,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
           box-shadow: var(--shadow-sm);
         }
         .bureau-select-card:hover {
-          transform: translateY(-2px);
           border-color: var(--b-color) !important;
-          box-shadow: 0 4px 12px color-mix(in srgb, var(--b-color) 8%, transparent);
         }
         .bureau-select-card.active {
           border-color: var(--b-color) !important;
@@ -1049,16 +1047,21 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                           width: 44,
                           height: 44,
                           borderRadius: 10,
-                          background: `color-mix(in srgb, ${grade.color} 10%, transparent)`,
                           border: `1.5px solid ${grade.color}`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
-                          boxShadow: `0 2px 8px color-mix(in srgb, ${grade.color} 12%, transparent)`,
                         }}
                       >
-                        <span style={{ fontSize: 16, fontWeight: 900, color: grade.color }}>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 15,
+                            fontWeight: 600,
+                            color: grade.color,
+                          }}
+                        >
                           <Prv>{s.score}</Prv>
                         </span>
                       </div>

@@ -6987,21 +6987,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                           <div
                             style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 10,
-                              background:
-                                t.type === "credit"
-                                  ? `color-mix(in srgb, var(--t-sage) 12%, transparent)`
-                                  : `color-mix(in srgb, var(--t-rust) 12%, transparent)`,
                               color: t.type === "credit" ? THEME.sage : THEME.rust,
                               display: "flex",
                               alignItems: "center",
-                              justifyContent: "center",
                               flexShrink: 0,
                             }}
                           >
-                            {t.type === "credit" ? <TrendingUp size={18} /> : <Receipt size={18} />}
+                            {t.type === "credit" ? <TrendingUp size={20} /> : <Receipt size={20} />}
                           </div>
                           <div>
                             <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>

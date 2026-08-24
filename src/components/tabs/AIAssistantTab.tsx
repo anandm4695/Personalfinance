@@ -2735,35 +2735,14 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                   height: 46,
                   borderRadius: 12,
                   flexShrink: 0,
-                  background:
-                    input.trim() && !loading
-                      ? `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`
-                      : "var(--surface-0)",
+                  background: input.trim() && !loading ? THEME.accent : "var(--surface-0)",
                   color: input.trim() && !loading ? "#fff" : THEME.muted,
                   border: input.trim() && !loading ? "none" : `1.5px solid ${THEME.line}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: input.trim() && !loading ? "pointer" : "not-allowed",
-                  transition: "all 0.2s",
-                  boxShadow:
-                    input.trim() && !loading
-                      ? "0 4px 12px color-mix(in srgb, var(--t-accent) 28%, transparent)"
-                      : "none",
-                }}
-                onMouseEnter={(e) => {
-                  if (input.trim() && !loading) {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 6px 16px color-mix(in srgb, var(--t-accent) 38%, transparent)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    input.trim() && !loading
-                      ? "0 4px 12px color-mix(in srgb, var(--t-accent) 28%, transparent)"
-                      : "none";
+                  transition: "background 0.2s",
                 }}
               >
                 <Send size={17} />

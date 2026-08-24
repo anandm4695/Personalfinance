@@ -663,14 +663,14 @@ export function GovtSchemesTab({
               style={
                 active
                   ? ({
-                      background: `linear-gradient(135deg, ${s.color} 0%, color-mix(in srgb, ${s.color} 80%, black) 100%)`,
-                      color: "#fff",
-                      boxShadow: `0 4px 12px color-mix(in srgb, ${s.color} 35%, transparent)`,
+                      background: `color-mix(in srgb, ${s.color} 12%, transparent)`,
+                      color: s.color,
+                      boxShadow: `inset 0 -2px 0 ${s.color}`,
                     } as React.CSSProperties)
                   : {}
               }
             >
-              <Icon size={13} color={active ? "#fff" : undefined} />
+              <Icon size={13} color={active ? s.color : undefined} />
               {s.label}
               {s.count > 0 && (
                 <span
@@ -680,7 +680,7 @@ export function GovtSchemesTab({
                     fontSize: 10,
                     fontWeight: 800,
                     background: active
-                      ? "color-mix(in srgb, #fff 25%, transparent)"
+                      ? `color-mix(in srgb, ${s.color} 22%, transparent)`
                       : `color-mix(in srgb, ${THEME.textMuted} 22%, transparent)`,
                     color: active ? "#fff" : THEME.textMuted,
                     marginLeft: 4,
@@ -720,19 +720,8 @@ export function GovtSchemesTab({
             return (
               <Card key={sc.id} style={{ borderLeft: `4px solid ${meta.color}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <div
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${meta.color} 15%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Star size={20} color={meta.color} />
+                  <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    <Star size={22} color={meta.color} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>

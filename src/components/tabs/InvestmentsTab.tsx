@@ -1659,20 +1659,18 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                   borderRadius: 12,
                   border: "none",
                   background: active
-                    ? `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 85%, #000) 100%)`
+                    ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
                     : "transparent",
-                  color: active ? THEME.darkInk : THEME.muted,
+                  color: active ? THEME.accent : THEME.muted,
                   fontWeight: active ? 800 : 600,
                   fontSize: 13,
                   cursor: "pointer",
                   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                  boxShadow: active
-                    ? `0 4px 12px color-mix(in srgb, ${THEME.accent} 30%, transparent)`
-                    : "none",
+                  boxShadow: active ? `inset 0 -2px 0 ${THEME.accent}` : "none",
                   whiteSpace: "nowrap",
                 }}
               >
-                <Icon size={14} style={{ color: active ? THEME.darkInk : THEME.muted }} />
+                <Icon size={14} style={{ color: active ? THEME.accent : THEME.muted }} />
                 {s.label}
                 {s.count !== undefined && s.count > 0 && (
                   <span

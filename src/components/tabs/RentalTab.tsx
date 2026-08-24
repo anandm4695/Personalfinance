@@ -818,20 +818,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                     {/* Icon Box */}
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 12,
-                        flexShrink: 0,
-                        background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Building2 size={22} color={THEME.accent} />
+                    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                      <Building2 size={24} color={THEME.accent} />
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -2274,20 +2262,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                     {/* Icon Box */}
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 12,
-                        flexShrink: 0,
-                        background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Building2 size={22} color={THEME.rust} />
+                    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                      <Building2 size={24} color={THEME.rust} />
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>

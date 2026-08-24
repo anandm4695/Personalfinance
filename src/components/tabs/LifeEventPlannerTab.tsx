@@ -402,18 +402,8 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                   }}
                 >
                   <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 12,
-                        background: `color-mix(in srgb, ${e.evType.color} 15%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Icon size={20} color={e.evType.color} />
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <Icon size={22} color={e.evType.color} />
                     </div>
                     <div>
                       <div

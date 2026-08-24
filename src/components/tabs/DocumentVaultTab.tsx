@@ -63,13 +63,11 @@ const CATEGORIES = {
   Identity: {
     icon: Fingerprint,
     color: THEME.accent,
-    gradient: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 65%, white) 100%)`,
     subcategories: ["PAN Card", "Aadhaar", "Passport", "Voter ID", "Driving License"],
   },
   Financial: {
     icon: Landmark,
     color: THEME.sage,
-    gradient: `linear-gradient(135deg, ${THEME.sage} 0%, color-mix(in srgb, ${THEME.sage} 65%, white) 100%)`,
     subcategories: [
       "Bank Statement",
       "Tax Return (ITR)",
@@ -82,13 +80,11 @@ const CATEGORIES = {
   Insurance: {
     icon: ShieldCheck,
     color: THEME.cyan,
-    gradient: `linear-gradient(135deg, ${THEME.cyan} 0%, color-mix(in srgb, ${THEME.cyan} 65%, white) 100%)`,
     subcategories: ["Policy Document", "Claim Form", "Medical Report", "Other"],
   },
   Property: {
     icon: Home,
     color: THEME.gold,
-    gradient: `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 65%, white) 100%)`,
     subcategories: [
       "Sale Deed",
       "Registry",
@@ -102,19 +98,16 @@ const CATEGORIES = {
   Vehicle: {
     icon: Car,
     color: THEME.rust,
-    gradient: `linear-gradient(135deg, ${THEME.rust} 0%, color-mix(in srgb, ${THEME.rust} 65%, white) 100%)`,
     subcategories: ["RC Book", "Insurance", "PUC Certificate", "Service Record", "Other"],
   },
   Legal: {
     icon: Scale,
     color: THEME.violet,
-    gradient: `linear-gradient(135deg, ${THEME.violet} 0%, color-mix(in srgb, ${THEME.violet} 65%, white) 100%)`,
     subcategories: ["Will", "Power of Attorney", "Trust Deed", "Partnership Deed", "Other"],
   },
   Other: {
     icon: Folder,
     color: THEME.muted,
-    gradient: `linear-gradient(135deg, ${THEME.muted} 0%, color-mix(in srgb, ${THEME.muted} 65%, white) 100%)`,
     subcategories: ["Certificate", "Receipt", "Warranty", "Other"],
   },
 };
@@ -534,8 +527,8 @@ function DocCard({
       {/* Card Decorative Top Header */}
       <div
         style={{
-          height: 12,
-          background: cat.gradient,
+          height: 3,
+          background: cat.color,
           position: "relative",
           width: "100%",
         }}
@@ -559,18 +552,13 @@ function DocCard({
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
           <div
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
               color: cat.color,
               flexShrink: 0,
             }}
           >
-            {React.createElement(cat.icon, { size: 18 })}
+            {React.createElement(cat.icon, { size: 20 })}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
@@ -1625,7 +1613,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      background: cat.gradient,
+                      background: cat.color,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1763,45 +1751,31 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
         maxWidth={540}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Card Header mesh preview */}
+          {/* Card header */}
           <div
             style={{
               padding: "20px 24px",
               borderRadius: 12,
-              background: cat.gradient,
-              position: "relative",
+              background: cat.color,
               color: "#fff",
-              overflow: "hidden",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 15px rgba(0,0,0,0.08)",
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage: "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15) 0%, transparent 50%)",
-                pointerEvents: "none",
-              }}
-            />
-            
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 10,
-                    background: "rgba(255, 255, 255, 0.2)",
-                    border: "1px solid rgba(255, 255, 255, 0.3)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {React.createElement(cat.icon, { size: 22, color: "#fff" })}
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {React.createElement(cat.icon, { size: 26, color: "#fff" })}
                 </div>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>{doc.name}</div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 19,
+                      fontWeight: 600,
+                      letterSpacing: "-0.005em",
+                    }}
+                  >
+                    {doc.name}
+                  </div>
                   <div style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.8)", marginTop: 2, fontWeight: 600 }}>
                     {doc.category} {doc.subcategory ? `• ${doc.subcategory}` : ""}
                   </div>

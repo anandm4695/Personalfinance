@@ -381,19 +381,8 @@ const EmptyHint = ({ text }: { text: string }) => (
       gap: 10,
     }}
   >
-    <div
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
-        border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Briefcase size={18} color={THEME.accent} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Briefcase size={22} color={THEME.muted} />
     </div>
     <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>{text}</div>
   </div>
@@ -5772,18 +5761,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   >
                     <div
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 12,
-                        background: `color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 13%, transparent)`,
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
                         flexShrink: 0,
                       }}
                     >
                       <Star
-                        size={18}
+                        size={20}
                         color={wl.color || WISHLIST_COLORS[0]}
                         fill={`color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 25%, transparent)`}
                       />

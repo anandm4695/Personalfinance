@@ -214,7 +214,6 @@ const BuilderLogo = ({
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 30%, transparent)`,
           overflow: "hidden",
         }}
       >
@@ -243,7 +242,6 @@ const BuilderLogo = ({
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 40%, transparent)`,
       }}
     >
       <span

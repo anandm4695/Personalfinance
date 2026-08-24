@@ -474,19 +474,8 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
             return (
               <Card key={b.id} style={{ borderLeft: `4px solid ${cat.color}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${cat.color} 15%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {catIcon(b.category)}
+                  <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    {catIcon(b.category, 20)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{b.nickname || b.provider}</div>

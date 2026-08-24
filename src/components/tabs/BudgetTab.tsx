@@ -1426,18 +1426,12 @@ export function BudgetTab({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                      {/* Icon Box */}
+                      {/* Icon */}
                       <div
                         style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 12,
                           flexShrink: 0,
-                          background: `color-mix(in srgb, ${barColor} 8%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${barColor} 20%, transparent)`,
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
                         }}
                       >
                         <Icon size={22} color={barColor} />
@@ -1910,18 +1904,12 @@ export function BudgetTab({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                      {/* Logo Box / Circle */}
+                      {/* Category icon */}
                       <div
                         style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 12,
                           flexShrink: 0,
-                          background: `color-mix(in srgb, ${hasPaid ? THEME.sage : statusColor} 4%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${hasPaid ? THEME.sage : statusColor} 13%, transparent)`,
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
                         }}
                       >
                         {(() => {

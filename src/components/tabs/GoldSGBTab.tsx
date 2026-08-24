@@ -638,18 +638,8 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 }}
               >
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      background: `color-mix(in srgb, ${h.typeInfo.color} 20%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Coins size={20} color={h.typeInfo.color} />
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <Coins size={22} color={h.typeInfo.color} />
                   </div>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 15, color: THEME.text }}>

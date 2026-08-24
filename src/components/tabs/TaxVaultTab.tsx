@@ -4477,19 +4477,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 12,
-                        background: "rgba(128,128,128,0.06)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <History size={18} color={THEME.muted} />
+                    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                      <History size={20} color={THEME.muted} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div

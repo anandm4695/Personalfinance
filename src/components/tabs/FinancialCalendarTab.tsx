@@ -648,18 +648,9 @@ export const FinancialCalendarTab = ({
                         >
                           <div
                             className="fincal-event-icon"
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 10,
-                              background: `color-mix(in srgb, ${event.color} 15%, transparent)`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
+                            style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
                           >
-                            <Icon size={18} style={{ color: event.color }} />
+                            <Icon size={20} style={{ color: event.color }} />
                           </div>
                           <div className="fincal-event-main" style={{ flex: 1, minWidth: 0 }}>
                             <div

@@ -1423,19 +1423,8 @@ export const CapitalGainsTab = ({
                 gap: 10,
               }}
             >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <FileText size={18} color={THEME.accent} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <FileText size={22} color={THEME.muted} />
               </div>
               <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
                 No {detailTabs.find((t) => t.key === activeDetailTab)?.label} transactions in{" "}

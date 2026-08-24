@@ -1078,19 +1078,13 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               >
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    background: `color-mix(in srgb, ${m.color} 12%, transparent)`,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
                     color: m.color,
                     flexShrink: 0,
-                    border: `1px solid color-mix(in srgb, ${m.color} 20%, transparent)`,
                   }}
                 >
-                  <MemberIcon size={22} />
+                  <MemberIcon size={26} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div

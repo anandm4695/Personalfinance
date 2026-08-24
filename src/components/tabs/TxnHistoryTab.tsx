@@ -1011,20 +1011,19 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                 gap: 8,
                 padding: "6px 14px",
                 borderRadius: 20,
-                background: active ? THEME.accent : "var(--surface-0)",
+                background: active
+                  ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                  : "var(--surface-0)",
                 border: `1px solid ${active ? THEME.accent : THEME.line}`,
-                color: active ? THEME.darkInk : THEME.ink,
+                color: active ? THEME.accent : THEME.ink,
                 fontSize: 12.5,
                 fontWeight: 600,
                 cursor: "pointer",
                 transition: "all 0.2s ease",
                 whiteSpace: "nowrap",
-                boxShadow: active
-                  ? "0 4px 12px color-mix(in srgb, var(--t-accent) 25%, transparent)"
-                  : "var(--shadow-card)",
               }}
             >
-              <Icon size={14} style={{ color: active ? THEME.darkInk : THEME.accent }} />
+              <Icon size={14} style={{ color: THEME.accent }} />
               <span>{s.label}</span>
               {count > 0 && (
                 <span

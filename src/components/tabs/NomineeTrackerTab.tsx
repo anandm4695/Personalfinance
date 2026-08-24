@@ -445,10 +445,10 @@ export const NomineeTrackerTab = ({
               borderRadius: 12,
               background:
                 coveragePercent === 100
-                  ? `linear-gradient(135deg, ${THEME.sage} 0%, color-mix(in srgb, ${THEME.sage} 55%, white) 100%)`
+                  ? THEME.sage
                   : coveragePercent >= 50
-                    ? `linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`
-                    : `linear-gradient(135deg, ${THEME.rust} 0%, color-mix(in srgb, ${THEME.rust} 55%, white) 100%)`,
+                    ? THEME.gold
+                    : THEME.rust,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1084,20 +1084,8 @@ export const NomineeTrackerTab = ({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: THEME.gold,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Scale size={18} />
+                  <div style={{ display: "flex", alignItems: "center", color: THEME.gold, flexShrink: 0 }}>
+                    <Scale size={20} />
                   </div>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>

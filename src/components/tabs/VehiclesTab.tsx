@@ -208,7 +208,6 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 16%, transparent)`,
           overflow: "hidden",
         }}
       >
@@ -233,7 +232,6 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        boxShadow: `0 4px 14px color-mix(in srgb, ${theme.color} 25%, transparent)`,
       }}
     >
       <span
@@ -3089,19 +3087,14 @@ function VehicleCard({
               >
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
-                    color: "var(--t-accent)",
+                    color: "var(--t-muted)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.01)",
                     marginBottom: 4,
                   }}
                 >
-                  <Wrench size={18} />
+                  <Wrench size={26} />
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
                   No Service Records Yet
@@ -3283,19 +3276,14 @@ function VehicleCard({
               >
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
-                    color: "var(--t-accent)",
+                    color: "var(--t-muted)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.01)",
                     marginBottom: 4,
                   }}
                 >
-                  <Shield size={18} />
+                  <Shield size={26} />
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
                   No Insurance Records Yet

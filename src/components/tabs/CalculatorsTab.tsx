@@ -3231,20 +3231,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                   <div
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: lviResult.isInvestBetter
-                        ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
-                        : `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
                       color: lviResult.isInvestBetter ? THEME.sage : THEME.gold,
                       flexShrink: 0,
                     }}
                   >
-                    <Sparkles size={22} />
+                    <Sparkles size={20} />
                   </div>
                   <div>
                     <div

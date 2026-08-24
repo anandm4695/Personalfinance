@@ -749,19 +749,8 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
             return (
               <Card key={p.id} style={{ borderLeft: `4px solid ${typeColor}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 10,
-                      background: `color-mix(in srgb, ${typeColor} 18%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Heart size={20} color={typeColor} />
+                  <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    <Heart size={22} color={typeColor} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>
