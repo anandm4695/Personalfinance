@@ -738,6 +738,8 @@ const Reconciler26AS = ({
                   color: THEME.muted,
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
+                  lineHeight: 1.3,
+                  minHeight: 26,
                 }}
               >
                 Matched
@@ -754,6 +756,8 @@ const Reconciler26AS = ({
                   color: THEME.muted,
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
+                  lineHeight: 1.3,
+                  minHeight: 26,
                 }}
               >
                 Unmatched in 26AS
@@ -770,6 +774,8 @@ const Reconciler26AS = ({
                   color: THEME.muted,
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
+                  lineHeight: 1.3,
+                  minHeight: 26,
                 }}
               >
                 Missing from 26AS
@@ -2299,6 +2305,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   padding: "18px 20px",
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "space-between",
                   gap: 12,
                 }}
               >
@@ -3206,6 +3213,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             fontWeight: 700,
                             textTransform: "uppercase",
                             letterSpacing: "0.04em",
+                            lineHeight: 1.3,
+                            minHeight: 26,
                             marginBottom: 6,
                           }}
                         >
@@ -3336,7 +3345,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
                         }}
                       >
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: THEME.muted,
+                            fontWeight: 600,
+                            lineHeight: 1.3,
+                            minHeight: 28,
+                          }}
+                        >
                           Income Recorded ({monthsElapsed}m)
                         </div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent }}>
@@ -3351,7 +3368,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
                         }}
                       >
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: THEME.muted,
+                            fontWeight: 600,
+                            lineHeight: 1.3,
+                            minHeight: 28,
+                          }}
+                        >
                           Projected Annual Income
                         </div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage }}>
@@ -3366,7 +3391,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
                         }}
                       >
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: THEME.muted,
+                            fontWeight: 600,
+                            lineHeight: 1.3,
+                            minHeight: 28,
+                          }}
+                        >
                           Projected Tax ({activeRegime} regime)
                         </div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold }}>
@@ -3382,7 +3415,15 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                             border: `1px solid color-mix(in srgb, ${THEME.rust} 13%, transparent)`,
                           }}
                         >
-                          <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: THEME.muted,
+                              fontWeight: 600,
+                              lineHeight: 1.3,
+                              minHeight: 28,
+                            }}
+                          >
                             Sec 234C Interest
                           </div>
                           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>
