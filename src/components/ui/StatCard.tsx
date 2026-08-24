@@ -62,7 +62,20 @@ export const StatCard = ({
       }}
     >
       <div className="spotlight-content" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "var(--t-muted)" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            color: "var(--t-muted)",
+            // Reserves space for a 2-line label so the value below stays at the
+            // same Y position whether or not THIS card's label happens to wrap —
+            // otherwise a row of cards with mixed label lengths gets ragged,
+            // misaligned big numbers (short-label cards sit higher than
+            // long-label ones).
+            minHeight: 28,
+          }}
+        >
           {React.cloneElement(icon as React.ReactElement, { size: 13, strokeWidth: 2.25 })}
           <div
             style={{
@@ -70,6 +83,7 @@ export const StatCard = ({
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
+              lineHeight: 1.3,
             }}
           >
             {label}

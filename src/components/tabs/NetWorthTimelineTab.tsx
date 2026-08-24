@@ -455,6 +455,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
               borderTop: `4px solid ${stats.totalGrowth >= 0 ? THEME.sage : THEME.rust}`,
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >
@@ -523,6 +524,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
               borderTop: `4px solid ${THEME.accent}`,
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >
@@ -580,6 +582,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                   borderTop: `4px solid ${accentColor}`,
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "space-between",
                   gap: 12,
                 }}
               >
@@ -661,6 +664,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
               borderTop: `4px solid ${THEME.sage}`,
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >
@@ -712,6 +716,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
               borderTop: `4px solid ${THEME.rust}`,
               display: "flex",
               flexDirection: "column",
+              justifyContent: "space-between",
               gap: 12,
             }}
           >
