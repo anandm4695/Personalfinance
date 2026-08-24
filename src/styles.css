@@ -209,44 +209,6 @@ body {
     color var(--motion-base) ease;
 }
 
-/* ── Ambient Aurora Background ─────────────────────────────────── */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-image:
-    radial-gradient(
-      circle at 15% 50%,
-      color-mix(in srgb, var(--t-accent) 4%, transparent) 0%,
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 85% 30%,
-      color-mix(in srgb, var(--t-sage) 4%, transparent) 0%,
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 50% 80%,
-      color-mix(in srgb, var(--t-gold) 3%, transparent) 0%,
-      transparent 50%
-    );
-  filter: blur(60px);
-  pointer-events: none;
-  animation: aurora-drift 20s ease-in-out infinite alternate;
-}
-
-@keyframes aurora-drift {
-  0% {
-    transform: scale(1) translate(0, 0);
-  }
-  50% {
-    transform: scale(1.05) translate(2%, 2%);
-  }
-  100% {
-    transform: scale(1) translate(-2%, -2%);
-  }
-}
 
 /* ── Spotlight Hover Effect ────────────────────────────────────── */
 /* The cursor-following radial-gradient glow (::before, driven by --mouse-x/
@@ -642,19 +604,6 @@ tbody tr:hover td {
   transition: width 0.8s var(--ease-premium);
   position: relative;
 }
-.progress-fill::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.15) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer-wave 2s ease-in-out infinite;
-}
 .progress-fill-sage {
   background: linear-gradient(90deg, var(--t-sage), #6ee7b7);
 }
@@ -947,12 +896,7 @@ tbody tr:hover td {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in srgb, var(--t-accent) 60%, #fff) 50%,
-    transparent 100%
-  );
+  background: var(--t-accent);
   z-index: 10;
   pointer-events: none;
 }
@@ -1097,24 +1041,6 @@ tbody tr:hover td {
 }
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-}
-
-/* ── Gradient text ─────────────────────────────────────────────── */
-.gradient-text {
-  background: linear-gradient(
-    135deg,
-    var(--t-accent) 0%,
-    color-mix(in srgb, var(--t-accent) 50%, white) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-text-gold {
-  background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* ── Glass surface ─────────────────────────────────────────────── */
@@ -2297,18 +2223,18 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Watchlist near-target badge */
-@keyframes nearTargetGlow {
+/* Watchlist near-target badge — restrained opacity pulse, no glow ring */
+@keyframes nearTargetPulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--t-sage) 30%, transparent);
+    opacity: 1;
   }
   50% {
-    box-shadow: 0 0 0 4px transparent;
+    opacity: 0.55;
   }
 }
 .watchlist-near-target {
-  animation: nearTargetGlow 2s ease-in-out infinite;
+  animation: nearTargetPulse 2s ease-in-out infinite;
 }
 
 /* Target progress bar in watchlist */
@@ -2368,19 +2294,11 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   margin-bottom: 20px;
 }
 .demat-benchmark-banner.outperform {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--t-sage) 10%, transparent),
-    color-mix(in srgb, var(--t-sage) 4%, transparent)
-  );
+  background: color-mix(in srgb, var(--t-sage) 7%, transparent);
   border: 1.5px solid color-mix(in srgb, var(--t-sage) 25%, transparent);
 }
 .demat-benchmark-banner.underperform {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--t-rust) 10%, transparent),
-    color-mix(in srgb, var(--t-rust) 4%, transparent)
-  );
+  background: color-mix(in srgb, var(--t-rust) 7%, transparent);
   border: 1.5px solid color-mix(in srgb, var(--t-rust) 25%, transparent);
 }
 
@@ -2391,29 +2309,12 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   gap: 16px;
   padding: 20px 24px;
   border-radius: 16px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--t-accent) 8%, var(--surface-1)) 0%,
-    var(--surface-1) 100%
-  );
-  border: 1px solid color-mix(in srgb, var(--t-accent) 15%, var(--t-line));
+  background: var(--surface-1);
+  border: 1px solid var(--t-line);
+  border-left: 3px solid var(--t-accent);
   margin-bottom: 20px;
   position: relative;
   overflow: hidden;
-}
-.watchlist-hero::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(
-    180deg,
-    var(--t-accent),
-    color-mix(in srgb, var(--t-accent) 50%, #f59e0b)
-  );
-  border-radius: 4px 0 0 4px;
 }
 
 /* Watchlist buy-signal badge */
@@ -2442,13 +2343,8 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   letter-spacing: 0.03em;
 }
 
-/* Table header gradient */
 .demat-table-thead tr {
-  background: linear-gradient(
-    90deg,
-    var(--surface-0) 0%,
-    color-mix(in srgb, var(--t-accent) 3%, var(--surface-0)) 100%
-  ) !important;
+  background: var(--surface-0) !important;
 }
 
 /* Broker pulsing dot */
