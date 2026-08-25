@@ -6078,6 +6078,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <select
                         value={yoyFY1}
                         onChange={(e) => setYoyFY1(Number(e.target.value))}
+                        aria-label="First financial year to compare"
                         style={{
                           padding: "6px 12px",
                           borderRadius: 8,
@@ -6102,6 +6103,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <select
                         value={yoyFY2}
                         onChange={(e) => setYoyFY2(Number(e.target.value))}
+                        aria-label="Second financial year to compare"
                         style={{
                           padding: "6px 12px",
                           borderRadius: 8,
@@ -11767,6 +11769,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         onChange={(e) =>
                           setWindfallAmount(Math.max(0, Number(e.target.value) || 0))
                         }
+                        aria-label="One-time windfall amount"
                         style={{
                           flex: 1,
                           padding: "6px 10px",
@@ -11786,6 +11789,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <select
                             value={windfallYear}
                             onChange={(e) => setWindfallYear(Number(e.target.value))}
+                            aria-label="Windfall year"
                             style={{
                               padding: "4px 8px",
                               borderRadius: 6,
@@ -11859,6 +11863,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         onChange={(e) =>
                           setExtraExpenseAmount(Math.max(0, Number(e.target.value) || 0))
                         }
+                        aria-label="One-time major expense amount"
                         style={{
                           flex: 1,
                           padding: "6px 10px",
@@ -11878,6 +11883,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <select
                             value={extraExpenseYear}
                             onChange={(e) => setExtraExpenseYear(Number(e.target.value))}
+                            aria-label="Major expense year"
                             style={{
                               padding: "4px 8px",
                               borderRadius: 6,
@@ -13068,6 +13074,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       step="100000"
                       value={sipLsTarget || ""}
                       onChange={(e) => setSipLsTarget(Math.max(0, Number(e.target.value) || 0))}
+                      aria-label="Target corpus"
                       placeholder={`e.g. ${fmtINRFull(5000000)}`}
                       style={{
                         width: "100%",

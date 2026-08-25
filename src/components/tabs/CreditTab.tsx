@@ -1698,6 +1698,7 @@ function CCList({
               type="date"
               value={closeDate}
               onChange={(e) => setCloseDate(e.target.value)}
+              aria-label="Card closed date"
               style={{
                 background: "rgba(255,255,255,0.07)",
                 border: "1px solid rgba(255,255,255,0.15)",
@@ -2974,6 +2975,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             — or paste CSV text below —
           </div>
           <textarea
+            aria-label="Pasted CSV text"
             style={{
               width: "100%",
               minHeight: 90,
@@ -3657,6 +3659,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     type="date"
                     value={closeDate}
                     onChange={(e) => setCloseDate(e.target.value)}
+                    aria-label="Card closed date"
                     style={{
                       background: "rgba(255,255,255,0.07)",
                       border: "1px solid rgba(255,255,255,0.15)",
@@ -4447,6 +4450,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
             — or paste CSV text below —
           </div>
           <textarea
+            aria-label="Pasted CSV text"
             style={{
               width: "100%",
               minHeight: 90,

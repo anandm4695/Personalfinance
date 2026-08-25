@@ -846,6 +846,7 @@ function OwnerSplitRow({
         <select
           style={{ ...input, flex: 2 }}
           value={owner.id}
+          aria-label={`Owner ${idx + 1}`}
           onChange={(e) =>
             onChange(
               e.target.value === EXTERNAL_OWNER_ID
@@ -870,6 +871,7 @@ function OwnerSplitRow({
           max={100}
           value={owner.sharePct}
           onChange={(e) => onChange({ ...owner, sharePct: e.target.value })}
+          aria-label={`Owner ${idx + 1} share percentage`}
         />
         <span style={{ fontSize: 12, fontWeight: 700, color: accentColor, width: 14 }}>%</span>
         {canDelete && (
@@ -900,6 +902,7 @@ function OwnerSplitRow({
           value={owner.name || ""}
           onChange={(e) => onChange({ ...owner, name: e.target.value })}
           placeholder="Name, e.g. Suresh Mohta (Father)"
+          aria-label={`Owner ${idx + 1} name`}
         />
       )}
     </div>

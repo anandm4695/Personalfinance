@@ -1558,6 +1558,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                 — or paste CSV text below —
                               </div>
                               <textarea
+                                aria-label="Pasted CSV text"
                                 style={{
                                   width: "100%",
                                   minHeight: 80,
@@ -2990,6 +2991,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                                 — or paste CSV text below —
                               </div>
                               <textarea
+                                aria-label="Pasted CSV text"
                                 style={{
                                   width: "100%",
                                   minHeight: 80,

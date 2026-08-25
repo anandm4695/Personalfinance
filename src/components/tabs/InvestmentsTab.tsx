@@ -4687,6 +4687,7 @@ function PPFCsvPanel({ onImport }: any) {
         — or paste CSV text below —
       </div>
       <textarea
+        aria-label="Pasted CSV text"
         style={{
           width: "100%",
           minHeight: 80,
@@ -5779,6 +5780,7 @@ function NPSCsvPanel({ onImport }: any) {
         — or paste CSV text below —
       </div>
       <textarea
+        aria-label="Pasted CSV text"
         style={{
           width: "100%",
           minHeight: 80,
@@ -7268,6 +7270,7 @@ function EPFCsvPanel({ onImport }: any) {
         — or paste CSV text below —
       </div>
       <textarea
+        aria-label="Pasted CSV text"
         style={{
           width: "100%",
           minHeight: 80,
@@ -10747,6 +10750,7 @@ function MFSection({
                 <select
                   value={mfGroupBy}
                   onChange={(e) => setMfGroupBy(e.target.value as any)}
+                  aria-label="Group mutual funds by"
                   style={{
                     background: "transparent",
                     border: "none",
@@ -10788,6 +10792,7 @@ function MFSection({
                 <select
                   value={mfSortBy}
                   onChange={(e) => setMfSortBy(e.target.value as any)}
+                  aria-label="Sort mutual funds by"
                   style={{
                     background: "transparent",
                     border: "none",

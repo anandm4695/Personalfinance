@@ -2102,7 +2102,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                 <Paperclip size={13} color={THEME.accent} />
                 <span className="doc-vault-file-chip-name">{uploadFile.name}</span>
                 <span className="doc-vault-file-chip-size">{formatBytes(uploadFile.size)}</span>
-                <button type="button" className="doc-vault-file-chip-remove" onClick={() => setUploadFile(null)}>
+                <button
+                  type="button"
+                  className="doc-vault-file-chip-remove"
+                  onClick={() => setUploadFile(null)}
+                  aria-label="Remove selected file"
+                >
                   <X size={13} />
                 </button>
               </div>
@@ -2127,6 +2132,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                   type="button"
                   className="doc-vault-file-chip-remove"
                   onClick={() => setRemoveExistingFile(true)}
+                  aria-label="Remove attached file"
                 >
                   <X size={13} />
                 </button>
