@@ -1286,7 +1286,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         return (state.fixedDeposits || [])
           .map((f: any) => ({
             name: f.bank || "FD",
-            sub: `${f.rate || 0}% · Due: ${f.maturityDate || "N/A"}`,
+            sub: `${f.rate || 0}% · Due: ${
+              f.maturityDate
+                ? new Date(f.maturityDate + "T00:00:00").toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "—"
+            }`,
             value: Number(f.principal || 0),
           }))
           .sort((a: any, b: any) => b.value - a.value);

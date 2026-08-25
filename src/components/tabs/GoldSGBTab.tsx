@@ -768,7 +768,13 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                     {h.maturityDate && (
                       <div>
                         <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Maturity</div>
-                        <div style={{ fontWeight: 600 }}>{h.maturityDate}</div>
+                        <div style={{ fontWeight: 600 }}>
+                          {new Date(h.maturityDate + "T00:00:00").toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </div>
                       </div>
                     )}
                   </>

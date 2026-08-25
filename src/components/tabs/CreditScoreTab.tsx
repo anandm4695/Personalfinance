@@ -783,7 +783,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                     )}
                   </div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: latestScore ? THEME.ink : THEME.muted, letterSpacing: "-0.02em", marginTop: 4 }}>
-                    {latestScore ? <Prv>{latestScore}</Prv> : "--"}
+                    {latestScore ? <Prv>{latestScore}</Prv> : "—"}
                   </div>
                   <span style={{ fontSize: 9, color: THEME.muted }}>
                     {cnt === 0 ? "No records" : "Latest Rating"}

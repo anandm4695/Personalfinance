@@ -690,7 +690,7 @@ export const NomineeTrackerTab = ({
                         <Prv>{g.name}</Prv>
                       </div>
                       <div style={{ fontSize: 11.5, color: THEME.muted, fontWeight: 600 }}>
-                        {g.relation || "Relation not set"} · {g.items.length} asset
+                        {g.relation || "—"} · {g.items.length} asset
                         {g.items.length === 1 ? "" : "s"}
                       </div>
                     </div>
@@ -1028,7 +1028,14 @@ export const NomineeTrackerTab = ({
                     <div
                       style={{ fontSize: 12, color: THEME.muted, marginTop: 4, fontWeight: 600 }}
                     >
-                      Dated: {doc.date || "Not specified"}
+                      Dated:{" "}
+                      {doc.date
+                        ? new Date(doc.date + "T00:00:00").toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
                     </div>
                   </div>
                 </div>
@@ -1049,7 +1056,15 @@ export const NomineeTrackerTab = ({
                     disabled={deletingWill}
                     onClick={() =>
                       setConfirmAction({
-                        message: `Delete Will Document dated ${doc.date || "not specified"}? This cannot be undone.`,
+                        message: `Delete Will Document dated ${
+                          doc.date
+                            ? new Date(doc.date + "T00:00:00").toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "—"
+                        }? This cannot be undone.`,
                         onConfirm: () => deleteWillDoc(doc.id),
                       })
                     }

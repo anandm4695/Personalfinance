@@ -166,7 +166,7 @@ function statusBadge(status: string) {
 }
 
 function formatDate(d: string): string {
-  if (!d) return "--";
+  if (!d) return "—";
   const dt = new Date(d);
   return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
@@ -893,7 +893,7 @@ function DocRow({
 
       {/* Desktop elements */}
       <div className="doc-vault-list-meta" style={{ textAlign: "right", flexShrink: 0, paddingRight: 10 }}>
-        <div style={{ fontSize: 11, color: THEME.ink, fontWeight: 600 }}>{doc.issuer || "--"}</div>
+        <div style={{ fontSize: 11, color: THEME.ink, fontWeight: 600 }}>{doc.issuer || "—"}</div>
         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
           {doc.expiryDate ? `Expires ${formatDate(doc.expiryDate)}` : "No expiry"}
         </div>
@@ -1807,7 +1807,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                 Issuer
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                {doc.issuer || "--"}
+                {doc.issuer || "—"}
               </div>
             </div>
 
@@ -1828,7 +1828,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                 Issue Date
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                {doc.issueDate ? formatDate(doc.issueDate) : "--"}
+                {doc.issueDate ? formatDate(doc.issueDate) : "—"}
               </div>
             </div>
 

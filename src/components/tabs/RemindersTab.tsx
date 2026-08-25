@@ -402,7 +402,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
         list.push({
           id: "lic-prem-" + p.id,
           title: `LIC Premium — ${p.planName}`,
-          subtitle: `Policy: ${p.policyNumber || "N/A"} · Premium: ${fmtINRExact(e.amount)}`,
+          subtitle: `Policy: ${p.policyNumber || "—"} · Premium: ${fmtINRExact(e.amount)}`,
           date: e.date,
           type: "LIC Premium",
           amount: Number(e.amount || 0),
@@ -413,7 +413,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
         list.push({
           id: "term-prem-" + p.id,
           title: `Term Premium — ${p.planName || "Plan"}`,
-          subtitle: `Insurer: ${p.insurer || "N/A"} · Premium: ${fmtINRExact(e.amount)}`,
+          subtitle: `Insurer: ${p.insurer || "—"} · Premium: ${fmtINRExact(e.amount)}`,
           date: e.date,
           type: "Term Premium",
           amount: Number(e.amount || 0),
@@ -425,7 +425,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
         list.push({
           id: "invest-prem-" + p.id,
           title: `Investment Premium — ${p.planName || "Plan"}`,
-          subtitle: `Insurer: ${p.insurer || "N/A"} · Premium: ${fmtINRExact(e.amount)}`,
+          subtitle: `Insurer: ${p.insurer || "—"} · Premium: ${fmtINRExact(e.amount)}`,
           date: e.date,
           type: "Investment Premium",
           amount: Number(e.amount || 0),

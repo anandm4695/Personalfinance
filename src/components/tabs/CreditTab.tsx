@@ -2433,7 +2433,7 @@ function CCList({
                     Pool Limit
                   </div>
                   <div style={{ fontWeight: 800, color: THEME.ink }}>
-                    {groupLimit > 0 ? <Money value={groupLimit} variant="full" /> : "Not set"}
+                    {groupLimit > 0 ? <Money value={groupLimit} variant="full" /> : "—"}
                   </div>
                 </div>
                 <div>
