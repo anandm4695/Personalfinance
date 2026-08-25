@@ -184,7 +184,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
         paidDate: todayStr,
         amount: p.amount,
       });
-      showToast?.(`Marked "${p.name}" as paid`, "success");
+      showToast?.(`Marked "${p.name}" as paid.`, "success");
     } catch (e: any) {
       showToast?.(`Couldn't save payment: ${e?.message || "Unknown error"}`, "error");
     } finally {

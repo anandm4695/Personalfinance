@@ -147,7 +147,7 @@ export const DataExportTab = ({
     // selective builder if exportJSON wasn't passed in for some reason.
     if (exportJSON) {
       exportJSON();
-      if (showToast) showToast("Full backup exported successfully!", "success");
+      if (showToast) showToast("Full backup exported successfully.", "success");
       return;
     }
     const exportData = { _exportDate: today(), _version: "2.0" };
@@ -167,7 +167,7 @@ export const DataExportTab = ({
     a.download = `arthadrishti-backup-${today()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    if (showToast) showToast("Data exported successfully!", "success");
+    if (showToast) showToast("Data exported successfully.", "success");
   }, [state, selectedSections, showToast, exportJSON]);
 
   const handleExportCSV = useCallback(() => {
@@ -206,7 +206,7 @@ export const DataExportTab = ({
       a.click();
       URL.revokeObjectURL(url);
     }
-    if (showToast) showToast(`Exported ${csvFiles.length} sections as CSV!`, "success");
+    if (showToast) showToast(`Exported ${csvFiles.length} sections as CSV successfully.`, "success");
   }, [state, selectedSections, showToast]);
 
   const handleExport = () => {

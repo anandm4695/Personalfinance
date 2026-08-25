@@ -603,7 +603,7 @@ const Reconciler26AS = ({
         "success"
       );
     } catch (e: any) {
-      showToast?.(`Couldn't save to 26AS ledger: ${e?.message || "Unknown error"}`, "error");
+      showToast?.(`Failed to save to 26AS ledger: ${e?.message || "Unknown error"}`, "error");
     } finally {
       setSavingToLedger(false);
     }

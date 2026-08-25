@@ -522,9 +522,12 @@ const CategoryFixBadge = ({
 
   const pick = async (category: string) => {
     setSaving(true);
-    await onFix(sellId, category);
-    setSaving(false);
-    setOpen(false);
+    try {
+      await onFix(sellId, category);
+      setOpen(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -776,15 +779,22 @@ const TransactionTable = ({
 export const CapitalGainsTab = ({
   state,
   updateItem,
+  showToast,
 }: {
   state: any;
   updateItem?: (key: string, id: string, patch: any) => Promise<any>;
+  showToast?: (msg: string, type?: string) => void;
 }) => {
   const { privacyMode } = usePrivacy();
 
   const handleFixMFCategory = async (id: string, category: string) => {
     if (!updateItem) return;
-    await updateItem("mfSells", id, { category });
+    try {
+      await updateItem("mfSells", id, { category });
+      showToast?.("Tax category updated successfully.", "success");
+    } catch (e: any) {
+      showToast?.(`Failed to update tax category: ${e?.message || "Unknown error"}`, "error");
+    }
   };
   const fyOptions = useMemo(
     () => buildFYOptions(state.stockSells || [], state.mfSells || []),

@@ -2216,7 +2216,7 @@ function FinanceDashboard() {
           setTimeout(async () => {
             const { error: retryErr } = await tryUpsert();
             if (!retryErr) {
-              showToast("Synced to cloud!", "success");
+              showToast("Synced to cloud.", "success");
             } else if (isNetworkError(retryErr.message)) {
               // Second attempt also failed — try one final time after 20 more seconds
               setTimeout(async () => {
@@ -2281,7 +2281,7 @@ function FinanceDashboard() {
           };
           const migFile = migrationMap[table] || `SQL migration for table "${table}"`;
           console.error(`[Supabase] Table "${table}" missing. Run: ${migFile}`);
-          showToast(`⚠️ DB table missing — run ${migFile} in Supabase SQL Editor`, "error");
+          showToast(`DB table missing — run ${migFile} in Supabase SQL Editor`, "error");
           setMissingTables((prev) => (prev.includes(table) ? prev : [...prev, table]));
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
           syncFailed = true;
@@ -3162,7 +3162,7 @@ function FinanceDashboard() {
             }
           } else {
             console.error(`Supabase Update Error (${table}):`, error.message, error.details);
-            showToast(`Update sync failed: ${error.message || "check connection"}`, "error");
+            showToast(`Update sync failed: ${error.message || "Unknown error"}`, "error");
           }
         }
       }
@@ -3441,7 +3441,7 @@ function FinanceDashboard() {
             logActivity("IMPORT", `Imported backup from ${file.name}`, { fileName: file.name });
             try {
               await pushBackupToSupabase(parsed);
-              showToast("Backup fully restored ✓", "success");
+              showToast("Backup fully restored successfully.", "success");
             } catch (err) {
               console.error("Cloud sync after restore failed", err);
               showToast(
@@ -4039,7 +4039,7 @@ function FinanceDashboard() {
                 />
               )}
               {tab === "capitalgains" && (
-                <CapitalGainsTab state={filteredState} updateItem={updateItem} />
+                <CapitalGainsTab state={filteredState} updateItem={updateItem} showToast={showToast} />
               )}
               {tab === "taxtools" && (
                 <TaxToolsTab

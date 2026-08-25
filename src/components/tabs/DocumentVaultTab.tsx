@@ -1309,7 +1309,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
         if (error || !data?.signedUrl) throw error || new Error("No signed URL returned");
         window.open(data.signedUrl, "_blank", "noopener,noreferrer");
       } catch (err) {
-        showToast?.("Couldn't open file — it may have been removed from storage.", "error");
+        showToast?.("Failed to open file — it may have been removed from storage.", "error");
       }
     }
   };
@@ -1369,7 +1369,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
       setUploadFile(null);
       setRemoveExistingFile(false);
     } catch (err: any) {
-      showToast?.(`Failed to save document: ${err?.message || "Please try again."}`, "error");
+      showToast?.(`Failed to save document: ${err?.message || "Unknown error"}`, "error");
     } finally {
       setSaving(false);
     }
