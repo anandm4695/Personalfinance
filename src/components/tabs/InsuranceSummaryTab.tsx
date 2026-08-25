@@ -2270,18 +2270,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           </Button>
         </div>
         {state.lic.length === 0 ? (
-          <Card style={{ padding: 24 }}>
-            <EmptyState
-              icon={Shield}
-              gradient={`linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 55%, white) 100%)`}
-              dotColor={THEME.gold}
-              title="No LIC Policies Added Yet"
-              description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
-              pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
-              buttonLabel="Add Policy"
-              onAdd={() => setModal("lic")}
-            />
-          </Card>
+          <EmptyState
+            icon={Shield}
+            dotColor={THEME.gold}
+            title="No LIC Policies Added Yet"
+            description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
+            pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
+            buttonLabel="Add Policy"
+            onAdd={() => setModal("lic")}
+          />
         ) : (
           <div
             style={{
@@ -2603,18 +2600,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           </Button>
         </div>
         {state.termPlans.length === 0 ? (
-          <Card style={{ padding: 24 }}>
-            <EmptyState
-              icon={Heart}
-              gradient={`linear-gradient(135deg, ${THEME.pink} 0%, color-mix(in srgb, ${THEME.pink} 55%, white) 100%)`}
-              dotColor={THEME.pink}
-              title="No Term Plans Tracked"
-              description="Add your pure protection term plans to track cover amounts, insurers, and expiry dates."
-              pills={["High Cover", "Low Premium", "Policy Duration", "Adequacy Ratio"]}
-              buttonLabel="Add Term Plan"
-              onAdd={() => setModal("term")}
-            />
-          </Card>
+          <EmptyState
+            icon={Heart}
+            dotColor={THEME.pink}
+            title="No Term Plans Tracked"
+            description="Add your pure protection term plans to track cover amounts, insurers, and expiry dates."
+            pills={["High Cover", "Low Premium", "Policy Duration", "Adequacy Ratio"]}
+            buttonLabel="Add Term Plan"
+            onAdd={() => setModal("term")}
+          />
         ) : (
           <div
             style={{
@@ -2942,18 +2936,15 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           </Button>
         </div>
         {!state.investmentPlans || state.investmentPlans.length === 0 ? (
-          <Card style={{ padding: 24 }}>
-            <EmptyState
-              icon={Sparkles}
-              gradient={`linear-gradient(135deg, ${THEME.sage} 0%, color-mix(in srgb, ${THEME.sage} 55%, white) 100%)`}
-              dotColor={THEME.sage}
-              title="No Investment Plans Added"
-              description="Track your Endowment, ULIPs, and Guaranteed Income plans here. Monitor premium payments, expected maturity amounts, and calculate cash-flows."
-              pills={["Premium Term", "Maturity Amount", "Paid So Far", "Balance Due"]}
-              buttonLabel="Add Plan"
-              onAdd={() => setModal("invest")}
-            />
-          </Card>
+          <EmptyState
+            icon={Sparkles}
+            dotColor={THEME.sage}
+            title="No Investment Plans Added"
+            description="Track your Endowment, ULIPs, and Guaranteed Income plans here. Monitor premium payments, expected maturity amounts, and calculate cash-flows."
+            pills={["Premium Term", "Maturity Amount", "Paid So Far", "Balance Due"]}
+            buttonLabel="Add Plan"
+            onAdd={() => setModal("invest")}
+          />
         ) : (
           <div
             style={{

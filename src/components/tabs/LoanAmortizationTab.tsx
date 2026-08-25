@@ -43,6 +43,7 @@ const th: React.CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.08em",
   borderBottom: `2px solid ${THEME.line}`,
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
 };
 
 const td: React.CSSProperties = {

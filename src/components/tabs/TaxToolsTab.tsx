@@ -1316,7 +1316,12 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
+                  <tr
+                    style={{
+                      borderBottom: `2px solid ${THEME.line}`,
+                      background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+                    }}
+                  >
                     {["Deductor", "TAN", "Section", "Amount", "Status", ""].map((h) => (
                       <th
                         key={h}
@@ -1324,9 +1329,10 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                           textAlign: "left",
                           padding: "8px 10px",
                           color: THEME.muted,
-                          fontWeight: 600,
-                          fontSize: 11,
+                          fontWeight: 700,
+                          fontSize: 10,
                           textTransform: "uppercase",
+                          letterSpacing: "0.05em",
                         }}
                       >
                         {h}
@@ -1403,7 +1409,12 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
+                  <tr
+                    style={{
+                      borderBottom: `2px solid ${THEME.line}`,
+                      background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+                    }}
+                  >
                     {["Type", "Date", "Amount", "Challan/Ref"].map((h) => (
                       <th
                         key={h}
@@ -1411,9 +1422,10 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                           textAlign: "left",
                           padding: "8px 10px",
                           color: THEME.muted,
-                          fontWeight: 600,
-                          fontSize: 11,
+                          fontWeight: 700,
+                          fontSize: 10,
                           textTransform: "uppercase",
+                          letterSpacing: "0.05em",
                         }}
                       >
                         {h}

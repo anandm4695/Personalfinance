@@ -619,6 +619,7 @@ const Reconciler26AS = ({
     color: THEME.muted,
     textAlign: "left" as const,
     whiteSpace: "nowrap" as const,
+    background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
   };
   const tdStyle = {
     padding: "10px 10px",

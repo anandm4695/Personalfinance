@@ -790,8 +790,8 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
               }}
             >
               <thead>
-                <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
-                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                <tr style={{ background: "color-mix(in srgb, var(--surface-1) 50%, transparent)", textAlign: "left" }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     <input
                       type="checkbox"
                       checked={allSelected}
@@ -801,22 +801,22 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                       style={{ accentColor: THEME.accent, cursor: "pointer" }}
                     />
                   </th>
-                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     Date
                   </th>
-                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     Fund Scheme
                   </th>
-                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     Folio
                   </th>
-                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     AMFI
                   </th>
-                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     Status
                   </th>
-                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     Type
                   </th>
                   <th
@@ -824,6 +824,11 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                       padding: "8px 10px",
                       borderBottom: `1px solid ${THEME.line}`,
                       textAlign: "right",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      color: THEME.muted,
                     }}
                   >
                     NAV
@@ -833,6 +838,11 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                       padding: "8px 10px",
                       borderBottom: `1px solid ${THEME.line}`,
                       textAlign: "right",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      color: THEME.muted,
                     }}
                   >
                     Units
@@ -842,6 +852,11 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
                       padding: "8px 10px",
                       borderBottom: `1px solid ${THEME.line}`,
                       textAlign: "right",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      color: THEME.muted,
                     }}
                   >
                     Amount

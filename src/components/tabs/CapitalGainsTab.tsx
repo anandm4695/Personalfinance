@@ -463,6 +463,7 @@ const thStyle: React.CSSProperties = {
   letterSpacing: "0.1em",
   color: THEME.muted,
   whiteSpace: "nowrap",
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
 };
 
 const tdStyle: React.CSSProperties = {

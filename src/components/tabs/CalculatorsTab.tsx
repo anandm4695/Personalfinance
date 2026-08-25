@@ -5764,6 +5764,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         style={{
                           borderBottom: `2px solid ${THEME.line}`,
                           textAlign: "left",
+                          background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
                         }}
                       >
                         <th
@@ -5771,7 +5772,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             padding: "8px 6px",
                             color: THEME.muted,
                             fontWeight: 700,
-                            fontSize: 11,
+                            fontSize: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
                           }}
                         >
                           Source Name
@@ -5781,7 +5784,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             padding: "8px 6px",
                             color: THEME.muted,
                             fontWeight: 700,
-                            fontSize: 11,
+                            fontSize: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
                           }}
                         >
                           Monthly (₹)
@@ -5791,7 +5796,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             padding: "8px 6px",
                             color: THEME.muted,
                             fontWeight: 700,
-                            fontSize: 11,
+                            fontSize: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
                           }}
                         >
                           Start Age
@@ -5801,7 +5808,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             padding: "8px 6px",
                             color: THEME.muted,
                             fontWeight: 700,
-                            fontSize: 11,
+                            fontSize: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
                           }}
                         >
                           End Age
@@ -5811,7 +5820,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             padding: "8px 6px",
                             color: THEME.muted,
                             fontWeight: 700,
-                            fontSize: 11,
+                            fontSize: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
                           }}
                         >
                           Growth %

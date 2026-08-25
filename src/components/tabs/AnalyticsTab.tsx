@@ -6166,6 +6166,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               fontWeight: 800,
                               color: THEME.accent,
                               fontSize: 12,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
                             }}
                           >
                             FY {yoyFY1}-{String(yoyFY1 + 1).slice(-2)}
@@ -6177,6 +6179,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               fontWeight: 800,
                               color: THEME.muted,
                               fontSize: 12,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
                             }}
                           >
                             FY {yoyFY2}-{String(yoyFY2 + 1).slice(-2)}
@@ -6188,6 +6192,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               fontWeight: 800,
                               color: THEME.ink,
                               fontSize: 12,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
                             }}
                           >
                             Change
@@ -6199,6 +6205,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               fontWeight: 800,
                               color: THEME.ink,
                               fontSize: 12,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
                             }}
                           >
                             % Change
