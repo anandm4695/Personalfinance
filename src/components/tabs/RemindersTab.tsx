@@ -1438,9 +1438,9 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
           {(upcoming.length > 0 || past.length > 0) && (
             <div style={{ display: "flex", position: "relative", alignItems: "center", marginBottom: 16 }}>
               <SearchIcon
-                size={15}
+                size={16}
                 color={THEME.muted}
-                style={{ position: "absolute", left: 13, pointerEvents: "none" }}
+                style={{ position: "absolute", left: 14, pointerEvents: "none" }}
               />
               <input
                 type="text"
@@ -1451,13 +1451,14 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                 style={{
                   width: "100%",
                   maxWidth: 340,
-                  padding: `9px ${search ? 34 : 12}px 9px 36px`,
-                  borderRadius: 10,
+                  padding: `9px ${search ? 36 : 12}px 9px 38px`,
+                  borderRadius: 12,
                   border: `1.5px solid ${THEME.line}`,
-                  background: "var(--t-paper)",
+                  background: "var(--surface-0)",
                   color: THEME.ink,
                   fontSize: 13,
                   fontFamily: "inherit",
+                  boxShadow: "var(--shadow-sm)",
                 }}
               />
               {search && (
@@ -1475,7 +1476,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem, showToast
                     height: 18,
                     borderRadius: "50%",
                     border: "none",
-                    background: `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+                    background: "var(--surface-2)",
                     color: THEME.muted,
                     cursor: "pointer",
                   }}

@@ -15,6 +15,7 @@ import {
   Calendar,
   ArrowRight,
   AlertTriangle,
+  X,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { getLocalDateString, maskCurrencyInText } from "../../utils/finance";
@@ -719,6 +720,31 @@ export const AuditLogTab = ({ session }) => {
                 flex: 1,
               }}
             />
+            {searchTerm && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => {
+                  setSearchTerm("");
+                  setPage(0);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--surface-2)",
+                  color: THEME.muted,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                <X size={11} />
+              </button>
+            )}
           </div>
           <select
             value={filterAction}

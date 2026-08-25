@@ -1389,9 +1389,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <div style={{ display: "flex", position: "relative", alignItems: "center" }}>
               <Search
-                size={14}
+                size={16}
                 color={THEME.muted}
-                style={{ position: "absolute", left: 12, pointerEvents: "none" }}
+                style={{ position: "absolute", left: 14, pointerEvents: "none" }}
               />
               <input
                 type="text"
@@ -1401,12 +1401,13 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 onChange={(e) => setBreakdownSearch(e.target.value)}
                 style={{
                   width: 160,
-                  padding: `7px ${breakdownSearch ? 30 : 10}px 7px 32px`,
-                  borderRadius: 10,
+                  padding: `9px ${breakdownSearch ? 36 : 12}px 9px 38px`,
+                  borderRadius: 12,
                   border: `1.5px solid ${THEME.line}`,
                   background: "var(--surface-0)",
                   color: THEME.ink,
-                  fontSize: 12.5,
+                  fontSize: 13,
+                  boxShadow: "var(--shadow-sm)",
                 }}
               />
               {breakdownSearch && (
@@ -1416,12 +1417,12 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   onClick={() => setBreakdownSearch("")}
                   style={{
                     position: "absolute",
-                    right: 8,
+                    right: 10,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: 16,
-                    height: 16,
+                    width: 18,
+                    height: 18,
                     borderRadius: "50%",
                     border: "none",
                     background: "var(--surface-2)",
@@ -1429,7 +1430,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     cursor: "pointer",
                   }}
                 >
-                  <X size={10} />
+                  <X size={11} />
                 </button>
               )}
             </div>

@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Search,
   Download,
+  X,
 } from "lucide-react";
 import {
   LineChart,
@@ -964,10 +965,10 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
               >
                 <div style={{ position: "relative" }}>
                   <Search
-                    size={13}
+                    size={16}
                     style={{
                       position: "absolute",
-                      left: 10,
+                      left: 14,
                       top: "50%",
                       transform: "translateY(-50%)",
                       color: THEME.muted,
@@ -981,15 +982,41 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                     placeholder="Search date, source, notes, score…"
                     aria-label="Search credit score history"
                     style={{
-                      border: `1px solid ${THEME.line}`,
-                      borderRadius: 8,
-                      padding: "6px 10px 6px 28px",
-                      fontSize: 12,
+                      border: `1.5px solid ${THEME.line}`,
+                      borderRadius: 12,
+                      padding: `9px ${search ? 36 : 12}px 9px 38px`,
+                      fontSize: 13,
                       color: THEME.ink,
                       background: "var(--surface-0)",
+                      boxShadow: "var(--shadow-sm)",
                       width: 220,
                     }}
                   />
+                  {search && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={() => setSearch("")}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        border: "none",
+                        background: "var(--surface-2)",
+                        color: THEME.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X size={11} />
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={handleExportCSV}

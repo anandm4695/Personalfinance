@@ -2020,11 +2020,44 @@ export function BanksTab({
               <Search size={14} />
             </span>
             <input
-              style={{ ...input, paddingLeft: 34, height: 38, fontSize: 13, fontWeight: 600 }}
+              style={{
+                ...input,
+                paddingLeft: 34,
+                paddingRight: search ? 32 : undefined,
+                height: 38,
+                fontSize: 13,
+                fontWeight: 600,
+              }}
               placeholder="Search notes, categories, references…"
+              aria-label="Search notes, categories, references"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {search && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setSearch("")}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--surface-2)",
+                  color: THEME.muted,
+                  cursor: "pointer",
+                }}
+              >
+                <X size={11} />
+              </button>
+            )}
           </div>
 
           {/* Account selector */}

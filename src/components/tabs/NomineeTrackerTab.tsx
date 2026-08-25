@@ -20,6 +20,7 @@ import {
   Scale,
   Briefcase,
   ChevronDown,
+  X,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
@@ -606,7 +607,7 @@ export const NomineeTrackerTab = ({
             onChange={(e) => setSearch(e.target.value)}
             style={{
               width: "100%",
-              padding: "8px 12px 8px 34px",
+              padding: `8px ${search ? 36 : 12}px 8px 34px`,
               fontSize: 13,
               fontWeight: 600,
               borderRadius: 12,
@@ -616,6 +617,31 @@ export const NomineeTrackerTab = ({
               outline: "none",
             }}
           />
+          {search && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setSearch("")}
+              style={{
+                position: "absolute",
+                right: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                border: "none",
+                background: "var(--surface-2)",
+                color: THEME.muted,
+                cursor: "pointer",
+              }}
+            >
+              <X size={11} />
+            </button>
+          )}
         </div>
         <div
           style={{

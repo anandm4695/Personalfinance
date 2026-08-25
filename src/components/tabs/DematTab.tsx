@@ -2590,10 +2590,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     style={{
                       ...input,
                       paddingLeft: 40,
+                      paddingRight: search ? 36 : undefined,
                       borderRadius: 12,
                       height: 42,
                       border: `1.5px solid ${THEME.line}`,
-                      background: "var(--t-input-bg)",
+                      background: "var(--surface-0)",
                       color: THEME.ink,
                       transition: "border-color 0.2s, box-shadow 0.2s",
                     }}
@@ -2601,6 +2602,30 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <div style={{ position: "absolute", left: 14, top: 12, color: THEME.muted }}>
                     <Search size={16} />
                   </div>
+                  {search && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={() => setSearch("")}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        top: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        border: "none",
+                        background: "var(--surface-2)",
+                        color: THEME.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X size={11} />
+                    </button>
+                  )}
                 </div>
                 {/* Market Status Badge */}
                 {(() => {
@@ -2643,7 +2668,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  background: "var(--t-input-bg)",
+                  background: "var(--surface-0)",
                   padding: "0 14px",
                   borderRadius: 12,
                   border: `1.5px solid ${THEME.line}`,
