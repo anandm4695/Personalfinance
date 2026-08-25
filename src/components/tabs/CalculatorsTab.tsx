@@ -47,6 +47,7 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { usePrivacy } from "../../context/PrivacyContext";
@@ -1182,10 +1183,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     (s: number, l: any) => s + Number(l.emi || 0),
     0
   );
-  const animatedCtxNetWorth = useAnimatedNumber(ctxNetWorth);
-  const animatedCtxMonthExpense = useAnimatedNumber(ctxMonthExpense);
-  const animatedCtxMonthlySavings = useAnimatedNumber(ctxMonthlySavings);
-  const animatedCtxTotalEMIs = useAnimatedNumber(ctxTotalEMIs);
 
   const animatedStepSipCorpus = useAnimatedNumber(stepSipResult.corpus);
   const animatedStepSipInvested = useAnimatedNumber(stepSipResult.invested);
@@ -1379,21 +1376,24 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         const tiles = [
           {
             label: "Current Net Worth",
-            value: <Money value={animatedCtxNetWorth} variant="full" />,
+            value: fmtINRFull(ctxNetWorth),
+            numericValue: ctxNetWorth,
             sub: "Total assets minus liabilities",
             color: THEME.accent,
             Icon: TrendingUp,
           },
           {
             label: "Monthly Expenses",
-            value: <Money value={animatedCtxMonthExpense} variant="full" />,
+            value: fmtINRFull(ctxMonthExpense),
+            numericValue: ctxMonthExpense,
             sub: "Baseline for FIRE & runway calcs",
             color: THEME.gold,
             Icon: Wallet,
           },
           {
             label: "Est. Monthly Savings",
-            value: <Money value={animatedCtxMonthlySavings} variant="full" />,
+            value: fmtINRFull(monthlySavings),
+            numericValue: monthlySavings,
             sub:
               metrics?.monthIncome > 0
                 ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate`
@@ -1403,7 +1403,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           },
           {
             label: "Total Loan EMIs",
-            value: <Money value={animatedCtxTotalEMIs} variant="full" />,
+            value: fmtINRFull(totalEMIs),
+            numericValue: totalEMIs,
             sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans",
             color: totalEMIs > 0 ? THEME.rust : THEME.muted,
             Icon: Coins,
@@ -1418,53 +1419,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               marginBottom: 28,
             }}
           >
-            {tiles.map(({ label, value, sub, color, Icon }) => (
-              <div
+            {tiles.map(({ label, value, numericValue, sub, color, Icon }) => (
+              <StatCard
                 key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                    <Icon size={22} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 26,
-                    fontWeight: 600,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
+                label={label}
+                value={value}
+                numericValue={numericValue}
+                formatValue={fmtINRFull}
+                icon={<Icon />}
+                color={color}
+                sub={sub}
+              />
             ))}
           </div>
         );

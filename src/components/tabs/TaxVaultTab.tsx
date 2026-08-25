@@ -48,6 +48,7 @@ import {
   getEffectiveRent,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Field } from "../ui/Form";
@@ -2265,21 +2266,24 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               },
           {
             label: "Gross Tax Liability",
-            value: <Money value={currentTax} variant="full" />,
+            value: fmtINRFull(currentTax),
+            numericValue: currentTax,
             sub: `${activeRegime === "new" ? "New" : "Old"} regime · ${currentResult.effectiveRate.toFixed(1)}% eff. rate`,
             color: THEME.rust,
             Icon: Calculator,
           },
           {
             label: "Paid So Far",
-            value: <Money value={totalPaidSoFar} variant="full" />,
+            value: fmtINRFull(totalPaidSoFar),
+            numericValue: totalPaidSoFar,
             sub: "TDS + Advance + Self-Assess",
             color: THEME.sage,
             Icon: CheckCircle2,
           },
           {
             label: "Balance Due",
-            value: <Money value={remainingAdvance} variant="full" />,
+            value: fmtINRFull(remainingAdvance),
+            numericValue: remainingAdvance,
             sub: remainingAdvance <= 0 ? "Fully settled" : "Still to pay",
             color: remainingAdvance > 0 ? THEME.gold : THEME.sage,
             Icon: AlertTriangle,
@@ -2294,53 +2298,17 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               marginBottom: 28,
             }}
           >
-            {tiles.map(({ label, value, sub, color, Icon }) => (
-              <div
+            {tiles.map(({ label, value, numericValue, sub, color, Icon }) => (
+              <StatCard
                 key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                    <Icon size={22} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 24,
-                    fontWeight: 600,
-                    color: THEME.ink,
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-              </div>
+                label={label}
+                value={value}
+                numericValue={numericValue}
+                formatValue={typeof numericValue === "number" ? fmtINRFull : undefined}
+                icon={<Icon />}
+                color={color}
+                sub={sub}
+              />
             ))}
           </div>
         );

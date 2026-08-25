@@ -28,6 +28,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINRFull, today } from "../../utils/finance";
 import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
 import { usePrivacy } from "../../context/PrivacyContext";
@@ -366,11 +367,6 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
   // fallbacks) so hook order stays stable regardless of the `stats === null` / empty-state
   // branches that follow.
   const animatedNetWorth = useAnimatedNumber(metrics.netWorth || 0);
-  const animatedTotalGrowth = useAnimatedNumber(stats?.totalGrowth ?? 0);
-  const animatedAvgMonthly = useAnimatedNumber(stats?.avgMonthly ?? 0);
-  const animatedCagr = useAnimatedNumber(stats?.cagr ?? 0);
-  const animatedBestDelta = useAnimatedNumber(stats?.best?.delta ?? 0);
-  const animatedWorstDelta = useAnimatedNumber(stats?.worst?.delta ?? 0);
   const animatedProjectedNominal = useAnimatedNumber(
     projection[projection.length - 1]?.nominal || 0
   );
@@ -449,128 +445,27 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
           }}
         >
           {/* Card 1: Total Growth */}
-          <Card
-            hover
-            style={{
-              padding: "18px 20px",
-              borderTop: `4px solid ${stats.totalGrowth >= 0 ? THEME.sage : THEME.rust}`,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  color: stats.totalGrowth >= 0 ? THEME.sage : THEME.rust,
-                  flexShrink: 0,
-                }}
-              >
-                {stats.totalGrowth >= 0 ? <TrendingUp size={22} /> : <TrendingDown size={22} />}
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  Total Growth
-                </div>
-                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                  Starting from {history[0]?.label}
-                </div>
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: THEME.ink,
-                  letterSpacing: "-0.04em",
-                  fontVariantNumeric: "tabular-nums",
-                  lineHeight: 1,
-                }}
-              >
-                {stats.totalGrowth < 0 ? "-" : ""}
-                <Money value={Math.abs(animatedTotalGrowth)} variant="full" />
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: stats.totalGrowth >= 0 ? THEME.sage : THEME.rust,
-                  marginTop: 4,
-                }}
-              >
-                {stats.totalGrowth >= 0 ? "+" : ""}
-                {((stats.totalGrowth / Math.max(1, history[0]?.netWorth || 0)) * 100).toFixed(1)}%
-                Inception Growth
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            label="Total Growth"
+            value={fmtINRFull(stats.totalGrowth)}
+            numericValue={stats.totalGrowth}
+            formatValue={fmtINRFull}
+            icon={stats.totalGrowth >= 0 ? <TrendingUp /> : <TrendingDown />}
+            color={stats.totalGrowth >= 0 ? THEME.sage : THEME.rust}
+            sub={`${stats.totalGrowth >= 0 ? "+" : ""}${((stats.totalGrowth / Math.max(1, history[0]?.netWorth || 0)) * 100).toFixed(1)}% Inception Growth`}
+            subColor={stats.totalGrowth >= 0 ? THEME.sage : THEME.rust}
+          />
 
           {/* Card 2: Avg Monthly Growth */}
-          <Card
-            hover
-            style={{
-              padding: "18px 20px",
-              borderTop: `4px solid ${THEME.accent}`,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
-                <Calendar size={22} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  Avg Monthly Growth
-                </div>
-                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                  Calculated over {stats.months} Months
-                </div>
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: THEME.ink,
-                  letterSpacing: "-0.04em",
-                  fontVariantNumeric: "tabular-nums",
-                  lineHeight: 1,
-                }}
-              >
-                {stats.avgMonthly < 0 ? "-" : ""}
-                <Money value={Math.abs(animatedAvgMonthly)} variant="full" />
-              </div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-                Net Monthly Wealth Accumulation
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            label="Avg Monthly Growth"
+            value={fmtINRFull(stats.avgMonthly)}
+            numericValue={stats.avgMonthly}
+            formatValue={fmtINRFull}
+            icon={<Calendar />}
+            color={THEME.accent}
+            sub="Net Monthly Wealth Accumulation"
+          />
 
           {/* Card 3: CAGR */}
           {(() => {
@@ -578,193 +473,71 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
             const cagrPositive = cagrKnown && stats.cagr >= 0;
             const accentColor = !cagrKnown ? THEME.muted : cagrPositive ? THEME.sage : THEME.rust;
             return (
-              <Card
-                hover
-                style={{
-                  padding: "18px 20px",
-                  borderTop: `4px solid ${accentColor}`,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", color: accentColor, flexShrink: 0 }}>
-                    <Zap size={22} />
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      Compounded CAGR
-                    </div>
-                    <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                      Annualized Growth Rate
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 24,
-                      fontWeight: 600,
-                      color: THEME.ink,
-                      letterSpacing: "-0.04em",
-                      fontVariantNumeric: "tabular-nums",
-                      lineHeight: 1,
-                    }}
-                  >
-                    {cagrKnown ? `${animatedCagr.toFixed(1)}%` : "N/A"}
-                  </div>
-                  <div style={{ marginTop: 4 }}>
-                    {cagrKnown ? (
-                      <Badge
-                        variant={
-                          stats.cagr >= 15
-                            ? "sage"
-                            : stats.cagr >= 10
-                              ? "accent"
-                              : stats.cagr >= 5
-                                ? "gold"
-                                : "muted"
-                        }
-                        style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
-                      >
-                        {stats.cagr >= 15
-                          ? "Aggressive Build"
+              <StatCard
+                label="Compounded CAGR"
+                value={cagrKnown ? `${stats.cagr.toFixed(1)}%` : "N/A"}
+                numericValue={cagrKnown ? stats.cagr : undefined}
+                formatValue={cagrKnown ? (n: number) => `${n.toFixed(1)}%` : undefined}
+                icon={<Zap />}
+                color={accentColor}
+                sub={
+                  cagrKnown ? (
+                    <Badge
+                      variant={
+                        stats.cagr >= 15
+                          ? "sage"
                           : stats.cagr >= 10
-                            ? "Steady Growth"
+                            ? "accent"
                             : stats.cagr >= 5
-                              ? "Conservative"
-                              : "Flat Growth"}
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="muted"
-                        style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
-                      >
-                        Needs positive start
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </Card>
+                              ? "gold"
+                              : "muted"
+                      }
+                      style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
+                    >
+                      {stats.cagr >= 15
+                        ? "Aggressive Build"
+                        : stats.cagr >= 10
+                          ? "Steady Growth"
+                          : stats.cagr >= 5
+                            ? "Conservative"
+                            : "Flat Growth"}
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="muted"
+                      style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
+                    >
+                      Needs positive start
+                    </Badge>
+                  )
+                }
+              />
             );
           })()}
 
           {/* Card 4: Best Month */}
-          <Card
-            hover
-            style={{
-              padding: "18px 20px",
-              borderTop: `4px solid ${THEME.sage}`,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", color: THEME.sage, flexShrink: 0 }}>
-                <TrendingUp size={22} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  Best Month
-                </div>
-                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                  Record Delta: {stats.best?.label}
-                </div>
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: THEME.sage,
-                  letterSpacing: "-0.04em",
-                  fontVariantNumeric: "tabular-nums",
-                  lineHeight: 1,
-                }}
-              >
-                +<Money value={animatedBestDelta} variant="full" />
-              </div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-                Growth: +{stats.best?.pctChange.toFixed(1)}% MoM
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            label="Best Month"
+            value={`+${fmtINRFull(stats.best?.delta ?? 0)}`}
+            numericValue={stats.best?.delta ?? 0}
+            formatValue={(n: number) => `+${fmtINRFull(n)}`}
+            icon={<TrendingUp />}
+            color={THEME.sage}
+            valueColor={THEME.sage}
+            sub={`Growth: +${stats.best?.pctChange.toFixed(1)}% MoM`}
+          />
 
           {/* Card 5: Worst Month */}
-          <Card
-            hover
-            style={{
-              padding: "18px 20px",
-              borderTop: `4px solid ${THEME.rust}`,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", color: THEME.rust, flexShrink: 0 }}>
-                <TrendingDown size={22} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  Worst Month
-                </div>
-                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                  Trough Delta: {stats.worst?.label}
-                </div>
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: THEME.rust,
-                  letterSpacing: "-0.04em",
-                  fontVariantNumeric: "tabular-nums",
-                  lineHeight: 1,
-                }}
-              >
-                <Money value={animatedWorstDelta} variant="full" />
-              </div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-                Growth: {stats.worst?.pctChange.toFixed(1)}% MoM
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            label="Worst Month"
+            value={fmtINRFull(stats.worst?.delta ?? 0)}
+            numericValue={stats.worst?.delta ?? 0}
+            formatValue={fmtINRFull}
+            icon={<TrendingDown />}
+            color={THEME.rust}
+            valueColor={THEME.rust}
+            sub={`Growth: ${stats.worst?.pctChange.toFixed(1)}% MoM`}
+          />
         </div>
       )}
 

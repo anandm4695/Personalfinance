@@ -64,95 +64,6 @@ function livePrice(s: any, marketData: any): number {
   return md?.price !== undefined ? Number(md.price) : Number(s.currentPrice || 0);
 }
 
-/* ── Premium Drill-Down Card ──────────────────────────────────── */
-const PremiumDrillDownCard = ({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  subColor,
-  color,
-  active,
-  onClick,
-}: any) => (
-  <div
-    onClick={onClick}
-    role={onClick ? "button" : undefined}
-    tabIndex={onClick ? 0 : undefined}
-    onKeyDown={
-      onClick
-        ? (e: React.KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onClick();
-            }
-          }
-        : undefined
-    }
-    aria-pressed={onClick ? !!active : undefined}
-    className={`card-base${onClick ? " card-lift" : ""}`}
-    style={{
-      background: "var(--surface-0)",
-      border: `1.5px solid ${active ? THEME.accent : THEME.line}`,
-      borderTop: `4px solid ${color}`,
-      borderRadius: 16,
-      padding: "20px 22px",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-      gap: 12,
-      cursor: onClick ? "pointer" : "default",
-      position: "relative",
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", color: color, flexShrink: 0 }}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-          }}
-        >
-          {label}
-        </div>
-        {sub && (
-          <div
-            style={{
-              fontSize: 10,
-              color: subColor || THEME.muted,
-              fontWeight: subColor ? 700 : 400,
-              marginTop: 2,
-              opacity: subColor ? 1 : 0.8,
-            }}
-          >
-            {sub}
-          </div>
-        )}
-      </div>
-    </div>
-
-    <div
-      style={{
-        fontFamily: "var(--font-display)",
-        fontSize: 26,
-        fontWeight: 600,
-        color: THEME.ink,
-        letterSpacing: "-0.04em",
-        lineHeight: 1,
-        fontVariantNumeric: "tabular-nums",
-        marginTop: 4,
-      }}
-    >
-      <Prv>{value}</Prv>
-    </div>
-  </div>
-);
 
 // Hoisted to module scope (were previously defined inside TxnHistoryTab's render
 // body) — components defined inline in a parent's render are recreated with a new
@@ -1067,8 +978,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
           marginBottom: 24,
         }}
       >
-        <PremiumDrillDownCard
-          icon={TrendingUp}
+        <StatCard
+          icon={<TrendingUp />}
           label="Stocks Bought"
           value={String(stocksBoughtInFY.length)}
           sub={
@@ -1083,8 +994,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
           active={activeSection === "stocks_bought"}
           onClick={() => setActiveSection("stocks_bought")}
         />
-        <PremiumDrillDownCard
-          icon={ArrowLeftRight}
+        <StatCard
+          icon={<ArrowLeftRight />}
           label="Stocks Sold"
           value={String(stocksSoldInFY.length)}
           sub={
@@ -1101,8 +1012,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
           active={activeSection === "stocks_sold"}
           onClick={() => setActiveSection("stocks_sold")}
         />
-        <PremiumDrillDownCard
-          icon={BarChart3}
+        <StatCard
+          icon={<BarChart3 />}
           label="MF Bought"
           value={String(mfBoughtInFY.length)}
           sub={
@@ -1115,8 +1026,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
           active={activeSection === "mf_bought"}
           onClick={() => setActiveSection("mf_bought")}
         />
-        <PremiumDrillDownCard
-          icon={ArrowLeftRight}
+        <StatCard
+          icon={<ArrowLeftRight />}
           label="MF Redeemed"
           value={String(mfSoldInFY.length)}
           sub={
@@ -1133,8 +1044,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
           active={activeSection === "mf_sold"}
           onClick={() => setActiveSection("mf_sold")}
         />
-        <PremiumDrillDownCard
-          icon={Coins}
+        <StatCard
+          icon={<Coins />}
           label="Bank & Cash Ledger"
           value={String(cashTransactionsInFY.length)}
           sub={

@@ -35,6 +35,7 @@ import {
   getLocalDateString,
   addMonthsToDateStr,
   getEffectiveRent,
+  fmtINRFull,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
@@ -52,6 +53,7 @@ import { CsvImportModal } from "../modals/CsvImportModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { DataTable } from "../design-system/DataTable";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 
 // Bank logo domains for Clearbit / Google Favicon API
@@ -1044,10 +1046,7 @@ export function BanksTab({
     return map;
   }, [liquidityWeights]);
 
-  // Count-up animation for the hero stat numbers below (Quick Stats + Cash Flow panel).
-  const animTotalBalance = useAnimatedNumber(totalBalance);
-  const animMonthlyIncome = useAnimatedNumber(monthlyIncome);
-  const animMonthlyExpense = useAnimatedNumber(monthlyExpense);
+  // Count-up animation for the hero stat number below (Cash Flow panel).
   const animSavingsRate = useAnimatedNumber(monthlySavingsRate);
 
   const exportTxnsToCSV = () => {
@@ -1146,165 +1145,35 @@ export function BanksTab({
           gap: 16,
         }}
       >
-        {/* Card 1: Total Balance */}
-        <Card
-          hover
-          style={{
-            padding: "18px 20px",
-            borderTop: `4px solid ${THEME.accent}`,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
-              <IndianRupee size={22} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Total Balance
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                Across all banks
-              </div>
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 24,
-                fontWeight: 600,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              <Money value={animTotalBalance} variant="full" />
-            </div>
-            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
-              {state.bankAccounts.length} Connected Account
-              {state.bankAccounts.length === 1 ? "" : "s"}
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 2: Monthly Income */}
-        <Card
-          hover
-          style={{
-            padding: "18px 20px",
-            borderTop: `4px solid ${THEME.sage}`,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", color: THEME.sage, flexShrink: 0 }}>
-              <TrendingUp size={22} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Monthly Income
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                Current month credits
-              </div>
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 24,
-                fontWeight: 600,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              <Money value={animMonthlyIncome} variant="full" />
-            </div>
-            <div style={{ fontSize: 11, color: THEME.sage, fontWeight: 700, marginTop: 4 }}>
-              Inflow cash positions
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 3: Monthly Spends */}
-        <Card
-          hover
-          style={{
-            padding: "18px 20px",
-            borderTop: `4px solid ${THEME.rust}`,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", color: THEME.rust, flexShrink: 0 }}>
-              <TrendingDown size={22} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Monthly Spends
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                Current month debits
-              </div>
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 24,
-                fontWeight: 600,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              <Money value={animMonthlyExpense} variant="full" />
-            </div>
-            <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 600, marginTop: 4 }}>
-              Outflow cash ledger
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          label="Total Balance"
+          value={fmtINRFull(totalBalance)}
+          numericValue={totalBalance}
+          formatValue={fmtINRFull}
+          icon={<IndianRupee />}
+          color={THEME.accent}
+          sub={`${state.bankAccounts.length} Connected Account${state.bankAccounts.length === 1 ? "" : "s"}`}
+        />
+        <StatCard
+          label="Monthly Income"
+          value={fmtINRFull(monthlyIncome)}
+          numericValue={monthlyIncome}
+          formatValue={fmtINRFull}
+          icon={<TrendingUp />}
+          color={THEME.sage}
+          sub="Inflow cash positions"
+          subColor={THEME.sage}
+        />
+        <StatCard
+          label="Monthly Spends"
+          value={fmtINRFull(monthlyExpense)}
+          numericValue={monthlyExpense}
+          formatValue={fmtINRFull}
+          icon={<TrendingDown />}
+          color={THEME.rust}
+          sub="Outflow cash ledger"
+          subColor={THEME.rust}
+        />
       </div>
 
       {/* ── CASH FLOW ANALYTICS PANEL ────────────────────────────────────────── */}

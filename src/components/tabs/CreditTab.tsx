@@ -31,6 +31,8 @@ import {
   Calculator,
   Lightbulb,
   Clock,
+  Shield,
+  Star,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
@@ -883,48 +885,18 @@ export function CreditTab({
                 {
                   label: "Total Limit",
                   sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
-                  value: <Money value={totalLimit} variant="full" />,
-                  color: "var(--t-accent)",
-                  borderColor: "var(--t-accent)",
-                  iconBg: `color-mix(in srgb, var(--t-accent) 10%, transparent)`,
-                  icon: (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="1" y="4" width="22" height="16" rx="2" />
-                      <line x1="1" y1="10" x2="23" y2="10" />
-                    </svg>
-                  ),
+                  value: fmtINRFull(totalLimit),
+                  numericValue: totalLimit,
+                  color: THEME.accent,
+                  icon: <CreditCard />,
                 },
                 {
                   label: "Outstanding",
                   sub: utilPct > 0 ? `${utilPct}% utilization` : "No balance due",
-                  value: <Money value={totalOutstandingCC} variant="full" />,
-                  color: "var(--t-rust)",
-                  borderColor: "var(--t-rust)",
-                  iconBg: `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
-                  icon: (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
-                      <polyline points="17 18 23 18 23 12" />
-                    </svg>
-                  ),
+                  value: fmtINRFull(totalOutstandingCC),
+                  numericValue: totalOutstandingCC,
+                  color: THEME.rust,
+                  icon: <TrendingDown />,
                 },
                 {
                   label: "Available",
@@ -936,49 +908,20 @@ export function CreditTab({
                       : activeCards.length === 0 && state.creditCards.length > 0
                         ? "All cards closed"
                         : "No cards yet",
-                  value: <Money value={totalAvailable} variant="full" />,
-                  color: "var(--t-sage)",
-                  borderColor: "var(--t-sage)",
-                  iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
-                  icon: (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
-                  ),
+                  value: fmtINRFull(totalAvailable),
+                  numericValue: totalAvailable,
+                  color: THEME.sage,
+                  icon: <Shield />,
                 },
                 ...(totalAnnualFees > 0
                   ? [
                       {
                         label: "Annual Fees / yr",
                         sub: `${feeCardCount} card${feeCardCount !== 1 ? "s" : ""} · ${privacyMode ? "••••" : fmtINRFull(Math.round(totalAnnualFees / 12))}/mo`,
-                        value: <Money value={totalAnnualFees} variant="full" />,
-                        color: "var(--t-gold)",
-                        borderColor: "var(--t-gold)",
-                        iconBg: `color-mix(in srgb, var(--t-gold) 10%, transparent)`,
-                        icon: (
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="M12 6v6l4 2" />
-                          </svg>
-                        ),
+                        value: fmtINRFull(totalAnnualFees),
+                        numericValue: totalAnnualFees,
+                        color: THEME.gold,
+                        icon: <Clock />,
                       },
                     ]
                   : []),
@@ -990,24 +933,11 @@ export function CreditTab({
                           totalRewardValue > 0
                             ? `≈ ${privacyMode ? "••••" : fmtINRFull(totalRewardValue)} redeemable`
                             : "Set value/point on a card to see ₹ estimate",
-                        value: <Prv>{Math.round(totalRewardPoints).toLocaleString("en-IN")}</Prv>,
-                        color: "var(--t-sage)",
-                        borderColor: "var(--t-sage)",
-                        iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
-                        icon: (
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                          </svg>
-                        ),
+                        value: Math.round(totalRewardPoints).toLocaleString("en-IN"),
+                        numericValue: totalRewardPoints,
+                        formatValue: (n: number) => Math.round(n).toLocaleString("en-IN"),
+                        color: THEME.sage,
+                        icon: <Star />,
                       },
                     ]
                   : []),
@@ -1023,57 +953,17 @@ export function CreditTab({
                       marginBottom: 20,
                     }}
                   >
-                    {statCards.map(({ label, value, color, sub: subText, icon, iconBg }) => (
-                      <div
+                    {statCards.map(({ label, value, numericValue, formatValue, color, sub, icon }) => (
+                      <StatCard
                         key={label}
-                        className="card-lift"
-                        style={{
-                          background: "var(--t-card-bg)",
-                          border: `1px solid var(--t-line)`,
-                          borderTop: `4px solid ${color}`,
-                          borderRadius: 14,
-                          padding: "18px 20px",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between",
-                          gap: 12,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                            {icon}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 800,
-                              color: THEME.muted,
-                              textTransform: "uppercase" as const,
-                              letterSpacing: "0.08em",
-                            }}
-                          >
-                            {label}
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 26,
-                            fontWeight: 600,
-                            color: THEME.ink,
-                            letterSpacing: "-0.04em",
-                            lineHeight: 1,
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
-                          {value}
-                        </div>
-                        {subText && (
-                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>
-                            {subText}
-                          </div>
-                        )}
-                      </div>
+                        label={label}
+                        value={value}
+                        numericValue={numericValue}
+                        formatValue={formatValue || fmtINRFull}
+                        icon={icon}
+                        color={color}
+                        sub={sub}
+                      />
                     ))}
                   </div>
                   {activeCards.length > 0 &&
@@ -3365,27 +3255,27 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
   const prepaidStats = [
     {
       label: "Combined Balance",
-      value: <Money value={totalBalance} variant="full" />,
+      value: fmtINRFull(totalBalance),
+      numericValue: totalBalance,
       sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
-      color: "var(--t-sage)",
-      icon: <Wallet size={16} />,
-      iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
+      color: THEME.sage,
+      icon: <Wallet />,
     },
     {
       label: "Total Loaded",
-      value: <Money value={totalLoaded} variant="full" />,
+      value: fmtINRFull(totalLoaded),
+      numericValue: totalLoaded,
       sub: "Total funds loaded into cards",
-      color: "var(--t-accent)",
-      icon: <ArrowUp size={16} />,
-      iconBg: `color-mix(in srgb, var(--t-accent) 10%, transparent)`,
+      color: THEME.accent,
+      icon: <ArrowUp />,
     },
     {
       label: "Total Spent",
-      value: <Money value={totalSpent} variant="full" />,
+      value: fmtINRFull(totalSpent),
+      numericValue: totalSpent,
       sub: "Total expenditures on cards",
-      color: "var(--t-rust)",
-      icon: <ArrowDown size={16} />,
-      iconBg: `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
+      color: THEME.rust,
+      icon: <ArrowDown />,
     },
   ];
 
@@ -3429,55 +3319,17 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
             marginBottom: 20,
           }}
         >
-          {prepaidStats.map(({ label, value, color, sub: subText, icon, iconBg }) => (
-            <div
+          {prepaidStats.map(({ label, value, numericValue, color, sub, icon }) => (
+            <StatCard
               key={label}
-              className="card-lift"
-              style={{
-                background: "var(--t-card-bg)",
-                border: `1px solid var(--t-line)`,
-                borderTop: `4px solid ${color}`,
-                borderRadius: 14,
-                padding: "18px 20px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                  {icon}
-                </div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: THEME.muted,
-                    textTransform: "uppercase" as const,
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 26,
-                  fontWeight: 600,
-                  color: THEME.ink,
-                  letterSpacing: "-0.04em",
-                  lineHeight: 1,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {value}
-              </div>
-              {subText && (
-                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>{subText}</div>
-              )}
-            </div>
+              label={label}
+              value={value}
+              numericValue={numericValue}
+              formatValue={fmtINRFull}
+              icon={icon}
+              color={color}
+              sub={sub}
+            />
           ))}
         </div>
       )}
@@ -4979,74 +4831,39 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
         {[
           {
             label: "Total Borrowed",
-            value: <Money value={totalPrincipal} variant="full" />,
+            value: fmtINRFull(totalPrincipal),
+            numericValue: totalPrincipal,
             sub: `${items.length} active loan${items.length !== 1 ? "s" : ""}`,
-            color: "var(--t-muted)",
+            color: THEME.muted,
             Icon: TrendingDown,
           },
           {
             label: "Outstanding Balance",
-            value: <Money value={totalOutstanding} variant="full" />,
+            value: fmtINRFull(totalOutstanding),
+            numericValue: totalOutstanding,
             sub: totalOutstanding > 0 ? "Debt remaining" : "All paid off",
-            color: "var(--t-rust)",
+            color: THEME.rust,
             Icon: Wallet,
           },
           {
             label: "Monthly EMI Outflow",
-            value: <Money value={totalEMI} variant="full" />,
+            value: fmtINRFull(totalEMI),
+            numericValue: totalEMI,
             sub: "Combined monthly payment",
-            color: "var(--t-accent)",
+            color: THEME.accent,
             Icon: Calendar,
           },
-        ].map(({ label, value, sub, color, Icon }) => (
-          <div
+        ].map(({ label, value, numericValue, sub, color, Icon }) => (
+          <StatCard
             key={label}
-            className="card-lift"
-            style={{
-              background: "var(--t-card-bg)",
-              border: `1px solid var(--t-line)`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                <Icon size={22} />
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  color: "var(--t-muted)",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 26,
-                fontWeight: 600,
-                color: "var(--t-ink)",
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-            {sub && (
-              <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>
-            )}
-          </div>
+            label={label}
+            value={value}
+            numericValue={numericValue}
+            formatValue={fmtINRFull}
+            icon={<Icon />}
+            color={color}
+            sub={sub}
+          />
         ))}
       </div>
 
@@ -5639,76 +5456,44 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
         {[
           {
             label: "Total Lent",
-            value: <Money value={totalLent} variant="full" />,
+            value: fmtINRFull(totalLent),
+            numericValue: totalLent,
+            formatValue: fmtINRFull,
             sub:
               `${activeCount} active loan${activeCount !== 1 ? "s" : ""}` +
               (settledCount > 0 ? ` · ${settledCount} settled` : ""),
-            color: "var(--t-accent)",
+            color: THEME.accent,
             Icon: TrendingUp,
           },
           {
             label: "Outstanding",
-            value: <Money value={totalOutstanding} variant="full" />,
+            value: fmtINRFull(totalOutstanding),
+            numericValue: totalOutstanding,
+            formatValue: fmtINRFull,
             sub: totalOutstanding > 0 ? "Pending recovery" : "Fully recovered",
-            color: totalOutstanding > 0 ? "var(--t-gold)" : "var(--t-sage)",
+            color: totalOutstanding > 0 ? THEME.gold : THEME.sage,
             Icon: IndianRupee,
           },
           {
             label: "Overdue",
             value: String(overdueItems.length),
+            numericValue: overdueItems.length,
+            formatValue: (n: number) => String(Math.round(n)),
             sub: overdueItems.length > 0 ? "Require follow-up" : "All on schedule",
-            color: overdueItems.length > 0 ? "var(--t-rust)" : "var(--t-sage)",
+            color: overdueItems.length > 0 ? THEME.rust : THEME.sage,
             Icon: AlertCircle,
           },
-        ].map(({ label, value, sub, color, Icon }) => (
-          <div
+        ].map(({ label, value, numericValue, formatValue, sub, color, Icon }) => (
+          <StatCard
             key={label}
-            className="card-lift"
-            style={{
-              background: "var(--t-card-bg)",
-              border: `1px solid var(--t-line)`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                <Icon size={22} />
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  color: "var(--t-muted)",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 26,
-                fontWeight: 600,
-                color: "var(--t-ink)",
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-            {sub && (
-              <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>
-            )}
-          </div>
+            label={label}
+            value={value}
+            numericValue={numericValue}
+            formatValue={formatValue}
+            icon={<Icon />}
+            color={color}
+            sub={sub}
+          />
         ))}
       </div>
       <Grid>
@@ -6848,81 +6633,51 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
         {[
           {
             label: isBorrowed ? "Total Borrowed" : "Total Lent",
-            value: <Money value={totalBorrowed} variant="full" />,
+            value: fmtINRFull(totalBorrowed),
+            numericValue: totalBorrowed,
+            formatValue: fmtINRFull,
             sub: "Principal amount",
-            color: isBorrowed ? "var(--t-rust)" : "var(--t-accent)",
+            color: isBorrowed ? THEME.rust : THEME.accent,
             Icon: isBorrowed ? TrendingDown : TrendingUp,
           },
           {
             label: isBorrowed ? "Total Repaid" : "Received Back",
-            value: <Money value={totalPaid} variant="full" />,
+            value: fmtINRFull(totalPaid),
+            numericValue: totalPaid,
+            formatValue: fmtINRFull,
             sub: "Payment history",
-            color: "var(--t-sage)",
+            color: THEME.sage,
             Icon: CheckCircle2,
           },
           {
             label: "Outstanding",
-            value: <Money value={totalOutstanding} variant="full" />,
+            value: fmtINRFull(totalOutstanding),
+            numericValue: totalOutstanding,
+            formatValue: fmtINRFull,
             sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled",
-            color: totalOutstanding > 0 ? accentColor : "var(--t-sage)",
+            color: totalOutstanding > 0 ? accentColor : THEME.sage,
             Icon: Wallet,
           },
           {
             label: "Overdue",
             value: String(overdueCount),
+            numericValue: overdueCount,
+            formatValue: (n: number) => String(Math.round(n)),
             sub: overdueCount > 0 ? "Require follow-up" : "All on schedule",
-            color: overdueCount > 0 ? "var(--t-rust)" : "var(--t-sage)",
+            color: overdueCount > 0 ? THEME.rust : THEME.sage,
             Icon: AlertCircle,
           },
-        ].map(({ label, value, sub, color, Icon }) => (
-          <div
+        ].map(({ label, value, numericValue, formatValue, sub, color, Icon }) => (
+          <StatCard
             key={label}
-            className="card-lift"
-            style={{
-              background: "var(--t-card-bg)",
-              border: `1px solid var(--t-line)`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                <Icon size={22} />
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  color: "var(--t-muted)",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 26,
-                fontWeight: 600,
-                color: "var(--t-ink)",
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-            {sub && (
-              <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>
-            )}
-          </div>
+            label={label}
+            value={value}
+            numericValue={numericValue}
+            formatValue={formatValue}
+            icon={<Icon />}
+            color={color}
+            sub={sub}
+          />
         ))}
       </div>
       {items.length > 0 && (

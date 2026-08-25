@@ -1222,48 +1222,17 @@ export const CapitalGainsTab = ({
             icon: <BarChart3 />,
           },
         ].map((g) => (
-          <div
+          <StatCard
             key={g.key}
-            style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
-              borderTop: `4px solid ${g.color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", color: g.color, flexShrink: 0 }}>
-                {React.cloneElement(g.icon, { size: 18 })}
-              </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {g.label}
-              </span>
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 20,
-                fontWeight: 600,
-                color: byType.totals[g.key] >= 0 ? THEME.sage : THEME.rust,
-                letterSpacing: "-0.03em",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <Money value={byType.totals[g.key]} variant="full" />
-            </div>
-            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-              Tax @ {g.rate} · {byType.groups[g.key].length} txns
-            </div>
-          </div>
+            label={g.label}
+            value={fmtINRFull(byType.totals[g.key])}
+            numericValue={byType.totals[g.key]}
+            formatValue={fmtINRFull}
+            icon={g.icon}
+            color={g.color}
+            valueColor={byType.totals[g.key] >= 0 ? THEME.sage : THEME.rust}
+            sub={`Tax @ ${g.rate} · ${byType.groups[g.key].length} txns`}
+          />
         ))}
       </div>
 

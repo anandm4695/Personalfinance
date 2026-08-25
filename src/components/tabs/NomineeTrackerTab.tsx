@@ -32,7 +32,6 @@ import {
 } from "../../utils/nomineeTracker";
 import { Prv } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -42,85 +41,12 @@ import { EmptyState } from "../ui/EmptyState";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input, Select } from "../ui/Form";
 import { ConfirmDialog } from "../ui/Feedback";
+import { StatCard } from "../ui/StatCard";
 
 const CONTACT_ROLES = ["Lawyer", "CA", "Financial Advisor", "Insurance Agent", "Other"];
 
 type FilterMode = "all" | "missing" | "covered";
 type ViewMode = "asset" | "nominee";
-
-/* ─── Premium Nominee Bento Card ─────────────────────────────────── */
-const NomineeStatCard = ({
-  label,
-  value,
-  sub,
-  subColor,
-  icon: Icon,
-  color,
-  numericValue,
-  formatValue,
-  mask,
-}: any) => {
-  const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
-  const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
-  const rawDisplayValue = hasAnimation ? formatValue(animated) : value;
-  const displayValue = mask ? <Prv>{rawDisplayValue}</Prv> : rawDisplayValue;
-  return (
-    <div
-      className="card-lift"
-      style={{
-        background: "var(--t-card-bg)",
-        border: `1.5px solid ${THEME.line}`,
-        borderTop: `4px solid ${color || THEME.accent}`,
-        borderRadius: 16,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        gap: 12,
-        transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", color: color || THEME.accent, flexShrink: 0 }}>
-          {Icon}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-      <div>
-        <span
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 24,
-            fontWeight: 600,
-            color: THEME.ink,
-            letterSpacing: "-0.03em",
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {displayValue}
-        </span>
-        {sub && (
-          <div
-            style={{ fontSize: 12, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}
-          >
-            {sub}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 export const NomineeTrackerTab = ({
   state,
@@ -516,33 +442,34 @@ export const NomineeTrackerTab = ({
             gap: 16,
           }}
         >
-          <NomineeStatCard
+          <StatCard
             label="Assets Covered"
             value={String(coveredAssets.length)}
             numericValue={coveredAssets.length}
             formatValue={(n) => String(Math.round(n))}
+            maskInPrivacyMode={false}
             sub={`of ${totalAssets} total`}
-            icon={<ShieldCheck size={16} />}
+            icon={<ShieldCheck />}
             color={THEME.sage}
           />
-          <NomineeStatCard
+          <StatCard
             label="Without Nominee"
             value={String(missingAssets.length)}
             numericValue={missingAssets.length}
             formatValue={(n) => String(Math.round(n))}
+            maskInPrivacyMode={false}
             sub={missingAssets.length === 0 ? "None remaining" : "Action needed"}
             subColor={missingAssets.length > 0 ? THEME.rust : undefined}
-            icon={<ShieldAlert size={16} />}
+            icon={<ShieldAlert />}
             color={missingAssets.length > 0 ? THEME.rust : THEME.sage}
           />
-          <NomineeStatCard
+          <StatCard
             label="Value at Risk"
-            value={<Money value={valueAtRisk} variant="full" />}
+            value={fmtINRFull(valueAtRisk)}
             numericValue={valueAtRisk}
             formatValue={fmtINRFull}
-            mask
             sub="Without nominee protection"
-            icon={<AlertTriangle size={16} />}
+            icon={<AlertTriangle />}
             color={THEME.gold}
           />
         </div>

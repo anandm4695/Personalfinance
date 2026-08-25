@@ -1506,106 +1506,61 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         {[
           {
             label: "Total Invested",
-            value: <Money value={totalPrincipal} variant="full" />,
+            value: fmtINRFull(totalPrincipal),
+            numericValue: totalPrincipal,
+            formatValue: fmtINRFull,
             color: THEME.accent,
             Icon: IndianRupee,
           },
           {
             label: "Current Value",
-            value: <Money value={totalCurrent} variant="full" />,
+            value: fmtINRFull(totalCurrent),
+            numericValue: totalCurrent,
+            formatValue: fmtINRFull,
             color: THEME.sage,
             Icon: TrendingUp,
           },
           {
             label: "Net Returns",
-            value: (
-              <>
-                {netGain >= 0 ? "+" : "-"}
-                <Money value={Math.abs(netGain)} variant="full" />
-              </>
-            ),
+            value: `${netGain >= 0 ? "+" : "-"}${fmtINRFull(Math.abs(netGain))}`,
+            numericValue: netGain,
+            formatValue: (n: number) => `${n >= 0 ? "+" : "-"}${fmtINRFull(Math.abs(n))}`,
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: netGain >= 0 ? TrendingUp : TrendingDown,
           },
           {
             label: "Return %",
             value: `${netGain >= 0 ? "+" : "-"}${Math.abs(gainPct).toFixed(1)}%`,
+            numericValue: gainPct,
+            formatValue: (n: number) => `${n >= 0 ? "+" : "-"}${Math.abs(n).toFixed(1)}%`,
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: Activity,
+            sub: netGain >= 0 ? "▲ Gain" : "▼ Loss",
           },
           {
             label: "Instruments",
             value: String(
               subs.filter((s) => s.id !== "income").reduce((sum, s) => sum + (s.count ?? 0), 0)
             ),
+            numericValue: subs
+              .filter((s) => s.id !== "income")
+              .reduce((sum, s) => sum + (s.count ?? 0), 0),
+            formatValue: (n: number) => String(Math.round(n)),
             color: THEME.muted,
             Icon: BarChart3,
           },
-        ].map(({ label, value, color, Icon }) => (
-          <div
+        ].map(({ label, value, numericValue, formatValue, color, Icon, sub }) => (
+          <StatCard
             key={label}
-            className="card-lift"
-            style={{
-              background: "var(--t-card-bg)",
-              border: `1.5px solid ${THEME.line}`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 16,
-              padding: "20px 22px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-              transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                <Icon size={22} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase" as const,
-                    letterSpacing: "0.1em",
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
-              {label === "Return %" && (
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    padding: "2px 6px",
-                    borderRadius: "var(--radius-xs)",
-                    background: `color-mix(in srgb, ${netGain >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
-                    color: netGain >= 0 ? THEME.sage : THEME.rust,
-                    marginLeft: "auto",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  {netGain >= 0 ? "▲ GAIN" : "▼ LOSS"}
-                </span>
-              )}
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 28,
-                fontWeight: 600,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-          </div>
+            label={label}
+            value={value}
+            numericValue={numericValue}
+            formatValue={formatValue}
+            icon={<Icon />}
+            color={color}
+            sub={sub}
+            subColor={color}
+          />
         ))}
       </div>
 
@@ -2777,75 +2732,46 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
             {[
               {
                 label: "Total Invested",
-                value: <Money value={totalInvested} variant="full" />,
+                value: fmtINRFull(totalInvested),
+                numericValue: totalInvested,
+                formatValue: fmtINRFull,
                 color: FD_AMBER,
                 Icon: IndianRupee,
               },
               {
                 label: "Total Maturity",
-                value: <Money value={totalMaturity} variant="full" />,
+                value: fmtINRFull(totalMaturity),
+                numericValue: totalMaturity,
+                formatValue: fmtINRFull,
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
               {
                 label: "Avg. Rate",
                 value: `${avgRate.toFixed(2)}%`,
+                numericValue: avgRate,
+                formatValue: (n: number) => `${n.toFixed(2)}%`,
                 color: THEME.accent,
                 Icon: Activity,
               },
               {
                 label: maturedCount > 0 ? `${maturedCount} Matured` : "FDs Active",
                 value: String(items.length - maturedCount),
+                numericValue: items.length - maturedCount,
+                formatValue: (n: number) => String(Math.round(n)),
                 color: maturedCount > 0 ? THEME.rust : THEME.sage,
                 Icon: BarChart3,
               },
-            ].map(({ label, value, color, Icon }) => (
-              <div
+            ].map(({ label, value, numericValue, formatValue, color, Icon }) => (
+              <StatCard
                 key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--t-card-bg)",
-                  border: `1.5px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 16,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                    <Icon size={20} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 22,
-                    fontWeight: 600,
-                    color: THEME.ink,
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-              </div>
+                label={label}
+                value={value}
+                numericValue={numericValue}
+                formatValue={formatValue}
+                icon={<Icon />}
+                color={color}
+              />
             ))}
           </div>
 
@@ -3164,75 +3090,46 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                 {[
                   {
                     label: "Monthly SIP Total",
-                    value: <Money value={totalMonthly} variant="full" />,
+                    value: fmtINRFull(totalMonthly),
+                    numericValue: totalMonthly,
+                    formatValue: fmtINRFull,
                     color: RD_BLUE,
                     Icon: Repeat,
                   },
                   {
                     label: "Total Deposited",
-                    value: <Money value={totalDeposited} variant="full" />,
+                    value: fmtINRFull(totalDeposited),
+                    numericValue: totalDeposited,
+                    formatValue: fmtINRFull,
                     color: THEME.accent,
                     Icon: IndianRupee,
                   },
                   {
                     label: "Projected Maturity",
-                    value: <Money value={totalMaturity} variant="full" />,
+                    value: fmtINRFull(totalMaturity),
+                    numericValue: totalMaturity,
+                    formatValue: fmtINRFull,
                     color: THEME.sage,
                     Icon: TrendingUp,
                   },
                   {
                     label: "RDs Active",
                     value: String(activeCount),
+                    numericValue: activeCount,
+                    formatValue: (n: number) => String(Math.round(n)),
                     color: activeCount > 0 ? THEME.sage : THEME.muted,
                     Icon: BarChart3,
                   },
-                ].map(({ label, value, color, Icon }) => (
-                  <div
+                ].map(({ label, value, numericValue, formatValue, color, Icon }) => (
+                  <StatCard
                     key={label}
-                    className="card-lift"
-                    style={{
-                      background: "var(--t-card-bg)",
-                      border: `1.5px solid ${THEME.line}`,
-                      borderTop: `4px solid ${color}`,
-                      borderRadius: 16,
-                      padding: "18px 20px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                        <Icon size={20} />
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: THEME.muted,
-                          textTransform: "uppercase" as const,
-                          letterSpacing: "0.1em",
-                        }}
-                      >
-                        {label}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 22,
-                        fontWeight: 600,
-                        color: THEME.ink,
-                        letterSpacing: "-0.03em",
-                        lineHeight: 1,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {value}
-                    </div>
-                  </div>
+                    label={label}
+                    value={value}
+                    numericValue={numericValue}
+                    formatValue={formatValue}
+                    icon={<Icon />}
+                    color={color}
+                  />
                 ))}
               </div>
             );
@@ -10611,44 +10508,46 @@ function MFSection({
             {[
               {
                 label: "Total Invested",
-                value: <Money value={totalInvested} variant="full" />,
+                value: fmtINRFull(totalInvested),
+                numericValue: totalInvested,
+                formatValue: fmtINRFull,
                 color: THEME.accent,
                 Icon: IndianRupee,
               },
               {
                 label: "Current Value",
-                value: <Money value={totalCurrent} variant="full" />,
+                value: fmtINRFull(totalCurrent),
+                numericValue: totalCurrent,
+                formatValue: fmtINRFull,
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
               {
                 label: "Day's P&L",
-                value: hasDaysPnLData ? (
-                  <>
-                    {totalDaysPnL >= 0 ? "+" : ""}
-                    <Money value={totalDaysPnL} variant="full" /> ({totalDaysPnL >= 0 ? "+" : ""}
-                    {totalDaysPnLPct.toFixed(2)}%)
-                  </>
-                ) : (
-                  "—"
-                ),
+                value: hasDaysPnLData
+                  ? `${totalDaysPnL >= 0 ? "+" : ""}${fmtINRFull(totalDaysPnL)} (${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}%)`
+                  : "—",
+                numericValue: hasDaysPnLData ? totalDaysPnL : undefined,
+                formatValue: hasDaysPnLData
+                  ? (n: number) =>
+                      `${n >= 0 ? "+" : ""}${fmtINRFull(n)} (${n >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}%)`
+                  : undefined,
                 color: !hasDaysPnLData ? THEME.muted : totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
                 Icon: Activity,
               },
               {
                 label: "Overall P&L",
-                value: (
-                  <>
-                    {totalPnl >= 0 ? "+" : ""}
-                    <Money value={Math.abs(totalPnl)} variant="full" />
-                  </>
-                ),
+                value: `${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`,
+                numericValue: totalPnl,
+                formatValue: (n: number) => `${n >= 0 ? "+" : ""}${fmtINRFull(Math.abs(n))}`,
                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                 Icon: totalPnl >= 0 ? TrendingUp : TrendingDown,
               },
               {
                 label: "Return %",
                 value: `${totalPnl >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%`,
+                numericValue: totalPnlPct,
+                formatValue: (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`,
                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                 Icon: Activity,
               },
@@ -10658,57 +10557,25 @@ function MFSection({
                   overallXirr !== null
                     ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%`
                     : "—",
+                numericValue: overallXirr !== null ? overallXirr : undefined,
+                formatValue:
+                  overallXirr !== null
+                    ? (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
+                    : undefined,
                 color:
                   overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust,
                 Icon: TrendingUp,
               },
-            ].map(({ label, value, color, Icon }) => (
-              <div
+            ].map(({ label, value, numericValue, formatValue, color, Icon }) => (
+              <StatCard
                 key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--t-card-bg)",
-                  border: `1.5px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 16,
-                  padding: "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  transition: "border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                    <Icon size={20} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 22,
-                    fontWeight: 600,
-                    color: THEME.ink,
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-              </div>
+                label={label}
+                value={value}
+                numericValue={numericValue}
+                formatValue={formatValue}
+                icon={<Icon />}
+                color={color}
+              />
             ))}
           </div>
 
@@ -14431,12 +14298,14 @@ const YieldTracker = ({ state }: any) => {
         {[
           {
             label: "Annual Yield",
-            value: <Money value={totalAnnual} variant="full" />,
+            value: fmtINRFull(totalAnnual),
+            numericValue: totalAnnual,
+            formatValue: fmtINRFull,
             sub:
               estimatedAnnual > 0 ? (
                 <>
-                  <Money value={contractualAnnual} variant="full" /> contractual +{" "}
-                  <Money value={estimatedAnnual} variant="full" /> est. NPS growth
+                  {fmtINRFull(contractualAnnual)} contractual + {fmtINRFull(estimatedAnnual)} est.
+                  NPS growth
                 </>
               ) : (
                 "Interest, coupons & dividends combined"
@@ -14446,14 +14315,18 @@ const YieldTracker = ({ state }: any) => {
           },
           {
             label: "Monthly Income",
-            value: <Money value={totalMonthly} variant="full" />,
+            value: fmtINRFull(totalMonthly),
+            numericValue: totalMonthly,
+            formatValue: fmtINRFull,
             sub: "Average cash flow / month",
             color: THEME.sage,
             Icon: Receipt,
           },
           {
             label: "Daily Passive",
-            value: <Money value={totalAnnual / 365} variant="full" />,
+            value: fmtINRFull(totalAnnual / 365),
+            numericValue: totalAnnual / 365,
+            formatValue: fmtINRFull,
             sub: "₹ earned every day",
             color: THEME.gold,
             Icon: Zap,
@@ -14461,57 +14334,23 @@ const YieldTracker = ({ state }: any) => {
           {
             label: "Income Streams",
             value: String(streams.length),
+            numericValue: streams.length,
+            formatValue: (n: number) => String(Math.round(n)),
             sub: "Active yielding instruments",
             color: THEME.accent,
             Icon: Target,
           },
-        ].map(({ label, value, sub, color, Icon }) => (
-          <div
+        ].map(({ label, value, numericValue, formatValue, sub, color, Icon }) => (
+          <StatCard
             key={label}
-            className="card-lift"
-            style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-                <Icon size={22} />
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 26,
-                fontWeight: 600,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-          </div>
+            label={label}
+            value={value}
+            numericValue={numericValue}
+            formatValue={formatValue}
+            icon={<Icon />}
+            color={color}
+            sub={sub}
+          />
         ))}
       </div>
 

@@ -47,7 +47,8 @@ const Sparkline = ({
 interface StatCardProps {
   label: string;
   value: string;
-  sub?: string;
+  /** Usually a short string; also accepts a node (e.g. a Badge) for a categorical assessment instead of plain text. */
+  sub?: React.ReactNode;
   subColor?: string;
   icon: React.ReactNode;
   color: string;
@@ -60,6 +61,11 @@ interface StatCardProps {
   maskInPrivacyMode?: boolean;
   /** Optional trend history — renders a small sparkline to the right of the label. */
   sparklineData?: number[];
+  /** Optional override for the big value's color (defaults to ink) — e.g. sage/rust for a gain-or-loss figure whose sign is independent of the card's own category accent color. */
+  valueColor?: string;
+  /** Makes the card a selectable filter/drill-down control instead of a plain display tile — adds button semantics, keyboard support, and an accent outer border when `active`. */
+  onClick?: () => void;
+  active?: boolean;
 }
 
 export const StatCard = ({
@@ -75,6 +81,9 @@ export const StatCard = ({
   formatValue,
   maskInPrivacyMode = true,
   sparklineData,
+  valueColor,
+  onClick,
+  active,
 }: StatCardProps) => {
   const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
   const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
@@ -92,15 +101,30 @@ export const StatCard = ({
     <div
       className="spotlight-wrapper card-lift"
       onMouseMove={handleMouseMove}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      aria-pressed={onClick ? !!active : undefined}
       style={{
         background: "var(--t-card-bg)",
-        border: "1px solid var(--t-line)",
+        border: `1px solid ${active ? borderColor || color : "var(--t-line)"}`,
         borderLeft: `2.5px solid ${borderColor || color}`,
         borderRadius: 10,
         padding: "18px 20px",
         display: "flex",
         flexDirection: "column",
         gap: 10,
+        cursor: onClick ? "pointer" : undefined,
         transition: "border-color 0.25s var(--ease-premium)",
       }}
     >
@@ -143,7 +167,7 @@ export const StatCard = ({
             fontFamily: "var(--font-display)",
             fontSize: 27,
             fontWeight: 600,
-            color: "var(--t-ink)",
+            color: valueColor || "var(--t-ink)",
             letterSpacing: "-0.01em",
             lineHeight: 1.1,
             fontVariantNumeric: "tabular-nums",

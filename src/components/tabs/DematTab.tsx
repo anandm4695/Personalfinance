@@ -1944,7 +1944,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               className="demat-stat-card-glow"
               style={{
                 padding: "18px 20px",
-                borderTop: `4px solid ${THEME.accent}`,
+                borderLeft: `2.5px solid ${THEME.accent}`,
+                borderRadius: 10,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -2024,7 +2025,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               className="demat-stat-card-glow"
               style={{
                 padding: "18px 20px",
-                borderTop: `4px solid ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust}`,
+                borderLeft: `2.5px solid ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust}`,
+                borderRadius: 10,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -2093,7 +2095,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               className="demat-stat-card-glow"
               style={{
                 padding: "18px 20px",
-                borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                borderLeft: `2.5px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                borderRadius: 10,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -2161,7 +2164,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               hover
               style={{
                 padding: "18px 20px",
-                borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
+                borderLeft: `2.5px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
+                borderRadius: 10,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -4189,7 +4193,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   hover
                   style={{
                     padding: "18px 20px",
-                    borderTop: `4px solid ${THEME.accent}`,
+                    borderLeft: `2.5px solid ${THEME.accent}`,
+                    borderRadius: 10,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -4246,7 +4251,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   hover
                   style={{
                     padding: "18px 20px",
-                    borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                    borderLeft: `2.5px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                    borderRadius: 10,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -4316,7 +4322,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   hover
                   style={{
                     padding: "18px 20px",
-                    borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                    borderLeft: `2.5px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                    borderRadius: 10,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -4378,7 +4385,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   hover
                   style={{
                     padding: "18px 20px",
-                    borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
+                    borderLeft: `2.5px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
+                    borderRadius: 10,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
