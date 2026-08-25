@@ -1278,7 +1278,9 @@ button[style*="border:1.5px solid"]:not([disabled]):hover {
    inline pattern with no hover feedback of their own — give them a
    universal subtle tint without touching each file individually. */
 button[style*="background: none"]:not([disabled]):hover,
-button[style*="background:none"]:not([disabled]):hover {
+button[style*="background:none"]:not([disabled]):hover,
+button[style*="background: transparent"]:not([disabled]):hover,
+button[style*="background:transparent"]:not([disabled]):hover {
   background: color-mix(in srgb, var(--t-accent) 9%, transparent) !important;
   border-radius: 6px;
 }
