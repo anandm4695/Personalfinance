@@ -20,8 +20,6 @@ import {
   Calendar,
   Hash,
   Building,
-  SortAsc,
-  SortDesc,
   Fingerprint,
   Landmark,
   ShieldCheck,
@@ -2985,7 +2983,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
             >
               {s.label}
               {sortBy === s.key &&
-                (sortDir === "asc" ? <SortAsc size={11} /> : <SortDesc size={11} />)}
+                (sortDir === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
             </button>
           ))}
         </div>

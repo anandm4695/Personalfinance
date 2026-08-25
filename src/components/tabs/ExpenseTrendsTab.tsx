@@ -7,16 +7,16 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
+  ChevronUp,
   ChevronDown,
   ChevronRight,
+  ArrowUpDown,
   AlertTriangle,
   BarChart2,
   Wallet,
   Activity,
   ShieldAlert,
   Layers,
-  ArrowUp,
-  ArrowDown,
   Package,
   Search,
   Download,
@@ -535,8 +535,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
   };
 
   const SortIcon = ({ col }: { col: string }) => {
-    if (sortCol !== col) return <ChevronDown size={10} style={{ opacity: 0.3 }} />;
-    return sortDir === "asc" ? <ArrowUp size={10} /> : <ArrowDown size={10} />;
+    if (sortCol !== col) return <ArrowUpDown size={10} style={{ opacity: 0.3 }} />;
+    return sortDir === "asc" ? <ChevronUp size={10} /> : <ChevronDown size={10} />;
   };
 
   if (!txns.length) {

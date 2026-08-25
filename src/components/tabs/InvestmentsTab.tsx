@@ -11337,7 +11337,7 @@ function MFSection({
                                             }}
                                           >
                                             {grpXirr >= 0 ? "+" : ""}
-                                            {grpXirr.toFixed(1)}% XIRR
+                                            {grpXirr.toFixed(2)}% XIRR
                                           </div>
                                         )}
                                       </>

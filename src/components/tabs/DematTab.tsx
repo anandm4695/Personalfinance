@@ -21,6 +21,7 @@ import {
   Percent,
   ArrowLeftRight,
   RefreshCw,
+  ChevronUp,
   ChevronDown,
   ChevronRight,
   Pencil,
@@ -30,8 +31,6 @@ import {
   Search,
   PieChart as PieIcon,
   Activity,
-  ArrowUp,
-  ArrowDown,
   Star,
   X,
   Upload,
@@ -3171,7 +3170,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 }}
                               >
                                 {stockXirr >= 0 ? "+" : ""}
-                                {stockXirr.toFixed(1)}% XIRR
+                                {stockXirr.toFixed(2)}% XIRR
                               </div>
                             )}
                           </td>
@@ -3600,9 +3599,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           >
                                             Period{" "}
                                             {(lotSortDir[yfSym] ?? "asc") === "asc" ? (
-                                              <ArrowUp size={9} />
+                                              <ChevronUp size={9} />
                                             ) : (
-                                              <ArrowDown size={9} />
+                                              <ChevronDown size={9} />
                                             )}
                                           </span>
                                         </th>
@@ -5439,7 +5438,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   CAGR:
                                 </span>
                                 {portfolioCagr !== null
-                                  ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(1)}%`
+                                  ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(2)}%`
                                   : "N/A"}
                               </td>
                             </tr>
