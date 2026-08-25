@@ -1287,6 +1287,20 @@ button[style*="background:transparent"]:not([disabled]):hover {
   border-radius: 6px;
 }
 
+/* ── role="button" rows/headers on non-<button> elements ──────────
+   Collapsible section headers, sortable table headers, and similar
+   clickable divs/spans/ths use role="button" instead of a real
+   <button> and often have no hover feedback of their own — unlike the
+   rules above, this can't key off a specific literal background/border
+   string since these carry every kind of resting background (none,
+   transparent, a semantic color-mix tint, inherited from a parent
+   card). An inset shadow composites over whatever's already there
+   instead of replacing it, and mixing toward --t-ink darkens in light
+   mode and lightens in dark mode automatically. */
+[role="button"]:not(button):not([disabled]):hover {
+  box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--t-ink) 5%, transparent);
+}
+
 /* ── Tab navigation active indicator ──────────────────────────── */
 .desktop-tab-nav button {
   position: relative;
