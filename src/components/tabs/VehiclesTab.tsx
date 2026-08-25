@@ -3372,7 +3372,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
   );
   const confirmDeleteVehicle = (id: string) => {
     setConfirmAction({
-      message: "Delete this vehicle and all its service records?",
+      message: "Delete this vehicle and all its service records? This cannot be undone.",
       onConfirm: () => handleDeleteVehicle(id),
     });
   };
@@ -3409,7 +3409,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
   );
   const confirmDeleteService = (vehicleId: string, serviceId: string) => {
     setConfirmAction({
-      message: "Are you sure you want to delete this service record?",
+      message: "Delete this service record? This cannot be undone.",
       onConfirm: () => handleDeleteService(vehicleId, serviceId),
     });
   };
@@ -3460,7 +3460,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
   );
   const confirmDeleteInsurance = (vehicleId: string, insuranceId: string) => {
     setConfirmAction({
-      message: "Are you sure you want to delete this insurance record?",
+      message: "Delete this insurance record? This cannot be undone.",
       onConfirm: () => handleDeleteInsurance(vehicleId, insuranceId),
     });
   };

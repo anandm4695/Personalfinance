@@ -930,7 +930,7 @@ export function GovtSchemesTab({
       )}
       {confirmDeleteId && (
         <ConfirmDialog
-          message="Delete this scheme?"
+          message="Delete this scheme? This cannot be undone."
           onConfirm={() => {
             deleteScheme(confirmDeleteId);
             setConfirmDeleteId(null);

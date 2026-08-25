@@ -1340,7 +1340,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
       )}
       {confirmDeleteId && (
         <ConfirmDialog
-          message="Delete this salary slip?"
+          message="Delete this salary slip? This cannot be undone."
           onConfirm={() => {
             deleteSlip(confirmDeleteId);
             setConfirmDeleteId(null);

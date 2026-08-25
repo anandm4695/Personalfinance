@@ -1292,7 +1292,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
       )}
       {confirmDelete && (
         <ConfirmDialog
-          message={`Delete goal "${confirmDelete.name}"?`}
+          message={`Delete goal "${confirmDelete.name}"? This cannot be undone.`}
           onConfirm={() => {
             deleteGoal(confirmDelete.id);
             setConfirmDelete(null);

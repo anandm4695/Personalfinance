@@ -5795,7 +5795,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         onClick={(e) => {
                           e.stopPropagation();
                           setConfirmAction({
-                            message: `Delete watchlist "${wl.name}" and all its stocks?`,
+                            message: `Delete watchlist "${wl.name}" and all its stocks? This cannot be undone.`,
                             onConfirm: () => {
                               removeItem("wishlists", wl.id);
                               if (expandedWishlistId === wl.id) setExpandedWishlistId(null);

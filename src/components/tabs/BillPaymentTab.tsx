@@ -558,7 +558,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                     <button
                       onClick={() =>
                         setConfirmAction({
-                          message: `Delete "${b.nickname || b.provider}"?`,
+                          message: `Delete "${b.nickname || b.provider}"? This cannot be undone.`,
                           onConfirm: () => deleteBill(b.id),
                         })
                       }

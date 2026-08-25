@@ -2414,7 +2414,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <button
                           onClick={() =>
                             setConfirmDeletePolicy({
-                              message: `Delete "${l.planName}" policy?`,
+                              message: `Delete "${l.planName}" policy? This cannot be undone.`,
                               key: "lic",
                               id: l.id,
                             })
@@ -2743,7 +2743,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <button
                           onClick={() =>
                             setConfirmDeletePolicy({
-                              message: `Delete "${t.planName || "Term Plan"}"?`,
+                              message: `Delete "${t.planName || "Term Plan"}"? This cannot be undone.`,
                               key: "termPlans",
                               id: t.id,
                             })
@@ -3078,7 +3078,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <button
                           onClick={() =>
                             setConfirmDeletePolicy({
-                              message: `Delete "${ip.planName || "Investment Plan"}"?`,
+                              message: `Delete "${ip.planName || "Investment Plan"}"? This cannot be undone.`,
                               key: "investmentPlans",
                               id: ip.id,
                             })

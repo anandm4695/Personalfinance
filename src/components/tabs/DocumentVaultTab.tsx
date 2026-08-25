@@ -43,6 +43,7 @@ import { Field, Input, Select } from "../ui/Form";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
+import { ConfirmDialog } from "../ui/Feedback";
 import { Prv } from "../../context/PrivacyContext";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
@@ -989,6 +990,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
   const [removeExistingFile, setRemoveExistingFile] = useState(false);
   const [fileError, setFileError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // ── Computed ────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -1375,8 +1377,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this document?")) return;
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const performDelete = async (id: string) => {
     const doc = documents.find((d) => d.id === id);
     try {
       await removeItem("documents", id);
@@ -1385,6 +1390,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
       }
     } catch (err: any) {
       showToast?.(`Failed to delete document: ${err?.message || "Unknown error"}`, "error");
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -3146,6 +3153,13 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
       {showModal && renderModal()}
       {renderRenewModal()}
       {renderDetailModal()}
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message={`Delete "${documents.find((d) => d.id === confirmDeleteId)?.name || "this document"}"? This cannot be undone.`}
+          onConfirm={() => performDelete(confirmDeleteId)}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1164,7 +1164,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
       )}
       {confirmDeleteId && (
         <ConfirmDialog
-          message="Delete this entry?"
+          message="Delete this entry? This cannot be undone."
           onConfirm={() => {
             deleteScore(confirmDeleteId);
             setConfirmDeleteId(null);

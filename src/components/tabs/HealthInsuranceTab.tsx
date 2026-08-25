@@ -597,7 +597,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
   );
   const removeClaim = (policy: any, claimId: string) => {
     setConfirmAction({
-      message: "Delete this claim record?",
+      message: "Delete this claim record? This cannot be undone.",
       onConfirm: () => removeClaimRun(policy, claimId),
     });
   };
@@ -854,7 +854,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                     <button
                       onClick={() =>
                         setConfirmAction({
-                          message: `Delete "${p.insurer}" policy?`,
+                          message: `Delete "${p.insurer}" policy? This cannot be undone.`,
                           onConfirm: () => deletePolicy(p.id),
                         })
                       }
