@@ -41,12 +41,12 @@ import {
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { fmtINR, fmtINRFull, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /* ─── STYLES ──────────────────────────────────────────────────────────────── */
 
@@ -226,85 +226,6 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
         </div>
       ))}
     </div>
-  );
-};
-
-/* ─── Premium Stat Card ───────────────────────────────────────── */
-const PremiumStatCard = ({
-  label,
-  value,
-  color,
-  icon: Icon,
-  sub,
-  subColor,
-  numericValue,
-  formatValue,
-}: any) => {
-  const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
-  const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
-  const displayValue = hasAnimation ? formatValue(animated) : value;
-  return (
-  <div
-    className="card-lift"
-    style={{
-      background: "var(--t-card-bg)",
-      border: `1.5px solid ${THEME.line}`,
-      borderTop: `4px solid ${color}`,
-      borderRadius: 16,
-      padding: "18px 20px",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-      gap: 12,
-      transition: "border-color 0.2s var(--ease-premium)",
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", color, flexShrink: 0 }}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: THEME.muted,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-          }}
-        >
-          {label}
-        </div>
-        {sub && (
-          <div
-            style={{
-              fontSize: 10,
-              color: subColor || THEME.muted,
-              fontWeight: subColor ? 700 : 400,
-              marginTop: 2,
-              opacity: subColor ? 1 : 0.8,
-            }}
-          >
-            {sub}
-          </div>
-        )}
-      </div>
-    </div>
-    <div
-      style={{
-        fontFamily: "var(--font-display)",
-        fontSize: 26,
-        fontWeight: 600,
-        color: THEME.ink,
-        letterSpacing: "-0.04em",
-        lineHeight: 1,
-        fontVariantNumeric: "tabular-nums",
-        marginTop: 4,
-      }}
-    >
-      <Prv>{displayValue}</Prv>
-    </div>
-  </div>
   );
 };
 
@@ -735,50 +656,50 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           gap: 14,
         }}
       >
-        <PremiumStatCard
+        <StatCard
           label="Total Spend"
           value={fmtINRFull(summary.totalSpend)}
           numericValue={summary.totalSpend}
           formatValue={fmtINRFull}
-          icon={Wallet}
+          icon={<Wallet />}
           color={PIE_COLORS[3]}
           sub={`${monthLabel(getMonthKey(rangeStart))} – ${monthLabel(getMonthKey(rangeEnd))}`}
         />
-        <PremiumStatCard
+        <StatCard
           label="Avg Monthly"
           value={fmtINRFull(summary.avgMonthly)}
           numericValue={summary.avgMonthly}
           formatValue={fmtINRFull}
-          icon={Activity}
+          icon={<Activity />}
           color={PIE_COLORS[0]}
           sub={`Over ${monthlyData.length} month${monthlyData.length !== 1 ? "s" : ""}`}
         />
-        <PremiumStatCard
+        <StatCard
           label="Highest Month"
           value={fmtINRFull(summary.highestMonth.amount)}
           numericValue={summary.highestMonth.amount}
           formatValue={fmtINRFull}
-          icon={TrendingUp}
+          icon={<TrendingUp />}
           color={THEME.rust}
-          sub={summary.highestMonth.month ? fullMonthLabel(summary.highestMonth.month) : "--"}
+          sub={summary.highestMonth.month ? fullMonthLabel(summary.highestMonth.month) : "—"}
           subColor={THEME.rust}
         />
-        <PremiumStatCard
+        <StatCard
           label="Lowest Month"
           value={fmtINRFull(summary.lowestMonth.amount)}
           numericValue={summary.lowestMonth.amount}
           formatValue={fmtINRFull}
-          icon={TrendingDown}
+          icon={<TrendingDown />}
           color={THEME.sage}
-          sub={summary.lowestMonth.month ? fullMonthLabel(summary.lowestMonth.month) : "--"}
+          sub={summary.lowestMonth.month ? fullMonthLabel(summary.lowestMonth.month) : "—"}
           subColor={THEME.sage}
         />
-        <PremiumStatCard
+        <StatCard
           label="MoM Change"
           value={`${summary.momChange >= 0 ? "+" : ""}${summary.momChange.toFixed(1)}%`}
           numericValue={summary.momChange}
           formatValue={(n) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`}
-          icon={summary.momChange >= 0 ? ArrowUpRight : ArrowDownRight}
+          icon={summary.momChange >= 0 ? <ArrowUpRight /> : <ArrowDownRight />}
           color={summary.momChange >= 0 ? THEME.rust : THEME.sage}
           sub={summary.momChange >= 0 ? "Spending up" : "Spending down"}
           subColor={summary.momChange >= 0 ? THEME.rust : THEME.sage}

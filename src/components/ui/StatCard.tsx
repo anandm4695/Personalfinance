@@ -4,6 +4,46 @@ import { THEME } from "../../utils/constants";
 import { Prv } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
+// Small trend-line SVG used by the optional sparklineData prop below —
+// intentionally dependency-free (no Recharts) since it only ever needs to
+// draw one polyline at a fixed small size inside a stat card.
+const Sparkline = ({
+  data,
+  color,
+  width = 56,
+  height = 24,
+}: {
+  data: number[];
+  color: string;
+  width?: number;
+  height?: number;
+}) => {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min === 0 ? 1 : max - min;
+  const points = data
+    .map((val, idx) => {
+      const x = (idx / (data.length - 1)) * width;
+      const y = height - ((val - min) / range) * height;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  return (
+    <svg width={width} height={height} style={{ overflow: "visible", flexShrink: 0 }} className="no-print">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+};
+
 interface StatCardProps {
   label: string;
   value: string;
@@ -18,6 +58,8 @@ interface StatCardProps {
   formatValue?: (n: number) => string;
   /** Set false for non-financial/non-sensitive values (e.g. a theme name) that shouldn't blur in Privacy Mode. Defaults to true. */
   maskInPrivacyMode?: boolean;
+  /** Optional trend history — renders a small sparkline to the right of the label. */
+  sparklineData?: number[];
 }
 
 export const StatCard = ({
@@ -32,6 +74,7 @@ export const StatCard = ({
   numericValue,
   formatValue,
   maskInPrivacyMode = true,
+  sparklineData,
 }: StatCardProps) => {
   const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
   const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
@@ -66,6 +109,7 @@ export const StatCard = ({
           style={{
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
             gap: 7,
             color: "var(--t-muted)",
             // Reserves space for a 2-line label so the value below stays at the
@@ -76,18 +120,23 @@ export const StatCard = ({
             minHeight: 28,
           }}
         >
-          {React.cloneElement(icon as React.ReactElement, { size: 13, strokeWidth: 2.25 })}
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              lineHeight: 1.3,
-            }}
-          >
-            {label}
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            {React.cloneElement(icon as React.ReactElement, { size: 13, strokeWidth: 2.25 })}
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                lineHeight: 1.3,
+              }}
+            >
+              {label}
+            </div>
           </div>
+          {sparklineData && sparklineData.length >= 2 && (
+            <Sparkline data={sparklineData} color={borderColor || color} />
+          )}
         </div>
         <div
           style={{

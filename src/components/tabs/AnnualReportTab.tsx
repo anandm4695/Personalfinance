@@ -42,6 +42,7 @@ import { THEME, PIE_COLORS, ASSET_CLASS_COLORS } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
 import { fmtINR, fmtINRFull, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -50,7 +51,6 @@ import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { isLongTerm, isEquityMF } from "./CapitalGainsTab";
 import { computeNetWorthAsOf } from "../../utils/netWorthAsOf";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /* ══════════════════════════════════════════════════════════════════
    HELPERS & PREMIUM CONTROLS
@@ -241,44 +241,6 @@ const InfoBanner = ({ children }: any) => (
   </div>
 );
 
-/* ── Premium SVG Sparkline ─────────────────────────────────────── */
-const Sparkline = ({
-  data,
-  color,
-  width = 80,
-  height = 30,
-}: {
-  data: number[];
-  color: string;
-  width?: number;
-  height?: number;
-}) => {
-  if (!data || data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min === 0 ? 1 : max - min;
-  const points = data
-    .map((val, idx) => {
-      const x = (idx / (data.length - 1)) * width;
-      const y = height - ((val - min) / range) * height;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <svg width={width} height={height} style={{ overflow: "visible" }} className="no-print">
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points}
-      />
-    </svg>
-  );
-};
-
 /* ── Premium SVG Circular Progress ────────────────────────────── */
 const CircularProgress = ({
   pct,
@@ -372,98 +334,6 @@ const GlassTooltip = ({ active, payload, label }: any) => {
     );
   }
   return null;
-};
-
-/* ── Premium Stat Card with Sparkline ─────────────────────────── */
-const PremiumStatCard = ({
-  label,
-  value,
-  sub,
-  subColor,
-  icon: Icon,
-  color,
-  sparklineData,
-  numericValue,
-  formatValue,
-}: any) => {
-  const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
-  const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
-  const displayValue = hasAnimation ? formatValue(animated) : value;
-  return (
-  <div
-    className="card-lift"
-    style={{
-      background: "var(--t-card-bg)",
-      border: `1.5px solid ${THEME.line}`,
-      borderTop: `4px solid ${color}`,
-      borderRadius: 16,
-      padding: "20px 22px",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-      gap: 12,
-      position: "relative",
-      overflow: "hidden",
-    }}
-  >
-    <div
-      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", color: color, flexShrink: 0 }}>
-          <Icon size={24} />
-        </div>
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: THEME.muted,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-            }}
-          >
-            {label}
-          </div>
-          {sub && (
-            <div
-              style={{
-                fontSize: 10,
-                color: subColor || THEME.muted,
-                fontWeight: subColor ? 700 : 400,
-                marginTop: 2,
-                opacity: subColor ? 1 : 0.8,
-              }}
-            >
-              {sub}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {sparklineData && sparklineData.length >= 2 && (
-        <div style={{ opacity: 0.85, marginRight: 4 }} className="no-print">
-          <Sparkline data={sparklineData} color={color} />
-        </div>
-      )}
-    </div>
-
-    <div
-      style={{
-        fontFamily: "var(--font-display)",
-        fontSize: 28,
-        fontWeight: 600,
-        color: THEME.ink,
-        letterSpacing: "-0.04em",
-        lineHeight: 1,
-        fontVariantNumeric: "tabular-nums",
-        marginTop: 4,
-      }}
-    >
-      <Prv>{displayValue}</Prv>
-    </div>
-  </div>
-  );
 };
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1760,6 +1630,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     prev: yoyData.prevIncome,
                     deltaPct: yoyData.incomeDeltaPct,
                     higherIsBetter: true,
+                    icon: <TrendingUp />,
                   },
                   {
                     label: "Expenses",
@@ -1767,6 +1638,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     prev: yoyData.prevExpense,
                     deltaPct: yoyData.expenseDeltaPct,
                     higherIsBetter: false,
+                    icon: <Receipt />,
                   },
                   {
                     label: "Net Savings",
@@ -1774,6 +1646,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     prev: yoyData.prevSavings,
                     deltaPct: yoyData.savingsDeltaPct,
                     higherIsBetter: true,
+                    icon: <PiggyBank />,
                   },
                   {
                     label: "Net Worth Growth",
@@ -1781,57 +1654,23 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     prev: yoyData.prevNWChange,
                     deltaPct: yoyData.nwChangeDeltaPct,
                     higherIsBetter: true,
+                    icon: <Wallet />,
                   },
                 ].map((m) => {
                   const improved = m.higherIsBetter ? m.deltaPct >= 0 : m.deltaPct <= 0;
                   const deltaColor = m.deltaPct === 0 ? THEME.muted : improved ? THEME.sage : THEME.rust;
                   return (
-                    <div
+                    <StatCard
                       key={m.label}
-                      style={{
-                        padding: "14px 16px",
-                        background: "var(--surface-0)",
-                        border: `1px solid ${THEME.line}`,
-                        borderRadius: 10,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: THEME.muted,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          marginBottom: 6,
-                        }}
-                      >
-                        {m.label}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 18,
-                          fontWeight: 800,
-                          color: THEME.ink,
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
-                        <Money value={m.curr} variant="full" />
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
-                        {m.deltaPct >= 0 ? (
-                          <ArrowUpRight size={12} style={{ color: deltaColor }} />
-                        ) : (
-                          <ArrowDownRight size={12} style={{ color: deltaColor }} />
-                        )}
-                        <span style={{ fontSize: 12, fontWeight: 700, color: deltaColor }}>
-                          {m.deltaPct >= 0 ? "+" : ""}
-                          {m.deltaPct.toFixed(0)}%
-                        </span>
-                        <span style={{ fontSize: 10, color: THEME.muted }}>
-                          vs <Money value={m.prev} variant="full" />
-                        </span>
-                      </div>
-                    </div>
+                      label={m.label}
+                      value={fmtINRFull(m.curr)}
+                      numericValue={m.curr}
+                      formatValue={fmtINRFull}
+                      icon={m.icon}
+                      color={deltaColor}
+                      sub={`${m.deltaPct >= 0 ? "+" : ""}${m.deltaPct.toFixed(0)}% vs ${fmtINRFull(m.prev)}`}
+                      subColor={deltaColor}
+                    />
                   );
                 })}
               </div>
@@ -1913,43 +1752,43 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
               marginBottom: 24,
             }}
           >
-            <PremiumStatCard
+            <StatCard
               label="Opening Net Worth"
               value={fmtINRFull(netWorthData.openingNW)}
               numericValue={netWorthData.openingNW}
               formatValue={fmtINRFull}
-              icon={Wallet}
+              icon={<Wallet />}
               color={THEME.accent}
               sub={`Start of ${fyLabel}`}
               sparklineData={nwTrendData}
             />
-            <PremiumStatCard
+            <StatCard
               label="Closing Net Worth"
               value={fmtINRFull(netWorthData.closingNW)}
               numericValue={netWorthData.closingNW}
               formatValue={fmtINRFull}
-              icon={TrendingUp}
+              icon={<TrendingUp />}
               color={THEME.accent}
               sub={netWorthData.isCurrentFY ? "As of today" : `End of ${fyLabel}`}
               sparklineData={nwTrendData}
             />
-            <PremiumStatCard
+            <StatCard
               label="NW Change"
               value={`${netWorthData.change >= 0 ? "+" : ""}${fmtINRFull(netWorthData.change)}`}
               numericValue={netWorthData.change}
               formatValue={(n: number) => `${n >= 0 ? "+" : ""}${fmtINRFull(n)}`}
-              icon={netWorthData.change >= 0 ? ArrowUpRight : ArrowDownRight}
+              icon={netWorthData.change >= 0 ? <ArrowUpRight /> : <ArrowDownRight />}
               color={nwChangeColor}
               sub={`${netWorthData.changePct >= 0 ? "+" : ""}${netWorthData.changePct.toFixed(1)}%`}
               subColor={nwChangeColor}
               sparklineData={nwTrendData}
             />
-            <PremiumStatCard
+            <StatCard
               label="Savings Rate"
               value={`${savingsData.savingsRate.toFixed(0)}%`}
               numericValue={savingsData.savingsRate}
               formatValue={(n: number) => `${n.toFixed(0)}%`}
-              icon={PiggyBank}
+              icon={<PiggyBank />}
               color={savingsRateColor}
               sub={
                 savingsData.savingsRate >= 30
