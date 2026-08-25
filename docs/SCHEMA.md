@@ -1,4 +1,4 @@
-# Personal Finance by Anand Mohta -- Schema & API Documentation
+# ArthaDrishti by Anand Mohta -- Schema & API Documentation
 
 > Auto-generated from 59 SQL migration files, `appConstants.ts`, and `/api/` serverless functions.
 

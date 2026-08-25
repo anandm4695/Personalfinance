@@ -1,4 +1,4 @@
-# Personal Finance by Anand Mohta
+# ArthaDrishti by Anand Mohta
 
 A comprehensive personal finance dashboard built with React and TypeScript — track every rupee, grow every investment, and hit every goal.
 

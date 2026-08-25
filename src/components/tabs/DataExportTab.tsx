@@ -164,7 +164,7 @@ export const DataExportTab = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `personal-finance-backup-${today()}.json`;
+    a.download = `arthadrishti-backup-${today()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     if (showToast) showToast("Data exported successfully!", "success");
@@ -202,7 +202,7 @@ export const DataExportTab = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `personal-finance-export-${today()}.csv`;
+      a.download = `arthadrishti-export-${today()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
