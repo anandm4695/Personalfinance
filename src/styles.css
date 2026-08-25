@@ -10,8 +10,14 @@
   --t-paper: #f8fafc;
   --t-accent: #4f46e5;
   --accent: var(--t-accent);
-  --t-gold: #d97706;
-  --t-sage: #059669;
+  /* Darkened from the brighter #d97706/#059669 used in dark mode — those
+     read as ~3.2:1 / ~3.8:1 against a white/light card background, short
+     of WCAG AA's 4.5:1 for normal text. These stay the same brass/sage hue
+     family (same H/S, lower L) rather than swapping to a different color;
+     dark mode keeps the brighter originals below since they already clear
+     AA there against the app's dark surfaces. */
+  --t-gold: #ac5f05;
+  --t-sage: #04825b;
   --t-rust: #dc2626;
   --t-muted: #64748b;
   --t-line: #e2e8f0;

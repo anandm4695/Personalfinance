@@ -270,8 +270,13 @@ export const LIGHT_VARS: Record<string, string> = {
   "--t-ink": "#0F172A",
   "--t-paper": "#F8FAFC",
   "--t-accent": "#4F46E5",
-  "--t-gold": "#D97706",
-  "--t-sage": "#059669",
+  // Darkened from the brighter #D97706/#059669 used in dark mode (DARK_VARS
+  // below) — those read as ~3.2:1 / ~3.8:1 against a white card, short of
+  // WCAG AA's 4.5:1 for normal text. Same brass/sage hue and saturation,
+  // just lower lightness — dark mode keeps the brighter originals since
+  // they already clear AA comfortably against the app's dark surfaces.
+  "--t-gold": "#AC5F05",
+  "--t-sage": "#04825B",
   "--t-rust": "#DC2626",
   "--t-muted": "#64748B",
   "--t-line": "#E2E8F0",
