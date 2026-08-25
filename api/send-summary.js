@@ -20,7 +20,7 @@ const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
 // If unset, falls back to the Resend test sender which can ONLY deliver
 // to the email address used to register the Resend account.
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-const FROM_ADDR = `Personal Finance <${FROM_EMAIL}>`;
+const FROM_ADDR = `ArthaDrishti <${FROM_EMAIL}>`;
 
 const PUBLIC_DOMAINS = [
   "gmail.com",
@@ -1201,7 +1201,7 @@ function generateHTML(summary, frequency, recipientName) {
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <!--[if gte mso 9]><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
-<title>Finance Summary</title>
+<title>ArthaDrishti Summary</title>
 <style>
   @media only screen and (max-width:480px) {
     .sec-pad { padding-left:16px !important; padding-right:16px !important; }
@@ -1223,7 +1223,7 @@ function generateHTML(summary, frequency, recipientName) {
   <tr><td class="sec-pad" style="background:${navyBg};border-radius:16px 16px 0 0;padding:28px 28px 24px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td>
-        <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">Personal Finance</div>
+        <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">ArthaDrishti</div>
         <div style="font-size:14px;color:#94a3b8;margin-top:5px;font-weight:500;">${periodLabel}</div>
       </td>
       <td style="text-align:right;vertical-align:top;">
@@ -1418,7 +1418,7 @@ function generateHTML(summary, frequency, recipientName) {
   <!-- FOOTER -->
   <tr><td style="background:${navyBg};border-radius:0 0 16px 16px;padding:24px 28px;text-align:center;">
     <div style="font-size:13px;color:#94a3b8;line-height:1.8;font-weight:500;">
-      Personal Finance by Anand Mohta &nbsp;·&nbsp; ${dateStr}<br>
+      ArthaDrishti by Anand Mohta &nbsp;·&nbsp; ${dateStr}<br>
       <a href="https://personal-finance-by-anand-mohta.vercel.app" style="color:#a5b4fc;text-decoration:none;font-weight:700;">Open Dashboard →</a>
       &nbsp;·&nbsp;
       <a href="https://personal-finance-by-anand-mohta.vercel.app/#settings" style="color:#64748b;text-decoration:none;font-size:12px;">Manage email settings</a>
@@ -1784,7 +1784,7 @@ function buildSubject(frequency, netWorth) {
       : frequency === "weekly"
         ? `Week of ${weekRange()}`
         : monthLabel();
-  return `${emoji} Your ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} Finance Report — ${period} | Net Worth ${fmtINR(netWorth)}`;
+  return `${emoji} Your ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} ArthaDrishti Report — ${period} | Net Worth ${fmtINR(netWorth)}`;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -1920,7 +1920,7 @@ module.exports = async function handler(req, res) {
       // Use fromEmail from the request body if provided (user configured it in Settings UI),
       // otherwise fall back to the RESEND_FROM_EMAIL env var or the test sender.
       const effectiveFromEmail = getEffectiveFromEmail(fromEmail);
-      const effectiveFromAddr = `Personal Finance <${effectiveFromEmail}>`;
+      const effectiveFromAddr = `ArthaDrishti <${effectiveFromEmail}>`;
 
       // Fetch state fresh from Supabase — same source of truth the cron uses —
       // instead of trusting whatever the browser's in-memory state happened to
@@ -2017,7 +2017,7 @@ module.exports = async function handler(req, res) {
 
           const cronFromEmail = getEffectiveFromEmail(row.from_email);
           const { error } = await resend.emails.send({
-            from: `Personal Finance <${cronFromEmail}>`,
+            from: `ArthaDrishti <${cronFromEmail}>`,
             to: row.email_address,
             subject,
             html,
