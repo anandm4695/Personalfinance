@@ -8,7 +8,6 @@ import {
   Bot,
   ChevronRight,
   Check,
-  Sparkles,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -16,6 +15,7 @@ import { THEME } from "../../utils/constants";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
+import { BrandMark } from "../ui/BrandMark";
 import { uid, today } from "../../utils/finance";
 import { getCurrentFY } from "../../utils/appConstants";
 
@@ -170,10 +170,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 16,
-              color: THEME.accent,
             }}
           >
-            <Sparkles size={40} strokeWidth={1.5} />
+            <BrandMark size={48} />
           </div>
           <h2
             style={{

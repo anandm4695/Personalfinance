@@ -50,6 +50,7 @@ const printStyles = `@media print {
     color: #0f172a !important;
   }
   .recharts-responsive-container { width: 100% !important; height: auto !important; }
+  .print-only-header { display: block !important; margin-bottom: 20px; }
 }`;
 
 const th: React.CSSProperties = {
@@ -752,6 +753,9 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
 
   return (
     <div className="comparison-report" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div className="print-only-header" style={{ display: "none" }}>
+        <img src="/logo-horizontal.png" alt="ArthaDrishti" style={{ height: 48, width: "auto" }} />
+      </div>
       <div
         style={{
           display: "flex",

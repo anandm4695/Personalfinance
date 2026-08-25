@@ -133,6 +133,10 @@ const printStyles = `@media print {
     width: 100% !important;
     height: auto !important;
   }
+  .print-only-header {
+    display: block !important;
+    margin-bottom: 20px;
+  }
 }`;
 
 /* ── Tiny sub-components ───────────────────────────────────────── */
@@ -1439,6 +1443,13 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
   return (
     <div className="annual-report">
+      {/* Shown only in the printed/saved-as-PDF output — the on-screen app
+          chrome (sidebar/header) is hidden during print, so without this the
+          document would carry no branding at all. */}
+      <div className="print-only-header" style={{ display: "none" }}>
+        <img src="/logo-horizontal.png" alt="ArthaDrishti" style={{ height: 48, width: "auto" }} />
+      </div>
+
       {/* Header */}
       <SectionTitle
         sub="Comprehensive financial year summary — print or save as PDF"

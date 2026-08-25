@@ -43,7 +43,7 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 
 /* ── Print-friendly layout ─────────────────────────────────────────── */
-const printStyles = `@media print { body * { visibility: hidden; } .investment-statement, .investment-statement * { visibility: visible; } .investment-statement { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none !important; } }`;
+const printStyles = `@media print { body * { visibility: hidden; } .investment-statement, .investment-statement * { visibility: visible; } .investment-statement { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none !important; } .print-only-header { display: block !important; margin-bottom: 20px; } }`;
 
 /* ── Shared table styles ───────────────────────────────────────────── */
 const tableWrap: React.CSSProperties = {
@@ -905,6 +905,10 @@ export const InvestmentStatementTab = ({
       style={{ padding: "32px 0", display: "flex", flexDirection: "column", gap: 24 }}
     >
       <style>{printStyles}</style>
+
+      <div className="print-only-header" style={{ display: "none" }}>
+        <img src="/logo-horizontal.png" alt="ArthaDrishti" style={{ height: 48, width: "auto" }} />
+      </div>
 
       {/* ── 1. Statement Header ─────────────────────────────────────── */}
       <div

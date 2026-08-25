@@ -1223,7 +1223,14 @@ function generateHTML(summary, frequency, recipientName) {
   <tr><td class="sec-pad" style="background:${navyBg};border-radius:16px 16px 0 0;padding:28px 28px 24px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td>
-        <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">ArthaDrishti</div>
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="padding-right:10px;vertical-align:middle;">
+            <img src="https://personal-finance-by-anand-mohta.vercel.app/favicon-192x192.png" width="28" height="28" alt="ArthaDrishti" style="display:block;border-radius:6px;">
+          </td>
+          <td style="vertical-align:middle;">
+            <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">ArthaDrishti</div>
+          </td>
+        </tr></table>
         <div style="font-size:14px;color:#94a3b8;margin-top:5px;font-weight:500;">${periodLabel}</div>
       </td>
       <td style="text-align:right;vertical-align:top;">
