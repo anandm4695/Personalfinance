@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   Plus,
   FileUp,
-  Edit3,
+  Pencil,
   Trash2,
   Check,
   X,
@@ -1715,7 +1715,7 @@ export function BanksTab({
                   title="Edit account"
                   aria-label={`Edit ${a.bankName} account`}
                 >
-                  <Edit3 size={12} />
+                  <Pencil size={12} />
                 </button>
                 <button
                   onClick={() =>
@@ -2518,7 +2518,7 @@ export function BanksTab({
                     title="Edit"
                     aria-label="Edit transaction"
                   >
-                    <Edit3 size={12} />
+                    <Pencil size={12} />
                   </button>
                   <button
                     onClick={(e) => {

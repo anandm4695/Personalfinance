@@ -5,7 +5,7 @@ import {
   Search,
   Activity,
   Plus,
-  Edit2,
+  Pencil,
   Trash2,
   Download,
   RefreshCw,
@@ -41,7 +41,7 @@ const ACTION_COLORS = {
 
 const ACTION_ICONS = {
   ADD: Plus,
-  UPDATE: Edit2,
+  UPDATE: Pencil,
   DELETE: Trash2,
   REMOVE: Trash2,
   UPDATE_SETTINGS: Activity,
@@ -288,7 +288,7 @@ const renderMetadataDetails = (metadata: any, actionType: string, privacyMode: b
             gap: 6,
           }}
         >
-          <Edit2 size={10} />
+          <Pencil size={10} />
           Fields Changed
         </div>
       )}
@@ -605,7 +605,7 @@ export const AuditLogTab = ({ session }) => {
           value={(actionStats.UPDATE || 0).toLocaleString("en-IN")}
           numericValue={actionStats.UPDATE || 0}
           formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
-          icon={<Edit2 />}
+          icon={<Pencil />}
           color={THEME.accent}
         />
         <StatCard

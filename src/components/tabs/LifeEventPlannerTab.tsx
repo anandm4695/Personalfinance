@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import {
   Calendar,
   Plus,
-  Edit2,
+  Pencil,
   Trash2,
   GraduationCap,
   Home,
@@ -454,7 +454,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                         alignItems: "center",
                       }}
                     >
-                      <Edit2 size={14} />
+                      <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => setConfirmDelete({ id: e.id, name: e.name })}

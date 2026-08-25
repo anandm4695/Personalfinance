@@ -1218,7 +1218,7 @@ export const CapitalGainsTab = ({
               border: `1px solid ${THEME.line}`,
               borderTop: `4px solid ${g.color}`,
               borderRadius: 14,
-              padding: "14px 16px",
+              padding: "18px 20px",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>

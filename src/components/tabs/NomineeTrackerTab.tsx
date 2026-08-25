@@ -12,7 +12,7 @@ import {
   Phone,
   Mail,
   Plus,
-  Edit2,
+  Pencil,
   Trash2,
   CheckCircle,
   AlertTriangle,
@@ -932,7 +932,7 @@ export const NomineeTrackerTab = ({
                         <Button
                           variant={asset.covered ? "ghost" : "primary"}
                           size="sm"
-                          icon={asset.covered ? <Edit2 size={12} /> : <UserPlus size={12} />}
+                          icon={asset.covered ? <Pencil size={12} /> : <UserPlus size={12} />}
                           onClick={() => openAssignModal(asset)}
                           style={{ flexShrink: 0 }}
                         >
@@ -1036,7 +1036,7 @@ export const NomineeTrackerTab = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    icon={<Edit2 size={12} />}
+                    icon={<Pencil size={12} />}
                     onClick={() => openEditWill(doc)}
                   >
                     Edit
@@ -1232,7 +1232,7 @@ export const NomineeTrackerTab = ({
                       color: THEME.muted,
                     }}
                   >
-                    <Edit2 size={13} />
+                    <Pencil size={13} />
                   </button>
                   <button
                     onClick={() =>

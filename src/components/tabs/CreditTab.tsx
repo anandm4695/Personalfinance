@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import {
   Plus,
-  Edit3,
+  Pencil,
   Trash2,
   TrendingDown,
   TrendingUp,
@@ -606,7 +606,7 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: a
           transition: "all 0.2s ease",
         }}
       >
-        <Edit3 size={13} />
+        <Pencil size={13} />
       </button>
       <button
         onClick={onRemove}
@@ -1666,7 +1666,7 @@ function CCList({
             className="icon-btn"
             style={{ ...iconBtn, color: "rgba(245,239,227,0.75)" }}
           >
-            <Edit3 size={14} />
+            <Pencil size={14} />
           </button>
           <button
             onClick={() => setConfirmDeleteCard(c)}
@@ -3273,7 +3273,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                 className="icon-btn"
                 style={{ ...iconBtn, color: THEME.muted }}
               >
-                <Edit3 size={14} />
+                <Pencil size={14} />
               </button>
               <button
                 onClick={() => setConfirmDeleteTx(t)}
@@ -3625,7 +3625,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   className="icon-btn"
                   style={{ ...iconBtn, color: "rgba(255,255,255,0.75)" }}
                 >
-                  <Edit3 size={14} />
+                  <Pencil size={14} />
                 </button>
                 <button
                   onClick={() => setConfirmDeleteCard(p)}
@@ -4830,7 +4830,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                 className="icon-btn"
                 style={{ ...iconBtn, color: THEME.muted, padding: 4 }}
               >
-                <Edit3 size={13} />
+                <Pencil size={13} />
               </button>
               <button
                 onClick={() => setConfirmDeleteTx(t)}
@@ -7183,7 +7183,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                     }}
                     title="Edit person"
                   >
-                    <Edit3 size={13} />
+                    <Pencil size={13} />
                   </button>
                   <button
                     onClick={(e) => {

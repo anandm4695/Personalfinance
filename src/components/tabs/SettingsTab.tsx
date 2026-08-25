@@ -30,7 +30,6 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Edit3,
   Trash2,
   Users,
   CreditCard,

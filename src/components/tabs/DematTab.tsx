@@ -23,7 +23,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
-  Edit3,
+  Pencil,
   Trash2,
   Scissors,
   BarChart3,
@@ -549,7 +549,7 @@ const CardActions = ({ onEdit, onRemove }: { onEdit: () => void; onRemove: () =>
       title="Edit account"
       aria-label="Edit account"
     >
-      <Edit3 size={14} />
+      <Pencil size={14} />
     </button>
     <button
       onClick={onRemove}
@@ -3852,7 +3852,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     style={{ ...iconBtn, padding: 5 }}
                                                     title="Edit lot"
                                                   >
-                                                    <Edit3 size={12} />
+                                                    <Pencil size={12} />
                                                   </button>
                                                   <button
                                                     onClick={(e) => {
@@ -5789,7 +5789,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         title="Rename watchlist"
                         aria-label="Rename watchlist"
                       >
-                        <Edit3 size={14} />
+                        <Pencil size={14} />
                       </button>
                       <button
                         onClick={(e) => {
@@ -6099,7 +6099,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             onClick={() => setEditWishlistItemId(it.id)}
                                             title="Edit target price / notes"
                                           >
-                                            <Edit3 size={13} />
+                                            <Pencil size={13} />
                                           </button>
                                           <button
                                             className="icon-btn danger"

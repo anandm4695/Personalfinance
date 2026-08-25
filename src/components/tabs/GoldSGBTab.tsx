@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import {
   Coins,
   Plus,
-  Edit2,
+  Pencil,
   Trash2,
   TrendingUp,
   IndianRupee,
@@ -684,7 +684,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                       padding: 6,
                     }}
                   >
-                    <Edit2 size={14} />
+                    <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => setConfirmDelete({ id: h.id, label: h.name || h.typeInfo.label })}

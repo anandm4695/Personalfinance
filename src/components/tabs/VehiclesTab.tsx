@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import {
   Car,
   Plus,
-  Edit2,
+  Pencil,
   Trash2,
   ChevronDown,
   ChevronUp,
@@ -1706,7 +1706,7 @@ function ServiceRow({ rec, onEdit, onDelete }: any) {
             justifyContent: "center",
           }}
         >
-          <Edit2 size={12} />
+          <Pencil size={12} />
         </button>
         <button
           onClick={onDelete}
@@ -2029,7 +2029,7 @@ function InsuranceRow({ rec, onEdit, onDelete }: any) {
             justifyContent: "center",
           }}
         >
-          <Edit2 size={12} />
+          <Pencil size={12} />
         </button>
         <button
           onClick={onDelete}
@@ -2437,7 +2437,7 @@ function VehicleCard({
               <Button
                 variant="secondary"
                 size="sm"
-                icon={<Edit2 size={12} />}
+                icon={<Pencil size={12} />}
                 onClick={onEdit}
                 style={{
                   background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
