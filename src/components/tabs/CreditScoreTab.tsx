@@ -871,7 +871,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
               </div>
 
               {/* Bands */}
-              <Card style={{ marginBottom: 20 }}>
+              <Card style={{ marginBottom: 20, padding: "18px 20px" }}>
                 <div
                   style={{
                     fontSize: 12,
@@ -908,7 +908,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
 
               {/* Chart */}
               {chartData.length > 1 && (
-                <Card style={{ marginBottom: 20 }}>
+                <Card style={{ marginBottom: 20, padding: "18px 20px" }}>
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted }}>
                     Score Trend History — {bureau}
                   </div>
@@ -1123,6 +1123,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
         <Card
           style={{
             marginTop: 16,
+            padding: "16px 20px",
             background: `color-mix(in srgb, ${THEME.gold} 5%, var(--surface-0))`,
             border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
           }}

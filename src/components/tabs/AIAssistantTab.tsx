@@ -2005,7 +2005,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                 height: 38,
                 borderRadius: 11,
                 flexShrink: 0,
-                background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`,
+                background: THEME.accent,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2343,7 +2343,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                       marginTop: 2,
                       background: isUser
                         ? THEME.ink
-                        : `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`,
+                        : THEME.accent,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -2368,9 +2368,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                         borderRadius: 15,
                         borderTopRightRadius: isUser ? 3 : 15,
                         borderTopLeftRadius: isUser ? 15 : 3,
-                        background: isUser
-                          ? `linear-gradient(135deg, var(--t-ink), color-mix(in srgb, var(--t-ink) 80%, ${THEME.accent}))`
-                          : "var(--t-paper)",
+                        background: isUser ? "var(--t-ink)" : "var(--t-paper)",
                         color: isUser ? "#fff" : THEME.ink,
                         border: isUser ? "none" : `1px solid ${THEME.line}`,
                         boxShadow: "var(--shadow-sm)",
@@ -2500,7 +2498,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                     borderRadius: 9,
                     flexShrink: 0,
                     marginTop: 2,
-                    background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`,
+                    background: THEME.accent,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",

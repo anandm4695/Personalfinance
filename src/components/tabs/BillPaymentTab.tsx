@@ -472,7 +472,7 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
             const status = b._status;
 
             return (
-              <Card key={b.id} style={{ borderLeft: `4px solid ${cat.color}` }}>
+              <Card key={b.id} style={{ borderLeft: `4px solid ${cat.color}`, padding: "16px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                     {catIcon(b.category, 20)}

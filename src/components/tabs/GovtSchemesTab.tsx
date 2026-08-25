@@ -718,7 +718,7 @@ export function GovtSchemesTab({
             const projection = projectSchemeValue(sc);
 
             return (
-              <Card key={sc.id} style={{ borderLeft: `4px solid ${meta.color}` }}>
+              <Card key={sc.id} style={{ borderLeft: `4px solid ${meta.color}`, padding: "16px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                     <Star size={22} color={meta.color} />

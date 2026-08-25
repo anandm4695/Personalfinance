@@ -747,7 +747,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
             const claims = p.claims || [];
 
             return (
-              <Card key={p.id} style={{ borderLeft: `4px solid ${typeColor}` }}>
+              <Card key={p.id} style={{ borderLeft: `4px solid ${typeColor}`, padding: "16px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                     <Heart size={22} color={typeColor} />
