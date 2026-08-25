@@ -184,7 +184,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               marginBottom: 8,
             }}
           >
-            Welcome to Personal Finance
+            Welcome to ArthaDrishti
           </h2>
           <p style={{ color: THEME.muted, fontSize: 14 }}>
             Let's set up your dashboard in 5 quick steps

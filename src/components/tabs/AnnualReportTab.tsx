@@ -2960,7 +2960,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
               month: "long",
               year: "numeric",
             })}{" "}
-            &middot; Personal Finance Dashboard
+            &middot; ArthaDrishti Dashboard
           </div>
         </>
       )}

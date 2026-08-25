@@ -569,7 +569,7 @@ export function MonthlyReportModal({
           <div
             style={{ fontSize: 18, fontWeight: 900, color: "#1e293b", letterSpacing: "-0.02em" }}
           >
-            Personal Finance by Anand Mohta
+            ArthaDrishti by Anand Mohta
           </div>
           <div style={{ fontSize: 13, color: "#64748b", marginTop: 4, fontWeight: 600 }}>
             Monthly Report —{" "}

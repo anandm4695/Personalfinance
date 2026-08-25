@@ -10,14 +10,15 @@ const GOLD = "#C5A152";
 const GREEN = "#1F6E42";
 
 /**
- * The app's emblem — same concept as the original mark (a money tree, gold
- * ring, rupee glyph nested in the canopy) redrawn as flat two-color vector
- * instead of a 1024px glow-halo/drop-shadow raster lockup. That raster was
- * legible at its native size but turned into a blurred gold smear at the
- * 30-110px sizes it was actually displayed at (sidebar, header, favicon).
- * This keeps the same design, just crisp at any size and without the glow.
- * Colors are fixed brand gold/green, not accent-preset-driven — a logo
- * shouldn't repaint itself when the user changes their UI accent color.
+ * The ArthaDrishti emblem — a money tree, gold ring, rupee glyph nested in
+ * the canopy, plus a small stacked-coin accent at the base — drawn as flat
+ * two-color vector rather than a glow-halo/drop-shadow raster lockup. A
+ * raster like that is legible at its native size but turns into a blurred
+ * gold smear at the 16-110px sizes this mark is actually displayed at
+ * (favicon, sidebar, header). This keeps every motif from the brand
+ * reference crisp at any size and without the glow. Colors are fixed brand
+ * gold/green, not accent-preset-driven — a logo shouldn't repaint itself
+ * when the user changes their UI accent color.
  */
 export const BrandMark: React.FC<BrandMarkProps> = ({ size = 40, className, style }) => (
   <svg
@@ -27,7 +28,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ size = 40, className, styl
     className={className}
     style={style}
     role="img"
-    aria-label="Personal Finance emblem"
+    aria-label="ArthaDrishti emblem"
   >
     <circle cx="20" cy="20" r="19" fill="none" stroke={GOLD} strokeWidth="1.1" />
 
@@ -42,14 +43,14 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ size = 40, className, styl
 
     {/* Forked trunk */}
     <path
-      d="M20 18 C19 21, 17.5 24, 15.5 28"
+      d="M20 18 C19.3 20.5, 18.3 22.5, 17.2 24.6"
       stroke={GOLD}
       strokeWidth="1.5"
       fill="none"
       strokeLinecap="round"
     />
     <path
-      d="M20 18 C21 21, 22.5 24, 24.5 28"
+      d="M20 18 C20.7 20.5, 21.7 22.5, 22.8 24.6"
       stroke={GOLD}
       strokeWidth="1.5"
       fill="none"
@@ -57,9 +58,16 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ size = 40, className, styl
     />
 
     {/* Ground */}
-    <ellipse cx="20" cy="29" rx="7.2" ry="1.9" fill={GREEN} />
+    <ellipse cx="20" cy="29.5" rx="7.6" ry="1.9" fill={GREEN} />
 
-    {/* Rupee, nested in the canopy — matches the original mark's motif */}
+    {/* Coin stack — wealth accent at the base, sitting where the trunk meets the ground */}
+    <g>
+      <ellipse cx="24.1" cy="27.3" rx="2.9" ry="1.5" fill={GOLD} opacity="0.55" />
+      <ellipse cx="24.1" cy="26.1" rx="2.9" ry="1.5" fill={GOLD} opacity="0.78" />
+      <ellipse cx="24.1" cy="24.9" rx="2.9" ry="1.5" fill={GOLD} />
+    </g>
+
+    {/* Rupee, nested in the canopy — matches the brand mark's motif */}
     <text
       x="20.1"
       y="14.3"

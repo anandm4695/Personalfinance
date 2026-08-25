@@ -1248,7 +1248,7 @@ function ProfileSection({ state, updateProfile, showToast }: any) {
             {prof.name || "Your Name"}
           </div>
           <div style={{ fontSize: 13, color: THEME.muted, marginTop: 3 }}>
-            Personal Finance Dashboard
+            ArthaDrishti Dashboard
           </div>
         </div>
       </div>

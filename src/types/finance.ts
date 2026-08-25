@@ -1,5 +1,5 @@
 /**
- * Core TypeScript types for the Personal Finance application.
+ * Core TypeScript types for the ArthaDrishti application.
  *
  * Incrementally typed — array entity fields use `any[]` until individual
  * entity interfaces are defined. Non-array structures (Settings, Profile,

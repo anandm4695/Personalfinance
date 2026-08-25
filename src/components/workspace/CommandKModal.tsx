@@ -361,7 +361,7 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
           <div>
             Press <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 5px", borderRadius: "4px", fontSize: "11px" }}>↑</kbd> <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 5px", borderRadius: "4px", fontSize: "11px" }}>↓</kbd> to navigate
           </div>
-          <div>Personal Finance AI OS</div>
+          <div>ArthaDrishti AI OS</div>
         </div>
       </div>
     </div>

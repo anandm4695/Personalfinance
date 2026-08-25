@@ -280,7 +280,7 @@ export const FinancialCalendarTab = ({
     const lines = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Personal Finance//Financial Calendar//EN",
+      "PRODID:-//ArthaDrishti//Financial Calendar//EN",
       "CALSCALE:GREGORIAN",
     ];
     filteredEvents.forEach((e) => {

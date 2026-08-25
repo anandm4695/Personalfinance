@@ -2241,7 +2241,7 @@ export const InvestmentStatementTab = ({
           padding: "16px 0",
         }}
       >
-        Generated on {formattedDate} &bull; Personal Finance by Anand Mohta
+        Generated on {formattedDate} &bull; ArthaDrishti by Anand Mohta
       </div>
     </div>
   );

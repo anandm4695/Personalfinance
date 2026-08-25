@@ -330,7 +330,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
     const lines = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Personal Finance//Payment Calendar//EN",
+      "PRODID:-//ArthaDrishti//Payment Calendar//EN",
       "CALSCALE:GREGORIAN",
     ];
     selectedMonthPayments.forEach((p: any) => {

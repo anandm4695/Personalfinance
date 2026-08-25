@@ -87,7 +87,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                       lineHeight: 1.2,
                     }}
                   >
-                    Personal Finance
+                    ArthaDrishti
                   </div>
                   <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 1 }}>
                     by Anand Mohta

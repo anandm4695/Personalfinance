@@ -370,7 +370,7 @@ export default function Auth({
           <div className="af-brand-logo">
             <BrandMark size={44} />
             <div>
-              <div className="af-brand-name">Personal Finance</div>
+              <div className="af-brand-name">ArthaDrishti</div>
               <div className="af-brand-tagline">by Anand Mohta</div>
             </div>
           </div>
@@ -407,7 +407,7 @@ export default function Auth({
           <div className="af-logo-mobile">
             <BrandMark size={40} />
             <div>
-              <div className="af-logo-name">Personal Finance</div>
+              <div className="af-logo-name">ArthaDrishti</div>
               <div className="af-logo-tagline">by Anand Mohta</div>
             </div>
           </div>

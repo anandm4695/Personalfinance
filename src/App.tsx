@@ -4297,7 +4297,7 @@ function FinanceDashboard() {
                 lineHeight: 1.8,
               }}
             >
-              <span style={{ fontWeight: 600 }}>Personal Finance by Anand Mohta</span> · FY{" "}
+              <span style={{ fontWeight: 600 }}>ArthaDrishti by Anand Mohta</span> · FY{" "}
               {state.profile.fy}
             </footer>
           )}
