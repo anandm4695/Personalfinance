@@ -28,7 +28,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { THEME } from "../../utils/constants";
+import { THEME, ASSET_CLASS_COLORS } from "../../utils/constants";
 import {
   fmtINRFull,
   rdMaturity,
@@ -456,23 +456,23 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
   // Count-up animation for the hero "Total Portfolio" figure.
   const animatedTotal = useAnimatedNumber(allocation.total);
 
-  // Fixed chart-extension token (not the user-selectable accent) — Equity
-  // already uses THEME.accent, so a hardcoded purple here would render as the
-  // exact same color if the user's active theme happens to be "Violet".
-  const CASH_COLOR = THEME.violet;
-
+  // Colors pinned to the app-wide canonical ASSET_CLASS_COLORS map so these
+  // categories render the same here as on every other tab's asset-class
+  // chart (Executive Dashboard, Investment Statement, Annual Report, Family
+  // View) — not tied to the user-selectable accent, which would otherwise
+  // make Equity's color drift depending on the user's chosen theme preset.
   const pieData = [
-    { name: "Equity", value: allocation.equity, color: THEME.accent },
-    { name: "Debt", value: allocation.debt + allocation.nps, color: THEME.sage },
-    { name: "Gold", value: allocation.gold, color: THEME.gold },
-    { name: "Cash", value: allocation.cash, color: CASH_COLOR },
+    { name: "Equity", value: allocation.equity, color: ASSET_CLASS_COLORS.Equity },
+    { name: "Debt", value: allocation.debt + allocation.nps, color: ASSET_CLASS_COLORS.Debt },
+    { name: "Gold", value: allocation.gold, color: ASSET_CLASS_COLORS.Gold },
+    { name: "Cash", value: allocation.cash, color: ASSET_CLASS_COLORS.Cash },
   ].filter((d) => d.value > 0);
 
   const targetPieData = [
-    { name: "Equity", value: target.equity, color: THEME.accent },
-    { name: "Debt", value: target.debt, color: THEME.sage },
-    { name: "Gold", value: target.gold || 0, color: THEME.gold },
-    { name: "Cash", value: target.cash, color: CASH_COLOR },
+    { name: "Equity", value: target.equity, color: ASSET_CLASS_COLORS.Equity },
+    { name: "Debt", value: target.debt, color: ASSET_CLASS_COLORS.Debt },
+    { name: "Gold", value: target.gold || 0, color: ASSET_CLASS_COLORS.Gold },
+    { name: "Cash", value: target.cash, color: ASSET_CLASS_COLORS.Cash },
   ].filter((d) => d.value > 0);
 
   const comparisonData = [

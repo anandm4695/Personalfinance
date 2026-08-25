@@ -38,7 +38,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME, PIE_COLORS, ASSET_CLASS_COLORS } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
 import { fmtINR, fmtINRFull, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
@@ -2364,10 +2364,10 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                           }}
                           onMouseLeave={() => setHoveredAsset(null)}
                         >
-                          {assetAllocation.alloc.map((_, idx) => (
+                          {assetAllocation.alloc.map((a, idx) => (
                             <Cell
                               key={idx}
-                              fill={PIE_COLORS[idx % PIE_COLORS.length]}
+                              fill={ASSET_CLASS_COLORS[a.name] || PIE_COLORS[idx % PIE_COLORS.length]}
                               style={{ outline: "none", cursor: "pointer" }}
                             />
                           ))}
@@ -2418,7 +2418,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                               width: 8,
                               height: 8,
                               borderRadius: "50%",
-                              background: PIE_COLORS[idx % PIE_COLORS.length],
+                              background: ASSET_CLASS_COLORS[a.name] || PIE_COLORS[idx % PIE_COLORS.length],
                             }}
                           />
                           <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>
@@ -2439,7 +2439,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                         pct={
                           assetAllocation.total > 0 ? (a.value / assetAllocation.total) * 100 : 0
                         }
-                        color={PIE_COLORS[idx % PIE_COLORS.length]}
+                        color={ASSET_CLASS_COLORS[a.name] || PIE_COLORS[idx % PIE_COLORS.length]}
                       />
                     </div>
                   ))}

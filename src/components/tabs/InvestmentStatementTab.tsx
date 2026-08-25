@@ -19,7 +19,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { THEME } from "../../utils/constants";
+import { THEME, ASSET_CLASS_COLORS } from "../../utils/constants";
 import {
   fmtINR,
   fmtINRFull,
@@ -90,33 +90,23 @@ const tdBold: React.CSSProperties = { ...td, fontWeight: 700 };
 const tdBoldRight: React.CSSProperties = { ...tdRight, fontWeight: 700 };
 
 /* ── Color palette for pie chart ───────────────────────────────────── */
-// Fixed-order validated 6-slot colorblind-safe categorical sequence (see
-// THEME.chart1..6 / --t-chart-N in constants.ts/styles.css — same palette
-// SubscriptionsTab/FinancialCalendarTab use). pieData always emits these 6
-// categories in this exact order (see pieData below), so hue assignment
-// stays stable even as buckets are added/removed by a user's holdings.
-const PIE_COLORS = [
-  THEME.chart1, // Equity
-  THEME.chart2, // Debt
-  THEME.chart3, // Gold
-  THEME.chart4, // Retirement
-  THEME.chart5, // Insurance
-  THEME.chart6, // Real Estate
-];
-
 // Named lookup (not positional index) so a category's color stays fixed even
-// when pieData drops zero-value buckets — with 6 optional categories now
-// instead of 4, indexing by post-filter position would repaint the survivors
-// whenever a user simply doesn't hold one asset class (e.g. no Gold this
-// month shifts Retirement/Insurance/Real Estate into the wrong hues).
-const PIE_COLOR_BY_NAME: Record<string, string> = {
-  Equity: PIE_COLORS[0],
-  Debt: PIE_COLORS[1],
-  Gold: PIE_COLORS[2],
-  Retirement: PIE_COLORS[3],
-  Insurance: PIE_COLORS[4],
-  "Real Estate": PIE_COLORS[5],
-};
+// when pieData drops zero-value buckets — with 6 optional categories,
+// indexing by post-filter position would repaint the survivors whenever a
+// user simply doesn't hold one asset class (e.g. no Gold this month shifts
+// Retirement/Insurance/Real Estate into the wrong hues). Uses the app-wide
+// canonical ASSET_CLASS_COLORS map so these 6 categories render in the same
+// color here as on every other tab's asset-class chart (Executive Dashboard,
+// Portfolio Rebalancing, Annual Report, Family View).
+const PIE_COLOR_BY_NAME = ASSET_CLASS_COLORS;
+const PIE_COLORS = [
+  THEME.chart1,
+  THEME.chart2,
+  THEME.chart3,
+  THEME.chart4,
+  THEME.chart5,
+  THEME.chart6,
+];
 
 /* ── P&L color helper ──────────────────────────────────────────────── */
 const plColor = (v: number) => (v > 0 ? THEME.sage : v < 0 ? THEME.rust : THEME.muted);

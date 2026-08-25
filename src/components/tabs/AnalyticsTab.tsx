@@ -74,7 +74,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME, PIE_COLORS, ASSET_CLASS_COLORS } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
 import {
   fmtINRFull,
@@ -634,18 +634,15 @@ const DashboardSectionHeader: React.FC<{
   );
 };
 
-// A few asset-class names are also shown, with their own fixed color, in the
-// coarser Portfolio Rebalancing widget elsewhere on this tab (Equity/Debt/
-// Cash/Real Estate/Other). Positional PIE_COLORS indexing alone can't keep
-// those in sync — the same category's index shifts depending on which other
-// categories a given user has non-zero balances in — so pin the overlapping
-// names to the same color used there and let everything else fall back to
-// the positional palette.
-const FIXED_ASSET_CLASS_COLORS: Record<string, string> = {
-  "Real Estate": THEME.violet,
-};
+// Asset-class names here also appear, with their own fixed color, on other
+// tabs' asset-class charts (this tab's own coarser Portfolio Rebalancing
+// widget below, Portfolio/Investment Statement, Annual Report, Family View).
+// Positional PIE_COLORS indexing alone can't keep those in sync — the same
+// category's index shifts depending on which other categories a given user
+// has non-zero balances in — so pin every recognized name to the app-wide
+// canonical color and let anything else fall back to the positional palette.
 const getAssetClassColor = (name: string, index: number) =>
-  FIXED_ASSET_CLASS_COLORS[name] || PIE_COLORS[index % PIE_COLORS.length];
+  ASSET_CLASS_COLORS[name] || PIE_COLORS[index % PIE_COLORS.length];
 
 // Maps each Bill Calendar event `type` (set in calendarDueDays) to the tab a
 // user would go to in order to act on it. Advance Tax and FD Maturity have no
@@ -9815,7 +9812,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Equity",
                   actualPct: actual.equity,
                   actualVal: equity,
-                  color: THEME.accent,
+                  color: ASSET_CLASS_COLORS.Equity,
                   icon: TrendingUp,
                 },
                 {
@@ -9823,7 +9820,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Debt",
                   actualPct: actual.debt,
                   actualVal: debt,
-                  color: THEME.gold,
+                  color: ASSET_CLASS_COLORS.Debt,
                   icon: Landmark,
                 },
                 {
@@ -9831,7 +9828,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Cash",
                   actualPct: actual.cash,
                   actualVal: cash,
-                  color: THEME.sage,
+                  color: ASSET_CLASS_COLORS.Cash,
                   icon: Activity,
                 },
                 {
@@ -9839,7 +9836,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Real Estate",
                   actualPct: actual.realEstate,
                   actualVal: realEstate,
-                  color: THEME.violet,
+                  color: ASSET_CLASS_COLORS["Real Estate"],
                   icon: Building2,
                 },
                 {

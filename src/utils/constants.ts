@@ -322,4 +322,27 @@ export const PIE_COLORS = [
   "#78716C",
 ];
 
+// Canonical coarse asset-class → color mapping, so the same real-world
+// bucket (Equity, Gold, Real Estate...) reads as the same color on every
+// chart that shows it app-wide, instead of each tab picking its own colors
+// independently. Equity/Debt/Gold/Retirement/Insurance/"Real Estate" reuse
+// the validated colorblind-safe chart1-6 sequence in that exact order;
+// Cash/Vehicles/Other reuse the violet/pink/cyan "extension" slots since
+// all 6 chart-N slots are already spoken for. Look up by name; anything not
+// in this map should fall back to a neutral or positional color.
+export const ASSET_CLASS_COLORS: Record<string, string> = {
+  Equity: THEME.chart1,
+  Debt: THEME.chart2,
+  "Fixed Deposits": THEME.chart2,
+  Gold: THEME.chart3,
+  Retirement: THEME.chart4,
+  Insurance: THEME.chart5,
+  "Real Estate": THEME.chart6,
+  Cash: THEME.violet,
+  Vehicles: THEME.pink,
+  Other: THEME.cyan,
+  Others: THEME.cyan,
+  "Other Assets": THEME.cyan,
+};
+
 export const STORAGE_KEY = "finance_dashboard_v1";

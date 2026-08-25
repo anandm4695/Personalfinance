@@ -110,10 +110,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {payload.map((entry: any, index: number) => {
           let color = entry.color || entry.stroke;
-          if (entry.dataKey === "cash") color = "var(--t-accent)";
-          else if (entry.dataKey === "equity") color = "var(--t-sage)";
-          else if (entry.dataKey === "debt") color = "var(--t-gold)";
-          else if (entry.dataKey === "realEstate") color = "var(--t-violet)";
+          if (entry.dataKey === "cash") color = "var(--t-violet)";
+          else if (entry.dataKey === "equity") color = "var(--t-chart-1)";
+          else if (entry.dataKey === "debt") color = "var(--t-chart-2)";
+          else if (entry.dataKey === "realEstate") color = "var(--t-chart-6)";
           else if (entry.dataKey === "vehicles") color = "var(--t-pink)";
           else if (entry.dataKey === "other") color = "var(--t-cyan)";
           else if (entry.dataKey === "netWorth") color = "var(--t-accent)";
@@ -841,29 +841,34 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
           {showBreakdown ? (
             <AreaChart data={history} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <defs>
+                {/* Colors pinned to the app-wide canonical ASSET_CLASS_COLORS
+                    map so these categories render the same here as on every
+                    other tab's asset-class chart (Executive Dashboard,
+                    Portfolio Rebalancing, Investment Statement, Annual
+                    Report, Family View). */}
                 <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor={THEME.violet} stopOpacity={0.65} />
+                  <stop offset="100%" stopColor={THEME.violet} stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-sage)" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="var(--t-sage)" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor={THEME.chart1} stopOpacity={0.65} />
+                  <stop offset="100%" stopColor={THEME.chart1} stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="debtGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-gold)" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor={THEME.chart2} stopOpacity={0.65} />
+                  <stop offset="100%" stopColor={THEME.chart2} stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="realEstateGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-violet)" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="var(--t-violet)" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor={THEME.chart6} stopOpacity={0.65} />
+                  <stop offset="100%" stopColor={THEME.chart6} stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="vehiclesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-pink)" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="var(--t-pink)" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor={THEME.pink} stopOpacity={0.65} />
+                  <stop offset="100%" stopColor={THEME.pink} stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="otherGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--t-cyan)" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="var(--t-cyan)" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor={THEME.cyan} stopOpacity={0.65} />
+                  <stop offset="100%" stopColor={THEME.cyan} stopOpacity={0.05} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
@@ -892,7 +897,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 type="monotone"
                 dataKey="cash"
                 stackId="1"
-                stroke="var(--t-accent)"
+                stroke={THEME.violet}
                 fill="url(#cashGrad)"
                 strokeWidth={1.5}
                 name="Cash"
@@ -901,7 +906,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 type="monotone"
                 dataKey="equity"
                 stackId="1"
-                stroke="var(--t-sage)"
+                stroke={THEME.chart1}
                 fill="url(#equityGrad)"
                 strokeWidth={1.5}
                 name="Equity"
@@ -910,7 +915,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 type="monotone"
                 dataKey="debt"
                 stackId="1"
-                stroke="var(--t-gold)"
+                stroke={THEME.chart2}
                 fill="url(#debtGrad)"
                 strokeWidth={1.5}
                 name="Fixed Deposits"
@@ -919,7 +924,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 type="monotone"
                 dataKey="realEstate"
                 stackId="1"
-                stroke="var(--t-violet)"
+                stroke={THEME.chart6}
                 fill="url(#realEstateGrad)"
                 strokeWidth={1.5}
                 name="Real Estate"
@@ -928,7 +933,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 type="monotone"
                 dataKey="vehicles"
                 stackId="1"
-                stroke="var(--t-pink)"
+                stroke={THEME.pink}
                 fill="url(#vehiclesGrad)"
                 strokeWidth={1.5}
                 name="Vehicles"
@@ -937,7 +942,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
                 type="monotone"
                 dataKey="other"
                 stackId="1"
-                stroke="var(--t-cyan)"
+                stroke={THEME.cyan}
                 fill="url(#otherGrad)"
                 strokeWidth={1.5}
                 name="Other Assets"
