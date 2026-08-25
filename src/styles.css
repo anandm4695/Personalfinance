@@ -1268,7 +1268,9 @@ tbody tr:hover td {
 
 /* ── Button hover states (ghost buttons) ───────────────────────── */
 button[style*="border: 1.5px solid"]:not([disabled]):hover,
-button[style*="border:1.5px solid"]:not([disabled]):hover {
+button[style*="border:1.5px solid"]:not([disabled]):hover,
+button[style*="border: 1px solid var(--t-line)"]:not([disabled]):hover,
+button[style*="border:1px solid var(--t-line)"]:not([disabled]):hover {
   border-color: color-mix(in srgb, var(--t-accent) 50%, var(--t-line)) !important;
   color: var(--t-accent) !important;
 }
