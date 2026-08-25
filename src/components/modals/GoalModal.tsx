@@ -177,6 +177,7 @@ export function GoalModal({ initial, onClose, onSave, saving }: any) {
       <ModalActions
         onSave={() => onSave({ ...f, name: f.name.trim() })}
         onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add Financial Goal"}
         disabled={!canSave || saving}
         loading={saving}
       />

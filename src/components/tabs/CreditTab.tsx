@@ -6616,6 +6616,7 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving 
       <ModalActions
         onSave={() => f.issuer && onSave(f)}
         onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add Credit Card"}
         disabled={saving}
         loading={saving}
       />
@@ -6738,6 +6739,7 @@ function PrepaidModal({ onClose, onSave, initial = null, saving }: any) {
           });
         }}
         onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add Prepaid Card / Wallet"}
         disabled={saving}
         loading={saving}
       />
@@ -7841,6 +7843,7 @@ function LoanTakenModal({ onClose, onSave, initial = null, saving }: any) {
           onSave({ ...f, outstanding: Math.max(0, Number(outstanding) || 0) });
         }}
         onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add Loan Taken"}
         disabled={saving}
         loading={saving}
       />
@@ -7971,6 +7974,7 @@ function LoanGivenModal({ onClose, onSave, initial = null, saving }: any) {
           onSave({ ...f, outstanding: Math.max(0, Number(outstanding) || 0) });
         }}
         onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Record Loan Given"}
         disabled={saving}
         loading={saving}
       />

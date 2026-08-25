@@ -1598,7 +1598,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
       <ModalActions
         onSave={handleSave}
         onClose={onClose}
-        saveLabel={isEdit ? "Update Policy" : "Add Policy"}
+        saveLabel={isEdit ? "Save Changes" : "Add Policy"}
         disabled={saving}
         loading={saving}
       />

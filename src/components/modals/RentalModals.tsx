@@ -745,7 +745,7 @@ export function RentalPropertyModal({ initial, onClose, onSave, saving }: any) {
       <ModalActions
         onSave={handleSave}
         onClose={onClose}
-        saveLabel={initial ? "Update" : "Add Property"}
+        saveLabel={initial ? "Save Changes" : "Add Property"}
         disabled={saving}
         loading={saving}
       />
@@ -862,7 +862,7 @@ export function RentalDeductionModal({ onClose, onSave, initial, saving }: any) 
       <ModalActions
         onSave={() => f.reason && Number(f.amount) > 0 && onSave(f)}
         onClose={onClose}
-        saveLabel={initial ? "Update Deduction" : "Add Deduction"}
+        saveLabel={initial ? "Save Changes" : "Add Deduction"}
         disabled={saving}
         loading={saving}
       />
@@ -1551,7 +1551,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave, saving }: any)
       <ModalActions
         onSave={handleSave}
         onClose={onClose}
-        saveLabel={initial ? "Update" : "Add Property"}
+        saveLabel={initial ? "Save Changes" : "Add Property"}
         disabled={(isMulti && !pctValid) || saving}
         loading={saving}
       />

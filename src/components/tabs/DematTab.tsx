@@ -705,7 +705,7 @@ function WishlistModal({
           onSave({ name: name.trim(), description: description.trim(), color });
         }}
         onClose={onClose}
-        saveLabel={initial ? "Save" : "Create Watchlist"}
+        saveLabel={initial ? "Save Changes" : "Add Watchlist"}
         disabled={!name.trim() || saving}
         loading={saving}
       />
@@ -6783,6 +6783,7 @@ function DematModal({
       <ModalActions
         onSave={() => isValid && onSave(f)}
         onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add Demat Account"}
         disabled={!isValid || saving}
         loading={saving}
       />
@@ -6922,6 +6923,7 @@ function StockModal({
       <ModalActions
         onSave={() => isValid && onSave(f)}
         onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add Stock"}
         disabled={!isValid || saving}
         loading={saving}
       />
@@ -7050,6 +7052,7 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
       <ModalActions
         onSave={handleSave}
         onClose={onClose}
+        saveLabel="Confirm Sell"
         disabled={!isValid || saving}
         loading={saving}
       />

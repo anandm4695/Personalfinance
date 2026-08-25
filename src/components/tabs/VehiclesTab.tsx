@@ -776,7 +776,7 @@ function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
         <ModalActions
           onClose={onClose}
           onSave={handleSave}
-          saveLabel={isEdit ? "Update" : "Add Vehicle"}
+          saveLabel={isEdit ? "Save Changes" : "Add Vehicle"}
           disabled={!canSave || saving}
           loading={saving}
         />
@@ -1449,7 +1449,7 @@ function ServiceModal({ existing, vehicleName, currentReminder, onClose, onSave,
         <ModalActions
           onClose={onClose}
           onSave={handleSave}
-          saveLabel={isEdit ? "Update" : "Add Record"}
+          saveLabel={isEdit ? "Save Changes" : "Add Record"}
           disabled={!f.date || !f.type || saving}
           loading={saving}
         />
@@ -1789,7 +1789,7 @@ function InsuranceModal({ existing, vehicleName, onClose, onSave, saving = false
         <ModalActions
           onClose={onClose}
           onSave={handleSave}
-          saveLabel={isEdit ? "Update" : "Add Record"}
+          saveLabel={isEdit ? "Save Changes" : "Add Record"}
           disabled={!canSave || saving}
           loading={saving}
         />

@@ -1401,7 +1401,7 @@ export const NomineeTrackerTab = ({
           <ModalActions
             onSave={handleAssign}
             onClose={() => setAssignModal(null)}
-            saveLabel={assignModal.covered ? "Update Nominee" : "Assign Nominee"}
+            saveLabel={assignModal.covered ? "Save Changes" : "Assign Nominee"}
             disabled={!assignName.trim()}
           />
         </Modal>
@@ -1480,7 +1480,7 @@ export const NomineeTrackerTab = ({
           <ModalActions
             onSave={handleSaveWill}
             onClose={resetWillForm}
-            saveLabel={editWill ? "Update Will" : "Save Will"}
+            saveLabel={editWill ? "Save Changes" : "Add Will Document"}
             loading={savingWill}
           />
         </Modal>
@@ -1557,7 +1557,7 @@ export const NomineeTrackerTab = ({
           <ModalActions
             onSave={handleSaveContact}
             onClose={resetContactForm}
-            saveLabel={editContact ? "Update Contact" : "Save Contact"}
+            saveLabel={editContact ? "Save Changes" : "Add Key Contact"}
             disabled={!contactForm.name.trim()}
             loading={savingContact}
           />

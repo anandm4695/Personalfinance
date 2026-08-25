@@ -2230,7 +2230,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
         <ModalActions
           onSave={handleSave}
           onClose={() => setShowModal(false)}
-          saveLabel={editId ? "Update" : "Add Document"}
+          saveLabel={editId ? "Save Changes" : "Add Document"}
           disabled={!form.name.trim() || saving}
           loading={saving}
         />

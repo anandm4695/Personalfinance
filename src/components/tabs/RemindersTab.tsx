@@ -1967,6 +1967,7 @@ function ReminderModal({ onClose, onSave, initialValues = null, saving = false }
       <ModalActions
         onSave={() => f.title && f.date && onSave(f)}
         onClose={onClose}
+        saveLabel={initialValues ? "Save Changes" : "Add Reminder"}
         disabled={saving}
         loading={saving}
       />

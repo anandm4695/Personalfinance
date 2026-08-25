@@ -3219,6 +3219,7 @@ function BankModal({ onClose, onSave, saving }: any) {
       <ModalActions
         onSave={() => f.bankName && onSave(f)}
         onClose={onClose}
+        saveLabel="Add Bank Account"
         disabled={saving}
         loading={saving}
       />
@@ -3493,6 +3494,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
           onSave(f)
         }
         onClose={onClose}
+        saveLabel="Record Transaction"
         disabled={saving}
         loading={saving}
       />
@@ -3688,6 +3690,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
       <ModalActions
         onSave={() => Number(f.amount) > 0 && f.accountId && onSave(f)}
         onClose={onClose}
+        saveLabel="Save Changes"
         disabled={saving}
         loading={saving}
       />

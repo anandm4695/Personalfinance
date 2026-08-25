@@ -984,6 +984,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
           <ModalActions
             onSave={handleSave}
             onClose={() => setShowModal(false)}
+            saveLabel={editingId ? "Save Changes" : "Add Gold Holding"}
             disabled={!form.grams || savingGold}
             loading={savingGold}
           />
