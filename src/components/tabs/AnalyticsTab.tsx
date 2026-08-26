@@ -3786,8 +3786,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 style={{
                   background: "var(--surface-0)",
                   border: `1px solid ${THEME.line}`,
-                  borderTop: `3px solid ${color}`,
-                  borderRadius: 12,
+                  borderLeft: `2.5px solid ${color}`,
+                  borderRadius: 10,
                   padding: "14px 16px",
                   display: "flex",
                   flexDirection: "column",
