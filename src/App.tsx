@@ -3215,7 +3215,13 @@ function FinanceDashboard() {
     setDemoMode(false);
     setSession(null);
     lastFetchedUserIdRef.current = null;
-    setState(DEFAULT_STATE);
+    // Clear all financial data back to defaults, but keep the user's theme/appearance
+    // settings intact — otherwise every sign-out force-resets dark mode, accent color,
+    // font, etc. back to the hardcoded defaults, which then gets written straight into
+    // localStorage (see the always-on saveStateLocal effect) and into the pre-login
+    // Auth screen's .dark-theme class (see useTheme.ts), stomping the real preference
+    // the user had set before they'd even logged back in.
+    setState((s) => ({ ...DEFAULT_STATE, settings: s.settings }));
     setActiveProfile("all");
     try {
       localStorage.removeItem("finance_credit_scores");
@@ -4239,21 +4245,7 @@ function FinanceDashboard() {
                   resetAll={resetAll}
                   showToast={showToast}
                   session={session}
-                  onSignOut={async () => {
-                    sessionStorage.removeItem("demo_session");
-                    if (getIsDemoMode()) {
-                      await signOutOfDemo().catch(() => {});
-                    } else {
-                      await supabase.auth.signOut().catch(() => {});
-                    }
-                    setDemoMode(false);
-                    setSession(null);
-                    setState(DEFAULT_STATE);
-                    setActiveProfile("all");
-                    try {
-                      localStorage.removeItem("finance_credit_scores");
-                    } catch {}
-                  }}
+                  onSignOut={handleSignOut}
                   cleanupOrphaned={cleanupOrphanedCorporateActions}
                   updateProfile={updateProfile}
                   updateSettings={updateSettings}
