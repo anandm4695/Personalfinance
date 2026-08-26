@@ -1106,7 +1106,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                           >
                             Property Value
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.violet }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontWeight: 800,
+                              fontSize: 13,
+                              color: THEME.violet,
+                            }}
+                          >
                             {p.propertyValue ? <Money value={p.propertyValue} variant="full" /> : "—"}
                           </div>
                         </div>
@@ -1132,7 +1139,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                           >
                             FY Received
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontWeight: 800,
+                              fontSize: 13,
+                              color: THEME.sage,
+                            }}
+                          >
                             <Money
                               value={(p.receipts || [])
                                 .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
@@ -1163,7 +1177,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                           >
                             Deposit Held
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.gold }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontWeight: 800,
+                              fontSize: 13,
+                              color: THEME.gold,
+                            }}
+                          >
                             <Money
                               value={Math.max(
                                 0,
@@ -2569,7 +2590,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                           >
                             FY Paid
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.rust }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontWeight: 800,
+                              fontSize: 13,
+                              color: THEME.rust,
+                            }}
+                          >
                             <Money
                               value={(p.payments || [])
                                 .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
@@ -2600,7 +2628,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                           >
                             Deposit Paid
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontWeight: 800,
+                              fontSize: 13,
+                              color: THEME.sage,
+                            }}
+                          >
                             <Money
                               value={Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0))}
                               variant="full"

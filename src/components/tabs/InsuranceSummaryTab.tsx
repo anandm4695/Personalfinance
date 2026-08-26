@@ -3200,7 +3200,14 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         >
                           Invested
                         </div>
-                        <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontWeight: 800,
+                            color: THEME.ink,
+                            fontSize: 13,
+                          }}
+                        >
                           <Money value={paid} variant="full" />
                         </div>
                       </div>
@@ -3229,6 +3236,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           </div>
                           <div
                             style={{
+                              fontFamily: "var(--font-display)",
                               fontWeight: 800,
                               color: isPaid ? THEME.sage : THEME.gold,
                               fontSize: 13,
@@ -3261,7 +3269,14 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           >
                             At Maturity
                           </div>
-                          <div style={{ fontWeight: 800, color: THEME.sage, fontSize: 13 }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontWeight: 800,
+                              color: THEME.sage,
+                              fontSize: 13,
+                            }}
+                          >
                             <Money value={ip.expectedMaturityAmount} variant="full" />
                           </div>
                           {maturityGain > 0 && expectedTotal > 0 && (

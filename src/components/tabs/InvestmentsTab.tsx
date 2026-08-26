@@ -2963,7 +2963,14 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   >
                     <div>
                       <div style={lbl}>Current Accrued</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.accent,
+                        }}
+                      >
                         <Money value={accrued} variant="full" />
                       </div>
                       <div style={{ fontSize: 10, color: gain >= 0 ? THEME.sage : THEME.rust }}>
@@ -2973,7 +2980,14 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     </div>
                     <div>
                       <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.sage,
+                        }}
+                      >
                         <Money value={maturity} variant="full" />
                       </div>
                       {!isMatured && daysLeft !== null && (
@@ -3288,7 +3302,14 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   >
                     <div>
                       <div style={lbl}>Deposited</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.accent,
+                        }}
+                      >
                         <Money value={deposited} variant="full" />
                       </div>
                       <div style={{ fontSize: 10, color: THEME.sage }}>
@@ -3297,7 +3318,14 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     </div>
                     <div>
                       <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.sage,
+                        }}
+                      >
                         <Money value={isMatured ? currentVal : fullMaturity} variant="full" />
                       </div>
                     </div>
@@ -6084,7 +6112,7 @@ function NPSAccountCard({ n, removeItem, updateItem, showToast }: any) {
               >
                 {label}
               </div>
-              <div style={{ fontSize: 13, fontWeight: 800, color }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color }}>
                 <Money value={value} variant="full" />
               </div>
             </div>
@@ -7892,7 +7920,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
               >
                 {label}
               </div>
-              <div style={{ fontSize: 13, fontWeight: 800, color }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color }}>
                 <Money value={value} variant="full" />
               </div>
             </div>

@@ -2241,7 +2241,7 @@ export function RealEstateTab({
           >
             <StatCard
               label="Total Invested"
-              value={<Money value={stats.totalInvested} variant="full" />}
+              value={fmtINRFull(stats.totalInvested)}
               numericValue={stats.totalInvested}
               formatValue={fmtINRFull}
               sub="Agreement + Stamp + TDS"
@@ -2250,7 +2250,7 @@ export function RealEstateTab({
             />
             <StatCard
               label="Total Paid"
-              value={<Money value={stats.totalPaid} variant="full" />}
+              value={fmtINRFull(stats.totalPaid)}
               numericValue={stats.totalPaid}
               formatValue={fmtINRFull}
               sub="All payments"
@@ -2259,7 +2259,7 @@ export function RealEstateTab({
             />
             <StatCard
               label="Outstanding"
-              value={<Money value={stats.outstanding} variant="full" />}
+              value={fmtINRFull(stats.outstanding)}
               numericValue={stats.outstanding}
               formatValue={fmtINRFull}
               sub="Demands pending"
@@ -2268,12 +2268,7 @@ export function RealEstateTab({
             />
             <StatCard
               label="Appreciation"
-              value={
-                <>
-                  {stats.appreciation >= 0 ? "+" : "−"}
-                  <Money value={Math.abs(stats.appreciation)} variant="full" />
-                </>
-              }
+              value={`${stats.appreciation >= 0 ? "+" : "−"}${fmtINRFull(Math.abs(stats.appreciation))}`}
               numericValue={stats.appreciation}
               formatValue={(n) => `${n >= 0 ? "+" : "−"}${fmtINRFull(Math.abs(n))}`}
               sub={`${stats.appreciation >= 0 ? "+" : "−"}${Math.abs(stats.appreciationPct).toFixed(1)}% vs. invested`}
