@@ -1470,6 +1470,7 @@ function PropertyCard({
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 16,
                 fontWeight: 900,
                 color: value ? color : THEME.muted,

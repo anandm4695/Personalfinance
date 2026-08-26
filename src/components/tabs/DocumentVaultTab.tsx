@@ -456,7 +456,15 @@ function CircularProgressWheel({ percentage, size = 80 }: { percentage: number; 
         />
       </svg>
       <div className="coverage-circular-progress-text">
-        <span style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}>
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 16,
+            fontWeight: 900,
+            color: THEME.ink,
+            letterSpacing: "-0.03em",
+          }}
+        >
           {percentage}%
         </span>
         <span style={{ fontSize: 8, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>

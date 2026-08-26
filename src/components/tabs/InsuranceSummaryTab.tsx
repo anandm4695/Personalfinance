@@ -2370,6 +2370,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 16,
                           fontWeight: 900,
                           color: THEME.ink,
@@ -2479,7 +2480,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           flex: "1 1 80px",
                           background: "var(--surface-0)",
                           border: `1px solid ${THEME.line}`,
-                          borderTop: `2px solid ${color}`,
+                          borderLeft: `2.5px solid ${color}`,
                           borderRadius: 8,
                           padding: "7px 10px",
                         }}
@@ -2699,6 +2700,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 16,
                           fontWeight: 900,
                           color: THEME.ink,
@@ -2813,7 +2815,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           flex: "1 1 70px",
                           background: "var(--surface-0)",
                           border: `1px solid ${THEME.line}`,
-                          borderTop: `2px solid ${color}`,
+                          borderLeft: `2.5px solid ${color}`,
                           borderRadius: 8,
                           padding: "7px 10px",
                         }}
@@ -3034,6 +3036,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 16,
                           fontWeight: 900,
                           color: THEME.ink,
@@ -3148,7 +3151,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           flex: "1 1 70px",
                           background: "var(--surface-0)",
                           border: `1px solid ${THEME.line}`,
-                          borderTop: `2px solid ${color}`,
+                          borderLeft: `2.5px solid ${color}`,
                           borderRadius: 8,
                           padding: "7px 10px",
                         }}
@@ -3180,7 +3183,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           flex: "1 1 80px",
                           background: "var(--surface-0)",
                           border: `1px solid ${THEME.line}`,
-                          borderTop: `2px solid ${THEME.muted}`,
+                          borderLeft: `2.5px solid ${THEME.muted}`,
                           borderRadius: 8,
                           padding: "8px 10px",
                         }}
@@ -3207,7 +3210,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             flex: "1 1 80px",
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,
-                            borderTop: `2px solid ${THEME.gold}`,
+                            borderLeft: `2.5px solid ${THEME.gold}`,
                             borderRadius: 8,
                             padding: "8px 10px",
                           }}
@@ -3241,7 +3244,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                             flex: "1 1 80px",
                             background: "var(--surface-0)",
                             border: `1px solid ${THEME.line}`,
-                            borderTop: `2px solid ${THEME.sage}`,
+                            borderLeft: `2.5px solid ${THEME.sage}`,
                             borderRadius: 8,
                             padding: "8px 10px",
                           }}

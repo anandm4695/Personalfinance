@@ -1480,6 +1480,7 @@ export function BudgetTab({
                           <div style={{ textAlign: "right" }}>
                             <div
                               style={{
+                                fontFamily: "var(--font-display)",
                                 fontWeight: 900,
                                 color: over ? THEME.rust : THEME.ink,
                                 fontSize: 16,

@@ -581,6 +581,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                fontFamily: "var(--font-display)",
                 fontWeight: 900,
                 fontSize: 20,
                 color: scoreColor,
@@ -870,6 +871,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 13,
                           fill: THEME.ink,
                           fontWeight: 900,
@@ -906,6 +908,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 13,
                           fill: THEME.ink,
                           fontWeight: 900,
@@ -1067,6 +1070,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 13,
                           fill: THEME.ink,
                           fontWeight: 900,
@@ -1099,6 +1103,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 13,
                           fill: THEME.ink,
                           fontWeight: 900,
@@ -1267,6 +1272,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 >
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontWeight: 900,
                       fontSize: 14,
                       color: s.overweight ? THEME.rust : THEME.sage,
@@ -1349,7 +1355,14 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 }}
               >
                 <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{d.name}</span>
-                <span style={{ fontSize: 13.5, fontWeight: 900, color: THEME.sage }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 13.5,
+                    fontWeight: 900,
+                    color: THEME.sage,
+                  }}
+                >
                   <Money value={d.amount} variant="full" />
                 </span>
               </div>

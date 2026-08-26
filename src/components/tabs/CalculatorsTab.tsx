@@ -2423,6 +2423,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     </span>
                     <span
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontWeight: 900,
                         fontSize: 26,
                         color:
@@ -2710,6 +2711,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     </span>
                     <span
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontWeight: 900,
                         fontSize: 18,
                         color: fireResult.gap > 0 ? THEME.rust : THEME.sage,
@@ -5479,6 +5481,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         </span>
                         <span
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontWeight: 900,
                             color: riResult.surplusAtRetire >= 0 ? THEME.sage : THEME.rust,
                             fontVariantNumeric: "tabular-nums",

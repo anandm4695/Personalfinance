@@ -2112,6 +2112,7 @@ export const InvestmentStatementTab = ({
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 16,
                           fill: THEME.ink,
                           fontWeight: 900,
@@ -2148,6 +2149,7 @@ export const InvestmentStatementTab = ({
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 16,
                           fill: THEME.ink,
                           fontWeight: 900,

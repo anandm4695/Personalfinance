@@ -891,6 +891,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 18,
                           fill: THEME.ink,
                           fontWeight: 900,
@@ -927,6 +928,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 18,
                           fill: THEME.ink,
                           fontWeight: 900,

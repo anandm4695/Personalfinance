@@ -1334,7 +1334,13 @@ const HRACalculator = () => {
                 HRA Exempt (Minimum of A, B, C)
               </span>
               <span
-                style={{ fontWeight: 900, fontSize: 18, color: THEME.sage, textAlign: "right" }}
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 900,
+                  fontSize: 18,
+                  color: THEME.sage,
+                  textAlign: "right",
+                }}
               >
                 <Money value={exempt} variant="full" />
               </span>
@@ -3192,7 +3198,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         >
                           {label}
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color }}>{value}</div>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 16,
+                            fontWeight: 900,
+                            color,
+                          }}
+                        >
+                          {value}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -4316,7 +4331,14 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                               >
                                 Potential Saving
                               </div>
-                              <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>
+                              <div
+                                style={{
+                                  fontFamily: "var(--font-display)",
+                                  fontSize: 16,
+                                  fontWeight: 900,
+                                  color: THEME.sage,
+                                }}
+                              >
                                 ~<Money value={tip.saving} variant="full" />
                               </div>
                             </div>
@@ -4925,7 +4947,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         Unrealized Loss
                       </div>
                       <div
-                        style={{ fontSize: 16, fontWeight: 900, color: THEME.rust, marginTop: 2 }}
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 16,
+                          fontWeight: 900,
+                          color: THEME.rust,
+                          marginTop: 2,
+                        }}
                       >
                         <Money value={cand.loss} variant="full" />
                       </div>

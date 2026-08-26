@@ -2368,6 +2368,7 @@ function VehicleCard({
           <div style={{ textAlign: "right" }}>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontWeight: 900,
                 fontSize: 20,
                 color: THEME.accent,
@@ -2651,6 +2652,7 @@ function VehicleCard({
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 18,
                             fontWeight: 900,
                             color: "var(--text)",

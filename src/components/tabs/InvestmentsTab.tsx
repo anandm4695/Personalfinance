@@ -12374,7 +12374,14 @@ function MFSection({
                                 >
                                   {yrs} Years
                                 </div>
-                                <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>
+                                <div
+                                  style={{
+                                    fontFamily: "var(--font-display)",
+                                    fontSize: 16,
+                                    fontWeight: 900,
+                                    color: THEME.sage,
+                                  }}
+                                >
                                   <Money value={compoundSaving(totalAnnualSaving, yrs)} variant="full" />
                                 </div>
                               </div>
@@ -14406,7 +14413,14 @@ const YieldTracker = ({ state }: any) => {
                       </div>
                     </div>
                     <div style={{ textAlign: "right" as const }}>
-                      <div style={{ fontSize: 14, fontWeight: 900, color }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 14,
+                          fontWeight: 900,
+                          color,
+                        }}
+                      >
                         <Money value={value} variant="full" />
                       </div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>

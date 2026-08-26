@@ -3813,6 +3813,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 17,
                     fontWeight: 900,
                     color,
@@ -5741,6 +5742,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 18,
                             fontWeight: 800,
                             color: item.color,
@@ -8183,7 +8185,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               padding: 14,
                               borderRadius: 10,
                               background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
-                              borderTop: `3px solid ${THEME.accent}`,
+                              borderLeft: `2.5px solid ${THEME.accent}`,
                             }}
                           >
                             <div
@@ -8207,7 +8209,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               padding: 14,
                               borderRadius: 10,
                               background: `color-mix(in srgb, ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust} 5%, transparent)`,
-                              borderTop: `3px solid ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust}`,
+                              borderLeft: `2.5px solid ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust}`,
                             }}
                           >
                             <div
@@ -8224,6 +8226,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             </div>
                             <div
                               style={{
+                                fontFamily: "var(--font-display)",
                                 fontSize: 18,
                                 fontWeight: 900,
                                 color:
@@ -8525,6 +8528,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </span>
                       <span
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 17,
                           fontWeight: 900,
                           color: THEME.ink,
@@ -9233,6 +9237,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </span>
                         <span
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 13,
                             fontWeight: 900,
                             color: THEME.ink,
@@ -9703,6 +9708,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 16,
                       fontWeight: 900,
                       color: THEME.ink,
@@ -11360,7 +11366,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         {label}
                       </div>
                       <div
-                        style={{ fontSize: 18, fontWeight: 800, color, letterSpacing: "-0.01em" }}
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 18,
+                          fontWeight: 800,
+                          color,
+                          letterSpacing: "-0.01em",
+                        }}
                       >
                         {value}
                       </div>
@@ -12861,6 +12873,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 </div>
                                 <div
                                   style={{
+                                    fontFamily: "var(--font-display)",
                                     fontSize: 18,
                                     fontWeight: 900,
                                     color,
@@ -13772,6 +13785,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           </span>
                           <span
                             style={{
+                              fontFamily: "var(--font-display)",
                               fontSize: 17,
                               fontWeight: 900,
                               color: THEME.ink,
@@ -14728,6 +14742,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 15,
                       fontWeight: 900,
                       color: THEME.ink,
@@ -15687,6 +15702,7 @@ const HeroStat = ({
       </div>
       <div
         style={{
+          fontFamily: "var(--font-display)",
           fontSize: 20,
           fontWeight: 800,
           color,

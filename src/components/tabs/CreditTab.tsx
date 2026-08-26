@@ -5368,7 +5368,14 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                   >
                                     {label}
                                   </span>
-                                  <span style={{ fontSize: 13.5, fontWeight: 900, color }}>
+                                  <span
+                                    style={{
+                                      fontFamily: "var(--font-display)",
+                                      fontSize: 13.5,
+                                      fontWeight: 900,
+                                      color,
+                                    }}
+                                  >
                                     {value}
                                   </span>
                                 </div>
@@ -6905,6 +6912,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
                   </div>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       fontSize: 20,
                       fontWeight: 900,
                       color: overpaid ? "var(--t-gold)" : settled ? "var(--t-sage)" : accentColor,
