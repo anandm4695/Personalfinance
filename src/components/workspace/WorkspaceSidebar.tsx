@@ -60,10 +60,14 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           {/* ── Header + Toggle ── */}
           <div
             style={{
-              padding: isSidebarCompact ? "16px 0" : "20px 24px 16px",
+              padding: isSidebarCompact ? "16px 0 12px" : "20px 24px 16px",
               position: "relative",
               transition: "padding 0.3s ease",
               flexShrink: 0,
+              display: isSidebarCompact ? "flex" : "block",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: isSidebarCompact ? 10 : 0,
             }}
           >
             <div
@@ -105,10 +109,10 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               title={sidebarMinimized ? "Expand sidebar" : "Collapse sidebar"}
               aria-label={sidebarMinimized ? "Expand sidebar" : "Collapse sidebar"}
               style={{
-                position: "absolute",
-                top: 16,
-                right: isSidebarCompact ? "50%" : 10,
-                transform: isSidebarCompact ? "translateX(50%)" : "none",
+                position: isSidebarCompact ? "static" : "absolute",
+                top: isSidebarCompact ? undefined : 16,
+                right: isSidebarCompact ? undefined : 10,
+                transform: "none",
                 width: 26,
                 height: 26,
                 borderRadius: 8,
