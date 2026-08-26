@@ -814,8 +814,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         <Card
           hover
           style={{
-            padding: "20px",
-            borderTop: `4px solid ${THEME.sage}`,
+            padding: "18px 20px",
+            border: "1px solid var(--t-line)",
+            borderLeft: `2.5px solid ${THEME.sage}`,
+            borderRadius: 10,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -852,10 +854,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 28,
+              fontSize: 27,
               fontWeight: 600,
               color: THEME.ink,
-              letterSpacing: "-0.04em",
+              letterSpacing: "-0.01em",
               fontVariantNumeric: "tabular-nums",
             }}
           >
@@ -911,8 +913,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         <Card
           hover
           style={{
-            padding: "20px",
-            borderTop: `4px solid ${THEME.rust}`,
+            padding: "18px 20px",
+            border: "1px solid var(--t-line)",
+            borderLeft: `2.5px solid ${THEME.rust}`,
+            borderRadius: 10,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -949,10 +953,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 28,
+              fontSize: 27,
               fontWeight: 600,
               color: THEME.ink,
-              letterSpacing: "-0.04em",
+              letterSpacing: "-0.01em",
               fontVariantNumeric: "tabular-nums",
             }}
           >
@@ -1008,8 +1012,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         <Card
           hover
           style={{
-            padding: "20px",
-            borderTop: `4px solid ${netCashFlow >= 0 ? THEME.sage : THEME.rust}`,
+            padding: "18px 20px",
+            border: "1px solid var(--t-line)",
+            borderLeft: `2.5px solid ${netCashFlow >= 0 ? THEME.sage : THEME.rust}`,
+            borderRadius: 10,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -1052,10 +1058,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 28,
+              fontSize: 27,
               fontWeight: 600,
               color: netCashFlow >= 0 ? THEME.sage : THEME.rust,
-              letterSpacing: "-0.04em",
+              letterSpacing: "-0.01em",
               fontVariantNumeric: "tabular-nums",
             }}
           >
@@ -1100,8 +1106,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         <Card
           hover
           style={{
-            padding: "20px",
-            borderTop: `4px solid ${netMonthly >= 0 ? THEME.sage : THEME.rust}`,
+            padding: "18px 20px",
+            border: "1px solid var(--t-line)",
+            borderLeft: `2.5px solid ${netMonthly >= 0 ? THEME.sage : THEME.rust}`,
+            borderRadius: 10,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -1144,10 +1152,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 28,
+              fontSize: 27,
               fontWeight: 600,
               color: netMonthly >= 0 ? THEME.sage : THEME.rust,
-              letterSpacing: "-0.04em",
+              letterSpacing: "-0.01em",
               fontVariantNumeric: "tabular-nums",
             }}
           >
