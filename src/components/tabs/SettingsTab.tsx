@@ -1310,7 +1310,13 @@ function ProfileSection({ state, updateProfile, showToast }: any) {
       </div>
 
       <div
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
       >
         {isDirty ? (
           <span
@@ -1505,7 +1511,13 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
       )}
 
       <div
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
       >
         {isDirty ? (
           <span
@@ -1532,7 +1544,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
         ) : (
           <span style={{ fontSize: 11, color: THEME.muted }}>Family profile names</span>
         )}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {isDirty && (
             <Button variant="ghost" onClick={cancel}>
               Cancel
@@ -1907,7 +1919,7 @@ function DataSection({
             <div style={{ fontSize: 14, fontWeight: 600, color: THEME.rust, marginBottom: 12 }}>
               Are you sure? This will delete ALL your financial data.
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Button
                 variant="danger"
                 onClick={() => {

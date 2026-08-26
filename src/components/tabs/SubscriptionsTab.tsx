@@ -390,7 +390,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
         sub="Manage recurring services, streaming, and software bills"
         rightElement={
           state.subscriptions.length > 0 && (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <Button
                 onClick={downloadCSV}
                 variant="ghost"

@@ -1728,7 +1728,7 @@ export function DematTab({
       <SectionTitle
         sub="Live portfolio tracking and brokerage management"
         rightElement={
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <Button
               variant="secondary"
               icon={<RefreshCw size={13} className={fetchingPrices ? "spin" : ""} />}

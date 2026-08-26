@@ -537,11 +537,11 @@ export const AuditLogTab = ({ session }) => {
           box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 12%, transparent);
         }
       `}</style>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <SectionTitle sub="Track all changes and actions in your financial data">
           Audit Log
         </SectionTitle>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Button
             variant="ghost"
             size="sm"

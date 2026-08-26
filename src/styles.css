@@ -2847,6 +2847,7 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
   }
   .modal-footer {
     padding: 12px 16px !important;
+    flex-wrap: wrap !important;
   }
 
   /* ── FLEX MINWIDTH: allow shrinking ── */

@@ -1105,7 +1105,7 @@ export function BanksTab({
         <SectionTitle sub="Bank accounts, cash positions, and every rupee that moves">
           Banks & Transactions
         </SectionTitle>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => setShowBank(true)}>
             Account
           </Button>

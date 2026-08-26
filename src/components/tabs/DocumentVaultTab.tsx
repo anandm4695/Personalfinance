@@ -1945,8 +1945,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
           )}
 
           {/* Footer Actions */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, borderTop: `1.5px solid ${THEME.line}`, paddingTop: 18 }}>
-            <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, borderTop: `1.5px solid ${THEME.line}`, paddingTop: 18, flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Button
                 variant="secondary"
                 size="sm"
@@ -1973,7 +1973,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, sessi
                 </Button>
               )}
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {(doc.url || doc.filePath) && (
                 <Button
                   variant="accent"

@@ -846,6 +846,8 @@ const HraReceiptSection = ({ state }) => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 12,
                   }}
                 >
                   <div style={{ fontSize: 14, color: THEME.ink }}>
@@ -854,7 +856,7 @@ const HraReceiptSection = ({ state }) => {
                       <Money value={getReceiptData().reduce((s, r) => s + r.amount, 0)} variant="full" />
                     </strong>
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <Button
                       onClick={() => setShowPreview(!showPreview)}
                       variant="secondary"

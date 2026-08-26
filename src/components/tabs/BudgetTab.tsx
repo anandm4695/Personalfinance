@@ -1004,7 +1004,7 @@ export function BudgetTab({
             sub={`Set monthly limits per category and track real spending for ${selectedMonthLabel}`}
             rightElement={
               budgetsToUse.length > 0 && (
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                   <Button
                     onClick={downloadCSV}
                     variant="ghost"

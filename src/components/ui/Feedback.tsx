@@ -110,7 +110,7 @@ export function ConfirmDialog({
           >
             {message}
           </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
             <Button variant="secondary" onClick={onCancel}>
               Cancel
             </Button>

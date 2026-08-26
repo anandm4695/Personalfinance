@@ -113,6 +113,7 @@ export const Modal: React.FC<ModalProps> = ({
               borderTop: "1px solid var(--t-line)",
               display: "flex",
               justifyContent: "flex-end",
+              flexWrap: "wrap",
               gap: 12,
             }}
           >
@@ -134,7 +135,7 @@ export const ModalActions: React.FC<{
   disabled?: boolean;
   loading?: boolean;
 }> = ({ onSave, onClose, saveLabel = "Save", cancelLabel = "Cancel", disabled = false, loading = false }) => (
-  <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+  <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 12, marginTop: 24 }}>
     <Button variant="secondary" onClick={onClose} disabled={loading}>
       {cancelLabel}
     </Button>

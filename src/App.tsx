@@ -347,10 +347,16 @@ function FinanceDashboard() {
   const { privacyMode, setPrivacyMode } = usePrivacy();
   const [sidebarMinimized, setSidebarMinimized] = useState(() => {
     try {
-      return localStorage.getItem("pf_sidebar_minimized") === "true";
+      const saved = localStorage.getItem("pf_sidebar_minimized");
+      if (saved !== null) return saved === "true";
     } catch {
       return false;
     }
+    // First visit on this device: default to the compact icon rail on tablet
+    // widths, where a full 280px sidebar eats ~30% of a portrait iPad's
+    // screen. Desktop still defaults to expanded. The user's own toggle
+    // (above) always wins on every later visit.
+    return typeof window !== "undefined" && window.innerWidth >= 769 && window.innerWidth <= 1024;
   });
   useEffect(() => {
     try {
