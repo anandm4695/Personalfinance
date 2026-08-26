@@ -1020,21 +1020,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  background:
-                    netCashFlow >= 0
-                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                      : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                  border: `1px solid ${netCashFlow >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
                   color: netCashFlow >= 0 ? THEME.sage : THEME.rust,
                 }}
               >
-                {netCashFlow >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                {netCashFlow >= 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
               </div>
               <div>
                 <div
@@ -1121,21 +1112,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  background:
-                    netMonthly >= 0
-                      ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                      : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                  border: `1px solid ${netMonthly >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
                   color: netMonthly >= 0 ? THEME.sage : THEME.rust,
                 }}
               >
-                {netMonthly >= 0 ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                {netMonthly >= 0 ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
               </div>
               <div>
                 <div
