@@ -453,7 +453,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
               }}
             >
               <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
-              <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
                 <Money value={fdMaturity(Number(fd.principal), Number(fd.rate), Number(fd.years))} variant="full" />
               </span>
             </div>
@@ -740,7 +740,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
                       >
                         {lbl}
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color: THEME.ink }}>
                         <Money value={val} variant="full" />
                       </div>
                     </div>
@@ -1910,7 +1910,7 @@ function EditBondModal({ bond: initial, onClose, onSave, saving }: any) {
               >
                 {lbl}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color: THEME.ink }}>
                 <Money value={val} variant="full" />
               </div>
             </div>
@@ -2048,7 +2048,7 @@ function EditFDModal({ fd: initial, onClose, onSave, saving }: any) {
           }}
         >
           <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
-          <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
             <Money value={maturity} variant="full" />
           </span>
         </div>
@@ -2134,7 +2134,7 @@ function EditRDModal({ rd: initial, onClose, onSave, saving }: any) {
           }}
         >
           <span style={{ fontSize: 11, color: THEME.muted }}>Projected Maturity</span>
-          <span style={{ fontWeight: 900, color: THEME.cyan, fontSize: 15 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 900, color: THEME.cyan, fontSize: 15 }}>
             <Money value={maturity} variant="full" />
           </span>
         </div>
@@ -4970,7 +4970,7 @@ function PPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
               >
                 <Icon size={10} color={color} /> {label}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 800, color }}>
                 <Money value={value} variant="full" />
               </div>
               <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
@@ -8343,7 +8343,7 @@ function EPFAccountCard({ p, removeItem, updateItem, showToast }: any) {
               >
                 {s.label}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color: s.color }}>
                 <Money value={s.value} variant="full" />
               </div>
             </div>
@@ -13807,7 +13807,7 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
                     <div style={{ fontSize: 11, fontWeight: 700, color: THEME.accent }}>
                       FY {fy}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 800 }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800 }}>
                       <Money value={data.amount} variant="full" />
                     </div>
                     <div style={{ fontSize: 10, color: THEME.muted }}>
@@ -14069,7 +14069,7 @@ const DRIPSimulator = ({
           >
             Received
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800 }}>
             <Money value={totalDividends} variant="full" />
           </div>
           {/* Bar */}
@@ -14114,7 +14114,7 @@ const DRIPSimulator = ({
           >
             If Reinvested at {DRIP_RATES[selectedRateIdx].label}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: THEME.sage }}>
             <Money value={dripValue} variant="full" />
           </div>
           {/* Bar */}

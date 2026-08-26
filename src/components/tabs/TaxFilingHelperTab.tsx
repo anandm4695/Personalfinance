@@ -704,7 +704,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
                 }}
               >
                 <div style={{ fontSize: 12, color: THEME.textSecondary }}>{label}</div>
-                <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color }}>
+                <div className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color }}>
                   <Money value={value} variant="full" />
                 </div>
               </div>
@@ -720,7 +720,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
           }}
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Gross Total Income</div>
-          <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.accent }}>
+          <div className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: THEME.accent }}>
             <Money value={animatedTotalIncome} variant="full" />
           </div>
         </div>
@@ -752,7 +752,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             }}
           >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80C (max ₹1.5L)</div>
-            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.sage }}>
+            <div className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: THEME.sage }}>
               <Money value={deductions.sec80C} variant="full" />
             </div>
             <div style={{ fontSize: 11, color: THEME.textSecondary, marginTop: 4 }}>
@@ -781,7 +781,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             </div>
             <div
               className="tabular-nums"
-              style={{ fontSize: 18, fontWeight: 700, color: THEME.violet }}
+              style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: THEME.violet }}
             >
               <Money value={deductions.sec80CCD1B} variant="full" />
             </div>
@@ -806,7 +806,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
               Section 80D — Health Insurance (max ₹25K self + ₹25K parents)
             </div>
-            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}>
+            <div className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: THEME.accent }}>
               <Money value={deductions.sec80D} variant="full" />
             </div>
           </div>
@@ -821,7 +821,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
               Section 24 — Home Loan Interest (max ₹2L)
             </div>
-            <div className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, color: THEME.gold }}>
+            <div className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: THEME.gold }}>
               <Money value={deductions.sec24} variant="full" />
             </div>
           </div>
@@ -836,7 +836,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
           }}
         >
           <div style={{ fontSize: 13, color: THEME.textSecondary }}>Total Deductions</div>
-          <div className="tabular-nums" style={{ fontSize: 24, fontWeight: 700, color: THEME.sage }}>
+          <div className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: THEME.sage }}>
             <Money value={animatedTotalDeductions} variant="full" />
           </div>
         </div>
@@ -879,7 +879,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
               }}
             >
               <span style={{ fontWeight: 600, color: THEME.text }}>Total Tax Paid</span>
-              <span className="tabular-nums" style={{ fontWeight: 700, fontSize: 18, color: THEME.accent }}>
+              <span className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: THEME.accent }}>
                 <Money value={animatedTotalTaxPaid} variant="full" />
               </span>
             </div>

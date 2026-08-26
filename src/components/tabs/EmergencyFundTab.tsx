@@ -349,7 +349,14 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                       <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: THEME.ink }}>
                         {r.label}
                       </span>
-                      <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontWeight: 800,
+                          fontSize: 14,
+                          color: THEME.ink,
+                        }}
+                      >
                         <Money value={r.value} variant="full" />
                       </span>
                       <span
@@ -457,7 +464,14 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: THEME.ink }}>
                           {e.label}
                         </span>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: THEME.ink }}>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: THEME.ink,
+                          }}
+                        >
                           <Money value={e.amount} variant="full" />
                         </span>
                         <span
@@ -513,7 +527,14 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 <span style={{ flex: 1, fontSize: 13, color: THEME.ink, fontWeight: 800 }}>
                   Sum of Tracked Commitments
                 </span>
-                <span style={{ fontWeight: 900, fontSize: 15, color: THEME.ink }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 900,
+                    fontSize: 15,
+                    color: THEME.ink,
+                  }}
+                >
                   <Money value={breakdownTotal} variant="full" />
                 </span>
               </div>

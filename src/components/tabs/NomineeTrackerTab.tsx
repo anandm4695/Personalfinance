@@ -838,6 +838,7 @@ export const NomineeTrackerTab = ({
                           </div>
                           <div
                             style={{
+                              fontFamily: "var(--font-display)",
                               fontSize: 15,
                               fontWeight: 800,
                               color: THEME.ink,

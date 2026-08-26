@@ -1780,7 +1780,14 @@ function CCList({
             >
               Outstanding
             </div>
-            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize: 17,
+                letterSpacing: "-0.01em",
+              }}
+            >
               <Money value={c.outstanding} variant="full" />
             </div>
           </div>
@@ -1796,7 +1803,14 @@ function CCList({
             >
               {c.sharedGroup ? "Sub-Limit" : "Limit"}
             </div>
-            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize: 17,
+                letterSpacing: "-0.01em",
+              }}
+            >
               <Money value={c.limit} variant="full" />
             </div>
           </div>
@@ -2322,7 +2336,7 @@ function CCList({
                   >
                     Pool Limit
                   </div>
-                  <div style={{ fontWeight: 800, color: THEME.ink }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, color: THEME.ink }}>
                     {groupLimit > 0 ? <Money value={groupLimit} variant="full" /> : "—"}
                   </div>
                 </div>
@@ -2339,7 +2353,7 @@ function CCList({
                   >
                     Combined Used
                   </div>
-                  <div style={{ fontWeight: 800, color: barColor }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, color: barColor }}>
                     <Money value={groupOutstanding} variant="full" />
                   </div>
                 </div>
@@ -2356,7 +2370,7 @@ function CCList({
                   >
                     Available
                   </div>
-                  <div style={{ fontWeight: 800, color: THEME.sage }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, color: THEME.sage }}>
                     {groupLimit > 0 ? <Money value={groupAvailable} variant="full" /> : "—"}
                   </div>
                 </div>
@@ -2662,7 +2676,15 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             >
               {s.label}
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: s.color, marginTop: 4 }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 20,
+                fontWeight: 800,
+                color: s.color,
+                marginTop: 4,
+              }}
+            >
               {s.value}
             </div>
           </div>
@@ -3192,6 +3214,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
         <div style={{ fontSize: 14, color: THEME.muted }}>Net Outstanding</div>
         <div
           style={{
+            fontFamily: "var(--font-display)",
             fontSize: 20,
             fontWeight: 800,
             color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
@@ -3765,6 +3788,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 28,
                     fontWeight: 900,
                     color: balance >= 0 ? "#6ee7b7" : "#ff8888",
@@ -4113,7 +4137,15 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
             >
               {s.label}
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: s.color, marginTop: 4 }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 20,
+                fontWeight: 800,
+                color: s.color,
+                marginTop: 4,
+              }}
+            >
               {s.value}
             </div>
           </div>
@@ -5107,6 +5139,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     </span>
                     <span
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 12.5,
                         fontWeight: 800,
                         color: color === "var(--t-muted)" ? "var(--t-ink)" : color,
@@ -5813,6 +5846,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
                     </span>
                     <span
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 12,
                         fontWeight: 800,
                         color: color === "var(--t-muted)" ? "var(--t-ink)" : color,
@@ -8438,6 +8472,7 @@ function DebtPayoffOptimizer({ state }: any) {
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 13.5,
                     fontWeight: 800,
                     color: "#fff",
@@ -8461,6 +8496,7 @@ function DebtPayoffOptimizer({ state }: any) {
                 </div>
                 <div
                   style={{
+                    fontFamily: "var(--font-display)",
                     fontSize: 13.5,
                     fontWeight: 800,
                     color: "#fff",

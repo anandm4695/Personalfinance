@@ -1269,7 +1269,13 @@ export const CapitalGainsTab = ({
           </div>
           <div style={{ textAlign: "right" }}>
             <span
-              style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 18,
+                fontWeight: 800,
+                color: THEME.sage,
+                letterSpacing: "-0.02em",
+              }}
             >
               <Money value={ltcgExemptionUsed} variant="full" />
             </span>

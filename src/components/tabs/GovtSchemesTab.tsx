@@ -737,7 +737,14 @@ export function GovtSchemesTab({
 
                   {Number(sc.currentBalance) > 0 && (
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 700, fontSize: 16, color: THEME.success }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontWeight: 700,
+                          fontSize: 16,
+                          color: THEME.success,
+                        }}
+                      >
                         <Money value={Number(sc.currentBalance)} variant="full" />
                       </div>
                       <div style={{ fontSize: 11, color: THEME.textMuted }}>
@@ -747,7 +754,9 @@ export function GovtSchemesTab({
                   )}
                   {Number(sc.pensionAmount) > 0 && (
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>
+                      <div
+                        style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15 }}
+                      >
                         <Money value={Number(sc.pensionAmount)} variant="full" />/mo
                       </div>
                       <div style={{ fontSize: 11, color: THEME.textMuted }}>pension</div>
@@ -755,7 +764,9 @@ export function GovtSchemesTab({
                   )}
                   {Number(sc.coverageAmount) > 0 && (
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>
+                      <div
+                        style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15 }}
+                      >
                         <Money value={Number(sc.coverageAmount)} variant="full" />
                       </div>
                       <div style={{ fontSize: 11, color: THEME.textMuted }}>coverage</div>

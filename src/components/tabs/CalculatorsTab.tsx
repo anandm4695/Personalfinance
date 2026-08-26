@@ -1346,6 +1346,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         // output reads as an update, not a silent, easy-to-miss text swap.
         key={val}
         style={{
+          fontFamily: highlight ? "var(--font-display)" : undefined,
           fontWeight: highlight ? 900 : 700,
           color: color || (highlight ? THEME.sage : THEME.ink),
           fontVariantNumeric: "tabular-nums",
@@ -4059,6 +4060,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </label>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       padding: "10px 12px",
                       borderRadius: 8,
                       background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
@@ -4365,6 +4367,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </label>
                   <div
                     style={{
+                      fontFamily: "var(--font-display)",
                       padding: "10px 12px",
                       borderRadius: 8,
                       background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
@@ -5185,7 +5188,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                     >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
-                      <span style={{ fontWeight: 800, color: THEME.rust, fontSize: 16 }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontWeight: 800,
+                          color: THEME.rust,
+                          fontSize: 16,
+                        }}
+                      >
                         <Money value={idxResult.taxWithout} variant="full" />
                       </span>
                     </div>
@@ -5269,7 +5279,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                     >
                       <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
-                      <span style={{ fontWeight: 800, color: THEME.sage, fontSize: 16 }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontWeight: 800,
+                          color: THEME.sage,
+                          fontSize: 16,
+                        }}
+                      >
                         <Money value={idxResult.taxWith} variant="full" />
                       </span>
                     </div>

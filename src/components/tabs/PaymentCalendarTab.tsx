@@ -1196,7 +1196,7 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
             }}
           >
             <span>Total for {MONTH_NAMES[viewDate.month]}</span>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums" }}>
               <Money value={selectedMonthTotal} variant="exact" />
             </span>
           </div>

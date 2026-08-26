@@ -875,6 +875,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             </div>
             <div
               style={{
+                fontFamily: "var(--font-display)",
                 fontSize: 28,
                 fontWeight: 700,
                 color:
@@ -916,7 +917,14 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             >
               <IndianRupee size={12} style={{ flexShrink: 0 }} /> Expense at Retirement
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 22,
+                fontWeight: 700,
+                color: THEME.text,
+              }}
+            >
               <Money value={fireCalc.expenseAtRetirement / 12} variant="full" />/mo
             </div>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
@@ -936,7 +944,14 @@ export const FIREPlannerTab = ({ state, metrics }) => {
               <div style={{ fontSize: 12, color: THEME.textSecondary, minHeight: 30 }}>
                 Est. Pension Income
               </div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: THEME.sage,
+                }}
+              >
                 <Money value={fireCalc.pensionIncome} variant="full" />/mo
               </div>
               <div style={{ fontSize: 12, color: THEME.textSecondary }}>

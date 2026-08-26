@@ -2445,6 +2445,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 14,
                             fontWeight: 800,
                             color: THEME.ink,
@@ -2469,6 +2470,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 14,
                             fontWeight: 900,
                             color: THEME.ink,
@@ -4618,7 +4620,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           Holdings Value
                         </div>
                         <div
-                          style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 2 }}
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: THEME.ink,
+                            marginTop: 2,
+                          }}
                         >
                           <Money value={totalValue} variant="full" />
                         </div>
@@ -4636,7 +4644,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           Holdings Count
                         </div>
                         <div
-                          style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 2 }}
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: THEME.ink,
+                            marginTop: 2,
+                          }}
                         >
                           {filteredStocks.length} scrips
                         </div>
@@ -5085,7 +5099,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
                               Total Invested
                             </span>
-                            <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                            <span
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontSize: 14,
+                                fontWeight: 800,
+                                color: THEME.ink,
+                              }}
+                            >
                               <Money value={totalInvested} variant="full" />
                             </span>
                           </div>
@@ -5103,7 +5124,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
                               Current Value
                             </span>
-                            <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                            <span
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontSize: 14,
+                                fontWeight: 800,
+                                color: THEME.ink,
+                              }}
+                            >
                               <Money value={totalValue} variant="full" />
                             </span>
                           </div>
@@ -5123,6 +5151,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             </span>
                             <span
                               style={{
+                                fontFamily: "var(--font-display)",
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: absoluteReturnPct >= 0 ? THEME.sage : THEME.rust,
@@ -5151,6 +5180,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             </span>
                             <span
                               style={{
+                                fontFamily: "var(--font-display)",
                                 fontSize: 16,
                                 fontWeight: 900,
                                 color:
@@ -5181,7 +5211,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
                                 Dividends Received
                               </span>
-                              <span style={{ fontSize: 14, fontWeight: 800, color: THEME.sage }}>
+                              <span
+                                style={{
+                                  fontFamily: "var(--font-display)",
+                                  fontSize: 14,
+                                  fontWeight: 800,
+                                  color: THEME.sage,
+                                }}
+                              >
                                 +<Money value={totalDividendsReceived} variant="full" />
                               </span>
                             </div>
@@ -5203,6 +5240,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               </span>
                               <span
                                 style={{
+                                  fontFamily: "var(--font-display)",
                                   fontSize: 14,
                                   fontWeight: 800,
                                   color:

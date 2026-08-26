@@ -714,24 +714,36 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
               >
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Weight</div>
-                  <div style={{ fontWeight: 600 }}>{h.grams}g</div>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>{h.grams}g</div>
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Current Value</div>
-                  <div style={{ fontWeight: 600, color: h.typeInfo.color }}>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 600,
+                      color: h.typeInfo.color,
+                    }}
+                  >
                     <Money value={h.currentValue} variant="full" />
                   </div>
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Invested</div>
-                  <div style={{ fontWeight: 600 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>
                     <Money value={h.invested} variant="full" />
                   </div>
                 </div>
                 <div>
                   <div style={{ color: THEME.textSecondary, fontSize: 11 }}>P&L</div>
                   {h.hasPurchasePrice ? (
-                    <div style={{ fontWeight: 600, color: h.pnl >= 0 ? THEME.sage : THEME.rust }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontWeight: 600,
+                        color: h.pnl >= 0 ? THEME.sage : THEME.rust,
+                      }}
+                    >
                       {h.pnl >= 0 ? "+" : ""}
                       <Money value={h.pnl} variant="full" />{" "}
                       ({h.pnlPct.toFixed(1)}%)
@@ -755,20 +767,28 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                   <>
                     <div>
                       <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Interest Rate</div>
-                      <div style={{ fontWeight: 600 }}>{h.interestRate}% p.a.</div>
+                      <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>
+                        {h.interestRate}% p.a.
+                      </div>
                     </div>
                     <div>
                       <div style={{ color: THEME.textSecondary, fontSize: 11 }}>
                         Interest Earned
                       </div>
-                      <div style={{ fontWeight: 600, color: THEME.sage }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontWeight: 600,
+                          color: THEME.sage,
+                        }}
+                      >
                         <Money value={h.interest} variant="full" />
                       </div>
                     </div>
                     {h.maturityDate && (
                       <div>
                         <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Maturity</div>
-                        <div style={{ fontWeight: 600 }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>
                           {new Date(h.maturityDate + "T00:00:00").toLocaleDateString("en-IN", {
                             day: "2-digit",
                             month: "short",

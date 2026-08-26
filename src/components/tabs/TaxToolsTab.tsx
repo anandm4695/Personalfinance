@@ -276,7 +276,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
               <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
                 Auto-Detected Annual Income
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: THEME.ink }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: THEME.ink }}>
                 <Money value={projectedIncome} variant="full" />
               </div>
             </div>
@@ -364,7 +364,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
           <Card key={i}>
             <div style={{ padding: 14, textAlign: "center" }}>
               <div
-                style={{ fontSize: 20, fontWeight: 800, color: s.color, letterSpacing: "-0.03em" }}
+                style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: s.color, letterSpacing: "-0.03em" }}
               >
                 <Money value={s.value} variant="full" />
               </div>
@@ -1092,7 +1092,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
               26AS / AIS Total
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: THEME.accent }}>
               <Money value={animatedTotal26AS} variant="full" />
             </div>
           </div>
@@ -1100,7 +1100,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
         <Card>
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>App Records</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: THEME.accent }}>
               <Money value={animatedTotalApp} variant="full" />
             </div>
           </div>
@@ -1109,7 +1109,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Mismatch</div>
             <div
-              style={{ fontSize: 20, fontWeight: 800, color: isMatch ? THEME.sage : THEME.rust }}
+              style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: isMatch ? THEME.sage : THEME.rust }}
             >
               {isMatch ? (
                 <span

@@ -659,7 +659,14 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
                     }}
                   >
                     <div style={{ fontSize: 12, color: THEME.textSecondary }}>{cat}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: THEME.text }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: THEME.text,
+                      }}
+                    >
                       <Money value={val} variant="full" />
                     </div>
                   </div>

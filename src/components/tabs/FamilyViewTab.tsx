@@ -1001,6 +1001,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       </span>
                       <span
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontSize: 14,
                           fontWeight: 800,
                           color: THEME.ink,
@@ -1129,6 +1130,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 15,
                             fontWeight: 800,
                             color: THEME.ink,
@@ -1161,6 +1163,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 15,
                             fontWeight: 800,
                             color: THEME.ink,
@@ -1335,6 +1338,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         </div>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontSize: 13,
                             fontWeight: 800,
                             color: THEME.ink,

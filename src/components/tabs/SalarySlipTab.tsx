@@ -1069,6 +1069,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                     <div style={{ textAlign: "right" }}>
                       <div
                         style={{
+                          fontFamily: "var(--font-display)",
                           fontWeight: 800,
                           fontSize: 15,
                           color: THEME.sage,
@@ -1083,6 +1084,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                       <div style={{ textAlign: "right" }}>
                         <div
                           style={{
+                            fontFamily: "var(--font-display)",
                             fontWeight: 800,
                             fontSize: 14.5,
                             color: THEME.ink,
@@ -1248,7 +1250,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                             }}
                           >
                             <span>Gross Salary</span>
-                            <span>
+                            <span style={{ fontFamily: "var(--font-display)" }}>
                               <Money value={Number(s.grossSalary || 0)} variant="full" />
                             </span>
                           </div>
@@ -1321,7 +1323,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                             }}
                           >
                             <span>Total Deductions</span>
-                            <span>
+                            <span style={{ fontFamily: "var(--font-display)" }}>
                               <Money value={Number(s.totalDeductions || 0)} variant="full" />
                             </span>
                           </div>

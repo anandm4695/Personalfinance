@@ -2306,7 +2306,14 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
                         Total Assets
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: THEME.accent,
+                        }}
+                      >
                         <Money value={assetAllocation.total} variant="full" />
                       </span>
                     </div>

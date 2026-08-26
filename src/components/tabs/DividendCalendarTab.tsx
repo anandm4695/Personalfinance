@@ -1275,7 +1275,14 @@ export function DividendCalendarTab({ state, marketData }: any) {
                 <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   Gross Received
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: THEME.ink,
+                  }}
+                >
                   <Money value={mfTotals.gross} variant="exact" />
                 </div>
               </div>
@@ -1283,7 +1290,14 @@ export function DividendCalendarTab({ state, marketData }: any) {
                 <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   TDS Deducted
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.rust }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: THEME.rust,
+                  }}
+                >
                   <Money value={mfTotals.tds} variant="exact" />
                 </div>
               </div>
@@ -1291,7 +1305,14 @@ export function DividendCalendarTab({ state, marketData }: any) {
                 <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   Net Received
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.sage }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: THEME.sage,
+                  }}
+                >
                   <Money value={mfTotals.gross - mfTotals.tds} variant="exact" />
                 </div>
               </div>

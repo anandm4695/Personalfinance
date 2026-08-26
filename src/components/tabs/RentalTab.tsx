@@ -3558,7 +3558,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                 >
                   {label}
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color }}>
                   {value !== 0
                     ? label === "Net Cashflow"
                       ? outThisFY >= inThisFY

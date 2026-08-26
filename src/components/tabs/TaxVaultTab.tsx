@@ -1061,7 +1061,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
         <div style={{ gridColumn: "1/-1", height: 1, background: THEME.line, margin: "4px 0" }} />
 
         <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>Taxable Income</span>
-        <span style={{ fontSize: 14, fontWeight: 900, color: accentColor, textAlign: "right" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 900, color: accentColor, textAlign: "right" }}>
           <Money value={result.taxable} variant="full" />
         </span>
       </div>
@@ -1175,6 +1175,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
         <span style={{ fontSize: 15, fontWeight: 900, color: THEME.ink }}>Net Tax Liability</span>
         <span
           style={{
+            fontFamily: "var(--font-display)",
             fontSize: 15,
             fontWeight: 900,
             color: result.total === 0 ? THEME.sage : THEME.rust,
@@ -2874,7 +2875,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     >
                       TDS Deducted
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "#fff" }}>
                       <Money value={totalTDS} variant="full" />
                     </div>
                   </div>
@@ -2889,7 +2890,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     >
                       Advance Paid
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "#fff" }}>
                       <Money value={totalAdvancePaid} variant="full" />
                     </div>
                   </div>
@@ -2906,7 +2907,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         >
                           Self-Assessment
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "#fff" }}>
                           <Money value={totalSelfAssessment} variant="full" />
                         </div>
                       </div>
@@ -3343,7 +3344,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         >
                           Income Recorded ({monthsElapsed}m)
                         </div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.accent }}>
                           <Money value={incomeThisYear} variant="full" />
                         </div>
                       </div>
@@ -3366,7 +3367,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         >
                           Projected Annual Income
                         </div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.sage }}>
                           <Money value={projectedAnnualIncome} variant="full" />
                         </div>
                       </div>
@@ -3389,7 +3390,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         >
                           Projected Tax ({activeRegime} regime)
                         </div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.gold }}>
                           <Money value={projectedTax} variant="full" />
                         </div>
                       </div>
@@ -3413,7 +3414,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           >
                             Sec 234C Interest
                           </div>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>
+                          <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.rust }}>
                             <Money value={totalPenalty234C} variant="full" />
                           </div>
                           <div style={{ fontSize: 10, color: THEME.muted }}>
@@ -4485,7 +4486,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       <div
                         style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}
                       >
-                        <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink }}>
+                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: THEME.ink }}>
                           <Money value={p.amount} variant="exact" />
                         </span>
                         <Badge variant="muted" style={{ fontSize: 9 }}>
@@ -4658,7 +4659,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       Net STCG (Actual)
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
-                      <Money value={taxCalculations.actual.netSTCG} variant="full" />{" "}
+                      <span style={{ fontFamily: "var(--font-display)" }}>
+                        <Money value={taxCalculations.actual.netSTCG} variant="full" />
+                      </span>{" "}
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
                         (Tax: <Money value={taxCalculations.actual.taxSTCG} variant="full" />)
                       </span>
@@ -4676,7 +4679,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       Net LTCG (Actual)
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
-                      <Money value={taxCalculations.actual.netLTCG} variant="full" />{" "}
+                      <span style={{ fontFamily: "var(--font-display)" }}>
+                        <Money value={taxCalculations.actual.netLTCG} variant="full" />
+                      </span>{" "}
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
                         (Tax: <Money value={taxCalculations.actual.taxLTCG} variant="full" />)
                       </span>
@@ -4784,6 +4789,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     </span>
                     <span
                       style={{
+                        fontFamily: "var(--font-display)",
                         fontSize: 16,
                         fontWeight: 900,
                         color: taxCalculations.simulated.totalTax > 0 ? THEME.gold : THEME.sage,

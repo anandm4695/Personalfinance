@@ -3165,7 +3165,11 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
         }}
       >
         <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: 13, fontWeight: 800, color }}><Money value={bal} variant="full" /></span>
+        <span
+          style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color }}
+        >
+          <Money value={bal} variant="full" />
+        </span>
       </div>
     );
   };
@@ -3231,7 +3235,11 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
               <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                 Current Balance
               </span>
-              <span style={{ fontSize: 14, fontWeight: 800, color }}><Money value={bal} variant="full" /></span>
+              <span
+                style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color }}
+              >
+                <Money value={bal} variant="full" />
+              </span>
             </div>
           );
         })()}
@@ -3509,7 +3517,11 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
             <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
               Current Balance
             </span>
-            <span style={{ fontSize: 14, fontWeight: 800, color }}><Money value={bal} variant="full" /></span>
+            <span
+              style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color }}
+            >
+              <Money value={bal} variant="full" />
+            </span>
           </div>
         );
       })()}

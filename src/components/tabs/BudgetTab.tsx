@@ -2257,7 +2257,14 @@ export function BudgetTab({
                           )}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: statusColor }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontSize: 16,
+                              fontWeight: 800,
+                              color: statusColor,
+                            }}
+                          >
                             <Money value={effectiveRent} variant="full" />
                           </div>
                           <div
@@ -2298,7 +2305,14 @@ export function BudgetTab({
                       <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
                         Total rental commitment this month
                       </span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.rust }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: THEME.rust,
+                        }}
+                      >
                         <Money value={total} variant="full" />
                       </span>
                     </div>

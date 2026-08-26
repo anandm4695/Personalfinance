@@ -235,7 +235,13 @@ const ComparisonSplitCard = ({
             {previousLabel}
           </div>
           <div
-            style={{ fontSize: 20, fontWeight: 700, color: THEME.muted, letterSpacing: "-0.02em" }}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 20,
+              fontWeight: 700,
+              color: THEME.muted,
+              letterSpacing: "-0.02em",
+            }}
           >
             <Money value={animatedPrevious} variant="full" />
           </div>

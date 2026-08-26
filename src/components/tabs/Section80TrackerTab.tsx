@@ -506,7 +506,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
               <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
                 Additional deduction up to ₹50,000
               </div>
-              <div className="amount-md" style={{ color: THEME.violet }}>
+              <div className="amount-md" style={{ fontFamily: "var(--font-display)", color: THEME.violet }}>
                 <Money value={data.sec80CCD1B.used} variant="full" />
               </div>
               <ProgressBar
@@ -525,7 +525,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                 <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
                   No cap (up to 10% of basic salary)
                 </div>
-                <div className="amount-md" style={{ color: THEME.accent }}>
+                <div className="amount-md" style={{ fontFamily: "var(--font-display)", color: THEME.accent }}>
                   <Money value={data.sec80CCD2.total} variant="full" />
                 </div>
               </Card>
@@ -577,7 +577,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
               <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
                 Max deduction: ₹2,00,000 for self-occupied
               </div>
-              <div className="amount-md" style={{ color: THEME.gold }}>
+              <div className="amount-md" style={{ fontFamily: "var(--font-display)", color: THEME.gold }}>
                 <Money value={data.sec24.total} variant="full" />
               </div>
               <ProgressBar used={data.sec24.total} limit={data.sec24.limit} color={THEME.gold} />
@@ -591,7 +591,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
               <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
                 Max: ₹10,000 on savings account interest
               </div>
-              <div className="amount-md" style={{ color: THEME.sage }}>
+              <div className="amount-md" style={{ fontFamily: "var(--font-display)", color: THEME.sage }}>
                 <Money value={data.sec80TTA.total} variant="full" />
               </div>
               <ProgressBar

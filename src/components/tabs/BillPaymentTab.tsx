@@ -486,7 +486,9 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>
+                    <div
+                      style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15 }}
+                    >
                       <Money value={Number(b.amount)} variant="full" />
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>

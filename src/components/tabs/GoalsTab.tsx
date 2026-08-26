@@ -974,7 +974,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                           >
                             {label}
                           </span>
-                          <span style={{ fontSize: 13, fontWeight: 800, color }}>{value}</span>
+                          <span
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontSize: 13,
+                              fontWeight: 800,
+                              color,
+                            }}
+                          >
+                            {value}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1119,7 +1128,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                                       {rate}% p.a.
                                     </div>
                                     <div
-                                      style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}
+                                      style={{
+                                        fontFamily: "var(--font-display)",
+                                        fontSize: 14,
+                                        fontWeight: 800,
+                                        color: THEME.accent,
+                                      }}
                                     >
                                       <Money value={sip} variant="full" />/mo
                                     </div>

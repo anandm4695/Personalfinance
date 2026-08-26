@@ -883,7 +883,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             </div>
 
                             <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                              <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color: THEME.ink }}>
                                 <Money value={monthly} variant="exact" />
                               </div>
                               <div

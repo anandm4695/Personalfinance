@@ -766,7 +766,14 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: THEME.success }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontWeight: 700,
+                        fontSize: 16,
+                        color: THEME.success,
+                      }}
+                    >
                       <Money value={Number(p.sumInsured || 0)} variant="full" />
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>cover</div>
@@ -789,7 +796,9 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                     )}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    <div
+                      style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14 }}
+                    >
                       <Money value={annual} variant="full" />/yr
                     </div>
                     <div style={{ fontSize: 11, color: THEME.textMuted }}>premium</div>
