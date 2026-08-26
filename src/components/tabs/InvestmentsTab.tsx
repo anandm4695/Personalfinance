@@ -13503,7 +13503,7 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
             ? [{ label: "Auto-Detected", value: String(autoDividends.length), color: THEME.accent }]
             : []),
         ].map(({ label, value, color }) => (
-          <Card key={label} style={{ padding: "16px 18px", borderTop: `3px solid ${color}` }}>
+          <Card key={label} style={{ padding: "16px 18px", borderLeft: `2.5px solid ${color}` }}>
             <div
               style={{
                 fontSize: 11,
@@ -13515,7 +13515,7 @@ const DividendTracker = ({ state, addItem, removeItem, showToast }: any) => {
             >
               {label}
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color }}>
               <Prv>{value}</Prv>
             </div>
           </Card>
@@ -13922,7 +13922,7 @@ const DRIPSimulator = ({
           marginBottom: 20,
         }}
       >
-        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.muted}` }}>
+        <Card style={{ padding: "14px 16px", borderLeft: `2.5px solid ${THEME.muted}` }}>
           <div
             style={{
               fontSize: 10,
@@ -13936,11 +13936,11 @@ const DRIPSimulator = ({
           >
             Total Received
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, marginTop: 4 }}>
             <Money value={totalDividends} variant="full" />
           </div>
         </Card>
-        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.sage}` }}>
+        <Card style={{ padding: "14px 16px", borderLeft: `2.5px solid ${THEME.sage}` }}>
           <div
             style={{
               fontSize: 10,
@@ -13954,11 +13954,19 @@ const DRIPSimulator = ({
           >
             If Reinvested at 12%
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              fontWeight: 800,
+              color: THEME.sage,
+              marginTop: 4,
+            }}
+          >
             <Money value={dripAt12} variant="full" />
           </div>
         </Card>
-        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.accent}` }}>
+        <Card style={{ padding: "14px 16px", borderLeft: `2.5px solid ${THEME.accent}` }}>
           <div
             style={{
               fontSize: 10,
@@ -13972,11 +13980,19 @@ const DRIPSimulator = ({
           >
             If Reinvested at 15%
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              fontWeight: 800,
+              color: THEME.accent,
+              marginTop: 4,
+            }}
+          >
             <Money value={dripAt15} variant="full" />
           </div>
         </Card>
-        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.gold}` }}>
+        <Card style={{ padding: "14px 16px", borderLeft: `2.5px solid ${THEME.gold}` }}>
           <div
             style={{
               fontSize: 10,
@@ -13990,7 +14006,15 @@ const DRIPSimulator = ({
           >
             Opportunity Cost
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold, marginTop: 4 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              fontWeight: 800,
+              color: THEME.gold,
+              marginTop: 4,
+            }}
+          >
             <Money value={dripAt12 - totalDividends} variant="full" />
           </div>
           <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>at 12% CAGR</div>

@@ -2740,7 +2740,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     background:
                       "linear-gradient(135deg, var(--surface-0) 0%, var(--surface-1) 100%)",
                     border: `1.5px solid ${THEME.line}`,
-                    borderTop: `4px solid ${m.color}`,
+                    borderLeft: `2.5px solid ${m.color}`,
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
