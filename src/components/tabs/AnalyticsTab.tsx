@@ -11257,10 +11257,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   ].map(({ label, value, sub, color }) => (
                     <div
                       key={label}
+                      className="card-lift"
                       style={{
                         padding: "14px 16px",
-                        background: `color-mix(in srgb, ${THEME.ink} 4%, transparent)`,
-                        borderRadius: 12,
+                        background: "var(--surface-1)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: "var(--radius-md)",
                       }}
                     >
                       <div
@@ -13300,12 +13302,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     style={{
                       marginBottom: 20,
                       padding: "16px 20px",
-                      borderRadius: 16,
-                      background: isDark ? "var(--surface-1)" : "rgba(255,255,255,0.9)",
+                      borderRadius: "var(--radius-lg)",
+                      background: "var(--surface-0)",
                       border: `1px solid ${THEME.line}`,
-                      boxShadow: isDark
-                        ? "0 2px 12px rgba(0,0,0,0.2)"
-                        : "0 2px 12px rgba(0,0,0,0.05)",
+                      boxShadow: "var(--shadow-sm)",
                     }}
                   >
                     {/* Top row: nav arrows + month title + Today */}
@@ -14337,45 +14337,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           style={{ display: "flex", flexDirection: "column", gap: 20 }}
         >
           <Card
+            variant="base"
             style={{
               padding: 0,
               overflow: "hidden",
-              borderRadius: 20,
-              background: isDark ? "var(--surface-2)" : "#0F172A",
-              border: isDark ? `1px solid ${THEME.line}` : "none",
+              borderRadius: "var(--radius-xl)",
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
+              border: `1px solid ${THEME.line}`,
+              borderTop: `4px solid ${THEME.accent}`,
             }}
           >
-            {/* Thin accent stripe — identifies current theme color */}
-            <div
-              style={{
-                height: 3,
-                background:
-                  "linear-gradient(90deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 50%, #34d399))",
-              }}
-            />
-
             <div
               style={{
                 padding: "28px 24px 22px",
-                color: "#fff",
                 position: "relative",
                 overflow: "hidden",
               }}
             >
-              {/* Decorative radial glow — matches Dashboard's sparkline overlay */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: -60,
-                  right: -60,
-                  width: 260,
-                  height: 260,
-                  background:
-                    "radial-gradient(circle, color-mix(in srgb, var(--t-accent) 18%, transparent) 0%, transparent 65%)",
-                  pointerEvents: "none",
-                }}
-              />
-              {/* Label row — mirrors "WEALTH OVERVIEW" label pattern */}
+              {/* Label row */}
               <div
                 style={{
                   display: "flex",
@@ -14398,13 +14378,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <span
                   style={{
                     fontSize: 10,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.15em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.45)",
-                    fontWeight: 700,
+                    color: THEME.muted,
+                    fontWeight: 800,
                   }}
                 >
-                  Habits & Rewards
+                  Habits & Discipline Level
                 </span>
               </div>
 
@@ -14428,7 +14408,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         cy="36"
                         r="30"
                         fill="none"
-                        stroke="rgba(255,255,255,0.12)"
+                        stroke={THEME.line}
                         strokeWidth="5"
                       />
                       <circle
@@ -14443,8 +14423,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         transform="rotate(-90 36 36)"
                         style={{
                           transition: "stroke-dasharray 0.8s ease",
-                          filter:
-                            "drop-shadow(0 0 6px color-mix(in srgb, var(--t-accent) 70%, transparent))",
                         }}
                       />
                     </svg>
@@ -14462,8 +14440,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div
                         style={{
                           fontSize: 8,
-                          fontWeight: 700,
-                          color: "rgba(255,255,255,0.5)",
+                          fontWeight: 800,
+                          color: THEME.muted,
                           letterSpacing: "0.08em",
                           marginBottom: 1,
                         }}
@@ -14474,8 +14452,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           fontFamily: "var(--font-display)",
                           fontSize: 26,
-                          fontWeight: 600,
-                          color: "#fff",
+                          fontWeight: 900,
+                          color: THEME.ink,
                         }}
                       >
                         {habitsBadges.level}
@@ -14488,15 +14466,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         fontSize: 18,
                         fontWeight: 900,
                         letterSpacing: "-0.02em",
-                        color: "#fff",
+                        color: THEME.ink,
                       }}
                     >
                       {habitsBadges.levelLabel}
                     </div>
-                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 3, fontWeight: 600 }}>
                       {habitsBadges.totalXP.toLocaleString()} XP earned
                     </div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                       {habitsBadges.xpToNext > 0
                         ? `${habitsBadges.xpToNext} XP → ${habitsBadges.nextLevelLabel}`
                         : "Max level reached!"}
@@ -14509,11 +14487,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div
                     style={{
                       fontSize: 10,
-                      color: "rgba(255,255,255,0.4)",
+                      color: THEME.muted,
                       letterSpacing: "0.12em",
                       textTransform: "uppercase",
-                      marginBottom: 8,
-                      fontWeight: 600,
+                      marginBottom: 6,
+                      fontWeight: 800,
                     }}
                   >
                     Financial Health
@@ -14521,16 +14499,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div
                     style={{
                       fontFamily: "var(--font-display)",
-                      fontSize: 56,
-                      fontWeight: 600,
+                      fontSize: 48,
+                      fontWeight: 900,
                       lineHeight: 1,
-                      letterSpacing: "-0.01em",
-                      color: "#fff",
+                      letterSpacing: "-0.02em",
+                      color: dashboardData.scoreColor || THEME.ink,
                     }}
                   >
                     {dashboardData.totalScore}
                   </div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 5 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, fontWeight: 700 }}>
                     {dashboardData.totalScore >= 75
                       ? "Excellent ✓"
                       : dashboardData.totalScore >= 50
@@ -14544,11 +14522,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div
                     style={{
                       fontSize: 10,
-                      color: "rgba(255,255,255,0.4)",
+                      color: THEME.muted,
                       letterSpacing: "0.12em",
                       textTransform: "uppercase",
-                      marginBottom: 8,
-                      fontWeight: 600,
+                      marginBottom: 6,
+                      fontWeight: 800,
                     }}
                   >
                     Savings Streak
@@ -14561,39 +14539,39 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       justifyContent: "flex-end",
                     }}
                   >
-                    <dashboardData.streakEmoji size={28} color="#fff" />
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: 42, fontWeight: 600, lineHeight: 1, color: "#fff" }}>
+                    <dashboardData.streakEmoji size={28} color={THEME.sage} />
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 44, fontWeight: 900, lineHeight: 1, color: THEME.sage }}>
                       {dashboardData.streak}
                     </span>
-                    <span style={{ fontSize: 14, color: "rgba(255,255,255,0.55)" }}>mo</span>
+                    <span style={{ fontSize: 14, color: THEME.muted, fontWeight: 700 }}>mo</span>
                   </div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 5 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, fontWeight: 700 }}>
                     {dashboardData.streakMsg}
                   </div>
                 </div>
               </div>
 
-              {/* XP progress bar — accent fill on dark base */}
+              {/* XP progress bar */}
               <div style={{ marginTop: 24, position: "relative", zIndex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
                   <span
                     style={{
                       fontSize: 10,
-                      color: "rgba(255,255,255,0.4)",
+                      color: THEME.muted,
                       fontWeight: 700,
                       letterSpacing: "0.03em",
                     }}
                   >
                     {habitsBadges.levelLabel} → {habitsBadges.nextLevelLabel}
                   </span>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 700 }}>
+                  <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 800 }}>
                     {habitsBadges.levelPct}%
                   </span>
                 </div>
                 <div
                   style={{
                     height: 6,
-                    background: "rgba(255,255,255,0.08)",
+                    background: THEME.line,
                     borderRadius: 99,
                     overflow: "hidden",
                   }}
@@ -14605,7 +14583,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       background: "var(--t-accent)",
                       borderRadius: 99,
                       transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
-                      boxShadow: "0 0 10px color-mix(in srgb, var(--t-accent) 50%, transparent)",
                     }}
                   />
                 </div>
