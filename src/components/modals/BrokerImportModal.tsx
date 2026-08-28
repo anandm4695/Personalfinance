@@ -464,9 +464,10 @@ export function BrokerImportModal({
       let remaining = t.qty;
 
       for (const lot of lots) {
-        if (remaining <= 0) break;
-        if (lot.qty <= 0) continue;
-        const consume = Math.min(lot.qty, remaining);
+        if (remaining <= 0.00001) break;
+        if (lot.qty <= 0.0001) continue;
+        const isFull = remaining >= lot.qty - 0.0001;
+        const consume = isFull ? lot.qty : Math.min(lot.qty, remaining);
         sells.push({
           symbol: t.symbol,
           exchange: t.exchange,
@@ -480,13 +481,13 @@ export function BrokerImportModal({
           dematId,
           owner: "self",
         });
-        lot.qty -= consume;
+        lot.qty = isFull ? 0 : Math.max(0, lot.qty - consume);
         remaining -= consume;
       }
 
       // No matching buy lot found (e.g. holding predates tracked history) —
       // still record the sell so it isn't silently dropped.
-      if (remaining > 0) {
+      if (remaining > 0.0001) {
         sells.push({
           symbol: t.symbol,
           exchange: t.exchange,
@@ -510,9 +511,9 @@ export function BrokerImportModal({
       const [symbol, exchange] = key.split("::");
       lots.forEach((lot) => {
         if (lot.source === "existing") {
-          if (lot.qty <= 0) stockRemovals.push(lot.id!);
-          else stockUpdates.push({ id: lot.id!, qty: String(lot.qty) });
-        } else if (lot.qty > 0) {
+          if (lot.qty <= 0.0001) stockRemovals.push(lot.id!);
+          else stockUpdates.push({ id: lot.id!, qty: String(Number(lot.qty.toFixed(4))) });
+        } else if (lot.qty > 0.0001) {
           newStocks.push({
             symbol,
             exchange,

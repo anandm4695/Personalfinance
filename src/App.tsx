@@ -930,14 +930,23 @@ function FinanceDashboard() {
             ? {
                 // Normalize: DB uses `scheme`/`type` but UI form saves with `name`/`category`.
                 // Always expose `name` and `category` so all display and search code works uniformly.
-                mutualFunds: snakeToCamel(mfs.data).map((m: any) => ({
-                  ...m,
-                  name: m.name || m.scheme || "",
-                  category: m.category || m.type || "",
-                })),
+                // Exclude fully sold zero-unit remnants from active holdings.
+                mutualFunds: snakeToCamel(mfs.data)
+                  .filter((m: any) => (Number(m.units) || 0) > 0.0001)
+                  .map((m: any) => ({
+                    ...m,
+                    name: m.name || m.scheme || "",
+                    category: m.category || m.type || "",
+                  })),
               }
             : {}),
-          ...(!stks.error && stks.data != null ? { stocks: snakeToCamel(stks.data) } : {}),
+          ...(!stks.error && stks.data != null
+            ? {
+                stocks: snakeToCamel(stks.data).filter(
+                  (s: any) => (Number(s.qty) || 0) > 0.0001
+                ),
+              }
+            : {}),
           ...(!demats.error && demats.data != null ? { demat: snakeToCamel(demats.data) } : {}),
           ...(!fds.error && fds.data != null ? { fixedDeposits: snakeToCamel(fds.data) } : {}),
           ...(!rds.error && rds.data != null ? { recurringDeposits: snakeToCamel(rds.data) } : {}),
@@ -1747,6 +1756,53 @@ function FinanceDashboard() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
+
+  // One-time and startup cleanup: remove zero-unit/fractional residual mutual funds or stocks
+  // from state and database caused by floating point precision residuals on sells.
+  useEffect(() => {
+    if (!loaded) return;
+    const zeroMfs = (state.mutualFunds || []).filter(
+      (m: any) => (Number(m.units) || 0) <= 0.0001
+    );
+    const zeroStocks = (state.stocks || []).filter(
+      (s: any) => (Number(s.qty) || 0) <= 0.0001
+    );
+    if (zeroMfs.length === 0 && zeroStocks.length === 0) return;
+
+    setState((s: any) => ({
+      ...s,
+      mutualFunds: (s.mutualFunds || []).filter((m: any) => (Number(m.units) || 0) > 0.0001),
+      stocks: (s.stocks || []).filter((st: any) => (Number(st.qty) || 0) > 0.0001),
+    }));
+
+    const uid = session?.user?.id;
+    if (uid && uid !== "offline-user") {
+      if (zeroMfs.length > 0) {
+        supabase
+          .from("mutual_funds")
+          .delete()
+          .in(
+            "id",
+            zeroMfs.map((m: any) => m.id)
+          )
+          .then(({ error }) => {
+            if (error) console.error("[cleanZeroHoldings: mutual_funds]", error.message);
+          });
+      }
+      if (zeroStocks.length > 0) {
+        supabase
+          .from("stocks")
+          .delete()
+          .in(
+            "id",
+            zeroStocks.map((s: any) => s.id)
+          )
+          .then(({ error }) => {
+            if (error) console.error("[cleanZeroHoldings: stocks]", error.message);
+          });
+      }
+    }
+  }, [loaded, state.mutualFunds, state.stocks, session?.user?.id]);
 
   // Auto-advance overdue subscription renewal dates based on their billing cycle.
   // Compares/advances on plain "YYYY-MM-DD" strings throughout (ISO date strings sort

@@ -414,15 +414,17 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
         const investedDelta = isRedemption
           ? -Math.min(existingInvested, avgCostPerUnit * Math.abs(signedUnits))
           : signedInvested;
+        const finalUnits = Math.max(0, existingUnits + signedUnits);
         mfHoldings.push({
           ...existing,
-          units: String(Math.max(0, existingUnits + signedUnits).toFixed(3)),
+          units: String(finalUnits.toFixed(3)),
           currentNav: existing.currentNav || r.currentNav,
           invested: String(Math.max(0, existingInvested + investedDelta).toFixed(2)),
           mfCode: existing.mfCode || r.mfCode,
-          // Tells the parent's handleImport to updateItem() this existing holding in place
+          // Tells the parent's handleImport to updateItem() or removeItem() this existing holding in place
           // rather than addItem() it as a brand-new row sharing the same id.
           _merge: true,
+          _delete: finalUnits <= 0.0001,
         });
       } else if (isRedemption) {
         // Redemption row with no matching existing holding — nothing to subtract from, skip creating a new holding

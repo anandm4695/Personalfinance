@@ -606,9 +606,11 @@ function computeFifoAlloc(
   let remaining = sellQty;
   const refDateStr = sellDate || today();
   for (const lot of sorted) {
-    if (remaining <= 0) break;
-    const available = Number(lot.qty);
-    const consume = Math.min(available, remaining);
+    if (remaining <= 0.00001) break;
+    const available = Number(lot.qty) || 0;
+    if (available <= 0.00001) continue;
+    const isFull = remaining >= available - 0.0001;
+    const consume = isFull ? available : Math.min(available, remaining);
     const buyPrice = Number(lot.avgPrice);
     // Equity holding period: anniversary-date-aware, matching CapitalGainsTab's
     // isLongTerm() rather than a naive "> 365 days" check, so the sell preview here
@@ -620,7 +622,7 @@ function computeFifoAlloc(
       buyPrice,
       pnl: (sellPrice - buyPrice) * consume,
       isLTCG,
-      fullyConsumed: consume >= available,
+      fullyConsumed: isFull || consume >= available - 0.0001,
     });
     remaining -= consume;
   }
@@ -897,8 +899,8 @@ export function DematTab({
   const { run: saveSellStock, loading: savingSellStock } = useAsyncAction(
     async (lotId: string, sellRecord: any, remainingQty: number) => {
       await addItem("stockSells", sellRecord);
-      if (remainingQty <= 0) await removeItem("stocks", lotId);
-      else await updateItem("stocks", lotId, { qty: String(remainingQty) });
+      if (remainingQty <= 0.0001) await removeItem("stocks", lotId);
+      else await updateItem("stocks", lotId, { qty: String(Number(remainingQty.toFixed(4))) });
     },
     {
       onSuccess: () => setSellLot(null),
@@ -930,10 +932,11 @@ export function DematTab({
           dematId: alloc.lot.dematId || "",
           profit: Number(alloc.pnl.toFixed(2)),
         });
-        if (alloc.fullyConsumed) await removeItem("stocks", alloc.lot.id);
+        const rem = Number(alloc.lot.qty) - alloc.consume;
+        if (alloc.fullyConsumed || rem <= 0.0001) await removeItem("stocks", alloc.lot.id);
         else
           await updateItem("stocks", alloc.lot.id, {
-            qty: String(Number(alloc.lot.qty) - alloc.consume),
+            qty: String(Number(rem.toFixed(4))),
           });
       }
     },
@@ -7010,10 +7013,13 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
   });
   const sellQtyNum = Number(f.sellQty) || 0;
   const sellPriceNum = Number(f.sellPrice) || 0;
-  const profit = (sellPriceNum - Number(lot.avgPrice)) * sellQtyNum;
-  const remainingQty = Number(lot.qty) - sellQtyNum;
+  const totalLotQty = Number(lot.qty) || 0;
+  const actualSellQty = Math.abs(sellQtyNum - totalLotQty) <= 0.0001 ? totalLotQty : sellQtyNum;
+  const remainingQty =
+    Math.max(0, totalLotQty - actualSellQty) <= 0.0001 ? 0 : totalLotQty - actualSellQty;
+  const profit = (sellPriceNum - Number(lot.avgPrice)) * actualSellQty;
   const isValid =
-    sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= Number(lot.qty) && !!f.sellDate;
+    sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalLotQty + 0.0001 && !!f.sellDate;
   const handleSave = () => {
     if (!isValid) return;
     const record = {
@@ -7021,14 +7027,14 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
       owner: lot.owner || "self",
       symbol: lot.base || lot.symbol,
       exchange: lot.exchange || "NSE",
-      qty: sellQtyNum,
+      qty: actualSellQty,
       buyPrice: Number(lot.avgPrice),
       buyDate: lot.buyDate || "",
       sellPrice: sellPriceNum,
       sellDate: f.sellDate,
       broker: f.broker,
       dematId: lot.dematId || "",
-      profit: Number(profit.toFixed(2)),
+      profit: Number(((sellPriceNum - Number(lot.avgPrice)) * actualSellQty).toFixed(2)),
     };
     onSave(record, remainingQty);
   };
@@ -7153,8 +7159,13 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = 
   const sellQtyNum = Number(f.sellQty) || 0;
   const sellPriceNum = Number(f.sellPrice) || 0;
   const allocs: FifoAlloc[] =
-    sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalQty
-      ? computeFifoAlloc(group.lots, sellQtyNum, sellPriceNum, f.sellDate)
+    sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalQty + 0.0001
+      ? computeFifoAlloc(
+          group.lots,
+          Math.abs(sellQtyNum - totalQty) <= 0.0001 ? totalQty : sellQtyNum,
+          sellPriceNum,
+          f.sellDate
+        )
       : [];
 
   const totalProceeds = sellQtyNum * sellPriceNum;

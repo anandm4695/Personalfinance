@@ -10128,11 +10128,16 @@ function MFSection({
   const [showCasImport, setShowCasImport] = useState(false);
   const [showExpenseAnalyzer, setShowExpenseAnalyzer] = useState(false);
 
+  const activeItems = useMemo(
+    () => (items || []).filter((m: any) => (Number(m.units) || 0) > 0.0001),
+    [items]
+  );
+
   const handleExport = () => {
-    if (!items || items.length === 0) return;
+    if (!activeItems || activeItems.length === 0) return;
     const header =
       "Fund Name,Category,Type,Folio Number,Fund Code,Buy Date,Buy NAV,Units,Current NAV,Invested,Owner\n";
-    const rows = items
+    const rows = activeItems
       .map((m: any) => {
         const name = `"${(m.name || m.scheme || "").replace(/"/g, '""')}"`;
         const cat = `"${(m.category || m.type || "Equity").replace(/"/g, '""')}"`;
@@ -10163,13 +10168,17 @@ function MFSection({
     onProgress?: (done: number, total: number) => void
   ) => {
     for (let i = 0; i < rows.length; i++) {
-      const { _merge, id, ...patch } = rows[i];
+      const { _merge, _delete, id, ...patch } = rows[i];
       // MFCasPanel flags rows it fuzzy-matched to an existing holding with `_merge` so they
       // update that holding in place instead of being inserted as a second, duplicate row
       // sharing the same id (addItem's local-state upsert only appends, it never replaces).
       if (_merge && id) {
-        await updateItem("mutualFunds", id, patch);
-      } else {
+        if (_delete || (patch.units != null && Number(patch.units) <= 0.0001)) {
+          await removeItem("mutualFunds", id);
+        } else {
+          await updateItem("mutualFunds", id, patch);
+        }
+      } else if (Number(rows[i].units || 0) > 0.0001) {
         await addItem("mutualFunds", rows[i]);
       }
       onProgress?.(i + 1, rows.length);
@@ -10195,14 +10204,15 @@ function MFSection({
         // holding isn't shrunk/deleted for a sale that doesn't exist in the DB.
         throw new Error("Sale could not be saved — holding was not changed.");
       }
-      if (remainingUnits <= 0) {
+      if (remainingUnits <= 0.0001) {
         await removeItem("mutualFunds", mf.id);
       } else {
-        const newInvested = Number(mf.buyNav || 0) * remainingUnits;
+        const remUnits = Number(remainingUnits.toFixed(4));
+        const newInvested = Number(mf.buyNav || 0) * remUnits;
         await updateItem("mutualFunds", mf.id, {
-          units: String(remainingUnits),
+          units: String(remUnits),
           invested: String(
-            newInvested || (Number(mf.invested || 0) * remainingUnits) / Number(mf.units)
+            newInvested || (Number(mf.invested || 0) * remUnits) / Number(mf.units)
           ),
         });
       }
@@ -10243,15 +10253,16 @@ function MFSection({
               : `Sale failed after ${i} of ${allocs.length} lot(s) — remaining lots were not changed.`
           );
         }
-        if (alloc.fullyConsumed) {
+        const remaining = Number(alloc.lot.units) - alloc.consume;
+        if (alloc.fullyConsumed || remaining <= 0.0001) {
           await removeItem("mutualFunds", alloc.lot.id);
         } else {
-          const remaining = Number(alloc.lot.units) - alloc.consume;
-          const newInvested = Number(alloc.lot.buyNav || 0) * remaining;
+          const remUnits = Number(remaining.toFixed(4));
+          const newInvested = Number(alloc.lot.buyNav || 0) * remUnits;
           await updateItem("mutualFunds", alloc.lot.id, {
-            units: String(remaining),
+            units: String(remUnits),
             invested: String(
-              newInvested || (Number(alloc.lot.invested || 0) * remaining) / Number(alloc.lot.units)
+              newInvested || (Number(alloc.lot.invested || 0) * remUnits) / Number(alloc.lot.units)
             ),
           });
         }
@@ -10421,7 +10432,7 @@ function MFSection({
   const overallXirr = useMemo(() => {
     try {
       const cashFlows: any[] = [];
-      const safeItems = Array.isArray(items) ? items : [];
+      const safeItems = Array.isArray(activeItems) ? activeItems : [];
       const safeMfSells = Array.isArray(mfSells) ? mfSells : [];
 
       // Active lots
@@ -10469,28 +10480,28 @@ function MFSection({
       console.error("Error calculating overall MF XIRR:", e);
       return null;
     }
-  }, [items, mfSells]);
+  }, [activeItems, mfSells]);
 
-  const totalInvested = items.reduce((s: number, m: any) => s + mfInvestedValue(m), 0);
-  const totalCurrent = items.reduce(
+  const totalInvested = activeItems.reduce((s: number, m: any) => s + mfInvestedValue(m), 0);
+  const totalCurrent = activeItems.reduce(
     (s: number, m: any) => s + mfCurrentValueOf(m, getLiveNav).value,
     0
   );
   const totalPnl = totalCurrent - totalInvested;
   const totalPnlPct = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
 
-  const totalDaysPnL = items.reduce((s: number, m: any) => {
+  const totalDaysPnL = activeItems.reduce((s: number, m: any) => {
     const meta = mfMeta[m.id];
     if (!meta || meta.navChange == null) return s;
     return s + Number(m.units || 0) * meta.navChange;
   }, 0);
   const prevCloseValue = totalCurrent - totalDaysPnL;
   const totalDaysPnLPct = prevCloseValue > 0 ? (totalDaysPnL / prevCloseValue) * 100 : 0;
-  const hasDaysPnLData = items.some((m: any) => m?.mfCode && mfMeta[m.id]?.navChange != null);
+  const hasDaysPnLData = activeItems.some((m: any) => m?.mfCode && mfMeta[m.id]?.navChange != null);
 
   return (
     <div className="animate-fade-in-up">
-      {items.length === 0 ? (
+      {activeItems.length === 0 ? (
         <InvestmentEmptyState
           icon={BarChart3}
           gradient="linear-gradient(135deg,#5b21b6 0%,#8b5cf6 100%)"
@@ -10520,7 +10531,7 @@ function MFSection({
             ))}
           </div>
 
-          {mfView === "insights" && <MFInsights items={items} getLiveNav={getLiveNav} />}
+          {mfView === "insights" && <MFInsights items={activeItems} getLiveNav={getLiveNav} />}
 
           {mfView === "holdings" && (
             <>
@@ -10845,7 +10856,7 @@ function MFSection({
               string,
               { fundName: string; folio: string; category: string; mfType: string; items: any[] }
             > = {};
-            items.forEach((m: any) => {
+            activeItems.forEach((m: any) => {
               const name = (m.name || m.scheme || "").trim();
               const folio = (m.folioNumber || "").trim();
               const cat = (m.category || m.type || "Equity").trim();
@@ -12870,7 +12881,10 @@ function SellMFModal({ mf, onClose, onSave, saving }: any) {
   const isLTCG = mf.buyDate ? isLongTerm(mf.buyDate, f.sellDate || today(), 12) : false;
 
   const handleSave = () => {
-    if (!sellUnitsNum || !sellNavNum || sellUnitsNum > totalUnits) return;
+    if (!sellUnitsNum || !sellNavNum || sellUnitsNum > totalUnits + 0.0001) return;
+    const actualSellUnits = Math.abs(sellUnitsNum - totalUnits) <= 0.0001 ? totalUnits : sellUnitsNum;
+    const actualRemaining =
+      Math.max(0, totalUnits - actualSellUnits) <= 0.0001 ? 0 : totalUnits - actualSellUnits;
     const record = {
       id: `mfs-${Date.now()}`,
       owner: mf.owner || "self",
@@ -12882,14 +12896,14 @@ function SellMFModal({ mf, onClose, onSave, saving }: any) {
       // would silently misclassify as Debt (wrong tax rate, wrong LTCG
       // threshold) without this.
       category: mf.category || "",
-      units: sellUnitsNum,
+      units: actualSellUnits,
       buyNav,
       buyDate: mf.buyDate || "",
       sellNav: sellNavNum,
       sellDate: f.sellDate,
-      profit: Number(profit.toFixed(2)),
+      profit: Number((actualSellUnits * (sellNavNum - buyNav)).toFixed(2)),
     };
-    onSave(record, remainingUnits);
+    onSave(record, actualRemaining);
   };
 
   return (
@@ -13057,12 +13071,14 @@ function FifoSellMFModal({ group, onClose, onSave, saving }: any) {
   const allocs: MFAlloc[] = (() => {
     if (sellUnitsNum <= 0 || sellNavNum <= 0 || qtyOver) return [];
     const result: MFAlloc[] = [];
-    let remaining = sellUnitsNum;
+    let remaining = Math.abs(sellUnitsNum - totalUnits) <= 0.0001 ? totalUnits : sellUnitsNum;
     const refDateStr = f.sellDate || today();
     for (const lot of sortedLots) {
-      if (remaining <= 0) break;
+      if (remaining <= 0.00001) break;
       const available = Number(lot.units) || 0;
-      const consume = Math.min(available, remaining);
+      if (available <= 0.00001) continue;
+      const isFull = remaining >= available - 0.0001;
+      const consume = isFull ? available : Math.min(available, remaining);
       const lotBuyNav = Number(lot.buyNav) || 0;
       // Anniversary-date-aware (Section 2(42A)) and evaluated against the user-selected
       // sell date (not always "today"), matching CapitalGainsTab.isLongTerm.
@@ -13073,7 +13089,7 @@ function FifoSellMFModal({ group, onClose, onSave, saving }: any) {
         buyNav: lotBuyNav,
         pnl: (sellNavNum - lotBuyNav) * consume,
         isLTCG,
-        fullyConsumed: consume >= available,
+        fullyConsumed: isFull || consume >= available - 0.0001,
       });
       remaining -= consume;
     }
