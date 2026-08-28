@@ -1493,8 +1493,18 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         <>
           {/* ─── Premium Executive Hero Card ─────────────────────────── */}
           <Card
-            variant="hero"
-            style={{ padding: "40px", marginBottom: 24, position: "relative", overflow: "hidden" }}
+            variant="base"
+            style={{
+              padding: "clamp(24px, 4vw, 36px)",
+              marginBottom: 24,
+              position: "relative",
+              overflow: "hidden",
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
+              border: `1px solid ${THEME.line}`,
+              borderTop: `4px solid ${THEME.accent}`,
+              borderRadius: "var(--radius-xl)",
+            }}
           >
             <div
               style={{
@@ -1502,7 +1512,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                 inset: 0,
                 backgroundImage: "radial-gradient(var(--t-line) 1px, transparent 1px)",
                 backgroundSize: "20px 20px",
-                opacity: 0.07,
+                opacity: 0.2,
                 pointerEvents: "none",
               }}
             />
@@ -1523,12 +1533,11 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: 800,
                       textTransform: "uppercase",
-                      letterSpacing: "0.15em",
-                      opacity: 0.8,
-                      color: "color-mix(in srgb, var(--t-accent) 25%, #fff)",
+                      letterSpacing: "0.14em",
+                      color: THEME.muted,
                     }}
                   >
                     Executive Financial Summary
@@ -1541,16 +1550,18 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                 </div>
                 <div
                   style={{
-                    fontSize: 36,
+                    fontFamily: "var(--font-display)",
+                    fontSize: "clamp(36px, 5vw, 56px)",
                     fontWeight: 900,
                     letterSpacing: "-0.04em",
-                    lineHeight: 1.1,
-                    color: "#fff",
+                    lineHeight: 1.05,
+                    color: THEME.ink,
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   {fyLabel}
                 </div>
-                <div style={{ fontSize: 13, marginTop: 6, opacity: 0.7, color: "var(--t-paper)" }}>
+                <div style={{ fontSize: 13, marginTop: 6, color: THEME.muted, fontWeight: 600 }}>
                   {formatDateReadable(fyStart)} &mdash; {formatDateReadable(fyEnd)}
                 </div>
               </div>
@@ -1558,22 +1569,22 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
               <div
                 style={{
                   display: "flex",
-                  gap: 16,
+                  gap: 20,
                   flexWrap: "wrap",
-                  background: "rgba(255, 255, 255, 0.05)",
+                  background: "var(--surface-1)",
                   padding: "16px 24px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  backdropFilter: "blur(4px)",
+                  borderRadius: "var(--radius-lg)",
+                  border: `1px solid ${THEME.line}`,
                 }}
               >
                 <div style={{ textAlign: "center" }}>
                   <div
                     style={{
-                      fontSize: 10,
-                      opacity: 0.6,
+                      fontSize: 11,
+                      color: THEME.muted,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
+                      fontWeight: 700,
                       marginBottom: 4,
                     }}
                   >
@@ -1581,26 +1592,29 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                   </div>
                   <div
                     style={{
-                      fontSize: 20,
-                      fontWeight: 800,
+                      fontFamily: "var(--font-display)",
+                      fontSize: 22,
+                      fontWeight: 900,
                       color:
                         netWorthData.change >= 0
-                          ? `color-mix(in srgb, ${THEME.sage} 70%, white)`
-                          : `color-mix(in srgb, ${THEME.rust} 65%, white)`,
+                          ? THEME.sage
+                          : THEME.rust,
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {netWorthData.change >= 0 ? "+" : ""}
                     {netWorthData.changePct.toFixed(1)}%
                   </div>
                 </div>
-                <div style={{ width: 1, background: "rgba(255, 255, 255, 0.15)" }} />
+                <div style={{ width: 1, background: THEME.line }} />
                 <div style={{ textAlign: "center" }}>
                   <div
                     style={{
-                      fontSize: 10,
-                      opacity: 0.6,
+                      fontSize: 11,
+                      color: THEME.muted,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
+                      fontWeight: 700,
                       marginBottom: 4,
                     }}
                   >
@@ -1608,12 +1622,14 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                   </div>
                   <div
                     style={{
-                      fontSize: 20,
-                      fontWeight: 800,
+                      fontFamily: "var(--font-display)",
+                      fontSize: 22,
+                      fontWeight: 900,
                       color:
                         savingsData.savingsRate >= 20
-                          ? `color-mix(in srgb, ${THEME.sage} 70%, white)`
-                          : `color-mix(in srgb, ${THEME.gold} 65%, white)`,
+                          ? THEME.sage
+                          : THEME.gold,
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {savingsData.savingsRate.toFixed(0)}%

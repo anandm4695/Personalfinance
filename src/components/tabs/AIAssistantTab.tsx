@@ -2342,12 +2342,12 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                       flexShrink: 0,
                       marginTop: 2,
                       background: isUser
-                        ? THEME.ink
-                        : THEME.accent,
+                        ? "var(--t-accent)"
+                        : "color-mix(in srgb, var(--t-accent) 15%, transparent)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#fff",
+                      color: isUser ? "#fff" : "var(--t-accent)",
                     }}
                   >
                     {isUser ? <User size={14} /> : <Bot size={14} />}
@@ -2368,7 +2368,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                         borderRadius: 15,
                         borderTopRightRadius: isUser ? 3 : 15,
                         borderTopLeftRadius: isUser ? 15 : 3,
-                        background: isUser ? "var(--t-ink)" : "var(--t-paper)",
+                        background: isUser ? "var(--t-accent)" : "var(--surface-1)",
                         color: isUser ? "#fff" : THEME.ink,
                         border: isUser ? "none" : `1px solid ${THEME.line}`,
                         boxShadow: "var(--shadow-sm)",
@@ -2400,7 +2400,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             padding: "3px 10px",
                             borderRadius: 6,
                             border: `1px solid ${THEME.line}`,
-                            background: "var(--t-paper)",
+                            background: "var(--surface-0)",
                             color: copiedIdx === i ? THEME.sage : THEME.muted,
                             cursor: "pointer",
                             display: "flex",
@@ -2428,7 +2428,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             padding: "3px 10px",
                             borderRadius: 6,
                             border: `1px solid ${THEME.line}`,
-                            background: "var(--t-paper)",
+                            background: "var(--surface-0)",
                             color: savedNoteIdx === i ? THEME.sage : THEME.muted,
                             cursor: "pointer",
                             display: "flex",
@@ -2459,7 +2459,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             padding: "3px 10px",
                             borderRadius: 6,
                             border: `1px solid ${THEME.line}`,
-                            background: "var(--t-paper)",
+                            background: "var(--surface-0)",
                             color: THEME.muted,
                             cursor: "pointer",
                             display: "flex",
@@ -2478,8 +2478,8 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                             e.currentTarget.style.color = THEME.muted;
                           }}
                         >
-                          <MessageSquare size={11} />
-                          Follow Up
+                          <Sparkles size={11} />
+                          Elaborate
                         </button>
                       </div>
                     )}
@@ -2490,7 +2490,14 @@ You have access to local tools/functions to retrieve real-time and detailed tran
 
             {/* Typing indicator */}
             {loading && (
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  animation: "fadeIn 0.2s ease",
+                }}
+              >
                 <div
                   style={{
                     width: 30,
@@ -2498,11 +2505,11 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                     borderRadius: 9,
                     flexShrink: 0,
                     marginTop: 2,
-                    background: THEME.accent,
+                    background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#fff",
+                    color: "var(--t-accent)",
                   }}
                 >
                   <Bot size={14} />
@@ -2512,7 +2519,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                     padding: "13px 17px",
                     borderRadius: 15,
                     borderTopLeftRadius: 3,
-                    background: "var(--t-paper)",
+                    background: "var(--surface-1)",
                     border: `1px solid ${THEME.line}`,
                     boxShadow: "var(--shadow-sm)",
                   }}
@@ -2568,7 +2575,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
           <div
             style={{
               padding: "10px 18px 14px",
-              background: "var(--t-paper)",
+              background: "var(--surface-0)",
               borderTop: `1px solid ${THEME.line}`,
               flexShrink: 0,
             }}

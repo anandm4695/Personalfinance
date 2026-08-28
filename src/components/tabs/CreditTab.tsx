@@ -8409,11 +8409,12 @@ function DebtPayoffOptimizer({ state }: any) {
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            background: "#0B1220",
-            border: "1.5px solid rgba(255, 255, 255, 0.08)",
-            borderTop: "2px solid var(--t-gold)",
-            color: "#fff",
-            borderRadius: 16,
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-sage) 5%), var(--surface-0))",
+            border: `1px solid ${THEME.line}`,
+            borderTop: `4px solid ${THEME.sage}`,
+            color: THEME.ink,
+            borderRadius: "var(--radius-xl)",
           }}
         >
           <div>
@@ -8422,22 +8423,22 @@ function DebtPayoffOptimizer({ state }: any) {
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 800,
-                letterSpacing: "0.15em",
+                letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "rgba(255, 255, 255, 0.5)",
+                color: THEME.muted,
                 marginBottom: 8,
               }}
             >
-              <Sparkles size={12} style={{ color: "#34D399" }} /> Total Interest Saved
+              <Sparkles size={13} color={THEME.sage} /> Total Interest Saved
             </div>
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: 36,
-                fontWeight: 600,
-                color: "#34D399",
+                fontSize: "clamp(32px, 5vw, 44px)",
+                fontWeight: 900,
+                color: THEME.sage,
                 marginBottom: 6,
                 letterSpacing: "-0.03em",
                 fontVariantNumeric: "tabular-nums",
@@ -8445,24 +8446,24 @@ function DebtPayoffOptimizer({ state }: any) {
             >
               <Money value={interestSaved} variant="exact" />
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", fontWeight: 600 }}>
+            <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
               Debt-Free:{" "}
-              <span style={{ color: "#34D399", fontWeight: 800 }}>
+              <span style={{ color: THEME.sage, fontWeight: 800 }}>
                 {getPayoffDateStr(currentSim.months)}
               </span>{" "}
               &bull; Shaved{" "}
-              <span style={{ color: "#34D399", fontWeight: 800 }}>{monthsSaved} Months</span>
+              <span style={{ color: THEME.sage, fontWeight: 800 }}>{monthsSaved} Months</span>
             </div>
           </div>
 
           <div
-            style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)" }}
+            style={{ marginTop: 24, paddingTop: 16, borderTop: `1px solid ${THEME.line}` }}
           >
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11 }}>
               <div>
                 <div
                   style={{
-                    color: "rgba(255, 255, 255, 0.4)",
+                    color: THEME.muted,
                     textTransform: "uppercase",
                     fontWeight: 700,
                     letterSpacing: "0.04em",
@@ -8473,9 +8474,9 @@ function DebtPayoffOptimizer({ state }: any) {
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 13.5,
+                    fontSize: 14,
                     fontWeight: 800,
-                    color: "#fff",
+                    color: THEME.ink,
                     marginTop: 2,
                     fontVariantNumeric: "tabular-nums",
                   }}
@@ -8486,7 +8487,7 @@ function DebtPayoffOptimizer({ state }: any) {
               <div>
                 <div
                   style={{
-                    color: "rgba(255, 255, 255, 0.4)",
+                    color: THEME.muted,
                     textTransform: "uppercase",
                     fontWeight: 700,
                     letterSpacing: "0.04em",
@@ -8497,9 +8498,9 @@ function DebtPayoffOptimizer({ state }: any) {
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 13.5,
+                    fontSize: 14,
                     fontWeight: 800,
-                    color: "#fff",
+                    color: THEME.ink,
                     marginTop: 2,
                     fontVariantNumeric: "tabular-nums",
                   }}
