@@ -682,7 +682,7 @@ export function GovtSchemesTab({
                     background: active
                       ? `color-mix(in srgb, ${s.color} 22%, transparent)`
                       : `color-mix(in srgb, ${THEME.textMuted} 22%, transparent)`,
-                    color: active ? "#fff" : THEME.textMuted,
+                    color: active ? s.color : THEME.textMuted,
                     marginLeft: 4,
                   }}
                 >

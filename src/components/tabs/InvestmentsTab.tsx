@@ -1619,9 +1619,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                       fontSize: 10,
                       fontWeight: 800,
                       background: active
-                        ? "rgba(255, 255, 255, 0.25)"
+                        ? `color-mix(in srgb, ${THEME.accent} 22%, transparent)`
                         : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                      color: active ? THEME.darkInk : THEME.accent,
+                      color: THEME.accent,
                       transition: "all 0.25s",
                     }}
                   >
