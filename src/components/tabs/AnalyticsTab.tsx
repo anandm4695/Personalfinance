@@ -3706,141 +3706,112 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   return (
     <div className="tab-content-enter">
-      <SectionTitle sub="Executive summary, financial health, and smart insights">
-        Executive Dashboard
-      </SectionTitle>
+      {/* ── Executive Header & Global Controls ── */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: 16,
+          marginBottom: 16,
+        }}
+      >
+        <div>
+          <SectionTitle sub="Consolidated wealth overview, financial vitals, and strategic intelligence">
+            Executive Dashboard
+          </SectionTitle>
+        </div>
 
-      {/* Quick Stats Tiles */}
-      {(() => {
-        const items = [
-          {
-            label: "Net Worth",
-            value: <Money value={animatedNetWorth} variant="full" />,
-            color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust,
-            Icon: TrendingUp,
-          },
-          {
-            label: "Savings Rate",
-            value: metrics.savingsRate.toFixed(1) + "%",
-            color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold,
-            Icon: Target,
-          },
-          {
-            label: "Monthly Income",
-            value: <Money value={animatedMonthIncome} variant="full" />,
-            color: THEME.sage,
-            Icon: ArrowUpRight,
-          },
-          {
-            label: "Monthly Spend",
-            value: <Money value={animatedMonthExpense} variant="full" />,
-            color: THEME.rust,
-            Icon: Receipt,
-          },
-          {
-            label: "Est. Tax",
-            value: <Money value={animatedTaxDue} variant="full" />,
-            color: metrics.taxDue > 0 ? THEME.rust : THEME.sage,
-            Icon: Landmark,
-          },
-          ...(momNetWorthDelta
-            ? [
-                {
-                  label: momNetWorthDelta.label,
-                  value: (
-                    <>
-                      {animatedMomDelta >= 0 ? "+" : ""}
-                      <Money value={animatedMomDelta} variant="full" />
-                    </>
-                  ),
-                  color: momNetWorthDelta.delta >= 0 ? THEME.sage : THEME.rust,
-                  Icon: momNetWorthDelta.delta >= 0 ? ArrowUpRight : ArrowDownRight,
-                },
-              ]
-            : []),
-          ...(metrics.foir > 0
-            ? [
-                {
-                  label: "FOIR",
-                  value: `${metrics.foir.toFixed(0)}%`,
-                  color:
-                    metrics.foir > 50 ? THEME.rust : metrics.foir > 40 ? THEME.gold : THEME.sage,
-                  Icon: BarChart2,
-                },
-              ]
-            : []),
-        ];
-        return (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {/* Active Profile Pill */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-              gap: 12,
-              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 12px",
+              borderRadius: "var(--radius-md)",
+              background: "var(--surface-1)",
+              border: `1px solid ${THEME.line}`,
+              fontSize: 12,
+              fontWeight: 700,
+              color: THEME.ink,
             }}
           >
-            {items.map(({ label, value, color, Icon }) => (
-              <div
-                key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderLeft: `2.5px solid ${color}`,
-                  borderRadius: 10,
-                  padding: "14px 16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 7, minHeight: 26 }}>
-                  <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                    <Icon size={17} color={color} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.08em",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {label}
-                  </span>
-                </div>
+            <span style={{ color: THEME.accent }}>●</span>
+            {activeProfile === "all"
+              ? "Family Consolidated"
+              : `${familyProfiles.find((p) => p.id === activeProfile)?.name || activeProfile}'s Portfolio`}
+          </div>
+
+          {/* Market Freshness Indicator */}
+          {(() => {
+            if (!marketDataTs) {
+              return (
                 <div
                   style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 17,
-                    fontWeight: 900,
-                    color,
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    borderRadius: "var(--radius-md)",
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: THEME.muted,
                   }}
                 >
-                  {value}
+                  <span>○</span> Prices not loaded
                 </div>
+              );
+            }
+            const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
+            const isStale = diffMin > 8 * 60;
+            const label =
+              diffMin < 1
+                ? "Live prices"
+                : diffMin < 60
+                  ? `${diffMin}m ago`
+                  : diffMin < 8 * 60
+                    ? `${Math.floor(diffMin / 60)}h ago`
+                    : "Prices stale";
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 12px",
+                  borderRadius: "var(--radius-md)",
+                  background: isStale
+                    ? `color-mix(in srgb, var(--t-rust) 8%, transparent)`
+                    : `color-mix(in srgb, var(--t-sage) 8%, transparent)`,
+                  border: `1px solid ${isStale ? "color-mix(in srgb, var(--t-rust) 20%, transparent)" : "color-mix(in srgb, var(--t-sage) 20%, transparent)"}`,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: isStale ? THEME.rust : THEME.sage,
+                }}
+              >
+                <span>●</span> {label}
               </div>
-            ))}
-          </div>
-        );
-      })()}
+            );
+          })()}
+        </div>
+      </div>
 
-      {/* Sub-tab Navigation */}
+      {/* ── Sub-tab Navigation Bar ── */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 12,
-          marginBottom: 8,
+          marginBottom: 16,
           flexWrap: "wrap",
+          justifyContent: "space-between",
         }}
       >
-        {/* flex: 0 1 auto + min-width: 0 prevents the bar from stretching beyond pill content */}
         <div
           className="demat-portfolio-bar no-scrollbar"
           style={{ flex: "0 1 auto", minWidth: 0, marginBottom: 0 }}
@@ -3853,6 +3824,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 onClick={() => setSub(s.id)}
                 className={`demat-portfolio-pill ${sub === s.id ? "active" : ""}`}
                 aria-pressed={sub === s.id}
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
               >
                 <Icon size={14} />
                 {s.label}
@@ -3860,7 +3832,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             );
           })}
         </div>
-        <div style={{ flexShrink: 0, display: "flex", gap: 6, marginLeft: "auto" }}>
+
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
           {sub === "dashboard" && (
             <button
               onClick={() => setShowWidgetConfig(!showWidgetConfig)}
@@ -3868,32 +3841,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                padding: "7px 14px",
-                borderRadius: 10,
-                border: `1.5px solid ${showWidgetConfig ? THEME.accent : THEME.line}`,
+                padding: "8px 14px",
+                borderRadius: "var(--radius-md)",
+                border: `1px solid ${showWidgetConfig ? THEME.accent : THEME.line}`,
                 background: showWidgetConfig
-                  ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
-                  : "transparent",
-                color: showWidgetConfig ? THEME.accent : THEME.muted,
+                  ? `color-mix(in srgb, var(--t-accent) 12%, transparent)`
+                  : "var(--surface-0)",
+                color: showWidgetConfig ? THEME.accent : THEME.ink,
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
                 transition: "all 0.15s",
               }}
-              onMouseEnter={(e) => {
-                if (!showWidgetConfig) {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
-                  (e.currentTarget as HTMLButtonElement).style.color = THEME.ink;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!showWidgetConfig) {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
-                  (e.currentTarget as HTMLButtonElement).style.color = THEME.muted;
-                }
-              }}
             >
-              <Settings size={13} /> Widgets
+              <Settings size={14} /> Customize Bento
             </button>
           )}
           <button
@@ -3902,26 +3863,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "7px 14px",
-              borderRadius: 10,
-              border: `1.5px solid ${THEME.line}`,
-              background: "transparent",
-              color: THEME.muted,
+              padding: "8px 14px",
+              borderRadius: "var(--radius-md)",
+              border: `1px solid ${THEME.line}`,
+              background: "var(--surface-0)",
+              color: THEME.ink,
               fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
-              (e.currentTarget as HTMLButtonElement).style.color = THEME.ink;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
-              (e.currentTarget as HTMLButtonElement).style.color = THEME.muted;
-            }}
           >
-            <Printer size={13} /> Report
+            <Printer size={14} /> Executive Report
           </button>
         </div>
       </div>
@@ -3929,7 +3882,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* Active sub-tab breadcrumb / description */}
       {(() => {
         const descriptions: Record<string, string> = {
-          dashboard: "Executive overview · Net worth, health score, cash flow & portfolio vitals",
+          dashboard: "Executive command center · Net worth pulse, health score, cash flow & portfolio vitals",
           trends: "Historical charts · Net worth growth, P&L, savings rate & portfolio returns",
           allocation: "Asset distribution · Diversification, concentration risk & sector breakdown",
           planning: "Goals & milestones · Loan tracker, retirement planner & financial targets",
@@ -3956,15 +3909,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <ActiveIcon size={13} />
               </span>
             )}
-            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{desc}</span>
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>{desc}</span>
           </div>
         );
       })()}
 
       {/* Widget Configuration Panel */}
       {showWidgetConfig && sub === "dashboard" && (
-        <Card>
-          <div style={{ padding: 16, marginBottom: 16 }}>
+        <Card style={{ marginBottom: 20 }}>
+          <div style={{ padding: 20 }}>
             <div
               style={{
                 display: "flex",
@@ -3973,8 +3926,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 marginBottom: 12,
               }}
             >
-              <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
-                Customize Dashboard Widgets
+              <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                Customize Dashboard Bento Widgets
               </div>
               <button
                 onClick={() => setShowWidgetConfig(false)}
@@ -3984,19 +3937,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   border: "none",
                   cursor: "pointer",
                   color: THEME.muted,
+                  fontSize: 16,
+                  fontWeight: 700,
                 }}
               >
                 ✕
               </button>
             </div>
-            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12 }}>
-              Toggle widgets on/off to personalize your dashboard view.
+            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14, fontWeight: 500 }}>
+              Toggle widgets on/off to personalize your executive command center.
             </div>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(var(--grid-min-md), 1fr))",
-                gap: 8,
+                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                gap: 10,
               }}
             >
               {DASHBOARD_WIDGET_DEFS.map((w) => {
@@ -4014,15 +3969,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      padding: "8px 12px",
-                      borderRadius: 8,
+                      gap: 10,
+                      padding: "10px 14px",
+                      borderRadius: "var(--radius-md)",
                       textAlign: "left",
                       border: `1.5px solid ${isVisible ? THEME.accent : THEME.line}`,
                       background: isVisible
-                        ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
-                        : "transparent",
+                        ? `color-mix(in srgb, var(--t-accent) 8%, transparent)`
+                        : "var(--surface-0)",
                       cursor: "pointer",
+                      transition: "all 0.15s ease",
                     }}
                   >
                     <div
@@ -4035,9 +3991,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: THEME.darkInk,
+                        color: "#fff",
                         fontSize: 11,
-                        fontWeight: 700,
+                        fontWeight: 800,
                       }}
                     >
                       {isVisible ? "✓" : ""}
@@ -4045,7 +4001,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <span
                       style={{
                         fontSize: 12,
-                        fontWeight: 600,
+                        fontWeight: 700,
                         color: isVisible ? THEME.ink : THEME.muted,
                       }}
                     >
@@ -4059,112 +4015,60 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         </Card>
       )}
 
-      {/* ────────────────── SUB-TAB: DASHBOARD ────────────────── */}
-      {sub === "dashboard" && (
-        <div key="dashboard" className="tab-content-enter">
-          {/* Welcome Banner Card */}
-          <Card
-            variant="base"
+      {/* Non-dashboard mini stats strip for quick context */}
+      {sub !== "dashboard" && (() => {
+        const quickItems = [
+          { label: "Net Worth", value: <Money value={animatedNetWorth} variant="full" />, color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust, Icon: TrendingUp },
+          { label: "Savings Rate", value: `${metrics.savingsRate.toFixed(1)}%`, color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold, Icon: Target },
+          { label: "Monthly Income", value: <Money value={animatedMonthIncome} variant="full" />, color: THEME.sage, Icon: ArrowUpRight },
+          { label: "Monthly Spend", value: <Money value={animatedMonthExpense} variant="full" />, color: THEME.rust, Icon: Receipt },
+          { label: "Est. Tax", value: <Money value={animatedTaxDue} variant="full" />, color: metrics.taxDue > 0 ? THEME.rust : THEME.sage, Icon: Landmark },
+        ];
+        return (
+          <div
             style={{
-              padding: "20px 24px",
-              background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.accent} 3%, transparent), color-mix(in srgb, ${THEME.sage} 3%, transparent))`,
-              border: `1.5px solid ${THEME.line}`,
-              borderRadius: 16,
-              marginBottom: 20,
-              position: "relative",
-              overflow: "hidden",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: 12,
+              marginBottom: 24,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 16,
-              }}
-            >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                    {activeProfile === "all"
-                      ? "Family Wealth Overview"
-                      : `${
-                          familyProfiles.find((p) => p.id === activeProfile)?.name || activeProfile
-                        }'s Portfolio`}
-                  </span>
-                </div>
-                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
-                  Here is the consolidated summary of your{" "}
-                  {activeProfile === "all"
-                    ? "family wealth portfolios"
-                    : `${familyProfiles.find((p) => p.id === activeProfile)?.name}'s portfolio`}
-                  .
-                </div>
-              </div>
+            {quickItems.map(({ label, value, color, Icon }) => (
               <div
+                key={label}
+                className="card-lift"
                 style={{
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  borderLeft: `3px solid ${color}`,
+                  borderRadius: "var(--radius-md)",
+                  padding: "12px 14px",
                   display: "flex",
                   flexDirection: "column",
                   gap: 4,
-                  alignItems: "flex-end",
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: THEME.muted,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {new Date().toLocaleDateString("en-IN", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-                {(() => {
-                  // Real freshness check on the live market-price cache, replacing a
-                  // hardcoded "System Online" claim that stayed green even when
-                  // prices had never loaded or the fetch had failed hours ago.
-                  if (!marketDataTs) {
-                    return (
-                      <span style={{ fontSize: 12, fontWeight: 800, color: THEME.muted }}>
-                        ● Prices not loaded
-                      </span>
-                    );
-                  }
-                  const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
-                  const isStale = diffMin > 8 * 60;
-                  const label =
-                    diffMin < 1
-                      ? "Updated just now"
-                      : diffMin < 60
-                        ? `Updated ${diffMin}m ago`
-                        : diffMin < 8 * 60
-                          ? `Updated ${Math.floor(diffMin / 60)}h ago`
-                          : "Prices stale";
-                  return (
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: isStale ? THEME.rust : THEME.sage,
-                      }}
-                    >
-                      ● {label}
-                    </span>
-                  );
-                })()}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon size={14} color={color} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    {label}
+                  </span>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>
+                  {value}
+                </div>
               </div>
-            </div>
-          </Card>
+            ))}
+          </div>
+        );
+      })()}
 
+      {/* ────────────────── SUB-TAB: DASHBOARD ────────────────── */}
+      {sub === "dashboard" && (
+        <div key="dashboard" className="tab-content-enter">
+          {/* Smart Insights Strip */}
           {dashboardWidgets?.["smartInsights"] !== false && smartInsights.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <span
                   style={{
@@ -4175,13 +4079,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     letterSpacing: "0.1em",
                   }}
                 >
-                  Smart Insights
+                  Strategic Insights
                 </span>
                 <span
                   style={{
                     fontSize: 10,
                     fontWeight: 800,
-                    padding: "1px 8px",
+                    padding: "2px 8px",
                     borderRadius: "var(--radius-xs)",
                     background: smartInsights.some((ins: any) => ins.color === THEME.rust)
                       ? `color-mix(in srgb, var(--t-rust) 12%, transparent)`
@@ -4191,14 +4095,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       : THEME.gold,
                   }}
                 >
-                  {smartInsights.length} alert{smartInsights.length !== 1 ? "s" : ""}
+                  {smartInsights.length} priority notice{smartInsights.length !== 1 ? "s" : ""}
                 </span>
               </div>
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                  gap: 10,
+                  gap: 12,
                 }}
               >
                 {smartInsights.map((ins: any, i: number) => {
@@ -4210,16 +4114,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 10,
-                        padding: "10px 16px",
-                        borderRadius: 12,
-                        background: ins.bg,
-                        border: `1px solid color-mix(in srgb, ${ins.color} 16%, transparent)`,
-                        borderLeft: `3px solid ${ins.color}`,
+                        gap: 12,
+                        padding: "12px 16px",
+                        borderRadius: "var(--radius-md)",
+                        background: ins.bg || "var(--surface-0)",
+                        border: `1px solid color-mix(in srgb, ${ins.color} 18%, transparent)`,
+                        borderLeft: `3.5px solid ${ins.color}`,
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                        <Icon size={19} color={ins.color} />
+                        <Icon size={18} color={ins.color} />
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div
@@ -4238,7 +4142,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             fontSize: 12,
                             color: THEME.muted,
                             marginTop: 2,
-                            fontWeight: 500,
+                            fontWeight: 600,
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
@@ -4255,741 +4159,746 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           )}
 
           <div className="animate-fade-in-up bento-grid">
-            {(dashboardWidgets?.["coreWealthVitals"] !== false) && (
+            {dashboardWidgets?.["coreWealthVitals"] !== false && (
               <>
-            <DashboardSectionHeader
-              title="Core Wealth & Vitals"
-              desc="Consolidated net worth summary, asset breakdown, and core health indexes."
-              icon={<TrendingUp size={16} />}
-            />
-            {/* Hero Card */}
-            <Card
-              variant="hero"
-              className="bento-col-12"
-              style={{
-                padding: "32px 40px",
-                background: isDark ? "var(--surface-2)" : "#0F172A",
-                color: "#fff",
-                position: "relative",
-                overflow: "hidden",
-                border: isDark ? `1px solid ${THEME.line}` : "none",
-              }}
-            >
-              {/* ── Decorative large ₹ watermark — gold, visible on dark & light ── */}
-              <div
-                style={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  transform: "translate(-50%, -50%)",
-                  fontSize: 320,
-                  fontWeight: 900,
-                  lineHeight: 1,
-                  color: "#D97706",
-                  opacity: 0.04,
-                  pointerEvents: "none",
-                  userSelect: "none",
-                  zIndex: 0,
-                  letterSpacing: "-0.06em",
-                }}
-              >
-                ₹
-              </div>
+                <DashboardSectionHeader
+                  title="Core Wealth & Vitals"
+                  desc="Consolidated net worth summary, asset allocation matrix, and vital health indexes."
+                  icon={<TrendingUp size={16} />}
+                />
 
-              {netWorthTrend.filter((t: any) => t.value > 0).length >= 2 && (
-                <div
+                {/* ─── Executive Wealth Hero Card ─────────────────────────── */}
+                <Card
+                  variant="base"
+                  className="bento-col-12"
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    right: 0,
-                    width: 240,
-                    height: 110,
-                    opacity: 0.1,
-                    pointerEvents: "none",
-                    zIndex: 1,
+                    padding: "32px 36px",
+                    background: isDark
+                      ? "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))"
+                      : "linear-gradient(135deg, #ffffff 0%, color-mix(in srgb, var(--t-paper) 90%, var(--t-accent) 10%) 100%)",
+                    border: `1px solid ${THEME.line}`,
+                    borderTop: `4px solid ${THEME.accent}`,
+                    borderRadius: "var(--radius-xl)",
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
-                  <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                    <AreaChart
-                      data={netWorthTrend.slice(-6)}
-                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="heroSparkGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#34D399" stopOpacity={0.7} />
-                          <stop offset="100%" stopColor="#34D399" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#34D399"
-                        strokeWidth={2.5}
-                        fill="url(#heroSparkGrad)"
-                        dot={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer></div>
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  marginBottom: 20,
-                  position: "relative",
-                  zIndex: 2,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {/* Golden ₹ coin badge — visible on any background */}
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: "50%",
-                      flexShrink: 0,
-                      background: "#C5A152",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontFamily: "var(--font-display)",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "#0B1220",
-                    }}
-                  >
-                    ₹
-                  </div>
-                  <div
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      background: isPositive ? "#34D399" : "#FB7185",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 10,
-                      letterSpacing: "0.2em",
-                      textTransform: "uppercase",
-                      color: "rgba(255,255,255,0.45)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Wealth Overview
-                  </span>
-                </div>
-                <span
-                  style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em" }}
-                >
-                  {new Date().toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-
-              <div style={{ position: "relative", zIndex: 2, marginBottom: 32 }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "rgba(255,255,255,0.4)",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    marginBottom: 8,
-                  }}
-                >
-                  Total Net Worth
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "clamp(42px, 5.5vw, 72px)",
-                    fontWeight: 600,
-                    lineHeight: 1,
-                    letterSpacing: "-0.045em",
-                    color: "#fff",
-                  }}
-                >
-                  <Money value={animatedNetWorth} variant="full" />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    marginTop: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      color: "#34D399",
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
-                  >
-                    <TrendingUp size={14} />
-                    {(
-                      ((metrics.mfValue + metrics.stockValue) / (metrics.totalAssets || 1)) *
-                      100
-                    ).toFixed(1)}
-                    % equity ratio
-                  </div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
-                    · Total assets <Money value={metrics.totalAssets} variant="full" />
-                  </div>
-                  {momNetWorthDelta && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: momNetWorthDelta.delta >= 0 ? "#34D399" : "#F87171",
-                      }}
-                    >
-                      ·{" "}
-                      {momNetWorthDelta.delta >= 0 ? (
-                        <ArrowUpRight size={13} />
-                      ) : (
-                        <ArrowDownRight size={13} />
-                      )}
-                      {momNetWorthDelta.delta >= 0 ? "+" : ""}
-                      <Money value={momNetWorthDelta.delta} variant="full" />{" "}
-                      {momNetWorthDelta.monthsGap === 1
-                        ? "MoM"
-                        : `${momNetWorthDelta.monthsGap}mo`}{" "}
-                      (
-                      {momNetWorthDelta.pct >= 0 ? "+" : ""}
-                      {momNetWorthDelta.pct.toFixed(1)}%)
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Net Worth Breakdown Grid ── */}
-              {(() => {
-                // "Other Assets" catches every contributor to totalAssets not shown individually
-                const otherAssets =
-                  (metrics.rdValue || 0) +
-                  (metrics.bondValue || 0) +
-                  (metrics.licValue || 0) +
-                  (metrics.investmentValue || 0) +
-                  (metrics.loansGivenValue || 0) +
-                  (metrics.informalLentValue || 0) +
-                  (metrics.rentalPropertiesAsset || 0) +
-                  (metrics.rentedDepositAsset || 0) +
-                  (metrics.prepaidValue || 0) +
-                  (metrics.vehicleAsset || 0) +
-                  (metrics.goldValue || 0);
-                // "Other Dues" catches every liability not shown individually
-                const otherDues =
-                  (metrics.realEstateOutstanding || 0) +
-                  (metrics.informalBorrowedValue || 0) +
-                  (metrics.rentalDepositLiability || 0);
-                return (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-                      gap: "20px 28px",
-                      position: "relative",
-                      zIndex: 2,
-                      paddingTop: 28,
-                      borderTop: "1px solid rgba(255,255,255,0.07)",
-                    }}
-                  >
-                    {/* Assets */}
-                    <HeroStat
-                      label="Bank Cash"
-                      value={metrics.cashInBanks}
-                      tabId="banks"
-                      setTab={setTab}
-                    />
-                    <HeroStat
-                      label="Fixed Deposits"
-                      value={metrics.fdValue}
-                      tabId="investments"
-                      subTabId="fd"
-                      setTab={setTab}
-                      setSubTab={setSubTab}
-                    />
-                    <HeroStat
-                      label="Mutual Funds"
-                      value={metrics.mfValue}
-                      tabId="investments"
-                      subTabId="mf"
-                      setTab={setTab}
-                      setSubTab={setSubTab}
-                    />
-                    <HeroStat
-                      label="Stocks"
-                      value={metrics.stockValue}
-                      tabId="demat"
-                      setTab={setTab}
-                    />
-                    <HeroStat
-                      label="PPF / NPS / EPF"
-                      value={metrics.ppfValue + metrics.npsValue + metrics.epfValue}
-                      tabId="investments"
-                      subTabId="ppf"
-                      setTab={setTab}
-                      setSubTab={setSubTab}
-                    />
-                    {(metrics.realEstateAsset || 0) > 0 && (
-                      <HeroStat
-                        label="Real Estate"
-                        value={metrics.realEstateAsset}
-                        tabId="realestate"
-                        setTab={setTab}
-                      />
-                    )}
-                    {(metrics.govtSchemesValue || 0) > 0 && (
-                      <HeroStat
-                        label="Govt Schemes"
-                        value={metrics.govtSchemesValue}
-                        tabId="govtschemes"
-                        setTab={setTab}
-                      />
-                    )}
-                    {otherAssets > 0 && (
-                      <HeroStat
-                        label="Other Assets"
-                        value={otherAssets}
-                        tabId="investments"
-                        setTab={setTab}
-                      />
-                    )}
-                    {/* Liabilities */}
-                    <HeroStat
-                      label="Card Dues"
-                      value={metrics.ccOutstanding}
-                      negative
-                      tabId="cc"
-                      setTab={setTab}
-                    />
-                    <HeroStat
-                      label="Loans Taken"
-                      value={metrics.loansTakenValue}
-                      negative
-                      tabId="taken"
-                      setTab={setTab}
-                    />
-                    {otherDues > 0 && (
-                      <HeroStat
-                        label="Other Dues"
-                        value={otherDues}
-                        negative
-                        tabId="realestate"
-                        setTab={setTab}
-                      />
-                    )}
-                  </div>
-                );
-              })()}
-            </Card>
-
-            {/* Core Stats Grid Row */}
-            <div
-              className="bento-col-12"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 20,
-              }}
-            >
-              {/* 1. SAVINGS RATE */}
-              <Card
-                onClick={() => setTab("budget")}
-                className="card-lift"
-                style={{
-                  padding: 24,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 20,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    Savings Rate
-                  </span>
-                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                  <div style={{ position: "relative", width: 68, height: 68, flexShrink: 0 }}>
-                    <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%" }}>
-                      <path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke={THEME.line}
-                        strokeWidth="3"
-                      />
-                      <path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke={metrics.savingsRate >= 20 ? THEME.sage : THEME.gold}
-                        strokeWidth="4"
-                        strokeDasharray={`${Math.max(0, Math.min(100, metrics.savingsRate))}, 100`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
+                  {/* Background Wealth Sparkline Area */}
+                  {netWorthTrend.filter((t: any) => t.value > 0).length >= 2 && (
                     <div
                       style={{
                         position: "absolute",
                         top: 0,
-                        left: 0,
                         right: 0,
-                        bottom: 0,
+                        width: "45%",
+                        maxWidth: 380,
+                        height: 140,
+                        opacity: isDark ? 0.18 : 0.12,
+                        pointerEvents: "none",
+                        zIndex: 0,
+                      }}
+                    >
+                      <div style={{ width: "100%", height: "100%", position: "relative" }}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                          <AreaChart
+                            data={netWorthTrend.slice(-8)}
+                            margin={{ top: 10, right: 0, bottom: 0, left: 0 }}
+                          >
+                            <defs>
+                              <linearGradient id="heroSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.8} />
+                                <stop offset="100%" stopColor={THEME.accent} stopOpacity={0.0} />
+                              </linearGradient>
+                            </defs>
+                            <Area
+                              type="monotone"
+                              dataKey="value"
+                              stroke={THEME.accent}
+                              strokeWidth={3}
+                              fill="url(#heroSparkGrad)"
+                              dot={false}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hero Card Header */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      marginBottom: 20,
+                      position: "relative",
+                      zIndex: 1,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          flexShrink: 0,
+                          background: `color-mix(in srgb, var(--t-gold) 15%, transparent)`,
+                          border: `1px solid ${THEME.gold}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "var(--font-display)",
+                          fontSize: 15,
+                          fontWeight: 800,
+                          color: THEME.gold,
+                        }}
+                      >
+                        ₹
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            letterSpacing: "0.14em",
+                            textTransform: "uppercase",
+                            color: THEME.muted,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Consolidated Net Worth
+                        </span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, letterSpacing: "0.02em" }}>
+                      As of {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+
+                  {/* Big Net Worth Number & Performance Trajectory */}
+                  <div style={{ position: "relative", zIndex: 1, marginBottom: 28 }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "clamp(42px, 5.5vw, 68px)",
+                        fontWeight: 900,
+                        lineHeight: 1,
+                        letterSpacing: "-0.04em",
+                        color: THEME.ink,
+                      }}
+                    >
+                      <Money value={animatedNetWorth} variant="full" />
+                    </div>
+
+                    <div
+                      style={{
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 13,
-                        fontWeight: 800,
+                        gap: 10,
+                        marginTop: 14,
+                        flexWrap: "wrap",
                       }}
                     >
-                      {metrics.savingsRate.toFixed(0)}%
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 32,
-                        fontWeight: 800,
-                        color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold,
-                        lineHeight: 1,
-                        marginBottom: 6,
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {metrics.savingsRate.toFixed(1)}%
-                    </div>
-                    <div
-                      style={{ fontSize: 13, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}
-                    >
-                      of monthly income
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color:
-                          metrics.savingsRate >= 20
-                            ? THEME.sage
-                            : metrics.savingsRate >= 10
-                              ? THEME.gold
-                              : THEME.rust,
-                      }}
-                    >
-                      {metrics.savingsRate >= 20 ? "On track" : "Needs attention"}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* 2. DEBT-TO-ASSET */}
-              <Card
-                onClick={() => setTab("credit")}
-                className="card-lift"
-                style={{
-                  padding: 24,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 20,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    Debt-to-Asset Ratio
-                  </span>
-                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 38,
-                      fontWeight: 600,
-                      color:
-                        metrics.debtToAssetRatio < 25
-                          ? THEME.sage
-                          : metrics.debtToAssetRatio < 40
-                            ? THEME.gold
-                            : THEME.rust,
-                      lineHeight: 1,
-                      marginBottom: 10,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {metrics.debtToAssetRatio.toFixed(1)}
-                    <span style={{ fontSize: 24 }}>%</span>
-                  </div>
-                  <div
-                    style={{
-                      height: 6,
-                      borderRadius: 4,
-                      background: `${THEME.line}`,
-                      overflow: "hidden",
-                      marginBottom: 10,
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        borderRadius: 4,
-                        width: `${Math.min(100, metrics.debtToAssetRatio)}%`,
-                        background:
-                          metrics.debtToAssetRatio < 25
-                            ? THEME.sage
-                            : metrics.debtToAssetRatio < 40
-                              ? THEME.gold
-                              : THEME.rust,
-                        transition: "width 0.6s ease",
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}
-                  >
-                    <span style={{ fontSize: 10, color: THEME.sage, fontWeight: 700 }}>
-                      Safe &lt;25%
-                    </span>
-                    <span style={{ fontSize: 10, color: THEME.gold, fontWeight: 700 }}>
-                      Caution &lt;40%
-                    </span>
-                    <span style={{ fontSize: 10, color: THEME.rust, fontWeight: 700 }}>
-                      High &gt;40%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>
-                    Liabilities <Money value={metrics.totalLiabilities} variant="full" />
-                  </div>
-                </div>
-              </Card>
-
-              {/* 3. LIQUIDITY SCORE — uses liquidAssets (cash + MF + stocks), not just cash */}
-              <Card
-                onClick={() => setTab("investments")}
-                className="card-lift"
-                style={{
-                  padding: 24,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 20,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    Liquidity Score
-                  </span>
-                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
-                </div>
-                <div>
-                  {(() => {
-                    const liquid = metrics.liquidAssets;
-                    const locked = metrics.lockedAssets;
-                    const ratio =
-                      metrics.totalAssets > 0 ? (liquid / metrics.totalAssets) * 100 : 0;
-                    const ratioColor =
-                      ratio >= 30 ? THEME.sage : ratio >= 15 ? THEME.gold : THEME.rust;
-                    return (
-                      <>
+                      {momNetWorthDelta && (
                         <div
                           style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 38,
-                            fontWeight: 600,
-                            color: ratioColor,
-                            lineHeight: 1,
-                            marginBottom: 10,
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          {ratio.toFixed(1)}
-                          <span style={{ fontSize: 24 }}>%</span>
-                        </div>
-                        <div
-                          style={{
-                            height: 6,
-                            borderRadius: 4,
-                            background: `${THEME.line}`,
-                            overflow: "hidden",
-                            marginBottom: 10,
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: "100%",
-                              borderRadius: 4,
-                              width: `${Math.min(100, ratio)}%`,
-                              background: ratioColor,
-                              transition: "width 0.6s ease",
-                            }}
-                          />
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: THEME.muted,
-                            lineHeight: 1.7,
-                            fontWeight: 500,
-                          }}
-                        >
-                          Cash <Money value={metrics.cashInBanks} variant="full" /> · MF+Stocks{" "}
-                          <Money value={metrics.mfValue + metrics.stockValue} variant="full" />
-                          <br />
-                          Locked <Money value={locked} variant="full" /> · Target ≥30%
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </Card>
-
-              {/* 4. INVESTMENT P&L */}
-              <Card
-                onClick={() => setTab("demat")}
-                className="card-lift"
-                style={{
-                  padding: 24,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 20,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    Investment P&L
-                  </span>
-                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
-                </div>
-                <div>
-                  {(() => {
-                    const invested = metrics.mfInvested + metrics.stockInvested;
-                    const current = metrics.mfValue + metrics.stockValue;
-                    const pnl = current - invested;
-                    const returnPct = invested > 0 ? (pnl / invested) * 100 : 0;
-                    const isPos = pnl >= 0;
-                    const c = isPos ? THEME.sage : THEME.rust;
-                    return (
-                      <>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 34,
-                            fontWeight: 600,
-                            color: c,
-                            lineHeight: 1,
-                            marginBottom: 10,
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          {isPos ? "+" : ""}
-                          <Money value={pnl} variant="full" />
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: c,
-                            marginBottom: 8,
                             display: "flex",
                             alignItems: "center",
+                            gap: 5,
+                            fontSize: 13,
+                            fontWeight: 800,
+                            padding: "4px 10px",
+                            borderRadius: "var(--radius-sm)",
+                            background: momNetWorthDelta.delta >= 0
+                              ? `color-mix(in srgb, var(--t-sage) 12%, transparent)`
+                              : `color-mix(in srgb, var(--t-rust) 12%, transparent)`,
+                            color: momNetWorthDelta.delta >= 0 ? THEME.sage : THEME.rust,
+                          }}
+                        >
+                          {momNetWorthDelta.delta >= 0 ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
+                          {momNetWorthDelta.delta >= 0 ? "+" : ""}
+                          <Money value={momNetWorthDelta.delta} variant="full" />{" "}
+                          ({momNetWorthDelta.pct >= 0 ? "+" : ""}
+                          {momNetWorthDelta.pct.toFixed(1)}% MoM)
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          padding: "4px 10px",
+                          borderRadius: "var(--radius-sm)",
+                          background: `color-mix(in srgb, var(--t-accent) 8%, transparent)`,
+                          color: THEME.accent,
+                        }}
+                      >
+                        <TrendingUp size={14} />
+                        {(
+                          ((metrics.mfValue + metrics.stockValue) / (metrics.totalAssets || 1)) *
+                          100
+                        ).toFixed(1)}% Equity Exposure
+                      </div>
+
+                      <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
+                        Assets: <Money value={metrics.totalAssets} variant="full" /> · Liabilities: <Money value={metrics.totalLiabilities} variant="full" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Asset Class Proportional Allocation Bar ── */}
+                  {metrics.totalAssets > 0 && (() => {
+                    const liquid = (metrics.cashInBanks || 0) + (metrics.fdValue || 0);
+                    const equity = (metrics.mfValue || 0) + (metrics.stockValue || 0);
+                    const retirement = (metrics.ppfValue || 0) + (metrics.npsValue || 0) + (metrics.epfValue || 0);
+                    const physical = (metrics.realEstateAsset || 0) + (metrics.goldValue || 0);
+                    const total = metrics.totalAssets || 1;
+
+                    const segments = [
+                      { label: "Liquid (Cash & FD)", value: liquid, color: THEME.sage, pct: (liquid / total) * 100 },
+                      { label: "Equities & MFs", value: equity, color: THEME.accent, pct: (equity / total) * 100 },
+                      { label: "Retirement (EPF/PPF/NPS)", value: retirement, color: THEME.gold, pct: (retirement / total) * 100 },
+                      { label: "Real Estate & Gold", value: physical, color: THEME.violet, pct: (physical / total) * 100 },
+                    ].filter((s) => s.value > 0);
+
+                    return (
+                      <div style={{ position: "relative", zIndex: 1, marginBottom: 28 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                          <span>Asset Allocation Balance</span>
+                          <span>{segments.length} Core Asset Classes</span>
+                        </div>
+
+                        {/* Multi-segment Progress Bar */}
+                        <div
+                          style={{
+                            display: "flex",
+                            height: 10,
+                            borderRadius: 6,
+                            overflow: "hidden",
+                            background: THEME.line,
                             gap: 2,
                           }}
                         >
-                          {isPos ? (
-                            <ChevronUp size={18} strokeWidth={3} />
-                          ) : (
-                            <ChevronDown size={18} strokeWidth={3} />
-                          )}
-                          {Math.abs(returnPct).toFixed(1)}% overall return
+                          {segments.map((s, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                width: `${s.pct}%`,
+                                background: s.color,
+                                height: "100%",
+                                transition: "width 0.6s ease",
+                              }}
+                              title={`${s.label}: ${s.pct.toFixed(1)}%`}
+                            />
+                          ))}
                         </div>
-                        <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
-                          Unrealised · Invested <Money value={invested} variant="full" />
+
+                        {/* Legend */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 10 }}>
+                          {segments.map((s, idx) => (
+                            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
+                              <span style={{ color: THEME.muted }}>{s.label}:</span>
+                              <span style={{ color: THEME.ink, fontWeight: 700 }}>{s.pct.toFixed(1)}%</span>
+                            </div>
+                          ))}
                         </div>
-                      </>
+                      </div>
                     );
                   })()}
+
+                  {/* ── Net Worth Breakdown Grid ── */}
+                  {(() => {
+                    const otherAssets =
+                      (metrics.rdValue || 0) +
+                      (metrics.bondValue || 0) +
+                      (metrics.licValue || 0) +
+                      (metrics.investmentValue || 0) +
+                      (metrics.loansGivenValue || 0) +
+                      (metrics.informalLentValue || 0) +
+                      (metrics.rentalPropertiesAsset || 0) +
+                      (metrics.rentedDepositAsset || 0) +
+                      (metrics.prepaidValue || 0) +
+                      (metrics.vehicleAsset || 0) +
+                      (metrics.goldValue || 0);
+
+                    const otherDues =
+                      (metrics.realEstateOutstanding || 0) +
+                      (metrics.informalBorrowedValue || 0) +
+                      (metrics.rentalDepositLiability || 0);
+
+                    return (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+                          gap: 12,
+                          position: "relative",
+                          zIndex: 1,
+                          paddingTop: 24,
+                          borderTop: `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        {/* Liquid & Fixed Income */}
+                        <HeroStat
+                          label="Bank Cash"
+                          value={metrics.cashInBanks}
+                          tabId="banks"
+                          setTab={setTab}
+                        />
+                        <HeroStat
+                          label="Fixed Deposits"
+                          value={metrics.fdValue}
+                          tabId="investments"
+                          subTabId="fd"
+                          setTab={setTab}
+                          setSubTab={setSubTab}
+                        />
+                        <HeroStat
+                          label="Govt Schemes"
+                          value={metrics.govtSchemesValue || 0}
+                          tabId="govtschemes"
+                          setTab={setTab}
+                        />
+
+                        {/* Capital Growth */}
+                        <HeroStat
+                          label="Mutual Funds"
+                          value={metrics.mfValue}
+                          tabId="investments"
+                          subTabId="mf"
+                          setTab={setTab}
+                          setSubTab={setSubTab}
+                        />
+                        <HeroStat
+                          label="Stocks (Demat)"
+                          value={metrics.stockValue}
+                          tabId="demat"
+                          setTab={setTab}
+                        />
+                        <HeroStat
+                          label="PPF / NPS / EPF"
+                          value={metrics.ppfValue + metrics.npsValue + metrics.epfValue}
+                          tabId="investments"
+                          subTabId="ppf"
+                          setTab={setTab}
+                          setSubTab={setSubTab}
+                        />
+
+                        {/* Physical / Other */}
+                        {(metrics.realEstateAsset || 0) > 0 && (
+                          <HeroStat
+                            label="Real Estate"
+                            value={metrics.realEstateAsset}
+                            tabId="realestate"
+                            setTab={setTab}
+                          />
+                        )}
+                        {otherAssets > 0 && (
+                          <HeroStat
+                            label="Other Assets"
+                            value={otherAssets}
+                            tabId="investments"
+                            setTab={setTab}
+                          />
+                        )}
+
+                        {/* Liabilities */}
+                        <HeroStat
+                          label="Card Dues"
+                          value={metrics.ccOutstanding}
+                          negative
+                          tabId="cc"
+                          setTab={setTab}
+                        />
+                        <HeroStat
+                          label="Loans Taken"
+                          value={metrics.loansTakenValue}
+                          negative
+                          tabId="taken"
+                          setTab={setTab}
+                        />
+                        {otherDues > 0 && (
+                          <HeroStat
+                            label="Other Dues"
+                            value={otherDues}
+                            negative
+                            tabId="realestate"
+                            setTab={setTab}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
+                </Card>
+
+                {/* ─── Executive Financial Vitals & KPI Row ───────────────── */}
+                <div
+                  className="bento-col-12"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                    gap: 16,
+                  }}
+                >
+                  {/* 1. SAVINGS RATE */}
+                  <Card
+                    onClick={() => setTab("budget")}
+                    className="card-lift"
+                    style={{
+                      padding: 22,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                      borderRadius: "var(--radius-lg)",
+                      border: `1px solid ${THEME.line}`,
+                      borderTop: `3px solid ${metrics.savingsRate >= 20 ? THEME.sage : THEME.gold}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 16,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: THEME.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        Savings Rate
+                      </span>
+                      <ArrowUpRight size={14} style={{ color: THEME.muted }} />
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                      <div style={{ position: "relative", width: 64, height: 64, flexShrink: 0 }}>
+                        <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%" }}>
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke={THEME.line}
+                            strokeWidth="3.5"
+                          />
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke={metrics.savingsRate >= 20 ? THEME.sage : THEME.gold}
+                            strokeWidth="4"
+                            strokeDasharray={`${Math.max(0, Math.min(100, metrics.savingsRate))}, 100`}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: THEME.ink,
+                          }}
+                        >
+                          {metrics.savingsRate.toFixed(0)}%
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 28,
+                            fontWeight: 900,
+                            color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold,
+                            lineHeight: 1,
+                            marginBottom: 4,
+                            letterSpacing: "-0.03em",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {metrics.savingsRate.toFixed(1)}%
+                        </div>
+                        <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 6, fontWeight: 600 }}>
+                          of monthly income
+                        </div>
+                        <Badge
+                          variant={metrics.savingsRate >= 20 ? "sage" : metrics.savingsRate >= 10 ? "gold" : "rust"}
+                          style={{ fontSize: 10, padding: "2px 8px" }}
+                        >
+                          {metrics.savingsRate >= 20 ? "On Track" : "Needs Boost"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* 2. DEBT-TO-ASSET */}
+                  <Card
+                    onClick={() => setTab("credit")}
+                    className="card-lift"
+                    style={{
+                      padding: 22,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                      borderRadius: "var(--radius-lg)",
+                      border: `1px solid ${THEME.line}`,
+                      borderTop: `3px solid ${metrics.debtToAssetRatio < 25 ? THEME.sage : metrics.debtToAssetRatio < 40 ? THEME.gold : THEME.rust}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 16,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: THEME.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        Debt-to-Asset Ratio
+                      </span>
+                      <ArrowUpRight size={14} style={{ color: THEME.muted }} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 32,
+                          fontWeight: 900,
+                          color:
+                            metrics.debtToAssetRatio < 25
+                              ? THEME.sage
+                              : metrics.debtToAssetRatio < 40
+                                ? THEME.gold
+                                : THEME.rust,
+                          lineHeight: 1,
+                          marginBottom: 8,
+                          letterSpacing: "-0.03em",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {metrics.debtToAssetRatio.toFixed(1)}%
+                      </div>
+                      <div
+                        style={{
+                          height: 6,
+                          borderRadius: 4,
+                          background: THEME.line,
+                          overflow: "hidden",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            borderRadius: 4,
+                            width: `${Math.min(100, metrics.debtToAssetRatio)}%`,
+                            background:
+                              metrics.debtToAssetRatio < 25
+                                ? THEME.sage
+                                : metrics.debtToAssetRatio < 40
+                                  ? THEME.gold
+                                  : THEME.rust,
+                            transition: "width 0.6s ease",
+                          }}
+                        />
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                        Total debt: <Money value={metrics.totalLiabilities} variant="full" />
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* 3. LIQUIDITY SCORE */}
+                  <Card
+                    onClick={() => setTab("investments")}
+                    className="card-lift"
+                    style={{
+                      padding: 22,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                      borderRadius: "var(--radius-lg)",
+                      border: `1px solid ${THEME.line}`,
+                      borderTop: `3px solid ${metrics.liquidAssets / (metrics.totalAssets || 1) >= 0.3 ? THEME.sage : THEME.gold}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 16,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: THEME.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        Liquidity Ratio
+                      </span>
+                      <ArrowUpRight size={14} style={{ color: THEME.muted }} />
+                    </div>
+                    <div>
+                      {(() => {
+                        const liquid = metrics.liquidAssets;
+                        const ratio = metrics.totalAssets > 0 ? (liquid / metrics.totalAssets) * 100 : 0;
+                        const ratioColor = ratio >= 30 ? THEME.sage : ratio >= 15 ? THEME.gold : THEME.rust;
+                        return (
+                          <>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontSize: 32,
+                                fontWeight: 900,
+                                color: ratioColor,
+                                lineHeight: 1,
+                                marginBottom: 8,
+                                letterSpacing: "-0.03em",
+                                fontVariantNumeric: "tabular-nums",
+                              }}
+                            >
+                              {ratio.toFixed(1)}%
+                            </div>
+                            <div
+                              style={{
+                                height: 6,
+                                borderRadius: 4,
+                                background: THEME.line,
+                                overflow: "hidden",
+                                marginBottom: 8,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: "100%",
+                                  borderRadius: 4,
+                                  width: `${Math.min(100, ratio)}%`,
+                                  background: ratioColor,
+                                  transition: "width 0.6s ease",
+                                }}
+                              />
+                            </div>
+                            <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                              Liquid reserves: <Money value={liquid} variant="full" />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </Card>
+
+                  {/* 4. INVESTMENT P&L */}
+                  <Card
+                    onClick={() => setTab("demat")}
+                    className="card-lift"
+                    style={{
+                      padding: 22,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                      borderRadius: "var(--radius-lg)",
+                      border: `1px solid ${THEME.line}`,
+                      borderTop: `3px solid ${(metrics.mfValue + metrics.stockValue) >= (metrics.mfInvested + metrics.stockInvested) ? THEME.sage : THEME.rust}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 16,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: THEME.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        Unrealised Returns
+                      </span>
+                      <ArrowUpRight size={14} style={{ color: THEME.muted }} />
+                    </div>
+                    <div>
+                      {(() => {
+                        const invested = metrics.mfInvested + metrics.stockInvested;
+                        const current = metrics.mfValue + metrics.stockValue;
+                        const pnl = current - invested;
+                        const returnPct = invested > 0 ? (pnl / invested) * 100 : 0;
+                        const isPos = pnl >= 0;
+                        const c = isPos ? THEME.sage : THEME.rust;
+                        return (
+                          <>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontSize: 30,
+                                fontWeight: 900,
+                                color: c,
+                                lineHeight: 1,
+                                marginBottom: 6,
+                                letterSpacing: "-0.03em",
+                                fontVariantNumeric: "tabular-nums",
+                              }}
+                            >
+                              {isPos ? "+" : ""}
+                              <Money value={pnl} variant="full" />
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color: c,
+                                marginBottom: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              {isPos ? <ChevronUp size={16} strokeWidth={3} /> : <ChevronDown size={16} strokeWidth={3} />}
+                              {Math.abs(returnPct).toFixed(1)}% portfolio gain
+                            </div>
+                            <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                              Invested: <Money value={invested} variant="full" />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </Card>
                 </div>
-              </Card>
-            </div>
 
             {/* Row of Health, Dues, Streak */}
             {(() => {
@@ -5721,9 +5630,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         key={i}
                         style={{
                           padding: "14px 16px",
-                          borderRadius: 12,
-                          background: THEME.line,
-                          border: `1px solid color-mix(in srgb, ${item.color} 12%, transparent)`,
+                          borderRadius: "var(--radius-md)",
+                          background: "var(--surface-1)",
+                          border: `1px solid color-mix(in srgb, ${item.color} 14%, var(--t-line))`,
                         }}
                       >
                         <div
@@ -15633,13 +15542,8 @@ const HeroStat = ({
   setTab,
   setSubTab,
 }: any) => {
-  const color = negative ? "#F87171" : sage ? "#34D399" : "rgba(255,255,255,0.9)";
-  // Border uses explicit rgba so appending digits to color string is avoided
-  const borderColor = negative
-    ? "rgba(248,113,113,0.18)"
-    : sage
-      ? "rgba(52,211,153,0.18)"
-      : "rgba(255,255,255,0.09)";
+  const color = negative ? "var(--t-rust)" : sage ? "var(--t-sage)" : "var(--t-ink)";
+  const accentColor = negative ? "var(--t-rust)" : sage ? "var(--t-sage)" : "var(--t-accent)";
   const isClickable = !!(tabId && setTab);
   const handleActivate = isClickable
     ? () => {
@@ -15664,51 +15568,47 @@ const HeroStat = ({
             },
           }
         : {})}
+      className="card-lift"
       style={{
-        borderLeft: `2px solid ${borderColor}`,
-        paddingLeft: 12,
+        background: "var(--surface-0)",
+        border: "1px solid var(--t-line)",
+        borderLeft: `3px solid ${accentColor}`,
+        borderRadius: "var(--radius-md)",
+        padding: "12px 14px",
         cursor: isClickable ? "pointer" : "default",
-        borderRadius: 6,
-        padding: "4px 4px 4px 12px",
-        transition: "background 0.18s ease",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        gap: 6,
+        transition: "all 0.2s var(--ease-premium)",
       }}
-      onMouseEnter={
-        isClickable
-          ? (e) => {
-              (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.06)";
-            }
-          : undefined
-      }
-      onMouseLeave={
-        isClickable
-          ? (e) => {
-              (e.currentTarget as HTMLDivElement).style.background = "transparent";
-            }
-          : undefined
-      }
     >
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "rgba(255,255,255,0.4)",
-          marginBottom: 5,
-          fontWeight: 600,
-        }}
-      >
-        {label}
-        {isClickable && <span style={{ marginLeft: 4, opacity: 0.45, fontSize: 8 }}>↗</span>}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+        <span
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--t-muted)",
+            fontWeight: 700,
+            lineHeight: 1.2,
+          }}
+        >
+          {label}
+        </span>
+        {isClickable && (
+          <span style={{ color: "var(--t-muted)", opacity: 0.6, fontSize: 10, fontWeight: 800 }}>↗</span>
+        )}
       </div>
       <div
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: 20,
+          fontSize: 17,
           fontWeight: 800,
           color,
           fontVariantNumeric: "tabular-nums",
-          letterSpacing: "-0.02em",
-          lineHeight: 1,
+          letterSpacing: "-0.03em",
+          lineHeight: 1.1,
         }}
       >
         <Money value={value} variant="full" />
