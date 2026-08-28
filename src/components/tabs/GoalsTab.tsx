@@ -813,7 +813,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 >
                   <div style={{ flex: 1, minWidth: 240 }}>
                     <div
-                      style={{ fontFamily: "var(--font-sans)", fontSize: 24, fontWeight: 800 }}
+                      style={{ fontSize: 24, fontWeight: 800 }}
                     >
                       {g.name}
                     </div>
@@ -837,7 +837,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div
-                      style={{ fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 800 }}
+                      style={{ fontSize: 22, fontWeight: 800 }}
                     >
                       <Money value={g.currentAmount} variant="full" />{" "}
                       <span style={{ color: THEME.muted, fontSize: 15 }}>

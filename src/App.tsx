@@ -3632,13 +3632,13 @@ function FinanceDashboard() {
             alignItems: "center",
             justifyContent: "center",
             gap: 16,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--t-font, var(--font-sans))",
           }}
         >
           <Settings size={40} style={{ marginBottom: 8, opacity: 0.85, color: "var(--t-gold, #C5A152)" }} />
           <h2
             style={{
-              fontFamily: "'Fraunces', Georgia, serif",
+              fontFamily: "var(--t-font, var(--font-sans))",
               fontSize: 24,
               fontWeight: 600,
               margin: 0,
@@ -3776,7 +3776,7 @@ function FinanceDashboard() {
         style={{
           height: "100vh",
           background: "var(--t-paper)",
-          fontFamily: "var(--t-font, 'Inter', sans-serif)",
+          fontFamily: "var(--t-font, var(--font-sans))",
           color: THEME.ink,
           position: "relative",
           display: "flex",
@@ -4579,7 +4579,7 @@ const input = {
   padding: "11px 14px",
   border: "1.5px solid var(--t-line)",
   background: "var(--t-card-bg)",
-  fontFamily: "var(--t-font, 'Inter', sans-serif)",
+  fontFamily: "inherit",
   fontSize: "var(--app-font-size, 14px)",
   color: "var(--t-ink)",
   borderRadius: 10,

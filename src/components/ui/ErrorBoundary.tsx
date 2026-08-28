@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <h2
               style={{
-                fontFamily: "var(--font-display, 'Fraunces', Georgia, serif)",
+                fontFamily: "var(--t-font, var(--font-sans))",
                 margin: 0,
                 fontSize: 22,
                 fontWeight: 600,

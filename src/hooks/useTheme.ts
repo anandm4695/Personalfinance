@@ -35,6 +35,7 @@ export function useTheme(settings: {
     };
     const anims: Record<string, string> = { snappy: "0.15s", smooth: "0.4s", relaxed: "0.8s" };
 
+    const selectedFont = fonts[fontKey] || "'Inter', sans-serif";
     const merged = {
       ...vars,
       "--t-accent": darkMode ? palette.dark : palette.light,
@@ -42,7 +43,9 @@ export function useTheme(settings: {
       "--app-font-size": `${d.fontSize}px`,
       "--section-gap": `${d.sectionGap}px`,
       "--t-radius": radiuses[radiusKey] || "12px",
-      "--t-font": fonts[fontKey] || "'Inter', sans-serif",
+      "--t-font": selectedFont,
+      "--font-sans": selectedFont,
+      "--font-display": selectedFont,
       "--t-transition": `${anims[animSpeed] || "0.4s"} cubic-bezier(0.4, 0, 0.2, 1)`,
     };
 

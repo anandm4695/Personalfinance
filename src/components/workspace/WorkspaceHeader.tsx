@@ -30,7 +30,7 @@ const input: React.CSSProperties = {
   padding: "11px 14px",
   border: "1.5px solid var(--t-line)",
   background: "var(--t-card-bg)",
-  fontFamily: "var(--t-font, 'Inter', sans-serif)",
+  fontFamily: "inherit",
   fontSize: "var(--app-font-size, 14px)",
   color: "var(--t-ink)",
   borderRadius: 10,

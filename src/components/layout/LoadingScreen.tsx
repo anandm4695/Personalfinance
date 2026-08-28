@@ -31,7 +31,7 @@ export function LoadingScreen() {
           letterSpacing: "0.18em",
           textTransform: "uppercase",
           color: "rgba(197,161,82,0.7)",
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--t-font, var(--font-sans))",
         }}
       >
         Plan &bull; Grow &bull; Secure &bull; Prosper

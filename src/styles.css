@@ -84,11 +84,7 @@
 
   /* Typography */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  /* Display serif — section headlines, hero/stat figures, the brand wordmark.
-     Deliberately not the body sans: pairing a serif numeral face against the
-     Inter/Outfit UI chrome is what gives the app an edited, considered voice
-     instead of reading as one more Inter-everywhere dashboard template. */
-  --font-display: "Fraunces", "Outfit", Georgia, serif;
+  --font-display: var(--t-font, var(--font-sans));
   --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
 
   /* Border radius scale */
@@ -254,12 +250,18 @@ pre {
     "calt" 1;
 }
 
-/* ── Form elements ─────────────────────────────────────────────── */
+/* ── Form & Content elements ───────────────────────────────────── */
 button,
 a,
 input,
 select,
-textarea {
+textarea,
+optgroup,
+option,
+table,
+th,
+td,
+label {
   font-family: inherit;
 }
 

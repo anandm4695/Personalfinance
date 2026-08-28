@@ -169,7 +169,7 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
               alignItems: "center",
               gap: 10,
               maxWidth: 340,
-              fontFamily: "var(--t-font, 'Inter', sans-serif)",
+              fontFamily: "var(--t-font, var(--font-sans))",
               animation: "toastIn 0.28s var(--ease-out) both",
             }}
           >

@@ -945,7 +945,7 @@ const AF_STYLES = `
 
   min-height: 100vh;
   display: flex;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--t-font, var(--font-sans));
   background: var(--af-page-bg);
 }
 
@@ -987,11 +987,11 @@ const AF_STYLES = `
 }
 .af-brand-content { position: relative; z-index: 1; max-width: 380px; }
 .af-brand-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
-.af-brand-name { font-family: 'Fraunces', Georgia, serif; font-size: 16px; font-weight: 600; letter-spacing: -0.005em; line-height: 1; color: #fff; }
+.af-brand-name { font-family: var(--t-font, var(--font-sans)); font-size: 16px; font-weight: 600; letter-spacing: -0.005em; line-height: 1; color: #fff; }
 .af-brand-tagline { font-size: 11px; font-weight: 500; color: rgba(244,245,255,0.6); margin-top: 4px; }
 .af-brand-headline {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 36px; font-weight: 560; letter-spacing: -0.01em; line-height: 1.16;
+  font-family: var(--t-font, var(--font-sans));
+  font-size: 36px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.16;
   margin: 0 0 16px; color: #fff;
 }
 .af-brand-sub {
@@ -1025,7 +1025,7 @@ const AF_STYLES = `
 /* Mobile-only compact logo row (brand panel carries it on desktop) */
 .af-logo-mobile { display: none; }
 .af-logo-name {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--t-font, var(--font-sans));
   font-size: 16px; font-weight: 600;
   color: var(--af-text); letter-spacing: -0.005em; line-height: 1;
 }
@@ -1043,7 +1043,7 @@ const AF_STYLES = `
 /* Card header */
 .af-card-head { margin-bottom: 22px; }
 .af-card-title {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--t-font, var(--font-sans));
   font-size: 24px; font-weight: 600;
   color: var(--af-text); letter-spacing: -0.005em; line-height: 1.2; margin-bottom: 6px;
 }
@@ -1090,7 +1090,7 @@ const AF_STYLES = `
 .af-inp {
   flex: 1; background: none; border: none; outline: none;
   padding: 11px 14px; font-size: 14.5px;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: inherit;
   color: var(--af-text); font-weight: 400; min-width: 0;
 }
 .af-inp-padded { padding-left: 8px; }
@@ -1153,7 +1153,7 @@ const AF_STYLES = `
   width: 100%; padding: 12px 20px;
   background: var(--af-accent);
   color: #FFFFFF; border: none; border-radius: 10px;
-  font-size: 14.5px; font-weight: 700; font-family: 'Inter', sans-serif;
+  font-size: 14.5px; font-weight: 700; font-family: inherit;
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
   transition: background 0.15s ease, transform 0.1s ease;
   margin-top: 4px; letter-spacing: -0.005em;

@@ -297,7 +297,7 @@ export function DataTable<T extends Record<string, any>>({
                         color: "var(--t-ink, #f4f4f5)",
                         textAlign: col.align || (col.isNumeric ? "right" : "left"),
                         fontVariantNumeric: col.isNumeric ? "tabular-nums" : "normal",
-                        fontFamily: col.isNumeric ? "var(--font-mono, monospace)" : "inherit",
+                        fontFamily: "inherit",
                       }}
                     >
                       {col.accessor ? col.accessor(row) : row[col.key]}
