@@ -218,16 +218,20 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
 
       {state.goals.length > 0 && (
         <>
-          {/* Overall Progress is the one number this whole tab answers — gets top billing
-              as a hero card, matching the FIRE Number / Emergency Fund gauge treatment. */}
+          {/* Overall Progress Hero Card */}
           <Card
-            variant="hero"
+            variant="base"
             style={{
               marginBottom: 20,
               padding: "clamp(24px, 4vw, 36px)",
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 96%, var(--t-accent) 4%), var(--surface-0))",
+              border: `1px solid ${THEME.line}`,
+              borderTop: `4px solid ${THEME.accent}`,
+              borderRadius: "var(--radius-xl)",
               display: "flex",
               flexDirection: "column",
-              gap: 4,
+              gap: 6,
             }}
           >
             <div
@@ -235,21 +239,21 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 800,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "rgba(255,255,255,0.6)",
+                color: THEME.muted,
               }}
             >
-              <Activity size={13} /> Overall Progress
+              <Activity size={14} color={THEME.accent} /> Overall Portfolio Progress
             </div>
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: "clamp(32px, 5vw, 52px)",
-                fontWeight: 600,
-                color: "#fff",
+                fontSize: "clamp(36px, 5vw, 56px)",
+                fontWeight: 900,
+                color: THEME.ink,
                 letterSpacing: "-0.03em",
                 lineHeight: 1.05,
                 fontVariantNumeric: "tabular-nums",
@@ -257,7 +261,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             >
               {animatedOverallPct.toFixed(1)}%
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
               <Money value={totalSaved} variant="full" /> saved of <Money value={totalTarget} variant="full" />{" "}
               across {state.goals.length} goal{state.goals.length !== 1 ? "s" : ""}
             </div>
@@ -583,10 +587,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 className="card-lift"
                 style={{
                   padding: 24,
-                  background: "var(--t-card-bg)",
-                  border: `1.5px solid ${THEME.line}`,
-                  borderTop: `4px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.muted}`,
-                  borderRadius: 16,
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  borderTop: `3.5px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.accent}`,
+                  borderRadius: "var(--radius-lg)",
                 }}
               >
                 {/* Header Row: Category/Priority Tags & Action Badges/Buttons */}

@@ -7000,7 +7000,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-md), 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
               gap: 16,
               marginBottom: 24,
             }}
@@ -7076,9 +7076,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 className="card-lift"
                 style={{
                   padding: "18px 20px",
-                  borderRadius: 16,
-                  background: isDark ? "var(--surface-1)" : "var(--t-paper)",
+                  borderRadius: "var(--radius-lg)",
+                  background: "var(--surface-0)",
                   border: `1px solid ${THEME.line}`,
+                  borderLeft: `3.5px solid ${positive ? THEME.sage : THEME.rust}`,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
@@ -7096,24 +7097,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <span
                     style={{
                       fontSize: 10,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       textTransform: "uppercase",
-                      letterSpacing: "0.1em",
+                      letterSpacing: "0.08em",
                       color: THEME.muted,
                     }}
                   >
                     {label}
                   </span>
-                  <Icon size={16} color={THEME.muted} />
+                  <Icon size={16} color={positive ? THEME.sage : THEME.muted} />
                 </div>
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
                     fontSize: 22,
-                    fontWeight: 600,
+                    fontWeight: 900,
                     color: positive ? THEME.sage : THEME.rust,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.1,
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   {money ? maskCurrencyInText(value, privacyMode) : value}
@@ -7125,7 +7127,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       alignItems: "center",
                       gap: 4,
                       fontSize: 11,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: positive ? THEME.sage : THEME.rust,
                       background: `color-mix(in srgb, ${
                         positive ? THEME.sage : THEME.rust
@@ -7956,21 +7958,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <div
                       style={{
                         padding: "16px 20px",
-                        borderRadius: 12,
-                        background: isDark ? "var(--surface-2)" : "#0F172A",
+                        borderRadius: "var(--radius-md)",
+                        background: "var(--surface-1)",
                         marginBottom: 20,
                         textAlign: "center",
-                        border: isDark ? `1px solid ${THEME.line}` : "none",
+                        border: `1px solid ${THEME.line}`,
+                        borderTop: `3px solid ${THEME.accent}`,
                       }}
                     >
                       <div
                         style={{
                           fontSize: 10,
-                          color: "rgba(255,255,255,0.4)",
+                          color: THEME.muted,
                           textTransform: "uppercase",
-                          letterSpacing: "0.15em",
+                          letterSpacing: "0.12em",
                           marginBottom: 4,
-                          fontWeight: 700,
+                          fontWeight: 800,
                         }}
                       >
                         Combined Family Net Worth
@@ -7979,8 +7982,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           fontFamily: "var(--font-display)",
                           fontSize: 28,
-                          fontWeight: 600,
-                          color: "#fff",
+                          fontWeight: 900,
+                          color: THEME.ink,
                           letterSpacing: "-0.03em",
                         }}
                       >
