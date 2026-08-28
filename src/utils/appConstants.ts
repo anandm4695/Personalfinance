@@ -165,6 +165,7 @@ export const NUMERIC_COLS = new Set([
   // salary_slips
   "basic",
   "hra",
+  "education_allowance",
   "da",
   "special_allowance",
   "lta",

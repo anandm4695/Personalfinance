@@ -1372,6 +1372,7 @@ CREATE TABLE IF NOT EXISTS public.salary_slips (
   slip_month        text NOT NULL,                              -- YYYY-MM
   basic             numeric DEFAULT 0,
   hra               numeric DEFAULT 0,
+  education_allowance numeric DEFAULT 0,
   da                numeric DEFAULT 0,
   special_allowance numeric DEFAULT 0,
   lta               numeric DEFAULT 0,

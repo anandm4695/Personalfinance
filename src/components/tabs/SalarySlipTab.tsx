@@ -55,12 +55,13 @@ const EMPTY: any = {
   slipMonth: today().slice(0, 7),
   basic: "",
   hra: "",
-  da: "",
-  specialAllowance: "",
+  educationAllowance: "",
   lta: "",
+  specialAllowance: "",
+  employerNpsContribution: "",
+  da: "",
   bonus: "",
   otherEarnings: "",
-  employerNpsContribution: "",
   grossSalary: "",
   pfEmployee: "",
   pfEmployer: "",
@@ -79,12 +80,13 @@ const EMPTY: any = {
 const NUMERIC_KEYS = [
   "basic",
   "hra",
-  "da",
-  "specialAllowance",
+  "educationAllowance",
   "lta",
+  "specialAllowance",
+  "employerNpsContribution",
+  "da",
   "bonus",
   "otherEarnings",
-  "employerNpsContribution",
   "grossSalary",
   "pfEmployee",
   "pfEmployer",
@@ -104,7 +106,16 @@ function autoCompute(
   grossTouched?: boolean,
   deductTouched?: boolean
 ) {
-  const earn = ["basic", "hra", "da", "specialAllowance", "lta", "bonus", "otherEarnings"];
+  const earn = [
+    "basic",
+    "hra",
+    "educationAllowance",
+    "lta",
+    "specialAllowance",
+    "da",
+    "bonus",
+    "otherEarnings",
+  ];
   const deduct = [
     "pfEmployee",
     "esiEmployee",
@@ -205,7 +216,7 @@ function SlipForm({ initial, onSave, onClose, apiKey, existingSlips, familyProfi
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const prompt = `You are a salary slip parser. Extract the following fields from this Indian salary slip text.
 Return ONLY a valid JSON object with these keys (numbers only, no currency symbols, 0 if not found):
-basic, hra, da, specialAllowance, lta, bonus, otherEarnings, employerNpsContribution, grossSalary, pfEmployee, pfEmployer, esiEmployee, professionalTax, tds, incomeTax, npsDeduction, otherDeductions, totalDeductions, netSalary, employer, slipMonth (YYYY-MM format)
+basic, hra, educationAllowance, lta, specialAllowance, employerNpsContribution, da, bonus, otherEarnings, grossSalary, pfEmployee, pfEmployer, esiEmployee, professionalTax, tds, incomeTax, npsDeduction, otherDeductions, totalDeductions, netSalary, employer, slipMonth (YYYY-MM format)
 
 Salary slip text:
 ${form.rawText}
@@ -421,12 +432,13 @@ Return only the JSON, no explanation.`;
         {[
           ["basic", "Basic Salary"],
           ["hra", "HRA"],
-          ["da", "DA"],
-          ["specialAllowance", "Special Allowance"],
+          ["educationAllowance", "Education Allowance"],
           ["lta", "LTA"],
+          ["specialAllowance", "Special Allowance"],
+          ["employerNpsContribution", "Employer NPS Contribution"],
+          ["da", "DA"],
           ["bonus", "Bonus / Incentive"],
           ["otherEarnings", "Other Earnings"],
-          ["employerNpsContribution", "Employer NPS Contribution"],
           ["grossSalary", "Gross Salary *"],
         ].map(([k, label]) => (
           <Field key={k} label={label}>
@@ -705,12 +717,13 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
         { key: "employer", label: "Employer" },
         { key: "basic", label: "Basic" },
         { key: "hra", label: "HRA" },
-        { key: "da", label: "DA" },
-        { key: "specialAllowance", label: "Special Allowance" },
+        { key: "educationAllowance", label: "Education Allowance" },
         { key: "lta", label: "LTA" },
+        { key: "specialAllowance", label: "Special Allowance" },
+        { key: "employerNpsContribution", label: "Employer NPS Contribution" },
+        { key: "da", label: "DA" },
         { key: "bonus", label: "Bonus" },
         { key: "otherEarnings", label: "Other Earnings" },
-        { key: "employerNpsContribution", label: "Employer NPS Contribution" },
         { key: "grossSalary", label: "Gross Salary" },
         { key: "pfEmployee", label: "PF (Employee)" },
         { key: "pfEmployer", label: "PF (Employer)" },
@@ -1209,12 +1222,13 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                           {[
                             ["Basic Salary", s.basic],
                             ["HRA", s.hra],
-                            ["DA", s.da],
-                            ["Special Allowance", s.specialAllowance],
+                            ["Education Allowance", s.educationAllowance],
                             ["LTA", s.lta],
+                            ["Special Allowance", s.specialAllowance],
+                            ["Employer NPS Contribution", s.employerNpsContribution],
+                            ["DA", s.da],
                             ["Bonus", s.bonus],
                             ["Other Earnings", s.otherEarnings],
-                            ["Employer NPS Contribution", s.employerNpsContribution],
                           ]
                             .filter(([, v]) => Number(v) > 0)
                             .map(([label, val]) => (

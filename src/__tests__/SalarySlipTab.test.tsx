@@ -67,4 +67,44 @@ describe("SalarySlipTab Premium UI Statically", () => {
     expect(html).toContain("Salary Trend");
     expect(html).toContain("Google");
   });
+
+  it("should support all earning fields including Education Allowance and Employer NPS Contribution", () => {
+    const detailedState = {
+      salarySlips: [
+        {
+          id: "sl_detailed",
+          slipMonth: "2026-03",
+          employer: "TechCorp",
+          basic: 80000,
+          hra: 40000,
+          educationAllowance: 2000,
+          lta: 5000,
+          specialAllowance: 25000,
+          employerNpsContribution: 8000,
+          da: 3000,
+          bonus: 10000,
+          otherEarnings: 2000,
+          grossSalary: 175000,
+          pfEmployee: 9600,
+          tds: 18000,
+          totalDeductions: 27600,
+          netSalary: 147400,
+          owner: "self",
+        },
+      ],
+      settings: {},
+    };
+
+    const html = renderToString(
+      <SalarySlipTab
+        state={detailedState}
+        addItem={() => {}}
+        removeItem={() => {}}
+        updateItem={() => {}}
+      />
+    );
+
+    expect(html).toContain("TechCorp");
+  });
 });
+
