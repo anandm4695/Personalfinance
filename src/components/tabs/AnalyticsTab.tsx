@@ -7,6 +7,7 @@ import {
   Target,
   Calendar,
   PieChart as PieIcon,
+  LayoutDashboard,
   Printer,
   ChevronDown,
   ChevronUp,
@@ -1588,10 +1589,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   }, [state.stocks, marketData]);
 
   const subs = [
-    { id: "dashboard", label: "Dashboard", icon: PieIcon },
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "trends", label: "Trends", icon: TrendingUp },
-    { id: "allocation", label: "Allocation", icon: Target },
-    { id: "planning", label: "Planning", icon: Activity },
+    { id: "allocation", label: "Allocation", icon: PieIcon },
+    { id: "planning", label: "Planning", icon: Target },
     { id: "spending", label: "Spending", icon: CreditCard },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "habits", label: "Habits & Rewards", icon: Flame },
@@ -8253,7 +8254,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           {/* Hero Header */}
           <div className="sub-tab-hero animate-fade-in">
             <span className="sub-tab-hero-icon">
-              <Target size={28} />
+              <PieIcon size={28} />
             </span>
             <div className="sub-tab-hero-body">
               <div className="sub-tab-hero-title">Portfolio Allocation</div>
