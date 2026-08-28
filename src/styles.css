@@ -472,15 +472,15 @@ tbody tr:hover td {
 .hero-card {
   position: relative;
   overflow: hidden;
-  background: #0b1220 !important;
-  border-top: 2px solid var(--t-gold);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0)) !important;
+  border-top: 3px solid var(--t-accent) !important;
+  border-radius: var(--radius-xl);
   padding: clamp(24px, 4vw, 40px);
-  color: #fff !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--t-ink) !important;
+  box-shadow: var(--shadow-sm);
+  border-left: 1px solid var(--t-line);
+  border-right: 1px solid var(--t-line);
+  border-bottom: 1px solid var(--t-line);
 }
 .hero-card-mesh {
   display: none;
