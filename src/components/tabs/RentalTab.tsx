@@ -687,13 +687,18 @@ export const RentalTab: React.FC<RentalTabProps> = ({
               {/* Monthly Rent is the number a landlord opens this tab to check —
                   gets the hero-card slot (matches FIRE Number / Goals Progress). */}
               <Card
-                variant="hero"
+                variant="base"
                 style={{
                   marginBottom: 20,
                   padding: "clamp(24px, 4vw, 36px)",
+                  background:
+                    "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
+                  border: `1px solid ${THEME.line}`,
+                  borderTop: `4px solid ${THEME.accent}`,
+                  borderRadius: "var(--radius-xl)",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 4,
+                  gap: 6,
                 }}
               >
                 <div
@@ -701,21 +706,21 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 800,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.6)",
+                    color: THEME.muted,
                   }}
                 >
-                  <Landmark size={13} /> Monthly Rent Income
+                  <Landmark size={14} color={THEME.accent} /> Monthly Rent Income
                 </div>
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: "clamp(32px, 5vw, 52px)",
-                    fontWeight: 600,
-                    color: "#fff",
+                    fontSize: "clamp(36px, 5vw, 56px)",
+                    fontWeight: 900,
+                    color: THEME.ink,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.05,
                     fontVariantNumeric: "tabular-nums",
@@ -723,7 +728,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                 >
                   <Money value={animOutMonthlyRent} variant="full" />
                 </div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
                   <Money value={outThisFY} variant="full" /> received so far this FY, of{" "}
                   <Money value={outExpectedFY} variant="full" /> expected across {propertiesOut.length}{" "}
                   propert{propertiesOut.length !== 1 ? "ies" : "y"}
@@ -2179,13 +2184,18 @@ export const RentalTab: React.FC<RentalTabProps> = ({
               {/* Monthly Rent Paid is the number a tenant opens this tab to check —
                   gets the hero-card slot (matches FIRE Number / Goals Progress). */}
               <Card
-                variant="hero"
+                variant="base"
                 style={{
                   marginBottom: 20,
                   padding: "clamp(24px, 4vw, 36px)",
+                  background:
+                    "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
+                  border: `1px solid ${THEME.line}`,
+                  borderTop: `4px solid ${THEME.accent}`,
+                  borderRadius: "var(--radius-xl)",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 4,
+                  gap: 6,
                 }}
               >
                 <div
@@ -2193,21 +2203,21 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 800,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.6)",
+                    color: THEME.muted,
                   }}
                 >
-                  <Landmark size={13} /> Monthly Rent Paid
+                  <Landmark size={14} color={THEME.accent} /> Monthly Rent Paid
                 </div>
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: "clamp(32px, 5vw, 52px)",
-                    fontWeight: 600,
-                    color: "#fff",
+                    fontSize: "clamp(36px, 5vw, 56px)",
+                    fontWeight: 900,
+                    color: THEME.ink,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.05,
                     fontVariantNumeric: "tabular-nums",
@@ -2215,7 +2225,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                 >
                   <Money value={animInMonthlyRent} variant="full" />
                 </div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
                   <Money value={inThisFY} variant="full" /> paid so far this FY, of{" "}
                   <Money value={inExpectedFY} variant="full" /> expected commitment
                 </div>

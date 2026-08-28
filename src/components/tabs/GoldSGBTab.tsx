@@ -421,12 +421,17 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
               the hero-card slot — matches the FIRE Number / Goals Overall Progress
               / Real Estate Portfolio Value treatment used across the app. */}
           <Card
-            variant="hero"
+            variant="base"
             style={{
               padding: "clamp(24px, 4vw, 36px)",
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-gold) 5%), var(--surface-0))",
+              border: `1px solid ${THEME.line}`,
+              borderTop: `4px solid ${THEME.gold}`,
+              borderRadius: "var(--radius-xl)",
               display: "flex",
               flexDirection: "column",
-              gap: 4,
+              gap: 6,
             }}
           >
             <div
@@ -434,21 +439,21 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 800,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "rgba(255,255,255,0.6)",
+                color: THEME.muted,
               }}
             >
-              <Coins size={13} /> Current Gold Value
+              <Coins size={14} color={THEME.gold} /> Current Gold Value
             </div>
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: "clamp(32px, 5vw, 52px)",
-                fontWeight: 600,
-                color: "#fff",
+                fontSize: "clamp(36px, 5vw, 56px)",
+                fontWeight: 900,
+                color: THEME.ink,
                 letterSpacing: "-0.03em",
                 lineHeight: 1.05,
                 fontVariantNumeric: "tabular-nums",
@@ -456,11 +461,13 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
             >
               <Money value={animatedTotalValue} variant="full" />
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
               {stats.totalGrams.toFixed(2)}g held ·{" "}
-              {stats.totalPnL >= 0 ? "Up " : "Down "}
-              <Money value={Math.abs(stats.totalPnL)} variant="full" /> against{" "}
-              <Money value={stats.totalInvested} variant="full" /> invested
+              <span style={{ color: stats.totalPnL >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
+                {stats.totalPnL >= 0 ? "Up " : "Down "}
+                <Money value={Math.abs(stats.totalPnL)} variant="full" />
+              </span>{" "}
+              against <Money value={stats.totalInvested} variant="full" /> invested
             </div>
           </Card>
 

@@ -2785,9 +2785,14 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           {/* ── 2. ADVANCE TAX SUMMARY ─────────────────────────────── */}
           <div className="tv-hero-grid-2" style={{ marginBottom: 24 }}>
             <Card
-              variant="hero"
+              variant="base"
               style={{
                 padding: 32,
+                background:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
+                border: `1px solid ${THEME.line}`,
+                borderTop: `4px solid ${THEME.accent}`,
+                borderRadius: "var(--radius-xl)",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -2796,11 +2801,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               <div>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 800,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.6)",
+                    color: THEME.muted,
                     marginBottom: 8,
                   }}
                 >
@@ -2809,11 +2814,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 52,
-                    fontWeight: 600,
-                    color: "#fff",
+                    fontSize: "clamp(36px, 5vw, 56px)",
+                    fontWeight: 900,
+                    color: THEME.ink,
                     marginBottom: 4,
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.05,
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   <Money value={animatedRemainingAdvance} variant="full" />
@@ -2823,12 +2830,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    color: "rgba(255,255,255,0.7)",
+                    color: THEME.muted,
                     fontSize: 13,
-                    fontWeight: 500,
+                    fontWeight: 600,
                   }}
                 >
-                  <Shield size={14} /> Total tax: <Money value={currentTax} variant="full" /> · TDS credited:{" "}
+                  <Shield size={14} color={THEME.accent} /> Total tax: <Money value={currentTax} variant="full" /> · TDS credited:{" "}
                   <Money value={totalTDS} variant="full" />
                 </div>
               </div>
@@ -2838,7 +2845,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     display: "flex",
                     justifyContent: "space-between",
                     fontSize: 11,
-                    color: "rgba(255,255,255,0.6)",
+                    color: THEME.muted,
                     fontWeight: 800,
                     textTransform: "uppercase",
                     marginBottom: 10,
@@ -2850,7 +2857,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 <div
                   style={{
                     height: 8,
-                    background: "rgba(255,255,255,0.15)",
+                    background: THEME.line,
                     borderRadius: 10,
                     overflow: "hidden",
                   }}
@@ -2858,9 +2865,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   <div
                     style={{
                       height: "100%",
-                      width: `${progressPct}%`,
-                      background: "#fff",
+                      width: `${Math.min(100, Math.max(0, progressPct))}%`,
+                      background: `linear-gradient(90deg, ${THEME.accent}, ${THEME.sage})`,
                       borderRadius: 10,
+                      transition: "width 0.8s var(--ease-premium)",
                     }}
                   />
                 </div>
@@ -2868,46 +2876,49 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   <div>
                     <div
                       style={{
-                        fontSize: 9,
-                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 10,
+                        color: THEME.muted,
                         textTransform: "uppercase",
+                        fontWeight: 700,
                       }}
                     >
                       TDS Deducted
                     </div>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "#fff" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                       <Money value={totalTDS} variant="full" />
                     </div>
                   </div>
-                  <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+                  <div style={{ width: 1, background: THEME.line }} />
                   <div>
                     <div
                       style={{
-                        fontSize: 9,
-                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 10,
+                        color: THEME.muted,
                         textTransform: "uppercase",
+                        fontWeight: 700,
                       }}
                     >
                       Advance Paid
                     </div>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "#fff" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                       <Money value={totalAdvancePaid} variant="full" />
                     </div>
                   </div>
                   {totalSelfAssessment > 0 && (
                     <>
-                      <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+                      <div style={{ width: 1, background: THEME.line }} />
                       <div>
                         <div
                           style={{
-                            fontSize: 9,
-                            color: "rgba(255,255,255,0.5)",
+                            fontSize: 10,
+                            color: THEME.muted,
                             textTransform: "uppercase",
+                            fontWeight: 700,
                           }}
                         >
                           Self-Assessment
                         </div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "#fff" }}>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                           <Money value={totalSelfAssessment} variant="full" />
                         </div>
                       </div>
@@ -4556,9 +4567,14 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           {/* Simulated Dashboard */}
           <div className="tv-hero-grid-2" style={{ marginBottom: 32 }}>
             <Card
-              variant="hero"
+              variant="base"
               style={{
                 padding: 32,
+                background:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-sage) 5%), var(--surface-0))",
+                border: `1px solid ${THEME.line}`,
+                borderTop: `4px solid ${THEME.sage}`,
+                borderRadius: "var(--radius-xl)",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -4570,24 +4586,26 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 800,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.7)",
+                    color: THEME.muted,
                     marginBottom: 8,
                   }}
                 >
-                  <Sparkles size={12} /> Simulated Tax Saved
+                  <Sparkles size={13} color={THEME.sage} /> Simulated Tax Saved
                 </div>
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 52,
-                    fontWeight: 600,
-                    color: "color-mix(in srgb, var(--t-sage) 75%, white)",
+                    fontSize: "clamp(36px, 5vw, 56px)",
+                    fontWeight: 900,
+                    color: THEME.sage,
                     marginBottom: 4,
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.05,
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   <Money value={animatedTotalSaved} variant="full" />
@@ -4597,12 +4615,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    color: "rgba(255,255,255,0.7)",
+                    color: THEME.muted,
                     fontSize: 13,
-                    fontWeight: 500,
+                    fontWeight: 600,
                   }}
                 >
-                  <Percent size={14} /> Actual:{" "}
+                  <Percent size={14} color={THEME.accent} /> Actual:{" "}
                   <Money value={taxCalculations.actual.totalTax} variant="full" /> · Simulated:{" "}
                   <Money value={taxCalculations.simulated.totalTax} variant="full" />
                 </div>
@@ -4613,7 +4631,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     display: "flex",
                     justifyContent: "space-between",
                     fontSize: 11,
-                    color: "rgba(255,255,255,0.6)",
+                    color: THEME.muted,
                     fontWeight: 800,
                     textTransform: "uppercase",
                     marginBottom: 10,
@@ -4629,7 +4647,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 <div
                   style={{
                     height: 8,
-                    background: "rgba(255,255,255,0.15)",
+                    background: THEME.line,
                     borderRadius: 10,
                     overflow: "hidden",
                   }}
@@ -4641,9 +4659,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                         taxCalculations.actual.totalTax > 0
                           ? `${Math.min(100, (taxCalculations.totalSaved / taxCalculations.actual.totalTax) * 100)}%`
                           : "0%",
-                      background: "color-mix(in srgb, var(--t-sage) 75%, white)",
+                      background: `linear-gradient(90deg, ${THEME.sage}, ${THEME.accent})`,
                       borderRadius: 10,
-                      transition: "width 0.4s",
+                      transition: "width 0.8s var(--ease-premium)",
                     }}
                   />
                 </div>
@@ -4651,38 +4669,40 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   <div>
                     <div
                       style={{
-                        fontSize: 9,
-                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 10,
+                        color: THEME.muted,
                         textTransform: "uppercase",
+                        fontWeight: 700,
                       }}
                     >
                       Net STCG (Actual)
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
                       <span style={{ fontFamily: "var(--font-display)" }}>
                         <Money value={taxCalculations.actual.netSTCG} variant="full" />
                       </span>{" "}
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
+                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                         (Tax: <Money value={taxCalculations.actual.taxSTCG} variant="full" />)
                       </span>
                     </div>
                   </div>
-                  <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+                  <div style={{ width: 1, background: THEME.line }} />
                   <div>
                     <div
                       style={{
-                        fontSize: 9,
-                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 10,
+                        color: THEME.muted,
                         textTransform: "uppercase",
+                        fontWeight: 700,
                       }}
                     >
                       Net LTCG (Actual)
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
                       <span style={{ fontFamily: "var(--font-display)" }}>
                         <Money value={taxCalculations.actual.netLTCG} variant="full" />
                       </span>{" "}
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
+                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                         (Tax: <Money value={taxCalculations.actual.taxLTCG} variant="full" />)
                       </span>
                     </div>

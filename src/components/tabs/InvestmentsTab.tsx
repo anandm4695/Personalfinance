@@ -2582,9 +2582,9 @@ function InvestmentEmptyState({
       style={{
         padding: "54px 36px",
         textAlign: "center" as const,
-        background: "var(--t-card-bg)",
-        border: `1.5px solid ${THEME.line}`,
-        borderRadius: 20,
+        background: "var(--surface-0)",
+        border: `1px solid ${THEME.line}`,
+        borderRadius: "var(--radius-xl)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

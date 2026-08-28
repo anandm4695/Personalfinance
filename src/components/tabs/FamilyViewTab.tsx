@@ -692,10 +692,15 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
       {/* ── 1. HERO CARD — FAMILY NET WORTH ──────────────────────── */}
       <Card
-        variant="hero"
+        variant="base"
         style={{
           padding: "clamp(24px, 4vw, 40px)",
-          marginBottom: 8,
+          marginBottom: 16,
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
+          border: `1px solid ${THEME.line}`,
+          borderTop: `4px solid ${THEME.gold}`,
+          borderRadius: "var(--radius-xl)",
           position: "relative",
           overflow: "hidden",
         }}
@@ -706,16 +711,29 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               display: "flex",
               alignItems: "center",
               gap: 16,
-              marginBottom: 32,
+              marginBottom: 28,
             }}
           >
-            <Users size={26} color="var(--t-gold)" style={{ flexShrink: 0 }} />
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "var(--radius-md)",
+                background: "color-mix(in srgb, var(--t-gold) 12%, transparent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Users size={26} color="var(--t-gold)" />
+            </div>
             <div>
               <div
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
-                  color: "rgba(255, 255, 255, 0.6)",
+                  color: THEME.muted,
                   textTransform: "uppercase",
                   letterSpacing: "0.14em",
                   marginBottom: 4,
@@ -726,11 +744,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               <div
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: "clamp(32px, 5vw, 46px)",
-                  fontWeight: 600,
-                  color: "#fff",
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1,
+                  fontSize: "clamp(36px, 5vw, 56px)",
+                  fontWeight: 900,
+                  color: THEME.ink,
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1.05,
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
@@ -744,9 +762,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 12,
-              padding: "24px 0 0",
-              borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+              gap: 10,
+              padding: "20px 0 0",
+              borderTop: `1px solid ${THEME.line}`,
             }}
           >
             {activeMembers.map((m) => {
@@ -755,14 +773,15 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               return (
                 <div
                   key={m.id}
+                  className="card-lift"
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
-                    background: "rgba(255, 255, 255, 0.03)",
+                    background: "var(--surface-1)",
                     padding: "10px 16px",
-                    borderRadius: 14,
-                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    borderRadius: "var(--radius-md)",
+                    border: `1px solid ${THEME.line}`,
                     transition: "all 0.2s var(--ease-premium)",
                   }}
                 >
@@ -784,7 +803,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: "#fff",
+                      color: THEME.ink,
                       minWidth: 120,
                       maxWidth: 160,
                       overflow: "hidden",
@@ -800,7 +819,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       flex: 1,
                       height: 8,
                       borderRadius: 4,
-                      background: "rgba(255, 255, 255, 0.08)",
+                      background: THEME.line,
                       overflow: "hidden",
                     }}
                   >
@@ -818,7 +837,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     style={{
                       fontSize: 13,
                       fontWeight: 800,
-                      color: "#fff",
+                      color: THEME.ink,
                       minWidth: 100,
                       textAlign: "right",
                       fontVariantNumeric: "tabular-nums",
@@ -830,8 +849,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     style={{
                       fontSize: 10,
                       fontWeight: 800,
-                      color: "#fff",
-                      background: "rgba(255, 255, 255, 0.15)",
+                      color: THEME.ink,
+                      background: "var(--surface-0)",
+                      border: `1px solid ${THEME.line}`,
                       padding: "2px 8px",
                       borderRadius: 12,
                       minWidth: 42,

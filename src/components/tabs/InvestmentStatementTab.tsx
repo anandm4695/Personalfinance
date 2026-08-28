@@ -1001,16 +1001,26 @@ export const InvestmentStatementTab = ({
            row buried at the bottom of it (same treatment as NetWorthTimelineTab's
            "Net Worth Today" / GoalsTab's "Overall Progress"). */}
       <Card
-        variant="hero"
-        style={{ padding: "clamp(24px, 4vw, 36px)", display: "flex", flexDirection: "column", gap: 4 }}
+        variant="base"
+        style={{
+          padding: "clamp(24px, 4vw, 36px)",
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
+          border: `1px solid ${THEME.line}`,
+          borderTop: `4px solid ${THEME.accent}`,
+          borderRadius: "var(--radius-xl)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}
       >
         <div
           style={{
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 800,
-            letterSpacing: "0.2em",
+            letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: "rgba(255,255,255,0.6)",
+            color: THEME.muted,
           }}
         >
           Total Portfolio Value
@@ -1018,9 +1028,9 @@ export const InvestmentStatementTab = ({
         <div
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: "clamp(32px, 5vw, 52px)",
-            fontWeight: 600,
-            color: "#fff",
+            fontSize: "clamp(36px, 5vw, 56px)",
+            fontWeight: 900,
+            color: THEME.ink,
             letterSpacing: "-0.03em",
             lineHeight: 1.05,
             fontVariantNumeric: "tabular-nums",
@@ -1031,22 +1041,25 @@ export const InvestmentStatementTab = ({
         <div
           style={{
             fontSize: 13,
-            color: "rgba(255,255,255,0.65)",
+            color: THEME.muted,
             marginTop: 4,
             display: "flex",
             flexWrap: "wrap",
             gap: 14,
+            fontWeight: 600,
           }}
         >
           <span>
             Invested <Money value={summary.totalInvested} variant="full" />
           </span>
-          <span>
+          <span style={{ color: summary.totalGain >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
             {summary.totalGain >= 0 ? "+" : ""}
             <Money value={summary.totalGain} variant="full" /> gain/loss
           </span>
           {summary.weightedCAGR != null && (
-            <span>Weighted CAGR {summary.weightedCAGR.toFixed(1)}%</span>
+            <span style={{ color: THEME.accent, fontWeight: 700 }}>
+              Weighted CAGR {summary.weightedCAGR.toFixed(1)}%
+            </span>
           )}
         </div>
       </Card>
