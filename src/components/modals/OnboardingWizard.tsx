@@ -7,9 +7,13 @@ import {
   Target,
   Bot,
   ChevronRight,
+  ChevronLeft,
   Check,
   Eye,
   EyeOff,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Card } from "../ui/Card";
@@ -19,8 +23,7 @@ import { BrandMark } from "../ui/BrandMark";
 import { uid, today } from "../../utils/finance";
 import { getCurrentFY } from "../../utils/appConstants";
 
-/* Build [currentFY, prev, prev-1] so the dropdown stays correct as time
-   passes instead of a hardcoded, eventually-stale list of years. */
+/* Build [currentFY, prev, prev-1] so the dropdown stays correct */
 const FY_OPTIONS = (() => {
   const [startYear] = getCurrentFY().split("-").map((s) => parseInt(s, 10));
   return Array.from({ length: 3 }, (_, i) => {
@@ -31,11 +34,11 @@ const FY_OPTIONS = (() => {
 })();
 
 const STEPS = [
-  { id: 0, icon: User, label: "Profile", desc: "Set up your financial profile" },
-  { id: 1, icon: Landmark, label: "Bank Account", desc: "Add your first bank account" },
-  { id: 2, icon: TrendingUp, label: "Investment", desc: "Add an investment (FD, MF, or Stock)" },
-  { id: 3, icon: Target, label: "Goal", desc: "Set your first financial goal" },
-  { id: 4, icon: Bot, label: "AI Advisor", desc: "Enable AI-powered advice" },
+  { id: 0, icon: User, label: "Profile", desc: "Set up your wealth identity & tax regime" },
+  { id: 1, icon: Landmark, label: "Primary Bank", desc: "Link your primary savings or checking account" },
+  { id: 2, icon: TrendingUp, label: "First Asset", desc: "Add an initial investment (FD, Mutual Fund, or Stock)" },
+  { id: 3, icon: Target, label: "Financial Goal", desc: "Set a wealth milestone or emergency fund target" },
+  { id: 4, icon: Bot, label: "AI Advisor", desc: "Enable intelligent portfolio analysis with Gemini AI" },
 ];
 
 interface OnboardingWizardProps {
@@ -66,12 +69,15 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   const inputStyle = {
     width: "100%",
-    padding: "10px 14px",
+    padding: "11px 14px",
     borderRadius: 10,
     border: `1.5px solid ${THEME.line}`,
     fontSize: 14,
     background: "var(--surface-0)",
     color: THEME.ink,
+    fontFamily: "inherit",
+    outline: "none",
+    boxSizing: "border-box" as const,
   };
 
   const handleNext = async () => {
@@ -157,44 +163,63 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        minHeight: "70vh",
-        padding: "24px 16px",
+        minHeight: "80vh",
+        padding: "32px 16px",
         boxSizing: "border-box",
       }}
     >
-      <div style={{ maxWidth: 560, width: "100%" }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+      <div style={{ maxWidth: 580, width: "100%" }}>
+        {/* Brand header */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 16,
+              marginBottom: 14,
             }}
           >
-            <BrandMark size={48} />
+            <BrandMark size={52} />
+          </div>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 12px",
+              borderRadius: 9999,
+              background: "rgba(197, 161, 82, 0.12)",
+              border: "1px solid rgba(197, 161, 82, 0.28)",
+              fontSize: 11.5,
+              fontWeight: 700,
+              color: "#C5A152",
+              marginBottom: 8,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            <Sparkles size={12} /> Guided Wealth Setup
           </div>
           <h2
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: "clamp(23px, 5vw, 30px)",
-              fontWeight: 600,
-              letterSpacing: "-0.01em",
-              marginBottom: 8,
+              fontSize: "clamp(24px, 5vw, 32px)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: THEME.ink,
+              marginBottom: 6,
             }}
           >
             Welcome to ArthaDrishti
           </h2>
-          <p style={{ color: THEME.muted, fontSize: 14 }}>
-            Let's set up your dashboard in 5 quick steps
+          <p style={{ color: THEME.muted, fontSize: 14, margin: 0 }}>
+            Configure your private wealth dashboard in 5 simple steps.
           </p>
           <button
             onClick={() => {
               updateMasterData("_onboardingComplete", true);
               onComplete();
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = THEME.ink)}
-            onMouseLeave={(e) => (e.currentTarget.style.color = THEME.muted)}
             style={{
               background: "none",
               border: "none",
@@ -209,82 +234,115 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               transition: "color 0.15s ease",
             }}
           >
-            Skip setup for now
+            Skip setup and explore dashboard
           </button>
         </div>
 
-        {/* Step indicator — decorative; the accessible name for progress lives
-            on the wrapper since the dots differ only by size/color. */}
+        {/* Step progress pills */}
         <div
-          role="img"
-          aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step].label}`}
-          style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 32 }}
+          role="tablist"
+          aria-label="Setup Steps"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 6,
+            marginBottom: 24,
+          }}
         >
-          {STEPS.map((s) => (
-            <div
-              key={s.id}
-              aria-hidden="true"
-              style={{
-                width: s.id === step ? 32 : 10,
-                height: 10,
-                borderRadius: 5,
-                background:
-                  s.id < step
-                    ? THEME.sage
-                    : s.id === step
-                      ? THEME.accent
-                      : `color-mix(in srgb, ${THEME.muted} 20%, transparent)`,
-                transition: "all 0.3s",
-              }}
-            />
-          ))}
+          {STEPS.map((s, idx) => {
+            const isDone = idx < step;
+            const isCurrent = idx === step;
+            return (
+              <div
+                key={s.id}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    height: 5,
+                    borderRadius: 9999,
+                    background: isDone
+                      ? THEME.sage
+                      : isCurrent
+                        ? THEME.accent
+                        : "var(--surface-2)",
+                    transition: "all 0.3s ease",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: isCurrent ? 700 : 500,
+                    color: isCurrent ? THEME.ink : isDone ? THEME.sage : THEME.muted,
+                  }}
+                >
+                  {s.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
-        <Card style={{ padding: "clamp(20px, 5vw, 32px)", borderTop: `4px solid ${THEME.accent}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        {/* Card Body */}
+        <Card style={{ padding: "30px 28px", borderTop: `4px solid ${THEME.accent}`, boxShadow: "var(--shadow-lg)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
             <div
               style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--t-accent) 25%, transparent)",
                 display: "flex",
                 alignItems: "center",
-                flexShrink: 0,
+                justifyContent: "center",
                 color: THEME.accent,
+                flexShrink: 0,
               }}
             >
-              {React.createElement(STEPS[step].icon, { size: 24 })}
+              {React.createElement(STEPS[step].icon, { size: 22 })}
             </div>
             <div>
               <div
                 style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: THEME.muted,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: THEME.accent,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                 }}
               >
                 Step {step + 1} of {STEPS.length}
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em" }}>
+              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em", color: THEME.ink }}>
                 {STEPS[step].label}
               </div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginTop: 1 }}>
+              <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 2 }}>
                 {STEPS[step].desc}
               </div>
             </div>
           </div>
 
           {step === 0 && (
-            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
-              <Field label="Your Name">
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 16 }}>
+              <Field label="Your Full Name">
                 <input
                   style={inputStyle}
-                  placeholder="e.g. Anand"
+                  placeholder="e.g. Anand Mohta"
                   value={profile.name}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  autoFocus
                 />
               </Field>
-              <div className="form-grid-2" style={{ gap: 12 }}>
-                <Field label="Financial Year">
+              <div className="form-grid-2" style={{ gap: 14 }}>
+                <Field label="Active Financial Year">
                   <select
                     style={inputStyle}
                     value={profile.fy}
@@ -295,14 +353,14 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     ))}
                   </select>
                 </Field>
-                <Field label="Tax Regime">
+                <Field label="Tax Regime Preference">
                   <select
                     style={inputStyle}
                     value={profile.regime}
                     onChange={(e) => setProfile({ ...profile, regime: e.target.value })}
                   >
-                    <option value="new">New Regime</option>
-                    <option value="old">Old Regime</option>
+                    <option value="new">New Tax Regime (Default)</option>
+                    <option value="old">Old Tax Regime</option>
                   </select>
                 </Field>
               </div>
@@ -310,29 +368,30 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 1 && (
-            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
-              <Field label="Bank Name">
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 16 }}>
+              <Field label="Bank Institution Name">
                 <input
                   style={inputStyle}
-                  placeholder="e.g. HDFC Bank"
+                  placeholder="e.g. HDFC Bank, ICICI, SBI"
                   value={bank.bankName}
                   onChange={(e) => setBank({ ...bank, bankName: e.target.value })}
+                  autoFocus
                 />
               </Field>
-              <div className="form-grid-2" style={{ gap: 12 }}>
-                <Field label="Account Number (optional)">
+              <div className="form-grid-2" style={{ gap: 14 }}>
+                <Field label="Account Number (Optional)">
                   <input
                     style={inputStyle}
-                    placeholder="Last 4 digits"
+                    placeholder="Last 4 digits (e.g. 4092)"
                     value={bank.accountNumber}
                     onChange={(e) => setBank({ ...bank, accountNumber: e.target.value })}
                   />
                 </Field>
-                <Field label="Current Balance">
+                <Field label="Starting Balance (₹)">
                   <input
                     style={inputStyle}
                     type="number"
-                    placeholder="e.g. 50000"
+                    placeholder="e.g. 75000"
                     value={bank.balance}
                     onChange={(e) => setBank({ ...bank, balance: e.target.value })}
                   />
@@ -342,42 +401,43 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 2 && (
-            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
-              <Field label="Investment Type">
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 16 }}>
+              <Field label="Asset Category">
                 <select
                   style={inputStyle}
                   value={investment.type}
                   onChange={(e) => setInvestment({ ...investment, type: e.target.value })}
                 >
-                  <option value="fd">Fixed Deposit</option>
-                  <option value="mf">Mutual Fund</option>
-                  <option value="stock">Stock</option>
+                  <option value="fd">Fixed Deposit (FD)</option>
+                  <option value="mf">Mutual Fund Scheme</option>
+                  <option value="stock">Direct Stock / Equity</option>
                 </select>
               </Field>
               <Field
                 label={
                   investment.type === "fd"
-                    ? "Bank"
+                    ? "Bank / Issuer Name"
                     : investment.type === "mf"
                       ? "Scheme Name"
-                      : "Symbol"
+                      : "Stock Symbol"
                 }
               >
                 <input
                   style={inputStyle}
                   placeholder={
                     investment.type === "fd"
-                      ? "e.g. SBI"
+                      ? "e.g. HDFC Bank FD"
                       : investment.type === "mf"
-                        ? "e.g. Nifty 50 Index"
+                        ? "e.g. Parag Parikh Flexi Cap Fund"
                         : "e.g. RELIANCE.NS"
                   }
                   value={investment.name}
                   onChange={(e) => setInvestment({ ...investment, name: e.target.value })}
+                  autoFocus
                 />
               </Field>
-              <div className="form-grid-2" style={{ gap: 12 }}>
-                <Field label="Amount / Principal">
+              <div className="form-grid-2" style={{ gap: 14 }}>
+                <Field label="Invested Principal Amount (₹)">
                   <input
                     style={inputStyle}
                     type="number"
@@ -387,7 +447,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   />
                 </Field>
                 {investment.type === "fd" && (
-                  <Field label="Interest Rate %">
+                  <Field label="Interest Rate (% p.a.)">
                     <input
                       style={inputStyle}
                       type="number"
@@ -402,17 +462,18 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 3 && (
-            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
-              <Field label="Goal Name">
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 16 }}>
+              <Field label="Milestone / Goal Name">
                 <input
                   style={inputStyle}
-                  placeholder="e.g. Emergency Fund"
+                  placeholder="e.g. Emergency Reserve, Home Down Payment"
                   value={goal.name}
                   onChange={(e) => setGoal({ ...goal, name: e.target.value })}
+                  autoFocus
                 />
               </Field>
-              <div className="form-grid-2" style={{ gap: 12 }}>
-                <Field label="Target Amount">
+              <div className="form-grid-2" style={{ gap: 14 }}>
+                <Field label="Target Corpus Amount (₹)">
                   <input
                     style={inputStyle}
                     type="number"
@@ -421,7 +482,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     onChange={(e) => setGoal({ ...goal, targetAmount: e.target.value })}
                   />
                 </Field>
-                <Field label="Target Date">
+                <Field label="Target Target Date">
                   <input
                     style={inputStyle}
                     type="date"
@@ -434,17 +495,32 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           )}
 
           {step === 4 && (
-            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 14 }}>
-              <p style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6 }}>
-                Get personalised financial advice powered by Google Gemini AI. Your data stays on
-                your device — only anonymised metrics are shared with the AI.
-              </p>
-              <Field label="Gemini API Key (optional — can add later in Settings)">
+            <div key={step} className="animate-fade-in-up" style={{ display: "grid", gap: 16 }}>
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 10,
+                  background: "rgba(197, 161, 82, 0.08)",
+                  border: "1px solid rgba(197, 161, 82, 0.25)",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  fontSize: 13,
+                  color: THEME.ink,
+                  lineHeight: 1.5,
+                }}
+              >
+                <ShieldCheck size={18} color="#C5A152" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>
+                  Enable private, on-device AI financial insights powered by Google Gemini. Your personal identifiers stay strictly on your device.
+                </span>
+              </div>
+              <Field label="Gemini API Key (Optional — configure anytime in Settings)">
                 <div style={{ display: "flex", gap: 8 }}>
                   <input
                     style={{ ...inputStyle, flex: 1 }}
                     type={showApiKey ? "text" : "password"}
-                    placeholder="AIza..."
+                    placeholder="AIzaSy..."
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     autoComplete="off"
@@ -453,53 +529,43 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     type="button"
                     onClick={() => setShowApiKey((v) => !v)}
                     title={showApiKey ? "Hide key" : "Show key"}
-                    aria-label={showApiKey ? "Hide API key" : "Show API key"}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = THEME.accent;
-                      e.currentTarget.style.color = THEME.accent;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = THEME.line;
-                      e.currentTarget.style.color = THEME.muted;
-                    }}
                     style={{
                       padding: "0 14px",
                       borderRadius: 10,
-                      border: `1px solid ${THEME.line}`,
+                      border: `1.5px solid ${THEME.line}`,
                       background: "var(--surface-0)",
                       cursor: "pointer",
                       color: THEME.muted,
                       display: "flex",
                       alignItems: "center",
                       flexShrink: 0,
-                      transition: "color 0.15s ease, border-color 0.15s ease",
                     }}
                   >
-                    {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </Field>
-              <div style={{ fontSize: 11, color: THEME.muted }}>
-                Get a free API key from{" "}
-                <a
-                  href="https://ai.google.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: THEME.accent, fontWeight: 600, textDecoration: "underline" }}
-                >
-                  ai.google.dev
-                </a>
-              </div>
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
+          {/* Navigation CTAs */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 28,
+              paddingTop: 20,
+              borderTop: `1px solid ${THEME.line}`,
+            }}
+          >
             <Button
               variant="ghost"
               onClick={() => {
                 if (step > 0) setStep(step - 1);
               }}
               disabled={step === 0 || saving}
+              icon={<ChevronLeft size={15} />}
             >
               Back
             </Button>
@@ -519,9 +585,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 onClick={handleNext}
                 disabled={saving}
                 loading={saving}
-                icon={step === 4 ? <Check size={14} /> : <ChevronRight size={14} />}
+                icon={step === 4 ? <Check size={15} /> : <ArrowRight size={15} />}
               >
-                {step === 4 ? "Finish Setup" : "Next"}
+                {step === 4 ? "Complete Setup" : "Continue"}
               </Button>
             </div>
           </div>

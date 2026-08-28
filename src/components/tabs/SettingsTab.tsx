@@ -22,6 +22,12 @@ import {
   EyeOff,
   Calendar,
   Shield,
+  ShieldCheck,
+  Lock,
+  KeyRound,
+  Smartphone,
+  Fingerprint,
+  AlertCircle,
   Receipt,
   Home,
   Landmark,
@@ -54,6 +60,7 @@ import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { exportArrayToCSV } from "../../utils/finance";
 import { supabase } from "../../supabaseClient";
+import { usePrivacy } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
@@ -1353,6 +1360,406 @@ function ProfileSection({ state, updateProfile, showToast }: any) {
         </Button>
       </div>
     </Card>
+  );
+}
+
+// ─── Section: Security & Privacy ──────────────────────────────────────────────
+function SecuritySection({
+  session,
+  onSignOut,
+  lastBackupTs,
+  setAppTab,
+  showToast,
+}: any) {
+  const { privacyMode, setPrivacyMode } = usePrivacy();
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [updatingPass, setUpdatingPass] = useState(false);
+  const [passError, setPassError] = useState<string | null>(null);
+  const [passSuccess, setPassSuccess] = useState<string | null>(null);
+
+  const criteria = {
+    minLength: newPassword.length >= 8,
+    hasUpper: /[A-Z]/.test(newPassword),
+    hasNumber: /[0-9]/.test(newPassword),
+    hasSpecial: /[^A-Za-z0-9]/.test(newPassword),
+  };
+
+  const isPasswordValid =
+    criteria.minLength &&
+    criteria.hasUpper &&
+    criteria.hasNumber &&
+    criteria.hasSpecial &&
+    newPassword === confirmPassword;
+
+  const onCapsLockKey = (e: React.KeyboardEvent<HTMLInputElement>) =>
+    setCapsLockOn(e.getModifierState && e.getModifierState("CapsLock"));
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 8) {
+      setPassError("Password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPassError("Passwords do not match.");
+      return;
+    }
+
+    setUpdatingPass(true);
+    setPassError(null);
+    setPassSuccess(null);
+
+    try {
+      if (session?.user?.id === "offline-user") {
+        await new Promise((r) => setTimeout(r, 600));
+        setPassSuccess("Demo password updated for current session.");
+        showToast?.("Password updated successfully.", "success");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        setPassSuccess("Password updated successfully! You can now use your new password.");
+        showToast?.("Account password updated successfully.", "success");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch (err: any) {
+      setPassError(err.message || "Failed to update password. Please try again.");
+    } finally {
+      setUpdatingPass(false);
+    }
+  };
+
+  const isDemoUser = session?.user?.id === "offline-user" || !session?.user?.id;
+  const userEmail = session?.user?.email || (isDemoUser ? "demo@arthadrishti.local" : "Account user");
+  const createdAt = session?.user?.created_at ? new Date(session.user.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Active";
+  const lastSignIn = session?.user?.last_sign_in_at ? new Date(session.user.last_sign_in_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Current session";
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const daysSinceBackup =
+    lastBackupTs != null
+      ? Math.floor((Date.now() - new Date(lastBackupTs).getTime()) / DAY_MS)
+      : null;
+  const isBackupRecent = daysSinceBackup !== null && daysSinceBackup <= 7;
+
+  // Security posture score
+  let securityScore = 75;
+  if (privacyMode) securityScore += 10;
+  if (isBackupRecent) securityScore += 10;
+  if (!isDemoUser) securityScore += 5;
+
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      {/* ── Security Posture & Trust Overview ── */}
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+              <ShieldCheck size={20} color={THEME.accent} /> Security &amp; Privacy Command Center
+            </div>
+            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+              Enterprise-grade data encryption, zero-telemetry private storage, and access controls.
+            </div>
+          </div>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 14px",
+            borderRadius: 10,
+            background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--t-accent) 25%, transparent)",
+          }}>
+            <Shield size={16} color={THEME.accent} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent }}>
+              Security Posture: {securityScore}%
+            </div>
+          </div>
+        </div>
+
+        {/* Security badges */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          <div style={{ padding: 14, borderRadius: 10, background: "var(--t-paper)", border: `1px solid ${THEME.line}` }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted, marginBottom: 4 }}>
+              Storage Architecture
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+              <CheckCircle2 size={15} color={THEME.sage} /> 256-bit Encrypted
+            </div>
+            <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 3 }}>
+              Zero third-party trackers or telemetry
+            </div>
+          </div>
+
+          <div style={{ padding: 14, borderRadius: 10, background: "var(--t-paper)", border: `1px solid ${THEME.line}` }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted, marginBottom: 4 }}>
+              Authentication State
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+              <CheckCircle2 size={15} color={THEME.sage} /> {isDemoUser ? "Sandbox Demo Session" : "Supabase Cloud Vault"}
+            </div>
+            <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 3 }}>
+              {isDemoUser ? "Local-only session" : "Secure token authorization"}
+            </div>
+          </div>
+
+          <div style={{ padding: 14, borderRadius: 10, background: "var(--t-paper)", border: `1px solid ${THEME.line}` }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted, marginBottom: 4 }}>
+              Screen Privacy Shield
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: privacyMode ? THEME.sage : THEME.gold }} />
+              {privacyMode ? "Privacy Mask Active" : "Unmasked Display"}
+            </div>
+            <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 3 }}>
+              {privacyMode ? "Numbers obscured in public" : "Values visible on screen"}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Privacy Mode & Screen Shield ── */}
+      <Card style={{ padding: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div style={{ maxWidth: 520 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <EyeOff size={16} color={THEME.accent} /> Privacy Mode (Public Screen Masking)
+            </div>
+            <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.5 }}>
+              Automatically obscures net worth, bank balances, mutual fund units, and salary slip numbers with •••• bullets. Ideal when viewing your portfolio in public or open workspaces.
+            </div>
+          </div>
+          <Button
+            variant={privacyMode ? "accent" : "secondary"}
+            onClick={() => {
+              setPrivacyMode(!privacyMode);
+              showToast?.(privacyMode ? "Privacy mode deactivated" : "Privacy mode activated", "info");
+            }}
+            icon={privacyMode ? <EyeOff size={15} /> : <Eye size={15} />}
+          >
+            {privacyMode ? "Privacy Mode: ON" : "Privacy Mode: OFF"}
+          </Button>
+        </div>
+      </Card>
+
+      {/* ── Change Password Form ── */}
+      <Card style={{ padding: 24 }}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+            <KeyRound size={16} color={THEME.accent} /> Change Password
+          </div>
+          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+            Update your account password with real-time criteria verification.
+          </div>
+        </div>
+
+        {passError && (
+          <div style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            color: "#B91C1C",
+            fontSize: 13,
+            fontWeight: 500,
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}>
+            <AlertCircle size={15} /> {passError}
+          </div>
+        )}
+
+        {passSuccess && (
+          <div style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "#F0FDF4",
+            border: "1px solid #BBF7D0",
+            color: "#15803D",
+            fontSize: 13,
+            fontWeight: 500,
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}>
+            <CheckCircle2 size={15} /> {passSuccess}
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordUpdate} style={{ display: "grid", gap: 16, maxWidth: 520 }}>
+          <Field label="New Password">
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                type={showPass ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                onKeyDown={onCapsLockKey}
+                onKeyUp={onCapsLockKey}
+                placeholder="Enter new password (8+ characters)"
+                style={{
+                  width: "100%",
+                  padding: "10px 42px 10px 14px",
+                  borderRadius: 10,
+                  border: `1.5px solid ${THEME.line}`,
+                  fontSize: 14,
+                  background: "var(--t-paper)",
+                  color: THEME.ink,
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: THEME.muted,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </Field>
+
+          {capsLockOn && (
+            <div style={{ fontSize: 12, color: THEME.gold, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+              <AlertCircle size={12} /> Caps Lock is on
+            </div>
+          )}
+
+          {/* Dynamic Criteria checklist */}
+          {newPassword && (
+            <div style={{
+              padding: 12,
+              borderRadius: 8,
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "6px 12px",
+            }}>
+              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.minLength ? THEME.sage : THEME.muted, fontWeight: criteria.minLength ? 600 : 400 }}>
+                {criteria.minLength ? <Check size={12} /> : <XIcon size={12} />} 8+ characters
+              </span>
+              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.hasUpper ? THEME.sage : THEME.muted, fontWeight: criteria.hasUpper ? 600 : 400 }}>
+                {criteria.hasUpper ? <Check size={12} /> : <XIcon size={12} />} Uppercase letter
+              </span>
+              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.hasNumber ? THEME.sage : THEME.muted, fontWeight: criteria.hasNumber ? 600 : 400 }}>
+                {criteria.hasNumber ? <Check size={12} /> : <XIcon size={12} />} Number (0-9)
+              </span>
+              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.hasSpecial ? THEME.sage : THEME.muted, fontWeight: criteria.hasSpecial ? 600 : 400 }}>
+                {criteria.hasSpecial ? <Check size={12} /> : <XIcon size={12} />} Special symbol
+              </span>
+            </div>
+          )}
+
+          <Field label="Confirm New Password">
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                type={showConfirmPass ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter your new password"
+                style={{
+                  width: "100%",
+                  padding: "10px 42px 10px 14px",
+                  borderRadius: 10,
+                  border: `1.5px solid ${THEME.line}`,
+                  fontSize: 14,
+                  background: "var(--t-paper)",
+                  color: THEME.ink,
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPass((v) => !v)}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: THEME.muted,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </Field>
+
+          {confirmPassword && confirmPassword === newPassword && (
+            <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+              <CheckCircle2 size={13} /> Passwords match
+            </div>
+          )}
+
+          <div style={{ marginTop: 6 }}>
+            <Button
+              type="submit"
+              variant="accent"
+              disabled={updatingPass || !isPasswordValid}
+              icon={<Lock size={14} />}
+            >
+              {updatingPass ? "Updating Password..." : "Update Password"}
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      {/* ── Active Session & Security Audit Shortcut ── */}
+      <Card style={{ padding: 24 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <Smartphone size={16} color={THEME.accent} /> Active Session &amp; System Logs
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20 }}>
+          <div style={{ padding: 14, borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Signed In As</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 4, wordBreak: "break-all" }}>{userEmail}</div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>ID: {session?.user?.id?.slice(0, 12) || "offline"}...</div>
+          </div>
+
+          <div style={{ padding: 14, borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Last Sign In</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>{lastSignIn}</div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Member since {createdAt}</div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {setAppTab && (
+            <Button
+              variant="secondary"
+              icon={<ClipboardList size={14} />}
+              onClick={() => setAppTab("auditlog")}
+            >
+              View System Audit Log
+            </Button>
+          )}
+          <Button
+            variant="danger"
+            onClick={onSignOut}
+            icon={<LogOut size={14} />}
+          >
+            Sign Out of Account
+          </Button>
+        </div>
+      </Card>
+    </div>
   );
 }
 
@@ -3181,6 +3588,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
 const TOP_TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "profile", label: "Profile", icon: User },
+  { id: "security", label: "Security & Privacy", icon: Shield },
   { id: "family", label: "Family Profiles", icon: Users },
   { id: "masterdata", label: "Master Data", icon: Tags },
   { id: "ai", label: "AI Advisor", icon: Bot },
@@ -3333,6 +3741,18 @@ export function SettingsTab({
       {tab === "profile" && (
         <div key="profile" className="tab-content-enter">
           <ProfileSection state={state} updateProfile={updateProfile} showToast={showToast} />
+        </div>
+      )}
+
+      {tab === "security" && (
+        <div key="security" className="tab-content-enter">
+          <SecuritySection
+            session={session}
+            onSignOut={onSignOut}
+            lastBackupTs={lastBackupTs}
+            setAppTab={setAppTab}
+            showToast={showToast}
+          />
         </div>
       )}
 

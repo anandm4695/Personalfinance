@@ -16,6 +16,11 @@ import {
   Wallet,
   TrendingUp,
   ShieldCheck,
+  Sparkles,
+  Check,
+  X,
+  ArrowLeft,
+  PlayCircle,
 } from "lucide-react";
 import { BrandMark } from "./components/ui/BrandMark";
 
@@ -52,9 +57,7 @@ function friendlyError(msg: string): string {
   return msg;
 }
 
-/* ─── Reads Supabase's error hash (#error=...&error_code=...&error_description=...),
-   sent when a recovery/confirmation link is expired, already used, or malformed.
-   Without this, a dead link silently drops the user on a blank login screen. ───── */
+/* ─── Reads Supabase's error hash (#error=...&error_code=...&error_description=...) ─── */
 function parseHashError(hash: string): string | null {
   if (!hash || !hash.includes("error")) return null;
   const params = new URLSearchParams(hash.replace(/^#/, ""));
@@ -62,24 +65,40 @@ function parseHashError(hash: string): string | null {
   return desc ? desc.replace(/\+/g, " ") : "This link is invalid or has expired.";
 }
 
-/* ─── Password strength ───────────────────────────────────────────────── */
+/* ─── Password Strength Calculations ──────────────────────────────────── */
+interface PasswordCriteria {
+  minLength: boolean;
+  hasUpper: boolean;
+  hasNumber: boolean;
+  hasSpecial: boolean;
+}
+
+function checkPasswordCriteria(pw: string): PasswordCriteria {
+  return {
+    minLength: pw.length >= 8,
+    hasUpper: /[A-Z]/.test(pw),
+    hasNumber: /[0-9]/.test(pw),
+    hasSpecial: /[^A-Za-z0-9]/.test(pw),
+  };
+}
+
 function getStrength(pw: string): number {
   if (!pw) return 0;
+  const c = checkPasswordCriteria(pw);
   let score = 0;
-  if (pw.length >= 8) score++;
+  if (c.minLength) score++;
   if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return score; // 0–5
+  if (c.hasUpper) score++;
+  if (c.hasNumber) score++;
+  if (c.hasSpecial) score++;
+  return Math.min(score, 5); // 0-5
 }
-const STRENGTH_LABEL = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
+
 const STRENGTH_COLOR = ["", "#EF4444", "#F59E0B", "#EAB308", "#10B981", "#059669"];
 
 /* ─── Mode order — used to pick slide direction on transition ────────── */
 const MODE_ORDER = { login: 0, signup: 1, forgot: 2, reset: 3 } as const;
 
-/* ─── Main Component ─────────────────────────────────────────────────── */
 export default function Auth({
   onLogin,
   onOffline,
@@ -89,7 +108,7 @@ export default function Auth({
   onOffline?: () => void;
   onRecoveryComplete?: () => void;
 }) {
-  // Detect password-recovery link in the URL hash (Supabase sends #access_token=...&type=recovery)
+  // Detect password-recovery link in the URL hash
   const [mode, setMode] = useState<"login" | "signup" | "forgot" | "reset">(() => {
     if (capturedUrlHash.includes("type=recovery")) {
       return "reset";
@@ -117,14 +136,12 @@ export default function Auth({
     return hashErr ? friendlyError(hashErr) : null;
   });
   const [msg, setMsg] = useState<string | null>(null);
-  const [slideDir, setSlideDir] = useState(1); // 1 = forward (slide in from right), -1 = back (from left)
+  const [slideDir, setSlideDir] = useState(1);
   const shouldReduceMotion = useReducedMotion();
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [showResendLink, setShowResendLink] = useState(false);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
 
-  // Skip autoFocus on small screens — auto-popping the virtual keyboard the instant
-  // the page loads shoves the branding off-screen and feels jarring on mobile.
   const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 768;
   const onCapsLockKey = (e: React.KeyboardEvent<HTMLInputElement>) =>
     setCapsLockOn(e.getModifierState && e.getModifierState("CapsLock"));
@@ -147,13 +164,9 @@ export default function Auth({
   const isForgot = mode === "forgot";
   const isSignUp = mode === "signup";
   const isReset = mode === "reset";
+  const isLogin = mode === "login";
 
-  // ── Auto-clear error when user starts typing ──────────────────────────
-  // Only clears once a field's value actually differs from the last render —
-  // not merely "this effect ran". A plain skip-the-first-run ref breaks under
-  // StrictMode (which double-invokes effects on mount), and effects otherwise
-  // fire once on mount regardless of deps — both would wipe out the error we
-  // seed from an expired-link hash (see capturedUrlHash above) on page load.
+  // Auto-clear error when user modifies fields
   const prevFieldsRef = useRef([email, password, confirmPassword, displayName, newPassword, confirmNewPassword]);
   useEffect(() => {
     const current = [email, password, confirmPassword, displayName, newPassword, confirmNewPassword];
@@ -162,25 +175,23 @@ export default function Auth({
     if (!changed) return;
     if (error) setError(null);
     if (showResendLink) setShowResendLink(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, password, confirmPassword, displayName, newPassword, confirmNewPassword]);
+  }, [email, password, confirmPassword, displayName, newPassword, confirmNewPassword, error, showResendLink]);
 
-  // ── Auto-dismiss success message after 6 seconds ─────────────────────
+  // Auto-dismiss success message
   useEffect(() => {
     if (!msg) return;
     const t = setTimeout(() => setMsg(null), 6000);
     return () => clearTimeout(t);
   }, [msg]);
 
-  // ── Strip a #error=... hash (dead recovery/confirmation link) from the URL
-  // once we've read it, so refreshing the page doesn't keep re-showing it ────
+  // Strip error hash after reading
   useEffect(() => {
     if (capturedUrlHash.includes("error") && window.location.hash) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
-  // Inline validation messages
+  // Validation
   const emailErr =
     emailTouched && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
       ? "Please enter a valid email address"
@@ -198,12 +209,12 @@ export default function Auth({
       ? "Passwords do not match"
       : "";
 
-  const strength = isSignUp && password ? getStrength(password) : 0;
+  const criteria = isSignUp ? checkPasswordCriteria(password) : checkPasswordCriteria(newPassword);
+  const strength = isSignUp ? getStrength(password) : getStrength(newPassword);
 
-  // ── Handle submit ──────────────────────────────────────────────────────
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // guards against Enter-key spam firing duplicate requests
+    if (loading) return;
     setEmailTouched(true);
 
     if (isReset) {
@@ -219,9 +230,6 @@ export default function Auth({
         if (error) throw error;
         setMsg("Password updated! You can now sign in with your new password.");
         window.history.replaceState({}, document.title, window.location.pathname);
-        // The recovery link already established a live session — sign out so the user
-        // must re-authenticate with their new password, and let App.tsx know it's safe
-        // to stop force-showing this screen (see recoveryMode in App.tsx).
         await supabase.auth.signOut();
         onRecoveryComplete?.();
         setTimeout(() => switchMode("login"), 2500);
@@ -237,7 +245,7 @@ export default function Auth({
     if (isSignUp) setConfirmPassTouched(true);
 
     const cleanEmail = email.trim();
-    setEmail(cleanEmail); // persist trim to state
+    setEmail(cleanEmail);
     const hasEmailErr = !cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
     const hasPassErr = !isForgot && (!password || password.length < 8);
     const hasConfirmErr = isSignUp && password !== confirmPassword;
@@ -269,8 +277,6 @@ export default function Auth({
           localStorage.setItem("pf_pending_onboarding", cleanEmail);
         } catch {}
         setMsg("Account created! Please check your inbox to verify your email before signing in.");
-        // Send them back to the login form (email preserved) so the next step is obvious
-        // once they've verified — mirrors the reset-password flow's auto-return-to-login.
         setTimeout(() => switchMode("login"), 3000);
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({
@@ -286,8 +292,6 @@ export default function Auth({
         if (data.session) {
           onLogin(data.session);
         } else {
-          // Supabase returned neither an error nor a session (e.g. an MFA challenge) —
-          // without this, the button silently stops loading with zero feedback.
           setError("Unable to sign in right now. Please try again.");
         }
       }
@@ -300,8 +304,6 @@ export default function Auth({
     }
   };
 
-  // Re-sends the signup confirmation email — surfaced when a login attempt fails because
-  // the account exists but was never verified, so the user isn't stuck re-reading their inbox.
   const handleResendVerification = async () => {
     const cleanEmail = email.trim();
     if (!cleanEmail) return;
@@ -319,8 +321,6 @@ export default function Auth({
     }
   };
 
-  // Escape hatch for the reset-password screen — without it, a user who opens a recovery
-  // link by mistake (or changes their mind) is stuck there with no way back to sign-in.
   const handleCancelReset = async () => {
     try {
       await supabase.auth.signOut();
@@ -330,8 +330,6 @@ export default function Auth({
     switchMode("login");
   };
 
-  // Swaps the visible mode + resets field state. AnimatePresence around the mode panel
-  // handles the exit/enter animation declaratively, so this just needs to set state once.
   const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
     if (m === mode) return;
     setSlideDir(MODE_ORDER[m] >= MODE_ORDER[mode] ? 1 : -1);
@@ -357,289 +355,365 @@ export default function Auth({
     setMode(m);
   };
 
-  // ── Shared input styles ────────────────────────────────────────────────
   const wrapCls = (focused: boolean, err: string) =>
     ["af-inp-wrap", focused ? "af-focused" : "", err ? "af-inp-err" : ""].filter(Boolean).join(" ");
 
   return (
     <div className="af-shell">
-      {/* ── Brand panel — first impression, desktop only (hidden below 768px) ── */}
+      {/* ── Brand & Executive Showcase Panel (Desktop) ── */}
       <div className="af-brand-panel" aria-hidden="true">
-        <div className="af-brand-glow" />
+        <div className="af-brand-ambient" />
+        <div className="af-brand-grid" />
+
         <div className="af-brand-content">
+          {/* Brand header */}
           <div className="af-brand-logo">
-            <BrandMark size={44} />
+            <div className="af-logo-glow-wrap">
+              <BrandMark size={48} />
+            </div>
             <div>
               <div className="af-brand-name">ArthaDrishti</div>
-              <div className="af-brand-tagline">by Anand Mohta</div>
+              <div className="af-brand-tagline">Private Wealth Operating System</div>
             </div>
           </div>
-          <h1 className="af-brand-headline">
-            Everything you own.
-            <br />
-            One clear view.
-          </h1>
-          <p className="af-brand-sub">
-            Banks, stocks, EPF, real estate, credit cards and more — unified into a single,
-            always-current picture of your wealth.
-          </p>
+
+          {/* Headline */}
+          <div className="af-brand-hero">
+            <div className="af-hero-badge">
+              <Sparkles size={13} className="af-badge-icon" />
+              <span>Institutional Wealth Intelligence</span>
+            </div>
+            <h1 className="af-brand-headline">
+              Unify your wealth.
+              <br />
+              <span className="af-brand-headline-accent">Master your future.</span>
+            </h1>
+            <p className="af-brand-sub">
+              Consolidate bank accounts, mutual funds, direct stocks, EPF, real estate, and liabilities into an institutional-grade, real-time command center.
+            </p>
+          </div>
+
+          {/* Live Holographic Net Worth Mockup Card */}
+          <div className="af-preview-card">
+            <div className="af-preview-header">
+              <div className="af-preview-pill">
+                <span className="af-live-dot" />
+                <span>Live Portfolio Summary</span>
+              </div>
+              <div className="af-preview-growth">
+                <TrendingUp size={13} />
+                <span>+18.4% YoY</span>
+              </div>
+            </div>
+
+            <div className="af-preview-amount">
+              <div className="af-preview-currency">₹</div>
+              <div className="af-preview-val">1,48,50,000</div>
+            </div>
+            <div className="af-preview-lbl">Net Worth across 14 assets &amp; 3 banks</div>
+
+            {/* Asset distribution bar */}
+            <div className="af-asset-bar">
+              <div className="af-asset-seg af-seg-mf" style={{ width: "42%" }} title="Mutual Funds & Stocks (42%)" />
+              <div className="af-asset-seg af-seg-re" style={{ width: "34%" }} title="Real Estate & Gold (34%)" />
+              <div className="af-asset-seg af-seg-epf" style={{ width: "16%" }} title="EPF & PPF (16%)" />
+              <div className="af-asset-seg af-seg-cash" style={{ width: "8%" }} title="Liquid Cash (8%)" />
+            </div>
+
+            <div className="af-preview-tags">
+              <span className="af-tag"><span className="af-tag-dot af-dot-mf" />Equities ₹62.3L</span>
+              <span className="af-tag"><span className="af-tag-dot af-dot-re" />Real Estate ₹50.5L</span>
+              <span className="af-tag"><span className="af-tag-dot af-dot-epf" />EPF/PPF ₹23.7L</span>
+              <span className="af-tag"><span className="af-tag-dot af-dot-cash" />Cash ₹12.0L</span>
+            </div>
+          </div>
+
+          {/* Key pillars */}
           <ul className="af-brand-features">
             <li>
-              <Wallet size={16} />
-              <span>Multi-bank &amp; credit card tracking, auto-reconciled</span>
+              <div className="af-feat-icon-box">
+                <Wallet size={16} />
+              </div>
+              <div>
+                <strong>Automated Multi-Account Tracking</strong>
+                <p>Track cash flow, loans, and credit cards with instant reconciliation.</p>
+              </div>
             </li>
             <li>
-              <TrendingUp size={16} />
-              <span>Live net worth across stocks, EPF, PPF &amp; real estate</span>
-            </li>
-            <li>
-              <ShieldCheck size={16} />
-              <span>Your data stays private — nothing shared, ever</span>
+              <div className="af-feat-icon-box">
+                <ShieldCheck size={16} />
+              </div>
+              <div>
+                <strong>Zero-Telemetry Privacy</strong>
+                <p>256-bit encrypted storage. Your financial data is private and never sold.</p>
+              </div>
             </li>
           </ul>
+
+          {/* Footer signature */}
+          <div className="af-brand-footer">
+            Designed &amp; Engineered by Anand Mohta
+          </div>
         </div>
       </div>
 
-      {/* ── Form panel ── */}
+      {/* ── Form Panel (Right) ── */}
       <div className="af-form-panel">
         <div className="af-card">
-          {/* Logo — shown only below 768px; the brand panel carries it on desktop */}
+          {/* Mobile-only brand banner */}
           <div className="af-logo-mobile">
             <BrandMark size={40} />
             <div>
               <div className="af-logo-name">ArthaDrishti</div>
-              <div className="af-logo-tagline">by Anand Mohta</div>
+              <div className="af-logo-tagline">Personal Finance by Anand Mohta</div>
             </div>
           </div>
 
-          {/* Animated mode panel — old content slides out, new content slides in, on every mode change */}
-        <AnimatePresence mode="wait" initial={false} custom={slideDir}>
-          <motion.div
-            key={mode}
-            custom={slideDir}
-            initial={{ opacity: 0, x: shouldReduceMotion ? 0 : slideDir * 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: shouldReduceMotion ? 0 : slideDir * -24 }}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {/* Header */}
-            <div className="af-card-head">
-              {!isReset && !isForgot && !isSignUp && (
-                <div className="af-greeting">{getGreeting()}</div>
-              )}
-              <h2 className="af-card-title">
-                {isReset
-                  ? "Set new password"
-                  : isForgot
-                    ? "Reset your password"
-                    : isSignUp
-                      ? "Create your account"
-                      : "Sign in"}
-              </h2>
-              <p className="af-card-sub">
-                {isReset
-                  ? "Choose a strong new password for your account"
-                  : isForgot
-                    ? "Enter your email and we'll send a recovery link"
-                    : isSignUp
-                      ? "Set up access to your finance dashboard"
-                      : "Enter your credentials to continue"}
-              </p>
+          {/* Segmented Auth Mode Switcher (only shown for login/signup) */}
+          {(isLogin || isSignUp) && (
+            <div className="af-segment-switch" role="tablist" aria-label="Authentication Mode">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isLogin}
+                className={`af-segment-btn ${isLogin ? "af-segment-active" : ""}`}
+                onClick={() => switchMode("login")}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isSignUp}
+                className={`af-segment-btn ${isSignUp ? "af-segment-active" : ""}`}
+                onClick={() => switchMode("signup")}
+              >
+                Create Account
+              </button>
             </div>
+          )}
 
-            {/* Error alert */}
-            {error && (
-              <div className="af-alert af-alert-err" role="alert">
-                <AlertCircle size={15} aria-hidden="true" />
-                <div>
-                  <span>{error}</span>
-                  {showResendLink && (
-                    <button
-                      type="button"
-                      onClick={handleResendVerification}
-                      disabled={resendState === "sending"}
-                      className="af-resend-link"
-                    >
-                      {resendState === "sending" ? "Sending…" : "Resend confirmation email"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Success alert */}
-            {msg && (
-              <div className="af-alert af-alert-ok" role="status">
-                <CheckCircle2 size={15} aria-hidden="true" />
-                <span>{msg}</span>
-              </div>
-            )}
-
-            {/* ══ RESET MODE — Set New Password ══ */}
-            {isReset ? (
-              <form onSubmit={handleAuth} className="af-form" noValidate>
-                <div className="af-info-banner">
-                  <KeyRound size={15} />
-                  Password reset link verified. Enter your new password below.
-                </div>
-
-                {/* New password */}
-                <div className="af-field">
-                  <label className="af-lbl" htmlFor="af-newpass">
-                    New Password
-                  </label>
-                  <div className={wrapCls(newPassFocused, newPassErr)}>
-                    <input
-                      id="af-newpass"
-                      type={showNewPass ? "text" : "password"}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      onFocus={() => setNewPassFocused(true)}
-                      onBlur={() => {
-                        setNewPassFocused(false);
-                        setNewPassTouched(true);
-                        setCapsLockOn(false);
-                      }}
-                      onKeyDown={onCapsLockKey}
-                      onKeyUp={onCapsLockKey}
-                      className="af-inp"
-                      placeholder="Minimum 8 characters"
-                      autoComplete="new-password"
-                      autoFocus={!isMobileViewport}
-                      aria-invalid={!!newPassErr}
-                    />
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setShowNewPass((v) => !v)}
-                      className="af-eye-btn"
-                      aria-label={showNewPass ? "Hide password" : "Show password"}
-                    >
-                      {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
+          {/* Animated Mode Transition */}
+          <AnimatePresence mode="wait" initial={false} custom={slideDir}>
+            <motion.div
+              key={mode}
+              custom={slideDir}
+              initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8, scale: shouldReduceMotion ? 1 : 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8, scale: shouldReduceMotion ? 1 : 0.99 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {/* Header */}
+              <div className="af-card-head">
+                {isLogin && (
+                  <div className="af-greeting-badge">
+                    <span className="af-greeting-sun" />
+                    <span>{getGreeting()}</span>
                   </div>
-                  {capsLockOn && newPassFocused && (
-                    <div className="af-caps-msg" role="status">
-                      <AlertCircle size={11} aria-hidden="true" />
-                      Caps Lock is on
-                    </div>
-                  )}
-                  {newPassErr && (
-                    <div className="af-err-msg" role="alert">
-                      <AlertCircle size={11} />
-                      {newPassErr}
-                    </div>
-                  )}
-                  {newPassword && (
-                    <div style={{ marginTop: 8 }} aria-live="polite">
-                      <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div
-                            key={i}
-                            style={{
-                              flex: 1,
-                              height: 3,
-                              borderRadius: 99,
-                              background:
-                                getStrength(newPassword) >= i
-                                  ? STRENGTH_COLOR[getStrength(newPassword)]
-                                  : "var(--af-border)",
-                              transition: "background 0.25s",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: STRENGTH_COLOR[getStrength(newPassword)] || "#94A3B8",
-                        }}
+                )}
+                <h2 className="af-card-title">
+                  {isReset
+                    ? "Set new password"
+                    : isForgot
+                      ? "Reset your password"
+                      : isSignUp
+                        ? "Join ArthaDrishti"
+                        : "Welcome back"}
+                </h2>
+                <p className="af-card-sub">
+                  {isReset
+                    ? "Create a secure new password for your wealth account."
+                    : isForgot
+                      ? "Enter your verified email and we'll send an instant recovery link."
+                      : isSignUp
+                        ? "Start tracking your complete net worth in one unified dashboard."
+                        : "Enter your credentials to access your financial dashboard."}
+                </p>
+              </div>
+
+              {/* Error alert */}
+              {error && (
+                <div className="af-alert af-alert-err" role="alert">
+                  <AlertCircle size={16} className="af-alert-icon" aria-hidden="true" />
+                  <div className="af-alert-body">
+                    <span>{error}</span>
+                    {showResendLink && (
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendState === "sending"}
+                        className="af-resend-link"
                       >
-                        {STRENGTH_LABEL[getStrength(newPassword)] || ""}
-                      </div>
-                    </div>
-                  )}
+                        {resendState === "sending" ? "Sending…" : "Resend verification email"}
+                      </button>
+                    )}
+                  </div>
                 </div>
+              )}
 
-                {/* Confirm new password */}
-                <div className="af-field">
-                  <label className="af-lbl" htmlFor="af-confirmnewpass">
-                    Confirm New Password
-                  </label>
-                  <div className={wrapCls(confirmNewPassFocused, confirmNewPassErr)}>
-                    <input
-                      id="af-confirmnewpass"
-                      type={showConfirmNewPass ? "text" : "password"}
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      onFocus={() => setConfirmNewPassFocused(true)}
-                      onBlur={() => {
-                        setConfirmNewPassFocused(false);
-                        setConfirmNewPassTouched(true);
-                      }}
-                      className="af-inp"
-                      placeholder="Re-enter your new password"
-                      autoComplete="new-password"
-                      aria-invalid={!!confirmNewPassErr}
-                    />
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setShowConfirmNewPass((v) => !v)}
-                      className="af-eye-btn"
-                      aria-label={showConfirmNewPass ? "Hide" : "Show"}
-                    >
-                      {showConfirmNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              {/* Success alert */}
+              {msg && (
+                <div className="af-alert af-alert-ok" role="status">
+                  <CheckCircle2 size={16} className="af-alert-icon" aria-hidden="true" />
+                  <span>{msg}</span>
+                </div>
+              )}
+
+              {/* ══ RESET MODE ══ */}
+              {isReset ? (
+                <form onSubmit={handleAuth} className="af-form" noValidate>
+                  <div className="af-info-banner">
+                    <KeyRound size={16} />
+                    <span>Password reset link verified. Enter your new password below.</span>
+                  </div>
+
+                  {/* New Password */}
+                  <div className="af-field">
+                    <label className="af-lbl" htmlFor="af-newpass">
+                      New Password
+                    </label>
+                    <div className={wrapCls(newPassFocused, newPassErr)}>
+                      <span className="af-inp-icon">
+                        <Lock size={16} />
+                      </span>
+                      <input
+                        id="af-newpass"
+                        type={showNewPass ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        onFocus={() => setNewPassFocused(true)}
+                        onBlur={() => {
+                          setNewPassFocused(false);
+                          setNewPassTouched(true);
+                          setCapsLockOn(false);
+                        }}
+                        onKeyDown={onCapsLockKey}
+                        onKeyUp={onCapsLockKey}
+                        className="af-inp af-inp-padded"
+                        placeholder="Create strong password (8+ chars)"
+                        autoComplete="new-password"
+                        autoFocus={!isMobileViewport}
+                        aria-invalid={!!newPassErr}
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setShowNewPass((v) => !v)}
+                        className="af-eye-btn"
+                        aria-label={showNewPass ? "Hide password" : "Show password"}
+                      >
+                        {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+
+                    {capsLockOn && newPassFocused && (
+                      <div className="af-caps-msg" role="status">
+                        <AlertCircle size={12} aria-hidden="true" />
+                        Caps Lock is active
+                      </div>
+                    )}
+                    {newPassErr && (
+                      <div className="af-err-msg" role="alert">
+                        <AlertCircle size={12} />
+                        {newPassErr}
+                      </div>
+                    )}
+
+                    {/* Criteria Checklist */}
+                    {newPassword && (
+                      <div className="af-criteria-card">
+                        <div className="af-criteria-grid">
+                          <span className={`af-crit-item ${criteria.minLength ? "af-crit-ok" : ""}`}>
+                            {criteria.minLength ? <Check size={12} /> : <X size={12} />} 8+ characters
+                          </span>
+                          <span className={`af-crit-item ${criteria.hasUpper ? "af-crit-ok" : ""}`}>
+                            {criteria.hasUpper ? <Check size={12} /> : <X size={12} />} Uppercase
+                          </span>
+                          <span className={`af-crit-item ${criteria.hasNumber ? "af-crit-ok" : ""}`}>
+                            {criteria.hasNumber ? <Check size={12} /> : <X size={12} />} Number
+                          </span>
+                          <span className={`af-crit-item ${criteria.hasSpecial ? "af-crit-ok" : ""}`}>
+                            {criteria.hasSpecial ? <Check size={12} /> : <X size={12} />} Symbol
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div className="af-field">
+                    <label className="af-lbl" htmlFor="af-confirmnewpass">
+                      Confirm New Password
+                    </label>
+                    <div className={wrapCls(confirmNewPassFocused, confirmNewPassErr)}>
+                      <span className="af-inp-icon">
+                        <Lock size={16} />
+                      </span>
+                      <input
+                        id="af-confirmnewpass"
+                        type={showConfirmNewPass ? "text" : "password"}
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        onFocus={() => setConfirmNewPassFocused(true)}
+                        onBlur={() => {
+                          setConfirmNewPassFocused(false);
+                          setConfirmNewPassTouched(true);
+                        }}
+                        className="af-inp af-inp-padded"
+                        placeholder="Re-enter your new password"
+                        autoComplete="new-password"
+                        aria-invalid={!!confirmNewPassErr}
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setShowConfirmNewPass((v) => !v)}
+                        className="af-eye-btn"
+                        aria-label={showConfirmNewPass ? "Hide" : "Show"}
+                      >
+                        {showConfirmNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    {confirmNewPassErr && (
+                      <div className="af-err-msg" role="alert">
+                        <AlertCircle size={12} />
+                        {confirmNewPassErr}
+                      </div>
+                    )}
+                    {!confirmNewPassErr && confirmNewPassword && confirmNewPassword === newPassword && (
+                      <div className="af-match-msg">
+                        <CheckCircle2 size={12} />
+                        Passwords match perfectly
+                      </div>
+                    )}
+                  </div>
+
+                  <button type="submit" disabled={loading} className="af-cta-btn">
+                    {loading ? (
+                      <Loader2 size={18} className="af-spin" />
+                    ) : (
+                      <>
+                        <span>Update Password</span>
+                        <ArrowRight size={16} strokeWidth={2.5} />
+                      </>
+                    )}
+                  </button>
+
+                  <div className="af-switch">
+                    <button type="button" onClick={handleCancelReset} className="af-back-link">
+                      <ArrowLeft size={14} />
+                      <span>Cancel and return to sign in</span>
                     </button>
                   </div>
-                  {confirmNewPassErr && (
-                    <div className="af-err-msg" role="alert">
-                      <AlertCircle size={11} />
-                      {confirmNewPassErr}
-                    </div>
-                  )}
-                  {!confirmNewPassErr && confirmNewPassword && confirmNewPassword === newPassword && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        fontSize: 12,
-                        color: "#10B981",
-                        fontWeight: 600,
-                        marginTop: 2,
-                      }}
-                    >
-                      <CheckCircle2 size={11} />
-                      Passwords match
-                    </div>
-                  )}
-                </div>
-
-                <button type="submit" disabled={loading} className="af-cta-btn">
-                  {loading ? (
-                    <Loader2 size={18} className="af-spin" />
-                  ) : (
-                    <>
-                      <span>Update Password</span>
-                      <ArrowRight size={16} strokeWidth={2.5} />
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              /* ══ STANDARD FORM (login / signup / forgot) ══ */
-              <div className="af-form-container">
+                </form>
+              ) : (
+                /* ══ STANDARD FORM (login / signup / forgot) ══ */
                 <form onSubmit={handleAuth} className="af-form" noValidate>
-                  {/* Display name — signup only */}
+                  {/* Display Name (Sign Up only) */}
                   {isSignUp && (
                     <div className="af-field">
                       <label className="af-lbl" htmlFor="af-name">
-                        Full Name{" "}
-                        <span style={{ fontSize: 11, fontWeight: 400, color: "#9CA3AF" }}>
-                          (optional)
-                        </span>
+                        Full Name <span className="af-optional-tag">(optional)</span>
                       </label>
                       <div className={wrapCls(nameFocused, "")}>
                         <span className="af-inp-icon">
@@ -682,7 +756,7 @@ export default function Auth({
                           setEmail((e) => e.trim());
                         }}
                         className="af-inp af-inp-padded"
-                        placeholder="you@example.com"
+                        placeholder="name@example.com"
                         autoComplete="email"
                         autoCapitalize="none"
                         autoCorrect="off"
@@ -694,7 +768,7 @@ export default function Auth({
                     </div>
                     {emailErr && (
                       <div id="af-email-err" className="af-err-msg" role="alert">
-                        <AlertCircle size={11} aria-hidden="true" />
+                        <AlertCircle size={12} aria-hidden="true" />
                         {emailErr}
                       </div>
                     )}
@@ -738,60 +812,58 @@ export default function Auth({
                           className="af-eye-btn"
                           aria-label={showPass ? "Hide password" : "Show password"}
                         >
-                          {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                          {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
+
                       {capsLockOn && passFocused && (
                         <div className="af-caps-msg" role="status">
-                          <AlertCircle size={11} aria-hidden="true" />
+                          <AlertCircle size={12} aria-hidden="true" />
                           Caps Lock is on
                         </div>
                       )}
                       {passErr && (
                         <div id="af-pass-err" className="af-err-msg" role="alert">
-                          <AlertCircle size={11} aria-hidden="true" />
+                          <AlertCircle size={12} aria-hidden="true" />
                           {passErr}
                         </div>
                       )}
 
-                      {/* Password strength — signup only */}
+                      {/* Password Criteria Checklist (Sign Up only) */}
                       {isSignUp && password && (
-                        <div style={{ marginTop: 8 }} aria-live="polite">
-                          <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                        <div className="af-criteria-card" aria-live="polite">
+                          <div className="af-strength-bar-wrap">
                             {[1, 2, 3, 4, 5].map((i) => (
                               <div
                                 key={i}
+                                className="af-strength-segment"
                                 style={{
-                                  flex: 1,
-                                  height: 3,
-                                  borderRadius: 99,
-                                  background: strength >= i ? STRENGTH_COLOR[strength] : "var(--af-border)",
-                                  transition: "background 0.25s",
+                                  background:
+                                    strength >= i ? STRENGTH_COLOR[strength] : "var(--af-border)",
                                 }}
                               />
                             ))}
                           </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: STRENGTH_COLOR[strength] || "#94A3B8",
-                            }}
-                          >
-                            {STRENGTH_LABEL[strength]}
-                            {strength < 3 && (
-                              <span style={{ color: "#94A3B8", fontWeight: 400 }}>
-                                {" "}
-                                — add uppercase, numbers or symbols
-                              </span>
-                            )}
+                          <div className="af-criteria-grid">
+                            <span className={`af-crit-item ${criteria.minLength ? "af-crit-ok" : ""}`}>
+                              {criteria.minLength ? <Check size={12} /> : <X size={12} />} 8+ chars
+                            </span>
+                            <span className={`af-crit-item ${criteria.hasUpper ? "af-crit-ok" : ""}`}>
+                              {criteria.hasUpper ? <Check size={12} /> : <X size={12} />} Uppercase
+                            </span>
+                            <span className={`af-crit-item ${criteria.hasNumber ? "af-crit-ok" : ""}`}>
+                              {criteria.hasNumber ? <Check size={12} /> : <X size={12} />} Number
+                            </span>
+                            <span className={`af-crit-item ${criteria.hasSpecial ? "af-crit-ok" : ""}`}>
+                              {criteria.hasSpecial ? <Check size={12} /> : <X size={12} />} Symbol
+                            </span>
                           </div>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Confirm password — signup only */}
+                  {/* Confirm Password (Sign Up only) */}
                   {isSignUp && (
                     <div className="af-field">
                       <label className="af-lbl" htmlFor="af-confirmpass">
@@ -823,35 +895,25 @@ export default function Auth({
                           className="af-eye-btn"
                           aria-label={showConfirmPass ? "Hide" : "Show"}
                         >
-                          {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                          {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
                       {confirmPassErr && (
                         <div className="af-err-msg" role="alert">
-                          <AlertCircle size={11} />
+                          <AlertCircle size={12} />
                           {confirmPassErr}
                         </div>
                       )}
                       {!confirmPassErr && confirmPassword && confirmPassword === password && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            fontSize: 12,
-                            color: "#10B981",
-                            fontWeight: 600,
-                            marginTop: 2,
-                          }}
-                        >
-                          <CheckCircle2 size={11} />
+                        <div className="af-match-msg">
+                          <CheckCircle2 size={12} />
                           Passwords match
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Remember me + Forgot password — login only */}
+                  {/* Remember me & Forgot Password */}
                   {!isForgot && !isSignUp && (
                     <div className="af-meta-row">
                       <label className="af-remember">
@@ -861,9 +923,13 @@ export default function Auth({
                           onChange={(e) => setRememberMe(e.target.checked)}
                           className="af-chk"
                         />
-                        <span>Remember me</span>
+                        <span>Remember my email</span>
                       </label>
-                      <button type="button" onClick={() => switchMode("forgot")} className="af-link">
+                      <button
+                        type="button"
+                        onClick={() => switchMode("forgot")}
+                        className="af-link af-forgot-btn"
+                      >
                         Forgot password?
                       </button>
                     </div>
@@ -876,53 +942,54 @@ export default function Auth({
                     ) : (
                       <>
                         <span>
-                          {isForgot ? "Send Recovery Link" : isSignUp ? "Create Account" : "Sign In"}
+                          {isForgot
+                            ? "Send Recovery Link"
+                            : isSignUp
+                              ? "Create Free Account"
+                              : "Sign In to Dashboard"}
                         </span>
                         <ArrowRight size={16} strokeWidth={2.5} aria-hidden="true" />
                       </>
                     )}
                   </button>
+
+                  {/* Back to Sign In button for Forgot Mode */}
+                  {isForgot && (
+                    <div className="af-switch">
+                      <button
+                        type="button"
+                        onClick={() => switchMode("login")}
+                        className="af-back-link"
+                      >
+                        <ArrowLeft size={14} />
+                        <span>Back to Sign In</span>
+                      </button>
+                    </div>
+                  )}
                 </form>
-              </div>
-            )}
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-            {/* Mode switcher */}
-            {isReset ? (
-              <div className="af-switch">
-                <button type="button" onClick={handleCancelReset} className="af-link">
-                  Cancel and return to sign in
-                </button>
-              </div>
-            ) : (
-              <div className="af-switch">
-                {isForgot ? (
-                  <button onClick={() => switchMode("login")} className="af-link">
-                    ← Back to sign in
-                  </button>
-                ) : (
-                  <span className="af-switch-txt">
-                    {isSignUp ? "Already have an account? " : "Don't have an account? "}
-                    <button
-                      onClick={() => switchMode(isSignUp ? "login" : "signup")}
-                      className="af-link af-link-bold"
-                    >
-                      {isSignUp ? "Sign in" : "Create one"}
-                    </button>
-                  </span>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-
-          {/* Demo / offline mode */}
+          {/* Demo Sandbox Quick Exploration */}
           {onOffline && (
-            <div className="af-demo-wrap">
-              <button onClick={onOffline} className="af-demo-btn">
-                Continue with demo account
+            <div className="af-demo-section">
+              <div className="af-divider">
+                <span>OR EXPLORE INSTANTLY</span>
+              </div>
+              <button onClick={onOffline} className="af-demo-btn" type="button">
+                <PlayCircle size={16} className="af-demo-icon" />
+                <span className="af-demo-text">Open Interactive Sandbox Demo</span>
+                <span className="af-demo-badge">No Login Needed</span>
               </button>
             </div>
           )}
+
+          {/* Privacy & Trust micro-footer */}
+          <div className="af-form-footer">
+            <ShieldCheck size={13} />
+            <span>End-to-End Secure • 256-bit Encryption • Private Storage</span>
+          </div>
         </div>
       </div>
 
@@ -931,377 +998,1006 @@ export default function Auth({
   );
 }
 
-/* ─── Styles ──────────────────────────────────────────────────────────── */
+/* ─── Modern Stylesheet ────────────────────────────────────────────────── */
 const AF_STYLES = `
-/* ── Shell — two-panel layout ──────────── */
+/* ── Theme Tokens ───────────────────────── */
 .af-shell {
-  --af-accent: #B8720A;
-  --af-accent-hover: #96600A;
+  --af-accent: #C5A152;
+  --af-accent-hover: #D9B35F;
+  --af-accent-dark: #96600A;
+  --af-primary-btn: linear-gradient(135deg, #C5A152 0%, #A47728 100%);
+  --af-primary-btn-hover: linear-gradient(135deg, #D4B062 0%, #B88531 100%);
+  --af-primary-btn-text: #FFFFFF;
   --af-text: #0F172A;
-  --af-text-secondary: #374151;
+  --af-text-secondary: #475569;
+  --af-text-muted: #64748B;
   --af-border: #E2E8F0;
+  --af-border-focus: #C5A152;
   --af-border-hover: #CBD5E1;
-  --af-page-bg: #F4F5F8;
+  --af-card-bg: #FFFFFF;
+  --af-page-bg: #F8FAFC;
+  --af-input-bg: #F8FAFC;
+  --af-input-bg-focus: #FFFFFF;
+  --af-segment-bg: #EEF2F6;
+  --af-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 20px 25px -5px rgba(0, 0, 0, 0.05);
 
   min-height: 100vh;
   display: flex;
-  font-family: var(--t-font, var(--font-sans));
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--af-page-bg);
+  color: var(--af-text);
+  overflow-x: hidden;
 }
 
-/* ── Brand panel — left, first impression (desktop only, hidden < 768px) ── */
+/* ── Brand Panel (Left Showcase) ────────── */
 .af-brand-panel {
   position: relative;
-  flex: 0 0 42%;
-  min-width: 380px;
-  max-width: 540px;
+  flex: 0 0 44%;
+  min-width: 420px;
+  max-width: 580px;
   overflow: hidden;
-  background: linear-gradient(165deg, #0B0F1A 0%, #10141F 100%);
-  color: #F4F5FF;
-  padding: 56px 48px;
+  background: linear-gradient(155deg, #090D16 0%, #0F1523 50%, #151D30 100%);
+  color: #F8FAFC;
+  padding: 60px 48px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
-.af-brand-glow {
+
+.af-brand-ambient {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background: 
+    radial-gradient(circle at 85% 15%, rgba(197, 161, 82, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
 }
-.af-brand-glow::before {
-  content: '';
-  position: absolute;
-  top: -90px; right: -110px;
-  width: 380px; height: 380px;
-  border-radius: 50%;
-  border: 1px solid rgba(197,161,82,0.16);
-}
-.af-brand-glow::after {
-  content: '';
-  position: absolute;
-  top: -90px; right: -110px;
-  width: 380px; height: 380px;
-  margin: 38px;
-  border-radius: 50%;
-  border: 1px solid rgba(197,161,82,0.1);
-}
-.af-brand-content { position: relative; z-index: 1; max-width: 380px; }
-.af-brand-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
-.af-brand-name { font-family: var(--t-font, var(--font-sans)); font-size: 16px; font-weight: 600; letter-spacing: -0.005em; line-height: 1; color: #fff; }
-.af-brand-tagline { font-size: 11px; font-weight: 500; color: rgba(244,245,255,0.6); margin-top: 4px; }
-.af-brand-headline {
-  font-family: var(--t-font, var(--font-sans));
-  font-size: 36px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.16;
-  margin: 0 0 16px; color: #fff;
-}
-.af-brand-sub {
-  font-size: 14.5px; line-height: 1.65; color: rgba(244,245,255,0.72);
-  margin: 0 0 36px; font-weight: 400;
-}
-.af-brand-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
-.af-brand-features li {
-  display: flex; align-items: center; gap: 11px;
-  font-size: 13.5px; font-weight: 500; color: rgba(244,245,255,0.9);
-}
-.af-brand-features li svg { color: #C5A152; flex-shrink: 0; }
 
-/* ── Form panel — right ────────────────── */
+.af-brand-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+.af-brand-content {
+  position: relative;
+  z-index: 2;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Brand Logo */
+.af-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.af-logo-glow-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.af-logo-glow-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  background: radial-gradient(circle, rgba(197, 161, 82, 0.4) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.af-brand-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+  line-height: 1.1;
+}
+
+.af-brand-tagline {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Brand Hero */
+.af-brand-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.af-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: rgba(197, 161, 82, 0.12);
+  border: 1px solid rgba(197, 161, 82, 0.28);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #E5C378;
+  width: fit-content;
+}
+
+.af-badge-icon {
+  color: #FCD34D;
+}
+
+.af-brand-headline {
+  font-family: 'Outfit', sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.af-brand-headline-accent {
+  background: linear-gradient(135deg, #E5C378 0%, #FFFFFF 60%, #C5A152 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.af-brand-sub {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(241, 245, 249, 0.75);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Live Holographic Mockup Card */
+.af-preview-card {
+  background: rgba(21, 29, 48, 0.65);
+  border: 1px solid rgba(197, 161, 82, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 
+    0 10px 30px -10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.af-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.af-preview-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.af-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  animation: af-pulse 2s infinite;
+}
+
+.af-preview-growth {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #34D399;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.af-preview-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.af-preview-currency {
+  font-size: 20px;
+  font-weight: 600;
+  color: #C5A152;
+}
+
+.af-preview-val {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+  font-family: 'Outfit', sans-serif;
+}
+
+.af-preview-lbl {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.af-asset-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 4px;
+}
+
+.af-asset-seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.af-seg-mf { background: #3B82F6; }
+.af-seg-re { background: #C5A152; }
+.af-seg-epf { background: #10B981; }
+.af-seg-cash { background: #8B5CF6; }
+
+.af-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.af-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.af-tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.af-dot-mf { background: #3B82F6; }
+.af-dot-re { background: #C5A152; }
+.af-dot-epf { background: #10B981; }
+.af-dot-cash { background: #8B5CF6; }
+
+/* Features List */
+.af-brand-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.af-brand-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.af-feat-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(197, 161, 82, 0.12);
+  border: 1px solid rgba(197, 161, 82, 0.25);
+  color: #E5C378;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.af-brand-features strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 2px;
+}
+
+.af-brand-features p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+}
+
+.af-brand-footer {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.02em;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Form Panel (Right) ─────────────────── */
 .af-form-panel {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 24px;
+  padding: 48px 32px;
   min-height: 100vh;
   overflow-y: auto;
 }
 
 .af-card {
   width: 100%;
-  max-width: 400px;
-  animation: af-card-enter 0.35s cubic-bezier(0.22,1,0.36,1) both;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-/* Mobile-only compact logo row (brand panel carries it on desktop) */
-.af-logo-mobile { display: none; }
-.af-logo-name {
-  font-family: var(--t-font, var(--font-sans));
-  font-size: 16px; font-weight: 600;
-  color: var(--af-text); letter-spacing: -0.005em; line-height: 1;
-}
-.af-logo-tagline {
-  font-size: 11px; font-weight: 500;
-  color: #94A3B8; margin-top: 3px;
+.af-logo-mobile {
+  display: none;
 }
 
-/* Greeting label */
-.af-greeting {
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: #94A3B8; margin-bottom: 8px;
+/* Segmented Mode Switcher */
+.af-segment-switch {
+  display: flex;
+  background: var(--af-segment-bg);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--af-border);
+  position: relative;
+  user-select: none;
 }
 
-/* Card header */
-.af-card-head { margin-bottom: 22px; }
-.af-card-title {
-  font-family: var(--t-font, var(--font-sans));
-  font-size: 24px; font-weight: 600;
-  color: var(--af-text); letter-spacing: -0.005em; line-height: 1.2; margin-bottom: 6px;
-}
-.af-card-sub { font-size: 13.5px; color: #64748B; line-height: 1.5; font-weight: 400; }
-
-/* Alerts */
-.af-alert {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 12px 14px; border-radius: 10px;
-  font-size: 13px; font-weight: 500; line-height: 1.45; margin-bottom: 18px;
-  animation: af-rise 0.25s cubic-bezier(0.22,1,0.36,1);
-}
-.af-alert-err { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; animation: af-shake 0.4s ease-out; }
-.af-alert-ok  { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; }
-
-/* Info banner (reset mode) */
-.af-info-banner {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px; background: rgba(184,114,10,0.06);
-  border-radius: 9px; border: 1px solid rgba(184,114,10,0.18);
-  margin-bottom: 4px; font-size: 13px; color: var(--af-accent); font-weight: 500;
-}
-
-/* Form container */
-.af-form-container { display: flex; flex-direction: column; gap: 0; }
-
-/* Form */
-.af-form { display: flex; flex-direction: column; gap: 16px; }
-.af-field { display: flex; flex-direction: column; gap: 6px; }
-.af-lbl { font-size: 12.5px; font-weight: 600; color: var(--af-text-secondary); letter-spacing: -0.01em; }
-
-/* Input wrapper */
-.af-inp-wrap {
-  position: relative; display: flex; align-items: center;
-  background: #F8FAFC; border: 1.5px solid var(--af-border); border-radius: 10px;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: var(--af-border-hover); }
-.af-inp-wrap.af-focused {
-  border-color: var(--af-accent); background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(63,61,158,0.1);
-}
-.af-inp-wrap.af-inp-err { border-color: #F87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.1); }
-.af-inp {
-  flex: 1; background: none; border: none; outline: none;
-  padding: 11px 14px; font-size: 14.5px;
+.af-segment-btn {
+  flex: 1;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
   font-family: inherit;
-  color: var(--af-text); font-weight: 400; min-width: 0;
+  color: var(--af-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
 }
-.af-inp-padded { padding-left: 8px; }
-/* Chrome/Edge paint autofilled fields with a native yellow background that ignores
-   our own background rules and pokes out past the rounded wrapper's edge — this
-   neutralizes it so an autofilled field still matches the rest of the input. */
-.af-inp:-webkit-autofill,
-.af-inp:-webkit-autofill:hover,
-.af-inp:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--af-text);
-  transition: background-color 9999s ease-in-out 0s;
-  box-shadow: 0 0 0 1000px #F8FAFC inset;
-}
-.af-inp-wrap.af-focused .af-inp:-webkit-autofill {
-  box-shadow: 0 0 0 1000px #FFFFFF inset;
-}
-.af-inp-icon {
-  display: flex; align-items: center; padding-left: 13px; color: #94A3B8; flex-shrink: 0;
-  transition: color 0.15s;
-}
-.af-focused .af-inp-icon { color: var(--af-accent); }
-.af-inp::placeholder { color: #B0B8C8; }
-.af-eye-btn {
-  background: none; border: none; padding: 0 13px; color: #94A3B8;
-  cursor: pointer; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s;
-}
-.af-eye-btn:hover { color: var(--af-accent); }
-.af-err-msg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #EF4444; font-weight: 500; }
-.af-caps-msg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #B45309; font-weight: 600; }
 
-/* Resend-verification link nested inside the error alert */
-.af-resend-link {
-  display: block; margin-top: 6px; background: none; border: none; padding: 0;
-  font-size: 12px; font-weight: 700; color: inherit; text-decoration: underline;
-  cursor: pointer; font-family: inherit;
+.af-segment-btn:hover:not(.af-segment-active) {
+  color: var(--af-text);
 }
-.af-resend-link:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Remember + Forgot row */
-.af-meta-row { display: flex; align-items: center; justify-content: space-between; margin-top: -4px; }
-.af-remember {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px; color: #4B5563; cursor: pointer; font-weight: 500; user-select: none;
+.af-segment-active {
+  background: var(--af-card-bg);
+  color: var(--af-text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
-.af-chk {
-  width: 15px; height: 15px; accent-color: var(--af-accent); cursor: pointer; border-radius: 4px;
+
+/* Card Header */
+.af-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.af-greeting-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #B8720A;
+  margin-bottom: 2px;
+}
+
+.af-greeting-sun {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #F59E0B;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.af-card-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--af-text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.af-card-sub {
+  font-size: 13.5px;
+  color: var(--af-text-muted);
+  line-height: 1.5;
   margin: 0;
 }
 
-/* Link button */
-.af-link {
-  background: none; border: none; font-size: 13px; font-weight: 600; color: var(--af-accent);
-  cursor: pointer; padding: 0; font-family: inherit; transition: color 0.15s; text-decoration: none;
+/* Alerts */
+.af-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  margin-bottom: 4px;
 }
-.af-link:hover { color: var(--af-accent-hover); text-decoration: underline; }
-.af-link-bold { font-weight: 700; }
+
+.af-alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.af-alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.af-alert-err {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
+}
+
+.af-alert-ok {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #15803D;
+}
+
+.af-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(197, 161, 82, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(197, 161, 82, 0.25);
+  font-size: 13px;
+  color: #96600A;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+/* Form Structure */
+.af-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.af-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.af-lbl {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--af-text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.af-optional-tag {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--af-text-muted);
+}
+
+/* Inputs */
+.af-inp-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--af-input-bg);
+  border: 1.5px solid var(--af-border);
+  border-radius: 12px;
+  transition: all 0.15s ease;
+}
+
+.af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) {
+  border-color: var(--af-border-hover);
+}
+
+.af-inp-wrap.af-focused {
+  border-color: var(--af-border-focus);
+  background: var(--af-input-bg-focus);
+  box-shadow: 0 0 0 3px rgba(197, 161, 82, 0.18);
+}
+
+.af-inp-wrap.af-inp-err {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.af-inp {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 12px 14px;
+  font-size: 14.5px;
+  font-family: inherit;
+  color: var(--af-text);
+  min-width: 0;
+}
+
+.af-inp-padded {
+  padding-left: 8px;
+}
+
+.af-inp-icon {
+  display: flex;
+  align-items: center;
+  padding-left: 14px;
+  color: var(--af-text-muted);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.af-focused .af-inp-icon {
+  color: var(--af-accent);
+}
+
+.af-eye-btn {
+  background: none;
+  border: none;
+  padding: 0 14px;
+  color: var(--af-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.af-eye-btn:hover {
+  color: var(--af-text);
+}
+
+.af-err-msg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #EF4444;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.af-caps-msg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #D97706;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.af-match-msg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #10B981;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Criteria Checklist */
+.af-criteria-card {
+  background: var(--af-segment-bg);
+  border: 1px solid var(--af-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.af-strength-bar-wrap {
+  display: flex;
+  gap: 4px;
+}
+
+.af-strength-segment {
+  flex: 1;
+  height: 4px;
+  border-radius: 9999px;
+  transition: background 0.25s ease;
+}
+
+.af-criteria-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.af-crit-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--af-text-muted);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.af-crit-ok {
+  color: #10B981;
+  font-weight: 600;
+}
+
+/* Remember me & links */
+.af-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -2px;
+}
+
+.af-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--af-text-secondary);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.af-chk {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--af-accent);
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0;
+}
+
+.af-link {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--af-accent-dark);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.15s;
+  text-decoration: none;
+}
+
+.af-link:hover {
+  text-decoration: underline;
+  color: var(--af-accent);
+}
+
+.af-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--af-text-secondary);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.af-back-link:hover {
+  background: var(--af-segment-bg);
+  color: var(--af-text);
+}
 
 /* CTA Button */
 .af-cta-btn {
-  width: 100%; padding: 12px 20px;
-  background: var(--af-accent);
-  color: #FFFFFF; border: none; border-radius: 10px;
-  font-size: 14.5px; font-weight: 700; font-family: inherit;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: background 0.15s ease, transform 0.1s ease;
-  margin-top: 4px; letter-spacing: -0.005em;
+  width: 100%;
+  padding: 13px 20px;
+  background: var(--af-primary-btn);
+  color: var(--af-primary-btn-text);
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(184, 114, 10, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 4px;
 }
-.af-cta-btn:hover:not(:disabled) { background: var(--af-accent-hover); }
-.af-cta-btn:active:not(:disabled) { transform: translateY(1px); }
-.af-cta-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Mode switcher */
-.af-switch { text-align: center; margin-top: 20px; }
-.af-switch-txt { font-size: 13px; color: #6B7280; font-weight: 400; }
+.af-cta-btn:hover:not(:disabled) {
+  background: var(--af-primary-btn-hover);
+  box-shadow: 0 6px 20px rgba(184, 114, 10, 0.35);
+  transform: translateY(-1px);
+}
 
-/* Demo button */
-.af-demo-wrap { text-align: center; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--af-border); }
+.af-cta-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(184, 114, 10, 0.2);
+}
+
+.af-cta-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Demo / Sandbox Section */
+.af-demo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.af-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--af-text-muted);
+}
+
+.af-divider::before,
+.af-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--af-border);
+}
+
+.af-divider span {
+  padding: 0 12px;
+}
+
 .af-demo-btn {
-  background: none; border: none; font-size: 12.5px; font-weight: 600;
-  color: #94A3B8; cursor: pointer; font-family: inherit; transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--af-card-bg);
+  border: 1.5px dashed var(--af-border-hover);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--af-text);
+  font-family: inherit;
 }
-.af-demo-btn:hover { color: var(--af-accent); }
 
-/* ══════════════════════════════════════
-   DARK MODE
-   Two triggers, same overrides:
-   1) OS-level prefers-color-scheme — for a first-time visitor who has never
-      set an in-app preference (no session yet, nothing in localStorage).
-   2) .dark-theme class on <html>/<body> — driven by useTheme() from the
-      user's saved app setting (see hooks/useTheme.ts), which is applied
-      unconditionally on every render, including this pre-login screen.
-      Without this, a user who chose dark mode in-app but has a light OS
-      theme (or vice versa) sees a login page that contradicts the app
-      they're about to land in. The class selector's higher specificity
-      lets it win over the media query whenever both are present.
-══════════════════════════════════════ */
+.af-demo-btn:hover {
+  border-color: var(--af-accent);
+  background: rgba(197, 161, 82, 0.04);
+  transform: translateY(-1px);
+}
+
+.af-demo-icon {
+  color: var(--af-accent);
+}
+
+.af-demo-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  flex: 1;
+  text-align: left;
+  margin-left: 10px;
+}
+
+.af-demo-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Footer info */
+.af-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--af-text-muted);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.af-switch {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.af-resend-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+/* ── Dark Theme Overrides ───────────────── */
 @media (prefers-color-scheme: dark) {
   .af-shell {
-    --af-accent: #D9AA45;
-    --af-accent-hover: #E8C065;
-    --af-text: #F9FAFB;
-    --af-text-secondary: #D1D5DB;
-    --af-border: #2A3140;
-    --af-border-hover: #3D4556;
-    --af-page-bg: #0B0E14;
+    --af-text: #F8FAFC;
+    --af-text-secondary: #CBD5E1;
+    --af-text-muted: #94A3B8;
+    --af-border: #1E293B;
+    --af-border-hover: #334155;
+    --af-card-bg: #0F172A;
+    --af-page-bg: #0B0F19;
+    --af-input-bg: #131B2E;
+    --af-input-bg-focus: #18223B;
+    --af-segment-bg: #131B2E;
+    --af-accent-dark: #E5C378;
+    --af-shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
   }
-  .af-brand-panel { background: linear-gradient(165deg, #0B0F1A 0%, #10141F 100%); }
-  .af-card-sub { color: #9CA3AF; }
-  .af-inp-wrap { background: #171C27; }
-  .af-inp-wrap.af-focused { background: #1A2030; }
-  .af-inp::placeholder { color: #4B5563; }
-  .af-inp-icon { color: #6B7280; }
-  .af-switch-txt { color: #9CA3AF; }
-  .af-alert-err { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
-  .af-alert-ok  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6EE7B7; }
-  .af-info-banner { background: rgba(217,170,69,0.1); border-color: rgba(217,170,69,0.25); }
-  .af-demo-btn { color: #6B7280; }
-  .af-greeting { color: #6B7280; }
-  .af-logo-tagline { color: #6B7280; }
-  .af-caps-msg { color: #FBBF24; }
-}
-/* Card chrome only appears below 768px (brand panel replaces it on desktop) —
-   give it the dark surface treatment there too. */
-@media (prefers-color-scheme: dark) and (max-width: 768px) {
-  .af-card {
-    background: #12161F;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  .af-info-banner {
+    background: rgba(197, 161, 82, 0.12);
+    color: #FDE68A;
+  }
+  .af-alert-err {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #FCA5A5;
+  }
+  .af-alert-ok {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #6EE7B7;
   }
 }
 
 .dark-theme .af-shell {
-  --af-accent: #D9AA45;
-  --af-accent-hover: #E8C065;
-  --af-text: #F9FAFB;
-  --af-text-secondary: #D1D5DB;
-  --af-border: #2A3140;
-  --af-border-hover: #3D4556;
-  --af-page-bg: #0B0E14;
+  --af-text: #F8FAFC;
+  --af-text-secondary: #CBD5E1;
+  --af-text-muted: #94A3B8;
+  --af-border: #1E293B;
+  --af-border-hover: #334155;
+  --af-card-bg: #0F172A;
+  --af-page-bg: #0B0F19;
+  --af-input-bg: #131B2E;
+  --af-input-bg-focus: #18223B;
+  --af-segment-bg: #131B2E;
+  --af-accent-dark: #E5C378;
+  --af-shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
 }
-.dark-theme .af-brand-panel { background: linear-gradient(165deg, #0B0F1A 0%, #10141F 100%); }
-.dark-theme .af-card-sub { color: #9CA3AF; }
-.dark-theme .af-inp-wrap { background: #171C27; }
-.dark-theme .af-inp-wrap.af-focused { background: #1A2030; }
-.dark-theme .af-inp::placeholder { color: #4B5563; }
-.dark-theme .af-inp-icon { color: #6B7280; }
-.dark-theme .af-switch-txt { color: #9CA3AF; }
-.dark-theme .af-alert-err { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
-.dark-theme .af-alert-ok  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6EE7B7; }
-.dark-theme .af-info-banner { background: rgba(217,170,69,0.1); border-color: rgba(217,170,69,0.25); }
-.dark-theme .af-demo-btn { color: #6B7280; }
-.dark-theme .af-greeting { color: #6B7280; }
-.dark-theme .af-logo-tagline { color: #6B7280; }
-.dark-theme .af-caps-msg { color: #FBBF24; }
-@media (max-width: 768px) {
-  .dark-theme .af-card {
-    background: #12161F;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+.dark-theme .af-info-banner {
+  background: rgba(197, 161, 82, 0.12);
+  color: #FDE68A;
+}
+.dark-theme .af-alert-err {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #FCA5A5;
+}
+.dark-theme .af-alert-ok {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6EE7B7;
+}
+
+/* ── Animations ─────────────────────────── */
+@keyframes af-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.af-spin {
+  animation: af-spin-anim 0.8s linear infinite;
+}
+
+@keyframes af-spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive Viewports ───────────────── */
+@media (max-width: 960px) {
+  .af-brand-panel {
+    display: none;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .af-card { animation: none !important; }
-}
-
-/* ══════════════════════════════════════
-   KEYFRAME ANIMATIONS
-══════════════════════════════════════ */
-@keyframes af-rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes af-card-enter {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes af-shake {
-  0%,100% { transform: translateX(0); }
-  15%     { transform: translateX(-6px); }
-  30%     { transform: translateX(6px); }
-  45%     { transform: translateX(-4px); }
-  60%     { transform: translateX(4px); }
-  75%     { transform: translateX(-2px); }
-}
-.af-spin { animation: af-spin-anim 0.75s linear infinite; }
-@keyframes af-spin-anim { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-/* ══════════════════════════════════════
-   RESPONSIVE
-   Brand panel disappears below 768px — matches the app-wide mobile
-   breakpoint used everywhere else (see src/styles.css). The form
-   panel then becomes the whole screen and the card regains its own
-   border/shadow so it still reads as a distinct surface.
-══════════════════════════════════════ */
-@media (max-width: 768px) {
-  .af-brand-panel { display: none; }
-  .af-form-panel { padding: 24px 16px; align-items: flex-start; padding-top: 40px; }
+  .af-form-panel {
+    padding: 32px 20px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
   .af-logo-mobile {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--af-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--af-border);
+  }
+  .af-logo-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--af-text);
+  }
+  .af-logo-tagline {
+    font-size: 11.5px;
+    color: var(--af-text-muted);
   }
   .af-card {
-    background: #FFFFFF;
+    background: var(--af-card-bg);
     border: 1px solid var(--af-border);
-    border-radius: 14px;
-    padding: 32px 28px 28px;
-    box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.05);
+    border-radius: 20px;
+    padding: 28px 24px;
+    box-shadow: var(--af-shadow-card);
   }
 }
 
 @media (max-width: 480px) {
-  .af-form-panel { padding: 16px; padding-top: 32px; }
-  .af-card { padding: 26px 20px 22px; }
+  .af-form-panel {
+    padding: 16px;
+    padding-top: 24px;
+  }
+  .af-card {
+    padding: 22px 18px;
+    border-radius: 16px;
+  }
+  .af-card-title {
+    font-size: 22px;
+  }
 }
 `;
