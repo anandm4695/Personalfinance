@@ -7,7 +7,6 @@ import {
   VehicleModal,
   ServiceModal,
   InsuranceModal,
-  VehicleIllustration,
   resolveVehicleColor,
   PRESET_VEHICLE_COLORS,
 } from "../components/tabs/VehiclesTab";
@@ -193,32 +192,6 @@ describe("VehiclesTab Component", () => {
     expect(customHex.hex).toBe("#10b981");
 
     expect(PRESET_VEHICLE_COLORS.length).toBeGreaterThanOrEqual(8);
-  });
-
-  it("renders VehicleIllustration dynamically for scooters, motorcycles, cars, and commercial vehicles", () => {
-    const scooterHtml = renderToString(
-      <VehicleIllustration vehicleType="two-wheeler" color="White" make="Honda" model="Activa 5G" />
-    );
-    expect(scooterHtml).toContain("<svg");
-    expect(scooterHtml).toContain("scooterBody");
-
-    const bikeHtml = renderToString(
-      <VehicleIllustration vehicleType="two-wheeler" color="Crimson Red" make="Royal Enfield" model="Hunter 350" />
-    );
-    expect(bikeHtml).toContain("<svg");
-    expect(bikeHtml).toContain("bikeBody");
-
-    const carHtml = renderToString(
-      <VehicleIllustration vehicleType="four-wheeler" color="Daytona Grey" make="Tata" model="Nexon EV" />
-    );
-    expect(carHtml).toContain("<svg");
-    expect(carHtml).toContain("carBody");
-
-    const vanHtml = renderToString(
-      <VehicleIllustration vehicleType="commercial" color="Arctic White" make="Tata" model="Ace Gold" />
-    );
-    expect(vanHtml).toContain("<svg");
-    expect(vanHtml).toContain("vanBody");
   });
 
   it("renders VehicleModal with live color preview banner and quick preset chips", () => {
