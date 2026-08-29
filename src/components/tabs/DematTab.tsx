@@ -39,6 +39,8 @@ import {
   CheckCircle2,
   Target,
   Download,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -2001,10 +2003,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     Invested: <Money value={totalInvested} variant="full" />
                   </div>
                   {pnl !== 0 && (
-                    <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`}>
-                      {pnl >= 0 ? "▲" : "▼"}{" "}
-                      {totalInvested > 0 ? Math.abs((pnl / totalInvested) * 100).toFixed(1) : "0.0"}
-                      %
+                    <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      {pnl >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                      {totalInvested > 0 ? Math.abs((pnl / totalInvested) * 100).toFixed(1) : "0.0"}%
                     </span>
                   )}
                 </div>
@@ -2081,8 +2082,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {totalDaysPnL !== 0 ? (
-                    <span className={`demat-trend-pill ${totalDaysPnL >= 0 ? "up" : "down"}`}>
-                      {totalDaysPnL >= 0 ? "▲" : "▼"} {Math.abs(totalDaysPnLPct).toFixed(2)}% today
+                    <span className={`demat-trend-pill ${totalDaysPnL >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      {totalDaysPnL >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {Math.abs(totalDaysPnLPct).toFixed(2)}% today
                     </span>
                   ) : (
                     <span className="demat-trend-pill neutral">No change today</span>
@@ -2150,9 +2151,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {totalInvested ? (
-                    <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`}>
-                      {pnl >= 0 ? "▲" : "▼"} {Math.abs((pnl / totalInvested) * 100).toFixed(2)}%
-                      absolute return
+                    <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      {pnl >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {Math.abs((pnl / totalInvested) * 100).toFixed(2)}% absolute return
                     </span>
                   ) : (
                     <span className="demat-trend-pill neutral">—</span>
@@ -2232,8 +2232,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {overallXirr !== null ? (
-                    <span className={`demat-trend-pill ${overallXirr >= 0 ? "up" : "down"}`}>
-                      {overallXirr >= 0 ? "▲" : "▼"} Annualized return
+                    <span className={`demat-trend-pill ${overallXirr >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      {overallXirr >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} Annualized return
                     </span>
                   ) : (
                     <span className="demat-trend-pill neutral">Annualized rate of return</span>
@@ -2495,9 +2495,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       {dematStocks.length > 0 ? (
                         <span
                           className={`demat-trend-pill ${dematPnl >= 0 ? "up" : "down"}`}
-                          style={{ fontSize: 12 }}
+                          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 3 }}
                         >
-                          {dematPnl >= 0 ? "▲" : "▼"} {dematPnlPct.toFixed(2)}% &nbsp;(
+                          {dematPnl >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {dematPnlPct.toFixed(2)}% &nbsp;(
                           {dematPnl >= 0 ? "+" : ""}
                           <Money value={dematPnl} variant="full" />)
                         </span>
@@ -3135,8 +3135,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     marginTop: 1,
                                   }}
                                 >
-                                  {changePct >= 0 ? "▲" : "▼"}
-                                  {Math.abs(changePct).toFixed(2)}%
+                                  {changePct >= 0 ? "+" : "−"}{Math.abs(changePct).toFixed(2)}%
                                 </div>
                               </>
                             ) : (
@@ -3162,8 +3161,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 marginTop: 1,
                               }}
                             >
-                              {totalPnlPct >= 0 ? "▲" : "▼"}
-                              {Math.abs(totalPnlPct).toFixed(2)}%
+                              {totalPnlPct >= 0 ? "+" : "−"}{Math.abs(totalPnlPct).toFixed(2)}%
                             </div>
                             {stockXirr !== null && (
                               <div

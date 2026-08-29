@@ -1535,7 +1535,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             formatValue: (n: number) => `${n >= 0 ? "+" : "-"}${Math.abs(n).toFixed(1)}%`,
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: Activity,
-            sub: netGain >= 0 ? "▲ Gain" : "▼ Loss",
+            sub: netGain >= 0 ? "Gain" : "Loss",
           },
           {
             label: "Instruments",
@@ -11335,8 +11335,7 @@ function MFSection({
                                               marginTop: 1,
                                             }}
                                           >
-                                            {groupMeta.navChangePct >= 0 ? "▲" : "▼"}
-                                            {Math.abs(groupMeta.navChangePct ?? 0).toFixed(2)}%
+                                            {groupMeta.navChangePct >= 0 ? "+" : "−"}{Math.abs(groupMeta.navChangePct ?? 0).toFixed(2)}%
                                           </div>
                                         </>
                                       );
@@ -11363,8 +11362,7 @@ function MFSection({
                                             marginTop: 1,
                                           }}
                                         >
-                                          {grpPnlPct >= 0 ? "▲" : "▼"}
-                                          {Math.abs(grpPnlPct).toFixed(2)}%
+                                          {grpPnlPct >= 0 ? "+" : "−"}{Math.abs(grpPnlPct).toFixed(2)}%
                                         </div>
                                         {grpXirr !== null && (
                                           <div
