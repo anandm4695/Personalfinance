@@ -7,6 +7,9 @@ import {
   VehicleModal,
   ServiceModal,
   InsuranceModal,
+  VehicleIllustration,
+  resolveVehicleColor,
+  PRESET_VEHICLE_COLORS,
 } from "../components/tabs/VehiclesTab";
 import { MasterDataContext, DEFAULT_MASTER_DATA } from "../utils/masterData";
 import { PrivacyProvider } from "../context/PrivacyContext";
@@ -176,7 +179,49 @@ describe("VehiclesTab Component", () => {
     expect(normalPlateHtml).toContain("DL01AB9999");
   });
 
-  it("renders VehicleModal without React error #31 (no component as child error in select options)", () => {
+  it("resolves various automotive paint color names and hex codes correctly", () => {
+    const grey = resolveVehicleColor("Daytona Grey");
+    expect(grey.hex).toBe("#475569");
+
+    const white = resolveVehicleColor("Arctic White");
+    expect(white.hex).toBe("#f8fafc");
+
+    const red = resolveVehicleColor("Crimson Red");
+    expect(red.hex).toBe("#dc2626");
+
+    const customHex = resolveVehicleColor("#10b981");
+    expect(customHex.hex).toBe("#10b981");
+
+    expect(PRESET_VEHICLE_COLORS.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("renders VehicleIllustration dynamically for scooters, motorcycles, cars, and commercial vehicles", () => {
+    const scooterHtml = renderToString(
+      <VehicleIllustration vehicleType="two-wheeler" color="White" make="Honda" model="Activa 5G" />
+    );
+    expect(scooterHtml).toContain("<svg");
+    expect(scooterHtml).toContain("scooterBody");
+
+    const bikeHtml = renderToString(
+      <VehicleIllustration vehicleType="two-wheeler" color="Crimson Red" make="Royal Enfield" model="Hunter 350" />
+    );
+    expect(bikeHtml).toContain("<svg");
+    expect(bikeHtml).toContain("bikeBody");
+
+    const carHtml = renderToString(
+      <VehicleIllustration vehicleType="four-wheeler" color="Daytona Grey" make="Tata" model="Nexon EV" />
+    );
+    expect(carHtml).toContain("<svg");
+    expect(carHtml).toContain("carBody");
+
+    const vanHtml = renderToString(
+      <VehicleIllustration vehicleType="commercial" color="Arctic White" make="Tata" model="Ace Gold" />
+    );
+    expect(vanHtml).toContain("<svg");
+    expect(vanHtml).toContain("vanBody");
+  });
+
+  it("renders VehicleModal with live color preview banner and quick preset chips", () => {
     const html = renderToString(
       <MasterDataContext.Provider value={mockState.masterData}>
         <VehicleModal onClose={() => {}} onSave={() => {}} />
@@ -185,9 +230,9 @@ describe("VehiclesTab Component", () => {
 
     expect(html).toContain("Add Vehicle to Garage");
     expect(html).toContain("Fuel Type");
-    expect(html).toContain("Petrol");
-    expect(html).toContain("Diesel");
-    expect(html).toContain("Electric (EV)");
+    expect(html).toContain("Daytona Grey");
+    expect(html).toContain("Arctic White");
+    expect(html).toContain("Onyx Black");
   });
 
   it("renders ServiceModal and InsuranceModal correctly", () => {

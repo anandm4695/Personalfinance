@@ -42,6 +42,9 @@ import {
   ExternalLink,
   Eye,
   RefreshCw,
+  Cog,
+  Camera,
+  Palette,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -412,34 +415,827 @@ function VehicleMakeLogo({ make, size = 48 }: { make: string; size?: number }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Photography & Hero Assets
+// Dynamic Vehicle Color & Visual Illustration Engine
 // ─────────────────────────────────────────────────────────────────────────────
+
+export interface VehicleColorInfo {
+  hex: string;
+  highlight: string;
+  shadow: string;
+  rimColor: string;
+  isLight: boolean;
+  label: string;
+}
+
+export const PRESET_VEHICLE_COLORS = [
+  { name: "Daytona Grey", hex: "#475569" },
+  { name: "Arctic White", hex: "#f8fafc" },
+  { name: "Onyx Black", hex: "#18181b" },
+  { name: "Royal Blue", hex: "#1d4ed8" },
+  { name: "Crimson Red", hex: "#dc2626" },
+  { name: "Racing Green", hex: "#15803d" },
+  { name: "Sunburst Gold", hex: "#d97706" },
+  { name: "Sunset Orange", hex: "#ea580c" },
+  { name: "Dapper Ash", hex: "#64748b" },
+];
+
+const VEHICLE_COLOR_MAP: Record<string, string> = {
+  // Greys / Silvers
+  "daytona grey": "#475569",
+  "dapper ash": "#64748b",
+  "nardo grey": "#6b7280",
+  graphite: "#374151",
+  charcoal: "#334155",
+  gunmetal: "#4b5563",
+  silver: "#94a3b8",
+  titanium: "#64748b",
+  grey: "#64748b",
+  gray: "#64748b",
+  slate: "#475569",
+  // Whites
+  "arctic white": "#f8fafc",
+  "pearl white": "#f1f5f9",
+  "pristine white": "#fafafa",
+  white: "#f8fafc",
+  ivory: "#fef3c7",
+  "glacier white": "#f8fafc",
+  // Blacks
+  "onyx black": "#18181b",
+  "phantom black": "#111827",
+  "matte black": "#1c1917",
+  "midnight black": "#09090b",
+  black: "#18181b",
+  carbon: "#18181b",
+  obsidian: "#0f172a",
+  // Reds
+  "crimson red": "#dc2626",
+  "racing red": "#ef4444",
+  cherry: "#be123c",
+  ruby: "#9f1239",
+  garnet: "#881337",
+  red: "#dc2626",
+  maroon: "#7f1d1d",
+  scarlet: "#e11d48",
+  // Blues
+  "royal blue": "#1d4ed8",
+  "deep ocean blue": "#1e40af",
+  "navy blue": "#1e3a8a",
+  "midnight blue": "#172554",
+  "electric blue": "#0284c7",
+  "tata blue": "#0369a1",
+  blue: "#2563eb",
+  teal: "#0d9488",
+  cyan: "#0891b2",
+  "sky blue": "#38bdf8",
+  // Greens
+  "racing green": "#15803d",
+  "british racing green": "#14532d",
+  emerald: "#059669",
+  "forest green": "#166534",
+  green: "#16a34a",
+  olive: "#65a30d",
+  sage: "#4d7c0f",
+  // Yellows & Golds
+  "sunburst gold": "#d97706",
+  "champagne gold": "#eab308",
+  gold: "#ca8a04",
+  yellow: "#eab308",
+  "canary yellow": "#facc15",
+  bronze: "#92400e",
+  copper: "#b45309",
+  // Oranges
+  "sunset orange": "#ea580c",
+  "lava orange": "#f97316",
+  orange: "#ea580c",
+  tangerine: "#fb923c",
+  // Purples
+  purple: "#7c3aed",
+  violet: "#6d28d9",
+  magenta: "#c026d3",
+  // Browns
+  brown: "#78350f",
+  coffee: "#451a03",
+  mocha: "#5c2b16",
+  tan: "#d97706",
+  beige: "#f5d0fe",
+};
+
+export function resolveVehicleColor(colorStr?: string, fallbackMake?: string): VehicleColorInfo {
+  const raw = (colorStr || "").trim().toLowerCase();
+  let hex = "";
+
+  if (raw.startsWith("#") && (raw.length === 4 || raw.length === 7)) {
+    hex = raw;
+  } else if (raw in VEHICLE_COLOR_MAP) {
+    hex = VEHICLE_COLOR_MAP[raw];
+  } else if (raw) {
+    const match = Object.keys(VEHICLE_COLOR_MAP).find((k) => raw.includes(k));
+    if (match) {
+      hex = VEHICLE_COLOR_MAP[match];
+    } else {
+      if (raw.includes("white") || raw.includes("pearl") || raw.includes("ivory") || raw.includes("silver"))
+        hex = "#f1f5f9";
+      else if (raw.includes("black") || raw.includes("dark") || raw.includes("night") || raw.includes("shadow"))
+        hex = "#18181b";
+      else if (raw.includes("grey") || raw.includes("gray") || raw.includes("ash") || raw.includes("steel"))
+        hex = "#475569";
+      else if (raw.includes("red") || raw.includes("crimson") || raw.includes("ruby") || raw.includes("cherry"))
+        hex = "#dc2626";
+      else if (raw.includes("blue") || raw.includes("navy") || raw.includes("ocean") || raw.includes("azure"))
+        hex = "#2563eb";
+      else if (raw.includes("green") || raw.includes("emerald") || raw.includes("olive"))
+        hex = "#16a34a";
+      else if (raw.includes("yellow") || raw.includes("gold") || raw.includes("amber"))
+        hex = "#eab308";
+      else if (raw.includes("orange") || raw.includes("sunset") || raw.includes("copper"))
+        hex = "#ea580c";
+      else if (raw.includes("purple") || raw.includes("violet"))
+        hex = "#7c3aed";
+      else if (raw.includes("brown") || raw.includes("coffee") || raw.includes("bronze"))
+        hex = "#78350f";
+    }
+  }
+
+  if (!hex) {
+    const makeTheme = getMakeTheme(fallbackMake || "General");
+    hex = makeTheme.color || "#2563eb";
+  }
+
+  const isWhiteOrLight = hex === "#f8fafc" || hex === "#f1f5f9" || hex === "#fafafa" || hex === "#fef3c7";
+  const isBlackOrDark = hex === "#18181b" || hex === "#111827" || hex === "#09090b" || hex === "#1c1917" || hex === "#0f172a";
+
+  const highlight = isWhiteOrLight
+    ? "#ffffff"
+    : isBlackOrDark
+    ? "#3f3f46"
+    : `color-mix(in srgb, ${hex} 70%, #ffffff)`;
+
+  const shadow = isWhiteOrLight
+    ? "#94a3b8"
+    : isBlackOrDark
+    ? "#09090b"
+    : `color-mix(in srgb, ${hex} 60%, #000000)`;
+
+  const rimColor = isBlackOrDark ? "#71717a" : "#cbd5e1";
+
+  return {
+    hex,
+    highlight,
+    shadow,
+    rimColor,
+    isLight: isWhiteOrLight,
+    label: colorStr || "Standard Finish",
+  };
+}
+
+function FourWheelerSVG({ colorInfo, id }: { colorInfo: VehicleColorInfo; id: string }) {
+  return (
+    <svg
+      viewBox="0 0 500 200"
+      width="100%"
+      height="100%"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ maxWidth: 460, maxHeight: 185 }}
+    >
+      <defs>
+        <linearGradient id={`carBody-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={colorInfo.highlight} />
+          <stop offset="35%" stopColor={colorInfo.hex} />
+          <stop offset="85%" stopColor={colorInfo.shadow} />
+          <stop offset="100%" stopColor="#0f172a" />
+        </linearGradient>
+        <linearGradient id={`carRoof-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={colorInfo.shadow} />
+          <stop offset="50%" stopColor={colorInfo.highlight} />
+          <stop offset="100%" stopColor={colorInfo.shadow} />
+        </linearGradient>
+        <linearGradient id={`carGlass-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#1e293b" stopOpacity="0.95" />
+          <stop offset="40%" stopColor="#0f172a" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#020617" stopOpacity="0.98" />
+        </linearGradient>
+        <linearGradient id={`glassReflection-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.4" />
+          <stop offset="30%" stopColor="#60a5fa" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="transparent" />
+        </linearGradient>
+        <radialGradient id={`headlightGlow-${id}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`wheelShade-${id}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#334155" />
+          <stop offset="70%" stopColor="#0f172a" />
+          <stop offset="100%" stopColor="#020617" />
+        </radialGradient>
+      </defs>
+
+      {/* Soft ground shadow */}
+      <ellipse cx="250" cy="172" rx="200" ry="14" fill="rgba(0,0,0,0.45)" filter="blur(4px)" />
+
+      {/* Main Car Silhouette & Body */}
+      <path
+        d="M 90 148 L 415 148 Q 425 148 428 140 L 438 120 Q 442 110 435 105 L 420 98 Q 395 95 380 92 L 320 54 Q 300 42 270 42 L 195 42 Q 165 42 145 60 L 108 92 Q 80 96 68 106 Q 60 114 62 125 L 68 140 Q 75 148 90 148 Z"
+        fill={`url(#carBody-${id})`}
+      />
+
+      {/* Roof & Pillars */}
+      <path
+        d="M 148 60 Q 165 44 195 44 L 270 44 Q 298 44 316 55 L 372 90 L 115 90 Z"
+        fill={`url(#carRoof-${id})`}
+      />
+
+      {/* Windows / Glasshouse */}
+      <path d="M 152 63 L 225 63 L 225 88 L 122 88 Z" fill={`url(#carGlass-${id})`} />
+      <path d="M 233 63 L 290 63 L 302 88 L 233 88 Z" fill={`url(#carGlass-${id})`} />
+      <path d="M 298 63 Q 312 63 322 70 L 362 88 L 310 88 Z" fill={`url(#carGlass-${id})`} />
+
+      {/* Glass reflections */}
+      <path d="M 152 63 L 180 63 L 135 88 L 122 88 Z" fill={`url(#glassReflection-${id})`} />
+      <path d="M 238 63 L 255 63 L 245 88 L 233 88 Z" fill={`url(#glassReflection-${id})`} />
+
+      {/* Side Crease / Shoulder Line highlight */}
+      <path
+        d="M 75 102 Q 130 96 250 96 Q 370 96 425 100"
+        stroke={colorInfo.highlight}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        opacity="0.65"
+      />
+      <path d="M 100 135 L 390 135" stroke="rgba(0,0,0,0.3)" strokeWidth="2" strokeLinecap="round" />
+
+      {/* Door handles */}
+      <rect
+        x="200"
+        y="103"
+        width="16"
+        height="3.5"
+        rx="1.75"
+        fill={colorInfo.shadow}
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="0.5"
+      />
+      <rect
+        x="275"
+        y="103"
+        width="16"
+        height="3.5"
+        rx="1.75"
+        fill={colorInfo.shadow}
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="0.5"
+      />
+
+      {/* Front Headlight */}
+      <path d="M 64 114 Q 72 108 85 106 L 82 118 Q 70 120 64 114 Z" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="1" />
+      <ellipse cx="62" cy="115" rx="12" ry="8" fill={`url(#headlightGlow-${id})`} />
+
+      {/* Rear Taillight */}
+      <path d="M 425 104 Q 436 106 434 116 L 422 116 Q 420 108 425 104 Z" fill="#ef4444" stroke="#f87171" strokeWidth="1" />
+
+      {/* Wheel Arches */}
+      <path d="M 100 152 A 34 34 0 0 1 168 152 Z" fill="#0b0f19" />
+      <path d="M 330 152 A 34 34 0 0 1 398 152 Z" fill="#0b0f19" />
+
+      {/* Front Wheel */}
+      <g transform="translate(134, 150)">
+        <circle cx="0" cy="0" r="28" fill="#18181b" stroke="#27272a" strokeWidth="4" />
+        <circle cx="0" cy="0" r="20" fill={`url(#wheelShade-${id})`} stroke="#475569" strokeWidth="1.5" />
+        <rect x="-14" y="-12" width="6" height="12" rx="2" fill="#ef4444" />
+        <line x1="-15" y1="0" x2="15" y2="0" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <line x1="0" y1="-15" x2="0" y2="15" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <line x1="-11" y1="-11" x2="11" y2="11" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <line x1="-11" y1="11" x2="11" y2="-11" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <circle cx="0" cy="0" r="5" fill="#0f172a" stroke="#94a3b8" strokeWidth="1.5" />
+      </g>
+
+      {/* Rear Wheel */}
+      <g transform="translate(364, 150)">
+        <circle cx="0" cy="0" r="28" fill="#18181b" stroke="#27272a" strokeWidth="4" />
+        <circle cx="0" cy="0" r="20" fill={`url(#wheelShade-${id})`} stroke="#475569" strokeWidth="1.5" />
+        <rect x="-14" y="-12" width="6" height="12" rx="2" fill="#ef4444" />
+        <line x1="-15" y1="0" x2="15" y2="0" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <line x1="0" y1="-15" x2="0" y2="15" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <line x1="-11" y1="-11" x2="11" y2="11" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <line x1="-11" y1="11" x2="11" y2="-11" stroke={colorInfo.rimColor} strokeWidth="2.5" />
+        <circle cx="0" cy="0" r="5" fill="#0f172a" stroke="#94a3b8" strokeWidth="1.5" />
+      </g>
+    </svg>
+  );
+}
+
+function TwoWheelerSVG({ colorInfo, id }: { colorInfo: VehicleColorInfo; id: string }) {
+  return (
+    <svg
+      viewBox="0 0 500 200"
+      width="100%"
+      height="100%"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ maxWidth: 460, maxHeight: 185 }}
+    >
+      <defs>
+        <linearGradient id={`bikeBody-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={colorInfo.highlight} />
+          <stop offset="45%" stopColor={colorInfo.hex} />
+          <stop offset="100%" stopColor={colorInfo.shadow} />
+        </linearGradient>
+        <radialGradient id={`bikeGlow-${id}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+
+      {/* Shadow */}
+      <ellipse cx="250" cy="174" rx="180" ry="10" fill="rgba(0,0,0,0.45)" filter="blur(4px)" />
+
+      {/* Frame & Exhaust */}
+      <path d="M 230 148 L 320 152 L 390 140" stroke="#64748b" strokeWidth="8" strokeLinecap="round" />
+      <path d="M 315 152 L 390 140" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
+
+      {/* Engine Block */}
+      <rect x="215" y="116" width="55" height="42" rx="6" fill="#1e293b" stroke="#334155" strokeWidth="2" />
+      <line x1="220" y1="124" x2="265" y2="124" stroke="#475569" strokeWidth="2" />
+      <line x1="220" y1="132" x2="265" y2="132" stroke="#475569" strokeWidth="2" />
+      <line x1="220" y1="140" x2="265" y2="140" stroke="#475569" strokeWidth="2" />
+      <line x1="220" y1="148" x2="265" y2="148" stroke="#475569" strokeWidth="2" />
+
+      {/* Front Suspension Fork */}
+      <line x1="145" y1="145" x2="195" y2="65" stroke="#cbd5e1" strokeWidth="7" strokeLinecap="round" />
+      <line x1="145" y1="145" x2="195" y2="65" stroke="#475569" strokeWidth="3" strokeLinecap="round" />
+
+      {/* Rear Swingarm & Shock */}
+      <line x1="250" y1="135" x2="355" y2="145" stroke="#334155" strokeWidth="7" strokeLinecap="round" />
+      <line x1="270" y1="105" x2="310" y2="140" stroke="#ef4444" strokeWidth="5" strokeLinecap="round" />
+
+      {/* Fuel Tank (Painted) */}
+      <path
+        d="M 195 72 C 215 46 255 46 275 76 C 270 88 230 92 195 82 Z"
+        fill={`url(#bikeBody-${id})`}
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="1"
+      />
+
+      {/* Seat & Rear Cowl */}
+      <path d="M 268 74 Q 295 84 325 84 L 355 78 Q 370 74 380 78 L 370 92 Q 330 96 268 85 Z" fill="#0f172a" stroke="#1e293b" strokeWidth="1" />
+      <path d="M 335 80 L 380 78 L 370 92 L 330 92 Z" fill={`url(#bikeBody-${id})`} />
+
+      {/* Front Fender (Painted) */}
+      <path d="M 125 130 A 28 28 0 0 1 170 118" stroke={`url(#bikeBody-${id})`} strokeWidth="7" fill="none" strokeLinecap="round" />
+
+      {/* Handlebars */}
+      <path d="M 192 65 L 180 50 L 195 48" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" fill="none" />
+      <circle cx="178" cy="46" r="4.5" fill="#0f172a" stroke="#cbd5e1" strokeWidth="1.5" />
+
+      {/* Headlamp */}
+      <path d="M 165 74 Q 156 82 165 90" stroke="#38bdf8" strokeWidth="5" strokeLinecap="round" fill="none" />
+      <circle cx="158" cy="82" r="14" fill={`url(#bikeGlow-${id})`} />
+
+      {/* Wheels */}
+      <g transform="translate(145, 145)">
+        <circle cx="0" cy="0" r="32" fill="#18181b" stroke="#27272a" strokeWidth="5" />
+        <circle cx="0" cy="0" r="22" fill="#0f172a" stroke="#475569" strokeWidth="2" />
+        <circle cx="0" cy="0" r="14" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
+        <line x1="-18" y1="0" x2="18" y2="0" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="0" y1="-18" x2="0" y2="18" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-13" y1="-13" x2="13" y2="13" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-13" y1="13" x2="13" y2="-13" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <circle cx="0" cy="0" r="6" fill="#1e293b" stroke="#e2e8f0" strokeWidth="1.5" />
+      </g>
+
+      <g transform="translate(355, 145)">
+        <circle cx="0" cy="0" r="32" fill="#18181b" stroke="#27272a" strokeWidth="5" />
+        <circle cx="0" cy="0" r="22" fill="#0f172a" stroke="#475569" strokeWidth="2" />
+        <circle cx="0" cy="0" r="14" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
+        <line x1="-18" y1="0" x2="18" y2="0" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="0" y1="-18" x2="0" y2="18" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-13" y1="-13" x2="13" y2="13" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-13" y1="13" x2="13" y2="-13" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <circle cx="0" cy="0" r="6" fill="#1e293b" stroke="#e2e8f0" strokeWidth="1.5" />
+      </g>
+    </svg>
+  );
+}
+
+function CommercialSVG({ colorInfo, id }: { colorInfo: VehicleColorInfo; id: string }) {
+  return (
+    <svg
+      viewBox="0 0 500 200"
+      width="100%"
+      height="100%"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ maxWidth: 460, maxHeight: 185 }}
+    >
+      <defs>
+        <linearGradient id={`vanBody-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={colorInfo.highlight} />
+          <stop offset="40%" stopColor={colorInfo.hex} />
+          <stop offset="100%" stopColor={colorInfo.shadow} />
+        </linearGradient>
+        <linearGradient id={`vanGlass-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#1e293b" />
+          <stop offset="100%" stopColor="#020617" />
+        </linearGradient>
+        <radialGradient id={`vanHeadlight-${id}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+
+      {/* Shadow */}
+      <ellipse cx="250" cy="174" rx="205" ry="12" fill="rgba(0,0,0,0.45)" filter="blur(4px)" />
+
+      {/* Main Cabin & Body */}
+      <path
+        d="M 75 148 L 425 148 Q 435 148 435 138 L 435 60 Q 435 50 425 50 L 160 50 Q 140 50 120 75 L 85 110 Q 72 120 72 135 L 72 142 Q 72 148 75 148 Z"
+        fill={`url(#vanBody-${id})`}
+      />
+
+      {/* Windshield & Windows */}
+      <path d="M 125 78 L 155 56 L 195 56 L 195 95 L 105 95 Z" fill={`url(#vanGlass-${id})`} />
+      <path d="M 205 56 L 270 56 L 270 95 L 205 95 Z" fill={`url(#vanGlass-${id})`} />
+      <path d="M 280 56 L 345 56 L 345 95 L 280 95 Z" fill={`url(#vanGlass-${id})`} />
+      <path d="M 355 56 L 420 56 L 420 95 L 355 95 Z" fill={`url(#vanGlass-${id})`} />
+
+      {/* Separation line */}
+      <line x1="200" y1="50" x2="200" y2="148" stroke="rgba(0,0,0,0.35)" strokeWidth="2" />
+      <line x1="200" y1="105" x2="435" y2="105" stroke={colorInfo.highlight} strokeWidth="2" opacity="0.6" />
+
+      {/* Headlight & Taillight */}
+      <path d="M 72 122 Q 80 118 88 118 L 88 132 L 72 132 Z" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="1" />
+      <ellipse cx="70" cy="125" rx="12" ry="8" fill={`url(#vanHeadlight-${id})`} />
+      <rect x="428" y="110" width="7" height="24" rx="2" fill="#ef4444" stroke="#f87171" strokeWidth="1" />
+
+      {/* Wheel Arches */}
+      <path d="M 105 152 A 32 32 0 0 1 169 152 Z" fill="#0b0f19" />
+      <path d="M 345 152 A 32 32 0 0 1 409 152 Z" fill="#0b0f19" />
+
+      {/* Front Wheel */}
+      <g transform="translate(137, 150)">
+        <circle cx="0" cy="0" r="28" fill="#18181b" stroke="#27272a" strokeWidth="4" />
+        <circle cx="0" cy="0" r="18" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
+        <line x1="-12" y1="0" x2="12" y2="0" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="0" y1="-12" x2="0" y2="12" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <circle cx="0" cy="0" r="5" fill="#1e293b" stroke="#cbd5e1" strokeWidth="1" />
+      </g>
+
+      {/* Rear Wheel */}
+      <g transform="translate(377, 150)">
+        <circle cx="0" cy="0" r="28" fill="#18181b" stroke="#27272a" strokeWidth="4" />
+        <circle cx="0" cy="0" r="18" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
+        <line x1="-12" y1="0" x2="12" y2="0" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="0" y1="-12" x2="0" y2="12" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <circle cx="0" cy="0" r="5" fill="#1e293b" stroke="#cbd5e1" strokeWidth="1" />
+      </g>
+    </svg>
+  );
+}
+
+const CURATED_VEHICLE_PHOTOS: Record<string, string> = {
+  // Honda Scooters & Cars
+  "honda activa": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
+  "honda activa 5g": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
+  "honda activa 6g": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
+  "honda activa 125": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
+  activa: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
+  "honda dio": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Honda_Dio_Scooter.jpg/800px-Honda_Dio_Scooter.jpg",
+  "honda city": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/2020_Honda_City_1.5L_GN2_%2820210214%29.jpg/800px-2020_Honda_City_1.5L_GN2_%2820210214%29.jpg",
+  "honda elevate": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/2023_Honda_Elevate_ZX_%28India%29_front_view_01.jpg/800px-2023_Honda_Elevate_ZX_%28India%29_front_view_01.jpg",
+  "honda amaze": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2018_Honda_Amaze_1.2_VX_%28India%29_front_view.jpg/800px-2018_Honda_Amaze_1.2_VX_%28India%29_front_view.jpg",
+
+  // Royal Enfield
+  "royal enfield hunter 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Hunter_350_side_view_India_Model.png/800px-Hunter_350_side_view_India_Model.png",
+  "hunter 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Hunter_350_side_view_India_Model.png/800px-Hunter_350_side_view_India_Model.png",
+  "royal enfield classic 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Royal_Enfield_Classic_350.jpg/800px-Royal_Enfield_Classic_350.jpg",
+  "classic 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Royal_Enfield_Classic_350.jpg/800px-Royal_Enfield_Classic_350.jpg",
+  "royal enfield himalayan": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Royal_Enfield_Himalayan_450.jpg/800px-Royal_Enfield_Himalayan_450.jpg",
+  "royal enfield bullet 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Royal_Enfield_Bullet_Electra_Twinspark.jpg/800px-Royal_Enfield_Bullet_Electra_Twinspark.jpg",
+
+  // Tata Motors
+  "tata nexon": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Tata_Nexon_Blue_Dual_Tone.jpg/800px-Tata_Nexon_Blue_Dual_Tone.jpg",
+  "tata nexon ev": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Tata_Nexon_Facelift_IMG_8435.jpg/800px-Tata_Nexon_Facelift_IMG_8435.jpg",
+  "nexon ev": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Tata_Nexon_Facelift_IMG_8435.jpg/800px-Tata_Nexon_Facelift_IMG_8435.jpg",
+  "tata punch": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/2021_Tata_Punch_Creative_%28India%29_front_view.jpg/800px-2021_Tata_Punch_Creative_%28India%29_front_view.jpg",
+  "tata harrier": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/2023_Tata_Harrier_Fearless%2B_%28India%29_front_view.jpg/800px-2023_Tata_Harrier_Fearless%2B_%28India%29_front_view.jpg",
+  "tata safari": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/2021_Tata_Safari_XZ%2B_%28India%29_front_view.jpg/800px-2021_Tata_Safari_XZ%2B_%28India%29_front_view.jpg",
+  "tata tiago": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/2020_Tata_Tiago_XZ%2B_BS6_1.2_Front.jpg/800px-2020_Tata_Tiago_XZ%2B_BS6_1.2_Front.jpg",
+  "tata altroz": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/2020_Tata_Altroz_XZ_1.2_Front.jpg/800px-2020_Tata_Altroz_XZ_1.2_Front.jpg",
+
+  // Hyundai
+  "hyundai creta": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg/800px-2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg",
+  creta: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg/800px-2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg",
+  "hyundai venue": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/2020_Hyundai_Venue_Denim_%28United_States%29_front_view.jpg/800px-2020_Hyundai_Venue_Denim_%28United_States%29_front_view.jpg",
+  "hyundai i20": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/2020_Hyundai_i20_SE_MHEV_1.0_Front.jpg/800px-2020_Hyundai_i20_SE_MHEV_1.0_Front.jpg",
+  "hyundai verna": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/2023_Hyundai_Verna_SX%28O%29_1.5_Turbo_%28India%29_front_view_01.jpg/800px-2023_Hyundai_Verna_SX%28O%29_1.5_Turbo_%28India%29_front_view_01.jpg",
+
+  // Maruti Suzuki
+  "maruti suzuki swift": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg/800px-2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg",
+  swift: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg/800px-2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg",
+  "maruti brezza": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2022_Maruti_Suzuki_Brezza_ZXi%2B_%28India%29_front_view.jpg/800px-2022_Maruti_Suzuki_Brezza_ZXi%2B_%28India%29_front_view.jpg",
+  "maruti baleno": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/2022_Maruti_Suzuki_Baleno_Alpha_%28India%29_front_view.jpg/800px-2022_Maruti_Suzuki_Baleno_Alpha_%28India%29_front_view.jpg",
+  "maruti grand vitara": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/2022_Maruti_Suzuki_Grand_Vitara_Alpha%2B_%28India%29_front_view.jpg/800px-2022_Maruti_Suzuki_Grand_Vitara_Alpha%2B_%28India%29_front_view.jpg",
+  "maruti dzire": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/2017_Maruti_Suzuki_Dzire_ZXi%2B_1.2_Front.jpg/800px-2017_Maruti_Suzuki_Dzire_ZXi%2B_1.2_Front.jpg",
+  "maruti ertiga": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/2019_Suzuki_Ertiga_GL_1.5_Front.jpg/800px-2019_Suzuki_Ertiga_GL_1.5_Front.jpg",
+
+  // Mahindra
+  "mahindra thar": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Mahindra_Thar_2020.jpg/800px-Mahindra_Thar_2020.jpg",
+  thar: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Mahindra_Thar_2020.jpg/800px-Mahindra_Thar_2020.jpg",
+  "mahindra xuv700": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg/800px-2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg",
+  xuv700: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg/800px-2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg",
+  "mahindra scorpio-n": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg/800px-2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg",
+  scorpio: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg/800px-2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg",
+
+  // Kia
+  "kia seltos": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/2019_Kia_Seltos_HTX%2B_1.4_Front.jpg/800px-2019_Kia_Seltos_HTX%2B_1.4_Front.jpg",
+  "kia sonet": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/2020_Kia_Sonet_GTX%2B_1.0_Front.jpg/800px-2020_Kia_Sonet_GTX%2B_1.0_Front.jpg",
+
+  // Toyota
+  "toyota fortuner": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg/800px-2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg",
+  fortuner: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg/800px-2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg",
+  "toyota innova": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg/800px-2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg",
+  innova: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg/800px-2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg",
+
+  // TVS / Bajaj / EV Two-Wheelers
+  "tvs jupiter": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/TVS_Jupiter_Scooter.jpg/800px-TVS_Jupiter_Scooter.jpg",
+  jupiter: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/TVS_Jupiter_Scooter.jpg/800px-TVS_Jupiter_Scooter.jpg",
+  "tvs ntorq": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/TVS_NTORQ_125_Race_Edition.jpg/800px-TVS_NTORQ_125_Race_Edition.jpg",
+  "tvs apache": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/TVS_Apache_RTR_160_4V.jpg/800px-TVS_Apache_RTR_160_4V.jpg",
+  "bajaj pulsar": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Bajaj_Pulsar_150_DTS-i.jpg/800px-Bajaj_Pulsar_150_DTS-i.jpg",
+  "bajaj chetak": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Bajaj_Chetak_EV_Scooter.jpg/800px-Bajaj_Chetak_EV_Scooter.jpg",
+  "ather 450x": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Ather_450X_Gen3.jpg/800px-Ather_450X_Gen3.jpg",
+  "ola s1 pro": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Ola_S1_Pro_Electric_Scooter.jpg/800px-Ola_S1_Pro_Electric_Scooter.jpg",
+  vespa: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Vespa_Primavera_125_3V_ie_Front.jpg/800px-Vespa_Primavera_125_3V_ie_Front.jpg",
+};
+
+function ScooterSVG({ colorInfo, id }: { colorInfo: VehicleColorInfo; id: string }) {
+  return (
+    <svg
+      viewBox="0 0 500 200"
+      width="100%"
+      height="100%"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ maxWidth: 460, maxHeight: 185 }}
+    >
+      <defs>
+        <linearGradient id={`scooterBody-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={colorInfo.highlight} />
+          <stop offset="40%" stopColor={colorInfo.hex} />
+          <stop offset="100%" stopColor={colorInfo.shadow} />
+        </linearGradient>
+        <linearGradient id={`scooterFloor-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#334155" />
+          <stop offset="100%" stopColor="#0f172a" />
+        </linearGradient>
+        <radialGradient id={`scooterGlow-${id}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+
+      {/* Ground shadow */}
+      <ellipse cx="250" cy="172" rx="175" ry="12" fill="rgba(0,0,0,0.45)" filter="blur(4px)" />
+
+      {/* Exhaust Pipe under rear body */}
+      <path d="M 270 152 L 365 152 L 375 145" stroke="#475569" strokeWidth="8" strokeLinecap="round" />
+      <path d="M 320 152 L 375 145" stroke="#94a3b8" strokeWidth="10" strokeLinecap="round" />
+
+      {/* Rear Engine & CVT Case */}
+      <rect x="260" y="132" width="70" height="26" rx="6" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+      <circle cx="280" cy="145" r="7" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+
+      {/* Main Scooter Rear Body / Curved Side Cowl (Painted) */}
+      <path
+        d="M 230 142 Q 225 105 265 95 L 340 92 Q 380 92 388 120 Q 392 135 380 145 L 345 145 Q 320 125 250 142 Z"
+        fill={`url(#scooterBody-${id})`}
+        stroke="rgba(255,255,255,0.2)"
+        strokeWidth="1"
+      />
+
+      {/* Chrome Activa / Model 3D Badge Strip */}
+      <path d="M 280 115 Q 325 112 360 118" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" opacity="0.9" />
+
+      {/* Contoured Comfortable Scooter Seat */}
+      <path
+        d="M 220 95 Q 260 90 310 90 Q 350 90 365 95 Q 370 102 355 106 L 235 106 Q 220 104 220 95 Z"
+        fill="#0f172a"
+        stroke="#1e293b"
+        strokeWidth="1"
+      />
+      {/* Rear Grab Rail (Silver/Chrome) */}
+      <path d="M 355 92 Q 385 88 392 102 L 382 104" stroke="#cbd5e1" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+
+      {/* Step-Through Flat Floorboard */}
+      <path d="M 180 144 L 245 144 L 240 134 L 190 134 Z" fill={`url(#scooterFloor-${id})`} stroke="#475569" strokeWidth="1" />
+      <line x1="195" y1="138" x2="235" y2="138" stroke="#64748b" strokeWidth="2" strokeLinecap="round" />
+
+      {/* Front Curved Apron / Leg Shield (Painted) */}
+      <path
+        d="M 185 144 L 165 90 Q 155 65 178 52 L 195 56 Q 185 80 198 120 L 210 144 Z"
+        fill={`url(#scooterBody-${id})`}
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="1"
+      />
+
+      {/* Front Apron Center Nose Crease */}
+      <path d="M 182 60 L 175 110" stroke={colorInfo.highlight} strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+
+      {/* Handlebar & Headlamp Cowl (Painted) */}
+      <path
+        d="M 165 52 Q 180 40 205 50 L 198 62 Q 175 58 165 52 Z"
+        fill={`url(#scooterBody-${id})`}
+        stroke="rgba(255,255,255,0.4)"
+        strokeWidth="1"
+      />
+
+      {/* Headlamp Unit */}
+      <path d="M 164 50 Q 172 45 182 48 L 180 56 Q 168 56 164 50 Z" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="1" />
+      <circle cx="168" cy="50" r="10" fill={`url(#scooterGlow-${id})`} />
+
+      {/* Rearview Mirrors (Chrome/Black) */}
+      <path d="M 185 45 L 175 28" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
+      <ellipse cx="172" cy="26" rx="6" ry="4" fill="#0f172a" stroke="#cbd5e1" strokeWidth="1" transform="rotate(-20 172 26)" />
+
+      {/* Front Mudguard / Fender (Painted) */}
+      <path d="M 130 132 A 25 25 0 0 1 175 125 L 170 142 Q 145 142 130 132 Z" fill={`url(#scooterBody-${id})`} />
+
+      {/* Front Telescopic Fork */}
+      <line x1="150" y1="145" x2="175" y2="90" stroke="#cbd5e1" strokeWidth="5" strokeLinecap="round" />
+
+      {/* Front Scooter Wheel (10-12 inch) */}
+      <g transform="translate(145, 146)">
+        <circle cx="0" cy="0" r="26" fill="#18181b" stroke="#27272a" strokeWidth="4" />
+        <circle cx="0" cy="0" r="17" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
+        <line x1="-12" y1="0" x2="12" y2="0" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="0" y1="-12" x2="0" y2="12" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-9" y1="-9" x2="9" y2="9" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-9" y1="9" x2="9" y2="-9" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <circle cx="0" cy="0" r="5" fill="#1e293b" stroke="#cbd5e1" strokeWidth="1" />
+      </g>
+
+      {/* Rear Scooter Wheel */}
+      <g transform="translate(345, 146)">
+        <circle cx="0" cy="0" r="26" fill="#18181b" stroke="#27272a" strokeWidth="4" />
+        <circle cx="0" cy="0" r="17" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
+        <line x1="-12" y1="0" x2="12" y2="0" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="0" y1="-12" x2="0" y2="12" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-9" y1="-9" x2="9" y2="9" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <line x1="-9" y1="9" x2="9" y2="-9" stroke={colorInfo.rimColor} strokeWidth="2" />
+        <circle cx="0" cy="0" r="5" fill="#1e293b" stroke="#cbd5e1" strokeWidth="1" />
+      </g>
+    </svg>
+  );
+}
+
+export function VehicleIllustration({
+  vehicleType = "four-wheeler",
+  color,
+  make,
+  model,
+  height = 180,
+  className,
+}: {
+  vehicleType?: string;
+  color?: string;
+  make?: string;
+  model?: string;
+  height?: number;
+  className?: string;
+}) {
+  const id = useMemo(() => Math.random().toString(36).substring(2, 9), []);
+  const colorInfo = useMemo(() => resolveVehicleColor(color, make), [color, make]);
+
+  const vt = (vehicleType || "").toLowerCase();
+  const mLower = (model || "").toLowerCase();
+  const isScooter =
+    mLower.includes("activa") ||
+    mLower.includes("jupiter") ||
+    mLower.includes("vespa") ||
+    mLower.includes("dio") ||
+    mLower.includes("ntorq") ||
+    mLower.includes("access") ||
+    mLower.includes("chetak") ||
+    mLower.includes("ather") ||
+    mLower.includes("ola") ||
+    mLower.includes("burgman") ||
+    mLower.includes("destini") ||
+    mLower.includes("pleasure") ||
+    mLower.includes("fascino") ||
+    mLower.includes("ray") ||
+    mLower.includes("scooter");
+
+  const isBike =
+    !isScooter &&
+    (vt.includes("two") || vt.includes("bike") || vt.includes("scooter") || vt.includes("motorcycle"));
+  const isCommercial =
+    vt.includes("commercial") || vt.includes("truck") || vt.includes("van") || vt.includes("bus");
+
+  return (
+    <div
+      className={className}
+      style={{
+        width: "100%",
+        height,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Studio Radial Backdrop Lighting matching vehicle paint color */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: `radial-gradient(ellipse 65% 55% at 50% 60%, color-mix(in srgb, ${colorInfo.hex} 24%, transparent) 0%, color-mix(in srgb, ${colorInfo.hex} 7%, transparent) 45%, transparent 75%)`,
+          pointerEvents: "none",
+        }}
+      />
+      {/* Floor Spotlight glow line */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "16%",
+          left: "15%",
+          right: "15%",
+          height: 1,
+          background: `linear-gradient(90deg, transparent 0%, color-mix(in srgb, ${colorInfo.hex} 40%, rgba(255,255,255,0.2)) 50%, transparent 100%)`,
+          pointerEvents: "none",
+        }}
+      />
+
+      {isScooter ? (
+        <ScooterSVG colorInfo={colorInfo} id={id} />
+      ) : isBike ? (
+        <TwoWheelerSVG colorInfo={colorInfo} id={id} />
+      ) : isCommercial ? (
+        <CommercialSVG colorInfo={colorInfo} id={id} />
+      ) : (
+        <FourWheelerSVG colorInfo={colorInfo} id={id} />
+      )}
+    </div>
+  );
+}
 
 const _vpCache: Record<string, string | null> = {};
 
-function VehiclePhotoPreview({
+export function VehiclePhotoPreview({
   make,
   model,
+  color,
+  vehicleType,
   photoUrl,
-  height = 180,
+  height = 220,
 }: {
   make: string;
   model: string;
+  color?: string;
+  vehicleType?: string;
   photoUrl?: string;
   height?: number;
 }) {
-  const [src, setSrc] = useState<string | null>(photoUrl || null);
-  const [failed, setFailed] = useState(false);
+  const [mode, setMode] = useState<"photo" | "render">("photo");
+  const [photoSrc, setPhotoSrc] = useState<string | null>(photoUrl || null);
+  const [photoFailed, setPhotoFailed] = useState(false);
   const cacheKey = `${make}|${model}`;
+  const colorInfo = useMemo(() => resolveVehicleColor(color, make), [color, make]);
 
   useEffect(() => {
     if (photoUrl) {
-      setSrc(photoUrl);
-      setFailed(false);
+      setPhotoSrc(photoUrl);
+      setPhotoFailed(false);
+      setMode("photo");
       return;
     }
+
+    const fullKey = `${make} ${model}`.trim().toLowerCase();
+    const modelKey = (model || "").trim().toLowerCase();
+    const cleanModel = modelKey.replace(/\s+(5g|6g|125|150|350|ev|facelift|bs6|plus|hybrid)\b/gi, "").trim();
+
+    if (fullKey in CURATED_VEHICLE_PHOTOS) {
+      setPhotoSrc(CURATED_VEHICLE_PHOTOS[fullKey]);
+      setPhotoFailed(false);
+      return;
+    }
+    if (modelKey in CURATED_VEHICLE_PHOTOS) {
+      setPhotoSrc(CURATED_VEHICLE_PHOTOS[modelKey]);
+      setPhotoFailed(false);
+      return;
+    }
+    const matchCurated = Object.entries(CURATED_VEHICLE_PHOTOS).find(
+      ([k]) => fullKey.includes(k) || (cleanModel && k.includes(cleanModel))
+    );
+    if (matchCurated) {
+      setPhotoSrc(matchCurated[1]);
+      setPhotoFailed(false);
+      return;
+    }
+
     if (cacheKey in _vpCache) {
-      setSrc(_vpCache[cacheKey]);
+      setPhotoSrc(_vpCache[cacheKey]);
       return;
     }
 
@@ -452,53 +1248,28 @@ function VehiclePhotoPreview({
       .then((url) => {
         if (url) {
           _vpCache[cacheKey] = url;
-          setSrc(url);
+          setPhotoSrc(url);
           return;
         }
-        return tryFetch(`${make} ${model} motorcycle`).then((u) => {
-          _vpCache[cacheKey] = u;
-          setSrc(u);
+        const cleanQuery = `${make} ${cleanModel}`.trim();
+        return tryFetch(cleanQuery).then((u) => {
+          if (u) {
+            _vpCache[cacheKey] = u;
+            setPhotoSrc(u);
+            return;
+          }
+          return tryFetch(`${cleanModel}`).then((u2) => {
+            if (u2) {
+              _vpCache[cacheKey] = u2;
+              setPhotoSrc(u2);
+            }
+          });
         });
       })
       .catch(() => {});
   }, [make, model, photoUrl, cacheKey]);
 
-  if (!src || failed) {
-    const theme = getMakeTheme(make);
-    return (
-      <div
-        style={{
-          height,
-          background: `linear-gradient(135deg, color-mix(in srgb, ${theme.color} 15%, var(--surface-0)) 0%, color-mix(in srgb, var(--surface-1) 80%, transparent) 100%)`,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          overflow: "hidden",
-          borderBottom: "1px solid var(--t-line, var(--border))",
-        }}
-      >
-        <div style={{ opacity: 0.18, transform: "scale(1.8)" }}>
-          <Car size={64} style={{ color: theme.color }} />
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            bottom: 12,
-            left: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>
-            {make} {model}
-          </span>
-        </div>
-      </div>
-    );
-  }
+  const hasPhoto = Boolean(photoSrc && !photoFailed);
 
   return (
     <div
@@ -510,42 +1281,183 @@ function VehiclePhotoPreview({
         borderBottom: "1px solid var(--t-line, var(--border))",
       }}
     >
-      <img
-        src={src}
-        alt={`${make} ${model}`}
-        onError={() => setFailed(true)}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-          opacity: 0.92,
-        }}
-      />
+      {mode === "photo" && hasPhoto ? (
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            background: `radial-gradient(ellipse at center, color-mix(in srgb, var(--surface-0) 90%, transparent) 0%, var(--surface-1) 100%)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {/* Subtle background blur backdrop */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url(${photoSrc!})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(24px) opacity(0.22)",
+              transform: "scale(1.1)",
+            }}
+          />
+          {/* Actual 3D / Real Vehicle Photo */}
+          <img
+            src={photoSrc!}
+            alt={`${make} ${model}`}
+            onError={() => {
+              setPhotoFailed(true);
+              setMode("render");
+            }}
+            style={{
+              position: "relative",
+              maxWidth: "92%",
+              maxHeight: "85%",
+              objectFit: "contain",
+              display: "block",
+              filter: "drop-shadow(0 10px 22px rgba(0,0,0,0.38))",
+              zIndex: 1,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 50,
+              background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.7))",
+              zIndex: 2,
+            }}
+          />
+        </div>
+      ) : (
+        <VehicleIllustration
+          vehicleType={vehicleType}
+          color={color}
+          make={make}
+          model={model}
+          height={height}
+        />
+      )}
+
+      {/* Bottom Info Overlay */}
       <div
         style={{
           position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 60,
-          background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.75))",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: 12,
+          bottom: 10,
           left: 16,
-          fontSize: 14,
-          fontWeight: 800,
-          color: "#fff",
-          textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-          letterSpacing: "-0.01em",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          zIndex: 3,
         }}
       >
-        {make} {model}
+        <span
+          style={{
+            fontSize: 14,
+            fontWeight: 800,
+            color: "#fff",
+            letterSpacing: "-0.01em",
+            textShadow: "0 1px 4px rgba(0,0,0,0.9)",
+          }}
+        >
+          {make} {model}
+        </span>
+        {color && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "2px 8px",
+              borderRadius: 20,
+              background: "rgba(0,0,0,0.55)",
+              color: "#fff",
+              backdropFilter: "blur(6px)",
+              border: "1px solid rgba(255,255,255,0.2)",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: colorInfo.hex,
+                border: "1px solid rgba(255,255,255,0.6)",
+                display: "inline-block",
+              }}
+            />
+            {color}
+          </span>
+        )}
       </div>
+
+      {/* Mode Switcher Button */}
+      {hasPhoto && (
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 14,
+            zIndex: 4,
+            display: "flex",
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(8px)",
+            borderRadius: 8,
+            padding: 3,
+            border: "1px solid rgba(255,255,255,0.2)",
+            gap: 2,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setMode("photo")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "4px 9px",
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 6,
+              border: "none",
+              cursor: "pointer",
+              background: mode === "photo" ? "var(--t-accent)" : "transparent",
+              color: mode === "photo" ? "#fff" : "rgba(255,255,255,0.75)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Camera size={12} /> 3D Real Photo
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("render")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "4px 9px",
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 6,
+              border: "none",
+              cursor: "pointer",
+              background: mode === "render" ? "var(--t-accent)" : "transparent",
+              color: mode === "render" ? "#fff" : "rgba(255,255,255,0.75)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Palette size={12} /> 3D Studio Paint
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -875,6 +1787,27 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
         />
       }
     >
+      {/* Live Vehicle Visual Preview & Real Photo Showcase */}
+      <div
+        style={{
+          borderRadius: 12,
+          overflow: "hidden",
+          background: "var(--surface-1, var(--surface))",
+          border: "1px solid var(--t-line, var(--border))",
+          marginBottom: 16,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+        }}
+      >
+        <VehiclePhotoPreview
+          make={f.make || "General"}
+          model={f.model || ""}
+          color={f.color}
+          vehicleType={f.vehicleType || "four-wheeler"}
+          photoUrl={f.photoUrl}
+          height={175}
+        />
+      </div>
+
       {/* Group 1: Identity */}
       <div
         style={{
@@ -957,12 +1890,59 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
           />
         </Field>
         <Field label="Exterior Color">
-          <input
-            style={inp}
-            value={f.color}
-            onChange={(e) => set("color", e.target.value)}
-            placeholder="e.g. Daytona Grey, Arctic White"
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <input
+              style={inp}
+              value={f.color}
+              onChange={(e) => set("color", e.target.value)}
+              placeholder="e.g. Daytona Grey, Arctic White, Royal Blue"
+            />
+            {/* Quick Luxury Color Preset Swatches */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--t-muted)", textTransform: "uppercase" }}>
+                Presets:
+              </span>
+              {PRESET_VEHICLE_COLORS.map((preset) => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => set("color", preset.name)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "2px 7px",
+                    borderRadius: 12,
+                    border:
+                      f.color?.toLowerCase() === preset.name.toLowerCase()
+                        ? `1.5px solid ${THEME.accent}`
+                        : "1px solid var(--t-line)",
+                    background:
+                      f.color?.toLowerCase() === preset.name.toLowerCase()
+                        ? `color-mix(in srgb, ${THEME.accent} 12%, var(--surface-0))`
+                        : "var(--surface-0)",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: preset.hex,
+                      border: "1px solid rgba(0,0,0,0.2)",
+                      display: "inline-block",
+                    }}
+                  />
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </Field>
       </div>
 
@@ -1879,9 +2859,33 @@ function VehicleCard({
             >
               <fuelMeta.icon size={11} /> {fuelMeta.label}
             </span>
-            {vehicle.color && (
-              <span style={{ fontSize: 12, color: "var(--t-muted)" }}>• {vehicle.color}</span>
-            )}
+            {vehicle.color && (() => {
+              const cInfo = resolveVehicleColor(vehicle.color, vehicle.make);
+              return (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--t-muted)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  •
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: "50%",
+                      background: cInfo.hex,
+                      border: "1px solid rgba(0,0,0,0.25)",
+                      display: "inline-block",
+                    }}
+                  />
+                  {vehicle.color}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Plate & Owner & Odometer Sub-row */}
@@ -2002,8 +3006,10 @@ function VehicleCard({
           <VehiclePhotoPreview
             make={vehicle.make}
             model={vehicle.model}
+            color={vehicle.color}
+            vehicleType={vehicle.vehicleType}
             photoUrl={vehicle.photoUrl}
-            height={190}
+            height={200}
           />
 
           {/* Quick Action Strip */}
@@ -2120,7 +3126,7 @@ function VehicleCard({
                   {
                     label: "Engine Number",
                     value: vehicle.engineNumber || "—",
-                    icon: Gauge,
+                    icon: Cog,
                     color: THEME.pink,
                   },
                 ].map((spec, i) => {
