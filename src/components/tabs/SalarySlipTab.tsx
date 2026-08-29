@@ -288,8 +288,18 @@ Return only the JSON, no explanation.`;
       maxWidth={720}
     >
       <style>{`
+        .salary-slip-components-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        @media (max-width: 640px) {
+          .salary-slip-components-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
         @media (max-width: 480px) {
           .salary-slip-info-grid { grid-template-columns: 1fr !important; }
+          .salary-slip-components-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
       <ModalSection title="Slip Info" first />
@@ -297,7 +307,7 @@ Return only the JSON, no explanation.`;
         className="salary-slip-info-grid"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 8 }}
       >
-        <Field label="Month *">
+        <Field label="Month *" style={{ marginBottom: 0 }}>
           <input
             className="form-input"
             type="month"
@@ -306,7 +316,7 @@ Return only the JSON, no explanation.`;
             style={duplicate ? { borderColor: THEME.rust } : undefined}
           />
         </Field>
-        <Field label="Employer">
+        <Field label="Employer" style={{ marginBottom: 0 }}>
           <input
             className="form-input"
             value={form.employer}
@@ -314,7 +324,7 @@ Return only the JSON, no explanation.`;
             placeholder="Company name"
           />
         </Field>
-        <Field label="Owner">
+        <Field label="Owner" style={{ marginBottom: 0 }}>
           <select
             className="form-input"
             value={form.owner}
@@ -421,14 +431,7 @@ Return only the JSON, no explanation.`;
       >
         Earnings
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
+      <div className="salary-slip-components-grid">
         {[
           ["basic", "Basic Salary"],
           ["hra", "HRA"],
@@ -441,7 +444,12 @@ Return only the JSON, no explanation.`;
           ["otherEarnings", "Other Earnings"],
           ["grossSalary", "Gross Salary *"],
         ].map(([k, label]) => (
-          <Field key={k} label={label}>
+          <Field
+            key={k}
+            label={label}
+            style={{ marginBottom: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "flex-end" }}
+            labelStyle={{ minHeight: 28, display: "flex", alignItems: "flex-end", marginBottom: 6, lineHeight: 1.25 }}
+          >
             <input
               className="form-input"
               type="number"
@@ -469,14 +477,7 @@ Return only the JSON, no explanation.`;
       >
         Deductions
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
+      <div className="salary-slip-components-grid">
         {[
           ["pfEmployee", "PF (Employee)"],
           ["pfEmployer", "PF (Employer)"],
@@ -488,7 +489,12 @@ Return only the JSON, no explanation.`;
           ["otherDeductions", "Other Deductions"],
           ["totalDeductions", "Total Deductions *"],
         ].map(([k, label]) => (
-          <Field key={k} label={label}>
+          <Field
+            key={k}
+            label={label}
+            style={{ marginBottom: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "flex-end" }}
+            labelStyle={{ minHeight: 28, display: "flex", alignItems: "flex-end", marginBottom: 6, lineHeight: 1.25 }}
+          >
             <input
               className="form-input"
               type="number"

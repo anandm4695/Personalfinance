@@ -5,10 +5,11 @@ interface FieldProps {
   label: string;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  labelStyle?: React.CSSProperties;
   error?: string;
 }
 
-export const Field: React.FC<FieldProps> = ({ label, children, style, error }) => {
+export const Field: React.FC<FieldProps> = ({ label, children, style, labelStyle, error }) => {
   const autoId = React.useId();
   const errorId = `${autoId}-error`;
   const onlyChild =
@@ -38,6 +39,7 @@ export const Field: React.FC<FieldProps> = ({ label, children, style, error }) =
           marginBottom: 6,
           textTransform: "uppercase",
           letterSpacing: "0.05em",
+          ...labelStyle,
         }}
       >
         {label}
