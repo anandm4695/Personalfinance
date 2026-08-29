@@ -1629,7 +1629,7 @@ function CCList({
                 lineHeight: 1,
               }}
             >
-              ✕
+              <X size={13} />
             </button>
           </div>
         )}
@@ -3575,7 +3575,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                       lineHeight: 1,
                     }}
                   >
-                    ✕
+                    <X size={13} />
                   </button>
                 </div>
               )}
