@@ -17,6 +17,22 @@ import {
   MessageSquare,
   TrendingUp,
   PieChart as PieIcon,
+  Search,
+  LayoutGrid,
+  CalendarDays,
+  Table as TableIcon,
+  Sparkles,
+  Film,
+  Cloud,
+  Newspaper,
+  Dumbbell,
+  Zap,
+  Folder,
+  CheckCircle2,
+  Sliders,
+  ExternalLink,
+  ShieldCheck,
+  Percent,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact } from "../../utils/finance";
@@ -32,10 +48,6 @@ import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
-// Fixed, validated colorblind-safe order (see THEME.chart1..6 / --t-chart-N in
-// styles.css) — "Other" gets the neutral muted gray, a deliberate exception
-// (not part of the 6-color categorical sequence) since it's a catch-all, not
-// a real identity.
 const CATEGORY_COLORS: Record<string, string> = {
   Entertainment: THEME.chart1,
   Productivity: THEME.chart2,
@@ -44,6 +56,29 @@ const CATEGORY_COLORS: Record<string, string> = {
   Fitness: THEME.chart5,
   Utilities: THEME.chart6,
   Other: THEME.muted,
+};
+
+const getCategoryIcon = (category: string, size = 14, color = THEME.accent) => {
+  const cat = (category || "").toLowerCase();
+  if (cat.includes("entertain") || cat.includes("stream") || cat.includes("ott") || cat.includes("movie")) {
+    return <Film size={size} color={color} />;
+  }
+  if (cat.includes("prod") || cat.includes("tool") || cat.includes("work") || cat.includes("ai")) {
+    return <Sparkles size={size} color={color} />;
+  }
+  if (cat.includes("storage") || cat.includes("cloud") || cat.includes("drive") || cat.includes("backup")) {
+    return <Cloud size={size} color={color} />;
+  }
+  if (cat.includes("news") || cat.includes("media") || cat.includes("read") || cat.includes("journal")) {
+    return <Newspaper size={size} color={color} />;
+  }
+  if (cat.includes("fit") || cat.includes("gym") || cat.includes("health") || cat.includes("sport")) {
+    return <Dumbbell size={size} color={color} />;
+  }
+  if (cat.includes("util") || cat.includes("bill") || cat.includes("service")) {
+    return <Zap size={size} color={color} />;
+  }
+  return <Folder size={size} color={color} />;
 };
 
 const SUB_LOGOS: Record<string, string> = {
@@ -102,7 +137,6 @@ const ServiceLogo = ({
   const n = (name || "").toLowerCase();
   let domain = "";
 
-  // User-supplied website takes priority over the hardcoded name→domain map
   if (website && website.trim()) {
     domain = extractDomain(website.trim());
   } else {
@@ -115,7 +149,7 @@ const ServiceLogo = ({
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: google favicon, 2: initials
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0);
 
   React.useEffect(() => {
     if (domain) {
@@ -216,6 +250,10 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
   const { privacyMode } = usePrivacy();
   const [show, setShow] = useState(false);
   const [editSub, setEditSub] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "timeline" | "table">("cards");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "paused">("all");
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -291,9 +329,6 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     return state.subscriptions
       .filter((s: any) => !s.paused && s.renewalDate)
       .filter((s: any) => {
-        // Parse as local midnight (matches `today`/`limit`, both local) — a bare
-        // "YYYY-MM-DD" parses as UTC midnight, which in IST lands at 05:30 local,
-        // pushing a renewal due exactly on the 30-day boundary out of range.
         const rd = new Date(s.renewalDate + "T00:00:00");
         return rd >= today && rd <= limit;
       })
@@ -303,6 +338,22 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           new Date(b.renewalDate + "T00:00:00").getTime()
       );
   }, [state.subscriptions]);
+
+  const filteredSubs = useMemo(() => {
+    return state.subscriptions.filter((s: any) => {
+      if (filterStatus === "active" && s.paused) return false;
+      if (filterStatus === "paused" && !s.paused) return false;
+      if (filterCategory !== "all" && (s.category || "Other") !== filterCategory) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = (s.name || "").toLowerCase().includes(q);
+        const matchCat = (s.category || "").toLowerCase().includes(q);
+        const matchRemark = (s.remark || "").toLowerCase().includes(q);
+        if (!matchName && !matchCat && !matchRemark) return false;
+      }
+      return true;
+    });
+  }, [state.subscriptions, filterStatus, filterCategory, searchQuery]);
 
   const groupedSubs = useMemo(() => {
     const groups: Record<string, any[]> = {};
@@ -315,8 +366,6 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     return Object.entries(groups).filter(([, subs]) => subs.length > 0);
   }, [activeSubs]);
 
-  // Category → monthly-equivalent spend, for the breakdown donut chart. Reuses the
-  // exact same category grouping as the accordion above so the two never disagree.
   const categoryBreakdown = useMemo(
     () =>
       groupedSubs
@@ -336,9 +385,15 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     [groupedSubs]
   );
 
-  // Subscriptions where the last bank-linked auto-posted payment (`lastPaidAmount`,
-  // set by BanksTab's autoPostLinkedTransaction) differs from the tracked cost —
-  // i.e. the service actually charged more/less than what's recorded here.
+  const monthlyOnlySubs = useMemo(
+    () => activeSubs.filter((s: any) => s.cycle === "monthly"),
+    [activeSubs]
+  );
+  const potentialAnnualSavings = useMemo(() => {
+    const monthlySum = monthlyOnlySubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0);
+    return monthlySum * 12 * 0.16;
+  }, [monthlyOnlySubs]);
+
   const priceChanged = (s: any) =>
     s.lastPaidAmount != null &&
     Number(s.lastPaidAmount) > 0 &&
@@ -387,7 +442,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
   return (
     <div className="tab-content-enter">
       <SectionTitle
-        sub="Manage recurring services, streaming, and software bills"
+        sub="Manage recurring services, streaming, and software bills with live renewal tracking"
         rightElement={
           state.subscriptions.length > 0 && (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -406,37 +461,18 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           )
         }
       >
-        Subscriptions
+        Subscriptions & Recurring
       </SectionTitle>
 
-      {(() => {
-        const tile4 =
-          pausedMonthlySavings > 0
-            ? {
-                label: "Paused Savings",
-                value: fmtINRFull(pausedMonthlySavings),
-                numericValue: pausedMonthlySavings,
-                formatValue: fmtINRFull,
-                sub: `${pausedSubs.length} paused service${pausedSubs.length !== 1 ? "s" : ""} · /mo equiv`,
-                color: THEME.muted,
-                Icon: Pause,
-              }
-            : {
-                label: "Total Tracked",
-                value: String(state.subscriptions.length),
-                numericValue: state.subscriptions.length,
-                formatValue: (n: number) => String(Math.round(n)),
-                sub: "Including paused services",
-                color: THEME.muted,
-                Icon: Play,
-              };
-        return (
+      {/* Hero Stats Cockpit */}
+      {state.subscriptions.length > 0 && (
+        <>
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
               gap: 14,
-              marginBottom: 28,
+              marginBottom: 20,
             }}
             className="subs-stats-grid"
           >
@@ -482,189 +518,287 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
               sub={
                 metrics?.annualIncome > 0
                   ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income`
-                  : "Total annual outgo"
+                  : "Total annual commitment"
               }
               color={THEME.rust}
               icon={<Clock />}
             />
             <StatCard
-              label={tile4.label}
-              value={tile4.value}
-              numericValue={tile4.numericValue}
-              formatValue={tile4.formatValue}
-              sub={tile4.sub}
-              color={tile4.color}
-              icon={<tile4.Icon />}
+              label={pausedMonthlySavings > 0 ? "Paused Savings" : "Tracked Services"}
+              value={pausedMonthlySavings > 0 ? fmtINRFull(pausedMonthlySavings) : String(state.subscriptions.length)}
+              numericValue={pausedMonthlySavings > 0 ? pausedMonthlySavings : state.subscriptions.length}
+              formatValue={pausedMonthlySavings > 0 ? fmtINRFull : (n) => String(Math.round(n))}
+              sub={pausedMonthlySavings > 0 ? `${pausedSubs.length} paused /mo saved` : "All active + paused"}
+              color={pausedMonthlySavings > 0 ? THEME.sage : THEME.muted}
+              icon={pausedMonthlySavings > 0 ? <Pause /> : <Play />}
             />
           </div>
-        );
-      })()}
 
-      {/* ── Category Breakdown Donut ── */}
-      {categoryBreakdown.length > 1 && (
-        <Card
-          style={{
-            marginBottom: 24,
-            padding: "18px 20px",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 24,
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "0 0 auto" }}>
-            <div style={{ width: 150, height: 150, position: "relative", flexShrink: 0 }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <PieChart>
-                  <Pie
-                    data={categoryBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={68}
-                    paddingAngle={2}
-                    dataKey="monthly"
-                    nameKey="category"
-                    stroke="var(--t-paper)"
-                    strokeWidth={2}
-                  >
-                    {categoryBreakdown.map((c) => (
-                      <Cell key={c.category} fill={c.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: any, name: any) => [
-                      privacyMode ? "••••" : fmtINRFull(Number(value)),
-                      name,
-                    ]}
-                    contentStyle={{
-                      background: "var(--t-paper)",
-                      border: `1px solid ${THEME.line}`,
-                      borderRadius: 8,
-                      fontSize: 12,
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.ink }}
-                    itemStyle={{ color: THEME.ink }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div
+          {/* Savings Optimization Tip Banner */}
+          {potentialAnnualSavings > 1000 && (
+            <Card
+              style={{
+                marginBottom: 20,
+                padding: "14px 18px",
+                background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.sage} 8%, var(--surface-0)), var(--surface-0))`,
+                border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Percent size={18} color={THEME.sage} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                    Switch to Annual Billing Opportunity
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    You have {monthlyOnlySubs.length} monthly subscriptions. Switching eligible ones to annual plans can save up to{" "}
+                    <strong style={{ color: THEME.sage }}><Money value={potentialAnnualSavings} variant="full" />/year</strong> (~16% discount).
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Category Breakdown Donut & Upcoming Renewals */}
+          <div style={{ display: "grid", gridTemplateColumns: categoryBreakdown.length > 1 ? "1.2fr 1fr" : "1fr", gap: 16, marginBottom: 20 }}>
+            {categoryBreakdown.length > 1 && (
+              <Card
                 style={{
-                  position: "absolute",
-                  inset: 0,
+                  padding: "18px 20px",
                   display: "flex",
-                  flexDirection: "column",
+                  flexWrap: "wrap",
+                  gap: 20,
                   alignItems: "center",
-                  justifyContent: "center",
-                  pointerEvents: "none",
                 }}
               >
-                <PieIcon size={13} color={THEME.muted} style={{ marginBottom: 2 }} />
-                <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>By category</span>
-              </div>
-            </div>
-          </div>
-          <div style={{ flex: "1 1 220px", minWidth: 200 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginBottom: 10 }}>
-              Category Breakdown
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {categoryBreakdown.map((c) => (
-                <div
-                  key={c.category}
-                  style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}
-                >
-                  <span
-                    style={{
-                      width: 9,
-                      height: 9,
-                      borderRadius: 3,
-                      background: c.color,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ color: THEME.ink, fontWeight: 700, flex: 1 }}>{c.category}</span>
-                  <span style={{ color: THEME.muted, fontWeight: 600, fontSize: 11 }}>
-                    {c.count} · {((c.monthly / totalMonthly) * 100).toFixed(0)}%
-                  </span>
-                  <span
-                    style={{
-                      color: THEME.ink,
-                      fontWeight: 800,
-                      minWidth: 64,
-                      textAlign: "right",
-                    }}
-                  >
-                    <Money value={c.monthly} variant="full" />
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* ── Upcoming Renewals Section ── */}
-      {upcomingSubs.length > 0 && (
-        <Card
-          style={{
-            marginBottom: 24,
-            padding: "14px 18px",
-            border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
-            background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <Clock size={15} color={THEME.gold} />
-            <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
-              Upcoming Renewals — next 30 days
-            </span>
-            <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-              (
-              <Money
-                value={upcomingSubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0)}
-                variant="full"
-              />{" "}
-              total)
-            </span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {upcomingSubs.map((s: any) => {
-              const { days, color } = getRenewalInfo(s.renewalDate);
-              return (
-                <div
-                  key={s.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 12px",
-                    borderRadius: 10,
-                    background: "var(--t-paper)",
-                    border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-                    minWidth: 160,
-                  }}
-                >
-                  <ServiceLogo name={s.name} size={28} website={s.website} />
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{s.name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color }}>
-                      {days === 0
-                        ? "Due today"
-                        : days < 0
-                          ? `${Math.abs(days)}d overdue`
-                          : `${days}d`}{" "}
-                      · <Money value={s.amount} variant="exact" />
+                <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "0 0 auto" }}>
+                  <div style={{ width: 130, height: 130, position: "relative", flexShrink: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <PieChart>
+                        <Pie
+                          data={categoryBreakdown}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={60}
+                          paddingAngle={2}
+                          dataKey="monthly"
+                          nameKey="category"
+                          stroke="var(--surface-0)"
+                          strokeWidth={2}
+                        >
+                          {categoryBreakdown.map((c) => (
+                            <Cell key={c.category} fill={c.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: any, name: any) => [
+                            privacyMode ? "••••" : fmtINRFull(Number(value)),
+                            name,
+                          ]}
+                          contentStyle={{
+                            background: "var(--surface-0)",
+                            border: `1px solid ${THEME.line}`,
+                            borderRadius: 8,
+                            fontSize: 12,
+                            color: THEME.ink,
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <PieIcon size={12} color={THEME.muted} />
+                      <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>Share</span>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Category Breakdown
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {categoryBreakdown.slice(0, 4).map((c) => (
+                      <div key={c.category} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: c.color, flexShrink: 0 }} />
+                        <span style={{ color: THEME.ink, fontWeight: 700, flex: 1 }}>{c.category}</span>
+                        <span style={{ color: THEME.muted }}>{((c.monthly / totalMonthly) * 100).toFixed(0)}%</span>
+                        <span style={{ color: THEME.ink, fontWeight: 800 }}>
+                          <Money value={c.monthly} variant="full" />
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Upcoming Renewals in Next 30 Days */}
+            <Card
+              style={{
+                padding: "18px 20px",
+                background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.gold} 6%, var(--surface-0)), var(--surface-0))`,
+                border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Clock size={15} color={THEME.gold} />
+                  <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>Upcoming Renewals (30d)</span>
+                </div>
+                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                  <Money value={upcomingSubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0)} variant="full" />
+                </span>
+              </div>
+              {upcomingSubs.length === 0 ? (
+                <div style={{ fontSize: 12, color: THEME.muted, padding: "12px 0" }}>
+                  No subscriptions renewing in the next 30 days.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 130, overflowY: "auto" }}>
+                  {upcomingSubs.map((s: any) => {
+                    const { days, color } = getRenewalInfo(s.renewalDate);
+                    return (
+                      <div
+                        key={s.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "6px 10px",
+                          borderRadius: "var(--radius-sm)",
+                          background: "var(--surface-1)",
+                          border: `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <ServiceLogo name={s.name} size={22} website={s.website} />
+                          <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{s.name}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color }}>{days === 0 ? "Today" : `${days}d`}</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
+                            <Money value={s.amount} variant="exact" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
           </div>
-        </Card>
+
+          {/* Controls Bar: Multi-Mode View Switcher, Search, and Category Filters */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: 20,
+              padding: "12px 16px",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: "var(--radius-lg)",
+            }}
+          >
+            {/* View Mode Buttons */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <button
+                onClick={() => setViewMode("cards")}
+                className={`demat-portfolio-pill ${viewMode === "cards" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <LayoutGrid size={13} /> Categories
+              </button>
+              <button
+                onClick={() => setViewMode("timeline")}
+                className={`demat-portfolio-pill ${viewMode === "timeline" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <CalendarDays size={13} /> Renewal Calendar
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`demat-portfolio-pill ${viewMode === "table" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <TableIcon size={13} /> Full Ledger
+              </button>
+            </div>
+
+            {/* Search and Filters */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", minWidth: 160 }}>
+                <Search
+                  size={13}
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: THEME.muted,
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search services..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "6px 10px 6px 30px",
+                    borderRadius: "var(--radius-sm)",
+                    border: `1px solid ${THEME.line}`,
+                    background: "var(--surface-1)",
+                    color: THEME.ink,
+                    fontSize: 12,
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {(
+                  [
+                    { id: "all", label: "All" },
+                    { id: "active", label: "Active" },
+                    { id: "paused", label: "Paused" },
+                  ] as const
+                ).map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setFilterStatus(s.id)}
+                    className={`demat-portfolio-pill ${filterStatus === s.id ? "active" : ""}`}
+                    style={{ fontSize: 11, padding: "4px 10px" }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
+      {/* Main Content Area */}
       {state.subscriptions.length === 0 ? (
         <EmptyState
           icon={Repeat}
@@ -681,9 +815,217 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           buttonLabel="Add First Subscription"
           onAdd={() => setShow(true)}
         />
+      ) : filteredSubs.length === 0 ? (
+        <Card style={{ padding: 48, textAlign: "center" }}>
+          <div style={{ color: THEME.muted, fontSize: 13 }}>No subscriptions match your search or filter.</div>
+        </Card>
+      ) : viewMode === "table" ? (
+        /* TABLE VIEW */
+        <Card style={{ overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-1)", borderBottom: `1.5px solid ${THEME.line}` }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Service</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Category</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Amount</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Billing Cycle</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Monthly Equiv</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Next Renewal</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Status</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSubs.map((s: any) => {
+                  const monthly =
+                    s.cycle === "yearly"
+                      ? Number(s.amount) / 12
+                      : s.cycle === "quarterly"
+                        ? Number(s.amount) / 3
+                        : Number(s.amount);
+                  const renewal = getRenewalInfo(s.renewalDate);
+                  return (
+                    <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, opacity: s.paused ? 0.65 : 1 }}>
+                      <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <ServiceLogo name={s.name} size={28} website={s.website} />
+                          <div>
+                            <div>{s.name}</div>
+                            {s.remark && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>{s.remark}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {getCategoryIcon(s.category, 12, CATEGORY_COLORS[s.category] || THEME.accent)}
+                          <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>{s.category || "Other"}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800 }}>
+                        <Money value={s.amount} variant="exact" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <span style={{ textTransform: "capitalize", fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          {s.cycle}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.accent }}>
+                        <Money value={monthly} variant="exact" />
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: 12 }}>
+                        {s.renewalDate ? (
+                          <span style={{ color: renewal.color, fontWeight: 700 }}>
+                            {fmtDate(s.renewalDate)} ({renewal.label})
+                          </span>
+                        ) : (
+                          <span style={{ color: THEME.muted }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: s.paused ? THEME.muted : THEME.sage,
+                            background: `color-mix(in srgb, ${s.paused ? THEME.muted : THEME.sage} 12%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${s.paused ? THEME.muted : THEME.sage} 25%, transparent)`,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {s.paused ? "Paused" : "Active"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <div style={{ display: "inline-flex", gap: 4 }}>
+                          <button
+                            onClick={() => updateSub(s.id, { paused: !s.paused })}
+                            className="icon-btn"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: s.paused ? THEME.sage : THEME.gold, padding: 4 }}
+                            title={s.paused ? "Resume" : "Pause"}
+                          >
+                            {s.paused ? <Play size={13} /> : <Pause size={13} />}
+                          </button>
+                          <button
+                            onClick={() => setEditSub(s)}
+                            className="icon-btn"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}
+                            title="Edit"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => deleteSub(s.id, s.name)}
+                            className="icon-btn danger"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }}
+                            title="Delete"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : viewMode === "timeline" ? (
+        /* RENEWAL CALENDAR TIMELINE VIEW */
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+          {filteredSubs
+            .slice()
+            .sort((a: any, b: any) => {
+              if (!a.renewalDate) return 1;
+              if (!b.renewalDate) return -1;
+              return new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime();
+            })
+            .map((s: any) => {
+              const renewal = getRenewalInfo(s.renewalDate);
+              const monthly =
+                s.cycle === "yearly"
+                  ? Number(s.amount) / 12
+                  : s.cycle === "quarterly"
+                    ? Number(s.amount) / 3
+                    : Number(s.amount);
+              return (
+                <Card
+                  key={s.id}
+                  style={{
+                    padding: "14px 18px",
+                    borderLeft: `4px solid ${renewal.color}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    opacity: s.paused ? 0.65 : 1,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <ServiceLogo name={s.name} size={36} website={s.website} />
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{s.name}</span>
+                        <Badge variant="muted" style={{ fontSize: 9 }}>{s.category}</Badge>
+                        {s.paused && <Badge variant="muted" style={{ fontSize: 9 }}>PAUSED</Badge>}
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
+                        <Money value={s.amount} variant="exact" /> · {s.cycle} (<Money value={monthly} variant="exact" />/mo)
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: renewal.color }}>
+                        {s.renewalDate ? fmtDate(s.renewalDate) : "No renewal date"}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: renewal.color }}>
+                        {renewal.label}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateSub(s.id, { paused: !s.paused })}
+                        style={{ padding: 6, color: s.paused ? THEME.sage : THEME.gold }}
+                        title={s.paused ? "Resume" : "Pause"}
+                      >
+                        {s.paused ? <Play size={13} /> : <Pause size={13} />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditSub(s)}
+                        style={{ padding: 6 }}
+                        title="Edit"
+                      >
+                        <Pencil size={13} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteSub(s.id, s.name)}
+                        style={{ padding: 6, color: THEME.rust }}
+                        title="Delete"
+                      >
+                        <Trash2 size={13} />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+        </div>
       ) : (
+        /* CATEGORY CARDS VIEW (DEFAULT) */
         <div>
-          {/* ── Active subs grouped by category ── */}
           {groupedSubs.map(([cat, subs]) => {
             const collapsed = collapsedCategories.has(cat);
             const catMonthly = subs.reduce((acc: number, s: any) => {
@@ -714,11 +1056,13 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                   ) : (
                     <ChevronDown size={15} color={THEME.muted} />
                   )}
-                  <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>{cat}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {getCategoryIcon(cat, 14, CATEGORY_COLORS[cat] || THEME.accent)}
+                    <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{cat}</span>
+                  </div>
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                     {subs.length} service{subs.length !== 1 ? "s" : ""} ·{" "}
-                    <Money value={catMonthly} variant="full" />
-                    /mo
+                    <Money value={catMonthly} variant="full" />/mo
                   </span>
                 </button>
 
@@ -743,7 +1087,15 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                       return (
                         <Card
                           key={s.id}
-                          style={{ padding: "16px 20px", borderTop: `3px solid ${color}` }}
+                          className="card-lift"
+                          style={{
+                            padding: "16px 20px",
+                            borderTop: `3px solid ${color}`,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            gap: 12,
+                          }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                             <ServiceLogo name={s.name} website={s.website} />
@@ -792,7 +1144,6 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                   {s.cycle}
                                 </span>
                                 <span style={{ opacity: 0.4 }}>·</span>
-                                {/* Renewal countdown with urgency coloring */}
                                 <span
                                   style={{
                                     color: renewal.color,
@@ -850,21 +1201,14 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                     gap: 5,
                                     fontWeight: 700,
                                   }}
-                                  title={
-                                    privacyMode
-                                      ? "Last bank-linked payment differs from the tracked cost"
-                                      : `Last bank-linked payment was ${fmtINRExact(s.lastPaidAmount)}, but the tracked cost is ${fmtINRExact(s.amount)}`
-                                  }
                                 >
                                   <TrendingUp size={11} style={{ flexShrink: 0 }} />
                                   <span>
-                                    Price {Number(s.lastPaidAmount) > Number(s.amount) ? "increased" : "changed"}
-                                    {" "}to <Money value={s.lastPaidAmount} variant="exact" />
+                                    Price changed to <Money value={s.lastPaidAmount} variant="exact" />
                                   </span>
                                   <button
                                     onClick={() => updateSub(s.id, { amount: s.lastPaidAmount })}
                                     disabled={togglingId === s.id}
-                                    aria-label={`Update ${s.name} tracked cost to last paid amount`}
                                     style={{
                                       border: "none",
                                       background: "none",
@@ -883,7 +1227,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             </div>
 
                             <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
-                              <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                              <div style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 800, color: THEME.ink }}>
                                 <Money value={monthly} variant="exact" />
                               </div>
                               <div
@@ -897,28 +1241,6 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                               >
                                 equiv/mo
                               </div>
-                              {s.cycle !== "monthly" && (
-                                <div
-                                  style={{
-                                    fontSize: 10.5,
-                                    color: THEME.muted,
-                                    fontWeight: 700,
-                                    marginTop: 4,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "flex-end",
-                                    gap: 3,
-                                  }}
-                                  title={`Actual renewal: ${privacyMode ? "••••" : fmtINRExact(s.amount)} every ${s.cycle}`}
-                                >
-                                  <span style={{ fontSize: 9, opacity: 0.65, fontWeight: 600 }}>
-                                    RENEWAL:
-                                  </span>
-                                  <span style={{ color: THEME.accent }}>
-                                    <Money value={s.amount} variant="exact" />
-                                  </span>
-                                </div>
-                              )}
                             </div>
 
                             <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
@@ -959,7 +1281,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             </div>
                           </div>
                           {totalMonthly > 0 && (
-                            <div style={{ marginTop: 10 }}>
+                            <div style={{ marginTop: 4 }}>
                               <div
                                 style={{
                                   display: "flex",
@@ -1002,11 +1324,11 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
             );
           })}
 
-          {/* ── Paused subscriptions ── */}
+          {/* Paused Subscriptions Drawer */}
           {pausedSubs.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontWeight: 800, fontSize: 13, color: THEME.muted }}>Paused</span>
+                <span style={{ fontWeight: 800, fontSize: 13, color: THEME.muted }}>Paused Services</span>
                 <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                   {pausedSubs.length} service{pausedSubs.length !== 1 ? "s" : ""} ·{" "}
                   <Money value={pausedMonthlySavings} variant="full" />/mo saved

@@ -2295,8 +2295,8 @@ export function GovtSchemesTab({
                               {sc.schemeName || meta.label.split("—")[0].trim()}
                             </span>
                             {sc.memberName && (
-                              <Badge variant="pink" style={{ fontWeight: 700 }}>
-                                👧 {sc.memberName}
+                              <Badge variant="pink" style={{ fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Users size={11} /> {sc.memberName}
                               </Badge>
                             )}
                             <Badge variant="muted">{meta.shortLabel}</Badge>

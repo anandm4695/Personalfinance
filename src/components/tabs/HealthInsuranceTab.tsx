@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Heart,
   Plus,
@@ -7,7 +7,7 @@ import {
   Pencil,
   Shield,
   AlertCircle,
-  CheckCircle,
+  CheckCircle2,
   Users,
   Calendar,
   ClipboardList,
@@ -17,6 +17,17 @@ import {
   FileText,
   Clock,
   AlertTriangle,
+  HeartPulse,
+  Activity,
+  Hospital,
+  Building2,
+  Sparkles,
+  TrendingUp,
+  Search,
+  LayoutGrid,
+  Table as TableIcon,
+  ShieldCheck,
+  Percent,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -51,12 +62,12 @@ const FREQ_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  family_floater: THEME.primary,
-  individual: THEME.success,
+  family_floater: THEME.accent,
+  individual: THEME.sage,
   corporate: THEME.gold,
   top_up: THEME.violet,
   super_top_up: THEME.pink,
-  critical_illness: THEME.danger,
+  critical_illness: THEME.rust,
 };
 
 function daysUntilRenewal(renewalDate: string): number | null {
@@ -70,24 +81,13 @@ function annualPremium(amount: number, freq: string): number {
   return amount * (mult[freq] || 1);
 }
 
-// Same self-vs-parents heuristic used by Section80TrackerTab.tsx / TaxFilingHelperTab.tsx
-// for their Sec 80D calculation — kept identical here (rather than re-deriving it) so the
-// "eligible for 80D" figure shown on this tab always agrees with the Tax tools' numbers.
-// A policy is treated as a "parents" policy if any insured member's relation looks like
-// a parent; there's no dedicated field for it in the data model.
 const PARENT_RELATION_RE = /parent|father|mother|dad|mom|papa|mummy|-in-law/i;
 function isParentsPolicy(p: any): boolean {
   return (p.insuredMembers || []).some((m: any) => PARENT_RELATION_RE.test(m?.relation || ""));
 }
 const SEC80D_SELF_LIMIT = 25000;
-const SEC80D_PARENTS_LIMIT = 25000; // stays at the non-senior-citizen cap — see Section80TrackerTab.tsx
+const SEC80D_PARENTS_LIMIT = 25000;
 
-// Waiting period (e.g. for pre-existing disease cover) counted in whole months from the
-// policy start date. Parses startDate with an explicit local-midnight time component
-// (`+"T00:00:00"`) rather than the bare `new Date("YYYY-MM-DD")` form — the bare form is
-// parsed as UTC per the ECMA-262 date-only grammar, which can silently roll the displayed/
-// compared date back a day in timezones behind UTC. Matches the `dateStr + "T00:00:00"`
-// convention already used elsewhere in the app (BudgetTab, CashFlowTab, BanksTab, etc.).
 function waitingPeriodInfo(
   p: any
 ): { totalMonths: number; elapsedMonths: number; remainingMonths: number; done: boolean } | null {
@@ -108,25 +108,13 @@ function waitingPeriodInfo(
   };
 }
 
-// A room-rent sub-limit (e.g. "1% of SI/day", "Single Private AC Room") caps the daily room
-// rent a policy will pay for — going over it usually triggers a "proportionate deduction"
-// clause that also shrinks reimbursement of the rest of the hospital bill, not just the
-// room charge. Anything other than an explicit "no limit" is worth flagging.
 function hasRoomRentCap(p: any): boolean {
   const v = (p.roomRentLimit || "").trim();
   if (!v) return false;
   return !/^(no\s*(sub-?)?limit|none|nil|n\/?a|unlimited)/i.test(v);
 }
 
-// Rough coverage-adequacy heuristic: flag base health policies (not top-ups, which are
-// meant to stack on a base policy, and not critical-illness, which is a lump-sum payout
-// product) whose sum insured works out to under ₹5L per insured member — a commonly cited
-// rule-of-thumb minimum for a metro/tier-1 hospitalisation today.
 const ADEQUACY_PER_MEMBER_MIN = 500000;
-// Returns the raw per-member figure (not a pre-formatted string) so the caller can wrap
-// just the money portion in <Money> — the sum-insured-per-member number is exactly the kind
-// of sensitive figure Privacy Mode is meant to blur, and embedding it in a plain string
-// (as this used to do) meant it always rendered unmasked.
 function coverageAdequacyNote(p: any): number | null {
   if (["top_up", "super_top_up", "critical_illness"].includes(p.policyType)) return null;
   const members = Math.max(1, p.insuredMembers?.length || 1);
@@ -185,9 +173,6 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
   const removeMember = (i: number) => setMembers((m) => m.filter((_, idx) => idx !== i));
 
   const save = () => {
-    // Was previously a silent no-op: an incomplete form (missing insurer, or a zero/blank
-    // sum insured or premium) just did nothing when "Save" was clicked, with no error
-    // shown, so it looked like the app had frozen or the click hadn't registered.
     const next: Record<string, string> = {};
     if (!form.insurer.trim()) next.insurer = "Insurer name is required.";
     if (!(Number(form.sumInsured) > 0)) next.sumInsured = "Enter a sum insured greater than ₹0.";
@@ -214,7 +199,7 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
             className="form-input"
             value={form.insurer}
             onChange={(e) => set("insurer", e.target.value)}
-            placeholder="e.g. Star Health, HDFC Ergo"
+            placeholder="e.g. Star Health, HDFC Ergo, Care"
           />
         </Field>
         <Field label="Policy Name">
@@ -222,7 +207,7 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
             className="form-input"
             value={form.policyName}
             onChange={(e) => set("policyName", e.target.value)}
-            placeholder="e.g. Optima Restore"
+            placeholder="e.g. Optima Restore, Supreme"
           />
         </Field>
         <Field label="Policy Number">
@@ -269,7 +254,7 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
             type="number"
             value={form.sumInsured}
             onChange={(e) => set("sumInsured", e.target.value)}
-            placeholder="e.g. 500000"
+            placeholder="e.g. 1000000"
           />
         </Field>
         <Field label="Premium (₹) *" error={errors.premium}>
@@ -278,7 +263,7 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
             type="number"
             value={form.premium}
             onChange={(e) => set("premium", e.target.value)}
-            placeholder="Premium amount"
+            placeholder="e.g. 18500"
           />
         </Field>
         <Field label="Premium Frequency">
@@ -348,206 +333,225 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
             placeholder="e.g. No Limit, 1% of SI/day"
           />
         </Field>
-        <Field label="Cashless Available">
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginTop: 4,
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={form.cashless}
-              onChange={(e) => set("cashless", e.target.checked)}
-            />
-            <span style={{ fontSize: 13 }}>Yes, cashless hospitalisation</span>
-          </label>
-        </Field>
-        <Field label="Pre-existing Diseases Covered">
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginTop: 4,
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={form.preExistingCovered}
-              onChange={(e) => set("preExistingCovered", e.target.checked)}
-            />
-            <span style={{ fontSize: 13 }}>Yes, after waiting period</span>
-          </label>
-        </Field>
       </div>
 
-      <ModalSection title="Insured Members" />
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: 18, marginTop: 14 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+          <input
+            type="checkbox"
+            checked={form.cashless}
+            onChange={(e) => set("cashless", e.target.checked)}
+            style={{ accentColor: THEME.accent }}
+          />
+          Cashless Enabled
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+          <input
+            type="checkbox"
+            checked={form.preExistingCovered}
+            onChange={(e) => set("preExistingCovered", e.target.checked)}
+            style={{ accentColor: THEME.accent }}
+          />
+          Pre-Existing Diseases Covered
+        </label>
+      </div>
+
+      <ModalSection title="Insured Family Members" />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <input
           className="form-input"
-          aria-label="Insured member name"
-          placeholder="Member name"
           value={memberName}
           onChange={(e) => setMemberName(e.target.value)}
+          placeholder="Member Name"
           style={{ flex: 2 }}
         />
         <input
           className="form-input"
-          aria-label="Insured member relation"
-          placeholder="Relation (self, spouse…)"
           value={memberRelation}
           onChange={(e) => setMemberRelation(e.target.value)}
-          style={{ flex: 1 }}
+          placeholder="Relation (self, spouse, child, parent)"
+          style={{ flex: 1.5 }}
         />
-        <Button size="sm" onClick={addMember} aria-label="Add insured member">
+        <Button size="sm" variant="ghost" onClick={addMember}>
           Add
         </Button>
       </div>
-      {members.map((m, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <Badge>{m.relation}</Badge>
-          <span style={{ fontSize: 13 }}>{m.name}</span>
-          <button
-            onClick={() => removeMember(i)}
-            aria-label={`Remove ${m.name}`}
-            title={`Remove ${m.name}`}
-            className="icon-btn danger"
-            style={{
-              marginLeft: "auto",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: THEME.danger,
-              padding: 6,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <X size={14} />
-          </button>
+      {members.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+          {members.map((m, i) => (
+            <Badge key={i} variant="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {m.name} ({m.relation})
+              <button
+                onClick={() => removeMember(i)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 0 }}
+              >
+                <X size={12} />
+              </button>
+            </Badge>
+          ))}
         </div>
-      ))}
+      )}
 
-      <Field label="Notes" style={{ marginTop: 16 }}>
+      <Field label="Notes & Exclusions">
         <textarea
           className="form-input"
           rows={2}
           value={form.notes}
           onChange={(e) => set("notes", e.target.value)}
-          placeholder="Any additional details…"
+          placeholder="e.g. Critical illness rider included, deductible ₹2L"
         />
       </Field>
 
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Policy" disabled={saving} loading={saving} />
+      <ModalActions onSave={save} onClose={onClose} saveLabel={initial?.id ? "Save Changes" : "Add Policy"} disabled={saving} loading={saving} />
     </Modal>
   );
 }
 
-// Lightweight "log a claim" modal, separate from the full policy-edit form — filing a
-// claim happens far more often than editing policy details, so it shouldn't require
-// opening the whole Edit Policy modal (same reasoning as Loans Given's dedicated
-// "Add Payment" modal vs. its full loan-edit form). Appends to the policy's `claims`
-// jsonb array (column already exists — see database/64_health_insurance.sql).
-function ClaimForm({ policy, onSave, onClose, saving = false }: any) {
-  const [date, setDate] = useState(today());
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [settled, setSettled] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+function ClaimModal({ policy, onClose, onSave, saving = false }: any) {
+  const [claims, setClaims] = useState<any[]>(policy.claims || []);
+  const [form, setForm] = useState({
+    claimDate: today(),
+    hospitalName: "",
+    patientName: "",
+    reason: "",
+    amount: "",
+    settledAmount: "",
+    settled: false,
+    claimType: "cashless",
+  });
 
-  const save = () => {
-    const next: Record<string, string> = {};
-    if (!date) next.date = "Select a claim date.";
-    if (!(Number(amount) > 0)) next.amount = "Enter a claim amount greater than ₹0.";
-    if (Object.keys(next).length > 0) {
-      setErrors(next);
-      return;
-    }
-    onSave([
-      ...(policy.claims || []),
-      { id: uid(), date, description: description.trim(), amount: Number(amount), settled },
-    ]);
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  const addClaim = () => {
+    if (!form.amount || !form.hospitalName) return;
+    const newClaim = {
+      ...form,
+      id: uid(),
+      amount: Number(form.amount),
+      settledAmount: form.settledAmount ? Number(form.settledAmount) : undefined,
+    };
+    const updated = [...claims, newClaim];
+    setClaims(updated);
+    onSave(updated);
+  };
+
+  const removeClaim = (id: string) => {
+    const updated = claims.filter((c) => c.id !== id);
+    setClaims(updated);
+    onSave(updated);
+  };
+
+  const toggleSettled = (id: string) => {
+    const updated = claims.map((c) => (c.id === id ? { ...c, settled: !c.settled } : c));
+    setClaims(updated);
+    onSave(updated);
   };
 
   return (
-    <Modal
-      title={`Log Claim — ${policy.insurer}${policy.policyName ? ` · ${policy.policyName}` : ""}`}
-      onClose={onClose}
-      maxWidth={480}
-    >
-      <Field label="Claim Date *" error={errors.date}>
-        <input
-          className="form-input"
-          type="date"
-          value={date}
-          onChange={(e) => {
-            setDate(e.target.value);
-            if (errors.date) setErrors((er) => ({ ...er, date: "" }));
-          }}
-        />
-      </Field>
-      <Field label="Description">
-        <input
-          className="form-input"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="e.g. Hospitalisation — appendix surgery"
-        />
-      </Field>
-      <Field label="Claim Amount (₹) *" error={errors.amount}>
-        <input
-          className="form-input"
-          type="number"
-          value={amount}
-          onChange={(e) => {
-            setAmount(e.target.value);
-            if (errors.amount) setErrors((er) => ({ ...er, amount: "" }));
-          }}
-          placeholder="Amount claimed"
-        />
-      </Field>
-      <Field label="Status">
-        <label
-          style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, cursor: "pointer" }}
-        >
-          <input type="checkbox" checked={settled} onChange={(e) => setSettled(e.target.checked)} />
-          <span style={{ fontSize: 13 }}>Settled / paid out</span>
-        </label>
-      </Field>
-      <ModalActions onSave={save} onClose={onClose} saveLabel="Log Claim" disabled={saving} loading={saving} />
+    <Modal title={`Claims for ${policy.insurer} (${policy.policyName || "Policy"})`} onClose={onClose} maxWidth={580}>
+      <ModalSection title="Existing Claims" first />
+      {claims.length === 0 ? (
+        <div style={{ color: THEME.muted, fontSize: 13, padding: "8px 0" }}>No claims logged yet.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          {claims.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 14px",
+                borderRadius: "var(--radius-sm)",
+                background: "var(--surface-1)",
+                border: `1px solid ${THEME.line}`,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: THEME.ink }}>
+                  {c.patientName ? `${c.patientName} at ` : ""}{c.hospitalName}
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  {c.claimDate} · <Money value={Number(c.amount)} variant="full" /> · {c.claimType}
+                  {c.reason ? ` · ${c.reason}` : ""}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Badge variant={c.settled ? "sage" : "gold"}>
+                  {c.settled ? "Settled" : "In Review"}
+                </Badge>
+                <button
+                  onClick={() => toggleSettled(c.id)}
+                  style={{ fontSize: 11, color: THEME.accent, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                >
+                  {c.settled ? "Mark Pending" : "Mark Settled"}
+                </button>
+                <button
+                  onClick={() => removeClaim(c.id)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2 }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ModalSection title="Log New Claim" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Hospital Name *">
+          <input className="form-input" value={form.hospitalName} onChange={(e) => set("hospitalName", e.target.value)} />
+        </Field>
+        <Field label="Patient Name">
+          <input className="form-input" value={form.patientName} onChange={(e) => set("patientName", e.target.value)} />
+        </Field>
+        <Field label="Claim Date">
+          <input type="date" className="form-input" value={form.claimDate} onChange={(e) => set("claimDate", e.target.value)} />
+        </Field>
+        <Field label="Claimed Amount (₹) *">
+          <input type="number" className="form-input" value={form.amount} onChange={(e) => set("amount", e.target.value)} />
+        </Field>
+        <Field label="Claim Type">
+          <select className="form-input" value={form.claimType} onChange={(e) => set("claimType", e.target.value)}>
+            <option value="cashless">Cashless</option>
+            <option value="reimbursement">Reimbursement</option>
+          </select>
+        </Field>
+        <Field label="Diagnosis / Reason">
+          <input className="form-input" value={form.reason} onChange={(e) => set("reason", e.target.value)} placeholder="e.g. Dengue, Surgery" />
+        </Field>
+      </div>
+      <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+        <Button size="sm" variant="accent" onClick={addClaim} disabled={saving} loading={saving}>
+          Add Claim Record
+        </Button>
+      </div>
     </Modal>
   );
 }
 
 export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, showToast }: any) {
-  const policies = state.healthInsurance || [];
+  const policies: any[] = state.healthInsurance || [];
   const [modal, setModal] = useState<any>(null);
   const [claimModal, setClaimModal] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "claims" | "table">("cards");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
-    null
-  );
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const totalCover = policies.reduce((s: number, p: any) => s + Number(p.sumInsured || 0), 0);
   const totalAnnualPremium = policies.reduce(
-    (s: number, p: any) =>
-      s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
+    (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
     0
   );
 
   const renewingSoon = policies.filter((p: any) => {
-    const days = daysUntilRenewal(p.renewalDate);
-    return days !== null && days >= 0 && days <= 30;
+    const d = daysUntilRenewal(p.renewalDate);
+    return d !== null && d >= 0 && d <= 30;
   });
 
-  // Sec 80D eligibility estimate — same formula/limits as Section80TrackerTab.tsx &
-  // TaxFilingHelperTab.tsx (see PARENT_RELATION_RE above) so this tab's number never
-  // drifts from what the Tax tools actually claim as deductible.
   const selfHealthPremium = policies
     .filter((p: any) => !isParentsPolicy(p))
     .reduce(
@@ -563,9 +567,25 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
   const sec80DEstimate =
     Math.min(selfHealthPremium, SEC80D_SELF_LIMIT) + Math.min(parentsHealthPremium, SEC80D_PARENTS_LIMIT);
 
-  const allClaims = policies.flatMap((p: any) => (p.claims || []).map((c: any) => ({ ...c, policy: p })));
+  const allClaims = useMemo(() => {
+    return policies.flatMap((p: any) => (p.claims || []).map((c: any) => ({ ...c, policy: p })));
+  }, [policies]);
   const totalClaimedAmount = allClaims.reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
   const pendingClaims = allClaims.filter((c: any) => !c.settled).length;
+
+  const filteredPolicies = useMemo(() => {
+    return policies.filter((p: any) => {
+      if (filterType !== "all" && p.policyType !== filterType) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchIns = (p.insurer || "").toLowerCase().includes(q);
+        const matchName = (p.policyName || "").toLowerCase().includes(q);
+        const matchNum = (p.policyNumber || "").toLowerCase().includes(q);
+        if (!matchIns && !matchName && !matchNum) return false;
+      }
+      return true;
+    });
+  }, [policies, filterType, searchQuery]);
 
   const { run: save, loading: savingPolicy } = useAsyncAction(
     async (data: any) => {
@@ -586,275 +606,450 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
     { onSuccess: () => setClaimModal(null), onError: (e: any) => showToast?.(`Failed to save claim: ${e?.message || "Unknown error"}`, "error") }
   );
 
-  const { run: removeClaimRun } = useAsyncAction(
-    async (policy: any, claimId: string) => {
-      await updateItem("healthInsurance", policy.id, {
-        ...policy,
-        claims: (policy.claims || []).filter((c: any) => c.id !== claimId),
-      });
-    },
-    { onError: (e: any) => showToast?.(`Failed to delete claim: ${e?.message || "Unknown error"}`, "error") }
-  );
-  const removeClaim = (policy: any, claimId: string) => {
-    setConfirmAction({
-      message: "Delete this claim record? This cannot be undone.",
-      onConfirm: () => removeClaimRun(policy, claimId),
-    });
-  };
-
   const { run: deletePolicy } = useAsyncAction(
     async (id: string) => { await removeItem("healthInsurance", id); },
     { onError: (e: any) => showToast?.(`Failed to delete policy: ${e?.message || "Unknown error"}`, "error") }
   );
 
   return (
-    <div>
+    <div className="tab-content-enter">
       <SectionTitle
-        sub="Track all health insurance policies — family floater, corporate, top-up & more"
+        sub="Track all health insurance policies — family floater, corporate, top-up, and claim histories"
         rightElement={
-          <Button size="sm" onClick={() => setModal({})}>
-            <Plus size={14} /> Add Policy
-          </Button>
+          policies.length > 0 && (
+            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal({})}>
+              Add Policy
+            </Button>
+          )
         }
       >
-        Health Insurance
+        Health Insurance Portfolio
       </SectionTitle>
 
-      {/* Stats */}
+      {/* Hero Stats Cockpit */}
       {policies.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 12,
-            marginBottom: 24,
-          }}
-        >
-          <StatCard
-            label="Total Cover"
-            value={fmtINRFull(totalCover)}
-            numericValue={totalCover}
-            formatValue={fmtINRFull}
-            icon={<Shield size={18} />}
-            color={THEME.success}
-          />
-          <StatCard
-            label="Annual Premium"
-            value={fmtINRFull(totalAnnualPremium)}
-            numericValue={totalAnnualPremium}
-            formatValue={fmtINRFull}
-            sub={
-              sec80DEstimate > 0 ? (
-                <>
-                  ≈ <Money value={sec80DEstimate} variant="full" /> eligible for 80D
-                </>
-              ) : undefined
-            }
-            icon={<Heart size={18} />}
-            color={THEME.danger}
-          />
-          <StatCard
-            label="Policies Active"
-            value={String(policies.length)}
-            numericValue={policies.length}
-            formatValue={(n) => String(Math.round(n))}
-            icon={<ClipboardList size={18} />}
-            color={THEME.primary}
-          />
-          <StatCard
-            label="Renewing Soon"
-            value={String(renewingSoon.length)}
-            numericValue={renewingSoon.length}
-            formatValue={(n) => String(Math.round(n))}
-            icon={<Calendar size={18} />}
-            color={renewingSoon.length > 0 ? THEME.warning : THEME.textMuted}
-          />
-        </div>
-      )}
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+              marginBottom: 20,
+            }}
+          >
+            <StatCard
+              label="Total Sum Insured"
+              value={fmtINRFull(totalCover)}
+              numericValue={totalCover}
+              formatValue={fmtINRFull}
+              icon={<Shield />}
+              color={THEME.accent}
+            />
+            <StatCard
+              label="Annual Premium"
+              value={fmtINRFull(totalAnnualPremium)}
+              numericValue={totalAnnualPremium}
+              formatValue={fmtINRFull}
+              sub={sec80DEstimate > 0 ? `≈ ${fmtINRFull(sec80DEstimate)} eligible for 80D` : "Annual outgo"}
+              icon={<HeartPulse />}
+              color={THEME.sage}
+            />
+            <StatCard
+              label="Active Policies"
+              value={String(policies.length)}
+              numericValue={policies.length}
+              formatValue={(n) => String(Math.round(n))}
+              sub={`${policies.reduce((s, p) => s + (p.insuredMembers?.length || 1), 0)} lives covered`}
+              icon={<ClipboardList />}
+              color={THEME.violet}
+            />
+            <StatCard
+              label="Renewing Soon"
+              value={String(renewingSoon.length)}
+              numericValue={renewingSoon.length}
+              formatValue={(n) => String(Math.round(n))}
+              sub={renewingSoon.length > 0 ? "Due within 30 days" : "All policies active"}
+              icon={<Calendar />}
+              color={renewingSoon.length > 0 ? THEME.gold : THEME.muted}
+            />
+          </div>
 
-      {/* Claims summary */}
-      {allClaims.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: THEME.textMuted,
-            marginBottom: 16,
-          }}
-        >
-          <FileText size={12} />
-          {allClaims.length} claim{allClaims.length !== 1 ? "s" : ""} filed ·{" "}
-          <Money value={totalClaimedAmount} variant="full" /> total claimed
-          {pendingClaims > 0 ? ` · ${pendingClaims} pending settlement` : ""}
-        </div>
-      )}
+          {/* Renewal Warning Banner */}
+          {renewingSoon.length > 0 && (
+            <Card
+              style={{
+                marginBottom: 20,
+                padding: "14px 18px",
+                background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.gold} 10%, var(--surface-0)), var(--surface-0))`,
+                border: `1px solid color-mix(in srgb, ${THEME.gold} 30%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <AlertCircle size={18} color={THEME.gold} style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                  Renewal Due Soon for {renewingSoon.length} Policy{renewingSoon.length !== 1 ? "s" : ""}
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  {renewingSoon.map((p) => `${p.insurer} (${p.policyName || "Policy"}) renews in ${daysUntilRenewal(p.renewalDate)} days`).join(" · ")}
+                </div>
+              </div>
+            </Card>
+          )}
 
-      {/* Renewal alerts */}
-      {renewingSoon.length > 0 && (
-        <div
-          style={{
-            background: `color-mix(in srgb, ${THEME.warning} 18%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${THEME.warning} 40%, transparent)`,
-            borderRadius: 10,
-            padding: "12px 16px",
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-          }}
-        >
-          <AlertCircle size={16} color={THEME.warning} style={{ marginTop: 2, flexShrink: 0 }} />
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: THEME.warning }}>
-              Renewal Due Soon
+          {/* Controls Bar: Multi-Mode Views & Filters */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: 20,
+              padding: "12px 16px",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: "var(--radius-lg)",
+            }}
+          >
+            {/* View Mode Buttons */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <button
+                onClick={() => setViewMode("cards")}
+                className={`demat-portfolio-pill ${viewMode === "cards" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <LayoutGrid size={13} /> Policy Cards
+              </button>
+              <button
+                onClick={() => setViewMode("claims")}
+                className={`demat-portfolio-pill ${viewMode === "claims" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <Hospital size={13} /> Claims Radar ({allClaims.length})
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`demat-portfolio-pill ${viewMode === "table" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <TableIcon size={13} /> Policy Table
+              </button>
             </div>
-            <div style={{ fontSize: 12, color: THEME.textMuted, marginTop: 2 }}>
-              {renewingSoon
-                .map(
-                  (p: any) =>
-                    `${p.insurer}${p.policyName ? ` (${p.policyName})` : ""} — ${daysUntilRenewal(p.renewalDate)}d left`
-                )
-                .join(" · ")}
+
+            {/* Search and Filters */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", minWidth: 160 }}>
+                <Search
+                  size={13}
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: THEME.muted,
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search policies..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "6px 10px 6px 30px",
+                    borderRadius: "var(--radius-sm)",
+                    border: `1px solid ${THEME.line}`,
+                    background: "var(--surface-1)",
+                    color: THEME.ink,
+                    fontSize: 12,
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              {/* Policy Type Filter */}
+              <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                {(
+                  [
+                    { id: "all", label: "All Types" },
+                    { id: "family_floater", label: "Floater" },
+                    { id: "individual", label: "Individual" },
+                    { id: "corporate", label: "Corporate" },
+                    { id: "top_up", label: "Top-Up" },
+                  ] as const
+                ).map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setFilterType(t.id)}
+                    className={`demat-portfolio-pill ${filterType === t.id ? "active" : ""}`}
+                    style={{ fontSize: 11, padding: "4px 10px" }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Policies list */}
+      {/* Main Content View */}
       {policies.length === 0 ? (
         <EmptyState
           icon={Heart}
-          gradient={`linear-gradient(135deg, ${THEME.danger} 0%, color-mix(in srgb, ${THEME.danger} 55%, white) 100%)`}
-          dotColor={THEME.danger}
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 55%, white) 100%)`}
+          dotColor={THEME.accent}
           title="No Health Insurance Policies Yet"
           description="Add your health insurance policies to track coverage, premiums, renewals, and claims."
           pills={["Family Floater", "Corporate Cover", "Renewal Alerts", "Premium Tracking"]}
           buttonLabel="Add Policy"
           onAdd={() => setModal({})}
         />
+      ) : filteredPolicies.length === 0 ? (
+        <Card style={{ padding: 48, textAlign: "center" }}>
+          <div style={{ color: THEME.muted, fontSize: 13 }}>No policies match your search or filter.</div>
+        </Card>
+      ) : viewMode === "table" ? (
+        /* TABLE VIEW */
+        <Card style={{ overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-1)", borderBottom: `1.5px solid ${THEME.line}` }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Insurer & Policy</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Type</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Sum Insured</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Annual Premium</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Renewal Date</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Features</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPolicies.map((p: any) => {
+                  const days = daysUntilRenewal(p.renewalDate);
+                  const annual = annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual");
+                  const typeColor = TYPE_COLORS[p.policyType] || THEME.accent;
+                  return (
+                    <tr key={p.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                      <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
+                        <div>{p.insurer}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                          {p.policyName ? `${p.policyName} ` : ""}#{p.policyNumber || "—"}
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: typeColor,
+                            background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {POLICY_TYPES.find((t) => t.value === p.policyType)?.label || p.policyType}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 900, color: THEME.accent }}>
+                        <Money value={Number(p.sumInsured || 0)} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800 }}>
+                        <Money value={annual} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: 12 }}>
+                        {p.renewalDate ? (
+                          <span style={{ fontWeight: 700, color: days !== null && days <= 30 ? THEME.gold : THEME.ink }}>
+                            {p.renewalDate} {days !== null ? `(${days}d)` : ""}
+                          </span>
+                        ) : (
+                          <span style={{ color: THEME.muted }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <div style={{ display: "inline-flex", gap: 4 }}>
+                          {p.cashless && <Badge variant="sage" style={{ fontSize: 9 }}>Cashless</Badge>}
+                          {p.preExistingCovered && <Badge variant="muted" style={{ fontSize: 9 }}>PED</Badge>}
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <div style={{ display: "inline-flex", gap: 6 }}>
+                          <button onClick={() => setClaimModal(p)} className="icon-btn" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }} title="Claims">
+                            <FileText size={13} />
+                          </button>
+                          <button onClick={() => setModal(p)} className="icon-btn" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }} title="Edit">
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              setConfirmAction({
+                                message: `Delete "${p.insurer}" policy? This cannot be undone.`,
+                                onConfirm: () => deletePolicy(p.id),
+                              })
+                            }
+                            className="icon-btn danger"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : viewMode === "claims" ? (
+        /* CLAIMS RADAR VIEW */
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          {allClaims.length === 0 ? (
+            <Card style={{ padding: 48, textAlign: "center" }}>
+              <div style={{ color: THEME.muted, fontSize: 13 }}>No hospitalisation claims filed across your policies.</div>
+            </Card>
+          ) : (
+            allClaims.map((c: any) => (
+              <Card key={c.id} style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--surface-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Hospital size={20} color={THEME.accent} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                      {c.hospitalName} {c.patientName ? `— ${c.patientName}` : ""}
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                      {c.policy?.insurer} · Claim Date: {c.claimDate} · Type: <strong style={{ textTransform: "capitalize" }}>{c.claimType}</strong>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
+                      <Money value={Number(c.amount)} variant="full" />
+                    </div>
+                    <Badge variant={c.settled ? "sage" : "gold"}>{c.settled ? "Settled" : "In Review"}</Badge>
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {policies.map((p: any) => {
+        /* SHOWCASE POLICY CARDS (DEFAULT) */
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {filteredPolicies.map((p: any) => {
             const days = daysUntilRenewal(p.renewalDate);
             const isExpanded = expanded === p.id;
             const annual = annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual");
-            const typeColor = TYPE_COLORS[p.policyType] || THEME.primary;
+            const typeColor = TYPE_COLORS[p.policyType] || THEME.accent;
             const adequacyNote = coverageAdequacyNote(p);
             const waiting = waitingPeriodInfo(p);
             const roomRentCapped = hasRoomRentCap(p);
             const claims = p.claims || [];
 
             return (
-              <Card key={p.id} style={{ borderLeft: `4px solid ${typeColor}`, padding: "16px 20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                    <Heart size={22} color={typeColor} />
+              <Card key={p.id} className="card-lift" style={{ borderLeft: `4px solid ${typeColor}`, padding: "18px 22px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${typeColor} 25%, transparent)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Shield size={22} color={typeColor} />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>
+
+                  <div style={{ flex: 1, minWidth: 180 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink }}>
                       {p.insurer}
                       {p.policyName ? ` — ${p.policyName}` : ""}
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.textMuted, marginTop: 2 }}>
-                      {POLICY_TYPES.find((t) => t.value === p.policyType)?.label || p.policyType}
-                      {p.policyNumber ? ` · #${p.policyNumber}` : ""}
-                      {p.insuredMembers?.length
-                        ? ` · ${p.insuredMembers.length} member${p.insuredMembers.length !== 1 ? "s" : ""}`
-                        : ""}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontWeight: 700,
-                        fontSize: 16,
-                        color: THEME.success,
-                      }}
-                    >
-                      <Money value={Number(p.sumInsured || 0)} variant="full" />
-                    </div>
-                    <div style={{ fontSize: 11, color: THEME.textMuted }}>cover</div>
-                    {adequacyNote && (
-                      <div
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span
                         style={{
                           fontSize: 10,
-                          color: THEME.warning,
-                          marginTop: 2,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 3,
-                          justifyContent: "flex-end",
+                          fontWeight: 700,
+                          color: typeColor,
+                          background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
+                          padding: "1px 6px",
+                          borderRadius: 3,
+                          textTransform: "uppercase",
                         }}
-                        title="Rough rule-of-thumb: ₹5L+ cover per insured member for a metro/tier-1 hospitalisation"
                       >
-                        <AlertTriangle size={10} /> ~<Money value={adequacyNote} variant="full" />
-                        /member — consider a top-up
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div
-                      style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14 }}
-                    >
-                      <Money value={annual} variant="full" />/yr
+                        {POLICY_TYPES.find((t) => t.value === p.policyType)?.label || p.policyType}
+                      </span>
+                      {p.policyNumber && <span>#{p.policyNumber}</span>}
+                      {p.insuredMembers?.length > 0 && <span>· {p.insuredMembers.length} member{p.insuredMembers.length !== 1 ? "s" : ""}</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: THEME.textMuted }}>premium</div>
                   </div>
+
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: 18, color: THEME.accent }}>
+                      <Money value={Number(p.sumInsured || 0)} variant="full" />
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Sum Insured</div>
+                  </div>
+
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: THEME.ink }}>
+                      <Money value={annual} variant="full" />
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>annual premium</div>
+                  </div>
+
                   {days !== null && (
                     <Badge variant={days <= 7 ? "rust" : days <= 30 ? "gold" : "sage"}>
                       {days <= 0 ? "Expired" : `Renews in ${days}d`}
                     </Badge>
                   )}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      onClick={() => setClaimModal(p)}
-                      aria-label={`Log a claim for ${p.insurer} policy`}
-                      title="Log a claim"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: THEME.textMuted,
-                        padding: 6,
-                        display: "flex",
-                        alignItems: "center",
-                        transition: "background 0.15s ease, color 0.15s ease",
-                      }}
-                    >
-                      <FileText size={14} />
-                    </button>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+                    <Button size="sm" variant="ghost" onClick={() => setClaimModal(p)} style={{ padding: "6px 10px", fontSize: 12 }}>
+                      Claims ({claims.length})
+                    </Button>
                     <button
                       onClick={() => setExpanded(isExpanded ? null : p.id)}
-                      aria-label={isExpanded ? "Collapse policy details" : "Expand policy details"}
-                      title={isExpanded ? "Collapse" : "Expand"}
+                      aria-label={isExpanded ? "Collapse" : "Expand"}
+                      className="icon-btn"
                       style={{
-                        background: "none",
-                        border: "none",
+                        background: "var(--surface-1)",
+                        border: `1px solid ${THEME.line}`,
                         cursor: "pointer",
-                        color: THEME.textMuted,
+                        color: THEME.muted,
                         padding: 6,
-                        display: "flex",
+                        borderRadius: 6,
+                        display: "inline-flex",
                         alignItems: "center",
-                      transition: "background 0.15s ease, color 0.15s ease",
                       }}
                     >
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
                     <button
                       onClick={() => setModal(p)}
-                      aria-label={`Edit ${p.insurer} policy`}
-                      title="Edit policy"
+                      aria-label="Edit policy"
                       className="icon-btn"
                       style={{
-                        background: "none",
-                        border: "none",
+                        background: "var(--surface-1)",
+                        border: `1px solid ${THEME.line}`,
                         cursor: "pointer",
-                        color: THEME.textMuted,
+                        color: THEME.muted,
                         padding: 6,
-                        display: "flex",
+                        borderRadius: 6,
+                        display: "inline-flex",
                         alignItems: "center",
                       }}
                     >
@@ -867,16 +1062,16 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                           onConfirm: () => deletePolicy(p.id),
                         })
                       }
-                      aria-label={`Delete ${p.insurer} policy`}
-                      title="Delete policy"
+                      aria-label="Delete policy"
                       className="icon-btn danger"
                       style={{
-                        background: "none",
-                        border: "none",
+                        background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
                         cursor: "pointer",
-                        color: THEME.danger,
+                        color: THEME.rust,
                         padding: 6,
-                        display: "flex",
+                        borderRadius: 6,
+                        display: "inline-flex",
                         alignItems: "center",
                       }}
                     >
@@ -885,222 +1080,52 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                   </div>
                 </div>
 
-                {/* Expanded details */}
+                {/* Expanded Details & Member Chips */}
                 {isExpanded && (
-                  <div
-                    style={{
-                      marginTop: 16,
-                      paddingTop: 16,
-                      borderTop: `1px solid ${THEME.border}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      {p.cashless && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            fontSize: 12,
-                            color: THEME.success,
-                          }}
-                        >
-                          <CheckCircle size={14} /> Cashless hospitalisation
-                        </div>
-                      )}
-                      {p.preExistingCovered && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            fontSize: 12,
-                            color: THEME.success,
-                          }}
-                        >
-                          <CheckCircle size={14} /> Pre-existing covered
-                        </div>
-                      )}
-                      {Number(p.waitingPeriodYears) > 0 && (
-                        <div style={{ fontSize: 12, color: THEME.textMuted }}>
-                          <div>
-                            Waiting period: {p.waitingPeriodYears} yr
-                            {p.waitingPeriodYears !== 1 ? "s" : ""}
-                          </div>
-                          {waiting && (
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                                marginTop: 2,
-                                color: waiting.done ? THEME.success : THEME.warning,
-                              }}
-                            >
-                              <Clock size={11} />
-                              {waiting.done
-                                ? "Fully vested"
-                                : `${waiting.remainingMonths} mo remaining`}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {Number(p.noClaimBonus) > 0 && (
-                        <div style={{ fontSize: 12, color: THEME.textMuted }}>
-                          NCB: <Money value={Number(p.noClaimBonus)} variant="full" />
-                        </div>
-                      )}
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${THEME.line}` }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                        <CheckCircle2 size={15} color={p.cashless ? THEME.sage : THEME.muted} />
+                        <span style={{ fontWeight: 600, color: p.cashless ? THEME.ink : THEME.muted }}>
+                          {p.cashless ? "Cashless Hospitalisation Active" : "Reimbursement Only"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                        <CheckCircle2 size={15} color={p.preExistingCovered ? THEME.sage : THEME.muted} />
+                        <span style={{ fontWeight: 600, color: p.preExistingCovered ? THEME.ink : THEME.muted }}>
+                          {p.preExistingCovered ? "Pre-Existing Conditions Covered" : "PED Not Covered"}
+                        </span>
+                      </div>
                       {p.hospitalNetwork && (
-                        <div style={{ fontSize: 12, color: THEME.textMuted }}>
-                          Network: {p.hospitalNetwork}
+                        <div style={{ fontSize: 12, color: THEME.muted }}>
+                          Hospital Network: <strong style={{ color: THEME.ink }}>{p.hospitalNetwork}</strong>
                         </div>
                       )}
                       {p.roomRentLimit && (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: roomRentCapped ? THEME.warning : THEME.textMuted,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          {roomRentCapped && <AlertTriangle size={11} />}
-                          Room rent: {p.roomRentLimit}
+                        <div style={{ fontSize: 12, color: roomRentCapped ? THEME.rust : THEME.sage }}>
+                          Room Rent Sublimit: <strong>{p.roomRentLimit}</strong>
                         </div>
                       )}
-                      {p.startDate && (
-                        <div style={{ fontSize: 12, color: THEME.textMuted }}>
-                          Start:{" "}
-                          {new Date(p.startDate + "T00:00:00").toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </div>
-                      )}
-                      {p.renewalDate && (
-                        <div style={{ fontSize: 12, color: THEME.textMuted }}>
-                          Renewal:{" "}
-                          {new Date(p.renewalDate + "T00:00:00").toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                      {p.noClaimBonus && (
+                        <div style={{ fontSize: 12, color: THEME.sage }}>
+                          No Claim Bonus: <strong><Money value={Number(p.noClaimBonus)} variant="full" /></strong>
                         </div>
                       )}
                     </div>
+
+                    {/* Insured Family Members */}
                     {p.insuredMembers?.length > 0 && (
-                      <div style={{ marginTop: 12 }}>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: THEME.textMuted,
-                            marginBottom: 6,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, marginBottom: 6, textTransform: "uppercase" }}>
                           Insured Members
                         </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {p.insuredMembers.map((m: any, i: number) => (
-                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <Users size={12} color={THEME.textMuted} />
-                              <span style={{ fontSize: 12 }}>{m.name}</span>
-                              <Badge style={{ fontSize: 10 }}>{m.relation}</Badge>
-                            </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {p.insuredMembers.map((m: any, idx: number) => (
+                            <Badge key={idx} variant="muted" style={{ padding: "4px 8px", fontSize: 11 }}>
+                              <Users size={11} style={{ marginRight: 4 }} /> {m.name} ({m.relation})
+                            </Badge>
                           ))}
                         </div>
-                      </div>
-                    )}
-                    {claims.length > 0 && (
-                      <div style={{ marginTop: 12 }}>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: THEME.textMuted,
-                            marginBottom: 6,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          Claim History
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {[...claims]
-                            .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""))
-                            .map((c: any) => (
-                              <div
-                                key={c.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 8,
-                                  fontSize: 12,
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <span style={{ color: THEME.textMuted, minWidth: 70 }}>
-                                  {c.date
-                                    ? new Date(c.date + "T00:00:00").toLocaleDateString("en-IN", {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "2-digit",
-                                      })
-                                    : "—"}
-                                </span>
-                                <span style={{ fontWeight: 600 }}>
-                                  <Money value={Number(c.amount || 0)} variant="full" />
-                                </span>
-                                {c.description && (
-                                  <span style={{ color: THEME.textMuted, flex: 1, minWidth: 0 }}>
-                                    {c.description}
-                                  </span>
-                                )}
-                                <Badge variant={c.settled ? "sage" : "gold"} size="xs">
-                                  {c.settled ? "Settled" : "Pending"}
-                                </Badge>
-                                <button
-                                  onClick={() => removeClaim(p, c.id)}
-                                  aria-label={`Delete claim from ${c.date}`}
-                                  title="Delete claim"
-                                  className="icon-btn danger"
-                                  style={{
-                                    background: "none",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    color: THEME.danger,
-                                    padding: 4,
-                                    display: "flex",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                    {p.notes && (
-                      <div
-                        style={{
-                          marginTop: 10,
-                          fontSize: 12,
-                          color: THEME.textMuted,
-                          fontStyle: "italic",
-                        }}
-                      >
-                        {p.notes}
                       </div>
                     )}
                   </div>
@@ -1119,9 +1144,8 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
           saving={savingPolicy}
         />
       )}
-
       {claimModal !== null && (
-        <ClaimForm
+        <ClaimModal
           policy={claimModal}
           onSave={saveClaim}
           onClose={() => setClaimModal(null)}

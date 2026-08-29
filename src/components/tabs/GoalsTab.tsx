@@ -26,6 +26,14 @@ import {
   Clock,
   ArrowUpDown,
   Zap,
+  Home,
+  Car,
+  GraduationCap,
+  Shield,
+  Plane,
+  Heart,
+  Briefcase,
+  Palmtree,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
@@ -64,16 +72,17 @@ const PRIORITY_COLOR: Record<string, string> = {
   Low: THEME.sage,
 };
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Retirement: "🏖️",
-  "Home Purchase": "🏡",
-  Vehicle: "🚗",
-  Education: "🎓",
-  "Emergency Fund": "🛡️",
-  Travel: "✈️",
-  Wedding: "💍",
-  Investment: "📈",
-  General: "🎯",
+const getCategoryIcon = (category: string, size = 14) => {
+  const cat = (category || "").toLowerCase();
+  if (cat.includes("retire")) return <Palmtree size={size} color={THEME.accent} />;
+  if (cat.includes("home") || cat.includes("house") || cat.includes("property")) return <Home size={size} color={THEME.accent} />;
+  if (cat.includes("car") || cat.includes("vehicle") || cat.includes("bike")) return <Car size={size} color={THEME.accent} />;
+  if (cat.includes("edu") || cat.includes("school") || cat.includes("college")) return <GraduationCap size={size} color={THEME.accent} />;
+  if (cat.includes("emergency") || cat.includes("reserve") || cat.includes("buffer")) return <Shield size={size} color={THEME.sage} />;
+  if (cat.includes("travel") || cat.includes("vacation") || cat.includes("trip")) return <Plane size={size} color={THEME.accent} />;
+  if (cat.includes("wedding") || cat.includes("marriage")) return <Heart size={size} color={THEME.pink} />;
+  if (cat.includes("invest") || cat.includes("wealth")) return <TrendingUp size={size} color={THEME.sage} />;
+  return <Target size={size} color={THEME.accent} />;
 };
 
 export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, showToast }: any) {
@@ -715,7 +724,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     >
                       <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span>{CATEGORY_ICONS[g.category] || "🎯"}</span>
+                          {getCategoryIcon(g.category, 14)}
                           <span>{g.name}</span>
                         </div>
                       </td>
@@ -879,7 +888,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 14 }}>{CATEGORY_ICONS[g.category] || "🎯"}</span>
+              {getCategoryIcon(g.category, 14)}
               <span
                 style={{
                   fontSize: 10,
@@ -1056,10 +1065,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       color: reached ? THEME.sage : THEME.muted,
                       display: "flex",
                       alignItems: "center",
-                      gap: 2,
+                      gap: 3,
                     }}
                   >
-                    {reached ? "✓" : "○"} {m}%
+                    <CheckCircle2 size={9} style={{ opacity: reached ? 1 : 0.4 }} /> {m}%
                   </span>
                 );
               })}

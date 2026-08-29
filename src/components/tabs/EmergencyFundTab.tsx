@@ -177,11 +177,14 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
               style={{
                 fontSize: 11,
                 padding: "5px 12px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
                 ...(burnMode === "survival" ? { background: THEME.gold, borderColor: THEME.gold } : {}),
               }}
               title="Survival Mode strips non-essential discretionary expenses"
             >
-              ⚡ Bare-Bones Survival Mode
+              <Zap size={12} /> Bare-Bones Survival Mode
             </button>
           </div>
         }
@@ -283,7 +286,7 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
                 {healthLabel}
               </span>
               <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                {burnMode === "survival" ? "⚡ Calculated on Bare-Bones Survival Mode" : "Standard Full Expense Mode"}
+                {burnMode === "survival" ? "Calculated on Bare-Bones Survival Mode" : "Standard Full Expense Mode"}
               </span>
             </div>
 
@@ -498,8 +501,8 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
             </div>
             <div style={{ fontSize: 11, fontWeight: 700, color: data.totalLiquid >= data.monthlyExpense * 6 ? THEME.sage : THEME.rust }}>
               {data.totalLiquid >= data.monthlyExpense * 6
-                ? "✓ Fully Protected: Liquid assets cover entire 6 months"
-                : `✗ Deficit: Short by ${fmtINR(data.monthlyExpense * 6 - data.totalLiquid)}`}
+                ? "Fully Protected: Liquid assets cover entire 6 months"
+                : `Deficit: Short by ${fmtINR(data.monthlyExpense * 6 - data.totalLiquid)}`}
             </div>
           </div>
 
@@ -521,8 +524,8 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
             </div>
             <div style={{ fontSize: 11, fontWeight: 700, color: data.totalLiquid > 300000 ? THEME.sage : THEME.rust }}>
               {data.totalLiquid > 300000
-                ? `✓ Runway after shock: ${((data.totalLiquid - 300000) / (data.monthlyExpense || 1)).toFixed(1)} months`
-                : "✗ Critical: Liquid assets would be fully depleted"}
+                ? `Runway after shock: ${((data.totalLiquid - 300000) / (data.monthlyExpense || 1)).toFixed(1)} months`
+                : "Critical: Liquid assets would be fully depleted"}
             </div>
           </div>
 
@@ -544,8 +547,8 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
             </div>
             <div style={{ fontSize: 11, fontWeight: 700, color: data.totalLiquid > 150000 ? THEME.sage : THEME.rust }}>
               {data.totalLiquid > 150000
-                ? `✓ Runway after repair: ${((data.totalLiquid - 150000) / (data.monthlyExpense || 1)).toFixed(1)} months`
-                : "✗ Shortfall: Would require liquidating investments"}
+                ? `Runway after repair: ${((data.totalLiquid - 150000) / (data.monthlyExpense || 1)).toFixed(1)} months`
+                : "Shortfall: Would require liquidating investments"}
             </div>
           </div>
         </div>

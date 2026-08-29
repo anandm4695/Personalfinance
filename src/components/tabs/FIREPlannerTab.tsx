@@ -263,11 +263,11 @@ export const FIREPlannerTab = ({ state, metrics }: any) => {
         }}
       >
         {[
-          { id: "regular", label: "🔥 Regular FIRE", desc: "25x Annual Expenses (100% lifestyle)", val: fireCalc.regularFireNumber },
-          { id: "lean", label: "⚡ Lean FIRE", desc: "20x Core Essential Expenses (60% burn)", val: fireCalc.leanFireNumber },
-          { id: "fat", label: "💎 Fat FIRE", desc: "35x+ Luxury Cushion (150% burn)", val: fireCalc.fatFireNumber },
-          { id: "coast", label: "🏖️ Coast FIRE", desc: "Corpus compounds with ₹0 added", val: fireCalc.coastFireNumber },
-          { id: "barista", label: "☕ Barista FIRE", desc: "50% passive + 50% part-time", val: fireCalc.baristaFireNumber },
+          { id: "regular", label: "Regular FIRE", icon: <Flame size={14} color={THEME.accent} />, desc: "25x Annual Expenses (100% lifestyle)", val: fireCalc.regularFireNumber },
+          { id: "lean", label: "Lean FIRE", icon: <Zap size={14} color={THEME.gold} />, desc: "20x Core Essential Expenses (60% burn)", val: fireCalc.leanFireNumber },
+          { id: "fat", label: "Fat FIRE", icon: <Gem size={14} color={THEME.violet} />, desc: "35x+ Luxury Cushion (150% burn)", val: fireCalc.fatFireNumber },
+          { id: "coast", label: "Coast FIRE", icon: <Compass size={14} color={THEME.sage} />, desc: "Corpus compounds with ₹0 added", val: fireCalc.coastFireNumber },
+          { id: "barista", label: "Barista FIRE", icon: <Coffee size={14} color={THEME.pink} />, desc: "50% passive + 50% part-time", val: fireCalc.baristaFireNumber },
         ].map((item) => {
           const active = archetype === item.id;
           return (
@@ -289,9 +289,12 @@ export const FIREPlannerTab = ({ state, metrics }: any) => {
                 gap: 4,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 800, color: active ? THEME.accent : THEME.ink }}>
-                {item.label}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {item.icon}
+                <span style={{ fontSize: 13, fontWeight: 800, color: active ? THEME.accent : THEME.ink }}>
+                  {item.label}
+                </span>
+              </div>
               <span style={{ fontSize: 10, color: THEME.muted }}>{item.desc}</span>
               <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>
                 <Money value={item.val} variant="full" />

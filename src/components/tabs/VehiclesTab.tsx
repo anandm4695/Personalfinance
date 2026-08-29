@@ -560,12 +560,12 @@ const VEHICLE_TYPES: Record<string, string> = {
   commercial: "Commercial",
 };
 
-const FUEL_TYPES: Record<string, { label: string; icon: string; color: string }> = {
-  petrol: { label: "Petrol", icon: "⛽", color: THEME.accent },
-  diesel: { label: "Diesel", icon: "🛢️", color: THEME.gold },
-  electric: { label: "Electric (EV)", icon: "⚡", color: THEME.sage },
-  cng: { label: "CNG", icon: "💨", color: THEME.cyan },
-  hybrid: { label: "Hybrid", icon: "🔋", color: THEME.violet },
+const FUEL_TYPES: Record<string, { label: string; icon: any; color: string }> = {
+  petrol: { label: "Petrol", icon: Fuel, color: THEME.accent },
+  diesel: { label: "Diesel", icon: Fuel, color: THEME.gold },
+  electric: { label: "Electric (EV)", icon: Zap, color: THEME.sage },
+  cng: { label: "CNG", icon: Fuel, color: THEME.cyan },
+  hybrid: { label: "Hybrid", icon: Zap, color: THEME.violet },
 };
 
 const SERVICE_TYPES: Record<string, { label: string; color: string; icon: any }> = {
@@ -1864,9 +1864,12 @@ function VehicleCard({
                 background: `color-mix(in srgb, ${fuelMeta.color} 10%, transparent)`,
                 color: fuelMeta.color,
                 border: `1px solid color-mix(in srgb, ${fuelMeta.color} 20%, transparent)`,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
               }}
             >
-              {fuelMeta.icon} {fuelMeta.label}
+              <fuelMeta.icon size={11} /> {fuelMeta.label}
             </span>
             {vehicle.color && (
               <span style={{ fontSize: 12, color: "var(--t-muted)" }}>• {vehicle.color}</span>

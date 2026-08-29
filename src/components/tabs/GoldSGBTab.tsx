@@ -21,6 +21,8 @@ import {
   Sliders,
   Clock,
   Flame,
+  Landmark,
+  BarChart3,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -56,11 +58,11 @@ import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const GOLD_TYPES = [
-  { id: "physical", label: "Physical Gold", color: THEME.gold, icon: "👑" },
-  { id: "sgb", label: "Sovereign Gold Bond (SGB)", color: THEME.sage, icon: "🏛️" },
-  { id: "digital", label: "Digital Gold", color: THEME.accent, icon: "⚡" },
-  { id: "etf", label: "Gold ETF", color: THEME.violet, icon: "📊" },
-  { id: "mf", label: "Gold Mutual Fund", color: THEME.pink, icon: "📈" },
+  { id: "physical", label: "Physical Gold", color: THEME.gold, iconName: "Coins" },
+  { id: "sgb", label: "Sovereign Gold Bond (SGB)", color: THEME.sage, iconName: "Landmark" },
+  { id: "digital", label: "Digital Gold", color: THEME.accent, iconName: "Zap" },
+  { id: "etf", label: "Gold ETF", color: THEME.violet, iconName: "BarChart3" },
+  { id: "mf", label: "Gold Mutual Fund", color: THEME.pink, iconName: "TrendingUp" },
 ];
 
 const EMPTY_GOLD = {
@@ -548,7 +550,7 @@ export const GoldSGBTab = ({
                 className={`demat-portfolio-pill ${viewMode === "sgb" ? "active" : ""}`}
                 style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
               >
-                🏛️ SGB Tranches
+                <Landmark size={13} /> SGB Tranches
               </button>
               <button
                 onClick={() => setViewMode("table")}
@@ -609,8 +611,8 @@ export const GoldSGBTab = ({
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: THEME.sage, textTransform: "uppercase" }}>
-                    🏛️ Sovereign Gold Bond
+                  <span style={{ fontSize: 11, fontWeight: 800, color: THEME.sage, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
+                    <Landmark size={13} /> Sovereign Gold Bond
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: THEME.gold }}>
                     2.5% p.a. RBI Interest
@@ -729,9 +731,12 @@ export const GoldSGBTab = ({
                     border: `1px solid color-mix(in srgb, ${h.typeInfo.color} 25%, transparent)`,
                     padding: "2px 8px",
                     borderRadius: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
                   }}
                 >
-                  {h.typeInfo.icon} {h.typeInfo.label}
+                  {h.type === "sgb" ? <Landmark size={11} /> : h.type === "etf" ? <BarChart3 size={11} /> : h.type === "digital" ? <Zap size={11} /> : <Coins size={11} />} {h.typeInfo.label}
                 </span>
                 {h.type === "physical" && (
                   <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted }}>
