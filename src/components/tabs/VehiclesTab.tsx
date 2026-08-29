@@ -45,6 +45,10 @@ import {
   Cog,
   Camera,
   Palette,
+  ShieldCheck,
+  Award,
+  Landmark,
+  CheckCircle2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -1631,6 +1635,16 @@ const EMPTY_VEHICLE = {
   registrationNumber: "",
   chassisNumber: "",
   engineNumber: "",
+  cubicCapacity: "",
+  seatingCapacity: "",
+  fitnessUpto: "",
+  financier: "",
+  insuranceCompany: "",
+  insurancePolicyNumber: "",
+  emissionNorms: "",
+  rto: "",
+  state: "",
+  registeredOwner: "",
   purchaseDate: "",
   purchasePrice: "",
   purchaseBasicCost: "",
@@ -1714,20 +1728,32 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
         make: data.make || p.make,
         model: data.model || p.model,
         year: data.year || p.year,
+        purchaseDate: data.registrationDate || p.purchaseDate,
         color: data.color || p.color,
         fuelType: data.fuelType || p.fuelType,
         vehicleType: data.vehicleType || p.vehicleType,
         chassisNumber: data.chassisNumber || p.chassisNumber,
         engineNumber: data.engineNumber || p.engineNumber,
+        cubicCapacity: data.cubicCapacity || p.cubicCapacity,
+        seatingCapacity: data.seatingCapacity || p.seatingCapacity,
+        fitnessUpto: data.fitnessUpto || p.fitnessUpto,
+        financier: data.financier || p.financier,
+        insuranceCompany: data.insuranceCompany || p.insuranceCompany,
+        insurancePolicyNumber: data.insurancePolicyNumber || p.insurancePolicyNumber,
         insuranceExpiry: data.insuranceExpiry || p.insuranceExpiry,
         pucExpiry: data.pucExpiry || p.pucExpiry,
+        emissionNorms: data.emissionNorms || p.emissionNorms,
+        rto: data.rto || p.rto,
+        state: data.state || p.state,
+        registeredOwner: data.ownerName || p.registeredOwner,
       }));
       setRcStatus("ok");
       setRcSource(data.source || "");
       setRcMsg(
         `Auto-filled via ${data.source || "VAHAN"}` +
           (data.ownerName ? ` · Owner: ${data.ownerName}` : "") +
-          (data.rto ? ` · RTO: ${data.rto}` : "")
+          (data.rto ? ` · RTO: ${data.rto}` : "") +
+          (data.cubicCapacity ? ` · CC: ${data.cubicCapacity}` : "")
       );
     } catch {
       setRcStatus("error");
@@ -2050,6 +2076,60 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
             value={f.engineNumber}
             onChange={(e) => set("engineNumber", e.target.value.toUpperCase())}
             placeholder="Engine Serial No."
+          />
+        </Field>
+      </div>
+
+      <div style={g3}>
+        <Field label="Registered Owner (RC Name)">
+          <input
+            style={inp}
+            value={f.registeredOwner || ""}
+            onChange={(e) => set("registeredOwner", e.target.value)}
+            placeholder="Owner name as per RC"
+          />
+        </Field>
+        <Field label="RTO Office & State">
+          <input
+            style={inp}
+            value={f.rto || f.state || ""}
+            onChange={(e) => set("rto", e.target.value)}
+            placeholder="e.g. Mumbai South (Tardeo) RTO"
+          />
+        </Field>
+        <Field label="Engine CC / Power">
+          <input
+            style={inp}
+            value={f.cubicCapacity || ""}
+            onChange={(e) => set("cubicCapacity", e.target.value)}
+            placeholder="e.g. 109.51 cc, 1497 cc, 129 kW"
+          />
+        </Field>
+      </div>
+
+      <div style={g3}>
+        <Field label="Fitness Validity Upto">
+          <input
+            style={inp}
+            type="date"
+            value={f.fitnessUpto || ""}
+            onChange={(e) => set("fitnessUpto", e.target.value)}
+          />
+        </Field>
+        <Field label="Hypothecation / Financed Bank">
+          <input
+            style={inp}
+            value={f.financier || ""}
+            onChange={(e) => set("financier", e.target.value)}
+            placeholder="e.g. HDFC Bank Ltd / Unencumbered"
+          />
+        </Field>
+        <Field label="Emission Norms">
+          <input
+            style={inp}
+            value={f.emissionNorms || ""}
+            onChange={(e) => set("emissionNorms", e.target.value)}
+            placeholder="e.g. BS-VI, BS-IV, EV"
           />
         </Field>
       </div>
@@ -3104,6 +3184,42 @@ function VehicleCard({
                     color: THEME.cyan,
                   },
                   { label: "Owner Profile", value: ownerName, icon: User, color: THEME.sage },
+                  {
+                    label: "Registered RC Owner",
+                    value: vehicle.registeredOwner || ownerName,
+                    icon: ShieldCheck,
+                    color: THEME.sage,
+                  },
+                  {
+                    label: "RTO Office & State",
+                    value: vehicle.rto || vehicle.state || "—",
+                    icon: Award,
+                    color: THEME.accent,
+                  },
+                  {
+                    label: "Engine Displacement (CC)",
+                    value: vehicle.cubicCapacity || "—",
+                    icon: Zap,
+                    color: THEME.gold,
+                  },
+                  {
+                    label: "Fitness Validity",
+                    value: vehicle.fitnessUpto ? formatDate(vehicle.fitnessUpto) : "15 Yrs from Reg",
+                    icon: Shield,
+                    color: THEME.cyan,
+                  },
+                  {
+                    label: "Hypothecation / Financed",
+                    value: vehicle.financier || "Unencumbered",
+                    icon: Landmark,
+                    color: vehicle.financier && !vehicle.financier.toLowerCase().includes("unencumbered") && !vehicle.financier.toLowerCase().includes("none") ? THEME.gold : THEME.sage,
+                  },
+                  {
+                    label: "Emission Standard",
+                    value: vehicle.emissionNorms || "BS-VI",
+                    icon: CheckCircle2,
+                    color: THEME.violet,
+                  },
                   {
                     label: "Latest Odometer",
                     value: latestOdo ? `${latestOdo.toLocaleString("en-IN")} km` : "—",

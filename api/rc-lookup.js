@@ -73,16 +73,25 @@ module.exports = async function handler(req, res) {
     make: mockData.make,
     model: mockData.model,
     year: mockData.year,
+    registrationDate: mockData.purchaseDate,
     color: mockData.color,
     fuelType: mockData.fuelType,
     vehicleType: mockData.type,
     chassisNumber: mockData.chassisNumber,
     engineNumber: mockData.engineNumber,
+    cubicCapacity: mockData.cubicCapacity,
+    seatingCapacity: mockData.seatingCapacity,
+    fitnessUpto: mockData.fitnessUpto,
+    financier: mockData.financier,
+    insuranceCompany: mockData.insuranceCompany,
+    insurancePolicyNumber: mockData.insurancePolicyNumber,
     insuranceExpiry: mockData.insuranceExpiry,
     pucExpiry: mockData.pucExpiry,
+    emissionNorms: mockData.emissionNorms,
     ownerName: mockData.ownerName,
     rto: rtoName,
     state: state,
+    status: "ACTIVE",
     source: sourceName,
   });
 };
@@ -107,16 +116,25 @@ async function trySurepass(reg, token) {
     maker_desc: d.maker_description || d.vehicle_manufacturer_name || "",
     model: d.maker_model || d.model || "",
     manufacturing_mon_yr: d.manufacturing_month_year || d.registration_date || "",
+    reg_date: d.registration_date || "",
     color: d.color || "",
     vehicle_fuel_type: d.vehicle_fuel_type || "",
     vehicle_category: d.vehicle_class || d.vehicle_category || "",
     chassis_no: d.chassis_number || "",
     engine_no: d.engine_number || "",
+    cubic_capacity: d.cubic_capacity || d.vehicle_cubic_capacity || "",
+    seating_capacity: d.seating_capacity || d.seat_cap || "",
+    fitness_upto: d.fit_up_to || d.fitness_upto || "",
+    financier: d.financer || d.hypothecation || "",
+    insurance_company: d.insurance_company || d.insurance_name || "",
+    insurance_policy_no: d.insurance_policy_no || "",
     insurance_upto: d.insurance_upto || "",
     pucc_upto: d.pucc_upto || d.pucc_validity_upto || "",
+    emission_norms: d.norms_desc || d.emission_norms || "",
     owner_name: d.owner_name || "",
     rto: d.rto || "",
     state: d.state || "",
+    status: d.status || "ACTIVE",
     source: "Surepass",
   });
 }
@@ -139,16 +157,25 @@ async function tryAttestr(reg, token) {
     maker_desc: d.makerModel?.split(" ")[0] || "",
     model: d.makerModel || "",
     manufacturing_mon_yr: d.manufacturingDate || "",
+    reg_date: d.registrationDate || "",
     color: d.color || "",
     vehicle_fuel_type: d.fuelType || "",
     vehicle_category: d.vehicleClass || "",
     chassis_no: d.chassisNumber || "",
     engine_no: d.engineNumber || "",
+    cubic_capacity: d.cubicCapacity || "",
+    seating_capacity: d.seatingCapacity || "",
+    fitness_upto: d.fitnessValidity || "",
+    financier: d.financier || "",
+    insurance_company: d.insuranceCompany || "",
+    insurance_policy_no: d.insurancePolicyNumber || "",
     insurance_upto: d.insuranceValidity || "",
     pucc_upto: d.puccUpto || "",
+    emission_norms: d.emissionNorms || "",
     owner_name: d.ownerName || "",
     rto: d.rtOfficeName || "",
     state: d.presentAddress?.split(",")?.pop()?.trim() || "",
+    status: d.status || "ACTIVE",
     source: "Attestr",
   });
 }
@@ -175,16 +202,25 @@ async function tryRapidApi(reg, key) {
     maker_desc: d.maker_description || d.vehicle_manufacturer_name || "",
     model: d.maker_model || d.model || "",
     manufacturing_mon_yr: d.manufacturing_month_year || d.registration_date || "",
+    reg_date: d.registration_date || "",
     color: d.color || "",
     vehicle_fuel_type: d.vehicle_fuel_type || "",
     vehicle_category: d.vehicle_class || d.vehicle_category || "",
     chassis_no: d.chassis_number || "",
     engine_no: d.engine_number || "",
+    cubic_capacity: d.cubic_capacity || "",
+    seating_capacity: d.seating_capacity || "",
+    fitness_upto: d.fit_up_to || "",
+    financier: d.financer || "",
+    insurance_company: d.insurance_company || "",
+    insurance_policy_no: d.insurance_policy_no || "",
     insurance_upto: d.insurance_upto || "",
     pucc_upto: d.pucc_upto || d.pucc_validity_upto || "",
+    emission_norms: d.norms_desc || "",
     owner_name: d.owner_name || "",
     rto: d.rto || "",
     state: d.state || "",
+    status: d.status || "ACTIVE",
     source: "RapidAPI",
   });
 }
@@ -197,16 +233,25 @@ function normalize(d) {
     make: normalizeMake(d.maker_desc),
     model: cleanModel(d.model),
     year: extractYear(d.manufacturing_mon_yr),
+    registrationDate: normalizeDate(d.reg_date),
     color: titleCase(d.color),
     fuelType: mapFuel(d.vehicle_fuel_type),
     vehicleType: mapClass(d.vehicle_category.toUpperCase()),
     chassisNumber: d.chassis_no,
     engineNumber: d.engine_no,
+    cubicCapacity: d.cubic_capacity ? `${d.cubic_capacity} cc` : "",
+    seatingCapacity: d.seating_capacity ? Number(d.seating_capacity) : null,
+    fitnessUpto: normalizeDate(d.fitness_upto),
+    financier: d.financier ? titleCase(d.financier) : "",
+    insuranceCompany: d.insurance_company ? titleCase(d.insurance_company) : "",
+    insurancePolicyNumber: d.insurance_policy_no || "",
     insuranceExpiry: normalizeDate(d.insurance_upto),
     pucExpiry: normalizeDate(d.pucc_upto),
+    emissionNorms: d.emission_norms ? d.emission_norms.toUpperCase() : "",
     ownerName: titleCase(d.owner_name),
     rto: titleCase(d.rto),
     state: titleCase(d.state),
+    status: (d.status || "ACTIVE").toUpperCase(),
     source: d.source || "",
   };
 }
@@ -464,40 +509,44 @@ function getDeterministicMockVehicle(reg) {
   const insExpiryDate = new Date(Date.now() + ((hash % 400) - 100) * 86400000);
   const pucExpiryDate = new Date(Date.now() + ((hash % 180) - 30) * 86400000);
 
-  const insuranceExpiry = insExpiryDate.toISOString().slice(0, 10);
-  const pucExpiry = pucExpiryDate.toISOString().slice(0, 10);
+  const fitnessExpiryDate = new Date(Date.now() + (15 - yearOffset) * 365 * 86400000);
+  const fitnessUpto = fitnessExpiryDate.toISOString().slice(0, 10);
 
-  const firstNames = [
-    "Anand",
-    "Rajesh",
-    "Amit",
-    "Sanjay",
-    "Vijay",
-    "Sunil",
-    "Priya",
-    "Kiran",
-    "Deepak",
-    "Rohan",
-  ];
-  const lastNames = [
-    "Mohta",
-    "Sharma",
-    "Joshi",
-    "Patel",
-    "Mehta",
-    "Nair",
-    "Verma",
-    "Gupta",
-    "Rao",
-    "Kumar",
-  ];
-  const ownerName = `${firstNames[hash % firstNames.length]} ${lastNames[(hash >> 2) % lastNames.length]}`;
+  const ccMap = {
+    "Honda Activa 6G": "109.51 cc",
+    "Maruti Swift LXI": "1197 cc",
+    "Hyundai i20 Asta": "1197 cc",
+    "Tata Nexon EV": "129 kW (Electric)",
+    "Royal Enfield Classic 350": "349 cc",
+    "Ather 450X": "6.2 kW (Electric)",
+    "TVS Jupiter 125": "124.8 cc",
+    "Suzuki Access 125": "124 cc",
+    "Mahindra Thar LX": "2184 cc",
+    "Kia Seltos HTX": "1493 cc",
+  };
+  const cubicCapacity = ccMap[`${vehicle.make} ${vehicle.model}`] || (vehicle.type === "two-wheeler" ? "125 cc" : "1497 cc");
+  const seatingCapacity = vehicle.type === "two-wheeler" ? 2 : 5;
+
+  const banks = ["HDFC Bank Ltd", "ICICI Bank Ltd", "State Bank of India", "Kotak Mahindra Prime", "None (Unencumbered)"];
+  const financier = banks[hash % banks.length];
+
+  const insurers = ["ICICI Lombard General Insurance", "Tata AIG General Insurance", "HDFC ERGO General Insurance", "Bajaj Allianz General Insurance", "Go Digit General Insurance"];
+  const insuranceCompany = insurers[hash % insurers.length];
+  const insurancePolicyNumber = `POL-${10000000 + (hash % 90000000)}`;
+  const emissionNorms = year >= 2020 ? "BHARAT STAGE VI (BS-VI)" : "BHARAT STAGE IV (BS-IV)";
 
   return {
     ...vehicle,
     year,
     chassisNumber,
     engineNumber,
+    cubicCapacity,
+    seatingCapacity,
+    fitnessUpto,
+    financier,
+    insuranceCompany,
+    insurancePolicyNumber,
+    emissionNorms,
     purchaseDate,
     purchasePrice,
     currentValue,
