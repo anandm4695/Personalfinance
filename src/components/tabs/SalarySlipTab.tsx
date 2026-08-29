@@ -112,12 +112,14 @@ function autoCompute(
     "educationAllowance",
     "lta",
     "specialAllowance",
+    "employerNpsContribution",
     "da",
     "bonus",
     "otherEarnings",
   ];
   const deduct = [
     "pfEmployee",
+    "pfEmployer",
     "esiEmployee",
     "professionalTax",
     "tds",
@@ -125,17 +127,44 @@ function autoCompute(
     "npsDeduction",
     "otherDeductions",
   ];
-  const gross = earn.reduce((s, k) => s + Number(form[k] || 0), 0);
-  const totalD = deduct.reduce((s, k) => s + Number(form[k] || 0), 0);
-  const net = gross - totalD;
+  const earnSum = earn.reduce((s, k) => s + Number(form[k] || 0), 0);
+  const deductSum = deduct.reduce((s, k) => s + Number(form[k] || 0), 0);
+
+  const effectiveGross =
+    grossTouched && form.grossSalary !== "" && form.grossSalary !== undefined
+      ? Number(form.grossSalary || 0)
+      : earnSum || Number(form.grossSalary || 0);
+
+  const effectiveDeduct =
+    deductTouched && form.totalDeductions !== "" && form.totalDeductions !== undefined
+      ? Number(form.totalDeductions || 0)
+      : deductSum || Number(form.totalDeductions || 0);
+
+  const computedNet = effectiveGross - effectiveDeduct;
+
+  const finalGross = grossTouched
+    ? form.grossSalary
+    : earnSum
+    ? String(earnSum)
+    : form.grossSalary;
+
+  const finalDeduct = deductTouched
+    ? form.totalDeductions
+    : deductSum
+    ? String(deductSum)
+    : form.totalDeductions;
+
+  const finalNet = netSalaryTouched
+    ? form.netSalary
+    : effectiveGross > 0 || effectiveDeduct > 0
+    ? String(computedNet)
+    : form.netSalary;
+
   return {
     ...form,
-    // Once the user directly edits Gross/Deductions/Net, respect that value
-    // instead of silently clobbering it with the component sum on save —
-    // this field is presented as directly editable, not read-only.
-    grossSalary: grossTouched ? form.grossSalary : gross || form.grossSalary,
-    totalDeductions: deductTouched ? form.totalDeductions : totalD || form.totalDeductions,
-    netSalary: netSalaryTouched ? form.netSalary : net || form.netSalary,
+    grossSalary: finalGross,
+    totalDeductions: finalDeduct,
+    netSalary: finalNet,
   };
 }
 
@@ -443,25 +472,33 @@ Return only the JSON, no explanation.`;
           ["bonus", "Bonus / Incentive"],
           ["otherEarnings", "Other Earnings"],
           ["grossSalary", "Gross Salary *"],
-        ].map(([k, label]) => (
-          <Field
-            key={k}
-            label={label}
-            style={{ marginBottom: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "flex-end" }}
-            labelStyle={{ minHeight: 28, display: "flex", alignItems: "flex-end", marginBottom: 6, lineHeight: 1.25 }}
-          >
-            <input
-              className="form-input"
-              type="number"
-              value={form[k]}
-              onChange={(e) => {
-                if (k === "grossSalary") setGrossTouched(true);
-                set(k, e.target.value);
-              }}
-              placeholder="0"
-            />
-          </Field>
-        ))}
+        ].map(([k, label]) => {
+          const val =
+            k === "grossSalary"
+              ? grossTouched
+                ? form.grossSalary
+                : form.grossSalary || computed.grossSalary || ""
+              : form[k];
+          return (
+            <Field
+              key={k}
+              label={label}
+              style={{ marginBottom: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "flex-end" }}
+              labelStyle={{ minHeight: 28, display: "flex", alignItems: "flex-end", marginBottom: 6, lineHeight: 1.25 }}
+            >
+              <input
+                className="form-input"
+                type="number"
+                value={val}
+                onChange={(e) => {
+                  if (k === "grossSalary") setGrossTouched(true);
+                  set(k, e.target.value);
+                }}
+                placeholder="0"
+              />
+            </Field>
+          );
+        })}
       </div>
 
       {/* Deductions */}
@@ -488,25 +525,33 @@ Return only the JSON, no explanation.`;
           ["npsDeduction", "NPS Deduction"],
           ["otherDeductions", "Other Deductions"],
           ["totalDeductions", "Total Deductions *"],
-        ].map(([k, label]) => (
-          <Field
-            key={k}
-            label={label}
-            style={{ marginBottom: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "flex-end" }}
-            labelStyle={{ minHeight: 28, display: "flex", alignItems: "flex-end", marginBottom: 6, lineHeight: 1.25 }}
-          >
-            <input
-              className="form-input"
-              type="number"
-              value={form[k]}
-              onChange={(e) => {
-                if (k === "totalDeductions") setDeductTouched(true);
-                set(k, e.target.value);
-              }}
-              placeholder="0"
-            />
-          </Field>
-        ))}
+        ].map(([k, label]) => {
+          const val =
+            k === "totalDeductions"
+              ? deductTouched
+                ? form.totalDeductions
+                : form.totalDeductions || computed.totalDeductions || ""
+              : form[k];
+          return (
+            <Field
+              key={k}
+              label={label}
+              style={{ marginBottom: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "flex-end" }}
+              labelStyle={{ minHeight: 28, display: "flex", alignItems: "flex-end", marginBottom: 6, lineHeight: 1.25 }}
+            >
+              <input
+                className="form-input"
+                type="number"
+                value={val}
+                onChange={(e) => {
+                  if (k === "totalDeductions") setDeductTouched(true);
+                  set(k, e.target.value);
+                }}
+                placeholder="0"
+              />
+            </Field>
+          );
+        })}
       </div>
 
       {/* Net */}
@@ -564,7 +609,7 @@ Return only the JSON, no explanation.`;
         <input
           className="form-input"
           type="number"
-          value={form.netSalary}
+          value={netSalaryTouched ? form.netSalary : form.netSalary || computed.netSalary || ""}
           onChange={(e) => {
             setNetSalaryTouched(true);
             set("netSalary", e.target.value);
