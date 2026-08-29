@@ -245,6 +245,7 @@ export const TABLE_MAP: Record<string, string> = {
 export const camelToSnake = (obj: any) => {
   const res: any = {};
   for (const k in obj) {
+    if (k.startsWith("_")) continue;
     const snake = k.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`);
     res[snake] = obj[k];
   }

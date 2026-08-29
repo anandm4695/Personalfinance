@@ -395,7 +395,10 @@ Return only the JSON, no explanation.`;
 
   const save = () => {
     if (!form.slipMonth || duplicate) return;
-    onSave({ ...computed, id: initial?.id || uid() });
+    const cleanPayload = Object.fromEntries(
+      Object.entries(computed).filter(([k]) => !k.startsWith("_"))
+    );
+    onSave({ ...cleanPayload, id: initial?.id || uid() });
   };
 
   return (

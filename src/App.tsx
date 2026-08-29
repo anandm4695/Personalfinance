@@ -2188,6 +2188,10 @@ function FinanceDashboard() {
 
         const cleanItem = { ...finalItem, id: newId, user_id: userId };
         for (const k in cleanItem) {
+          if (k.startsWith("_")) {
+            delete cleanItem[k];
+            continue;
+          }
           if (cleanItem[k] === "") cleanItem[k] = null;
           else if (
             NUMERIC_COLS.has(k) &&
@@ -3312,6 +3316,7 @@ function FinanceDashboard() {
     const cleanItem = (obj: any) => {
       const r: any = {};
       for (const k in obj) {
+        if (k.startsWith("_")) continue;
         if (k === "user_id" || k === "userId") continue;
         if (obj[k] === "") r[k] = null;
         else if (NUMERIC_COLS.has(k) && typeof obj[k] === "string") {
