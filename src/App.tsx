@@ -22,6 +22,7 @@ import {
   Settings,
   Command,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import {
   supabase,
@@ -2318,7 +2319,7 @@ function FinanceDashboard() {
               `[Supabase] Saved without missing cols: ${stripped.join(", ")} — run SQL migration to sync all fields`
             );
             showToast(
-              `⚠️ Saved but ${stripped.join(", ")} was not stored — DB column missing. Run SQL migration.`,
+              `Saved but ${stripped.join(", ")} was not stored — DB column missing. Run SQL migration.`,
               "warn"
             );
           } else if (isNetworkError(currentErr.message)) {
@@ -3215,7 +3216,7 @@ function FinanceDashboard() {
                 `[Supabase] Updated without missing cols: ${strippedU.join(", ")} — run SQL migration`
               );
               showToast(
-                `⚠️ Updated but ${strippedU.join(", ")} was not stored — DB column missing. Run SQL migration.`,
+                `Updated but ${strippedU.join(", ")} was not stored — DB column missing. Run SQL migration.`,
                 "warn"
               );
             } else if (currentErr) {
@@ -3876,7 +3877,7 @@ function FinanceDashboard() {
                   fontWeight: 600,
                 }}
               >
-                <span style={{ fontSize: 16 }}>⚠️</span>
+                <AlertTriangle size={18} style={{ flexShrink: 0 }} />
                 <span>
                   Missing DB {missingTables.length === 1 ? "table" : "tables"}:{" "}
                   <code

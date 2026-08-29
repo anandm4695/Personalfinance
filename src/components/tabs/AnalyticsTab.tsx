@@ -11584,12 +11584,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     style={{ fontSize: 10, padding: "2px 8px" }}
                   >
                     {fireData.progress >= 100
-                      ? "🏆 FI Achieved"
+                      ? "FI Achieved"
                       : fireData.progress >= 75
-                        ? "⚡ Lean FIRE"
+                        ? "Lean FIRE"
                         : fireData.progress >= 50
-                          ? "🚀 Accelerating"
-                          : "🌱 Wealth Builder"}
+                          ? "Accelerating"
+                          : "Wealth Builder"}
                   </Badge>
                 </div>
                 <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
