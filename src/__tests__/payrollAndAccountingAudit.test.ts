@@ -188,4 +188,60 @@ describe("Accounting & Financial System Audit Tests", () => {
       expect(ytdSavings).toBe(130000);
     });
   });
+
+  describe("Annual Report Multi-Source Income Aggregation", () => {
+    it("should capture income from Salary Slips when manual income ledger is empty", () => {
+      const state = {
+        income: [], // No manual income entries
+        salarySlips: [
+          { slipMonth: "2025-04", grossSalary: 120000 },
+          { slipMonth: "2025-05", grossSalary: 120000 },
+          { slipMonth: "2025-06", grossSalary: 120000 },
+        ],
+        transactions: [
+          { date: "2025-05-15", type: "credit", category: "Cashback", amount: 500 },
+        ],
+        rentalProperties: [
+          {
+            receipts: [
+              { date: "2025-05-01", amount: 25000 },
+            ],
+          },
+        ],
+        dividends: [
+          { date: "2025-06-10", amount: 3500 },
+        ],
+      };
+
+      const fyStart = "2025-04-01";
+      const fyEnd = "2026-03-31";
+
+      const salarySlipsInFY = (state.salarySlips || []).filter((s: any) => {
+        const ym = s.slipMonth || (s.date ? s.date.slice(0, 7) : "");
+        return ym && ym >= fyStart.slice(0, 7) && ym <= fyEnd.slice(0, 7);
+      });
+      const salarySlipsAmount = salarySlipsInFY.reduce(
+        (sum: number, s: any) => sum + Number(s.grossSalary || s.gross || s.netPay || 0),
+        0
+      );
+
+      const creditTxns = (state.transactions || []).filter(
+        (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type === "credit"
+      );
+      const otherCredits = creditTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+
+      const rentalIncome = (state.rentalProperties || []).flatMap((p: any) =>
+        (p.receipts || []).filter((r: any) => r.date && r.date >= fyStart && r.date <= fyEnd)
+      ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
+      const dividendIncome = (state.dividends || []).filter(
+        (d: any) => d.date && d.date >= fyStart && d.date <= fyEnd
+      ).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+
+      const totalAnnualIncome = salarySlipsAmount + otherCredits + rentalIncome + dividendIncome;
+
+      // 360000 (Salary) + 500 (Cashback) + 25000 (Rent) + 3500 (Dividends) = 389000
+      expect(totalAnnualIncome).toBe(389000);
+    });
+  });
 });

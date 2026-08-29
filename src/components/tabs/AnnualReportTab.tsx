@@ -377,6 +377,13 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     // Also scan investment/tax/loan activity dates — a FY where the user only bought stocks/MFs
     // or paid tax, without logging any income/transaction/net-worth entry, previously had no way
     // to appear in this picker at all (its data was invisible and unreachable in the report).
+    (state.salarySlips || []).forEach((s: any) =>
+      addDate(s.date || (s.slipMonth ? `${s.slipMonth}-01` : ""))
+    );
+    (state.rentalProperties || []).forEach((p: any) =>
+      (p.receipts || []).forEach((r: any) => addDate(r.date))
+    );
+    (state.dividends || []).forEach((d: any) => addDate(d.date));
     (state.stocks || []).forEach((s: any) => addDate(s.buyDate));
     (state.mutualFunds || []).forEach((m: any) => addDate(m.buyDate));
     (state.fixedDeposits || []).forEach((fd: any) => addDate(fd.startDate));
@@ -390,7 +397,10 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       .map((y) => `${y}-${String(y + 1).slice(-2)}`);
   }, [
     state.income,
+    state.salarySlips,
     state.transactions,
+    state.rentalProperties,
+    state.dividends,
     state.netWorthHistory,
     state.stocks,
     state.mutualFunds,
@@ -589,76 +599,134 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
      (b) INCOME SUMMARY
      ═══════════════════════════════════════════════════════════════ */
   const incomeData = useMemo(() => {
+    const isTransfer = (cat: string) =>
+      cat === "Transfer" || cat === "Self Transfer" || cat === "Self-Transfer";
+
+    // 1. Explicit income ledger
     const incomeLedger = (state.income || []).filter(
       (i: any) => i.date && i.date >= fyStart && i.date <= fyEnd
     );
-    const ledgerTotal = incomeLedger.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+    const hasSalaryInLedger = incomeLedger.some((i: any) =>
+      (i.source || i.category || "").toLowerCase().includes("salary")
+    );
 
-    // Exclude internal transfers between the user's own accounts — same treatment as
-    // useMetrics.ts/BanksTab's dashboard KPIs/MonthlyReportModal. Without this, every
-    // self-transfer inflated the FY Income total here and polluted the category
-    // breakdown with a fake "Transfer" income source.
+    // 2. Salary Slips Tracker
+    const salarySlipsInFY = (state.salarySlips || []).filter((s: any) => {
+      const ym = s.slipMonth || (s.date ? s.date.slice(0, 7) : "");
+      return ym && ym >= fyStart.slice(0, 7) && ym <= fyEnd.slice(0, 7);
+    });
+    const salarySlipsAmount = salarySlipsInFY.reduce(
+      (sum: number, s: any) =>
+        sum + Number(s.grossSalary || s.gross || s.earningsTotal || s.netPay || 0),
+      0
+    );
+
+    // 3. Bank credit transactions
     const creditTxns = (state.transactions || []).filter(
       (t: any) =>
         t.date &&
         t.date >= fyStart &&
         t.date <= fyEnd &&
         t.type === "credit" &&
-        t.category !== "Transfer" &&
-        t.category !== "Self Transfer" &&
-        t.category !== "Self-Transfer"
+        !isTransfer(t.category)
     );
-    const creditTotal = creditTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
-    const totalIncome = ledgerTotal > 0 ? ledgerTotal : creditTotal;
-    const sourceEntries = ledgerTotal > 0 ? incomeLedger : creditTxns;
+    // 4. Rental receipts (landlord)
+    const rentalReceiptsInFY = (state.rentalProperties || []).flatMap((p: any) =>
+      (p.receipts || []).filter((r: any) => r.date && r.date >= fyStart && r.date <= fyEnd)
+    );
 
+    // 5. Dividends
+    const dividendsInFY = (state.dividends || []).filter(
+      (d: any) => d.date && d.date >= fyStart && d.date <= fyEnd
+    );
+
+    const monthlyMap: Record<string, number> = {};
     const catMap: Record<string, number> = {};
-    sourceEntries.forEach((e: any) => {
-      const cat = e.category || e.source || "Other";
-      catMap[cat] = (catMap[cat] || 0) + Number(e.amount || 0);
+
+    const addIncome = (cat: string, amount: number, dateStr?: string) => {
+      if (!amount || isNaN(amount) || amount <= 0) return;
+      const category = cat || "Other Income";
+      catMap[category] = (catMap[category] || 0) + amount;
+      if (dateStr) {
+        const ym = dateStr.slice(0, 7);
+        monthlyMap[ym] = (monthlyMap[ym] || 0) + amount;
+      }
+    };
+
+    // Aggregate primary income:
+    if (incomeLedger.length > 0) {
+      incomeLedger.forEach((i: any) => {
+        addIncome(i.source || i.category || "Income", Number(i.amount || 0), i.date);
+      });
+      // If income ledger didn't have salary entries, but salary slips exist, add salary slips
+      if (!hasSalaryInLedger && salarySlipsAmount > 0) {
+        salarySlipsInFY.forEach((s: any) => {
+          const amt = Number(s.grossSalary || s.gross || s.earningsTotal || s.netPay || 0);
+          const dateStr = s.date || (s.slipMonth ? `${s.slipMonth}-01` : undefined);
+          addIncome("Salary", amt, dateStr);
+        });
+      }
+    } else if (salarySlipsInFY.length > 0) {
+      // User tracks income primarily via Salary Slips
+      salarySlipsInFY.forEach((s: any) => {
+        const amt = Number(s.grossSalary || s.gross || s.earningsTotal || s.netPay || 0);
+        const dateStr = s.date || (s.slipMonth ? `${s.slipMonth}-01` : undefined);
+        addIncome("Salary", amt, dateStr);
+      });
+      // Also include any non-salary credit transactions
+      creditTxns
+        .filter((t: any) => !String(t.category || "").toLowerCase().includes("salary"))
+        .forEach((t: any) => {
+          addIncome(t.category || "Other Credit", Number(t.amount || 0), t.date);
+        });
+    } else if (creditTxns.length > 0) {
+      // User tracks income via Bank Credit Transactions
+      creditTxns.forEach((t: any) => {
+        addIncome(t.category || "Income", Number(t.amount || 0), t.date);
+      });
+    }
+
+    // Add Rental Income (excluding bank-linked duplicates if credit transactions are used)
+    const isUsingCreditTxns =
+      incomeLedger.length === 0 && salarySlipsInFY.length === 0 && creditTxns.length > 0;
+    const nonDuplicateRentalReceipts = isUsingCreditTxns
+      ? rentalReceiptsInFY.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+      : rentalReceiptsInFY;
+
+    nonDuplicateRentalReceipts.forEach((r: any) => {
+      addIncome("Rental Income", Number(r.amount || 0), r.date);
     });
+
+    // Add Dividends if not already in credit transactions or ledger
+    const hasDividendInLedger = (incomeLedger.length > 0 ? incomeLedger : creditTxns).some(
+      (e: any) => (e.category || e.source || "").toLowerCase().includes("dividend")
+    );
+
+    if (!hasDividendInLedger && dividendsInFY.length > 0) {
+      dividendsInFY.forEach((d: any) => {
+        addIncome("Dividends", Number(d.amount || 0), d.date);
+      });
+    }
+
     const breakdown = Object.entries(catMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    const monthlyMap: Record<string, number> = {};
-    sourceEntries.forEach((e: any) => {
-      if (e.date) {
-        const ym = e.date.slice(0, 7);
-        monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(e.amount || 0);
-      }
-    });
+    const totalIncome = breakdown.reduce((sum, item) => sum + item.value, 0);
+
     const monthlyChart = fyMonths.map((ym, idx) => ({
       month: MONTH_NAMES[idx],
       income: monthlyMap[ym] || 0,
     }));
 
-    const rentalReceiptsInFY = (state.rentalProperties || []).flatMap(
-      (p: any) => (p.receipts || []).filter((r: any) => r.date && r.date >= fyStart && r.date <= fyEnd)
-    );
-    // Receipts auto-posted by linking a bank "Rent" credit transaction (BanksTab's
-    // getLinkConfig) always get id `bank-${txnId}` (see BanksTab.tsx's applyLinkedTxn) and are
-    // already present in creditTxns as that same transaction. Only exclude them when totalIncome
-    // is actually built from creditTxns (the ledgerTotal===0 branch) — when it's built from the
-    // separate income ledger instead, transactions never contributed to totalIncome at all, so
-    // every receipt (bank-linked or not) is genuinely additional there.
-    const rentalIncome = (
-      ledgerTotal > 0
-        ? rentalReceiptsInFY
-        : rentalReceiptsInFY.filter((r: any) => !String(r.id || "").startsWith("bank-"))
-    ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-    if (rentalIncome > 0) {
-      catMap["Rental Income"] = rentalIncome;
-      breakdown.push({ name: "Rental Income", value: rentalIncome });
-      breakdown.sort((a, b) => b.value - a.value);
-    }
-
-    return { totalIncome: totalIncome + rentalIncome, breakdown, monthlyChart };
+    return { totalIncome, breakdown, monthlyChart };
   }, [
     state.income,
+    state.salarySlips,
     state.transactions,
     state.rentalProperties,
+    state.dividends,
     selectedFY,
     fyStart,
     fyEnd,
@@ -878,10 +946,20 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     const prevIncomeLedger = (state.income || []).filter(
       (i: any) => i.date && i.date >= prevFyStart && i.date <= prevFyEnd
     );
-    const prevLedgerTotal = prevIncomeLedger.reduce(
-      (s: number, i: any) => s + Number(i.amount || 0),
+    const hasPrevSalaryInLedger = prevIncomeLedger.some((i: any) =>
+      (i.source || i.category || "").toLowerCase().includes("salary")
+    );
+
+    const prevSalarySlipsInFY = (state.salarySlips || []).filter((s: any) => {
+      const ym = s.slipMonth || (s.date ? s.date.slice(0, 7) : "");
+      return ym && ym >= prevFyStart.slice(0, 7) && ym <= prevFyEnd.slice(0, 7);
+    });
+    const prevSalarySlipsAmount = prevSalarySlipsInFY.reduce(
+      (sum: number, s: any) =>
+        sum + Number(s.grossSalary || s.gross || s.earningsTotal || s.netPay || 0),
       0
     );
+
     const prevCreditTxns = (state.transactions || []).filter(
       (t: any) =>
         t.date &&
@@ -890,18 +968,47 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         t.type === "credit" &&
         !isTransfer(t.category)
     );
-    const prevCreditTotal = prevCreditTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+
+    let prevPrimaryIncome = 0;
+    if (prevIncomeLedger.length > 0) {
+      prevPrimaryIncome = prevIncomeLedger.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+      if (!hasPrevSalaryInLedger && prevSalarySlipsAmount > 0) {
+        prevPrimaryIncome += prevSalarySlipsAmount;
+      }
+    } else if (prevSalarySlipsInFY.length > 0) {
+      prevPrimaryIncome =
+        prevSalarySlipsAmount +
+        prevCreditTxns
+          .filter((t: any) => !String(t.category || "").toLowerCase().includes("salary"))
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    } else if (prevCreditTxns.length > 0) {
+      prevPrimaryIncome = prevCreditTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    }
 
     const prevRentalReceipts = (state.rentalProperties || []).flatMap((p: any) =>
       (p.receipts || []).filter((r: any) => r.date && r.date >= prevFyStart && r.date <= prevFyEnd)
     );
+    const isPrevUsingCreditTxns =
+      prevIncomeLedger.length === 0 && prevSalarySlipsInFY.length === 0 && prevCreditTxns.length > 0;
     const prevRentalIncome = (
-      prevLedgerTotal > 0
-        ? prevRentalReceipts
-        : prevRentalReceipts.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+      isPrevUsingCreditTxns
+        ? prevRentalReceipts.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+        : prevRentalReceipts
     ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
-    const prevIncome = (prevLedgerTotal > 0 ? prevLedgerTotal : prevCreditTotal) + prevRentalIncome;
+    const prevDividendsInFY = (state.dividends || []).filter(
+      (d: any) => d.date && d.date >= prevFyStart && d.date <= prevFyEnd
+    );
+    const hasPrevDividendInLedger = (prevIncomeLedger.length > 0
+      ? prevIncomeLedger
+      : prevCreditTxns
+    ).some((e: any) => (e.category || e.source || "").toLowerCase().includes("dividend"));
+    const prevDividendIncome =
+      !hasPrevDividendInLedger && prevDividendsInFY.length > 0
+        ? prevDividendsInFY.reduce((s: number, d: any) => s + Number(d.amount || 0), 0)
+        : 0;
+
+    const prevIncome = prevPrimaryIncome + prevRentalIncome + prevDividendIncome;
 
     const prevDebitTxns = (state.transactions || []).filter(
       (t: any) =>
@@ -936,7 +1043,10 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     const prevNWChange = prevClosingNW - prevOpeningNW;
 
     const hasPrevData =
-      prevIncomeLedger.length > 0 || prevCreditTxns.length > 0 || prevDebitTxns.length > 0;
+      prevIncomeLedger.length > 0 ||
+      prevSalarySlipsInFY.length > 0 ||
+      prevCreditTxns.length > 0 ||
+      prevDebitTxns.length > 0;
 
     const pctDelta = (curr: number, prev: number) =>
       prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : curr > 0 ? 100 : 0;
@@ -954,9 +1064,11 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     };
   }, [
     state.income,
+    state.salarySlips,
     state.transactions,
     state.rentalProperties,
     state.rentedProperties,
+    state.dividends,
     prevFyStart,
     prevFyEnd,
     fyStartYear,
