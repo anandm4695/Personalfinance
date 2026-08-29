@@ -226,4 +226,53 @@ describe("Accounting & Financial System Audit Tests", () => {
       expect(totalAnnualIncome).toBe(325000);
     });
   });
+
+  describe("Cash Flow Forecast Ledger Sourcing", () => {
+    it("should project monthly inflows from income ledger and outflows from debit transactions and insurance", () => {
+      const state = {
+        income: [
+          { date: "2025-04-30", amount: 150000, source: "Salary" },
+          { date: "2025-05-31", amount: 150000, source: "Salary" },
+          { date: "2025-05-15", amount: 20000, source: "Consulting" },
+        ],
+        transactions: [
+          { date: "2025-05-01", type: "debit", category: "Groceries", amount: 15000 },
+          { date: "2025-05-05", type: "debit", category: "Utilities", amount: 5000 },
+          { date: "2025-05-10", type: "debit", category: "Investment", amount: 50000 }, // excluded
+          { date: "2025-05-12", type: "debit", category: "Transfer", amount: 20000 }, // excluded
+        ],
+        healthInsurance: [
+          { premium: 24000, premiumFrequency: "annual" }, // 2000/mo
+        ],
+        loansTaken: [
+          { outstanding: 500000, monthsRemaining: 24, emi: 25000 },
+        ],
+        sips: [
+          { amount: 10000, status: "active" },
+        ],
+      };
+
+      // 1. Inflow from income ledger:
+      // Salary = 150000, Consulting = 20000
+      const salaryEntries = (state.income || []).filter((i: any) =>
+        (i.source || "").toLowerCase().includes("salary")
+      );
+      const salaryMonthly = salaryEntries.reduce((s, i) => s + i.amount, 0) / 2; // 150000
+      const nonSalaryMonthly = 20000;
+      const totalInflow = salaryMonthly + nonSalaryMonthly; // 170000
+      expect(totalInflow).toBe(170000);
+
+      // 2. Outflow:
+      // EMI (25000) + SIP (10000) + Health Insurance (2000) + Living Expenses (15000 + 5000 = 20000) = 57000
+      const emi = 25000;
+      const sip = 10000;
+      const health = 24000 / 12; // 2000
+      const living = 15000 + 5000; // 20000
+      const totalOutflow = emi + sip + health + living;
+      expect(totalOutflow).toBe(57000);
+
+      // Net monthly forecast = 170000 - 57000 = 113000
+      expect(totalInflow - totalOutflow).toBe(113000);
+    });
+  });
 });

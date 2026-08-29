@@ -234,15 +234,57 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
   const inflows = useMemo(() => {
     const sources: { name: string; monthly: number; icon: any; category: string }[] = [];
 
-    // 1. Salary.
-    // Checks salary slips (structured net take-home pay) first as the primary source of truth.
-    const slips: any[] = state.salarySlips || [];
+    // 1. Primary / Salary Income from Bank & Income Ledger:
     let salaryMonthly = 0;
+    const salaryEntries = (state.income || []).filter((i: any) =>
+      (i.source || i.category || "").toLowerCase().includes("salary")
+    );
 
-    if (slips.length > 0) {
-      // Group by owner to capture latest monthly net take-home salary per working member
+    if (salaryEntries.length > 0) {
+      // Group by month to get the recurring monthly salary from the income ledger
+      const monthlyMap: Record<string, number> = {};
+      salaryEntries.forEach((i: any) => {
+        if (i.date) {
+          const ym = i.date.slice(0, 7);
+          monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(i.amount || 0);
+        }
+      });
+      const sortedYMs = Object.keys(monthlyMap).sort();
+      if (sortedYMs.length > 0) {
+        const recentYMs = sortedYMs.slice(-3);
+        const sum = recentYMs.reduce((s, ym) => s + monthlyMap[ym], 0);
+        salaryMonthly = sum / recentYMs.length;
+      }
+    }
+
+    // Fallback to bank credit transactions categorized as Salary if income ledger is empty
+    if (salaryMonthly <= 0) {
+      const salaryTxns = (state.transactions || []).filter(
+        (t: any) =>
+          t.type === "credit" &&
+          (t.category || "").toLowerCase().includes("salary")
+      );
+      if (salaryTxns.length > 0) {
+        const monthlyMap: Record<string, number> = {};
+        salaryTxns.forEach((t: any) => {
+          if (t.date) {
+            const ym = t.date.slice(0, 7);
+            monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(t.amount || 0);
+          }
+        });
+        const sortedYMs = Object.keys(monthlyMap).sort();
+        if (sortedYMs.length > 0) {
+          const recentYMs = sortedYMs.slice(-3);
+          const sum = recentYMs.reduce((s, ym) => s + monthlyMap[ym], 0);
+          salaryMonthly = sum / recentYMs.length;
+        }
+      }
+    }
+
+    // If still no salary in ledger/transactions, check salary slips
+    if (salaryMonthly <= 0 && (state.salarySlips || []).length > 0) {
       const ownerLatestSlip = new Map<string, any>();
-      slips.forEach((sl: any) => {
+      state.salarySlips.forEach((sl: any) => {
         const ownerKey = sl.owner || "self";
         const current = ownerLatestSlip.get(ownerKey);
         if (!current || (sl.slipMonth || "").localeCompare(current.slipMonth || "") > 0) {
@@ -255,24 +297,11 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       );
     }
 
-    // If no salary slips recorded, fallback to income entries matching "salary"
-    if (salaryMonthly <= 0) {
-      const salaryEntries = (state.income || []).filter((i: any) =>
-        (i.source || "").toLowerCase().includes("salary")
-      );
-      if (salaryEntries.length > 0) {
-        const sorted = [...salaryEntries].sort((a: any, b: any) =>
-          (b.date || "").localeCompare(a.date || "")
-        );
-        salaryMonthly = Number(sorted[0]?.amount || 0);
-      }
-    }
-
     if (salaryMonthly > 0) {
       sources.push({ name: "Salary", monthly: salaryMonthly, icon: Wallet, category: "Salary" });
     }
 
-    // 2. Rental Income
+    // 2. Rental Income (Active Landlord Properties)
     const rentalTotal = (state.rentalProperties || []).reduce(
       (sum: number, p: any) => sum + getEffectiveRent(p),
       0
@@ -283,7 +312,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     // 3. Dividend Income
     const dividends = state.dividends || [];
     if (dividends.length > 0) {
-      // Sum all dividend amounts and annualize based on date range
       const amounts = dividends.map((d: any) => Number(d.amount || d.totalAmount || 0));
       const totalDiv = amounts.reduce((s: number, a: number) => s + a, 0);
       const dates = dividends
@@ -300,7 +328,6 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         );
         monthlyDiv = totalDiv / spanMonths;
       } else {
-        // Single dividend — assume annual
         monthlyDiv = totalDiv / 12;
       }
       if (monthlyDiv > 0)
@@ -326,14 +353,10 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         category: "Interest",
       });
 
-    // Interest Income — RDs. Was reading `rd.monthlyDeposit`/`rd.tenure`, neither
-    // of which exist on a recurringDeposits record (the real fields are
-    // `rd.monthly`/`rd.tenureMonths`, confirmed in InvestmentsTab.tsx's RD form)
-    // — this source always computed to ₹0.
+    // Interest Income — RDs
     const rdInterest = (state.recurringDeposits || []).reduce((sum: number, rd: any) => {
       const monthly = Number(rd.monthly || 0);
       const rate = Number(rd.rate || rd.interestRate || 0);
-      // Rough estimate: average balance * rate / 12
       const tenure = Number(rd.tenureMonths || 12);
       const avgBalance = (monthly * tenure) / 2;
       return sum + (avgBalance * rate) / 100 / 12;
@@ -360,27 +383,38 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         category: "Interest",
       });
 
-    // 5. Other Income — everything not matched as salary above.
-    const otherIncome = (state.income || []).filter(
-      (i: any) => !(i.source || "").toLowerCase().includes("salary")
+    // 5. Other Income from Bank & Income Ledger (Freelance, Consulting, Business, etc.)
+    const nonSalaryIncome = (state.income || []).filter(
+      (i: any) => !(i.source || i.category || "").toLowerCase().includes("salary")
     );
-    if (otherIncome.length > 0) {
-      const sorted = [...otherIncome].sort((a: any, b: any) =>
-        (b.date || "").localeCompare(a.date || "")
-      );
-      // Take the latest 3 months of "other" income to average
-      const recent = sorted.slice(0, 3);
-      const avg =
-        recent.reduce((s: number, i: any) => s + Number(i.amount || 0), 0) /
-        Math.max(recent.length, 1);
-      if (avg > 0)
-        sources.push({ name: "Other Income", monthly: avg, icon: DollarSign, category: "Other" });
+    if (nonSalaryIncome.length > 0) {
+      const sourceMap: Record<string, { total: number; months: Set<string> }> = {};
+      nonSalaryIncome.forEach((i: any) => {
+        const src = i.source || i.category || "Other Income";
+        if (!sourceMap[src]) sourceMap[src] = { total: 0, months: new Set() };
+        sourceMap[src].total += Number(i.amount || 0);
+        if (i.date) sourceMap[src].months.add(i.date.slice(0, 7));
+      });
+
+      Object.entries(sourceMap).forEach(([src, data]) => {
+        const span = Math.max(data.months.size, 1);
+        const monthlyAvg = data.total / span;
+        if (monthlyAvg > 0) {
+          sources.push({
+            name: src,
+            monthly: monthlyAvg,
+            icon: DollarSign,
+            category: "Other",
+          });
+        }
+      });
     }
 
     return sources;
   }, [
     state.salarySlips,
     state.income,
+    state.transactions,
     state.rentalProperties,
     state.dividends,
     state.fixedDeposits,
@@ -393,7 +427,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
   const outflows = useMemo(() => {
     const sources: { name: string; monthly: number; icon: any; category: string }[] = [];
 
-    // 1. EMIs (active loans only — paid-off loans shouldn't keep projecting an outflow)
+    // 1. EMIs (active loans only)
     const emiTotal = (state.loansTaken || [])
       .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
       .reduce((sum: number, l: any) => sum + Number(l.emi || 0), 0);
@@ -445,7 +479,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         category: "Recurring",
       });
 
-    // 5. Credit Card Minimum Dues (only include minimum_due which is the actual monthly obligation)
+    // 5. Credit Card Minimum Dues
     const ccMinDue = (state.creditCards || [])
       .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
       .reduce((sum: number, c: any) => sum + Number(c.minimumDue || c.lastBill || 0), 0);
@@ -465,24 +499,31 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     if (rentPaid > 0)
       sources.push({ name: "Rent Paid", monthly: rentPaid, icon: Home, category: "Rent" });
 
-    // 7. Insurance Premiums
-    // Uses annualizePremium() rather than a raw annualPremium||premium fallback:
-    // a policy recorded as premium+premiumFrequency (e.g. monthly) with no
-    // pre-set annualPremium would otherwise have its per-period premium treated
-    // as if it were already annual, understating the true annual cost.
+    // 7. Insurance Premiums (LIC, Term, Investment, Health)
     const licPremium = (state.lic || []).reduce(
-      (sum: number, l: any) => sum + annualizePremium(l.premium, l.premiumFrequency, l.annualPremium) / 12,
+      (sum: number, l: any) =>
+        sum + annualizePremium(l.premium, l.premiumFrequency, l.annualPremium) / 12,
       0
     );
     const termPremium = (state.termPlans || []).reduce(
-      (sum: number, t: any) => sum + annualizePremium(t.premium, t.premiumFrequency, t.annualPremium) / 12,
+      (sum: number, t: any) =>
+        sum + annualizePremium(t.premium, t.premiumFrequency, t.annualPremium) / 12,
       0
     );
     const ulipPremium = (state.investmentPlans || []).reduce(
-      (sum: number, ip: any) => sum + annualizePremium(ip.premium, ip.premiumFrequency, ip.annualPremium) / 12,
+      (sum: number, ip: any) =>
+        sum + annualizePremium(ip.premium, ip.premiumFrequency, ip.annualPremium) / 12,
       0
     );
-    const totalInsurance = licPremium + termPremium + ulipPremium;
+    const healthPremium = (state.healthInsurance || []).reduce(
+      (sum: number, h: any) => {
+        const mult: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1 };
+        const annualAmt = Number(h.premium || 0) * (mult[h.premiumFrequency || "annual"] || 1);
+        return sum + annualAmt / 12;
+      },
+      0
+    );
+    const totalInsurance = licPremium + termPremium + ulipPremium + healthPremium;
     if (totalInsurance > 0)
       sources.push({
         name: "Insurance Premiums",
@@ -491,28 +532,65 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         category: "Insurance",
       });
 
-    // 8. Budget Spend — excludes categories already modeled by a dedicated
-    // outflow source above (EMI, Rent, Insurance, Subscriptions, Credit Card),
-    // otherwise a budget line for e.g. "Rent" would double-count on top of the
-    // Rent Paid figure already derived from rentedProperties, inflating the
-    // projected outflow / net cash flow.
-    const DUPLICATE_BUDGET_CATEGORIES = new Set([
-      "EMI",
-      "Rent",
-      "Insurance",
-      "Subscription",
-      "Credit Card",
+    // 8. Living / Day-to-Day Expenses from Budget or Bank Debit Transactions Ledger:
+    const DEDICATED_CATEGORIES = new Set([
+      "emi",
+      "loan",
+      "rent",
+      "insurance",
+      "subscription",
+      "credit card",
+      "transfer",
+      "self transfer",
+      "self-transfer",
+      "investment",
     ]);
+
+    const isDedicatedCategory = (cat: string) => {
+      const c = (cat || "").toLowerCase().trim();
+      return DEDICATED_CATEGORIES.has(c);
+    };
+
     const budgetTotal = (state.budgets || [])
-      .filter((b: any) => !DUPLICATE_BUDGET_CATEGORIES.has(b.category))
+      .filter((b: any) => !isDedicatedCategory(b.category))
       .reduce((sum: number, b: any) => sum + Number(b.monthly || b.monthlyLimit || b.limit || 0), 0);
-    if (budgetTotal > 0)
+
+    if (budgetTotal > 0) {
       sources.push({
-        name: "Budget Spend",
+        name: "Budget / Living Expenses",
         monthly: budgetTotal,
         icon: Target,
         category: "Budget",
       });
+    } else {
+      // If user hasn't set manual budget targets, compute actual average monthly discretionary living expense from debit transactions
+      const livingTxns = (state.transactions || []).filter(
+        (t: any) => t.type === "debit" && !isDedicatedCategory(t.category)
+      );
+      if (livingTxns.length > 0) {
+        const monthlySpending: Record<string, number> = {};
+        livingTxns.forEach((t: any) => {
+          if (t.date) {
+            const ym = t.date.slice(0, 7);
+            monthlySpending[ym] = (monthlySpending[ym] || 0) + Number(t.amount || 0);
+          }
+        });
+        const sortedYMs = Object.keys(monthlySpending).sort();
+        if (sortedYMs.length > 0) {
+          const recentYMs = sortedYMs.slice(-3);
+          const sum = recentYMs.reduce((s, ym) => s + monthlySpending[ym], 0);
+          const avgLivingExpense = sum / recentYMs.length;
+          if (avgLivingExpense > 0) {
+            sources.push({
+              name: "Living Expenses (Ledger)",
+              monthly: avgLivingExpense,
+              icon: Target,
+              category: "Living Expenses",
+            });
+          }
+        }
+      }
+    }
 
     return sources;
   }, [
@@ -525,7 +603,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     state.lic,
     state.termPlans,
     state.investmentPlans,
+    state.healthInsurance,
     state.budgets,
+    state.transactions,
   ]);
 
   // ── ONE-TIME EVENTS ────────────────────────────────────────────────────────
@@ -539,11 +619,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       type: "inflow" | "outflow";
     }[] = [];
 
-    // FD Maturities. `fd.bankName` and `fd.maturityAmount` don't exist on a
-    // fixedDeposits record (real fields: `fd.bank`, and the maturity value
-    // must be computed via fdMaturity() — there's no stored maturity-amount
-    // field) — this previously showed no bank name and understated the
-    // inflow to bare principal (missing all accrued interest).
+    // FD Maturities
     (state.fixedDeposits || []).forEach((fd: any) => {
       const matDate = fd.maturityDate || "";
       if (isDateInRange(matDate, months)) {
@@ -563,12 +639,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       }
     });
 
-    // RD Maturities. Was checking `rd.maturityDate` and `rd.maturityAmount`,
-    // neither of which are ever stored on a recurringDeposits record (real
-    // fields: `rd.bank`/`rd.monthly`/`rd.tenureMonths`/`rd.startDate` — the
-    // maturity date must be derived from startDate+tenureMonths and the
-    // amount computed via rdMaturity(), same as XIRRReportTab/
-    // useFinancialEvents.tsx already do) — this event never fired at all.
+    // RD Maturities
     (state.recurringDeposits || []).forEach((rd: any) => {
       if (!rd.startDate || !rd.monthly || !rd.tenureMonths) return;
       const matDate = addMonthsToDateStr(rd.startDate, Number(rd.tenureMonths));
@@ -588,14 +659,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       }
     });
 
-    // Insurance Premium Due. Was permanently dead — checked
-    // `policy.nextPremiumDate`/`policy.premiumDueDate`, neither of which is
-    // ever set on a lic/termPlans/investmentPlans record anywhere in the app;
-    // every other consumer of "when's the next premium due" (useAlerts.ts,
-    // useFinancialEvents.tsx, RemindersTab.tsx) instead derives it from the
-    // policy's start date via nextAnnualOccurrence, with a matured-policy
-    // guard and annualizePremium (handles premium+premiumFrequency, not just
-    // a pre-set annualPremium).
+    // Insurance Premium Due (LIC, Term, Investment, Health)
     const todayStr = today();
     const addPremiumDue = (policies: any[], startField: string, expiryField: string) => {
       (policies || []).forEach((policy: any) => {
@@ -621,10 +685,30 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     addPremiumDue(state.termPlans, "startDate", "expiryDate");
     addPremiumDue(state.investmentPlans, "commencementDate", "maturityDate");
 
-    // Loan Closures. Was permanently dead — checked `loan.endDate`/
-    // `loan.closureDate`, neither of which is ever set on a loansTaken
-    // record; the real closure date must be derived from monthsRemaining,
-    // same as useFinancialEvents.tsx's loan_closure milestone already does.
+    const addHealthPremiumDue = (policies: any[]) => {
+      (policies || []).forEach((policy: any) => {
+        const mult: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1 };
+        const premium = Number(policy.premium || 0) * (mult[policy.premiumFrequency || "annual"] || 1);
+        if (!premium) return;
+        const startDate = policy.startDate || policy.renewalDate;
+        if (!startDate) return;
+        const expiry = policy.expiryDate || policy.renewalDate;
+        if (expiry && expiry < todayStr) return;
+        const dueDate = nextAnnualOccurrence(startDate, todayStr);
+        if (isDateInRange(dueDate, months)) {
+          items.push({
+            date: dueDate,
+            name: `Health Premium — ${policy.planName || policy.insurer || policy.provider || "Health Insurance"}`,
+            amount: premium,
+            category: "Insurance Premium",
+            type: "outflow",
+          });
+        }
+      });
+    };
+    addHealthPremiumDue(state.healthInsurance);
+
+    // Loan Closures
     (state.loansTaken || []).forEach((loan: any) => {
       if (!loan.monthsRemaining || !loan.emi) return;
       const closureDate = addMonthsToDateStr(todayStr, Number(loan.monthsRemaining));
@@ -663,6 +747,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     state.lic,
     state.termPlans,
     state.investmentPlans,
+    state.healthInsurance,
     state.loansTaken,
     state.subscriptions,
     months,
