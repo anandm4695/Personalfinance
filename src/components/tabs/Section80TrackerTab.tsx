@@ -98,7 +98,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       .filter((m) => (m.category || m.type || "").toLowerCase().includes("elss") && inFY(m.buyDate))
       .reduce((s, m) => s + Number(m.invested || 0), 0);
     const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
-    const epfContrib = (state.epf || []).reduce((s, e) => {
+    const epfPassbookContrib = (state.epf || []).reduce((s, e) => {
       const txns = e.transactions || [];
       return (
         s +
@@ -111,6 +111,19 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           .reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0)
       );
     }, 0);
+    const salarySlipEpf = (state.salarySlips || [])
+      .filter(
+        (s: any) =>
+          s.slipMonth &&
+          s.slipMonth >= fyStartStr.slice(0, 7) &&
+          s.slipMonth <= fyEndStr.slice(0, 7)
+      )
+      .reduce(
+        (sum: number, s: any) =>
+          sum + Number(s.pfEmployee || s.epf || s.providentFund || 0),
+        0
+      );
+    const epfContrib = epfPassbookContrib > 0 ? epfPassbookContrib : salarySlipEpf;
     // NSC and Sukanya Samriddhi (SSY) are both 80C-eligible instruments the
     // app already tracks in the Govt Schemes tab (state.govtSchemes), but
     // this tracker previously hardcoded both to ₹0 with a "user can track
