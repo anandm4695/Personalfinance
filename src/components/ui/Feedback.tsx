@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React from "react";
 import ReactDOM from "react-dom";
-import { X } from "lucide-react";
+import { X, Check, AlertTriangle, Info } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Button } from "./Button";
 
@@ -127,11 +127,11 @@ export function ConfirmDialog({
 
 export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type: string }[] }) {
   if (!toasts.length) return null;
-  const configs: Record<string, { accent: string; icon: string; label: string }> = {
-    success: { accent: THEME.sage, icon: "✓", label: "success" },
-    error: { accent: THEME.rust, icon: "✕", label: "error" },
-    warn: { accent: THEME.gold, icon: "!", label: "warning" },
-    info: { accent: THEME.accent, icon: "i", label: "info" },
+  const configs: Record<string, { accent: string; Icon: any; label: string }> = {
+    success: { accent: THEME.sage, Icon: Check, label: "success" },
+    error: { accent: THEME.rust, Icon: X, label: "error" },
+    warn: { accent: THEME.gold, Icon: AlertTriangle, label: "warning" },
+    info: { accent: THEME.accent, Icon: Info, label: "info" },
   };
 
   return ReactDOM.createPortal(
@@ -152,6 +152,7 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
     >
       {toasts.map((t) => {
         const cfg = configs[t.type] || configs.success;
+        const IconComponent = cfg.Icon;
         return (
           <div
             key={t.id}
@@ -184,12 +185,10 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 10,
-                fontWeight: 800,
                 flexShrink: 0,
               }}
             >
-              {cfg.icon}
+              <IconComponent size={11} strokeWidth={2.5} />
             </span>
             {t.msg}
           </div>

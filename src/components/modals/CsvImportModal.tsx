@@ -1188,9 +1188,10 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                           borderBottom: `1px solid ${THEME.line}`,
                           width: 40,
                           minWidth: 40,
+                          textAlign: "center",
                         }}
                       >
-                        ✓
+                        <CheckCircle size={12} style={{ display: "inline-block" }} />
                       </th>
                       <th
                         style={{

@@ -973,9 +973,12 @@ export function MonthlyReportModal({
                       style={{
                         fontWeight: 700,
                         color: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.muted,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
                       }}
                     >
-                      {g.done ? "✓ Complete" : `${g.pct}%`}
+                      {g.done ? <><CheckCircle2 size={11} /> Complete</> : `${g.pct}%`}
                     </span>
                   </div>
                   <div className="progress-track" style={{ height: 5 }}>
