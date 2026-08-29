@@ -1034,6 +1034,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       (metrics.epfValue || 0) +
       (metrics.licValue || 0) +
       (metrics.investmentValue || 0) +
+      (metrics.govtSchemesValue || 0) +
       debtMFValue;
     const cash = metrics.cashInBanks || 0;
     const realEstate = (metrics.realEstateAsset || 0) + (metrics.rentalPropertiesAsset || 0);
@@ -1100,6 +1101,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     const licPolicies = state.lic || [];
     const termPlans = state.termPlans || [];
     const investPlans = state.investmentPlans || [];
+    const healthPolicies = state.healthInsurance || [];
 
     const licCover = licPolicies.reduce((s: number, p: any) => s + Number(p.sumAssured || 0), 0);
     const termCover = termPlans.reduce((s: number, p: any) => s + Number(p.coverAmount || 0), 0);
@@ -1120,13 +1122,18 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       (s: number, p: any) => s + Number(p.annualPremium || p.premium || 0),
       0
     );
-    const totalPremiums = licPremiums + termPremiums + investPremiums;
+    const healthPremiums = healthPolicies.reduce((s: number, p: any) => {
+      const mult: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1 };
+      return s + Number(p.premium || 0) * (mult[p.premiumFrequency || "annual"] || 1);
+    }, 0);
+    const totalPremiums = licPremiums + termPremiums + investPremiums + healthPremiums;
 
     const adequacyRatio = incomeData.totalIncome > 0 ? totalLifeCover / incomeData.totalIncome : 0;
 
     return {
       licCount: licPolicies.length,
       termCount: termPlans.length,
+      healthCount: healthPolicies.length,
       totalLifeCover,
       totalPremiums,
       adequacyRatio,
@@ -1135,6 +1142,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     state.lic,
     state.termPlans,
     state.investmentPlans,
+    state.healthInsurance,
     incomeData.totalIncome,
     selectedFY,
     fyStart,
@@ -1149,7 +1157,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       (p: any) => p.date && p.date >= fyStart && p.date <= fyEnd
     );
 
-    const totalTaxPaid = payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+    const directTaxPaid = payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
 
     const byType: Record<string, number> = {};
     payments.forEach((p: any) => {
@@ -1157,13 +1165,35 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       byType[t] = (byType[t] || 0) + Number(p.amount || 0);
     });
 
+    const salaryTdsPaid = (state.salarySlips || [])
+      .filter(
+        (s: any) =>
+          s.slipMonth &&
+          s.slipMonth >= fyStart.slice(0, 7) &&
+          s.slipMonth <= fyEnd.slice(0, 7)
+      )
+      .reduce((sum: number, s: any) => sum + Number(s.tds || s.incomeTax || 0), 0);
+
+    if (salaryTdsPaid > 0) {
+      byType["Salary TDS"] = (byType["Salary TDS"] || 0) + salaryTdsPaid;
+    }
+
+    const totalTaxPaid = directTaxPaid + salaryTdsPaid;
+
     const regime = state.profile?.regime || "new";
     const effectiveRate =
       incomeData.totalIncome > 0 ? (totalTaxPaid / incomeData.totalIncome) * 100 : 0;
 
-    return { totalTaxPaid, byType, regime, effectiveRate, paymentCount: payments.length };
+    return {
+      totalTaxPaid,
+      byType,
+      regime,
+      effectiveRate,
+      paymentCount: payments.length + (salaryTdsPaid > 0 ? 1 : 0),
+    };
   }, [
     state.taxPayments,
+    state.salarySlips,
     state.profile?.regime,
     incomeData.totalIncome,
     selectedFY,
@@ -1262,20 +1292,17 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
     const stockPnLs = (state.stocks || []).map((s: any) => {
       const invested = Number(s.invested || (s.avgPrice || 0) * (s.qty || 0) || 0);
-      // Stock records have no `currentValue`/`ltp` field — the real field is `currentPrice`
-      // (this component has no live marketData feed, unlike useMetrics.ts's stockValue calc).
-      // The old `s.ltp * (s.qty||0)` was always `undefined * n` = NaN, so `gain` was always
-      // NaN, `allPnL.filter(p => p.gain > 0)` silently dropped every stock, and "Best
-      // performer" would only ever surface if a mutual fund happened to also pass (also NaN).
-      const current = Number(s.currentValue || (s.currentPrice || 0) * (s.qty || 0) || 0);
+      const yfSym = `${(s.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+      const md = marketData?.[yfSym];
+      const livePrice = md?.price ?? Number(s.currentPrice || s.avgPrice || 0);
+      const current = Number(s.currentValue || livePrice * Number(s.qty || 0) || 0);
       const gain = current - invested;
       const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
       return { name: s.name || s.symbol || "Stock", gain, gainPct };
     });
     const mfPnLs = (state.mutualFunds || []).map((m: any) => {
       const invested = Number(m.invested || m.investedValue || 0);
-      // Same bug as stocks above — the real field is `currentNav`, not `nav`.
-      const current = Number(m.currentValue || (m.currentNav || 0) * (m.units || 0) || 0);
+      const current = Number(m.currentValue || (m.currentNav || m.buyNav || 0) * (m.units || 0) || 0);
       const gain = current - invested;
       const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
       return { name: m.name || m.scheme || "MF", gain, gainPct };
@@ -1342,6 +1369,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     netWorthData,
     goalsData,
     savingsData,
+    marketData,
     selectedFY,
     fyStart,
     fyEnd,
