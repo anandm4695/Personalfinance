@@ -1,9 +1,28 @@
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import { VehiclesTab, IndianNumberPlate } from "../components/tabs/VehiclesTab";
+import {
+  VehiclesTab,
+  IndianNumberPlate,
+  VehicleModal,
+  ServiceModal,
+  InsuranceModal,
+} from "../components/tabs/VehiclesTab";
 import { MasterDataContext, DEFAULT_MASTER_DATA } from "../utils/masterData";
 import { PrivacyProvider } from "../context/PrivacyContext";
+
+// Mock react-dom createPortal for server rendering tests
+vi.mock("react-dom", async () => {
+  const original = await vi.importActual<any>("react-dom");
+  return {
+    ...original,
+    default: {
+      ...(original.default || {}),
+      createPortal: (children: any) => children,
+    },
+    createPortal: (children: any) => children,
+  };
+});
 
 // Simple mock for recharts ResponsiveContainer
 vi.mock("recharts", async () => {
@@ -155,5 +174,37 @@ describe("VehiclesTab Component", () => {
     );
     expect(normalPlateHtml).toContain("IND");
     expect(normalPlateHtml).toContain("DL01AB9999");
+  });
+
+  it("renders VehicleModal without React error #31 (no component as child error in select options)", () => {
+    const html = renderToString(
+      <MasterDataContext.Provider value={mockState.masterData}>
+        <VehicleModal onClose={() => {}} onSave={() => {}} />
+      </MasterDataContext.Provider>
+    );
+
+    expect(html).toContain("Add Vehicle to Garage");
+    expect(html).toContain("Fuel Type");
+    expect(html).toContain("Petrol");
+    expect(html).toContain("Diesel");
+    expect(html).toContain("Electric (EV)");
+  });
+
+  it("renders ServiceModal and InsuranceModal correctly", () => {
+    const serviceHtml = renderToString(
+      <MasterDataContext.Provider value={mockState.masterData}>
+        <ServiceModal vehicleName="Tata Nexon EV" onClose={() => {}} onSave={() => {}} />
+      </MasterDataContext.Provider>
+    );
+    expect(serviceHtml).toContain("Service Category");
+    expect(serviceHtml).toContain("Regular Service");
+
+    const insuranceHtml = renderToString(
+      <MasterDataContext.Provider value={mockState.masterData}>
+        <InsuranceModal vehicleName="Tata Nexon EV" onClose={() => {}} onSave={() => {}} />
+      </MasterDataContext.Provider>
+    );
+    expect(insuranceHtml).toContain("Policy Cover Type");
+    expect(insuranceHtml).toContain("Comprehensive Package");
   });
 });

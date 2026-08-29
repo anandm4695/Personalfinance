@@ -747,7 +747,7 @@ const EMPTY_VEHICLE = {
   owner: "self",
 };
 
-function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
+export function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const isEdit = !!existing;
   const [f, setF] = useState<any>(
@@ -906,7 +906,7 @@ function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
           <select style={inp} value={f.fuelType} onChange={(e) => set("fuelType", e.target.value)}>
             {Object.entries(FUEL_TYPES).map(([k, v]) => (
               <option key={k} value={k}>
-                {v.icon} {v.label}
+                {v.label}
               </option>
             ))}
           </select>
@@ -1319,7 +1319,7 @@ function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
 // ServiceModal: Add / Edit Service Record
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ServiceModal({
+export function ServiceModal({
   existing,
   vehicleName,
   currentReminder,
@@ -1512,7 +1512,7 @@ function ServiceModal({
 // InsuranceModal: Add / Edit Insurance Policy
 // ─────────────────────────────────────────────────────────────────────────────
 
-function InsuranceModal({ existing, vehicleName, onClose, onSave, saving = false }: any) {
+export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving = false }: any) {
   const isEdit = !!existing;
   const [f, setF] = useState<any>(
     existing
