@@ -321,73 +321,14 @@ export function IndianNumberPlate({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VehicleMakeLogo Component with Domain Fallback
+// VehicleMakeLogo Vector Badge
 // ─────────────────────────────────────────────────────────────────────────────
 
 function VehicleMakeLogo({ make, size = 48 }: { make: string; size?: number }) {
-  const key = getMakeKey(make);
-  let domain = "";
-  for (const [k, d] of Object.entries(VEHICLE_MAKE_DOMAINS)) {
-    if (key === getMakeKey(k) || key.startsWith(getMakeKey(k))) {
-      domain = d;
-      break;
-    }
-  }
-
   const theme = getMakeTheme(make);
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = useState(0);
-
-  useEffect(() => {
-    if (domain) {
-      setImgSrc(`https://logos.hunter.io/${domain}`);
-      setFallbackLevel(0);
-    } else {
-      setImgSrc(null);
-      setFallbackLevel(2);
-    }
-  }, [domain]);
-
-  const handleError = () => {
-    if (fallbackLevel === 0) {
-      setFallbackLevel(1);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
-    } else {
-      setFallbackLevel(2);
-      setImgSrc(null);
-    }
-  };
-
   const br = Math.round(size * 0.28);
   const initials = (make || "?").slice(0, 2).toUpperCase();
-  const fontSize = Math.round(size * 0.36);
-
-  if (domain && fallbackLevel < 2 && imgSrc) {
-    return (
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: br,
-          background: "var(--surface-0, var(--surface))",
-          border: `1.5px solid color-mix(in srgb, ${theme.color} 30%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          overflow: "hidden",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        }}
-      >
-        <img
-          src={imgSrc}
-          alt={make}
-          onError={handleError}
-          style={{ width: "75%", height: "75%", objectFit: "contain" }}
-        />
-      </div>
-    );
-  }
+  const fontSize = Math.round(size * 0.38);
 
   return (
     <div
@@ -400,7 +341,8 @@ function VehicleMakeLogo({ make, size = 48 }: { make: string; size?: number }) {
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        boxShadow: `0 3px 12px color-mix(in srgb, ${theme.color} 35%, transparent)`,
+        boxShadow: `0 3px 10px color-mix(in srgb, ${theme.color} 30%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${theme.color} 40%, rgba(255,255,255,0.2))`,
       }}
     >
       <span
@@ -408,8 +350,10 @@ function VehicleMakeLogo({ make, size = 48 }: { make: string; size?: number }) {
           fontSize,
           fontWeight: 900,
           color: "#fff",
-          letterSpacing: "-0.01em",
+          letterSpacing: "-0.02em",
           lineHeight: 1,
+          fontFamily: "var(--font-display, sans-serif)",
+          textShadow: "0 1px 2px rgba(0,0,0,0.3)",
         }}
       >
         {initials}
