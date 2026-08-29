@@ -125,22 +125,45 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const fyEnd = `${startYear + 1}-03-31`;
     const inFY = (date) => date && date >= fyStart && date <= fyEnd;
 
-    // Salary income
-    const salaryIncome = (state.income || [])
+    // Salary income (ledger entries or salary slips fallback)
+    const salaryIncomeLogged = (state.income || [])
       .filter((i) => inFY(i.date) && (i.source || "").toLowerCase().includes("salary"))
       .reduce((s, i) => s + Number(i.amount || 0), 0);
+    const salarySlipsGross = (state.salarySlips || [])
+      .filter(
+        (s: any) =>
+          s.slipMonth &&
+          s.slipMonth >= fyStart.slice(0, 7) &&
+          s.slipMonth <= fyEnd.slice(0, 7)
+      )
+      .reduce(
+        (s: number, slip: any) =>
+          s + Number(slip.grossSalary || slip.gross || slip.earningsTotal || slip.netPay || 0),
+        0
+      );
+    const salaryIncome = salaryIncomeLogged > 0 ? salaryIncomeLogged : salarySlipsGross;
 
-    // Other income
-    const otherIncome = (state.income || [])
-      .filter((i) => inFY(i.date) && !(i.source || "").toLowerCase().includes("salary"))
+    // Bank interest & Other income (deduplicated)
+    const interestIncomeLogged = (state.income || [])
+      .filter((i) => inFY(i.date) && (i.source || i.category || "").toLowerCase().includes("interest"))
       .reduce((s, i) => s + Number(i.amount || 0), 0);
 
-    // Bank interest
-    const bankInterest = (state.fixedDeposits || []).reduce((s, fd) => {
+    const otherIncome = (state.income || [])
+      .filter(
+        (i) =>
+          inFY(i.date) &&
+          !(i.source || "").toLowerCase().includes("salary") &&
+          !(i.source || i.category || "").toLowerCase().includes("interest")
+      )
+      .reduce((s, i) => s + Number(i.amount || 0), 0);
+
+    const fdInterestEstimate = (state.fixedDeposits || []).reduce((s, fd) => {
       const rate = Number(fd.rate || 0);
       const principal = Number(fd.principal || 0);
       return s + (principal * rate) / 100;
     }, 0);
+
+    const bankInterest = interestIncomeLogged > 0 ? interestIncomeLogged : fdInterestEstimate;
 
     // Rental income — Bug fix: this previously read `state.rentedProperties`,
     // which is the app's TENANT-side ledger (rent the user PAYS someone
@@ -344,9 +367,19 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const fyEnd = `${startYear + 1}-03-31`;
     const inFY = (date) => date && date >= fyStart && date <= fyEnd;
 
-    const tds = (state.income || [])
+    const incomeTds = (state.income || [])
       .filter((i) => inFY(i.date))
       .reduce((s, i) => s + Number(i.tds || 0), 0);
+    const salarySlipTds = (state.salarySlips || [])
+      .filter(
+        (s: any) =>
+          s.slipMonth &&
+          s.slipMonth >= fyStart.slice(0, 7) &&
+          s.slipMonth <= fyEnd.slice(0, 7)
+      )
+      .reduce((s: number, slip: any) => s + Number(slip.tds || slip.incomeTax || 0), 0);
+    const tds = incomeTds > 0 ? incomeTds : salarySlipTds;
+
     const advanceTax = (state.taxPayments || [])
       .filter((t) => t.fy === fy)
       .reduce((s, t) => s + Number(t.amount || 0), 0);
