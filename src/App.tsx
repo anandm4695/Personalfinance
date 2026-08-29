@@ -2206,6 +2206,9 @@ function FinanceDashboard() {
           if (cleanItem.policy_number === null) cleanItem.policy_number = "";
           if (cleanItem.policy_name === null) cleanItem.policy_name = "";
         }
+        if (key === "vehicles") {
+          delete cleanItem.photo_url;
+        }
 
         // Use upsert (INSERT ... ON CONFLICT DO UPDATE) so retries are idempotent.
         // If the first request reached Supabase but the response was lost, a plain INSERT
@@ -3100,6 +3103,9 @@ function FinanceDashboard() {
         if (key === "healthInsurance") {
           if (finalPatch.policy_number === null) finalPatch.policy_number = "";
           if (finalPatch.policy_name === null) finalPatch.policy_name = "";
+        }
+        if (key === "vehicles") {
+          delete finalPatch.photo_url;
         }
 
         const isNetErr = (msg?: string) =>

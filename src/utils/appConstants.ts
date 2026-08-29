@@ -147,6 +147,8 @@ export const NUMERIC_COLS = new Set([
   "purchase_sgst_amount",
   "rto_charges",
   "accessories_charges",
+  "current_odometer",
+  "next_service_due_odometer",
   "year",
   "grams",
   "interest_rate",

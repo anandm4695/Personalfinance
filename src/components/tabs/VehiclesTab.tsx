@@ -894,79 +894,70 @@ function CommercialSVG({ colorInfo, id }: { colorInfo: VehicleColorInfo; id: str
 }
 
 const CURATED_VEHICLE_PHOTOS: Record<string, string> = {
-  // Honda Scooters & Cars
-  "honda activa": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
-  "honda activa 5g": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
-  "honda activa 6g": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
-  "honda activa 125": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
-  activa: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Gold_Metallic_Honda_Activa.jpg/800px-Gold_Metallic_Honda_Activa.jpg",
-  "honda dio": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Honda_Dio_Scooter.jpg/800px-Honda_Dio_Scooter.jpg",
-  "honda city": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/2020_Honda_City_1.5L_GN2_%2820210214%29.jpg/800px-2020_Honda_City_1.5L_GN2_%2820210214%29.jpg",
-  "honda elevate": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/2023_Honda_Elevate_ZX_%28India%29_front_view_01.jpg/800px-2023_Honda_Elevate_ZX_%28India%29_front_view_01.jpg",
-  "honda amaze": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2018_Honda_Amaze_1.2_VX_%28India%29_front_view.jpg/800px-2018_Honda_Amaze_1.2_VX_%28India%29_front_view.jpg",
+  // Scooters (Activa, Jupiter, Vespa, Dio, Ntorq, Access, Ather, Ola, Chetak)
+  "honda activa": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  "honda activa 5g": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  "honda activa 6g": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  "honda activa 125": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  activa: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  "honda dio": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=900&q=80",
+  "tvs jupiter": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  jupiter: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  "tvs ntorq": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=900&q=80",
+  "ather 450x": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  "ola s1 pro": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
+  "bajaj chetak": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=900&q=80",
+  vespa: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=900&q=80",
+  scooter: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=80",
 
-  // Royal Enfield
-  "royal enfield hunter 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Hunter_350_side_view_India_Model.png/800px-Hunter_350_side_view_India_Model.png",
-  "hunter 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Hunter_350_side_view_India_Model.png/800px-Hunter_350_side_view_India_Model.png",
-  "royal enfield classic 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Royal_Enfield_Classic_350.jpg/800px-Royal_Enfield_Classic_350.jpg",
-  "classic 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Royal_Enfield_Classic_350.jpg/800px-Royal_Enfield_Classic_350.jpg",
-  "royal enfield himalayan": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Royal_Enfield_Himalayan_450.jpg/800px-Royal_Enfield_Himalayan_450.jpg",
-  "royal enfield bullet 350": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Royal_Enfield_Bullet_Electra_Twinspark.jpg/800px-Royal_Enfield_Bullet_Electra_Twinspark.jpg",
+  // Motorcycles & Royal Enfield
+  "royal enfield hunter 350": "https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?auto=format&fit=crop&w=900&q=80",
+  "hunter 350": "https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?auto=format&fit=crop&w=900&q=80",
+  "royal enfield classic 350": "https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=900&q=80",
+  "classic 350": "https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=900&q=80",
+  "royal enfield himalayan": "https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?auto=format&fit=crop&w=900&q=80",
+  "royal enfield bullet 350": "https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=900&q=80",
+  "bajaj pulsar": "https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?auto=format&fit=crop&w=900&q=80",
+  "tvs apache": "https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?auto=format&fit=crop&w=900&q=80",
 
-  // Tata Motors
-  "tata nexon": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Tata_Nexon_Blue_Dual_Tone.jpg/800px-Tata_Nexon_Blue_Dual_Tone.jpg",
-  "tata nexon ev": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Tata_Nexon_Facelift_IMG_8435.jpg/800px-Tata_Nexon_Facelift_IMG_8435.jpg",
-  "nexon ev": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Tata_Nexon_Facelift_IMG_8435.jpg/800px-Tata_Nexon_Facelift_IMG_8435.jpg",
-  "tata punch": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/2021_Tata_Punch_Creative_%28India%29_front_view.jpg/800px-2021_Tata_Punch_Creative_%28India%29_front_view.jpg",
-  "tata harrier": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/2023_Tata_Harrier_Fearless%2B_%28India%29_front_view.jpg/800px-2023_Tata_Harrier_Fearless%2B_%28India%29_front_view.jpg",
-  "tata safari": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/2021_Tata_Safari_XZ%2B_%28India%29_front_view.jpg/800px-2021_Tata_Safari_XZ%2B_%28India%29_front_view.jpg",
-  "tata tiago": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/2020_Tata_Tiago_XZ%2B_BS6_1.2_Front.jpg/800px-2020_Tata_Tiago_XZ%2B_BS6_1.2_Front.jpg",
-  "tata altroz": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/2020_Tata_Altroz_XZ_1.2_Front.jpg/800px-2020_Tata_Altroz_XZ_1.2_Front.jpg",
+  // SUVs (Tata Nexon EV, Creta, Brezza, Thar, XUV700, Scorpio, Fortuner, Seltos)
+  "tata nexon": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "tata nexon ev": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "nexon ev": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "tata punch": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "tata harrier": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "tata safari": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "hyundai creta": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  creta: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "hyundai venue": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "maruti brezza": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "maruti grand vitara": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "mahindra thar": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=900&q=80",
+  thar: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=900&q=80",
+  "mahindra xuv700": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  xuv700: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "mahindra scorpio-n": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=900&q=80",
+  scorpio: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=900&q=80",
+  "toyota fortuner": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=900&q=80",
+  fortuner: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=900&q=80",
+  "toyota innova": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  innova: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "kia seltos": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "kia sonet": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
 
-  // Hyundai
-  "hyundai creta": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg/800px-2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg",
-  creta: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg/800px-2022_Hyundai_Creta_1.6_Plus_%28Chile%29_front_view.jpg",
-  "hyundai venue": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/2020_Hyundai_Venue_Denim_%28United_States%29_front_view.jpg/800px-2020_Hyundai_Venue_Denim_%28United_States%29_front_view.jpg",
-  "hyundai i20": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/2020_Hyundai_i20_SE_MHEV_1.0_Front.jpg/800px-2020_Hyundai_i20_SE_MHEV_1.0_Front.jpg",
-  "hyundai verna": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/2023_Hyundai_Verna_SX%28O%29_1.5_Turbo_%28India%29_front_view_01.jpg/800px-2023_Hyundai_Verna_SX%28O%29_1.5_Turbo_%28India%29_front_view_01.jpg",
-
-  // Maruti Suzuki
-  "maruti suzuki swift": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg/800px-2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg",
-  swift: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg/800px-2018_Suzuki_Swift_SZ5_Dualjet_SHVS_1.2_Front.jpg",
-  "maruti brezza": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2022_Maruti_Suzuki_Brezza_ZXi%2B_%28India%29_front_view.jpg/800px-2022_Maruti_Suzuki_Brezza_ZXi%2B_%28India%29_front_view.jpg",
-  "maruti baleno": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/2022_Maruti_Suzuki_Baleno_Alpha_%28India%29_front_view.jpg/800px-2022_Maruti_Suzuki_Baleno_Alpha_%28India%29_front_view.jpg",
-  "maruti grand vitara": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/2022_Maruti_Suzuki_Grand_Vitara_Alpha%2B_%28India%29_front_view.jpg/800px-2022_Maruti_Suzuki_Grand_Vitara_Alpha%2B_%28India%29_front_view.jpg",
-  "maruti dzire": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/2017_Maruti_Suzuki_Dzire_ZXi%2B_1.2_Front.jpg/800px-2017_Maruti_Suzuki_Dzire_ZXi%2B_1.2_Front.jpg",
-  "maruti ertiga": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/2019_Suzuki_Ertiga_GL_1.5_Front.jpg/800px-2019_Suzuki_Ertiga_GL_1.5_Front.jpg",
-
-  // Mahindra
-  "mahindra thar": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Mahindra_Thar_2020.jpg/800px-Mahindra_Thar_2020.jpg",
-  thar: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Mahindra_Thar_2020.jpg/800px-Mahindra_Thar_2020.jpg",
-  "mahindra xuv700": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg/800px-2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg",
-  xuv700: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg/800px-2021_Mahindra_XUV700_AX7L_%28India%29_front_view.jpg",
-  "mahindra scorpio-n": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg/800px-2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg",
-  scorpio: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg/800px-2022_Mahindra_Scorpio-N_Z8L_%28India%29_front_view.jpg",
-
-  // Kia
-  "kia seltos": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/2019_Kia_Seltos_HTX%2B_1.4_Front.jpg/800px-2019_Kia_Seltos_HTX%2B_1.4_Front.jpg",
-  "kia sonet": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/2020_Kia_Sonet_GTX%2B_1.0_Front.jpg/800px-2020_Kia_Sonet_GTX%2B_1.0_Front.jpg",
-
-  // Toyota
-  "toyota fortuner": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg/800px-2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg",
-  fortuner: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg/800px-2021_Toyota_Fortuner_2.8_VRZ_%28Malaysia%29_front_view.jpg",
-  "toyota innova": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg/800px-2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg",
-  innova: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg/800px-2023_Toyota_Kijang_Innova_Zenix_2.0_Q_HV_%28Indonesia%29_front_view.jpg",
-
-  // TVS / Bajaj / EV Two-Wheelers
-  "tvs jupiter": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/TVS_Jupiter_Scooter.jpg/800px-TVS_Jupiter_Scooter.jpg",
-  jupiter: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/TVS_Jupiter_Scooter.jpg/800px-TVS_Jupiter_Scooter.jpg",
-  "tvs ntorq": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/TVS_NTORQ_125_Race_Edition.jpg/800px-TVS_NTORQ_125_Race_Edition.jpg",
-  "tvs apache": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/TVS_Apache_RTR_160_4V.jpg/800px-TVS_Apache_RTR_160_4V.jpg",
-  "bajaj pulsar": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Bajaj_Pulsar_150_DTS-i.jpg/800px-Bajaj_Pulsar_150_DTS-i.jpg",
-  "bajaj chetak": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Bajaj_Chetak_EV_Scooter.jpg/800px-Bajaj_Chetak_EV_Scooter.jpg",
-  "ather 450x": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Ather_450X_Gen3.jpg/800px-Ather_450X_Gen3.jpg",
-  "ola s1 pro": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Ola_S1_Pro_Electric_Scooter.jpg/800px-Ola_S1_Pro_Electric_Scooter.jpg",
-  vespa: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Vespa_Primavera_125_3V_ie_Front.jpg/800px-Vespa_Primavera_125_3V_ie_Front.jpg",
+  // Cars & Sedans & Hatchbacks (Swift, Baleno, City, Verna, i20, Tiago, Altroz)
+  "maruti suzuki swift": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=80",
+  swift: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=80",
+  "maruti baleno": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=80",
+  "maruti dzire": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
+  "maruti ertiga": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "honda city": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
+  "honda amaze": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
+  "honda elevate": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=80",
+  "hyundai i20": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=80",
+  "hyundai verna": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
+  "tata tiago": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=80",
+  "tata altroz": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=80",
 };
 
 function ScooterSVG({ colorInfo, id }: { colorInfo: VehicleColorInfo; id: string }) {
@@ -1309,6 +1300,8 @@ export function VehiclePhotoPreview({
           <img
             src={photoSrc!}
             alt={`${make} ${model}`}
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
             onError={() => {
               setPhotoFailed(true);
               setMode("render");
