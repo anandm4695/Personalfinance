@@ -10,9 +10,10 @@
 const buckets = new Map();
 
 function clientIp(req) {
-  const fwd = req.headers["x-forwarded-for"];
+  if (!req) return "127.0.0.1";
+  const fwd = req.headers ? (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"]) : null;
   if (fwd) return String(fwd).split(",")[0].trim();
-  return req.socket?.remoteAddress || "unknown";
+  return req.socket?.remoteAddress || req.ip || "127.0.0.1";
 }
 
 function rateLimit(req, res, { windowMs = 60_000, max = 30, keyPrefix = "" } = {}) {

@@ -75,8 +75,8 @@ module.exports = async function handler(req, res) {
     year: mockData.year,
     registrationDate: mockData.purchaseDate,
     color: mockData.color,
-    fuelType: mockData.fuelType,
-    vehicleType: mockData.type,
+    fuelType: mockData.fuel || mockData.fuelType || "petrol",
+    vehicleType: mockData.type || mockData.vehicleType || "two-wheeler",
     chassisNumber: mockData.chassisNumber,
     engineNumber: mockData.engineNumber,
     cubicCapacity: mockData.cubicCapacity,
@@ -508,6 +508,8 @@ function getDeterministicMockVehicle(reg) {
 
   const insExpiryDate = new Date(Date.now() + ((hash % 400) - 100) * 86400000);
   const pucExpiryDate = new Date(Date.now() + ((hash % 180) - 30) * 86400000);
+  const insuranceExpiry = insExpiryDate.toISOString().slice(0, 10);
+  const pucExpiry = pucExpiryDate.toISOString().slice(0, 10);
 
   const fitnessExpiryDate = new Date(Date.now() + (15 - yearOffset) * 365 * 86400000);
   const fitnessUpto = fitnessExpiryDate.toISOString().slice(0, 10);
@@ -534,6 +536,32 @@ function getDeterministicMockVehicle(reg) {
   const insuranceCompany = insurers[hash % insurers.length];
   const insurancePolicyNumber = `POL-${10000000 + (hash % 90000000)}`;
   const emissionNorms = year >= 2020 ? "BHARAT STAGE VI (BS-VI)" : "BHARAT STAGE IV (BS-IV)";
+
+  const firstNames = [
+    "Anand",
+    "Rajesh",
+    "Amit",
+    "Sanjay",
+    "Vijay",
+    "Sunil",
+    "Priya",
+    "Kiran",
+    "Deepak",
+    "Rohan",
+  ];
+  const lastNames = [
+    "Mohta",
+    "Sharma",
+    "Joshi",
+    "Patel",
+    "Mehta",
+    "Nair",
+    "Verma",
+    "Gupta",
+    "Rao",
+    "Kumar",
+  ];
+  const ownerName = `${firstNames[Math.abs(hash) % firstNames.length]} ${lastNames[Math.abs(Math.floor(hash / 7)) % lastNames.length]}`;
 
   return {
     ...vehicle,

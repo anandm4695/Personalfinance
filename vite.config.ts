@@ -44,6 +44,7 @@ export default defineConfig({
                 }
 
                 const mockReq = req as any;
+                mockReq.headers = req.headers || {};
                 const query: Record<string, string> = {};
                 parsedUrl.searchParams.forEach((val, key) => {
                   query[key] = val;
@@ -73,9 +74,16 @@ export default defineConfig({
                   res.end(JSON.stringify(data));
                   return mockRes;
                 };
+                mockRes.send = (data: any) => {
+                  res.end(typeof data === "object" ? JSON.stringify(data) : String(data));
+                  return mockRes;
+                };
                 mockRes.setHeader = (name: string, value: string) => {
                   originalSetHeader(name, value);
                   return mockRes;
+                };
+                mockRes.end = (...args: any[]) => {
+                  return res.end(...args);
                 };
 
                 await handler(mockReq, mockRes);
