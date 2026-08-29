@@ -6,7 +6,7 @@ import {
   Plus,
   Trash2,
   Pencil,
-  CheckCircle,
+  CheckCircle2,
   Clock,
   AlertCircle,
   IndianRupee,
@@ -15,6 +15,15 @@ import {
   PlayCircle,
   StopCircle,
   Sparkles,
+  Search,
+  LayoutGrid,
+  CalendarDays,
+  Table as TableIcon,
+  Filter,
+  Download,
+  Sliders,
+  Percent,
+  Check,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -59,13 +68,6 @@ const FUND_COLORS: Record<string, string> = {
   Hybrid: THEME.gold,
   ELSS: THEME.rust,
   Index: THEME.sage,
-  // Liquid and Flexi Cap get distinct hues outside the 5-token semantic
-  // palette so all fund types remain visually distinguishable together.
-  // Both use fixed chart-extension tokens (not raw hex) — a raw hex value
-  // would go stale in dark mode and could exactly match the active accent
-  // preset (e.g. a raw "#7c3aed" would equal THEME.accent under the
-  // "Violet" theme, making the badge indistinguishable from the frequency
-  // badge that already uses THEME.accent on the same card).
   Liquid: THEME.cyan,
   "Flexi Cap": THEME.violet,
 };
@@ -75,6 +77,10 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
   const [show, setShow] = useState(false);
   const [editSip, setEditSip] = useState<any>(null);
   const [sipProjRate, setSipProjRate] = useState("12");
+  const [viewMode, setViewMode] = useState<"cards" | "calendar" | "table">("cards");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterFundType, setFilterFundType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("amount");
   const [confirmDeleteSip, setConfirmDeleteSip] = useState<any>(null);
   const todayStr = today();
@@ -139,30 +145,14 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
       const r = annualRate / periodsPerYear / 100;
       const monthsElapsed = Math.max(0, monthsBetween(sip.startDate, todayStr));
       const totalInst = Number(sip.totalInstallments || 0);
-      // Open-ended SIPs (no fixed tenure) accrue installments indefinitely;
-      // only cap "paid" when a real totalInstallments target is set.
+
       const paid =
         totalInst > 0
           ? Math.min(Math.floor(monthsElapsed / periodMonths), totalInst)
           : Math.floor(monthsElapsed / periodMonths);
-      // A stopped SIP never gets new installments; a paused one is assumed to
-      // resume, so it still projects forward (but is excluded from "due soon"
-      // alerts and current monthly-outgo totals below).
       const remainingRaw = totalInst > 0 ? Math.max(0, totalInst - paid) : 0;
       const remaining = isStopped ? 0 : remainingRaw;
 
-      // Step-up SIPs increase the per-installment amount by `stepUpPct` at
-      // every anniversary (every `periodsPerYear` installments), compounding
-      // year-over-year off the PREVIOUS year's stepped amount (not the
-      // original base each time) — amount(yearIdx) = base * (1+step)^yearIdx.
-      // Corpus is built with a running ordinary-annuity recurrence
-      // (corpus = corpus*(1+r) + installment) so a varying installment
-      // amount is handled correctly; multiplying the final total by (1+r)
-      // once converts it from "ordinary" (deposit at period end) to
-      // "annuity-due" (deposit at period start) basis — this scaling is
-      // uniform regardless of how many periods ran, so it's valid to apply
-      // it once at the end even when installment amounts vary by year.
-      // With stepUpPct = 0 this reduces to the plain flat-SIP FV of annuity-due.
       let ordinaryFV = 0;
       let totalInvested = 0;
       for (let i = 0; i < paid; i++) {
@@ -181,17 +171,13 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
       }
       const projectedCorpus = remaining === 0 ? currentCorpus : ordinaryFVProjected * (1 + r);
 
-      // The installment amount that would apply RIGHT NOW (i.e. on the next
-      // due date), reflecting any step-ups already elapsed.
       const currentInstallmentAmt = baseAmount * Math.pow(1 + stepUpPct, Math.floor(paid / periodsPerYear));
-
       const estimatedGains = Math.max(0, currentCorpus - totalInvested);
       const gainPct = totalInvested > 0 ? (estimatedGains / totalInvested) * 100 : 0;
       const progress = totalInst > 0 ? (paid / totalInst) * 100 : 0;
       const isCompleted = totalInst > 0 && remainingRaw === 0 && paid > 0;
       const isInactive = isCompleted || isStopped || isPaused;
-      // Monthly-equivalent outgo only counts SIPs actively contributing right
-      // now, at their current (post-step-up) installment amount.
+
       const monthlyEquivalent = isInactive
         ? 0
         : isQuarterly
@@ -202,9 +188,6 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
       let daysUntilDue: number | null = null;
       if (!isCompleted && !isStopped && !isPaused && remaining > 0 && sip.startDate) {
         const startD = new Date(sip.startDate + "T00:00:00");
-        // Date.setMonth() overflows past month-end (e.g. Jan 31 + 1mo -> Mar 3, since
-        // Feb 31 doesn't exist) instead of clamping, silently shifting the due date for
-        // SIPs started on the 29th/30th/31st. Clamp to the target month's last day instead.
         const startDay = startD.getDate();
         const totalMonthsAdd = paid * periodMonths;
         const rawMonth = startD.getMonth() + totalMonthsAdd;
@@ -250,15 +233,31 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
   const totalProjected = sipsWithCalc.reduce((s: number, sip: any) => s + sip.projectedCorpus, 0);
   const overallGainPct = totalInvested > 0 ? (totalGains / totalInvested) * 100 : 0;
 
+  const filteredSips = useMemo(() => {
+    return sipsWithCalc.filter((s: any) => {
+      if (filterStatus === "active" && s.isInactive) return false;
+      if (filterStatus === "inactive" && !s.isInactive) return false;
+      if (filterFundType !== "all" && s.fundType !== filterFundType) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchScheme = (s.scheme || "").toLowerCase().includes(q);
+        const matchBroker = (s.broker || "").toLowerCase().includes(q);
+        const matchType = (s.fundType || "").toLowerCase().includes(q);
+        if (!matchScheme && !matchBroker && !matchType) return false;
+      }
+      return true;
+    });
+  }, [sipsWithCalc, filterStatus, filterFundType, searchQuery]);
+
   const sortedSips = useMemo(() => {
-    const arr = [...sipsWithCalc];
+    const arr = [...filteredSips];
     if (sortBy === "progress") return arr.sort((a: any, b: any) => b.progress - a.progress);
     if (sortBy === "projected")
       return arr.sort((a: any, b: any) => b.projectedCorpus - a.projectedCorpus);
     if (sortBy === "start")
       return arr.sort((a: any, b: any) => (a.startDate || "").localeCompare(b.startDate || ""));
     return arr.sort((a: any, b: any) => Number(b.amount || 0) - Number(a.amount || 0));
-  }, [sipsWithCalc, sortBy]);
+  }, [filteredSips, sortBy]);
 
   const fundTypeAlloc = useMemo(() => {
     const map: Record<string, number> = {};
@@ -290,8 +289,6 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
     for (let year = 1; year <= 10; year++) {
       for (let month = 1; month <= 12; month++) {
         for (const sip of sipsWithCalc) {
-          // A stopped SIP contributes no further installments; a paused one
-          // is assumed to eventually resume, so it still projects forward.
           if (sip.isCompleted || sip.status === "stopped") continue;
           const isQuarterly = sip.frequency === "quarterly";
           const periodsPerYear = isQuarterly ? 4 : 12;
@@ -334,7 +331,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
   return (
     <div className="tab-content-enter">
       <SectionTitle
-        sub="Track your systematic investment plans across mutual funds"
+        sub="Track systematic investment plans, installment horizons, and compounding wealth trajectories"
         rightElement={
           sipsWithCalc.length > 0 && (
             <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShow(true)}>
@@ -343,67 +340,63 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
           )
         }
       >
-        SIP Tracker
+        SIP & Mutual Fund Commitments
       </SectionTitle>
 
-      {/* ── Summary Tiles ── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
-          marginBottom: 28,
-        }}
-      >
-        <StatCard
-          label="Monthly SIP"
-          value={fmtINRFull(totalMonthlyEquivalent)}
-          numericValue={totalMonthlyEquivalent}
-          formatValue={fmtINRFull}
-          sub={
-            metrics?.monthIncome > 0
-              ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
-              : "Monthly equivalent"
-          }
-          icon={<Repeat />}
-          color={THEME.accent}
-        />
-        <StatCard
-          label="Total Invested"
-          value={fmtINRFull(totalInvested)}
-          numericValue={totalInvested}
-          formatValue={fmtINRFull}
-          sub="Cumulative capital deployed"
-          icon={<IndianRupee />}
-          color={THEME.sage}
-        />
-        <StatCard
-          label="Est. Returns"
-          value={totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—"}
-          numericValue={overallGainPct}
-          formatValue={(n) => (totalInvested > 0 ? `+${n.toFixed(1)}%` : "—")}
-          sub={
-            totalGains > 0
-              ? `+${privacyMode ? "••••" : fmtINRFull(totalGains)} total return`
-              : "Returns after first installment"
-          }
-          icon={<TrendingUp />}
-          color={totalGains > 0 ? THEME.gold : THEME.muted}
-        />
-        <StatCard
-          label="Projected Corpus"
-          value={fmtINRFull(totalProjected)}
-          numericValue={totalProjected}
-          formatValue={fmtINRFull}
-          sub={`@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} inactive` : ""}`}
-          icon={<Activity />}
-          color={THEME.accent}
-        />
-      </div>
-
+      {/* Hero Stats Cockpit */}
       {sipsWithCalc.length > 0 && (
         <>
-          {/* ── Fund Type Allocation ── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+              marginBottom: 20,
+            }}
+          >
+            <StatCard
+              label="Monthly SIP Commitment"
+              value={fmtINRFull(totalMonthlyEquivalent)}
+              numericValue={totalMonthlyEquivalent}
+              formatValue={fmtINRFull}
+              sub={
+                metrics?.monthIncome > 0
+                  ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
+                  : "Monthly outgo"
+              }
+              icon={<Repeat />}
+              color={THEME.accent}
+            />
+            <StatCard
+              label="Total Invested"
+              value={fmtINRFull(totalInvested)}
+              numericValue={totalInvested}
+              formatValue={fmtINRFull}
+              sub="Cumulative capital deployed"
+              icon={<IndianRupee />}
+              color={THEME.sage}
+            />
+            <StatCard
+              label="Est. Returns"
+              value={totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—"}
+              numericValue={overallGainPct}
+              formatValue={(n) => (totalInvested > 0 ? `+${n.toFixed(1)}%` : "—")}
+              sub={totalGains > 0 ? `+${privacyMode ? "••••" : fmtINRFull(totalGains)} total return` : "Returns"}
+              icon={<TrendingUp />}
+              color={totalGains > 0 ? THEME.gold : THEME.muted}
+            />
+            <StatCard
+              label="Projected Corpus"
+              value={fmtINRFull(totalProjected)}
+              numericValue={totalProjected}
+              formatValue={fmtINRFull}
+              sub={`@${sipProjRate}% p.a. · ${activeSips.length} active`}
+              icon={<Activity />}
+              color={THEME.accent}
+            />
+          </div>
+
+          {/* Allocation by Fund Type */}
           {fundTypeAlloc.length > 1 && (
             <Card style={{ marginBottom: 20, padding: "18px 20px" }}>
               <div
@@ -413,18 +406,18 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
                   textTransform: "uppercase",
                   color: THEME.muted,
                   fontWeight: 800,
-                  marginBottom: 14,
+                  marginBottom: 12,
                 }}
               >
-                Portfolio Allocation by Fund Type
+                SIP Allocation by Fund Type
               </div>
               <div
                 style={{
                   display: "flex",
-                  height: 10,
+                  height: 8,
                   borderRadius: 99,
                   overflow: "hidden",
-                  marginBottom: 16,
+                  marginBottom: 14,
                   gap: 3,
                 }}
               >
@@ -450,26 +443,16 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
-                        padding: "8px 12px",
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${col} 4%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${col} 13%, transparent)`,
-                        flex: "1 1 110px",
+                        padding: "6px 12px",
+                        borderRadius: "var(--radius-sm)",
+                        background: `color-mix(in srgb, ${col} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${col} 15%, transparent)`,
+                        flex: "1 1 120px",
                       }}
                     >
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: col,
-                          flexShrink: 0,
-                        }}
-                      />
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: col, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>
-                          {type}
-                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>{type}</div>
                         <div style={{ fontSize: 10, color: THEME.muted }}>
                           <Money value={amt} variant="full" />/mo · {pct.toFixed(0)}%
                         </div>
@@ -481,145 +464,234 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
             </Card>
           )}
 
-          {/* ── Sort bar ── */}
+          {/* Controls Bar: Multi-Mode Views, Search, and Sort */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 16,
               flexWrap: "wrap",
-              gap: 10,
+              gap: 12,
+              marginBottom: 20,
+              padding: "12px 16px",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: "var(--radius-lg)",
             }}
           >
-            <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-              {sipsWithCalc.length} SIP{sipsWithCalc.length !== 1 ? "s" : ""}
-              {completedSips.length > 0 && (
-                <span style={{ marginLeft: 8, fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
-                  · {completedSips.length} inactive
-                </span>
-              )}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 4,
-                alignItems: "center",
-                background: "var(--surface-0)",
-                padding: "4px 6px",
-                borderRadius: 10,
-                border: `1px solid ${THEME.line}`,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  color: THEME.muted,
-                  fontWeight: 600,
-                  marginRight: 4,
-                  paddingLeft: 4,
-                }}
+            {/* View Mode Buttons */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <button
+                onClick={() => setViewMode("cards")}
+                className={`demat-portfolio-pill ${viewMode === "cards" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
               >
-                Sort:
-              </span>
-              {[
-                { key: "amount", label: "Amount" },
-                { key: "progress", label: "Progress" },
-                { key: "projected", label: "Projected" },
-                { key: "start", label: "Oldest" },
-              ].map((opt) => (
-                <button
-                  key={opt.key}
-                  onClick={() => setSortBy(opt.key)}
-                  onMouseEnter={(e) => {
-                    if (sortBy !== opt.key)
-                      e.currentTarget.style.background =
-                        "color-mix(in srgb, var(--t-accent) 8%, transparent)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (sortBy !== opt.key) e.currentTarget.style.background = "transparent";
-                  }}
-                  aria-pressed={sortBy === opt.key}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 7,
-                    border: "none",
-                    fontSize: 11,
-                    fontFamily: "inherit",
-                    fontWeight: sortBy === opt.key ? 800 : 600,
-                    cursor: "pointer",
-                    background: sortBy === opt.key ? THEME.accent : "transparent",
-                    color: sortBy === opt.key ? THEME.darkInk : THEME.muted,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
+                <LayoutGrid size={13} /> SIP Cards
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`demat-portfolio-pill ${viewMode === "calendar" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <CalendarDays size={13} /> Debit Schedule
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`demat-portfolio-pill ${viewMode === "table" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <TableIcon size={13} /> Table Ledger
+              </button>
             </div>
-          </div>
 
-          {/* ── Active SIPs ── */}
-          {sortedActive.length > 0 && (
-            <>
-              {sortedCompleted.length > 0 && (
-                <div
+            {/* Search and Filters */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", minWidth: 160 }}>
+                <Search
+                  size={13}
                   style={{
-                    fontSize: 11,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
                     color: THEME.muted,
-                    fontWeight: 800,
-                    marginBottom: 12,
                   }}
-                >
-                  Active · {sortedActive.length}
-                </div>
-              )}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))",
-                  gap: 16,
-                  marginBottom: sortedCompleted.length > 0 ? 28 : 28,
-                }}
-              >
-                {sortedActive.map((sip: any) => (
-                  <SIPCard
-                    key={sip.id}
-                    sip={sip}
-                    onEdit={() => setEditSip(sip)}
-                    onRemove={() => setConfirmDeleteSip(sip)}
-                    onStatusChange={(newStatus: string) => changeSipStatus(sip.id, newStatus)}
-                  />
+                />
+                <input
+                  type="text"
+                  placeholder="Search funds, brokers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "6px 10px 6px 30px",
+                    borderRadius: "var(--radius-sm)",
+                    border: `1px solid ${THEME.line}`,
+                    background: "var(--surface-1)",
+                    color: THEME.ink,
+                    fontSize: 12,
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {(
+                  [
+                    { id: "all", label: "All" },
+                    { id: "active", label: "Active" },
+                    { id: "inactive", label: "Inactive" },
+                  ] as const
+                ).map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFilterStatus(f.id)}
+                    className={`demat-portfolio-pill ${filterStatus === f.id ? "active" : ""}`}
+                    style={{ fontSize: 11, padding: "4px 10px" }}
+                  >
+                    {f.label}
+                  </button>
                 ))}
               </div>
-            </>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Main View Area */}
+      {sipsWithCalc.length === 0 ? (
+        <EmptyState
+          icon={Repeat}
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 55%, white) 100%)`}
+          dotColor={THEME.accent}
+          title="No SIPs Tracked Yet"
+          description="Add your systematic investment plans to project your corpus, track installments paid, and visualise your wealth-building journey."
+          pills={[
+            "Mutual Fund SIPs",
+            "Corpus Projections",
+            "Installment Progress",
+            "Monthly Tracking",
+          ]}
+          buttonLabel="Add First SIP"
+          onAdd={() => setShow(true)}
+        />
+      ) : filteredSips.length === 0 ? (
+        <Card style={{ padding: 48, textAlign: "center" }}>
+          <div style={{ color: THEME.muted, fontSize: 13 }}>No SIPs match your filter criteria.</div>
+        </Card>
+      ) : viewMode === "table" ? (
+        /* TABLE VIEW */
+        <Card style={{ overflow: "hidden", marginBottom: 24 }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-1)", borderBottom: `1.5px solid ${THEME.line}` }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Scheme Name</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Fund Type</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Installment</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Frequency</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Invested</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Est. Corpus</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Status</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedSips.map((sip: any) => {
+                  const fundColor = FUND_COLORS[sip.fundType] || THEME.muted;
+                  return (
+                    <tr key={sip.id} style={{ borderBottom: `1px solid ${THEME.line}`, opacity: sip.isInactive ? 0.65 : 1 }}>
+                      <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <MFLogo fundName={sip.scheme || ""} size={28} />
+                          <div>
+                            <div>{sip.scheme}</div>
+                            {sip.broker && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>via {sip.broker}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: fundColor,
+                            background: `color-mix(in srgb, ${fundColor} 12%, transparent)`,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          {sip.fundType || "Equity"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800 }}>
+                        <Money value={sip.currentInstallmentAmt || sip.amount} variant="exact" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center", textTransform: "capitalize", fontSize: 12, color: THEME.muted }}>
+                        {sip.frequency}
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.sage }}>
+                        <Money value={sip.totalInvested} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 900, color: THEME.accent }}>
+                        <Money value={sip.currentCorpus} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: sip.isCompleted ? THEME.sage : sip.status === "paused" ? THEME.gold : sip.status === "stopped" ? THEME.rust : THEME.accent,
+                            background: "var(--surface-1)",
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {sip.status || "Active"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <div style={{ display: "inline-flex", gap: 6 }}>
+                          <button onClick={() => setEditSip(sip)} className="icon-btn" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }} title="Edit">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => setConfirmDeleteSip(sip)} className="icon-btn danger" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }} title="Delete">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : (
+        /* CARDS VIEW */
+        <div style={{ marginBottom: 28 }}>
+          {sortedActive.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))", gap: 16, marginBottom: 28 }}>
+              {sortedActive.map((sip: any) => (
+                <SIPCard
+                  key={sip.id}
+                  sip={sip}
+                  onEdit={() => setEditSip(sip)}
+                  onRemove={() => setConfirmDeleteSip(sip)}
+                  onStatusChange={(newStatus: string) => changeSipStatus(sip.id, newStatus)}
+                />
+              ))}
+            </div>
           )}
 
-          {/* ── Inactive SIPs (completed / paused / stopped) ── */}
           {sortedCompleted.length > 0 && (
             <>
-              <div
-                style={{
-                  fontSize: 11,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: THEME.muted,
-                  fontWeight: 800,
-                  marginBottom: 12,
-                }}
-              >
-                Inactive · {sortedCompleted.length}
+              <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.muted, fontWeight: 800, marginBottom: 12 }}>
+                Inactive / Completed SIPs · {sortedCompleted.length}
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))",
-                  gap: 16,
-                  marginBottom: 28,
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))", gap: 16, marginBottom: 28 }}>
                 {sortedCompleted.map((sip: any) => (
                   <SIPCard
                     key={sip.id}
@@ -632,169 +704,65 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics,
               </div>
             </>
           )}
-
-          {/* ── Projection Chart ── */}
-          <Card style={{ marginBottom: 28, padding: 24 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 20,
-                flexWrap: "wrap",
-                gap: 12,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    letterSpacing: "0.15em",
-                    textTransform: "uppercase",
-                    color: THEME.muted,
-                    fontWeight: 800,
-                    marginBottom: 4,
-                  }}
-                >
-                  Wealth Growth Projection
-                </div>
-                <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-                  10-year compounding projection @{sipProjRate}% expected yield
-                </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-                  padding: "6px 14px",
-                  borderRadius: 10,
-                  border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-                }}
-              >
-                <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                  Expected Yield
-                </span>
-                <input
-                  style={{
-                    width: 44,
-                    fontSize: 14,
-                    background: "transparent",
-                    border: "none",
-                    color: THEME.ink,
-                    fontWeight: 800,
-                    padding: 0,
-                    textAlign: "center",
-                  }}
-                  type="number"
-                  value={sipProjRate}
-                  onChange={(e) => setSipProjRate(e.target.value)}
-                />
-                <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>% p.a.</span>
-              </div>
-            </div>
-            <div style={{ height: 260 }}>
-              <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <AreaChart
-                  data={projectionChartData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="sipColorInvested" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={THEME.muted} stopOpacity={0.15} />
-                      <stop offset="95%" stopColor={THEME.muted} stopOpacity={0.01} />
-                    </linearGradient>
-                    <linearGradient id="sipColorWealth" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.01} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="label"
-                    stroke={THEME.muted}
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke={THEME.muted}
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
-                    width={72}
-                  />
-                  <Tooltip
-                    formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
-                    cursor={{ stroke: THEME.line }}
-                    contentStyle={{
-                      background: "var(--surface-0)",
-                      borderColor: THEME.line,
-                      borderRadius: 10,
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.ink }}
-                    itemStyle={{ color: THEME.ink }}
-                  />
-                  <Legend verticalAlign="top" height={36} />
-                  <Area
-                    type="monotone"
-                    dataKey="invested"
-                    name="Cumulative Invested"
-                    stroke={THEME.muted}
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#sipColorInvested)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="wealth"
-                    name="Projected Wealth"
-                    stroke={THEME.sage}
-                    strokeWidth={2.5}
-                    fillOpacity={1}
-                    fill="url(#sipColorWealth)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer></div>
-            </div>
-          </Card>
-        </>
+        </div>
       )}
 
-      {sipsWithCalc.length === 0 && (
-        <EmptyState
-          icon={Repeat}
-          gradient="linear-gradient(135deg,#0d9488 0%,#5eead4 100%)"
-          dotColor="#0d9488"
-          title="No SIPs Tracked Yet"
-          description="Add your systematic investment plans to project your corpus, track installments paid, and visualise your wealth-building journey."
-          pills={[
-            "Mutual Fund SIPs",
-            "Corpus Projections",
-            "Installment Progress",
-            "Monthly Tracking",
-          ]}
-          buttonLabel="Add First SIP"
-          onAdd={() => setShow(true)}
-        />
+      {/* Projection Chart */}
+      {sipsWithCalc.length > 0 && (
+        <Card style={{ marginBottom: 28, padding: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, fontWeight: 800, marginBottom: 4 }}>
+                Wealth Growth Projection
+              </div>
+              <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
+                10-year compounding projection @{sipProjRate}% expected yield
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`, padding: "6px 14px", borderRadius: 10, border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)` }}>
+              <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Expected Yield</span>
+              <input
+                style={{ width: 44, fontSize: 14, background: "transparent", border: "none", color: THEME.ink, fontWeight: 800, padding: 0, textAlign: "center" }}
+                type="number"
+                value={sipProjRate}
+                onChange={(e) => setSipProjRate(e.target.value)}
+              />
+              <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>% p.a.</span>
+            </div>
+          </div>
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <AreaChart data={projectionChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="sipColorInvested" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={THEME.muted} stopOpacity={0.15} />
+                    <stop offset="95%" stopColor={THEME.muted} stopOpacity={0.01} />
+                  </linearGradient>
+                  <linearGradient id="sipColorWealth" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="label" stroke={THEME.muted} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={THEME.muted} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))} width={72} />
+                <Tooltip
+                  formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
+                  contentStyle={{ background: "var(--surface-0)", borderColor: THEME.line, borderRadius: 10, color: THEME.ink }}
+                />
+                <Legend verticalAlign="top" height={36} />
+                <Area type="monotone" dataKey="invested" name="Cumulative Invested" stroke={THEME.muted} strokeWidth={2} fillOpacity={1} fill="url(#sipColorInvested)" />
+                <Area type="monotone" dataKey="wealth" name="Projected Wealth" stroke={THEME.sage} strokeWidth={2.5} fillOpacity={1} fill="url(#sipColorWealth)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
       )}
 
       {show && (
-        <SIPModal
-          onClose={() => setShow(false)}
-          onSave={saveNewSip}
-          saving={savingNewSip}
-        />
+        <SIPModal onClose={() => setShow(false)} onSave={saveNewSip} saving={savingNewSip} />
       )}
       {editSip && (
-        <SIPModal
-          initial={editSip}
-          onClose={() => setEditSip(null)}
-          onSave={saveSipEdit}
-          saving={savingSipEdit}
-        />
+        <SIPModal initial={editSip} onClose={() => setEditSip(null)} onSave={saveSipEdit} saving={savingSipEdit} />
       )}
       {confirmDeleteSip && (
         <ConfirmDialog
@@ -840,8 +808,6 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
 
   const currentAmt = Number(sip.currentInstallmentAmt ?? sip.amount ?? 0);
   const annualAmt = sip.frequency === "quarterly" ? currentAmt * 4 : currentAmt * 12;
-  // Show the step-up badge whenever the SIP has one configured; show the
-  // "started at ₹X" note only once the amount has actually risen.
   const hasStepUpConfigured = Number(sip.stepUpPct || 0) > 0;
   const hasSteppedUp = Math.abs(currentAmt - Number(sip.amount || 0)) >= 1;
 
@@ -860,454 +826,229 @@ function SIPCard({ sip, onEdit, onRemove, onStatusChange }: any) {
 
   return (
     <>
-    <Card
-      style={{ padding: "18px 20px", borderTop: `3px solid ${statusColor}`, position: "relative" }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-          marginBottom: isOverdue || isDueSoon ? 10 : 14,
-        }}
-      >
-        <MFLogo fundName={sip.scheme || ""} size={40} />
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 14,
-              color: THEME.ink,
-              letterSpacing: "-0.01em",
-              marginBottom: 5,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {sip.scheme}
-          </div>
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-            {sip.fundType && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: fundColor,
-                  background: `color-mix(in srgb, ${fundColor} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${fundColor} 15%, transparent)`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.06em",
-                }}
-              >
-                {sip.fundType}
-              </span>
-            )}
-            {sip.frequency && sip.frequency !== "monthly" && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: THEME.accent,
-                  background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.06em",
-                }}
-              >
-                {sip.frequency}
-              </span>
-            )}
-            {sip.broker && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 600,
-                  color: THEME.muted,
-                  background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-                  border: `1px solid ${THEME.line}`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                }}
-              >
-                {sip.broker}
-              </span>
-            )}
-            {ownerLabel && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: THEME.accent,
-                  background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                }}
-              >
-                {ownerLabel}
-              </span>
-            )}
-            {sip.isCompleted && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: THEME.sage,
-                  background: `color-mix(in srgb, ${THEME.sage} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.06em",
-                }}
-              >
-                ✓ Completed
-              </span>
-            )}
-            {!sip.isCompleted && isPaused && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: THEME.gold,
-                  background: `color-mix(in srgb, ${THEME.gold} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.gold} 15%, transparent)`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.06em",
-                }}
-              >
-                ⏸ Paused
-              </span>
-            )}
-            {!sip.isCompleted && isStopped && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: THEME.rust,
-                  background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.06em",
-                }}
-              >
-                ■ Stopped
-              </span>
-            )}
-            {hasStepUpConfigured && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: THEME.violet,
-                  background: `color-mix(in srgb, ${THEME.violet} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.violet} 15%, transparent)`,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.06em",
-                }}
-                title={
-                  privacyMode
-                    ? "Amount increased after step-up"
-                    : `Started at ${fmtINRExact(sip.amount)}, now ${fmtINRExact(currentAmt)} after step-up`
-                }
-              >
-                <Sparkles size={9} /> {sip.stepUpPct}% step-up
-              </span>
-            )}
-          </div>
-          {startedLabel && (
-            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 500 }}>
-              Started {startedLabel}
+      <Card className="card-lift" style={{ padding: "18px 20px", borderTop: `3px solid ${statusColor}`, position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: isOverdue || isDueSoon ? 10 : 14 }}>
+          <MFLogo fundName={sip.scheme || ""} size={40} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink, letterSpacing: "-0.01em", marginBottom: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {sip.scheme}
             </div>
-          )}
-        </div>
-
-        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-          {!sip.isCompleted && !isPaused && !isStopped && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onStatusChange?.("paused")}
-              style={{ padding: 6, color: THEME.gold }}
-              title="Pause SIP"
-              aria-label="Pause SIP"
-            >
-              <Pause size={13} />
-            </Button>
-          )}
-          {!sip.isCompleted && (isPaused || isStopped) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onStatusChange?.("active")}
-              style={{ padding: 6, color: THEME.sage }}
-              title="Resume SIP"
-              aria-label="Resume SIP"
-            >
-              <PlayCircle size={13} />
-            </Button>
-          )}
-          {!sip.isCompleted && !isStopped && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setConfirmStop(true)}
-              style={{ padding: 6, color: THEME.rust }}
-              title="Stop SIP"
-              aria-label="Stop SIP"
-            >
-              <StopCircle size={13} />
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onEdit}
-            className="icon-btn"
-            style={{ padding: 6, color: THEME.accent }}
-            title="Edit"
-            aria-label="Edit SIP"
-          >
-            <Pencil size={13} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRemove}
-            className="icon-btn danger"
-            style={{ padding: 6, color: THEME.rust }}
-            title="Delete"
-            aria-label="Delete SIP"
-          >
-            <Trash2 size={13} />
-          </Button>
-        </div>
-      </div>
-
-      {/* Overdue / Due-soon alert band */}
-      {(isOverdue || isDueSoon) && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "6px 10px",
-            borderRadius: 8,
-            marginBottom: 14,
-            background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
-            color: alertColor,
-            fontSize: 11,
-            fontWeight: 700,
-          }}
-        >
-          <AlertCircle size={12} />
-          {isOverdue
-            ? `Overdue by ${Math.abs(sip.daysUntilDue)} day${Math.abs(sip.daysUntilDue) !== 1 ? "s" : ""} — ${nextLabel}`
-            : `Due in ${sip.daysUntilDue} day${sip.daysUntilDue !== 1 ? "s" : ""} — ${nextLabel}`}
-        </div>
-      )}
-
-      {/* Amount + installments row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 10,
-        }}
-      >
-        <div>
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 22,
-              fontWeight: 600,
-              color: statusColor,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            <Money value={currentAmt} variant="exact" />
-          </span>
-          <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginLeft: 4 }}>
-            /{sip.frequency === "quarterly" ? "qtr" : "mo"}
-          </span>
-          <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginLeft: 8 }}>
-            · <Money value={annualAmt} variant="full" />/yr
-          </span>
-          {hasSteppedUp && (
-            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500, marginTop: 3 }}>
-              Started at <Money value={sip.amount} variant="exact" />
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+              {sip.fundType && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: fundColor,
+                    background: `color-mix(in srgb, ${fundColor} 7%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${fundColor} 15%, transparent)`,
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {sip.fundType}
+                </span>
+              )}
+              {sip.frequency && sip.frequency !== "monthly" && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: THEME.accent,
+                    background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {sip.frequency}
+                </span>
+              )}
+              {sip.broker && (
+                <span style={{ fontSize: 9, fontWeight: 600, color: THEME.muted, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, borderRadius: 4, padding: "2px 6px" }}>
+                  {sip.broker}
+                </span>
+              )}
+              {ownerLabel && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: THEME.accent, background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`, borderRadius: 4, padding: "2px 6px" }}>
+                  {ownerLabel}
+                </span>
+              )}
+              {sip.isCompleted && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <CheckCircle2 size={10} /> Completed
+                </span>
+              )}
+              {!sip.isCompleted && isPaused && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: THEME.gold, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <Pause size={10} /> Paused
+                </span>
+              )}
+              {!sip.isCompleted && isStopped && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: THEME.rust, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <StopCircle size={10} /> Stopped
+                </span>
+              )}
+              {hasStepUpConfigured && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: THEME.violet,
+                    background: `color-mix(in srgb, ${THEME.violet} 7%, transparent)`,
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                  }}
+                >
+                  <Sparkles size={9} /> {sip.stepUpPct}% step-up
+                </span>
+              )}
             </div>
-          )}
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-            {sip.paid} / {Number(sip.totalInstallments || 0) > 0 ? sip.totalInstallments : "∞"}
+            {startedLabel && (
+              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 500 }}>
+                Started {startedLabel}
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>installments paid</div>
-        </div>
-      </div>
 
-      {/* Progress bar */}
-      <div style={{ marginBottom: 14 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 9,
-            color: THEME.muted,
-            marginBottom: 5,
-            fontWeight: 600,
-            textTransform: "uppercase" as const,
-            letterSpacing: "0.08em",
-          }}
-        >
-          <span>Progress</span>
-          <span style={{ color: statusColor, fontWeight: 700 }}>
-            {sip.progress.toFixed(0)}%{sip.remaining > 0 ? ` · ${sip.remaining} left` : ""}
-          </span>
-        </div>
-        <div className="progress-track">
-          <div
-            className="progress-fill"
-            style={{ width: `${Math.min(sip.progress, 100)}%`, background: statusColor }}
-          />
-        </div>
-      </div>
-
-      {/* Corpus tinted tiles */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-        {[
-          { k: "Invested", v: <Money value={sip.totalInvested} variant="full" />, color: THEME.muted },
-          { k: "Est. Value", v: <Money value={sip.currentCorpus} variant="full" />, color: THEME.sage },
-          {
-            k: sip.isCompleted || isStopped ? "Final" : "Projected",
-            v: <Money value={sip.projectedCorpus} variant="full" />,
-            color: THEME.gold,
-          },
-        ].map(({ k, v, color }) => (
-          <div
-            key={k}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              padding: "7px 10px",
-              borderRadius: 9,
-              background: `color-mix(in srgb, ${color} 4%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${color} 13%, transparent)`,
-              flex: "1 1 80px",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 9,
-                textTransform: "uppercase" as const,
-                color: THEME.muted,
-                fontWeight: 700,
-                letterSpacing: "0.07em",
-              }}
-            >
-              {k}
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 12,
-                fontWeight: 800,
-                color,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {v}
-            </span>
+          <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+            {!sip.isCompleted && !isPaused && !isStopped && (
+              <Button variant="ghost" size="sm" onClick={() => onStatusChange?.("paused")} style={{ padding: 6, color: THEME.gold }} title="Pause SIP">
+                <Pause size={13} />
+              </Button>
+            )}
+            {!sip.isCompleted && (isPaused || isStopped) && (
+              <Button variant="ghost" size="sm" onClick={() => onStatusChange?.("active")} style={{ padding: 6, color: THEME.sage }} title="Resume SIP">
+                <PlayCircle size={13} />
+              </Button>
+            )}
+            {!sip.isCompleted && !isStopped && (
+              <Button variant="ghost" size="sm" onClick={() => setConfirmStop(true)} style={{ padding: 6, color: THEME.rust }} title="Stop SIP">
+                <StopCircle size={13} />
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={onEdit} style={{ padding: 6, color: THEME.accent }} title="Edit">
+              <Pencil size={13} />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onRemove} style={{ padding: 6, color: THEME.rust }} title="Delete">
+              <Trash2 size={13} />
+            </Button>
           </div>
-        ))}
-      </div>
-
-      {/* Bottom row: total return + next due pill (on-track only) */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 6,
-          paddingTop: 10,
-          borderTop: `1px solid ${THEME.line}`,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: sip.estimatedGains > 0 ? THEME.sage : THEME.muted,
-          }}
-        >
-          {sip.estimatedGains > 0 ? (
-            <>
-              +<Money value={sip.estimatedGains} variant="full" /> ({sip.gainPct.toFixed(1)}% total return)
-            </>
-          ) : sip.paid === 0 ? (
-            "Not started"
-          ) : (
-            "—"
-          )}
         </div>
-        {!sip.isCompleted && nextLabel && !isOverdue && !isDueSoon && (
+
+        {/* Due Soon or Overdue Badge */}
+        {(isOverdue || isDueSoon) && (
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 4,
-              fontSize: 10,
+              gap: 6,
+              padding: "6px 10px",
+              borderRadius: 8,
+              marginBottom: 14,
+              background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
+              color: alertColor,
+              fontSize: 11,
               fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: "var(--radius-xs)",
-              background: `color-mix(in srgb, ${THEME.muted} 4%, transparent)`,
-              border: `1px solid ${THEME.line}`,
-              color: THEME.muted,
             }}
           >
-            <Clock size={10} />
-            Next: {nextLabel}
+            <AlertCircle size={12} />
+            {isOverdue
+              ? `Overdue by ${Math.abs(sip.daysUntilDue)} day${Math.abs(sip.daysUntilDue) !== 1 ? "s" : ""} — ${nextLabel}`
+              : `Due in ${sip.daysUntilDue} day${sip.daysUntilDue !== 1 ? "s" : ""} — ${nextLabel}`}
           </div>
         )}
-      </div>
-    </Card>
-    {confirmStop && (
-      <ConfirmDialog
-        message={`Stop "${sip.scheme || "this SIP"}"? It will no longer count toward your monthly SIP total or show due-date reminders. You can resume it any time.`}
-        confirmLabel="Yes, stop"
-        onConfirm={() => {
-          onStatusChange?.("stopped");
-          setConfirmStop(false);
-        }}
-        onCancel={() => setConfirmStop(false)}
-      />
-    )}
+
+        {/* Amount + Installments */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: statusColor }}>
+              <Money value={currentAmt} variant="exact" />
+            </span>
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginLeft: 4 }}>
+              /{sip.frequency === "quarterly" ? "qtr" : "mo"}
+            </span>
+            <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginLeft: 8 }}>
+              · <Money value={annualAmt} variant="full" />/yr
+            </span>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+              {sip.paid} / {Number(sip.totalInstallments || 0) > 0 ? sip.totalInstallments : "∞"}
+            </div>
+            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>installments paid</div>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: THEME.muted, marginBottom: 4, fontWeight: 700, textTransform: "uppercase" }}>
+            <span>Progress</span>
+            <span style={{ color: statusColor }}>{sip.progress.toFixed(0)}%{sip.remaining > 0 ? ` · ${sip.remaining} left` : ""}</span>
+          </div>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${Math.min(sip.progress, 100)}%`, background: statusColor }} />
+          </div>
+        </div>
+
+        {/* Financial metrics */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+          {[
+            { k: "Invested", v: <Money value={sip.totalInvested} variant="full" />, color: THEME.muted },
+            { k: "Est. Value", v: <Money value={sip.currentCorpus} variant="full" />, color: THEME.sage },
+            { k: sip.isCompleted || isStopped ? "Final" : "Projected", v: <Money value={sip.projectedCorpus} variant="full" />, color: THEME.accent },
+          ].map(({ k, v, color }) => (
+            <div
+              key={k}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                padding: "6px 10px",
+                borderRadius: "var(--radius-sm)",
+                background: `color-mix(in srgb, ${color} 5%, var(--surface-0))`,
+                border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`,
+                flex: "1 1 80px",
+              }}
+            >
+              <span style={{ fontSize: 9, textTransform: "uppercase", color: THEME.muted, fontWeight: 700 }}>{k}</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Next Due Date / Total Return */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: sip.estimatedGains > 0 ? THEME.sage : THEME.muted }}>
+            {sip.estimatedGains > 0 ? `+${fmtINRFull(sip.estimatedGains)} (+${sip.gainPct.toFixed(1)}%)` : "—"}
+          </div>
+          {!sip.isCompleted && nextLabel && !isOverdue && !isDueSoon && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: THEME.muted }}>
+              <Clock size={10} /> Next: {nextLabel}
+            </div>
+          )}
+        </div>
+      </Card>
+      {confirmStop && (
+        <ConfirmDialog
+          message={`Stop "${sip.scheme || "this SIP"}"? It will no longer count toward your monthly SIP total. You can resume it anytime.`}
+          confirmLabel="Yes, stop"
+          onConfirm={() => {
+            onStatusChange?.("stopped");
+            setConfirmStop(false);
+          }}
+          onCancel={() => setConfirmStop(false)}
+        />
+      )}
     </>
   );
 }
 
-// ── SIP Modal ─────────────────────────────────────────────────────────────────
 function SIPModal({ onClose, onSave, initial, saving = false }: any) {
   const { mfCategories, familyProfiles } = useMasterData();
   const [f, setF] = useState(
@@ -1342,9 +1083,7 @@ function SIPModal({ onClose, onSave, initial, saving = false }: any) {
   const amt = Number(f.amount) || 0;
   const stepUpPctNum = Math.max(0, Number(f.stepUpPct) || 0) / 100;
   const periodsPerYear = f.frequency === "quarterly" ? 4 : 12;
-  // Step-up SIPs raise the installment amount by stepUpPctNum every
-  // `periodsPerYear` installments, so the flat instNum*amt estimate would
-  // understate the real commitment — sum each stepped installment instead.
+
   let totalCommitment = 0;
   for (let i = 0; i < instNum; i++) {
     const yearIdx = Math.floor(i / periodsPerYear);
@@ -1471,12 +1210,6 @@ function SIPModal({ onClose, onSave, initial, saving = false }: any) {
           </Field>
         )}
       </div>
-      {Number(f.stepUpPct) > 0 && (
-        <div style={{ fontSize: 11, color: THEME.muted, marginTop: -10, marginBottom: 16 }}>
-          Installment amount increases by {f.stepUpPct}% every year — e.g. a &ldquo;raise-with-salary&rdquo;
-          SIP.
-        </div>
-      )}
 
       {instNum > 0 && amt > 0 && (
         <div
@@ -1500,11 +1233,6 @@ function SIPModal({ onClose, onSave, initial, saving = false }: any) {
         </div>
       )}
 
-      {!isValid && (
-        <div style={{ fontSize: 11, color: THEME.rust, marginTop: -6, marginBottom: 4 }}>
-          Enter a scheme name and an amount greater than 0 to save.
-        </div>
-      )}
       <ModalActions
         onSave={() => isValid && onSave(f)}
         onClose={onClose}
