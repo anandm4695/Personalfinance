@@ -125,23 +125,10 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const fyEnd = `${startYear + 1}-03-31`;
     const inFY = (date) => date && date >= fyStart && date <= fyEnd;
 
-    // Salary income (ledger entries or salary slips fallback)
-    const salaryIncomeLogged = (state.income || [])
+    // Salary income from bank/income ledger
+    const salaryIncome = (state.income || [])
       .filter((i) => inFY(i.date) && (i.source || "").toLowerCase().includes("salary"))
       .reduce((s, i) => s + Number(i.amount || 0), 0);
-    const salarySlipsGross = (state.salarySlips || [])
-      .filter(
-        (s: any) =>
-          s.slipMonth &&
-          s.slipMonth >= fyStart.slice(0, 7) &&
-          s.slipMonth <= fyEnd.slice(0, 7)
-      )
-      .reduce(
-        (s: number, slip: any) =>
-          s + Number(slip.grossSalary || slip.gross || slip.earningsTotal || slip.netPay || 0),
-        0
-      );
-    const salaryIncome = salaryIncomeLogged > 0 ? salaryIncomeLogged : salarySlipsGross;
 
     // Bank interest & Other income (deduplicated)
     const interestIncomeLogged = (state.income || [])
