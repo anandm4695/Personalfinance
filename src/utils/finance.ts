@@ -240,6 +240,7 @@ export const getEmergencyFundMonthlyExpense = (state: any, fallbackMonthExpense:
     ...(state?.lic || []),
     ...(state?.termPlans || []),
     ...(state?.investmentPlans || []),
+    ...(state?.healthInsurance || []),
   ].reduce((s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium) / 12, 0);
   const bottomUp = emis + sips + subs + recurring + rent + insurance;
 

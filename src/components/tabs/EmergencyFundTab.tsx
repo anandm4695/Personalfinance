@@ -89,6 +89,7 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
       ...(state.lic || []),
       ...(state.termPlans || []),
       ...(state.investmentPlans || []),
+      ...(state.healthInsurance || []),
     ].reduce((s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium) / 12, 0);
     if (insTotal > 0)
       expenseBreakdown.push({ label: "Insurance Premiums", amount: insTotal, icon: HeartPulse, essential: true });

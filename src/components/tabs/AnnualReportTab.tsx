@@ -679,7 +679,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         t.type === "debit" &&
         t.category !== "Transfer" &&
         t.category !== "Self Transfer" &&
-        t.category !== "Self-Transfer"
+        t.category !== "Self-Transfer" &&
+        t.category !== "Investment"
     );
     const txnExpense = debitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
@@ -904,7 +905,12 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
     const prevDebitTxns = (state.transactions || []).filter(
       (t: any) =>
-        t.date && t.date >= prevFyStart && t.date <= prevFyEnd && t.type === "debit" && !isTransfer(t.category)
+        t.date &&
+        t.date >= prevFyStart &&
+        t.date <= prevFyEnd &&
+        t.type === "debit" &&
+        !isTransfer(t.category) &&
+        t.category !== "Investment"
     );
     const prevTxnExpense = prevDebitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const prevRentPaid = (state.rentedProperties || []).reduce(

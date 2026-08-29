@@ -960,7 +960,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             t.category !== "Self-Transfer"
         )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-      const totalIncome = incomeLedger > 0 ? incomeLedger : txnIncome;
+
+      const rentalReceiptsInFY = (state.rentalProperties || []).flatMap(
+        (p: any) =>
+          (p.receipts || []).filter((r: any) => r.date && r.date >= fyStartStr && r.date <= fyEndStr)
+      );
+      const rentalIncome = (
+        incomeLedger > 0
+          ? rentalReceiptsInFY
+          : rentalReceiptsInFY.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+      ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
+      const totalIncome = (incomeLedger > 0 ? incomeLedger : txnIncome) + rentalIncome;
 
       // Expenses from debit transactions + rent payments
       const txnExpense = (state.transactions || [])
@@ -980,7 +991,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         (sum: number, p: any) =>
           sum +
           (p.payments || [])
-            .filter((pay: any) => pay.date && pay.date >= fyStartStr && pay.date <= fyEndStr)
+            .filter(
+              (pay: any) =>
+                pay.date &&
+                pay.date >= fyStartStr &&
+                pay.date <= fyEndStr &&
+                !String(pay.id || "").startsWith("bank-")
+            )
             .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0),
         0
       );
@@ -2031,7 +2048,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           t.date.startsWith(spendingViewMonth) &&
           t.category !== "Transfer" &&
           t.category !== "Self Transfer" &&
-          t.category !== "Self-Transfer"
+          t.category !== "Self-Transfer" &&
+          t.category !== "Investment"
       )
       .forEach((t: any) => {
         const cat = t.category || "Uncategorized";
@@ -2041,7 +2059,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       return (
         sum +
         (p.payments || [])
-          .filter((pay: any) => pay.date && pay.date.startsWith(spendingViewMonth))
+          .filter(
+            (pay: any) =>
+              pay.date &&
+              pay.date.startsWith(spendingViewMonth) &&
+              !String(pay.id || "").startsWith("bank-")
+          )
           .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
       );
     }, 0);
@@ -2067,7 +2090,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           t.date.startsWith(prevYm) &&
           t.category !== "Transfer" &&
           t.category !== "Self Transfer" &&
-          t.category !== "Self-Transfer"
+          t.category !== "Self-Transfer" &&
+          t.category !== "Investment"
       )
       .forEach((t: any) => {
         const cat = t.category || "Uncategorized";
@@ -2077,7 +2101,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       return (
         sum +
         (p.payments || [])
-          .filter((pay: any) => pay.date && pay.date.startsWith(prevYm))
+          .filter(
+            (pay: any) =>
+              pay.date && pay.date.startsWith(prevYm) && !String(pay.id || "").startsWith("bank-")
+          )
           .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
       );
     }, 0);
@@ -3618,7 +3645,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const ytdIncomeLedger = (state.income || [])
       .filter((i: any) => i.date && i.date >= startStr)
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
-    const ytdIncome = ytdIncomeLedger > 0 ? ytdIncomeLedger : ytdTxnIncome;
+    const rentalReceiptsYTD = (state.rentalProperties || []).flatMap((p: any) =>
+      (p.receipts || []).filter((r: any) => r.date && r.date >= startStr)
+    );
+    const rentalIncomeYTD = (
+      ytdIncomeLedger > 0
+        ? rentalReceiptsYTD
+        : rentalReceiptsYTD.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+    ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const ytdIncome = (ytdIncomeLedger > 0 ? ytdIncomeLedger : ytdTxnIncome) + rentalIncomeYTD;
+
     const ytdTxnExpense = ytdTxns
       .filter(
         (t: any) =>
@@ -3629,12 +3665,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           t.category !== "Investment"
       )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    // Rent payments tracked via rentedProperties.payments are not debit transactions
+    // Rent payments tracked via rentedProperties.payments (excluding bank-linked payments already counted in transactions)
     const ytdRentPaid = (state.rentedProperties || []).reduce(
       (sum: number, p: any) =>
         sum +
         (p.payments || [])
-          .filter((pay: any) => pay.date && pay.date >= startStr)
+          .filter(
+            (pay: any) =>
+              pay.date &&
+              pay.date >= startStr &&
+              !String(pay.id || "").startsWith("bank-")
+          )
           .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0),
       0
     );
@@ -3655,7 +3696,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       monthName,
       labelStart,
     };
-  }, [state.transactions, state.income, state.rentedProperties, getCurrentFY(), ytdMode]);
+  }, [state.transactions, state.income, state.rentedProperties, state.rentalProperties, getCurrentFY(), ytdMode]);
 
   const goalHealth = useMemo(() => {
     const now = new Date();

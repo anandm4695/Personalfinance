@@ -123,7 +123,6 @@ function autoCompute(
   ];
   const deduct = [
     "pfEmployee",
-    "pfEmployer",
     "esiEmployee",
     "professionalTax",
     "tds",
