@@ -12,6 +12,15 @@ import {
   RefreshCw,
   Download,
   ArrowUpDown,
+  Search,
+  LayoutGrid,
+  Table as TableIcon,
+  Sparkles,
+  ShieldCheck,
+  Zap,
+  Sliders,
+  Clock,
+  Flame,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -19,15 +28,9 @@ import {
   Pie,
   Cell,
   Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { useMasterData } from "../../utils/masterData";
 import {
   fmtINR,
   fmtINRFull,
@@ -53,11 +56,11 @@ import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 const GOLD_TYPES = [
-  { id: "physical", label: "Physical Gold", color: THEME.gold },
-  { id: "sgb", label: "Sovereign Gold Bond (SGB)", color: THEME.sage },
-  { id: "digital", label: "Digital Gold", color: THEME.accent },
-  { id: "etf", label: "Gold ETF", color: THEME.violet },
-  { id: "mf", label: "Gold Mutual Fund", color: THEME.pink },
+  { id: "physical", label: "Physical Gold", color: THEME.gold, icon: "👑" },
+  { id: "sgb", label: "Sovereign Gold Bond (SGB)", color: THEME.sage, icon: "🏛️" },
+  { id: "digital", label: "Digital Gold", color: THEME.accent, icon: "⚡" },
+  { id: "etf", label: "Gold ETF", color: THEME.violet, icon: "📊" },
+  { id: "mf", label: "Gold Mutual Fund", color: THEME.pink, icon: "📈" },
 ];
 
 const EMPTY_GOLD = {
@@ -73,27 +76,25 @@ const EMPTY_GOLD = {
   purity: "24K",
 };
 
-const SORT_OPTIONS = [
-  { id: "value", label: "Current Value (High-Low)" },
-  { id: "pnl", label: "P&L (High-Low)" },
-  { id: "purchaseDate", label: "Purchase Date (Newest)" },
-  { id: "name", label: "Name (A-Z)" },
-];
-
-export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSettings, showToast }) => {
+export const GoldSGBTab = ({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  updateSettings,
+  showToast,
+}: any) => {
   const { familyProfiles } = useMasterData();
   const { privacyMode } = usePrivacy();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_GOLD });
+  const [viewMode, setViewMode] = useState<"cards" | "sgb" | "table">("cards");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("value");
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // Gold price is entered here but consumed by many other tabs (Net Worth,
-  // Analytics, Rebalancing, Family View, Benchmark) — it's synced through
-  // state.settings.goldPricePerGram (DB-backed, so it's the same on every
-  // device) via getGoldPricePerGram(); localStorage is kept only as a
-  // same-device cache for the instant before settings load.
   const goldPrice = useMemo(() => getGoldPricePerGram(state), [state?.settings?.goldPricePerGram]);
   const [draftPrice, setDraftPrice] = useState(goldPrice);
   const [manualPrice, setManualPrice] = useState(false);
@@ -107,23 +108,14 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
       const hasPurchasePrice = purchasePrice > 0;
       const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
       const currentValue = grams * goldPrice * purityMul;
-      // Without a recorded purchase price there's no gain/loss to compute — fall
-      // back to currentValue (so this holding contributes 0, not a fabricated
-      // number) but flag it via hasPurchasePrice so the UI can say "not tracked"
-      // instead of lying with a "+₹0 (0.0%)" P&L.
       const invested = hasPurchasePrice ? purchasePrice : currentValue;
       const pnl = currentValue - invested;
       const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
       const cagr =
         hasPurchasePrice && h.purchaseDate ? calcCAGR(invested, currentValue, h.purchaseDate) : null;
 
-      // SGB interest — accrues only up to maturity/redemption; SGBs stop paying
-      // interest once matured, so accrual must not run past maturityDate.
       let interest = 0;
       if (h.type === "sgb" && h.purchaseDate) {
-        // Parse at local midnight — bare `new Date("YYYY-MM-DD")` parses as UTC
-        // midnight, which for IST shifts both dates by hours vs. `new Date()` (an
-        // exact local instant), skewing the accrued-years figure.
         const accrualEndTime = h.maturityDate
           ? Math.min(new Date().getTime(), new Date(h.maturityDate + "T00:00:00").getTime())
           : new Date().getTime();
@@ -165,8 +157,21 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
     });
   }, [holdings, goldPrice]);
 
+  const filtered = useMemo(() => {
+    return enriched.filter((h) => {
+      if (filterType !== "all" && h.type !== filterType) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = (h.name || "").toLowerCase().includes(q);
+        const matchType = (h.typeInfo.label || "").toLowerCase().includes(q);
+        if (!matchName && !matchType) return false;
+      }
+      return true;
+    });
+  }, [enriched, filterType, searchQuery]);
+
   const sorted = useMemo(() => {
-    const arr = [...enriched];
+    const arr = [...filtered];
     switch (sortBy) {
       case "pnl":
         return arr.sort((a, b) => b.pnl - a.pnl);
@@ -180,17 +185,20 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
       default:
         return arr.sort((a, b) => b.currentValue - a.currentValue);
     }
-  }, [enriched, sortBy]);
+  }, [filtered, sortBy]);
 
   const stats = useMemo(() => {
     const totalGrams = enriched.reduce((s, h) => s + h.grams, 0);
     const totalInvested = enriched.reduce((s, h) => s + h.invested, 0);
     const totalValue = enriched.reduce((s, h) => s + h.currentValue, 0);
     const totalPnL = totalValue - totalInvested;
+    const totalPnLPct = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
     const totalInterest = enriched
       .filter((h) => h.type === "sgb")
       .reduce((s, h) => s + h.interest, 0);
-    const untrackedCount = enriched.filter((h) => !h.hasPurchasePrice).length;
+    const sgbAnnualCoupon = enriched
+      .filter((h) => h.type === "sgb")
+      .reduce((s, h) => s + (h.invested * Number(h.interestRate || 2.5)) / 100, 0);
 
     const byType = GOLD_TYPES.map((t) => {
       const items = enriched.filter((h) => h.type === t.id);
@@ -202,7 +210,16 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
       };
     }).filter((t) => t.grams > 0);
 
-    return { totalGrams, totalInvested, totalValue, totalPnL, totalInterest, untrackedCount, byType };
+    return {
+      totalGrams,
+      totalInvested,
+      totalValue,
+      totalPnL,
+      totalPnLPct,
+      totalInterest,
+      sgbAnnualCoupon,
+      byType,
+    };
   }, [enriched]);
 
   const animatedTotalValue = useAnimatedNumber(stats.totalValue);
@@ -264,11 +281,16 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
   );
 
   const { run: deleteHolding } = useAsyncAction(
-    async (id) => { await removeItem("goldHoldings", id); },
-    { onError: (e) => showToast?.(`Failed to delete gold holding: ${e?.message || "Unknown error"}`, "error") }
+    async (id) => {
+      await removeItem("goldHoldings", id);
+    },
+    {
+      onError: (e) =>
+        showToast?.(`Failed to delete gold holding: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
 
-  const handleEdit = (h) => {
+  const handleEdit = (h: any) => {
     setForm({
       name: h.name,
       type: h.type,
@@ -279,17 +301,13 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
       interestRate: h.interestRate || 2.5,
       notes: h.notes,
       owner: h.owner,
-      purity: h.purity,
+      purity: h.purity || "24K",
     });
     setEditingId(h.id);
     setShowModal(true);
   };
 
-  // Commits the price into state.settings via the shared updateSettings helper
-  // (which also upserts user_settings.gold_price_per_gram in the DB, so the
-  // daily email cron and every other tab see the same number on any device) —
-  // committed once on blur/Enter rather than on every keystroke.
-  const commitGoldPrice = async (price) => {
+  const commitGoldPrice = async (price: any) => {
     const clean = Number(price);
     if (!clean || clean <= 0) {
       setManualPrice(false);
@@ -298,191 +316,178 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
     try {
       localStorage.setItem("gold_price_per_gram", String(clean));
     } catch {}
-    await updateSettings({ goldPricePerGram: clean });
+    if (updateSettings) {
+      await updateSettings({ goldPricePerGram: clean });
+    }
     setManualPrice(false);
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <SectionTitle sub="Track physical gold, SGBs, ETFs and digital gold">
-          Gold & Sovereign Gold Bonds
-        </SectionTitle>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 12px",
-              borderRadius: 8,
-              background: THEME.bg,
-              border: `1px solid ${THEME.border}`,
-            }}
-          >
-            <Coins size={14} color={THEME.gold} />
-            <span style={{ fontSize: 12, color: THEME.textSecondary }}>Gold:</span>
-            {manualPrice ? (
-              <input
-                type="number"
-                value={draftPrice}
-                aria-label="Gold price per gram override"
-                onChange={(e) => setDraftPrice(Number(e.target.value))}
-                onBlur={() => commitGoldPrice(draftPrice)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.currentTarget.blur();
-                  } else if (e.key === "Escape") {
-                    e.preventDefault();
-                    setManualPrice(false);
-                  }
-                }}
-                autoFocus
-                style={{
-                  width: 70,
-                  padding: "2px 4px",
-                  borderRadius: 4,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                  fontSize: 13,
-                }}
-              />
-            ) : (
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label={`Gold price ${privacyMode ? "••••" : fmtINRFull(goldPrice)} per gram. Click to edit.`}
-                onClick={() => {
-                  setDraftPrice(goldPrice);
-                  setManualPrice(true);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setDraftPrice(goldPrice);
-                    setManualPrice(true);
-                  }
-                }}
-                style={{ fontSize: 13, fontWeight: 600, color: THEME.gold, cursor: "pointer" }}
-              >
-                <Money value={goldPrice} variant="full" />/g
-              </span>
+    <div className="tab-content-enter">
+      <SectionTitle
+        sub="Precious metals portfolio, Sovereign Gold Bonds (SGBs), 2.5% RBI interest payouts, and purity tracking"
+        rightElement={
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {holdings.length > 0 && (
+              <Button variant="ghost" size="sm" icon={<Download size={13} />} onClick={handleExportCSV}>
+                Export CSV
+              </Button>
             )}
-          </div>
-          {holdings.length > 0 && (
-            <button
-              onClick={handleExportCSV}
-              className="icon-btn"
-              title="Export holdings to CSV"
-              aria-label="Export holdings to CSV"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "0 12px",
-                borderRadius: 8,
-                border: `1px solid ${THEME.border}`,
-                background: THEME.card,
-                color: THEME.textSecondary,
-                cursor: "pointer",
-                fontSize: 12,
+            <Button
+              variant="accent"
+              icon={<Plus size={14} />}
+              onClick={() => {
+                setForm({ ...EMPTY_GOLD });
+                setEditingId(null);
+                setShowModal(true);
               }}
             >
-              <Download size={14} />
-            </button>
-          )}
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              setForm({ ...EMPTY_GOLD });
-              setEditingId(null);
-              setShowModal(true);
-            }}
-          >
-            <Plus size={16} /> Add Gold
-          </Button>
-        </div>
-      </div>
+              Add Holding
+            </Button>
+          </div>
+        }
+      >
+        Gold & SGB Portfolio
+      </SectionTitle>
 
+      {/* Hero Cockpit */}
       {holdings.length > 0 && (
         <>
-          {/* Current Value is the one number this whole tab answers, so it earns
-              the hero-card slot — matches the FIRE Number / Goals Overall Progress
-              / Real Estate Portfolio Value treatment used across the app. */}
           <Card
             variant="base"
             style={{
+              marginBottom: 20,
               padding: "clamp(24px, 4vw, 36px)",
               background:
-                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-gold) 5%), var(--surface-0))",
+                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 94%, var(--t-gold) 6%), var(--surface-0))",
               border: `1px solid ${THEME.line}`,
               borderTop: `4px solid ${THEME.gold}`,
               borderRadius: "var(--radius-xl)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
+              position: "relative",
+              overflow: "hidden",
             }}
           >
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: THEME.muted,
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+                gap: 20,
               }}
             >
-              <Coins size={14} color={THEME.gold} /> Current Gold Value
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "clamp(36px, 5vw, 56px)",
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.03em",
-                lineHeight: 1.05,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <Money value={animatedTotalValue} variant="full" />
-            </div>
-            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
-              {stats.totalGrams.toFixed(2)}g held ·{" "}
-              <span style={{ color: stats.totalPnL >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
-                {stats.totalPnL >= 0 ? "Up " : "Down "}
-                <Money value={Math.abs(stats.totalPnL)} variant="full" />
-              </span>{" "}
-              against <Money value={stats.totalInvested} variant="full" /> invested
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    marginBottom: 6,
+                  }}
+                >
+                  <Coins size={14} color={THEME.gold} /> Total Precious Metals Valuation
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "clamp(34px, 5vw, 52px)",
+                    fontWeight: 900,
+                    color: THEME.ink,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.05,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  <Money value={animatedTotalValue} variant="full" />
+                </div>
+                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 6, fontWeight: 600 }}>
+                  <strong style={{ color: THEME.ink }}>{stats.totalGrams.toFixed(2)}g</strong> total gold holding ·{" "}
+                  <span style={{ color: stats.totalPnL >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
+                    {stats.totalPnL >= 0 ? "+" : ""}
+                    <Money value={stats.totalPnL} variant="full" /> ({stats.totalPnL >= 0 ? "+" : ""}
+                    {stats.totalPnLPct.toFixed(1)}%)
+                  </span>{" "}
+                  unrealized gain
+                </div>
+              </div>
+
+              {/* Live Gold Benchmark Price Box */}
+              <div
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "var(--radius-md)",
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  alignItems: "flex-end",
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted }}>
+                  24K Benchmark Rate / Gram
+                </span>
+                {manualPrice ? (
+                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                    <input
+                      type="number"
+                      autoFocus
+                      value={draftPrice}
+                      onChange={(e) => setDraftPrice(Number(e.target.value))}
+                      onBlur={() => commitGoldPrice(draftPrice)}
+                      onKeyDown={(e) => e.key === "Enter" && commitGoldPrice(draftPrice)}
+                      style={{
+                        width: 80,
+                        padding: "3px 6px",
+                        borderRadius: 4,
+                        border: `1px solid ${THEME.accent}`,
+                        fontSize: 13,
+                        fontWeight: 800,
+                        background: "var(--surface-1)",
+                        color: THEME.ink,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => setManualPrice(true)}
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 900,
+                      color: THEME.gold,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                    title="Click to update benchmark price"
+                  >
+                    {fmtINR(goldPrice)}/g <Pencil size={11} style={{ opacity: 0.6 }} />
+                  </div>
+                )}
+                <span style={{ fontSize: 10, color: THEME.muted }}>22K: {fmtINR(goldPrice * 0.916)}/g</span>
+              </div>
             </div>
           </Card>
 
+          {/* Stats Grid */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 14,
+              marginBottom: 24,
             }}
           >
             <StatCard
-              label="Total Gold"
-              value={`${stats.totalGrams.toFixed(2)}g`}
-              numericValue={stats.totalGrams}
-              formatValue={(n) => `${n.toFixed(2)}g`}
+              label="Total Gold Weight"
+              value={`${stats.totalGrams.toFixed(2)} grams`}
+              sub={`~${(stats.totalGrams / 10).toFixed(2)} tola`}
               icon={<Coins />}
               color={THEME.gold}
             />
@@ -491,382 +496,313 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
               value={fmtINRFull(stats.totalInvested)}
               numericValue={stats.totalInvested}
               formatValue={fmtINRFull}
+              sub="Acquisition cost"
               icon={<IndianRupee />}
               color={THEME.accent}
             />
             <StatCard
-              label="P&L"
-              value={fmtINRFull(stats.totalPnL)}
+              label="Total Returns (P&L)"
+              value={`${stats.totalPnL >= 0 ? "+" : ""}${fmtINRFull(stats.totalPnL)}`}
               numericValue={stats.totalPnL}
-              formatValue={fmtINRFull}
-              sub={
-                stats.untrackedCount > 0
-                  ? `${stats.untrackedCount} holding${stats.untrackedCount > 1 ? "s" : ""} missing purchase price — understated`
-                  : undefined
-              }
+              formatValue={(n) => `${n >= 0 ? "+" : ""}${fmtINRFull(n)}`}
+              sub={`${stats.totalPnL >= 0 ? "+" : ""}${stats.totalPnLPct.toFixed(1)}% portfolio gain`}
               icon={<TrendingUp />}
               color={stats.totalPnL >= 0 ? THEME.sage : THEME.rust}
             />
-            {stats.totalInterest > 0 && (
-              <StatCard
-                label="SGB Interest Earned"
-                value={fmtINRFull(stats.totalInterest)}
-                numericValue={stats.totalInterest}
-                formatValue={fmtINRFull}
-                icon={<Award />}
-                color={THEME.sage}
-              />
-            )}
+            <StatCard
+              label="SGB Annual 2.5% Coupon"
+              value={fmtINRFull(stats.sgbAnnualCoupon)}
+              numericValue={stats.sgbAnnualCoupon}
+              formatValue={fmtINRFull}
+              sub={`+${fmtINRFull(stats.totalInterest)} accrued interest`}
+              icon={<Award />}
+              color={THEME.sage}
+            />
           </div>
-        </>
-      )}
 
-      {/* Type Breakdown */}
-      {stats.byType.length > 1 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 16,
-          }}
-        >
-          <Card style={{ padding: 24 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-              By Type
-            </h3>
-            <div style={{ width: "100%", height: 250, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <PieChart>
-                <Pie
-                  data={stats.byType}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name.split(" ")[0]} ${(percent * 100).toFixed(0)}%`
-                  }
-                >
-                  {stats.byType.map((t, i) => (
-                    <Cell key={i} fill={t.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(v) => <Money value={v} variant="full" />}
-                  contentStyle={{
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderRadius: 8,
-                    color: THEME.ink,
-                  }}
-                  labelStyle={{ color: THEME.ink }}
-                  itemStyle={{ color: THEME.ink }}
-                />
-              </PieChart>
-            </ResponsiveContainer></div>
-          </Card>
-          <Card style={{ padding: 24 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-              Holdings by Type
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {stats.byType.map((t) => (
-                <div
-                  key={t.name}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    background: THEME.bg,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div
-                      style={{ width: 10, height: 10, borderRadius: "50%", background: t.color }}
-                    />
-                    <span style={{ fontSize: 13, color: THEME.text }}>{t.name}</span>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: THEME.text }}>
-                      <Money value={t.value} variant="full" />
-                    </div>
-                    <div style={{ fontSize: 11, color: THEME.textSecondary }}>
-                      {t.grams.toFixed(2)}g
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Holdings Cards */}
-      {enriched.length > 0 ? (
-        <>
-          {enriched.length > 1 && (
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
-              <ArrowUpDown size={13} color={THEME.textSecondary} />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                aria-label="Sort holdings by"
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                  fontSize: 12,
-                }}
-              >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    Sort: {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          {/* View Mode Bar */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(var(--grid-min-lg), 1fr))",
-              gap: 16,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: 20,
+              padding: "12px 16px",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: "var(--radius-lg)",
             }}
           >
-            {sorted.map((h) => (
-            <Card key={h.id} style={{ padding: 20 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <button
+                onClick={() => setViewMode("cards")}
+                className={`demat-portfolio-pill ${viewMode === "cards" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
               >
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <Coins size={22} color={h.typeInfo.color} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 15, color: THEME.text }}>
-                      {h.name || h.typeInfo.label}
-                    </div>
-                    <div style={{ fontSize: 12, color: THEME.textSecondary, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <span>
-                        {h.typeInfo.label} {h.purity && `• ${h.purity}`}
-                      </span>
-                      {h.maturityStatus && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: "1px 7px",
-                            borderRadius: "var(--radius-xs)",
-                            background:
-                              h.maturityStatus === "Matured"
-                                ? `color-mix(in srgb, ${THEME.sage} 18%, transparent)`
-                                : `color-mix(in srgb, ${THEME.accent} 14%, transparent)`,
-                            color: h.maturityStatus === "Matured" ? THEME.sage : THEME.accent,
-                          }}
-                        >
-                          {h.maturityStatus}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <button
-                    onClick={() => handleEdit(h)}
-                    className="icon-btn"
-                    aria-label="Edit holding"
-                    title="Edit"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: THEME.textSecondary,
-                      padding: 6,
-                    }}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete({ id: h.id, label: h.name || h.typeInfo.label })}
-                    className="icon-btn danger"
-                    aria-label="Delete holding"
-                    title="Delete"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: THEME.rust,
-                      padding: 6,
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-              <div
-                style={{
-                  marginTop: 16,
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 8,
-                  fontSize: 13,
-                }}
+                <LayoutGrid size={13} /> All Holdings
+              </button>
+              <button
+                onClick={() => setViewMode("sgb")}
+                className={`demat-portfolio-pill ${viewMode === "sgb" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
               >
-                <div>
-                  <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Weight</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>{h.grams}g</div>
-                </div>
-                <div>
-                  <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Current Value</div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontWeight: 600,
-                      color: h.typeInfo.color,
-                    }}
-                  >
-                    <Money value={h.currentValue} variant="full" />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Invested</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>
-                    <Money value={h.invested} variant="full" />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ color: THEME.textSecondary, fontSize: 11 }}>P&L</div>
-                  {h.hasPurchasePrice ? (
-                    <div
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontWeight: 600,
-                        color: h.pnl >= 0 ? THEME.sage : THEME.rust,
-                      }}
-                    >
-                      {h.pnl >= 0 ? "+" : ""}
-                      <Money value={h.pnl} variant="full" />{" "}
-                      ({h.pnlPct.toFixed(1)}%)
-                      {h.cagr != null && (
-                        <span style={{ fontSize: 11, color: THEME.textSecondary, fontWeight: 500 }}>
-                          {" "}
-                          · {h.cagr.toFixed(1)}% CAGR
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div
-                      style={{ fontWeight: 500, fontSize: 12, color: THEME.textSecondary, fontStyle: "italic" }}
-                      title="Add a purchase price to track gains/losses on this holding"
-                    >
-                      Not tracked
-                    </div>
-                  )}
-                </div>
-                {h.type === "sgb" && (
-                  <>
-                    <div>
-                      <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Interest Rate</div>
-                      <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>
-                        {h.interestRate}% p.a.
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ color: THEME.textSecondary, fontSize: 11 }}>
-                        Interest Earned
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontWeight: 600,
-                          color: THEME.sage,
-                        }}
-                      >
-                        <Money value={h.interest} variant="full" />
-                      </div>
-                    </div>
-                    {h.maturityDate && (
-                      <div>
-                        <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Maturity</div>
-                        <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>
-                          {new Date(h.maturityDate + "T00:00:00").toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              {h.owner && h.owner !== "self" && (
-                <div style={{ marginTop: 8, fontSize: 11, color: THEME.textSecondary }}>
-                  Owner: {familyProfiles.find((p) => p.id === h.owner)?.name || h.owner}
-                </div>
-              )}
-            </Card>
-            ))}
+                🏛️ SGB Tranches
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`demat-portfolio-pill ${viewMode === "table" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <TableIcon size={13} /> Table
+              </button>
+            </div>
+
+            {/* Filter Pills */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              {(["all", "physical", "sgb", "digital", "etf"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setFilterType(t)}
+                  className={`demat-portfolio-pill ${filterType === t ? "active" : ""}`}
+                  style={{ fontSize: 11, padding: "4px 10px" }}
+                >
+                  {t === "all" ? "All Types" : t.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {/* Render View */}
+      {holdings.length === 0 ? (
         <EmptyState
           icon={Coins}
-          gradient={`linear-gradient(135deg, ${THEME.gold} 0%, color-mix(in srgb, ${THEME.gold} 65%, white) 100%)`}
-          dotColor={THEME.gold}
-          title="No Gold Holdings"
-          description="Track your physical gold, Sovereign Gold Bonds (SGBs), Gold ETFs, and digital gold holdings."
-          pills={["P&L + CAGR", "SGB Interest Tracking", "Net Worth Integration"]}
-          buttonLabel="Add Your First Gold Holding"
+          gradient={`linear-gradient(135deg, ${THEME.gold}, ${THEME.sage})`}
+          title="No Gold or SGB Holdings Added"
+          description="Track physical jewelry, gold coins, Sovereign Gold Bonds (SGBs), and gold mutual funds with live valuations."
+          pills={["Sovereign Gold Bonds (SGB)", "Physical Gold 22K/24K", "Gold ETFs", "Digital Gold"]}
+          buttonLabel="Add First Holding"
           onAdd={() => {
             setForm({ ...EMPTY_GOLD });
             setEditingId(null);
             setShowModal(true);
           }}
         />
+      ) : viewMode === "sgb" ? (
+        /* SGB SPECIALIZED VIEW */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+          {enriched
+            .filter((h) => h.type === "sgb")
+            .map((h) => (
+              <div
+                key={h.id}
+                className="card-lift"
+                style={{
+                  padding: 20,
+                  borderRadius: "var(--radius-xl)",
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  borderTop: `4px solid ${THEME.sage}`,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: THEME.sage, textTransform: "uppercase" }}>
+                    🏛️ Sovereign Gold Bond
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: THEME.gold }}>
+                    2.5% p.a. RBI Interest
+                  </span>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginBottom: 8 }}>
+                  {h.name || "RBI SGB Series"}
+                </div>
+                <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 14 }}>
+                  {h.grams} grams · Current Value: <strong><Money value={h.currentValue} variant="full" /></strong>
+                </div>
+
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: "var(--radius-md)",
+                    background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: THEME.muted }}>Maturity Status:</span>
+                    <span style={{ fontWeight: 800, color: THEME.ink }}>{h.maturityStatus || "—"}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: THEME.muted }}>Accrued Interest:</span>
+                    <span style={{ fontWeight: 800, color: THEME.sage }}>+{fmtINR(h.interest)}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+                  <button onClick={() => handleEdit(h)} className="icon-btn" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}>
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => setConfirmDelete(h.id)} className="icon-btn danger" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+        </div>
+      ) : viewMode === "table" ? (
+        /* TABLE VIEW */
+        <Card style={{ overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-1)", borderBottom: `1.5px solid ${THEME.line}` }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Name</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Type</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Grams</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Invested</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Current Value</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>P&L</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((h) => (
+                  <tr key={h.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                    <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
+                      {h.name || h.typeInfo.label}
+                    </td>
+                    <td style={{ padding: "14px 16px", color: THEME.muted }}>{h.typeInfo.label}</td>
+                    <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800 }}>{h.grams}g</td>
+                    <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                      <Money value={h.invested} variant="full" />
+                    </td>
+                    <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.gold }}>
+                      <Money value={h.currentValue} variant="full" />
+                    </td>
+                    <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: h.pnl >= 0 ? THEME.sage : THEME.rust }}>
+                      {h.pnl >= 0 ? "+" : ""}{fmtINR(h.pnl)} ({h.pnlPct.toFixed(1)}%)
+                    </td>
+                    <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                      <div style={{ display: "inline-flex", gap: 6 }}>
+                        <button onClick={() => handleEdit(h)} className="icon-btn" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}>
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => setConfirmDelete(h.id)} className="icon-btn danger" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : (
+        /* CARDS VIEW */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+          {sorted.map((h) => (
+            <div
+              key={h.id}
+              className="card-lift"
+              style={{
+                padding: 20,
+                borderRadius: "var(--radius-xl)",
+                background: "var(--surface-0)",
+                border: `1px solid ${THEME.line}`,
+                borderTop: `4px solid ${h.typeInfo.color}`,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: h.typeInfo.color,
+                    background: `color-mix(in srgb, ${h.typeInfo.color} 12%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${h.typeInfo.color} 25%, transparent)`,
+                    padding: "2px 8px",
+                    borderRadius: 4,
+                  }}
+                >
+                  {h.typeInfo.icon} {h.typeInfo.label}
+                </span>
+                {h.type === "physical" && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted }}>
+                    Purity: <strong>{h.purity || "24K"}</strong>
+                  </span>
+                )}
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => handleEdit(h)} className="icon-btn" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}>
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => setConfirmDelete(h.id)} className="icon-btn danger" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginBottom: 4 }}>
+                {h.name || h.typeInfo.label}
+              </div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14 }}>
+                Weight: <strong style={{ color: THEME.ink }}>{h.grams} grams</strong>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700 }}>
+                    Current Value
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.gold }}>
+                    <Money value={h.currentValue} variant="full" />
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700 }}>
+                    Total Return
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: h.pnl >= 0 ? THEME.sage : THEME.rust }}>
+                    {h.pnl >= 0 ? "+" : ""}{fmtINR(h.pnl)} ({h.pnlPct.toFixed(1)}%)
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Modal */}
+      {/* Add / Edit Modal */}
       {showModal && (
         <Modal
-          title={editingId ? "Edit Gold Holding" : "Add Gold Holding"}
-          onClose={() => setShowModal(false)}
+          title={editingId ? "Edit Gold Holding" : "Add Gold / SGB Holding"}
+          onClose={() => {
+            setShowModal(false);
+            setForm({ ...EMPTY_GOLD });
+            setEditingId(null);
+          }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Field label="Name / Description">
+          <div className="form-grid-2" style={{ gap: 12 }}>
+            <Field label="Holding Name">
               <input
+                type="text"
+                placeholder="e.g. 24K Gold Bar, Tanishq Ring, SGB 2023-24 Series I"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g., Gold Chain 22K"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                }}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
               />
             </Field>
-            <Field label="Type">
+            <Field label="Asset Type">
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                }}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
               >
                 {GOLD_TYPES.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -875,72 +811,45 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 ))}
               </select>
             </Field>
-            <Field label="Weight (grams)">
+            <Field label="Weight (Grams) *">
               <input
                 type="number"
                 step="0.01"
-                value={form.grams}
+                min="0"
+                value={form.grams || ""}
                 onChange={(e) => setForm({ ...form, grams: Number(e.target.value) })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                }}
-              />
-            </Field>
-            <Field label="Purchase Price (total ₹) — needed to track gain/loss">
-              <input
-                type="number"
-                value={form.purchasePrice}
-                onChange={(e) => setForm({ ...form, purchasePrice: Number(e.target.value) })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                }}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
               />
             </Field>
             {form.type === "physical" && (
               <Field label="Purity">
                 <select
-                  value={form.purity}
+                  value={form.purity || "24K"}
                   onChange={(e) => setForm({ ...form, purity: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.border}`,
-                    background: THEME.card,
-                    color: THEME.text,
-                  }}
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
                 >
-                  {["24K", "22K", "18K", "14K"].map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
+                  <option value="24K">24K (99.9% Pure Gold)</option>
+                  <option value="22K">22K (91.6% Hallmark Gold)</option>
+                  <option value="18K">18K (75.0% Jewelry Gold)</option>
+                  <option value="14K">14K (58.3% Gold)</option>
                 </select>
               </Field>
             )}
+            <Field label="Purchase Price (Total ₹)">
+              <input
+                type="number"
+                min="0"
+                value={form.purchasePrice || ""}
+                onChange={(e) => setForm({ ...form, purchasePrice: Number(e.target.value) })}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
+              />
+            </Field>
             <Field label="Purchase Date">
               <input
                 type="date"
-                value={form.purchaseDate}
+                value={form.purchaseDate || ""}
                 onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                }}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
               />
             </Field>
             {form.type === "sgb" && (
@@ -948,86 +857,46 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem, updateSetti
                 <Field label="Maturity Date">
                   <input
                     type="date"
-                    value={form.maturityDate}
+                    value={form.maturityDate || ""}
                     onChange={(e) => setForm({ ...form, maturityDate: e.target.value })}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: `1px solid ${THEME.border}`,
-                      background: THEME.card,
-                      color: THEME.text,
-                    }}
+                    style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
                   />
                 </Field>
                 <Field label="Interest Rate (% p.a.)">
                   <input
                     type="number"
                     step="0.1"
-                    value={form.interestRate}
+                    value={form.interestRate || 2.5}
                     onChange={(e) => setForm({ ...form, interestRate: Number(e.target.value) })}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: `1px solid ${THEME.border}`,
-                      background: THEME.card,
-                      color: THEME.text,
-                    }}
+                    style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${THEME.line}` }}
                   />
                 </Field>
               </>
             )}
-            <Field label="Owner">
-              <select
-                value={form.owner}
-                onChange={(e) => setForm({ ...form, owner: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                }}
-              >
-                {familyProfiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {formatProfileOption(p)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Notes">
-              <input
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Optional notes"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                }}
-              />
-            </Field>
           </div>
-          <ModalActions
-            onSave={handleSave}
-            onClose={() => setShowModal(false)}
-            saveLabel={editingId ? "Save Changes" : "Add Gold Holding"}
-            disabled={!form.grams || savingGold}
-            loading={savingGold}
-          />
+          <ModalActions>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowModal(false);
+                setForm({ ...EMPTY_GOLD });
+                setEditingId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="accent" onClick={handleSave} disabled={!(Number(form.grams) > 0)} loading={savingGold}>
+              Save Holding
+            </Button>
+          </ModalActions>
         </Modal>
       )}
+
       {confirmDelete && (
         <ConfirmDialog
-          message={`Delete "${confirmDelete.label}" holding? This cannot be undone.`}
+          message="Delete this gold holding? This cannot be undone."
           onConfirm={() => {
-            deleteHolding(confirmDelete.id);
+            deleteHolding(confirmDelete);
             setConfirmDelete(null);
           }}
           onCancel={() => setConfirmDelete(null)}

@@ -18,6 +18,9 @@ import {
   Building2,
   AlertCircle,
   User,
+  Search,
+  LayoutGrid,
+  Table as TableIcon,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -2008,6 +2011,23 @@ export function RealEstateTab({
   // "full" shows each property's entire value, useful when managing the
   // property itself rather than your personal net-worth stake in it.
   const [valueView, setValueView] = useState<"share" | "full">("share");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const filteredProperties = useMemo(() => {
+    return properties.filter((p) => {
+      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = (p.name || "").toLowerCase().includes(q);
+        const matchDev = (p.developerName || "").toLowerCase().includes(q);
+        const matchLoc = (p.location || "").toLowerCase().includes(q);
+        if (!matchName && !matchDev && !matchLoc) return false;
+      }
+      return true;
+    });
+  }, [properties, statusFilter, searchQuery]);
 
   const stats = useMemo(() => {
     const activeProperties = properties.filter((p) => p.status !== "sold");
@@ -2282,6 +2302,91 @@ export function RealEstateTab({
               color={stats.appreciation >= 0 ? THEME.sage : THEME.rust}
             />
           </div>
+          {/* Filter and View Controls Bar */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: 20,
+              padding: "12px 16px",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: "var(--radius-lg)",
+            }}
+          >
+            {/* View Mode */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <button
+                onClick={() => setViewMode("cards")}
+                className={`demat-portfolio-pill ${viewMode === "cards" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <LayoutGrid size={13} /> Showcase Cards
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`demat-portfolio-pill ${viewMode === "table" ? "active" : ""}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <TableIcon size={13} /> Portfolio Table
+              </button>
+            </div>
+
+            {/* Search and Status Filters */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", minWidth: 160 }}>
+                <Search
+                  size={13}
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: THEME.muted,
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search properties..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "6px 10px 6px 30px",
+                    borderRadius: "var(--radius-sm)",
+                    border: `1px solid ${THEME.line}`,
+                    background: "var(--surface-1)",
+                    color: THEME.ink,
+                    fontSize: 12,
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {(
+                  [
+                    { id: "all", label: "All Status" },
+                    { id: "owned", label: "Owned" },
+                    { id: "under-construction", label: "Under Const." },
+                    { id: "sold", label: "Sold" },
+                  ] as const
+                ).map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setStatusFilter(s.id)}
+                    className={`demat-portfolio-pill ${statusFilter === s.id ? "active" : ""}`}
+                    style={{ fontSize: 11, padding: "4px 10px" }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </>
       )}
 
@@ -2303,8 +2408,92 @@ export function RealEstateTab({
           buttonLabel="Add First Property"
           onAdd={() => setShowPropertyModal(true)}
         />
+      ) : filteredProperties.length === 0 ? (
+        <Card style={{ padding: 48, textAlign: "center" }}>
+          <div style={{ color: THEME.muted, fontSize: 13 }}>No properties match your filter criteria.</div>
+        </Card>
+      ) : viewMode === "table" ? (
+        <Card style={{ overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-1)", borderBottom: `1.5px solid ${THEME.line}` }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Property</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Developer</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Status</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Agreement Value</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Paid to Date</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Market Value</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProperties.map((p) => {
+                  const statusHex = STATUS_HEX[p.status] || THEME.muted;
+                  return (
+                    <tr key={p.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                      <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
+                        <div>{p.name}</div>
+                        {p.location && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>{p.location}</div>}
+                      </td>
+                      <td style={{ padding: "14px 16px", color: THEME.muted }}>{p.developerName || "—"}</td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: statusHex,
+                            background: `color-mix(in srgb, ${statusHex} 12%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${statusHex} 25%, transparent)`,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {p.status === "under-construction" ? "Under Const." : p.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700 }}>
+                        <Money value={p.agreementValue} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.sage }}>
+                        <Money value={p.agreementValuePaid} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.accent }}>
+                        <Money value={p.marketValue || p.agreementValue} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <div style={{ display: "inline-flex", gap: 6 }}>
+                          <button
+                            onClick={() => setEditProperty(p)}
+                            className="icon-btn"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setConfirmAction({
+                                message: "Delete this property? Its demand letters and payment records will be deleted too. This cannot be undone.",
+                                onConfirm: () => deleteProperty(p.id),
+                              });
+                            }}
+                            className="icon-btn danger"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       ) : (
-        properties.map((property) => (
+        filteredProperties.map((property) => (
           <PropertyCard
             key={property.id}
             property={property}

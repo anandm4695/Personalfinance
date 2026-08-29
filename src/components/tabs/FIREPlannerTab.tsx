@@ -12,6 +12,13 @@ import {
   CheckCircle,
   AlertTriangle,
   Sparkles,
+  Sliders,
+  Coffee,
+  Gem,
+  Compass,
+  CheckCircle2,
+  PieChart,
+  ArrowRight,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -25,7 +32,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, computeFireTarget } from "../../utils/finance";
+import { fmtINR, fmtINRFull, computeFireTarget } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -34,21 +41,9 @@ import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
-const SWR_DEFAULT = 4; // Safe Withdrawal Rate
-
-// FIRE Planner inputs are personal "what-if" assumptions (age, target retirement
-// age, expected returns, etc) rather than ledger data, so they don't belong in
-// the synced masterData/Supabase state. Previously they lived only in useState
-// and silently reset to hardcoded defaults (age 30, retire 45, 12%/8%/6%
-// returns) every time the tab unmounted — losing anything the user customized
-// with zero feedback that nothing was saved. Persisting to localStorage (the
-// same pattern used by DematTab/InvestmentsTab for tab-local preferences)
-// keeps the user's actual plan across visits without touching shared sync state.
+const SWR_DEFAULT = 4;
 const FIRE_INPUTS_STORAGE_KEY = "finance_fire_planner_inputs_v1";
 
-// Shared iterative "years to FIRE" solver — used by the main projection and
-// re-run with tweaked assumptions for the What-If sensitivity table below, so
-// both stay derived from the exact same logic instead of two copies drifting.
 const yearsToFireForAssumptions = (
   annualExpense: number,
   swrPercent: number,
@@ -82,10 +77,11 @@ const loadSavedFireInputs = (): Record<string, number> => {
   }
 };
 
-export const FIREPlannerTab = ({ state, metrics }) => {
+export const FIREPlannerTab = ({ state, metrics }: any) => {
   const { privacyMode } = usePrivacy();
   const savedInputs = useMemo(() => loadSavedFireInputs(), []);
 
+  const [archetype, setArchetype] = useState<"regular" | "lean" | "fat" | "coast" | "barista">("regular");
   const [monthlyExpense, setMonthlyExpense] = useState(
     savedInputs.monthlyExpense ?? Math.round(metrics.monthExpense || 50000)
   );
@@ -100,10 +96,8 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     savedInputs.monthlySavings ??
       Math.max(0, Math.round((metrics.monthIncome || 0) - (metrics.monthExpense || 0)))
   );
-  const [justSaved, setJustSaved] = useState(false);
+  const [chartView, setChartView] = useState<"accumulation" | "drawdown">("accumulation");
 
-  // Persist every input change so the plan survives navigation/refresh, and
-  // surface a brief "Saved" confirmation so the persistence isn't silent.
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -120,13 +114,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
           monthlySavings,
         })
       );
-      setJustSaved(true);
-      const t = setTimeout(() => setJustSaved(false), 1500);
-      return () => clearTimeout(t);
-    } catch {
-      // localStorage unavailable (private mode / quota) — inputs just won't
-      // persist across visits; the live calculation still works fine.
-    }
+    } catch {}
   }, [
     monthlyExpense,
     inflationRate,
@@ -139,12 +127,6 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     monthlySavings,
   ]);
 
-  // Edge-case guard: if ages are set inconsistently (retire at/before current
-  // age, or life expectancy at/before retirement age) the math below still
-  // resolves to safe non-crashing numbers, but the accumulation/drawdown
-  // charts would render empty and the FIRE number would be nonsensical
-  // (negative-exponent inflation shrinking expenses). Surface it plainly
-  // instead of silently showing a broken chart.
   const ageWarning =
     targetAge <= currentAge
       ? "Target retirement age must be after your current age."
@@ -154,41 +136,29 @@ export const FIREPlannerTab = ({ state, metrics }) => {
 
   const fireCalc = useMemo(() => {
     const annualExpense = monthlyExpense * 12;
-    // Clamp to >=0: if the age inputs are temporarily inconsistent (e.g. while
-    // the user is mid-edit of the Target Retire Age field), a negative
-    // exponent here would shrink "future" expenses instead of growing them
-    // and produce an undersized, misleading FIRE number. `ageWarning` above
-    // tells the user to fix the inputs; this just keeps the math sane meanwhile.
     const yearsToFIRE = Math.max(0, targetAge - currentAge);
     const retirementYears = Math.max(0, lifeExpectancy - targetAge);
 
-    // FIRE number = Annual expense at retirement / SWR
     const expenseAtRetirement = annualExpense * Math.pow(1 + inflationRate / 100, yearsToFIRE);
-    const fireNumber = computeFireTarget(annualExpense, yearsToFIRE, swr, inflationRate);
+    const regularFireNumber = computeFireTarget(annualExpense, yearsToFIRE, swr, inflationRate);
+    const leanFireNumber = computeFireTarget(annualExpense * 0.6, yearsToFIRE, swr, inflationRate);
+    const fatFireNumber = computeFireTarget(annualExpense * 1.5, yearsToFIRE, swr, inflationRate);
+    const baristaFireNumber = regularFireNumber / 2;
+    const coastFireNumber = regularFireNumber / Math.pow(1 + returnRate / 100, yearsToFIRE);
 
-    // Coast FIRE: amount needed today that grows to FIRE number by target age with no further savings
-    const coastFIRE = fireNumber / Math.pow(1 + returnRate / 100, yearsToFIRE);
+    let activeFireNumber = regularFireNumber;
+    if (archetype === "lean") activeFireNumber = leanFireNumber;
+    else if (archetype === "fat") activeFireNumber = fatFireNumber;
+    else if (archetype === "barista") activeFireNumber = baristaFireNumber;
+    else if (archetype === "coast") activeFireNumber = coastFireNumber;
 
-    // Barista FIRE: half of expenses covered by part-time work, other half by investments
-    const baristaNumber = fireNumber / 2;
+    const currentNW = Math.max(0, metrics.netWorth || 0);
+    const progress = activeFireNumber > 0 ? (currentNW / activeFireNumber) * 100 : 0;
+    const coastProgress = coastFireNumber > 0 ? (currentNW / coastFireNumber) * 100 : 0;
 
-    // Lean FIRE: 60% of current expenses
-    const leanFIRE = computeFireTarget(annualExpense * 0.6, yearsToFIRE, swr, inflationRate);
-
-    // Fat FIRE: 150% of current expenses
-    const fatFIRE = computeFireTarget(annualExpense * 1.5, yearsToFIRE, swr, inflationRate);
-
-    // Current progress. Clamped to >=0 — net worth can be negative (debts
-    // exceeding assets), which previously produced a negative progress % that
-    // rendered as an invalid negative-width progress bar.
-    const currentNW = metrics.netWorth || 0;
-    const progress = fireNumber > 0 ? Math.max(0, (currentNW / fireNumber) * 100) : 0;
-    const coastProgress = coastFIRE > 0 ? Math.max(0, (currentNW / coastFIRE) * 100) : 0;
-
-    // Years to FIRE based on savings rate
     const annualSavings = monthlySavings * 12;
     const { monthsToFIRE, reachedFIRE } = yearsToFireForAssumptions(
-      annualExpense,
+      archetype === "lean" ? annualExpense * 0.6 : archetype === "fat" ? annualExpense * 1.5 : annualExpense,
       swr,
       inflationRate,
       returnRate,
@@ -198,17 +168,16 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     const yearsToFIREActual = monthsToFIRE / 12;
     const fireAge = currentAge + yearsToFIREActual;
 
-    // Drawdown simulation post-retirement
+    // Monthly Passive Freedom Dividend generated by current net worth today
+    const monthlyFreedomDividend = (currentNW * (swr / 100)) / 12;
+
+    // Drawdown path
     const drawdown = [];
-    let drawCorpus = fireNumber;
+    let drawCorpus = activeFireNumber;
     const monthlyInflAdj = inflationRate / 100 / 12;
     const monthlyPostReturn = postRetireReturn / 100 / 12;
     let monthlyWithdraw = expenseAtRetirement / 12;
-    // Cap at 100 years regardless of the raw input — the Life Expectancy field
-    // has no upper clamp on direct typing (only its slider is bounded), so a
-    // stray extra digit would otherwise spin this loop for thousands of
-    // simulated years and lock up the tab.
-    const drawdownMonths = Math.min(retirementYears, 100) * 12;
+    const drawdownMonths = Math.min(retirementYears, 60) * 12;
     for (let m = 0; m <= drawdownMonths && drawCorpus > 0; m++) {
       if (m % 12 === 0) {
         drawdown.push({
@@ -224,57 +193,29 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     // Accumulation path
     const accumulation = [];
     let accCorpus = currentNW;
-    for (let y = 0; y <= Math.min(yearsToFIRE, 50); y++) {
+    for (let y = 0; y <= Math.min(yearsToFIRE + 5, 45); y++) {
       accumulation.push({
         year: currentAge + y,
         corpus: Math.round(accCorpus),
-        fireTarget: Math.round(fireNumber),
+        fireTarget: Math.round(activeFireNumber),
         label: `Age ${currentAge + y}`,
       });
       accCorpus = accCorpus * (1 + returnRate / 100) + annualSavings;
     }
 
-    const savingsRate = metrics.monthIncome > 0 ? (monthlySavings / metrics.monthIncome) * 100 : 0;
-
-    // Monthly pension: NPS mandates annuitizing 40% of the corpus on exit, which
-    // pays out as a monthly pension (~6% annuity rate assumed). Projected
-    // forward to retirement age using the same pre-retire return assumption as
-    // the rest of the plan — using today's balance directly (as this used to)
-    // massively understated the pension for anyone more than a few years from
-    // retiring, since it ignored all growth between now and exit. EPF, by
-    // contrast, is fully withdrawable as a lump sum with no forced annuity, so
-    // it never converts into "pension income" here — it's already counted
-    // inside currentNW/fireNumber like any other asset instead.
-    const npsCorpusToday = (state.nps || []).reduce((s: number, n: any) => {
-      const bal = Number(n.balance) || 0;
-      if (bal > 0) return s + bal;
-      return (
-        s +
-        (n.transactions || []).reduce(
-          (ss: number, t: any) =>
-            ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
-          0
-        )
-      );
-    }, 0);
-    const npsCorpusAtRetirement = npsCorpusToday * Math.pow(1 + returnRate / 100, yearsToFIRE);
-    const pensionIncome = (npsCorpusAtRetirement * 0.4 * 0.06) / 12;
-
-    // Milestones: 25/50/75/100% checkpoints toward the FIRE number, each
-    // showing the corpus needed and whether it's already been crossed —
-    // gives the "one big progress bar" a sense of concrete, celebratable steps.
     const milestones = [25, 50, 75, 100].map((pct) => ({
       pct,
-      corpus: fireNumber * (pct / 100),
-      reached: currentNW >= fireNumber * (pct / 100),
+      corpus: activeFireNumber * (pct / 100),
+      reached: currentNW >= activeFireNumber * (pct / 100),
     }));
 
     return {
-      fireNumber,
-      coastFIRE,
-      baristaNumber,
-      leanFIRE,
-      fatFIRE,
+      fireNumber: activeFireNumber,
+      regularFireNumber,
+      leanFireNumber,
+      fatFireNumber,
+      baristaFireNumber,
+      coastFireNumber,
       progress,
       coastProgress,
       currentNW,
@@ -283,14 +224,13 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       monthsToFIRE,
       reachedFIRE,
       expenseAtRetirement,
-      savingsRate,
+      monthlyFreedomDividend,
       drawdown,
       accumulation,
-      pensionIncome,
-      retirementYears,
       milestones,
     };
   }, [
+    archetype,
     monthlyExpense,
     inflationRate,
     returnRate,
@@ -300,921 +240,377 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     targetAge,
     lifeExpectancy,
     monthlySavings,
-    metrics,
-    // Note: EPF is intentionally excluded from this dependency list — it
-    // isn't read anywhere in this calculation (see pensionIncome comment
-    // above), only NPS is.
-    state.nps,
+    metrics.netWorth,
   ]);
 
-  // What-if sensitivity: re-solves "years to FIRE" while nudging one
-  // assumption at a time (return rate, inflation, monthly savings) so the
-  // user can see which lever actually moves their FIRE date the most,
-  // instead of only being able to explore this by manually dragging sliders
-  // one at a time and re-reading the headline number.
-  const sensitivity = useMemo(() => {
-    const annualExpense = monthlyExpense * 12;
-    const baseFireAge = fireCalc.fireAge;
-    const run = (returnDelta = 0, inflationDelta = 0, savingsMultiplier = 1) => {
-      const { monthsToFIRE, reachedFIRE } = yearsToFireForAssumptions(
-        annualExpense,
-        swr,
-        Math.max(0, inflationRate + inflationDelta),
-        Math.max(0.1, returnRate + returnDelta),
-        fireCalc.currentNW,
-        monthlySavings * savingsMultiplier
-      );
-      return reachedFIRE ? currentAge + monthsToFIRE / 12 : null;
-    };
-    return [
-      {
-        label: "Returns 2% lower",
-        icon: "return",
-        fireAge: run(-2, 0, 1),
-      },
-      {
-        label: "Returns 2% higher",
-        icon: "return",
-        fireAge: run(2, 0, 1),
-      },
-      {
-        label: "Inflation 2% higher",
-        icon: "inflation",
-        fireAge: run(0, 2, 1),
-      },
-      {
-        label: "Save 20% more/mo",
-        icon: "savings",
-        fireAge: run(0, 0, 1.2),
-      },
-      {
-        label: "Save 20% less/mo",
-        icon: "savings",
-        fireAge: run(0, 0, 0.8),
-      },
-    ].map((row) => ({
-      ...row,
-      baseFireAge,
-      deltaYears: row.fireAge == null ? null : row.fireAge - baseFireAge,
-    }));
-  }, [monthlyExpense, swr, inflationRate, returnRate, monthlySavings, currentAge, fireCalc.fireAge, fireCalc.currentNW]);
-
-  // Reached-by age for each alternate FIRE scenario. Previously these four
-  // cards (Coast/Lean/Fat/Barista) showed only a corpus figure with no sense
-  // of *when* — reusing the same solver as the headline number and What-If
-  // table keeps these in lockstep with the corpus figures shown right above
-  // them instead of becoming a second drifting implementation.
-  const scenarioAges = useMemo(() => {
-    const annualExpense = monthlyExpense * 12;
-    const ageFor = (expenseMultiplier: number) => {
-      const { monthsToFIRE, reachedFIRE } = yearsToFireForAssumptions(
-        annualExpense * expenseMultiplier,
-        swr,
-        inflationRate,
-        returnRate,
-        fireCalc.currentNW,
-        monthlySavings
-      );
-      return reachedFIRE ? currentAge + monthsToFIRE / 12 : null;
-    };
-    return {
-      lean: ageFor(0.6),
-      fat: ageFor(1.5),
-      // Barista FIRE's corpus is exactly half the main FIRE number, which
-      // (since computeFireTarget is linear in annual expense) is the same as
-      // solving for half the annual expense — so this stays derived from the
-      // same formula rather than a parallel one.
-      barista: ageFor(0.5),
-    };
-  }, [monthlyExpense, swr, inflationRate, returnRate, monthlySavings, currentAge, fireCalc.currentNW]);
-
-  // Count-up polish for the hero FIRE Number — called unconditionally every
-  // render (this component has no early-return branches) so hook order stays stable.
-  const animatedFireNumber = useAnimatedNumber(fireCalc.fireNumber ?? 0);
-
-  const progressColor =
-    fireCalc.progress >= 100
-      ? THEME.sage
-      : fireCalc.progress >= 50
-        ? THEME.accent
-        : fireCalc.progress >= 25
-          ? THEME.gold
-          : THEME.rust;
-  const progressVariant =
-    fireCalc.progress >= 100
-      ? "sage"
-      : fireCalc.progress >= 50
-        ? "accent"
-        : fireCalc.progress >= 25
-          ? "gold"
-          : "rust";
+  const animatedProgress = useAnimatedNumber(fireCalc.progress);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div className="tab-content-enter">
       <SectionTitle
-        sub="Financial Independence, Retire Early — model your path across Lean, Coast, Fat and Barista FIRE scenarios"
-        rightElement={
-          <Badge variant={progressVariant}>
-            <Flame size={13} /> {Math.min(100, fireCalc.progress).toFixed(0)}% to FIRE
-          </Badge>
-        }
+        sub="Plan your financial independence, safe withdrawal rate, and early retirement milestones"
       >
-        FIRE Planner
+        FIRE & Financial Independence
       </SectionTitle>
 
-      {/* Input Panel */}
-      <Card style={{ padding: 24 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 18,
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div className="section-label" style={{ marginBottom: 0 }}>
-            Your Inputs
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              color: THEME.sage,
-              opacity: justSaved ? 1 : 0,
-              transition: "opacity 0.3s ease",
-            }}
-            aria-live="polite"
-          >
-            <CheckCircle size={13} /> Saved
-          </div>
-        </div>
-        {ageWarning && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 14px",
-              marginBottom: 18,
-              borderRadius: "var(--radius-md)",
-              background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
-              color: THEME.rust,
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-            role="alert"
-          >
-            <AlertTriangle size={15} /> {ageWarning}
-          </div>
-        )}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-            gap: 20,
-          }}
-        >
-          {[
-            {
-              label: "Monthly Expense",
-              value: monthlyExpense,
-              set: setMonthlyExpense,
-              prefix: "₹",
-            },
-            {
-              label: "Monthly Savings",
-              value: monthlySavings,
-              set: setMonthlySavings,
-              prefix: "₹",
-            },
-            {
-              label: "Current Age",
-              value: currentAge,
-              set: setCurrentAge,
-              suffix: "years",
-              min: 18,
-              max: 70,
-            },
-            {
-              label: "Target Retire Age",
-              value: targetAge,
-              set: setTargetAge,
-              suffix: "years",
-              min: 25,
-              max: 75,
-            },
-            {
-              label: "Life Expectancy",
-              value: lifeExpectancy,
-              set: setLifeExpectancy,
-              suffix: "years",
-              min: 60,
-              max: 100,
-            },
-            {
-              label: "Pre-Retire Return",
-              value: returnRate,
-              set: setReturnRate,
-              suffix: "% p.a.",
-              min: 4,
-              max: 20,
-              step: 0.5,
-            },
-            {
-              label: "Post-Retire Return",
-              value: postRetireReturn,
-              set: setPostRetireReturn,
-              suffix: "% p.a.",
-              min: 2,
-              max: 15,
-              step: 0.5,
-            },
-            {
-              label: "Inflation Rate",
-              value: inflationRate,
-              set: setInflationRate,
-              suffix: "% p.a.",
-              min: 2,
-              max: 12,
-              step: 0.5,
-            },
-            {
-              label: "Safe Withdrawal Rate",
-              value: swr,
-              set: setSwr,
-              suffix: "%",
-              min: 2,
-              max: 6,
-              step: 0.25,
-            },
-          ].map(({ label, value, set, prefix, suffix, min, max, step }) => (
-            <div key={label}>
-              <label
-                style={{
-                  fontSize: 12,
-                  color: THEME.textSecondary,
-                  display: "block",
-                  marginBottom: 6,
-                  fontWeight: 600,
-                }}
-              >
-                {label}
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {prefix && (
-                  <span style={{ fontSize: 13, color: THEME.textSecondary }}>{prefix}</span>
-                )}
-                <input
-                  type="number"
-                  value={value}
-                  aria-label={label}
-                  step={step}
-                  min={min}
-                  max={max}
-                  onChange={(e) => set(Number(e.target.value))}
-                  onBlur={(e) => {
-                    // Only the paired range slider enforces min/max while
-                    // typing; clamp on blur (not on every keystroke, which
-                    // would fight the user mid-type) so a fat-fingered value
-                    // like age 9999 can't linger and feed the charts below.
-                    if (typeof min !== "number" || typeof max !== "number") return;
-                    const n = Number(e.target.value);
-                    if (Number.isFinite(n)) set(Math.min(max, Math.max(min, n)));
-                  }}
-                  className="form-input"
-                  style={{
-                    padding: "8px 10px",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: THEME.text,
-                  }}
-                />
-                {suffix && (
-                  <span style={{ fontSize: 12, color: THEME.textSecondary, whiteSpace: "nowrap" }}>
-                    {suffix}
-                  </span>
-                )}
-              </div>
-              {typeof min === "number" && typeof max === "number" && (
-                <input
-                  type="range"
-                  className="cxo-slider"
-                  min={min}
-                  max={max}
-                  step={step || 1}
-                  value={value}
-                  aria-label={`${label} slider`}
-                  onChange={(e) => set(Number(e.target.value))}
-                  style={{ marginTop: 10 }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* FIRE Number Hero Card */}
-      <Card
-        variant="base"
-        style={{
-          padding: "clamp(24px, 4vw, 36px)",
-          background:
-            "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
-          border: `1px solid ${THEME.line}`,
-          borderTop: `4px solid ${THEME.accent}`,
-          borderRadius: "var(--radius-xl)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: THEME.muted,
-          }}
-        >
-          <Flame size={14} color={THEME.accent} /> Your FIRE Number
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(36px, 5vw, 56px)",
-            fontWeight: 900,
-            color: THEME.ink,
-            letterSpacing: "-0.03em",
-            lineHeight: 1.05,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          <Money value={animatedFireNumber} variant="full" />
-        </div>
-        <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
-          Needed at age {targetAge} to sustain{" "}
-          <Money value={fireCalc.expenseAtRetirement / 12} variant="full" />/mo of expenses at a{" "}
-          {swr}% withdrawal rate
-        </div>
-      </Card>
-
-      {/* Alternate FIRE scenarios — secondary to the main number above */}
+      {/* Archetype Selector */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 10,
+          marginBottom: 20,
         }}
       >
-        <StatCard
-          label="Coast FIRE"
-          value={fmtINRFull(fireCalc.coastFIRE)}
-          numericValue={fireCalc.coastFIRE}
-          formatValue={fmtINRFull}
-          sub={
-            fireCalc.coastProgress >= 100
-              ? "Reached — you could stop saving today"
-              : `${fireCalc.coastProgress.toFixed(0)}% of the way there`
-          }
-          icon={<Shield />}
-          color={THEME.violet}
-        />
-        <StatCard
-          label="Lean FIRE"
-          value={fmtINRFull(fireCalc.leanFIRE)}
-          numericValue={fireCalc.leanFIRE}
-          formatValue={fmtINRFull}
-          sub={
-            scenarioAges.lean != null
-              ? `By age ${scenarioAges.lean.toFixed(1)} · 60% of your spend`
-              : "Not reached within 50 years"
-          }
-          icon={<Target />}
-          color={THEME.gold}
-        />
-        <StatCard
-          label="Fat FIRE"
-          value={fmtINRFull(fireCalc.fatFIRE)}
-          numericValue={fireCalc.fatFIRE}
-          formatValue={fmtINRFull}
-          sub={
-            scenarioAges.fat != null
-              ? `By age ${scenarioAges.fat.toFixed(1)} · 150% of your spend`
-              : "Not reached within 50 years"
-          }
-          icon={<Zap />}
-          color={THEME.sage}
-        />
-        <StatCard
-          label="Barista FIRE"
-          value={fmtINRFull(fireCalc.baristaNumber)}
-          numericValue={fireCalc.baristaNumber}
-          formatValue={fmtINRFull}
-          sub={
-            scenarioAges.barista != null
-              ? `By age ${scenarioAges.barista.toFixed(1)} · half from part-time work`
-              : "Not reached within 50 years"
-          }
-          icon={<TrendingUp />}
-          color={THEME.accent}
-        />
-      </div>
-
-      {/* Progress */}
-      <Card style={{ padding: 24 }}>
-        <h3
-          style={{
-            margin: "0 0 16px",
-            fontSize: 16,
-            fontWeight: 600,
-            color: THEME.text,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Target size={16} color={progressColor} /> FIRE Progress
-        </h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 24,
-          }}
-        >
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: THEME.textSecondary }}>To FIRE Number</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>
-                {Math.min(100, fireCalc.progress).toFixed(1)}%
-              </span>
-            </div>
-            <div className="progress-track" style={{ height: 10 }}>
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${Math.min(100, fireCalc.progress)}%`,
-                  background: progressColor,
-                }}
-              />
-            </div>
-            <div style={{ marginTop: 8, fontSize: 12, color: THEME.textSecondary }}>
-              <Money value={fireCalc.currentNW} variant="full" /> of{" "}
-              <Money value={fireCalc.fireNumber} variant="full" />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: THEME.textSecondary }}>To Coast FIRE</span>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: fireCalc.coastProgress >= 100 ? THEME.sage : THEME.accent,
-                }}
-              >
-                {Math.min(100, fireCalc.coastProgress).toFixed(1)}%
-              </span>
-            </div>
-            <div className="progress-track" style={{ height: 10 }}>
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${Math.min(100, fireCalc.coastProgress)}%`,
-                  background: fireCalc.coastProgress >= 100 ? THEME.sage : THEME.accent,
-                }}
-              />
-            </div>
-            <div style={{ marginTop: 8, fontSize: 12, color: THEME.textSecondary }}>
-              {fireCalc.coastProgress >= 100 ? (
-                "You've reached Coast FIRE! You can stop saving and still retire on time."
-              ) : (
-                <>
-                  <Money value={fireCalc.currentNW} variant="full" /> of{" "}
-                  <Money value={fireCalc.coastFIRE} variant="full" />
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            marginTop: 24,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 14,
-          }}
-        >
-          <div
-            className="card-lift"
-            style={{
-              padding: "18px",
-              borderRadius: "var(--radius-lg)",
-              background: "var(--surface-1)",
-              border: `1px solid ${THEME.border}`,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 12,
-                color: THEME.textSecondary,
-                minHeight: 30,
-              }}
-            >
-              <Clock size={12} style={{ flexShrink: 0 }} /> Estimated FIRE Age
-            </div>
-            <div
-              style={{
-                fontSize: 28,
-                fontWeight: 700,
-                color: !fireCalc.reachedFIRE
-                  ? THEME.rust
-                  : fireCalc.fireAge <= targetAge
-                    ? THEME.sage
-                    : THEME.gold,
-              }}
-            >
-              {fireCalc.reachedFIRE ? `${fireCalc.fireAge.toFixed(1)} years` : "50+ years"}
-            </div>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              {!fireCalc.reachedFIRE
-                ? "Not reached within 50 years at current savings rate — increase savings or returns"
-                : fireCalc.fireAge <= targetAge
-                  ? `${(targetAge - fireCalc.fireAge).toFixed(1)} years ahead of target!`
-                  : `${(fireCalc.fireAge - targetAge).toFixed(1)} years behind target`}
-            </div>
-          </div>
-          <div
-            className="card-lift"
-            style={{
-              padding: "18px",
-              borderRadius: "var(--radius-lg)",
-              background: "var(--surface-1)",
-              border: `1px solid ${THEME.border}`,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 12,
-                color: THEME.textSecondary,
-                minHeight: 30,
-              }}
-            >
-              <TrendingUp size={12} style={{ flexShrink: 0 }} /> Savings Rate
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 28,
-                fontWeight: 700,
-                color:
-                  fireCalc.savingsRate >= 50
-                    ? THEME.sage
-                    : fireCalc.savingsRate >= 25
-                      ? THEME.accent
-                      : THEME.gold,
-              }}
-            >
-              {fireCalc.savingsRate.toFixed(0)}%
-            </div>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              {fireCalc.savingsRate >= 50
-                ? "Excellent — aggressive FIRE path"
-                : fireCalc.savingsRate >= 25
-                  ? "Good savings rate"
-                  : "Consider increasing savings"}
-            </div>
-          </div>
-          <div
-            className="card-lift"
-            style={{
-              padding: "18px",
-              borderRadius: "var(--radius-lg)",
-              background: "var(--surface-1)",
-              border: `1px solid ${THEME.border}`,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 12,
-                color: THEME.textSecondary,
-                minHeight: 30,
-              }}
-            >
-              <IndianRupee size={12} style={{ flexShrink: 0 }} /> Expense at Retirement
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 22,
-                fontWeight: 700,
-                color: THEME.text,
-              }}
-            >
-              <Money value={fireCalc.expenseAtRetirement / 12} variant="full" />/mo
-            </div>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              <Money value={fireCalc.expenseAtRetirement} variant="full" />/year (inflation adjusted)
-            </div>
-          </div>
-          {fireCalc.pensionIncome > 0 && (
-            <div
+        {[
+          { id: "regular", label: "🔥 Regular FIRE", desc: "25x Annual Expenses (100% lifestyle)", val: fireCalc.regularFireNumber },
+          { id: "lean", label: "⚡ Lean FIRE", desc: "20x Core Essential Expenses (60% burn)", val: fireCalc.leanFireNumber },
+          { id: "fat", label: "💎 Fat FIRE", desc: "35x+ Luxury Cushion (150% burn)", val: fireCalc.fatFireNumber },
+          { id: "coast", label: "🏖️ Coast FIRE", desc: "Corpus compounds with ₹0 added", val: fireCalc.coastFireNumber },
+          { id: "barista", label: "☕ Barista FIRE", desc: "50% passive + 50% part-time", val: fireCalc.baristaFireNumber },
+        ].map((item) => {
+          const active = archetype === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setArchetype(item.id as any)}
               className="card-lift"
               style={{
-                padding: "18px",
+                padding: "12px 14px",
                 borderRadius: "var(--radius-lg)",
-                background: "var(--surface-1)",
-                border: `1px solid ${THEME.border}`,
+                background: active
+                  ? `color-mix(in srgb, ${THEME.accent} 12%, var(--surface-0))`
+                  : "var(--surface-0)",
+                border: active ? `2px solid ${THEME.accent}` : `1px solid ${THEME.line}`,
+                textAlign: "left",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
               }}
             >
-              <div style={{ fontSize: 12, color: THEME.textSecondary, minHeight: 30 }}>
-                Est. Pension Income
-              </div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: THEME.sage,
-                }}
-              >
-                <Money value={fireCalc.pensionIncome} variant="full" />/mo
-              </div>
-              <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-                From NPS&apos;s mandatory 40% annuity (estimated). EPF is fully
-                withdrawable and already counted in your net worth above.
-              </div>
-            </div>
-          )}
-        </div>
+              <span style={{ fontSize: 13, fontWeight: 800, color: active ? THEME.accent : THEME.ink }}>
+                {item.label}
+              </span>
+              <span style={{ fontSize: 10, color: THEME.muted }}>{item.desc}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>
+                <Money value={item.val} variant="full" />
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Milestones — concrete checkpoints on the way to the FIRE number */}
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 10, fontWeight: 600 }}>
-            Milestones
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-              gap: 10,
-            }}
-          >
-            {fireCalc.milestones.map((m) => (
-              <div
-                key={m.pct}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "12px 14px",
-                  borderRadius: "var(--radius-md)",
-                  background: m.reached
-                    ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
-                    : "var(--surface-1)",
-                  border: `1px solid ${m.reached ? `color-mix(in srgb, ${THEME.sage} 30%, transparent)` : THEME.border}`,
-                }}
-              >
-                <CheckCircle
-                  size={18}
-                  color={m.reached ? THEME.sage : THEME.textSecondary}
-                  style={{ opacity: m.reached ? 1 : 0.35, flexShrink: 0 }}
-                />
-                <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: m.reached ? THEME.sage : THEME.text,
-                    }}
-                  >
-                    {m.pct}% {m.pct === 100 ? "— FIRE!" : ""}
-                  </div>
-                  <div style={{ fontSize: 11, color: THEME.textSecondary }}>
-                    <Money value={m.corpus} variant="full" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      {/* What-If Sensitivity */}
-      <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <Sparkles size={16} color={THEME.accent} />
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
-            What-If Sensitivity
-          </h3>
-        </div>
-        <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 16 }}>
-          How your estimated FIRE age (currently{" "}
-          {fireCalc.reachedFIRE ? fireCalc.fireAge.toFixed(1) : "50+ years out"}) shifts if one
-          assumption changes and everything else stays the same.
-        </div>
+      {/* Hero FIRE Cockpit */}
+      <Card
+        variant="base"
+        style={{
+          marginBottom: 20,
+          padding: "clamp(24px, 4vw, 36px)",
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 94%, var(--t-accent) 6%), var(--surface-0))",
+          border: `1px solid ${THEME.line}`,
+          borderTop: `4px solid ${THEME.accent}`,
+          borderRadius: "var(--radius-xl)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-            gap: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: 20,
           }}
         >
-          {sensitivity.map((row) => {
-            const improved = row.deltaYears != null && row.deltaYears < -0.05;
-            const worsened = row.deltaYears == null || row.deltaYears > 0.05;
-            const color = row.deltaYears == null ? THEME.rust : improved ? THEME.sage : worsened ? THEME.gold : THEME.textSecondary;
-            return (
-              <div
-                key={row.label}
-                className="card-lift"
-                style={{
-                  padding: "14px 16px",
-                  borderRadius: "var(--radius-lg)",
-                  background: "var(--surface-1)",
-                  border: `1px solid ${THEME.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: THEME.textSecondary,
-                    lineHeight: 1.3,
-                    minHeight: 30,
-                    marginBottom: 6,
-                  }}
-                >
-                  {row.label}
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 700, color }}>
-                  {row.deltaYears == null
-                    ? "Not reached"
-                    : row.fireAge != null && Math.abs(row.deltaYears) < 0.05
-                      ? "No change"
-                      : `${row.deltaYears > 0 ? "+" : ""}${row.deltaYears.toFixed(1)} yrs`}
-                </div>
-                <div style={{ fontSize: 11, color: THEME.textSecondary }}>
-                  {row.fireAge != null
-                    ? `FIRE at age ${row.fireAge.toFixed(1)}`
-                    : "Not within 50 years"}
-                </div>
-              </div>
-            );
-          })}
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: THEME.muted,
+                marginBottom: 6,
+              }}
+            >
+              <Flame size={14} color={THEME.accent} /> Target FIRE Corpus ({archetype.toUpperCase()})
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(34px, 5vw, 52px)",
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.05,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              <Money value={fireCalc.fireNumber} variant="full" />
+            </div>
+            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 6, fontWeight: 600 }}>
+              Current Net Worth: <strong style={{ color: THEME.ink }}><Money value={fireCalc.currentNW} variant="full" /></strong> (
+              <span style={{ color: fireCalc.progress >= 100 ? THEME.sage : THEME.accent, fontWeight: 800 }}>
+                {animatedProgress.toFixed(1)}% achieved
+              </span>
+              )
+            </div>
+          </div>
+
+          {/* Freedom Status Pills */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                color: THEME.sage,
+                fontSize: 12,
+                fontWeight: 800,
+              }}
+            >
+              <Sparkles size={13} /> Freedom Dividend: {fmtINR(fireCalc.monthlyFreedomDividend)}/mo
+            </span>
+            <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+              Projected FIRE Age: <strong style={{ color: THEME.ink }}>{fireCalc.fireAge.toFixed(1)}</strong> (
+              {fireCalc.yearsToFIREActual <= 0 ? "Achieved!" : `in ${fireCalc.yearsToFIREActual.toFixed(1)} yrs`}
+              )
+            </span>
+          </div>
+        </div>
+
+        {/* Milestone Progress Bar */}
+        <div style={{ marginTop: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
+            <span>Start</span>
+            <span>25% (<Money value={fireCalc.fireNumber * 0.25} />)</span>
+            <span>50% (<Money value={fireCalc.fireNumber * 0.5} />)</span>
+            <span>75% (<Money value={fireCalc.fireNumber * 0.75} />)</span>
+            <span>100% FIRE</span>
+          </div>
+          <div style={{ height: 10, borderRadius: 5, background: "var(--t-line)", overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${Math.min(100, fireCalc.progress)}%`,
+                background: `linear-gradient(90deg, ${THEME.accent}, ${THEME.sage})`,
+                borderRadius: 5,
+                transition: "width 0.8s var(--ease-premium)",
+              }}
+            />
+          </div>
         </div>
       </Card>
 
-      {/* Accumulation Chart */}
-      <Card style={{ padding: 24 }}>
-        <h3
+      {/* Interactive Simulation Sliders */}
+      <Card style={{ marginBottom: 24, padding: 22 }}>
+        <div
           style={{
-            margin: "0 0 16px",
-            fontSize: 16,
-            fontWeight: 600,
-            color: THEME.text,
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: THEME.muted,
+            marginBottom: 16,
             display: "flex",
             alignItems: "center",
             gap: 8,
           }}
         >
-          <TrendingUp size={16} color={THEME.accent} /> Accumulation Path
-        </h3>
-        <div style={{ width: "100%", height: 350, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <AreaChart data={fireCalc.accumulation}>
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <YAxis
-              tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
-              tick={{ fontSize: 11, fill: THEME.textSecondary }}
-              width={85}
+          <Sliders size={14} color={THEME.accent} /> Live Scenario Assumptions & Parameters
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+          {/* Current Age */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              <span style={{ color: THEME.muted }}>Current Age</span>
+              <span style={{ color: THEME.ink }}>{currentAge} yrs</span>
+            </div>
+            <input
+              type="range"
+              min="18"
+              max="70"
+              value={currentAge}
+              onChange={(e) => setCurrentAge(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.accent }}
             />
-            <Tooltip
-              formatter={(v) => <Money value={v} variant="full" />}
-              cursor={{ stroke: THEME.line }}
-              contentStyle={{
-                background: THEME.card,
-                border: `1px solid ${THEME.border}`,
-                borderRadius: 12,
-                color: THEME.ink,
-              }}
-              labelStyle={{ color: THEME.ink }}
-              itemStyle={{ color: THEME.ink }}
+          </div>
+
+          {/* Target Retirement Age */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              <span style={{ color: THEME.muted }}>Target Retirement Age</span>
+              <span style={{ color: THEME.accent }}>{targetAge} yrs</span>
+            </div>
+            <input
+              type="range"
+              min={currentAge + 1}
+              max="80"
+              value={targetAge}
+              onChange={(e) => setTargetAge(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.accent }}
             />
-            <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-              formatter={(value: string) => (
-                <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
-              )}
+          </div>
+
+          {/* Monthly Living Expense */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              <span style={{ color: THEME.muted }}>Monthly Living Expense</span>
+              <span style={{ color: THEME.ink }}>{fmtINR(monthlyExpense)}</span>
+            </div>
+            <input
+              type="range"
+              min="20000"
+              max="500000"
+              step="5000"
+              value={monthlyExpense}
+              onChange={(e) => setMonthlyExpense(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.accent }}
             />
-            <Area
-              type="monotone"
-              dataKey="corpus"
-              stroke="var(--accent)"
-              fill="var(--accent)"
-              fillOpacity={0.15}
-              strokeWidth={2}
-              name="Your Corpus"
+          </div>
+
+          {/* Monthly Savings Surplus */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              <span style={{ color: THEME.muted }}>Monthly Savings Addition</span>
+              <span style={{ color: THEME.sage }}>{fmtINR(monthlySavings)}/mo</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="500000"
+              step="5000"
+              value={monthlySavings}
+              onChange={(e) => setMonthlySavings(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.sage }}
             />
-            <ReferenceLine
-              y={fireCalc.fireNumber}
-              stroke={THEME.rust}
-              strokeDasharray="3 3"
-              label={{
-                value: `FIRE: ${privacyMode ? "••••" : fmtINRFull(fireCalc.fireNumber)}`,
-                fill: THEME.rust,
-                fontSize: 11,
-              }}
+          </div>
+
+          {/* Pre-Retirement Return */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              <span style={{ color: THEME.muted }}>Pre-Retire Return (CAGR)</span>
+              <span style={{ color: THEME.ink }}>{returnRate}% p.a.</span>
+            </div>
+            <input
+              type="range"
+              min="6"
+              max="18"
+              step="0.5"
+              value={returnRate}
+              onChange={(e) => setReturnRate(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.accent }}
             />
-          </AreaChart>
-        </ResponsiveContainer></div>
+          </div>
+
+          {/* Inflation Rate */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              <span style={{ color: THEME.muted }}>Expected Inflation</span>
+              <span style={{ color: THEME.rust }}>{inflationRate}% p.a.</span>
+            </div>
+            <input
+              type="range"
+              min="3"
+              max="12"
+              step="0.5"
+              value={inflationRate}
+              onChange={(e) => setInflationRate(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.rust }}
+            />
+          </div>
+        </div>
       </Card>
 
-      {/* Drawdown Simulation */}
-      {fireCalc.drawdown.length > 0 && (
-        <Card style={{ padding: 24 }}>
-          <h3
+      {/* Dual-Phase Chart Projection */}
+      <Card style={{ padding: 22, marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+          <div
             style={{
-              margin: "0 0 16px",
-              fontSize: 16,
-              fontWeight: 600,
-              color: THEME.text,
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: THEME.muted,
               display: "flex",
               alignItems: "center",
               gap: 8,
             }}
           >
-            <Calendar size={16} color={THEME.gold} /> Post-Retirement Drawdown (
-            {fireCalc.retirementYears} years)
-          </h3>
-          <div style={{ width: "100%", height: 300, position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <AreaChart data={fireCalc.drawdown}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+            <TrendingUp size={14} color={THEME.accent} /> Growth & Longevity Trajectory
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => setChartView("accumulation")}
+              className={`demat-portfolio-pill ${chartView === "accumulation" ? "active" : ""}`}
+              style={{ fontSize: 11, padding: "4px 10px" }}
+            >
+              Accumulation Growth Phase
+            </button>
+            <button
+              onClick={() => setChartView("drawdown")}
+              className={`demat-portfolio-pill ${chartView === "drawdown" ? "active" : ""}`}
+              style={{ fontSize: 11, padding: "4px 10px" }}
+            >
+              Retirement Drawdown Phase
+            </button>
+          </div>
+        </div>
+
+        <div style={{ width: "100%", height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartView === "accumulation" ? fireCalc.accumulation : fireCalc.drawdown}>
+              <defs>
+                <linearGradient id="corpusGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.4} />
+                  <stop offset="95%" stopColor={THEME.accent} stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--t-line)" vertical={false} />
+              <XAxis dataKey="label" stroke={THEME.muted} fontSize={11} />
               <YAxis
-                tickFormatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
-                tick={{ fontSize: 11, fill: THEME.textSecondary }}
-                width={85}
+                stroke={THEME.muted}
+                fontSize={11}
+                tickFormatter={(v) => fmtINR(v)}
               />
               <Tooltip
-                formatter={(v) => <Money value={v} variant="full" />}
-                cursor={{ stroke: THEME.line }}
-                contentStyle={{
-                  background: THEME.card,
-                  border: `1px solid ${THEME.border}`,
-                  borderRadius: 12,
-                  color: THEME.ink,
-                }}
-                labelStyle={{ color: THEME.ink }}
-                itemStyle={{ color: THEME.ink }}
+                formatter={(val: any) => [fmtINRFull(val), "Corpus"]}
+                labelStyle={{ color: THEME.ink, fontWeight: 700 }}
+                contentStyle={{ background: "var(--surface-0)", borderColor: THEME.line, borderRadius: 8 }}
               />
               <Area
                 type="monotone"
                 dataKey="corpus"
-                stroke={THEME.gold}
-                fill={THEME.gold}
-                fillOpacity={0.15}
-                strokeWidth={2}
-                name="Remaining Corpus"
+                stroke={THEME.accent}
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#corpusGrad)"
               />
-              <ReferenceLine y={0} stroke={THEME.rust} />
+              {chartView === "accumulation" && (
+                <ReferenceLine
+                  y={fireCalc.fireNumber}
+                  label={{ value: "FIRE Target", fill: THEME.sage, fontSize: 11, position: "top" }}
+                  stroke={THEME.sage}
+                  strokeDasharray="4 4"
+                  strokeWidth={2}
+                />
+              )}
             </AreaChart>
-          </ResponsiveContainer></div>
-          <div style={{ marginTop: 12, fontSize: 13, color: THEME.textSecondary }}>
-            {fireCalc.drawdown[fireCalc.drawdown.length - 1]?.corpus > 0 ? (
-              <>
-                Your corpus lasts through age {lifeExpectancy} with{" "}
-                <Money
-                  value={fireCalc.drawdown[fireCalc.drawdown.length - 1].corpus}
-                  variant="full"
-                />{" "}
-                remaining.
-              </>
-            ) : (
-              "Warning: Your corpus runs out before life expectancy. Consider increasing savings or reducing SWR."
-            )}
-          </div>
-        </Card>
-      )}
+          </ResponsiveContainer>
+        </div>
+      </Card>
     </div>
   );
 };

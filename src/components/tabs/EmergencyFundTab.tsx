@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Shield,
   AlertTriangle,
@@ -18,6 +18,13 @@ import {
   HeartPulse,
   Lock,
   Calendar,
+  Zap,
+  Sliders,
+  Flame,
+  Activity,
+  ArrowRight,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, getEffectiveRent, annualizePremium } from "../../utils/finance";
@@ -29,62 +36,80 @@ import { EmptyState } from "../ui/EmptyState";
 import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
-const TIER_COLOR = { critical: THEME.rust, building: THEME.gold, healthy: THEME.accent, excellent: THEME.sage };
+const TIER_COLOR: Record<string, string> = {
+  critical: THEME.rust,
+  building: THEME.gold,
+  healthy: THEME.accent,
+  excellent: THEME.sage,
+};
 
-export const EmergencyFundTab = ({ state, metrics }) => {
+export const EmergencyFundTab = ({ state, metrics }: any) => {
   const ef = metrics.emergencyFund;
+  const [burnMode, setBurnMode] = useState<"standard" | "survival">("standard");
+  const [customMonthlyAllocation, setCustomMonthlyAllocation] = useState<number>(0);
+
   const data = useMemo(() => {
     const bankBalance = ef.cashInBanks;
     const fdValue = ef.nearTermFDValue;
     const liquidMF = ef.liquidMFValue;
     const prepaidBalance = Math.max(0, ef.prepaidValue);
     const totalLiquid = ef.liquidAssets;
-    const finalExpense = ef.monthlyExpense;
-    const monthsCovered = ef.monthsCovered;
-    const targetMonths = ef.targetMonths;
-    const targetAmount = ef.targetAmount;
-    const gap = ef.gap;
-    const coveragePct = ef.coveragePct;
 
     // Expense breakdown for table
     const expenseBreakdown = [];
-    const emis = (state.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
-    if (emis > 0) expenseBreakdown.push({ label: "EMIs", amount: emis, icon: CreditCard });
+    const emis = (state.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+    if (emis > 0) expenseBreakdown.push({ label: "Loan EMIs", amount: emis, icon: CreditCard, essential: true });
 
-    // Uses getEffectiveRent() rather than the raw monthlyRent field, which is
-    // set once at lease start and never updated as escalation tiers advance.
     const rent = (state.rentedProperties || [])
-      .filter((p) => p.isActive !== false)
-      .reduce((s, p) => s + getEffectiveRent(p), 0);
-    if (rent > 0) expenseBreakdown.push({ label: "Rent", amount: rent, icon: Home });
+      .filter((p: any) => p.isActive !== false)
+      .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
+    if (rent > 0) expenseBreakdown.push({ label: "Rent & Housing", amount: rent, icon: Home, essential: true });
 
     const sipTotal = (state.sips || [])
-      .filter((s) => s.status !== "stopped")
-      .reduce((s, si) => s + Number(si.amount || 0), 0);
-    if (sipTotal > 0) expenseBreakdown.push({ label: "SIPs", amount: sipTotal, icon: TrendingUp });
+      .filter((s: any) => s.status !== "stopped")
+      .reduce((s: number, si: any) => s + Number(si.amount || 0), 0);
+    if (sipTotal > 0) expenseBreakdown.push({ label: "SIP Investments", amount: sipTotal, icon: TrendingUp, essential: false });
 
     const subTotal = (state.subscriptions || [])
-      .filter((s) => !s.paused)
-      .reduce((s, sub) => {
+      .filter((s: any) => !s.paused)
+      .reduce((s: number, sub: any) => {
         const amt = Number(sub.amount || 0);
         if (sub.cycle === "yearly") return s + amt / 12;
         if (sub.cycle === "quarterly") return s + amt / 3;
         return s + amt;
       }, 0);
     if (subTotal > 0)
-      expenseBreakdown.push({ label: "Subscriptions", amount: subTotal, icon: RefreshCw });
+      expenseBreakdown.push({ label: "Subscriptions & Media", amount: subTotal, icon: RefreshCw, essential: false });
 
-    const recTotal = (state.recurringExpenses || []).reduce((s, r) => s + Number(r.amount || 0), 0);
+    const recTotal = (state.recurringExpenses || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
     if (recTotal > 0)
-      expenseBreakdown.push({ label: "Recurring Expenses", amount: recTotal, icon: ClipboardList });
+      expenseBreakdown.push({ label: "Recurring Utilities & Bills", amount: recTotal, icon: ClipboardList, essential: true });
 
     const insTotal = [
       ...(state.lic || []),
       ...(state.termPlans || []),
       ...(state.investmentPlans || []),
-    ].reduce((s, p) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium) / 12, 0);
+    ].reduce((s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium) / 12, 0);
     if (insTotal > 0)
-      expenseBreakdown.push({ label: "Insurance Premiums", amount: insTotal, icon: HeartPulse });
+      expenseBreakdown.push({ label: "Insurance Premiums", amount: insTotal, icon: HeartPulse, essential: true });
+
+    const standardExpense = ef.monthlyExpense || expenseBreakdown.reduce((s, e) => s + e.amount, 0) || 50000;
+    const survivalExpense = Math.max(
+      standardExpense * 0.65,
+      expenseBreakdown.filter((e) => e.essential).reduce((s, e) => s + e.amount, 0)
+    );
+
+    const activeExpense = burnMode === "survival" ? survivalExpense : standardExpense;
+    const monthsCovered = activeExpense > 0 ? totalLiquid / activeExpense : 0;
+    const targetMonths = ef.targetMonths || 6;
+    const targetAmount = activeExpense * targetMonths;
+    const gap = Math.max(0, targetAmount - totalLiquid);
+    const coveragePct = targetAmount > 0 ? (totalLiquid / targetAmount) * 100 : 0;
+
+    // Liquidity Tiers
+    const tier1 = bankBalance; // T+0
+    const tier2 = liquidMF; // T+1
+    const tier3 = fdValue + prepaidBalance; // T+3
 
     return {
       bankBalance,
@@ -92,77 +117,135 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       liquidMF,
       prepaidBalance,
       totalLiquid,
-      monthlyExpense: finalExpense,
+      standardExpense,
+      survivalExpense,
+      monthlyExpense: activeExpense,
       monthsCovered,
       targetMonths,
       targetAmount,
       gap,
       coveragePct,
       expenseBreakdown,
+      tier1,
+      tier2,
+      tier3,
     };
-  }, [state, ef]);
+  }, [state, ef, burnMode]);
 
-  const healthColor = TIER_COLOR[ef.tier];
-  const healthLabel = ef.label;
+  const tier =
+    data.monthsCovered < 1
+      ? "critical"
+      : data.monthsCovered < 3
+        ? "building"
+        : data.monthsCovered < 6
+          ? "healthy"
+          : "excellent";
+
+  const healthColor = TIER_COLOR[tier];
+  const healthLabel =
+    data.monthsCovered < 1
+      ? "Critical Shortfall"
+      : data.monthsCovered < 3
+        ? "Building Reserve"
+        : data.monthsCovered < 6
+          ? "Adequate Runway"
+          : "Fortified & Safe";
+
   const animatedMonthsCovered = useAnimatedNumber(data.monthsCovered);
 
-  // Projected months to close the gap, based on the user's actual monthly
-  // savings (income - expense). Only shown when there's a real gap and a
-  // positive savings rate to project from — otherwise "time to target" is
-  // either moot (already funded) or unknowable (no surplus to save).
   const monthlySurplus = Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0));
-  const monthsToTarget = data.gap > 0 && monthlySurplus > 0 ? data.gap / monthlySurplus : null;
+  const activeMonthlyAllocation = customMonthlyAllocation > 0 ? customMonthlyAllocation : monthlySurplus;
+  const monthsToTarget = data.gap > 0 && activeMonthlyAllocation > 0 ? data.gap / activeMonthlyAllocation : null;
 
   return (
-    <div>
-      <SectionTitle sub="How many months can you survive on liquid assets alone?">
-        Emergency Fund Health
+    <div className="tab-content-enter">
+      <SectionTitle
+        sub="Instant emergency runway, liquidity tiers, and stress-test simulation"
+        rightElement={
+          /* Burn Mode Toggle */
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <button
+              onClick={() => setBurnMode("standard")}
+              className={`demat-portfolio-pill ${burnMode === "standard" ? "active" : ""}`}
+              style={{ fontSize: 11, padding: "5px 12px" }}
+            >
+              Standard Lifestyle Burn
+            </button>
+            <button
+              onClick={() => setBurnMode("survival")}
+              className={`demat-portfolio-pill ${burnMode === "survival" ? "active" : ""}`}
+              style={{
+                fontSize: 11,
+                padding: "5px 12px",
+                ...(burnMode === "survival" ? { background: THEME.gold, borderColor: THEME.gold } : {}),
+              }}
+              title="Survival Mode strips non-essential discretionary expenses"
+            >
+              ⚡ Bare-Bones Survival Mode
+            </button>
+          </div>
+        }
+      >
+        Emergency Fund & Runway
       </SectionTitle>
 
-      {/* Main Health Indicator */}
-      <Card style={{ borderRadius: 16 }}>
+      {/* Main Health Cockpit Card */}
+      <Card
+        variant="base"
+        style={{
+          marginBottom: 20,
+          padding: "clamp(24px, 4vw, 36px)",
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 94%, var(--t-accent) 6%), var(--surface-0))",
+          border: `1px solid ${THEME.line}`,
+          borderTop: `4px solid ${healthColor}`,
+          borderRadius: "var(--radius-xl)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
         <div
-          style={{ padding: 24, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 28,
+            flexWrap: "wrap",
+          }}
         >
-          {/* Circular gauge */}
+          {/* Visual Speedometer / Circular Gauge */}
           <div
             style={{
-              width: 120,
-              height: 120,
+              width: 130,
+              height: 130,
               borderRadius: "50%",
               flexShrink: 0,
               background: `conic-gradient(${healthColor} 0%, ${healthColor} ${Math.min(data.coveragePct, 100) * 3.6}deg, var(--t-line) 0deg)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: `0 0 15px color-mix(in srgb, ${healthColor} 20%, transparent), inset 0 0 10px rgba(0,0,0,0.05)`,
-              position: "relative",
+              boxShadow: `0 0 20px color-mix(in srgb, ${healthColor} 22%, transparent)`,
             }}
           >
             <div
               style={{
-                width: 98,
-                height: 98,
+                width: 104,
+                height: 104,
                 borderRadius: "50%",
-                background: "color-mix(in srgb, var(--surface-0) 88%, transparent)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
+                background: "var(--surface-0)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "1.5px solid var(--t-line)",
-                boxShadow: "var(--shadow-sm)",
+                border: `2px solid var(--t-line)`,
               }}
             >
               <div
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: 28,
-                  fontWeight: 600,
+                  fontSize: 32,
+                  fontWeight: 900,
                   color: healthColor,
                   lineHeight: 1,
-                  letterSpacing: "-0.03em",
                 }}
               >
                 {animatedMonthsCovered.toFixed(1)}
@@ -173,8 +256,8 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                   color: THEME.muted,
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  marginTop: 4,
+                  letterSpacing: "0.08em",
+                  marginTop: 2,
                 }}
               >
                 months
@@ -183,625 +266,420 @@ export const EmergencyFundTab = ({ state, metrics }) => {
           </div>
 
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <Badge variant={ef.badgeVariant}>{healthLabel}</Badge>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: healthColor,
+                  background: `color-mix(in srgb, ${healthColor} 14%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${healthColor} 30%, transparent)`,
+                  padding: "3px 10px",
+                  borderRadius: "var(--radius-xs)",
+                }}
+              >
+                {healthLabel}
+              </span>
+              <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                {burnMode === "survival" ? "⚡ Calculated on Bare-Bones Survival Mode" : "Standard Full Expense Mode"}
+              </span>
             </div>
-            <div style={{ fontSize: 14, color: THEME.ink, marginBottom: 12 }}>
-              Your liquid assets can cover <strong>{data.monthsCovered.toFixed(1)} months</strong>{" "}
-              of expenses.
-              {data.monthsCovered < 6 && (
-                <span style={{ color: THEME.rust, fontWeight: 500 }}>
+
+            <div style={{ fontSize: 15, color: THEME.ink, marginBottom: 12, lineHeight: 1.4 }}>
+              Your liquid assets of <strong>{fmtINRFull(data.totalLiquid)}</strong> can support you for{" "}
+              <strong style={{ color: healthColor }}>{data.monthsCovered.toFixed(1)} months</strong> without any active income.
+              {data.monthsCovered < 6 ? (
+                <span style={{ color: THEME.rust, fontWeight: 600 }}>
                   {" "}
-                  Target is at least 6 months.
+                  Target buffer is at least 6.0 months ({fmtINRFull(data.targetAmount)}).
+                </span>
+              ) : (
+                <span style={{ color: THEME.sage, fontWeight: 600 }}>
+                  {" "}
+                  Your financial runway is completely fortified!
                 </span>
               )}
             </div>
 
-            {/* Progress bar */}
-            <div className="progress-track" style={{ height: 8, marginTop: 12, marginBottom: 8 }}>
+            {/* Progress Track */}
+            <div style={{ height: 10, borderRadius: 5, background: "var(--t-line)", overflow: "hidden", position: "relative", marginBottom: 6 }}>
               <div
                 style={{
                   height: "100%",
-                  borderRadius: "var(--radius-full)",
                   width: `${Math.min(100, data.coveragePct)}%`,
-                  background: `linear-gradient(90deg, ${healthColor}, color-mix(in srgb, ${healthColor} 65%, white))`,
+                  background: `linear-gradient(90deg, ${healthColor}, color-mix(in srgb, ${healthColor} 70%, white))`,
+                  borderRadius: 5,
                   transition: "width 0.8s var(--ease-premium)",
-                  position: "relative",
                 }}
-                className="progress-fill"
               />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-              <span style={{ fontSize: 11, color: THEME.muted }}>0 months</span>
-              <span style={{ fontSize: 11, color: THEME.muted }}>6 months (target)</span>
-              <span style={{ fontSize: 11, color: THEME.muted }}>12 months</span>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted }}>
+              <span>0m (Vulnerable)</span>
+              <span style={{ fontWeight: 700, color: THEME.ink }}>6m Target Buffer</span>
+              <span>12m+ (Bulletproof)</span>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Stats Grid */}
+      {/* Primary Stats Grid */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 14,
-          marginTop: 16,
+          marginBottom: 24,
         }}
       >
         <StatCard
-          label="Liquid Assets"
+          label="Total Liquid Assets"
           value={fmtINRFull(data.totalLiquid)}
           numericValue={data.totalLiquid}
           formatValue={fmtINRFull}
-          sub="Bank accounts, FDs maturing within 90 days & liquid funds"
+          sub="Bank balances + liquid MF + instant FDs"
           icon={<IndianRupee />}
           color={THEME.sage}
         />
         <StatCard
-          label="Monthly Expenses"
+          label={burnMode === "survival" ? "Survival Burn / Mo" : "Monthly Expenses"}
           value={fmtINRFull(data.monthlyExpense)}
           numericValue={data.monthlyExpense}
           formatValue={fmtINRFull}
-          sub="Calculated active monthly commitments"
+          sub={burnMode === "survival" ? "Essential rent, EMIs & food" : "Active commitments & living cost"}
           icon={<Wallet />}
           color={THEME.gold}
         />
         <StatCard
-          label="6-Month Target"
+          label="6-Month Target Buffer"
           value={fmtINRFull(data.targetAmount)}
           numericValue={data.targetAmount}
           formatValue={fmtINRFull}
-          sub="Standard security buffer target amount"
+          sub="Recommended peace-of-mind reserve"
           icon={<Target />}
           color={THEME.accent}
         />
         <StatCard
-          label="Gap to Fill"
+          label="Emergency Reserve Gap"
           value={data.gap > 0 ? fmtINRFull(data.gap) : "Fully Funded!"}
           numericValue={data.gap > 0 ? data.gap : undefined}
           formatValue={fmtINRFull}
-          sub={
-            data.gap > 0
-              ? "Shortfall to reach 6-month buffer"
-              : "You have achieved perfect security!"
-          }
-          subColor={data.gap > 0 ? "var(--t-rust)" : "var(--t-sage)"}
+          sub={data.gap > 0 ? "Shortfall to reach 6-month buffer" : "Zero emergency shortfall"}
           icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />}
           color={data.gap > 0 ? THEME.rust : THEME.sage}
         />
       </div>
 
-      {/* Liquid Assets Breakdown */}
-      <Card style={{ marginTop: 16 }}>
-        <div style={{ padding: 20 }}>
+      {/* 3-Tier Liquidity Waterfall Architecture */}
+      <Card style={{ marginBottom: 24, padding: 22 }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: THEME.muted,
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Zap size={14} color={THEME.accent} /> 3-Tier Liquidity Waterfall
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+          {/* Tier 1: Instant T+0 */}
           <div
             style={{
+              padding: 16,
+              borderRadius: "var(--radius-lg)",
+              background: `color-mix(in srgb, ${THEME.accent} 5%, var(--surface-0))`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Tier 1: T+0 Instant
+              </span>
+              <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>Immediate Access</span>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, marginBottom: 4 }}>
+              <Money value={data.tier1} variant="full" />
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Savings bank accounts & cash in hand. Available 24x7 via UPI & ATM.
+            </div>
+          </div>
+
+          {/* Tier 2: Near-Term T+1 */}
+          <div
+            style={{
+              padding: 16,
+              borderRadius: "var(--radius-lg)",
+              background: `color-mix(in srgb, ${THEME.sage} 5%, var(--surface-0))`,
+              border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: THEME.sage, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Tier 2: T+1 Liquid Funds
+              </span>
+              <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>Next Day Access</span>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, marginBottom: 4 }}>
+              <Money value={data.tier2} variant="full" />
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Liquid mutual funds & overnight funds with high yield and fast redemption.
+            </div>
+          </div>
+
+          {/* Tier 3: Secondary T+3 */}
+          <div
+            style={{
+              padding: 16,
+              borderRadius: "var(--radius-lg)",
+              background: `color-mix(in srgb, ${THEME.gold} 5%, var(--surface-0))`,
+              border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: THEME.gold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Tier 3: T+3 Buffer
+              </span>
+              <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>Short-Term FD / Cards</span>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, marginBottom: 4 }}>
+              <Money value={data.tier3} variant="full" />
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              FDs maturing within 90 days, sweep-in accounts, and prepaid card wallets.
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Stress-Test Simulation Scenarios */}
+      <Card style={{ marginBottom: 24, padding: 22 }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: THEME.muted,
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Flame size={14} color={THEME.rust} /> Emergency Stress-Test Scenarios
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+          {/* Scenario 1: Sudden Income Pause */}
+          <div
+            style={{
+              padding: 16,
+              borderRadius: "var(--radius-md)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <ShieldAlert size={16} color={THEME.rust} />
+              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Sudden Job Loss (6 Mos)</div>
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 10 }}>
+              Burn needed: <Money value={data.monthlyExpense * 6} variant="full" />
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: data.totalLiquid >= data.monthlyExpense * 6 ? THEME.sage : THEME.rust }}>
+              {data.totalLiquid >= data.monthlyExpense * 6
+                ? "✓ Fully Protected: Liquid assets cover entire 6 months"
+                : `✗ Deficit: Short by ${fmtINR(data.monthlyExpense * 6 - data.totalLiquid)}`}
+            </div>
+          </div>
+
+          {/* Scenario 2: Medical Emergency Shock */}
+          <div
+            style={{
+              padding: 16,
+              borderRadius: "var(--radius-md)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <HeartPulse size={16} color={THEME.pink} />
+              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Medical Out-of-Pocket (₹3L)</div>
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 10 }}>
+              Liquid remaining: <Money value={Math.max(0, data.totalLiquid - 300000)} variant="full" />
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: data.totalLiquid > 300000 ? THEME.sage : THEME.rust }}>
+              {data.totalLiquid > 300000
+                ? `✓ Runway after shock: ${((data.totalLiquid - 300000) / (data.monthlyExpense || 1)).toFixed(1)} months`
+                : "✗ Critical: Liquid assets would be fully depleted"}
+            </div>
+          </div>
+
+          {/* Scenario 3: Major Vehicle / Home Repair */}
+          <div
+            style={{
+              padding: 16,
+              borderRadius: "var(--radius-md)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Home size={16} color={THEME.gold} />
+              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Major Repair Shock (₹1.5L)</div>
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 10 }}>
+              Liquid remaining: <Money value={Math.max(0, data.totalLiquid - 150000)} variant="full" />
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: data.totalLiquid > 150000 ? THEME.sage : THEME.rust }}>
+              {data.totalLiquid > 150000
+                ? `✓ Runway after repair: ${((data.totalLiquid - 150000) / (data.monthlyExpense || 1)).toFixed(1)} months`
+                : "✗ Shortfall: Would require liquidating investments"}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Monthly Expense Breakdown & Itemization */}
+      {data.expenseBreakdown.length > 0 && (
+        <Card style={{ marginBottom: 24, padding: 22 }}>
+          <div
+            style={{
+              fontSize: 12,
               fontWeight: 800,
-              fontSize: 14,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: THEME.muted,
               marginBottom: 16,
-              color: THEME.ink,
               display: "flex",
               alignItems: "center",
               gap: 8,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
             }}
           >
-            <Wallet size={16} style={{ color: THEME.accent }} /> What Counts as Liquid Assets
+            <PieChart size={14} color={THEME.accent} /> Monthly Expense Commitments
           </div>
-          {data.totalLiquid <= 0 ? (
-            <EmptyState
-              icon={Wallet}
-              title="No liquid assets found yet"
-              description="Add bank accounts, liquid mutual funds, or prepaid card balances to start tracking your emergency fund coverage."
-            />
-          ) : (
+
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[
-              {
-                label: "Bank Balances (Savings + Current)",
-                value: data.bankBalance,
-                icon: Landmark,
-                color: THEME.accent,
-              },
-              {
-                label: "Fixed Deposits Maturing Within 90 Days",
-                value: data.fdValue,
-                icon: Calendar,
-                color: THEME.muted,
-              },
-              {
-                label: "Liquid / Money Market Mutual Funds",
-                value: data.liquidMF,
-                icon: TrendingUp,
-                color: THEME.sage,
-              },
-              {
-                label: "Prepaid Card Balances",
-                value: data.prepaidBalance,
-                icon: Wallet,
-                color: THEME.gold,
-              },
-            ]
-              .filter((r) => r.value > 0)
-              .map((r, i) => {
-                const Icon = r.icon;
-                const assetPct = data.totalLiquid > 0 ? (r.value / data.totalLiquid) * 100 : 0;
+            {data.expenseBreakdown
+              .sort((a, b) => b.amount - a.amount)
+              .map((e, i) => {
+                const totalExp = data.expenseBreakdown.reduce((s, x) => s + x.amount, 0);
+                const pct = totalExp > 0 ? (e.amount / totalExp) * 100 : 0;
                 return (
                   <div
                     key={i}
-                    className="card-lift"
                     style={{
-                      padding: "12px 16px",
-                      borderRadius: 12,
-                      background: "color-mix(in srgb, var(--surface-0) 45%, transparent)",
-                      border: "1px solid var(--t-line, var(--border))",
-                      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                      padding: "12px 14px",
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--surface-0)",
+                      border: `1px solid ${THEME.line}`,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
                     }}
                   >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}
-                    >
-                      <div style={{ color: r.color, display: "flex", alignItems: "center", flexShrink: 0 }}>
-                        <Icon size={18} />
-                      </div>
-                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                        {r.label}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontWeight: 800,
-                          fontSize: 14,
-                          color: THEME.ink,
-                        }}
-                      >
-                        <Money value={r.value} variant="full" />
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          color: r.color,
-                          background: `color-mix(in srgb, ${r.color} 12%, transparent)`,
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          minWidth: 42,
-                          textAlign: "center",
-                        }}
-                      >
-                        {assetPct.toFixed(0)}%
-                      </span>
-                    </div>
-                    {/* Proportion bar */}
-                    <div
+                    <e.icon size={16} color={THEME.accent} />
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                      {e.label}{" "}
+                      {e.essential ? (
+                        <span style={{ fontSize: 10, color: THEME.sage, fontWeight: 800 }}>(Essential)</span>
+                      ) : (
+                        <span style={{ fontSize: 10, color: THEME.muted }}>(Discretionary)</span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                      <Money value={e.amount} variant="full" />
+                    </span>
+                    <span
                       style={{
-                        height: 4,
-                        borderRadius: 2,
-                        background: "var(--t-line)",
-                        overflow: "hidden",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: THEME.muted,
+                        minWidth: 40,
+                        textAlign: "right",
                       }}
                     >
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${assetPct}%`,
-                          background: r.color,
-                          borderRadius: 2,
-                        }}
-                      />
-                    </div>
+                      {pct.toFixed(0)}%
+                    </span>
                   </div>
                 );
               })}
           </div>
-          )}
-        </div>
-      </Card>
-
-      {/* Monthly Expense Breakdown */}
-      {data.expenseBreakdown.length > 0 && (
-        <Card style={{ marginTop: 16 }}>
-          <div style={{ padding: 20 }}>
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: 14,
-                marginBottom: 16,
-                color: THEME.ink,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              <PieChart size={16} style={{ color: THEME.accent }} /> Monthly Expense Allocation
-            </div>
-            {(() => {
-              // Bug fix: this breakdown's line items (EMIs, rent, SIPs, subscriptions,
-              // recurring expenses, insurance) are always computed bottom-up, but the
-              // "Monthly Expenses" figure used for the months-covered calc above prefers
-              // a manually-set Budget total when one exists — the two can legitimately
-              // differ (a budget rarely itemizes every commitment 1:1). Dividing each
-              // line item by that *different* total previously produced percentages
-              // that could sum to 400%+ instead of 100%. Percentages here are now
-              // relative to the sum of the items actually shown, which always adds up.
-              const breakdownTotal = data.expenseBreakdown.reduce((s, e) => s + e.amount, 0);
-              const usesDifferentTotal =
-                Math.abs(breakdownTotal - data.monthlyExpense) > Math.max(1, data.monthlyExpense * 0.01);
-              return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {data.expenseBreakdown
-                .sort((a, b) => b.amount - a.amount)
-                .map((e, i) => {
-                  const expPct = breakdownTotal ? (e.amount / breakdownTotal) * 100 : 0;
-                  const barColor =
-                    i === 0
-                      ? THEME.accent
-                      : i === 1
-                        ? THEME.gold
-                        : i === 2
-                          ? THEME.sage
-                          : THEME.muted;
-                  return (
-                    <div
-                      key={i}
-                      className="card-lift"
-                      style={{
-                        padding: "12px 16px",
-                        borderRadius: 12,
-                        background: "color-mix(in srgb, var(--surface-0) 45%, transparent)",
-                        border: "1px solid var(--t-line, var(--border))",
-                        transition: "transform 0.2s ease",
-                      }}
-                    >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}
-                      >
-                        <e.icon size={16} color={THEME.muted} />
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                          {e.label}
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontWeight: 700,
-                            fontSize: 13,
-                            color: THEME.ink,
-                          }}
-                        >
-                          <Money value={e.amount} variant="full" />
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 800,
-                            color: barColor,
-                            background: `color-mix(in srgb, ${barColor} 12%, transparent)`,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            minWidth: 42,
-                            textAlign: "center",
-                          }}
-                        >
-                          {expPct.toFixed(0)}%
-                        </span>
-                      </div>
-                      {/* Allocation bar */}
-                      <div
-                        style={{
-                          height: 4,
-                          borderRadius: 2,
-                          background: "var(--t-line)",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${expPct}%`,
-                            background: barColor,
-                            borderRadius: 2,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "14px 16px",
-                  borderRadius: 12,
-                  background: "color-mix(in srgb, var(--surface-1) 30%, transparent)",
-                  borderTop: `2px solid var(--t-line)`,
-                  marginTop: 6,
-                }}
-              >
-                <IndianRupee size={16} color={THEME.ink} />
-                <span style={{ flex: 1, fontSize: 13, color: THEME.ink, fontWeight: 800 }}>
-                  Sum of Tracked Commitments
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 900,
-                    fontSize: 15,
-                    color: THEME.ink,
-                  }}
-                >
-                  <Money value={breakdownTotal} variant="full" />
-                </span>
-              </div>
-              {usesDifferentTotal && (
-                <div style={{ fontSize: 11, color: THEME.muted, padding: "0 4px" }}>
-                  The <Money value={data.monthlyExpense} variant="full" /> used above for months-covered comes from
-                  your Budget total, which doesn't line up 1:1 with these itemized commitments.
-                </div>
-              )}
-            </div>
-              );
-            })()}
-          </div>
         </Card>
       )}
 
-      {/* Recommendations */}
-      <Card style={{ marginTop: 16 }}>
-        <div style={{ padding: 20 }}>
+      {/* Action Plan & Replenishment Simulator */}
+      {data.gap > 0 && (
+        <Card style={{ padding: 22 }}>
           <div
             style={{
+              fontSize: 12,
               fontWeight: 800,
-              fontSize: 14,
-              marginBottom: 16,
-              color: THEME.ink,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: THEME.muted,
+              marginBottom: 14,
               display: "flex",
               alignItems: "center",
               gap: 8,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
             }}
           >
-            <Info size={16} style={{ color: THEME.accent }} /> Tailored Recommendations
+            <TrendingUp size={14} color={THEME.sage} /> Replenishment & Gap Closure Plan
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {data.monthsCovered < 1 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "color-mix(in srgb, var(--t-rust) 6%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--t-rust) 15%, transparent)",
-                  borderLeft: `4px solid var(--t-rust)`,
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <AlertTriangle
-                  size={18}
-                  style={{ color: THEME.rust, flexShrink: 0, marginTop: 2 }}
-                />
-                <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.4 }}>
-                  <strong
-                    style={{
-                      color: THEME.rust,
-                      textTransform: "uppercase",
-                      fontSize: 11,
-                      display: "block",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Critical Emergency Shortfall
-                  </strong>
-                  You have less than 1 month of expenses covered. Prioritize building your emergency
-                  fund immediately before committing to any other long-term investment channels.
-                </div>
-              </div>
-            )}
-            {data.monthsCovered >= 1 && data.monthsCovered < 3 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "color-mix(in srgb, var(--t-gold) 6%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--t-gold) 15%, transparent)",
-                  borderLeft: `4px solid var(--t-gold)`,
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <AlertTriangle
-                  size={18}
-                  style={{ color: THEME.gold, flexShrink: 0, marginTop: 2 }}
-                />
-                <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.4 }}>
-                  <strong
-                    style={{
-                      color: THEME.gold,
-                      textTransform: "uppercase",
-                      fontSize: 11,
-                      display: "block",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Needs Attention
-                  </strong>
-                  Aim for at least 3 months as your immediate milestone. Consider parking your
-                  buffer in high-yield savings accounts or breakable fixed deposits.
-                </div>
-              </div>
-            )}
-            {data.monthsCovered >= 3 && data.monthsCovered < 6 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "color-mix(in srgb, var(--t-accent) 6%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--t-accent) 15%, transparent)",
-                  borderLeft: `4px solid var(--t-accent)`,
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <Shield size={18} style={{ color: THEME.accent, flexShrink: 0, marginTop: 2 }} />
-                <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.4 }}>
-                  <strong
-                    style={{
-                      color: THEME.accent,
-                      textTransform: "uppercase",
-                      fontSize: 11,
-                      display: "block",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Good Progress
-                  </strong>
-                  You are building a stable buffer. Target 6 months for a complete safety net. We
-                  recommend splitting it: keep 1-2 months in your savings account, and put the rest
-                  in low-risk liquid mutual funds.
-                </div>
-              </div>
-            )}
-            {data.monthsCovered >= 6 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "color-mix(in srgb, var(--t-sage) 6%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--t-sage) 15%, transparent)",
-                  borderLeft: `4px solid var(--t-sage)`,
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <CheckCircle2
-                  size={18}
-                  style={{ color: THEME.sage, flexShrink: 0, marginTop: 2 }}
-                />
-                <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.4 }}>
-                  <strong
-                    style={{
-                      color: THEME.sage,
-                      textTransform: "uppercase",
-                      fontSize: 11,
-                      display: "block",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Fully Prepared!
-                  </strong>
-                  Your emergency reserve is in excellent shape, covering over 6 months of expenses.
-                  Any monthly savings beyond this can be redirected into wealth-building equity or
-                  mutual fund investments.
-                </div>
-              </div>
-            )}
-            {data.gap > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "color-mix(in srgb, var(--t-accent) 4%, transparent)",
-                  border: "1px solid var(--t-line)",
-                  borderLeft: "4px solid var(--t-muted)",
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <TrendingUp
-                  size={18}
-                  style={{ color: THEME.accent, flexShrink: 0, marginTop: 2 }}
-                />
-                <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.4 }}>
-                  <strong
-                    style={{
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      fontSize: 11,
-                      display: "block",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Recommended Savings Target
-                  </strong>
-                  To bridge the target gap of <Money value={data.gap} variant="full" />, allocate{" "}
-                  <strong>
-                    <Money value={data.gap / 6} variant="full" />/month
-                  </strong>{" "}
-                  for 6 months, or{" "}
-                  <strong>
-                    <Money value={data.gap / 12} variant="full" />/month
-                  </strong>{" "}
-                  for 12 months.
-                </div>
-              </div>
-            )}
-            {data.gap > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "color-mix(in srgb, var(--t-sage) 4%, transparent)",
-                  border: "1px solid var(--t-line)",
-                  borderLeft: "4px solid var(--t-sage)",
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <Lock size={18} style={{ color: THEME.sage, flexShrink: 0, marginTop: 2 }} />
-                <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.4 }}>
-                  <strong
-                    style={{
-                      color: THEME.sage,
-                      textTransform: "uppercase",
-                      fontSize: 11,
-                      display: "block",
-                      marginBottom: 2,
-                    }}
-                  >
-                    At Your Current Pace
-                  </strong>
-                  {monthsToTarget !== null ? (
-                    <>
-                      You're saving <Money value={monthlySurplus} variant="full" />/month on average. Keep
-                      that up and you'll close the gap in{" "}
-                      <strong>
-                        {monthsToTarget < 1
-                          ? "under a month"
-                          : `about ${Math.ceil(monthsToTarget)} month${Math.ceil(monthsToTarget) === 1 ? "" : "s"}`}
-                      </strong>
-                      , around{" "}
-                      <strong>
-                        {new Date(
-                          Date.now() + Math.ceil(monthsToTarget) * 30.44 * 86400000
-                        ).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
-                      </strong>
-                      .
-                    </>
-                  ) : (
-                    <>
-                      This month's income doesn't leave a surplus over expenses, so there's nothing
-                      to project a payoff date from yet. Redirecting even a small recurring amount
-                      here will start closing the gap.
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+
+          <div style={{ fontSize: 13, color: THEME.ink, marginBottom: 16 }}>
+            To eliminate the remaining gap of <strong>{fmtINRFull(data.gap)}</strong> and reach your complete 6-month safety buffer:
           </div>
-        </div>
-      </Card>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
+            <div style={{ padding: 14, borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>In 3 Months</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: THEME.accent }}>{fmtINR(data.gap / 3)}/mo</div>
+            </div>
+            <div style={{ padding: 14, borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>In 6 Months</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>{fmtINR(data.gap / 6)}/mo</div>
+            </div>
+            <div style={{ padding: 14, borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>In 12 Months</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: THEME.gold }}>{fmtINR(data.gap / 12)}/mo</div>
+            </div>
+          </div>
+
+          {monthsToTarget !== null && (
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "var(--radius-md)",
+                background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+                fontSize: 13,
+                color: THEME.ink,
+              }}
+            >
+              At your current monthly surplus of <strong>{fmtINRFull(activeMonthlyAllocation)}/mo</strong>, you will fully fund this gap in{" "}
+              <strong>{Math.ceil(monthsToTarget)} months</strong> (by{" "}
+              {new Date(Date.now() + Math.ceil(monthsToTarget) * 30.44 * 86400000).toLocaleDateString("en-IN", {
+                month: "short",
+                year: "numeric",
+              })}
+              ).
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 };
