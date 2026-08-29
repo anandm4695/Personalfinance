@@ -234,23 +234,42 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
   const inflows = useMemo(() => {
     const sources: { name: string; monthly: number; icon: any; category: string }[] = [];
 
-    // 1. Salary. Was checking `i.category`, which on an income_entries row
-    // only ever holds "active"/"passive" (see migration 34) — the field that
-    // actually carries "Salary"/"Freelance"/"Dividend"/"Bonus" is `i.source`.
-    // This meant salary income could never be detected here; every income
-    // entry silently fell into "Other Income" below regardless of its real
-    // source.
-    const salaryEntries = (state.income || []).filter((i: any) =>
-      (i.source || "").toLowerCase().includes("salary")
-    );
-    if (salaryEntries.length > 0) {
-      // Use latest salary entry
-      const sorted = [...salaryEntries].sort((a: any, b: any) =>
-        (b.date || "").localeCompare(a.date || "")
+    // 1. Salary.
+    // Checks salary slips (structured net take-home pay) first as the primary source of truth.
+    const slips: any[] = state.salarySlips || [];
+    let salaryMonthly = 0;
+
+    if (slips.length > 0) {
+      // Group by owner to capture latest monthly net take-home salary per working member
+      const ownerLatestSlip = new Map<string, any>();
+      slips.forEach((sl: any) => {
+        const ownerKey = sl.owner || "self";
+        const current = ownerLatestSlip.get(ownerKey);
+        if (!current || (sl.slipMonth || "").localeCompare(current.slipMonth || "") > 0) {
+          ownerLatestSlip.set(ownerKey, sl);
+        }
+      });
+      salaryMonthly = Array.from(ownerLatestSlip.values()).reduce(
+        (sum, sl) => sum + Number(sl.netSalary || 0),
+        0
       );
-      const latest = Number(sorted[0]?.amount || 0);
-      if (latest > 0)
-        sources.push({ name: "Salary", monthly: latest, icon: Wallet, category: "Salary" });
+    }
+
+    // If no salary slips recorded, fallback to income entries matching "salary"
+    if (salaryMonthly <= 0) {
+      const salaryEntries = (state.income || []).filter((i: any) =>
+        (i.source || "").toLowerCase().includes("salary")
+      );
+      if (salaryEntries.length > 0) {
+        const sorted = [...salaryEntries].sort((a: any, b: any) =>
+          (b.date || "").localeCompare(a.date || "")
+        );
+        salaryMonthly = Number(sorted[0]?.amount || 0);
+      }
+    }
+
+    if (salaryMonthly > 0) {
+      sources.push({ name: "Salary", monthly: salaryMonthly, icon: Wallet, category: "Salary" });
     }
 
     // 2. Rental Income
@@ -360,6 +379,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
     return sources;
   }, [
+    state.salarySlips,
     state.income,
     state.rentalProperties,
     state.dividends,
