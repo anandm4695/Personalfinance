@@ -820,7 +820,7 @@ function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
       setRcStatus("ok");
       setRcSource(data.source || "");
       setRcMsg(
-        `✓ Auto-filled via ${data.source || "VAHAN"}` +
+        `Auto-filled via ${data.source || "VAHAN"}` +
           (data.ownerName ? ` · Owner: ${data.ownerName}` : "") +
           (data.rto ? ` · RTO: ${data.rto}` : "")
       );
@@ -1032,9 +1032,13 @@ function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
               background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
               border: `1px solid ${THEME.sage}`,
               color: THEME.sage,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
             }}
           >
-            {rcMsg}
+            <CheckCircle size={13} style={{ flexShrink: 0 }} />
+            <span>{rcMsg}</span>
           </div>
         )}
         {rcStatus === "error" && (
@@ -1047,9 +1051,13 @@ function VehicleModal({ existing, onClose, onSave, saving = false }: any) {
               background: `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
               border: `1px solid ${THEME.rust}`,
               color: THEME.rust,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
             }}
           >
-            ✕ {rcMsg}
+            <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+            <span>{rcMsg}</span>
           </div>
         )}
       </Field>
