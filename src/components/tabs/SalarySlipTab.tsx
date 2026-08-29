@@ -19,6 +19,10 @@ import {
   Download,
   Award,
   X,
+  Copy,
+  CopyPlus,
+  Zap,
+  RotateCcw,
 } from "lucide-react";
 import {
   BarChart,
@@ -175,6 +179,48 @@ function shiftMonth(ym: string, delta: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// Clones a source slip's components into a new slip structure, defaulting to next month.
+function makeClonedSlip(sourceSlip: any, targetMonth?: string) {
+  if (!sourceSlip) return { ...EMPTY, slipMonth: today().slice(0, 7) };
+  const nextMonth = targetMonth || shiftMonth(sourceSlip.slipMonth || today().slice(0, 7), 1);
+  return {
+    ...EMPTY,
+    owner: sourceSlip.owner || "self",
+    employer: sourceSlip.employer || "",
+    slipMonth: nextMonth,
+    basic: sourceSlip.basic != null ? String(sourceSlip.basic) : "",
+    hra: sourceSlip.hra != null ? String(sourceSlip.hra) : "",
+    educationAllowance:
+      sourceSlip.educationAllowance != null ? String(sourceSlip.educationAllowance) : "",
+    lta: sourceSlip.lta != null ? String(sourceSlip.lta) : "",
+    specialAllowance:
+      sourceSlip.specialAllowance != null ? String(sourceSlip.specialAllowance) : "",
+    employerNpsContribution:
+      sourceSlip.employerNpsContribution != null ? String(sourceSlip.employerNpsContribution) : "",
+    da: sourceSlip.da != null ? String(sourceSlip.da) : "",
+    bonus: sourceSlip.bonus != null ? String(sourceSlip.bonus) : "",
+    otherEarnings: sourceSlip.otherEarnings != null ? String(sourceSlip.otherEarnings) : "",
+    grossSalary: sourceSlip.grossSalary != null ? String(sourceSlip.grossSalary) : "",
+    pfEmployee: sourceSlip.pfEmployee != null ? String(sourceSlip.pfEmployee) : "",
+    pfEmployer: sourceSlip.pfEmployer != null ? String(sourceSlip.pfEmployer) : "",
+    esiEmployee: sourceSlip.esiEmployee != null ? String(sourceSlip.esiEmployee) : "",
+    professionalTax:
+      sourceSlip.professionalTax != null ? String(sourceSlip.professionalTax) : "",
+    tds: sourceSlip.tds != null ? String(sourceSlip.tds) : "",
+    incomeTax: sourceSlip.incomeTax != null ? String(sourceSlip.incomeTax) : "",
+    npsDeduction: sourceSlip.npsDeduction != null ? String(sourceSlip.npsDeduction) : "",
+    otherDeductions:
+      sourceSlip.otherDeductions != null ? String(sourceSlip.otherDeductions) : "",
+    totalDeductions:
+      sourceSlip.totalDeductions != null ? String(sourceSlip.totalDeductions) : "",
+    netSalary: sourceSlip.netSalary != null ? String(sourceSlip.netSalary) : "",
+    notes: sourceSlip.notes || "",
+    rawText: "",
+    _clonedFromMonth: sourceSlip.slipMonth,
+    _clonedFromEmployer: sourceSlip.employer,
+  };
+}
+
 /* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
 const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   if (!active || !payload?.length) return null;
@@ -231,6 +277,48 @@ function SlipForm({ initial, onSave, onClose, apiKey, existingSlips, familyProfi
   const [grossTouched, setGrossTouched] = useState(false);
   const [deductTouched, setDeductTouched] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  const eligibleCopySlips = useMemo(() => {
+    return (existingSlips || [])
+      .filter((s: any) => s.id !== initial?.id)
+      .sort((a: any, b: any) => (b.slipMonth || "").localeCompare(a.slipMonth || ""));
+  }, [existingSlips, initial]);
+
+  const handleCopyFromSlip = (sourceId: string) => {
+    const src = (existingSlips || []).find((s: any) => s.id === sourceId);
+    if (!src) return;
+    setForm((prev: any) => ({
+      ...prev,
+      employer: src.employer || prev.employer,
+      basic: src.basic != null ? String(src.basic) : "",
+      hra: src.hra != null ? String(src.hra) : "",
+      educationAllowance:
+        src.educationAllowance != null ? String(src.educationAllowance) : "",
+      lta: src.lta != null ? String(src.lta) : "",
+      specialAllowance: src.specialAllowance != null ? String(src.specialAllowance) : "",
+      employerNpsContribution:
+        src.employerNpsContribution != null ? String(src.employerNpsContribution) : "",
+      da: src.da != null ? String(src.da) : "",
+      bonus: src.bonus != null ? String(src.bonus) : "",
+      otherEarnings: src.otherEarnings != null ? String(src.otherEarnings) : "",
+      grossSalary: src.grossSalary != null ? String(src.grossSalary) : "",
+      pfEmployee: src.pfEmployee != null ? String(src.pfEmployee) : "",
+      pfEmployer: src.pfEmployer != null ? String(src.pfEmployer) : "",
+      esiEmployee: src.esiEmployee != null ? String(src.esiEmployee) : "",
+      professionalTax: src.professionalTax != null ? String(src.professionalTax) : "",
+      tds: src.tds != null ? String(src.tds) : "",
+      incomeTax: src.incomeTax != null ? String(src.incomeTax) : "",
+      npsDeduction: src.npsDeduction != null ? String(src.npsDeduction) : "",
+      otherDeductions: src.otherDeductions != null ? String(src.otherDeductions) : "",
+      totalDeductions: src.totalDeductions != null ? String(src.totalDeductions) : "",
+      netSalary: src.netSalary != null ? String(src.netSalary) : "",
+      _clonedFromMonth: src.slipMonth,
+      _clonedFromEmployer: src.employer,
+    }));
+    setNetSalaryTouched(false);
+    setGrossTouched(false);
+    setDeductTouched(false);
+  };
 
   const parseWithAI = useCallback(async () => {
     if (!form.rawText.trim()) return;
@@ -331,7 +419,117 @@ Return only the JSON, no explanation.`;
           .salary-slip-components-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
+      {form._clonedFromMonth && !initial?.id && (
+        <div
+          style={{
+            background: "color-mix(in srgb, var(--accent) 8%, var(--surface-0))",
+            border: `1.5px solid color-mix(in srgb, var(--accent) 25%, transparent)`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            marginBottom: 16,
+            fontSize: 12.5,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: THEME.ink }}>
+            <Sparkles size={15} color="var(--accent)" style={{ flexShrink: 0 }} />
+            <span>
+              Pre-filled from{" "}
+              <strong>
+                {new Date(form._clonedFromMonth + "-01").toLocaleDateString("en-IN", {
+                  month: "short",
+                  year: "numeric",
+                })}
+              </strong>
+              {form._clonedFromEmployer ? ` (${form._clonedFromEmployer})` : ""}.
+              Review and click Save, or edit any changed fields.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setForm({
+                ...EMPTY,
+                owner: form.owner,
+                slipMonth: form.slipMonth,
+                employer: form.employer,
+              })
+            }
+            style={{
+              background: "transparent",
+              border: "none",
+              color: THEME.muted,
+              fontSize: 11.5,
+              cursor: "pointer",
+              textDecoration: "underline",
+              whiteSpace: "nowrap",
+              padding: 0,
+            }}
+          >
+            Clear to blank
+          </button>
+        </div>
+      )}
+
       <ModalSection title="Slip Info" first />
+
+      {eligibleCopySlips.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            padding: "8px 12px",
+            borderRadius: 10,
+            background: "var(--surface-1, rgba(0,0,0,0.02))",
+            border: `1px solid ${THEME.line}`,
+            marginBottom: 12,
+            fontSize: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted, fontWeight: 500 }}>
+            <Copy size={13} color="var(--accent)" />
+            <span>Copy breakdown from past slip:</span>
+          </div>
+          <select
+            className="form-input"
+            style={{
+              width: "auto",
+              maxWidth: 260,
+              fontSize: 12,
+              padding: "4px 8px",
+              height: "auto",
+              minHeight: 28,
+            }}
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) {
+                handleCopyFromSlip(e.target.value);
+                e.target.value = "";
+              }
+            }}
+          >
+            <option value="" disabled>
+              Select past month to copy...
+            </option>
+            {eligibleCopySlips.map((sl: any) => (
+              <option key={sl.id} value={sl.id}>
+                {new Date(sl.slipMonth + "-01").toLocaleDateString("en-IN", {
+                  month: "short",
+                  year: "numeric",
+                })}{" "}
+                — {sl.employer || "Employer"} (Net: ₹{Number(sl.netSalary || 0).toLocaleString("en-IN")})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div
         className="salary-slip-info-grid"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 8 }}
@@ -795,12 +993,31 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
     );
   };
 
+  const openNewSlip = (sourceSlip?: any) => {
+    if (sourceSlip) {
+      setModal(makeClonedSlip(sourceSlip));
+      return;
+    }
+    const relevantSlips =
+      ownerFilter === "all" ? slips : slips.filter((s: any) => s.owner === ownerFilter);
+    const sorted = [...relevantSlips].sort((a: any, b: any) =>
+      (b.slipMonth || "").localeCompare(a.slipMonth || "")
+    );
+    const latestSlip = sorted[0] || slips[0];
+
+    if (latestSlip) {
+      setModal(makeClonedSlip(latestSlip));
+    } else {
+      setModal({ ...EMPTY, slipMonth: today().slice(0, 7) });
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle
-        sub="Store monthly salary components — paste any slip text and let Gemini AI extract the details"
+        sub="Store monthly salary components — pre-fills from previous month automatically, or paste slip text with AI"
         rightElement={
-          <Button size="sm" onClick={() => setModal({})}>
+          <Button size="sm" onClick={() => openNewSlip()}>
             <Plus size={14} /> Add Slip
           </Button>
         }
@@ -840,16 +1057,68 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
           title="No Salary Slips Tracked"
           description="Add monthly salary slips to track take-home pay, TDS deducted, PF contributions, and spot trends."
           pills={[
+            "1-Click Auto-Fill",
             "AI Auto-Parse",
             "Gross vs Net Trend",
             "TDS & PF Breakdown",
-            "Monthly Comparison",
           ]}
           buttonLabel="Add First Slip"
-          onAdd={() => setModal({})}
+          onAdd={() => openNewSlip()}
         />
       ) : (
         <>
+          {/* Quick Auto-fill next month banner */}
+          {latest && (
+            <div
+              style={{
+                background: "color-mix(in srgb, var(--accent) 6%, var(--surface-0))",
+                border: `1.5px solid color-mix(in srgb, var(--accent) 22%, transparent)`,
+                borderRadius: 14,
+                padding: "12px 18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--accent)",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Zap size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    Auto-fill next month:{" "}
+                    {new Date(shiftMonth(latest.slipMonth, 1) + "-01").toLocaleDateString("en-IN", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>
+                    {latest.employer || "Employer"} · Net Pay:{" "}
+                    <Money value={latest.netSalary} variant="full" /> · Pre-fills all earnings &
+                    deductions in 1 click
+                  </div>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => openNewSlip(latest)}>
+                <CopyPlus size={14} /> Add Next Month's Slip
+              </Button>
+            </div>
+          )}
           {/* Toolbar: owner filter (multi-profile households only), search, export */}
           <div
             style={{
@@ -1210,6 +1479,26 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                         }}
                       >
                         <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => openNewSlip(s)}
+                        className="icon-btn"
+                        title="Duplicate for next month"
+                        aria-label="Duplicate salary slip for next month"
+                        style={{
+                          background: "var(--surface-0)",
+                          border: `1.5px solid ${THEME.line}`,
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          color: THEME.muted,
+                          width: 28,
+                          height: 28,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Copy size={13} />
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(s.id)}

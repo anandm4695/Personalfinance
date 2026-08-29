@@ -148,6 +148,8 @@ describe("SalarySlipTab Premium UI Statically", () => {
     // Verify slip details and employer name are rendered
     expect(html).toContain("Saroj Landmark Realty LLP");
     expect(html).toContain("Salary Slip Tracker");
+    expect(html).toContain("Auto-fill next month");
+    expect(html).toContain("Next Month");
   });
 });
 
