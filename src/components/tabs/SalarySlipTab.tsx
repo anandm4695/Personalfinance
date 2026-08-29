@@ -683,8 +683,8 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
         month: showingCombined ? `${dateLabel} · ${ownerName(s.owner).split(" ")[0]}` : dateLabel,
         Gross: Number(s.grossSalary || 0),
         Net: Number(s.netSalary || 0),
-        TDS: Number(s.tds || 0),
-        PF: Number(s.pfEmployee || 0),
+        TDS: Number(s.tds || 0) + Number(s.incomeTax || 0),
+        PF: Number(s.pfEmployee || 0) + Number(s.pfEmployer || 0),
       };
     });
 
@@ -699,8 +699,11 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
   );
   const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(-2)}`;
 
-  const totalTDS = fySlips.reduce((s, sl) => s + Number(sl.tds || 0), 0);
-  const totalPF = fySlips.reduce((s, sl) => s + Number(sl.pfEmployee || 0), 0);
+  const totalTDS = fySlips.reduce((s, sl) => s + Number(sl.tds || 0) + Number(sl.incomeTax || 0), 0);
+  const totalPF = fySlips.reduce(
+    (s, sl) => s + Number(sl.pfEmployee || 0) + Number(sl.pfEmployer || 0),
+    0
+  );
   // Scoped to the same FY window as the TDS/PF cards beside it, instead of averaging
   // every slip ever entered — previously this mixed different years' figures into
   // one number while the neighboring cards were FY-only.
@@ -1162,9 +1165,9 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                         </div>
                       </div>
                     )}
-                    {Number(s.tds) > 0 && (
+                    {Number(s.tds || 0) + Number(s.incomeTax || 0) > 0 && (
                       <Badge variant="rust" style={{ fontSize: 9.5, padding: "2px 8px" }}>
-                        TDS <Money value={Number(s.tds)} variant="full" />
+                        TDS <Money value={Number(s.tds || 0) + Number(s.incomeTax || 0)} variant="full" />
                       </Badge>
                     )}
                     <div style={{ display: "flex", gap: 6, marginLeft: 6 }}>

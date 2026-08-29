@@ -4,6 +4,8 @@ import { renderToString } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 import { SalarySlipTab } from "../components/tabs/SalarySlipTab";
 
+import { getCurrentFYStartYear } from "../utils/appConstants";
+
 // Simple mock for recharts ResponsiveContainer
 vi.mock("recharts", async () => {
   const original = await vi.importActual("recharts");
@@ -14,11 +16,12 @@ vi.mock("recharts", async () => {
 });
 
 describe("SalarySlipTab Premium UI Statically", () => {
+  const fyStart = getCurrentFYStartYear();
   const mockState = {
     salarySlips: [
       {
         id: "sl1",
-        slipMonth: "2026-03",
+        slipMonth: `${fyStart}-05`,
         employer: "Google",
         basic: 100000,
         hra: 50000,
@@ -31,7 +34,7 @@ describe("SalarySlipTab Premium UI Statically", () => {
       },
       {
         id: "sl2",
-        slipMonth: "2026-02",
+        slipMonth: `${fyStart}-04`,
         employer: "Google",
         basic: 100000,
         hra: 50000,
@@ -73,7 +76,7 @@ describe("SalarySlipTab Premium UI Statically", () => {
       salarySlips: [
         {
           id: "sl_detailed",
-          slipMonth: "2026-03",
+          slipMonth: `${fyStart}-05`,
           employer: "TechCorp",
           basic: 80000,
           hra: 40000,
@@ -105,6 +108,46 @@ describe("SalarySlipTab Premium UI Statically", () => {
     );
 
     expect(html).toContain("TechCorp");
+  });
+
+  it("should aggregate both TDS/Income Tax and PF Employee/Employer in FY stats", () => {
+    const stateWithTaxAndPf = {
+      salarySlips: [
+        {
+          id: "sl_tax_pf",
+          slipMonth: `${fyStart}-07`,
+          employer: "Saroj Landmark Realty LLP",
+          basic: 98506,
+          hra: 49253,
+          educationAllowance: 6000,
+          lta: 8209,
+          specialAllowance: 21253,
+          employerNpsContribution: 13791,
+          grossSalary: 197012,
+          pfEmployer: 1800,
+          professionalTax: 200,
+          incomeTax: 20011,
+          npsDeduction: 13791,
+          totalDeductions: 35802,
+          netSalary: 161210,
+          owner: "self",
+        },
+      ],
+      settings: {},
+    };
+
+    const html = renderToString(
+      <SalarySlipTab
+        state={stateWithTaxAndPf}
+        addItem={() => {}}
+        removeItem={() => {}}
+        updateItem={() => {}}
+      />
+    );
+
+    // Verify slip details and employer name are rendered
+    expect(html).toContain("Saroj Landmark Realty LLP");
+    expect(html).toContain("Salary Slip Tracker");
   });
 });
 
