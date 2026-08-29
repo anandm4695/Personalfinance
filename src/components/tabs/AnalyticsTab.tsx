@@ -59,6 +59,8 @@ import {
   Bell,
   Clock,
   Moon,
+  Check,
+  X,
 } from "lucide-react";
 import {
   AreaChart,
@@ -3939,11 +3941,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   border: "none",
                   cursor: "pointer",
                   color: THEME.muted,
-                  fontSize: 16,
-                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: 4,
                 }}
               >
-                ✕
+                <X size={15} />
               </button>
             </div>
             <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14, fontWeight: 500 }}>
@@ -3994,11 +3997,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#fff",
-                        fontSize: 11,
-                        fontWeight: 800,
                       }}
                     >
-                      {isVisible ? "✓" : ""}
+                      {isVisible && <Check size={11} strokeWidth={3} />}
                     </div>
                     <span
                       style={{
@@ -11145,16 +11146,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div
                         style={{
                           textAlign: "center",
-                          padding: "30px 20px",
+                          padding: "20px 16px",
                           color: THEME.sage,
                           fontSize: 13,
                           fontWeight: 600,
                           background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
                           borderRadius: 12,
                           border: `1px dashed color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
                         }}
                       >
-                        ✓ Excellent! Your direct stocks have zero overlap with tracked index fund
+                        <CheckCircle2 size={15} /> Excellent! Your direct stocks have zero overlap with tracked index fund
                         holdings.
                       </div>
                     ) : (
@@ -13051,7 +13056,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               }}
                             >
                               Need <Money value={g.monthlyNeeded} variant="full" />/mo ·{" "}
-                              {g.onTrack ? "On track ✓" : "Behind ✗"}
+                              {g.onTrack ? "On track" : "Behind target"}
                             </span>
                           )}
                         </div>
@@ -14954,7 +14959,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                   <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, fontWeight: 700 }}>
                     {dashboardData.totalScore >= 75
-                      ? "Excellent ✓"
+                      ? "Excellent"
                       : dashboardData.totalScore >= 50
                         ? "Good"
                         : "Needs Work"}
@@ -15415,9 +15420,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         padding: "2px 10px",
                         borderRadius: 99,
                         border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
                       }}
                     >
-                      ✓ Complete
+                      <CheckCircle2 size={10} /> Complete
                     </span>
                   ) : (
                     <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
@@ -15544,9 +15552,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               borderRadius: 99,
                               alignSelf: "flex-start",
                               border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
                             }}
                           >
-                            ✓ Earned
+                            <CheckCircle2 size={10} /> Earned
                           </div>
                         )}
                         {isActive && b.progress && (
