@@ -1688,6 +1688,9 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
   const [rcStatus, setRcStatus] = useState<"idle" | "loading" | "ok" | "error" | "nokey">("idle");
   const [rcMsg, setRcMsg] = useState("");
   const [rcSource, setRcSource] = useState("");
+  const [vahanApiKey, setVahanApiKey] = useState(() => localStorage.getItem("vahan_api_key") || "");
+  const [vahanProvider, setVahanProvider] = useState(() => localStorage.getItem("vahan_provider") || "surepass");
+  const [showKeyInput, setShowKeyInput] = useState(false);
 
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
   const canSave = f.make.trim() && f.model.trim();
@@ -1699,23 +1702,37 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
     Number(f.rtoCharges || 0) +
     Number(f.accessoriesCharges || 0);
 
-  const lookupRC = async () => {
-    const reg = (f.registrationNumber || "").trim();
+  const lookupRC = async (overrideKey?: string) => {
+    const reg = (f.registrationNumber || "").trim().toUpperCase().replace(/[\s\-]/g, "");
     if (!reg) {
       setRcStatus("error");
-      setRcMsg("Enter a registration number first");
+      setRcMsg("Enter a vehicle registration number first (e.g. MH02CD1234)");
       return;
     }
     setRcStatus("loading");
     setRcMsg("");
     setRcSource("");
+
+    const activeKey = (overrideKey !== undefined ? overrideKey : vahanApiKey).trim();
+    const headers: Record<string, string> = {};
+    if (activeKey) {
+      if (vahanProvider === "rapidapi") {
+        headers["x-rapidapi-key"] = activeKey;
+      } else if (vahanProvider === "attestr") {
+        headers["x-attestr-token"] = activeKey;
+      } else {
+        headers["x-surepass-token"] = activeKey;
+      }
+    }
+
     try {
-      const r = await fetch(`/api/rc-lookup?reg=${encodeURIComponent(reg)}`);
+      const r = await fetch(`/api/rc-lookup?reg=${encodeURIComponent(reg)}`, { headers });
       const data = await r.json();
       if (!r.ok) {
         if (data.noProvider) {
           setRcStatus("nokey");
-          setRcMsg("");
+          setRcMsg(data.error || "Live VAHAN API token required for real-time authentication.");
+          setShowKeyInput(true);
         } else {
           setRcStatus("error");
           setRcMsg(data.error || "Vehicle not found in VAHAN database");
@@ -1748,9 +1765,10 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
         registeredOwner: data.ownerName || p.registeredOwner,
       }));
       setRcStatus("ok");
-      setRcSource(data.source || "");
+      setRcSource(data.source || "VAHAN");
+      setShowKeyInput(false);
       setRcMsg(
-        `Auto-filled via ${data.source || "VAHAN"}` +
+        `✅ Authenticated via ${data.source || "VAHAN"}` +
           (data.ownerName ? ` · Owner: ${data.ownerName}` : "") +
           (data.rto ? ` · RTO: ${data.rto}` : "") +
           (data.cubicCapacity ? ` · CC: ${data.cubicCapacity}` : "")
@@ -2020,6 +2038,118 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
             {rcStatus === "loading" ? "Fetching VAHAN…" : "Lookup RC"}
           </button>
         </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: "var(--t-muted)" }}>
+            Official Ministry of Road Transport & Highways (MoRTH) Data
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowKeyInput((p) => !p)}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              fontSize: 11,
+              color: THEME.accent,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontWeight: 600,
+            }}
+          >
+            <Settings size={11} /> {showKeyInput ? "Hide VAHAN Key" : "Configure VAHAN API Key"}
+          </button>
+        </div>
+
+        {/* Inline VAHAN API Token Configuration */}
+        {showKeyInput && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: 14,
+              borderRadius: 10,
+              background: "color-mix(in srgb, var(--surface-1) 80%, var(--surface-0))",
+              border: `1px solid ${THEME.accent}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <ShieldCheck size={16} color={THEME.accent} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>
+                Live VAHAN Government API Configuration
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--t-muted)", lineHeight: 1.4 }}>
+              To fetch 100% authentic, real-time government RC records directly from VAHAN, enter your developer API token below. Get 100 free instant calls from{" "}
+              <a
+                href="https://surepass.io"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: THEME.accent, fontWeight: 700, textDecoration: "underline" }}
+              >
+                Surepass.io
+              </a>{" "}
+              or{" "}
+              <a
+                href="https://rapidapi.com"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: THEME.accent, fontWeight: 700, textDecoration: "underline" }}
+              >
+                RapidAPI
+              </a>
+              .
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <select
+                value={vahanProvider}
+                onChange={(e) => {
+                  setVahanProvider(e.target.value);
+                  localStorage.setItem("vahan_provider", e.target.value);
+                }}
+                style={{
+                  ...inp,
+                  width: 130,
+                  fontSize: 12,
+                  padding: "6px 10px",
+                }}
+              >
+                <option value="surepass">Surepass (Recommended)</option>
+                <option value="rapidapi">RapidAPI</option>
+                <option value="attestr">Attestr</option>
+              </select>
+              <input
+                style={{ ...inp, flex: 1, fontSize: 12, padding: "6px 10px" }}
+                value={vahanApiKey}
+                onChange={(e) => {
+                  setVahanApiKey(e.target.value);
+                  localStorage.setItem("vahan_api_key", e.target.value.trim());
+                }}
+                placeholder="Paste API Key / Bearer Token"
+              />
+              <button
+                type="button"
+                onClick={() => lookupRC(vahanApiKey)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: THEME.accent,
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Save & Authenticate
+              </button>
+            </div>
+          </div>
+        )}
 
         {rcStatus === "ok" && (
           <div

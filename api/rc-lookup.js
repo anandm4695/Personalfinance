@@ -27,35 +27,66 @@ module.exports = async function handler(req, res) {
   if (reg.length > 15 || !/^[A-Z0-9]+$/.test(reg))
     return res.status(400).json({ error: "invalid reg param" });
 
+  const surepassToken =
+    req.headers["x-surepass-token"] ||
+    req.query.surepassToken ||
+    process.env.SUREPASS_TOKEN;
+
+  const attestrToken =
+    req.headers["x-attestr-token"] ||
+    req.query.attestrToken ||
+    process.env.ATTESTR_TOKEN;
+
+  const rapidApiKey =
+    req.headers["x-rapidapi-key"] ||
+    req.query.rapidApiKey ||
+    process.env.RAPIDAPI_KEY;
+
   // ── SOURCE 1: Surepass (recommended — 100 free calls) ───────────────────
-  if (process.env.SUREPASS_TOKEN) {
+  if (surepassToken) {
     try {
-      const data = await trySurepass(reg, process.env.SUREPASS_TOKEN);
+      const data = await trySurepass(reg, surepassToken);
       if (data) return res.json(data);
     } catch (err) {
       console.error(`[rc-lookup] Surepass lookup failed for ${reg}:`, err?.message || err);
+      return res.status(502).json({
+        error: `Surepass live VAHAN lookup failed for ${reg}: ${err?.message || "Invalid response"}`,
+      });
     }
   }
 
   // ── SOURCE 2: Attestr ────────────────────────────────────────────────────
-  if (process.env.ATTESTR_TOKEN) {
+  if (attestrToken) {
     try {
-      const data = await tryAttestr(reg, process.env.ATTESTR_TOKEN);
+      const data = await tryAttestr(reg, attestrToken);
       if (data) return res.json(data);
     } catch (err) {
       console.error(`[rc-lookup] Attestr lookup failed for ${reg}:`, err?.message || err);
+      return res.status(502).json({
+        error: `Attestr live VAHAN lookup failed for ${reg}: ${err?.message || "Invalid response"}`,
+      });
     }
   }
 
   // ── SOURCE 3: RapidAPI ───────────────────────────────────────────────────
-  if (process.env.RAPIDAPI_KEY) {
+  if (rapidApiKey) {
     try {
-      const data = await tryRapidApi(reg, process.env.RAPIDAPI_KEY);
+      const data = await tryRapidApi(reg, rapidApiKey);
       if (data) return res.json(data);
     } catch (err) {
       console.error(`[rc-lookup] RapidAPI lookup failed for ${reg}:`, err?.message || err);
+      return res.status(502).json({
+        error: `RapidAPI live VAHAN lookup failed for ${reg}: ${err?.message || "Invalid response"}`,
+      });
     }
   }
+
+  // ── No live API Key configured ──────────────────────────────────────────
+  return res.status(400).json({
+    noProvider: true,
+    error:
+      "Real-time authentic VAHAN data requires a VAHAN API token (Surepass.io, RapidAPI, or Attestr). Add your API key in Settings or enter it to fetch live official government RC details.",
+  });
 
   // ── Fallback to deterministic mock database (if no live data was found) ────
   const mockData = getDeterministicMockVehicle(reg);
