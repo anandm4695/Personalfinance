@@ -95,7 +95,6 @@ describe("TxnHistoryTab Premium UI Statically", () => {
           },
         ],
       };
-
       const html = renderToString(<TxnHistoryTab state={state} removeItem={vi.fn()} />);
 
       expect(html).toContain("Last Day Of FY Txn");
@@ -103,5 +102,77 @@ describe("TxnHistoryTab Premium UI Statically", () => {
     } finally {
       process.env.TZ = originalTZ;
     }
+  });
+
+  it("shows assets bought and sold in the same FY in both Bought and Sold sections", () => {
+    const now = new Date();
+    const currentFYYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const sameFYDateBuy = `${currentFYYear}-05-10`;
+    const sameFYDateSell = `${currentFYYear}-08-20`;
+
+    const state = {
+      stocks: [
+        {
+          id: "s-active",
+          symbol: "INFY.NS",
+          buyDate: sameFYDateBuy,
+          avgPrice: 1500,
+          qty: 20,
+          exchange: "NSE",
+        },
+      ],
+      stockSells: [
+        {
+          id: "s-sold",
+          symbol: "TCS.NS",
+          buyDate: sameFYDateBuy,
+          sellDate: sameFYDateSell,
+          buyPrice: 3000,
+          sellPrice: 3500,
+          qty: 10,
+          profit: 5000,
+          exchange: "NSE",
+        },
+      ],
+      mutualFunds: [
+        {
+          id: "mf-active",
+          name: "Parag Parikh Flexi Cap",
+          buyDate: sameFYDateBuy,
+          buyNav: 50,
+          units: 100,
+          category: "Equity",
+        },
+      ],
+      mfSells: [
+        {
+          id: "mf-sold",
+          scheme: "HDFC Top 100",
+          buyDate: sameFYDateBuy,
+          sellDate: sameFYDateSell,
+          buyNav: 100,
+          sellNav: 120,
+          units: 50,
+          profit: 1000,
+          category: "Equity",
+        },
+      ],
+      transactions: [],
+      demat: [],
+    };
+
+    const html = renderToString(<TxnHistoryTab state={state} removeItem={vi.fn()} />);
+
+    // Active stock in Stocks Bought
+    expect(html).toContain("INFY");
+    // Sold stock TCS MUST be in Stocks Bought AND in Stocks Sold
+    expect(html).toContain("TCS");
+    expect(html).toContain("Sold");
+
+    // Active MF in MF Bought
+    expect(html).toContain("Parag Parikh Flexi Cap");
+    // Sold MF HDFC Top 100 MUST be in MF Bought AND in MF Redeemed
+    expect(html).toContain("HDFC Top 100");
+    expect(html).toContain("Redeemed");
   });
 });

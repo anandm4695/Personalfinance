@@ -456,9 +456,15 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
       fySet.add(m >= 4 ? y : y - 1);
     };
     (state.stocks || []).forEach((s: any) => addFY(s.buyDate));
-    (state.stockSells || []).forEach((s: any) => addFY(s.sellDate));
+    (state.stockSells || []).forEach((s: any) => {
+      addFY(s.sellDate);
+      addFY(s.buyDate);
+    });
     (state.mutualFunds || []).forEach((m: any) => addFY(m.buyDate));
-    (state.mfSells || []).forEach((m: any) => addFY(m.sellDate));
+    (state.mfSells || []).forEach((m: any) => {
+      addFY(m.sellDate);
+      addFY(m.buyDate);
+    });
     (state.transactions || []).forEach((t: any) => addFY(t.date));
     return Array.from(fySet).sort((a, b) => b - a);
   }, [
@@ -470,18 +476,38 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
     currentFY,
   ]);
 
-  const stocksBoughtInFY = useMemo(
-    () =>
-      (state.stocks || [])
-        .filter(
-          (s: any) =>
-            inFY(s.buyDate) &&
-            (!txnDematId || s.dematId === txnDematId) &&
-            matchesSearch(`${s.symbol} ${s.broker}`)
-        )
-        .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
-    [state.stocks, txnDematId, inFY, matchesSearch]
-  );
+  const stocksBoughtInFY = useMemo(() => {
+    const activeBuys = (state.stocks || [])
+      .filter(
+        (s: any) =>
+          inFY(s.buyDate) &&
+          (!txnDematId || s.dematId === txnDematId) &&
+          matchesSearch(`${s.symbol} ${s.broker}`)
+      )
+      .map((s: any) => ({
+        ...s,
+        avgPrice: s.avgPrice !== undefined ? Number(s.avgPrice) : Number(s.buyPrice || 0),
+        isSold: false,
+      }));
+
+    const soldBuys = (state.stockSells || [])
+      .filter(
+        (s: any) =>
+          inFY(s.buyDate) &&
+          (!txnDematId || s.dematId === txnDematId) &&
+          matchesSearch(`${s.symbol} ${s.broker}`)
+      )
+      .map((s: any) => ({
+        ...s,
+        id: s.id ? `sold-buy-${s.id}` : `sold-buy-${Math.random()}`,
+        avgPrice: s.buyPrice !== undefined ? Number(s.buyPrice) : Number(s.avgPrice || 0),
+        isSold: true,
+      }));
+
+    return [...activeBuys, ...soldBuys].sort(
+      (a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()
+    );
+  }, [state.stocks, state.stockSells, txnDematId, inFY, matchesSearch]);
 
   const stocksSoldInFY = useMemo(
     () =>
@@ -496,17 +522,37 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
     [state.stockSells, txnDematId, inFY, matchesSearch]
   );
 
-  const mfBoughtInFY = useMemo(
-    () =>
-      (state.mutualFunds || [])
-        .filter(
-          (m: any) =>
-            inFY(m.buyDate) &&
-            matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`)
-        )
-        .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
-    [state.mutualFunds, inFY, matchesSearch]
-  );
+  const mfBoughtInFY = useMemo(() => {
+    const activeBuys = (state.mutualFunds || [])
+      .filter(
+        (m: any) =>
+          inFY(m.buyDate) &&
+          matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`)
+      )
+      .map((m: any) => ({
+        ...m,
+        isSold: false,
+      }));
+
+    const soldBuys = (state.mfSells || [])
+      .filter(
+        (m: any) =>
+          inFY(m.buyDate) &&
+          matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`)
+      )
+      .map((m: any) => ({
+        ...m,
+        id: m.id ? `sold-buy-${m.id}` : `sold-buy-${Math.random()}`,
+        name: m.scheme || m.name,
+        scheme: m.scheme || m.name,
+        category: m.category || m.mfType || m.type || "Equity",
+        isSold: true,
+      }));
+
+    return [...activeBuys, ...soldBuys].sort(
+      (a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()
+    );
+  }, [state.mutualFunds, state.mfSells, inFY, matchesSearch]);
 
   const mfSoldInFY = useMemo(
     () =>
@@ -559,14 +605,16 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
       hasCurr = false,
       unpriced = 0;
     stocksBoughtInFY.forEach((s: any) => {
-      const curr = livePrice(s, marketData);
       const inv = Number(s.qty) * Number(s.avgPrice);
       invested += inv;
-      if (curr) {
-        pnl += Number(s.qty) * curr - inv;
-        hasCurr = true;
-      } else {
-        unpriced++;
+      if (!s.isSold) {
+        const curr = livePrice(s, marketData);
+        if (curr) {
+          pnl += Number(s.qty) * curr - inv;
+          hasCurr = true;
+        } else {
+          unpriced++;
+        }
       }
     });
     return { invested, pnl, hasCurr, unpriced };
@@ -583,14 +631,16 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
         : m.invested && m.units
           ? Number(m.invested) / Number(m.units)
           : 0;
-      const currNav = Number(m.currentNav || 0);
       const inv = Number(m.units) * buyNav;
       invested += inv;
-      if (currNav) {
-        pnl += Number(m.units) * currNav - inv;
-        hasCurr = true;
-      } else {
-        unpriced++;
+      if (!m.isSold) {
+        const currNav = Number(m.currentNav || 0);
+        if (currNav) {
+          pnl += Number(m.units) * currNav - inv;
+          hasCurr = true;
+        } else {
+          unpriced++;
+        }
       }
     });
     return { invested, pnl, hasCurr, unpriced };
@@ -1098,8 +1148,20 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                       "Unrealized P&L",
                     ],
                     (s) => {
-                      const cp = livePrice(s, marketData);
                       const inv = Number(s.qty) * Number(s.avgPrice);
+                      if (s.isSold) {
+                        return [
+                          s.symbol?.replace(/\.(NS|BO)$/i, ""),
+                          s.exchange || "NSE",
+                          s.qty,
+                          s.buyDate,
+                          s.avgPrice,
+                          inv,
+                          s.sellPrice ? `Sold @ ₹${Number(s.sellPrice).toFixed(2)}` : "Sold",
+                          "Realized",
+                        ];
+                      }
+                      const cp = livePrice(s, marketData);
                       return [
                         s.symbol?.replace(/\.(NS|BO)$/i, ""),
                         s.exchange || "NSE",
@@ -1148,6 +1210,22 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                       >
                         {s.exchange || "NSE"}
                       </span>
+                      {s.isSold && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            marginLeft: 6,
+                            color: THEME.muted,
+                            background: "color-mix(in srgb, var(--surface-2) 80%, transparent)",
+                            border: `1px solid ${THEME.line}`,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Sold
+                        </span>
+                      )}
                     </span>
                   ),
                 },
@@ -1193,6 +1271,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   header: "Curr Price",
                   align: "right",
                   accessor: (s: any) => {
+                    if (s.isSold) {
+                      return (
+                        <span style={{ color: THEME.muted, fontSize: 12 }}>
+                          {s.sellPrice ? <Prv>Sold @ ₹{Number(s.sellPrice).toFixed(2)}</Prv> : "Sold"}
+                        </span>
+                      );
+                    }
                     const curr = livePrice(s, marketData);
                     return curr ? (
                       <span style={{ fontWeight: 600 }}>
@@ -1208,6 +1293,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   header: "Unrealized P&L",
                   align: "right",
                   accessor: (s: any) => {
+                    if (s.isSold) {
+                      return <span style={{ color: THEME.muted, fontSize: 12 }}>Realized</span>;
+                    }
                     const curr = livePrice(s, marketData);
                     const inv = Number(s.qty) * Number(s.avgPrice);
                     const val = Number(s.qty) * curr;
@@ -1413,13 +1501,24 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                       "Unrealized P&L",
                     ],
                     (m) => {
-                      // Matches the buyNav fallback used in mfBoughtTotals/render — CAS-imported
-                      // rows can have an empty buyNav with invested/units populated instead.
                       const buyNav = m.buyNav
                         ? Number(m.buyNav)
                         : m.invested && m.units
                           ? Number(m.invested) / Number(m.units)
                           : 0;
+                      const inv = Number(m.units) * buyNav;
+                      if (m.isSold) {
+                        return [
+                          m.name || m.scheme,
+                          m.category || m.mfType || m.type || "Equity",
+                          m.units,
+                          m.buyDate,
+                          buyNav,
+                          inv,
+                          m.sellNav ? `Redeemed @ ₹${Number(m.sellNav).toFixed(4)}` : "Redeemed",
+                          "Realized",
+                        ];
+                      }
                       const currNav = Number(m.currentNav || 0);
                       return [
                         m.name || m.scheme,
@@ -1427,7 +1526,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                         m.units,
                         m.buyDate,
                         buyNav,
-                        Number(m.units) * buyNav,
+                        inv,
                         // Blank (not 0) when unpriced — matches the "—" the on-screen
                         // table shows instead of implying a fabricated full loss.
                         currNav || "",
@@ -1467,6 +1566,22 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                           }}
                         >
                           {m.category || m.mfType || m.type}
+                        </span>
+                      )}
+                      {m.isSold && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            marginLeft: 6,
+                            color: THEME.muted,
+                            background: "color-mix(in srgb, var(--surface-2) 80%, transparent)",
+                            border: `1px solid ${THEME.line}`,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Redeemed
                         </span>
                       )}
                     </span>
@@ -1528,6 +1643,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   header: "Curr NAV",
                   align: "right",
                   accessor: (m: any) => {
+                    if (m.isSold) {
+                      return (
+                        <span style={{ color: THEME.muted, fontSize: 12 }}>
+                          {m.sellNav ? <Prv>Redeemed @ ₹{Number(m.sellNav).toFixed(4)}</Prv> : "Redeemed"}
+                        </span>
+                      );
+                    }
                     const currNav = Number(m.currentNav || 0);
                     return (
                       <span style={{ fontWeight: 600 }}>
@@ -1541,6 +1663,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   header: "Unrealized P&L",
                   align: "right",
                   accessor: (m: any) => {
+                    if (m.isSold) {
+                      return <span style={{ color: THEME.muted, fontSize: 12 }}>Realized</span>;
+                    }
                     const buyNav = m.buyNav
                       ? Number(m.buyNav)
                       : m.invested && m.units
