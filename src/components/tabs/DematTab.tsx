@@ -194,12 +194,17 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
   const br = Math.round(size * 0.28);
   const pad = Math.round(size * 0.1);
 
-  const imgStyle: React.CSSProperties = { width: "100%", height: "100%", objectFit: "contain" };
+  const imgStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    imageRendering: "-webkit-optimize-contrast",
+  };
   const wrapStyle: React.CSSProperties = {
     width: size,
     height: size,
     borderRadius: br,
-    background: "var(--surface-0)",
+    background: "var(--surface-0, #ffffff)",
     border: `1px solid ${THEME.line}`,
     display: "flex",
     alignItems: "center",
@@ -208,6 +213,7 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
     flexShrink: 0,
     padding: pad,
     boxSizing: "border-box",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
   };
 
   const markFailed = (url: string) => setFailedUrls((prev) => new Set([...prev, url]));
@@ -265,7 +271,7 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
   );
 };
 
-const BrokerLogo = ({
+export const BrokerLogo = ({
   broker,
   theme,
   size,
@@ -276,12 +282,27 @@ const BrokerLogo = ({
   size: number;
   borderRadius: number;
 }) => {
-  const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
+  const raw = (broker || "").toLowerCase().trim();
   let domain = "";
-  for (const [k, d] of Object.entries(BROKER_LOGO_DOMAINS)) {
-    if (key.includes(k)) {
+  const longEntries = Object.entries(BROKER_LOGO_DOMAINS)
+    .filter(([k]) => k.length > 3)
+    .sort((a, b) => b[0].length - a[0].length);
+
+  for (const [k, d] of longEntries) {
+    if (raw.includes(k)) {
       domain = d;
       break;
+    }
+  }
+
+  if (!domain) {
+    const shortEntries = Object.entries(BROKER_LOGO_DOMAINS).filter(([k]) => k.length <= 3);
+    for (const [k, d] of shortEntries) {
+      const regex = new RegExp(`\\b${k}\\b`, "i");
+      if (regex.test(raw)) {
+        domain = d;
+        break;
+      }
     }
   }
 
@@ -318,13 +339,14 @@ const BrokerLogo = ({
           width: size,
           height: size,
           borderRadius,
-          background: "var(--surface-0)",
-          border: `1.5px solid ${`color-mix(in srgb, ${theme.color} 19%, transparent)`}`,
+          background: "var(--surface-0, #ffffff)",
+          border: `1.5px solid color-mix(in srgb, ${theme.color} 25%, transparent)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
           overflow: "hidden",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         }}
       >
         <img
@@ -332,9 +354,10 @@ const BrokerLogo = ({
           alt={broker}
           onError={handleError}
           style={{
-            width: Math.round(size * 0.8),
-            height: Math.round(size * 0.8),
+            width: "72%",
+            height: "72%",
             objectFit: "contain",
+            imageRendering: "-webkit-optimize-contrast",
           }}
         />
       </div>

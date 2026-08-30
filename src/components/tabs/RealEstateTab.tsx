@@ -167,12 +167,27 @@ const BuilderLogo = ({
   borderRadius?: number;
 }) => {
   const theme = getBuilderTheme(name);
-  const key = (name || "").toLowerCase().replace(/[\s\-_.&]+/g, "");
+  const raw = (name || "").toLowerCase().trim();
   let domain = "";
-  for (const [k, d] of Object.entries(BUILDER_LOGO_DOMAINS)) {
-    if (key.includes(k.replace(/[\s\-_.&]+/g, ""))) {
+  const longEntries = Object.entries(BUILDER_LOGO_DOMAINS)
+    .filter(([k]) => k.length > 3)
+    .sort((a, b) => b[0].length - a[0].length);
+
+  for (const [k, d] of longEntries) {
+    if (raw.includes(k)) {
       domain = d;
       break;
+    }
+  }
+
+  if (!domain) {
+    const shortEntries = Object.entries(BUILDER_LOGO_DOMAINS).filter(([k]) => k.length <= 3);
+    for (const [k, d] of shortEntries) {
+      const regex = new RegExp(`\\b${k}\\b`, "i");
+      if (regex.test(raw)) {
+        domain = d;
+        break;
+      }
     }
   }
 
@@ -211,13 +226,14 @@ const BuilderLogo = ({
           width: size,
           height: size,
           borderRadius,
-          background: "var(--surface-0)",
+          background: "var(--surface-0, #ffffff)",
           border: `1.5px solid color-mix(in srgb, ${theme.color} 30%, transparent)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
           overflow: "hidden",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         }}
       >
         <img
@@ -225,9 +241,10 @@ const BuilderLogo = ({
           alt={name}
           onError={handleError}
           style={{
-            width: Math.round(size * 0.8),
-            height: Math.round(size * 0.8),
+            width: "72%",
+            height: "72%",
             objectFit: "contain",
+            imageRendering: "-webkit-optimize-contrast",
           }}
         />
       </div>

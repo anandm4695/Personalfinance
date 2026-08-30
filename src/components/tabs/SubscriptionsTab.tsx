@@ -150,7 +150,8 @@ const ServiceLogo = ({
   if (website && website.trim()) {
     domain = extractDomain(website.trim());
   } else {
-    for (const [k, d] of Object.entries(SUB_LOGOS)) {
+    const longEntries = Object.entries(SUB_LOGOS).sort((a, b) => b[0].length - a[0].length);
+    for (const [k, d] of longEntries) {
       if (n.includes(k)) {
         domain = d;
         break;
@@ -181,26 +182,34 @@ const ServiceLogo = ({
     }
   };
 
+  const br = Math.max(4, Math.round(size * 0.25));
+
   if (domain && fallbackLevel < 2 && imgSrc) {
     return (
       <div
         style={{
           width: size,
           height: size,
-          borderRadius: 10,
-          background: "var(--surface-0)",
+          borderRadius: br,
+          background: "var(--surface-0, #ffffff)",
           border: `1px solid ${THEME.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
           flexShrink: 0,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         }}
       >
         <img
           src={imgSrc}
           alt={name}
-          style={{ width: "80%", height: "80%", objectFit: "contain" }}
+          style={{
+            width: "72%",
+            height: "72%",
+            objectFit: "contain",
+            imageRendering: "-webkit-optimize-contrast",
+          }}
           onError={handleError}
         />
       </div>

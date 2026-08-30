@@ -28,6 +28,9 @@ import { ConfirmDialog } from "../ui/Feedback";
 import { Prv } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
+import { StockLogo } from "./DematTab";
+import { MFLogo } from "./InvestmentsTab";
+import { BankLogo } from "./BanksTab";
 
 const cashTxnAccountLabel = (a: any): string => {
   if (!a) return "";
@@ -198,26 +201,33 @@ const SoldTable = ({
           key: "company",
           header: type === "stock" ? "Company" : "Scheme",
           accessor: (s: any) => (
-            <span>
-              <span style={{ fontWeight: 700, color: THEME.ink }}>
-                {type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}
-              </span>
-              {(type === "stock" || (type === "mf" && s.type)) && (
-                <span
-                  style={{
-                    fontSize: 9,
-                    marginLeft: 6,
-                    color: THEME.muted,
-                    background: "var(--surface-2)",
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    fontWeight: 700,
-                  }}
-                >
-                  {type === "stock" ? s.exchange || "NSE" : s.type}
-                </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {type === "stock" ? (
+                <StockLogo yfSym={s.symbol} size={28} />
+              ) : (
+                <MFLogo fundName={s.scheme} size={28} />
               )}
-            </span>
+              <div>
+                <span style={{ fontWeight: 700, color: THEME.ink }}>
+                  {type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}
+                </span>
+                {(type === "stock" || (type === "mf" && s.type)) && (
+                  <span
+                    style={{
+                      fontSize: 9,
+                      marginLeft: 6,
+                      color: THEME.muted,
+                      background: "var(--surface-2)",
+                      padding: "2px 6px",
+                      borderRadius: 4,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {type === "stock" ? s.exchange || "NSE" : s.type}
+                  </span>
+                )}
+              </div>
+            </div>
           ),
         },
         {
@@ -1893,26 +1903,39 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                 {
                   key: "note",
                   header: "Note / Category",
-                  accessor: (t: any) => (
-                    <span>
-                      <span style={{ fontWeight: 700, color: THEME.ink }}>
-                        {t.note || "General Ledger"}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 9,
-                          marginLeft: 6,
-                          color: THEME.muted,
-                          background: "var(--surface-2)",
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {t.category || "Other"}
-                      </span>
-                    </span>
-                  ),
+                  accessor: (t: any) => {
+                    const bank = state.bankAccounts?.find((b: any) => b.id === t.accountId);
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <BankLogo bankName={bank?.bankName || t.note || "Cash"} size={26} />
+                        <div>
+                          <div>
+                            <span style={{ fontWeight: 700, color: THEME.ink }}>
+                              {t.note || "General Ledger"}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 9,
+                                marginLeft: 6,
+                                color: THEME.muted,
+                                background: "var(--surface-2)",
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {t.category || "Other"}
+                            </span>
+                          </div>
+                          {bank && (
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                              {cashTxnAccountLabel(bank)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  },
                 },
                 {
                   key: "date",
@@ -2163,7 +2186,15 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   : null
               )}
               {row("Category", t.category)}
-              {row("Account", bank ? cashTxnAccountLabel(bank) : null)}
+              {row(
+                "Account",
+                bank ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <BankLogo bankName={bank.bankName} size={18} />
+                    {cashTxnAccountLabel(bank)}
+                  </span>
+                ) : null
+              )}
               {row("Narration", t.narration)}
               {row("Description", t.description)}
               {row("Reference", t.referenceNumber)}

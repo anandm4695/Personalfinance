@@ -9492,10 +9492,8 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd, showToast }: any) =>
 
 /* ── Bank / Institution Logo ─────────────────────────────────────────── */
 const BANK_LOGO_DOMAINS: Record<string, string> = {
-  // Public sector banks
   "state bank": "sbi.co.in",
   sbi: "sbi.co.in",
-  // Private banks
   hdfc: "hdfcbank.com",
   icici: "icicibank.com",
   axis: "axisbank.com",
@@ -9503,7 +9501,7 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "yes bank": "yesbank.in",
   "yes ": "yesbank.in",
   indusind: "indusind.com",
-  indusland: "indusind.com", // common misspelling of IndusInd
+  indusland: "indusind.com",
   rbl: "rblbank.com",
   federal: "federalbank.co.in",
   idfc: "idfcfirstbank.com",
@@ -9514,7 +9512,6 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "karnataka bank": "karnatakabank.com",
   saraswat: "saraswatbank.com",
   jammu: "jkbank.com",
-  // Public sector banks (more)
   "bank of baroda": "bankofbaroda.in",
   bob: "bankofbaroda.in",
   canara: "canarabank.in",
@@ -9526,28 +9523,22 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "central bank": "centralbankofindia.co.in",
   "indian bank": "indianbank.in",
   "uco bank": "ucobank.in",
-  // Post office / Govt savings
   "post office": "indiapost.gov.in",
   "india post": "indiapost.gov.in",
-  // Insurance
   lic: "licindia.in",
-  // Government / RBI (bonds)
   rbi: "rbi.org.in",
   "reserve bank": "rbi.org.in",
   "government of india": "india.gov.in",
   "govt of india": "india.gov.in",
   nabard: "nabard.org",
   nhai: "nhai.gov.in",
-  // NPS PFMs (use AMC domains)
   uti: "utimf.com",
   "aditya birla": "adityabirlacapital.com",
   dsp: "dspim.com",
   tata: "tatamutualfund.com",
   "max life": "maxlifeinsurance.com",
-  // EPFO
   epfo: "epfindia.gov.in",
   "employees provident": "epfindia.gov.in",
-  // NBFCs / Bond issuers
   iifl: "iifl.com",
   "arman financial": "armanindia.com",
   "arman india": "armanindia.com",
@@ -9557,7 +9548,6 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "muthoot fin": "muthootfin.com",
 };
 
-/** Deterministic, legible color for the initials fallback avatar when no accentColor is given */
 function bankInitialsColor(name: string): string {
   const s = name || "?";
   let hash = 0;
@@ -9567,9 +9557,20 @@ function bankInitialsColor(name: string): string {
 }
 
 function getBankDomain(name: string): string {
-  const n = (name || "").toLowerCase().trim();
-  for (const [k, d] of Object.entries(BANK_LOGO_DOMAINS)) {
-    if (n.includes(k)) return d;
+  if (!name) return "";
+  const text = name.toLowerCase().trim();
+  const longEntries = Object.entries(BANK_LOGO_DOMAINS)
+    .filter(([k]) => k.length > 3)
+    .sort((a, b) => b[0].length - a[0].length);
+
+  for (const [k, domain] of longEntries) {
+    if (text.includes(k)) return domain;
+  }
+
+  const shortEntries = Object.entries(BANK_LOGO_DOMAINS).filter(([k]) => k.length <= 3);
+  for (const [k, domain] of shortEntries) {
+    const regex = new RegExp(`\\b${k}\\b`, "i");
+    if (regex.test(text)) return domain;
   }
   return "";
 }
@@ -9620,28 +9621,35 @@ const BankLogo = ({
     (name || "?")[0]?.toUpperCase() ||
     "?";
 
+  const br = Math.max(4, Math.round(size * 0.25));
+
   if (domain && fallbackLevel < 2 && imgSrc) {
     return (
       <div
         style={{
           width: size,
           height: size,
-          borderRadius: Math.round(size * 0.25),
-          background: "var(--surface-0)",
+          borderRadius: br,
+          background: "var(--surface-0, #ffffff)",
           border: `1px solid ${THEME.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
           flexShrink: 0,
-          boxShadow: `0 1px 4px rgba(0,0,0,0.06)`,
+          boxShadow: `0 1px 3px rgba(0,0,0,0.06)`,
         }}
       >
         <img
           src={imgSrc}
           alt={name}
           onError={handleError}
-          style={{ width: "75%", height: "75%", objectFit: "contain" }}
+          style={{
+            width: "72%",
+            height: "72%",
+            objectFit: "contain",
+            imageRendering: "-webkit-optimize-contrast",
+          }}
         />
       </div>
     );
@@ -9652,15 +9660,15 @@ const BankLogo = ({
       style={{
         width: size,
         height: size,
-        borderRadius: Math.round(size * 0.25),
+        borderRadius: br,
         background: `color-mix(in srgb, ${color} 12%, transparent)`,
-        border: `1.5px solid ${`color-mix(in srgb, ${color} 30%, transparent)`}`,
+        border: `1.5px solid color-mix(in srgb, ${color} 30%, transparent)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
         fontWeight: 800,
-        fontSize: Math.round(size * 0.36),
+        fontSize: Math.max(9, Math.round(size * 0.36)),
         color,
         letterSpacing: "-0.02em",
       }}
