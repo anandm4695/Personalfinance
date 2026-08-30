@@ -788,6 +788,7 @@ CREATE TABLE IF NOT EXISTS public.credit_cards (
   auto_pay              boolean DEFAULT false,                 -- 79
   reward_points_balance numeric DEFAULT 0,                     -- 79
   reward_point_value    numeric DEFAULT 0,                     -- 79
+  variants              jsonb DEFAULT '[]'::jsonb,              -- 90
   created_at            timestamp with time zone DEFAULT now()
 );
 
@@ -805,6 +806,7 @@ COMMENT ON COLUMN public.credit_cards.fee_day   IS 'Day of month (1–31) when a
 COMMENT ON COLUMN public.credit_cards.auto_pay IS 'When true, due-date urgency reminders are muted for this card';
 COMMENT ON COLUMN public.credit_cards.reward_points_balance IS 'Current reward/loyalty points balance';
 COMMENT ON COLUMN public.credit_cards.reward_point_value IS 'Redemption value per point (₹) — used to estimate redeemable value';
+COMMENT ON COLUMN public.credit_cards.variants IS 'Linked card variants for dual-card single-account setups (e.g. Scapia Visa + RuPay UPI, Sapphiro MC + Amex)';
 
 
 CREATE TABLE IF NOT EXISTS public.loans (

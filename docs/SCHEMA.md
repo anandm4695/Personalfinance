@@ -367,11 +367,12 @@ Shared table for PPF, NPS, and EPF accounts. The `type` column discriminates bet
 | `shared_group_limit` | numeric | | `0` |
 | `fee_month` | integer | | NULL |
 | `fee_day` | integer | | NULL |
+| `variants` | jsonb | | `'[]'::jsonb` |
 | `created_at` | timestamptz | | `now()` |
 
 **RLS:** `auth.uid() = user_id`
 **Indexes:** `idx_credit_cards_user (user_id)` (migration 33)
-**Migrations:** 01, 02, 03, 04, 37, 44
+**Migrations:** 01, 02, 03, 04, 37, 44, 90
 
 ---
 
@@ -1313,6 +1314,7 @@ Email summary sender (daily/weekly/monthly). Generates a rich HTML email with ne
 | 57 | `57_dividends.sql` | Creates dividends table for stock and MF dividend tracking. Enables RLS. |
 | 58 | `58_documents.sql` | Creates documents table for file vault (metadata with linked records and tags). Enables RLS. |
 | 59 | `59_nw_breakdown.sql` | Adds asset class breakdown columns to net_worth_history: `cash`, `equity`, `debt`, `real_estate`, `vehicles`, `liabilities`, `breakdown` (JSONB). |
+| 90 | `90_credit_card_variants.sql` | Adds `variants` (JSONB) to credit_cards for dual and multi-card variant accounts (e.g. Scapia Visa + RuPay UPI, Sapphiro MC + Amex). |
 
 ---
 
