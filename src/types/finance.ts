@@ -244,3 +244,55 @@ export interface NavGroup {
   title: string;
   items: NavItem[];
 }
+
+// ────────────────────────────────────────────────────────────
+// Credit Card & Variant Models
+// ────────────────────────────────────────────────────────────
+
+export interface CardVariant {
+  id: string;
+  name: string; // e.g. "RuPay UPI", "Virtual Card", "Companion Amex", "Primary Visa"
+  network: string; // "Visa" | "Mastercard" | "RuPay" | "Amex" | "Diners"
+  last4: string;
+  cardType?: "physical" | "virtual" | "addon" | string;
+  status?: "active" | "inactive" | "blocked" | string;
+  notes?: string;
+}
+
+export interface CreditCardTransaction {
+  id: string;
+  date: string;
+  merchant: string;
+  amount: number | string;
+  category: string;
+  variantId?: string; // Links transaction to specific CardVariant (e.g. RuPay UPI vs Primary Visa)
+  variantName?: string;
+}
+
+export interface CreditCardEntity {
+  id: string;
+  issuer: string;
+  network: string;
+  last4: string;
+  limit: string | number;
+  outstanding: string | number;
+  billDate?: string | number;
+  dueDay?: string | number;
+  annualFee?: string | number;
+  feeMonth?: string | number;
+  feeDay?: string | number;
+  interestRate?: string | number;
+  waiverInfo?: string;
+  helpline?: string;
+  transactions?: CreditCardTransaction[];
+  owner?: string;
+  status?: "active" | "closed" | string;
+  closedDate?: string;
+  sharedGroup?: string;
+  sharedGroupLimit?: string | number;
+  autoPay?: boolean;
+  rewardPointsBalance?: string | number;
+  rewardPointValue?: string | number;
+  variants?: CardVariant[]; // Multi-variant linked cards (e.g. Scapia RuPay + Visa, Sapphiro MC + Amex)
+}
+

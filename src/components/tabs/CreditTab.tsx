@@ -1646,7 +1646,15 @@ function CCList({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <BankLogo bankName={c.issuer} size={30} />
-            <CardNetworkLogo network={c.network} />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <CardNetworkLogo network={c.network} />
+              {(c.variants || []).map((v: any, vIdx: number) => (
+                <React.Fragment key={v.id || vIdx}>
+                  <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 700 }}>+</span>
+                  <CardNetworkLogo network={v.network} />
+                </React.Fragment>
+              ))}
+            </div>
           </div>
           {!isClosed && <OwnerBadge owner={c.owner} />}
         </div>
@@ -1723,23 +1731,98 @@ function CCList({
               <path d="M5 22a17 17 0 0 1 17-17" />
               <circle cx="5" cy="7" r="1.5" fill="currentColor" />
             </svg>
+
+            {(c.variants || []).length > 0 && (
+              <div
+                style={{
+                  marginLeft: "auto",
+                  background: "rgba(255,255,255,0.14)",
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "#fef08a",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                <Sparkles size={10} /> Dual Variant Account ({(c.variants || []).length + 1} Cards)
+              </div>
+            )}
           </div>
         )}
 
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 12, letterSpacing: "-0.02em" }}>
           {c.issuer}
         </div>
-        <div
-          style={{
-            fontSize: 16,
-            letterSpacing: "0.08em",
-            marginTop: 8,
-            opacity: 0.9,
-            fontFamily: "monospace",
-            fontWeight: 600,
-          }}
-        >
-          •••• •••• •••• {c.last4 || "••••"}
+
+        {/* Card Number(s) Display */}
+        <div style={{ marginTop: 8 }}>
+          <div
+            style={{
+              fontSize: 15,
+              letterSpacing: "0.08em",
+              opacity: 0.95,
+              fontFamily: "monospace",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <span>•••• •••• •••• {c.last4 || "••••"}</span>
+            <span
+              style={{
+                fontSize: 9.5,
+                padding: "1.5px 6px",
+                borderRadius: 4,
+                background: "rgba(255,255,255,0.18)",
+                color: "#fff",
+                fontFamily: "var(--font-sans, sans-serif)",
+                fontWeight: 700,
+                letterSpacing: "normal",
+              }}
+            >
+              Primary ({c.network})
+            </span>
+          </div>
+
+          {(c.variants || []).map((v: any, vIdx: number) => (
+            <div
+              key={v.id || vIdx}
+              style={{
+                fontSize: 13.5,
+                letterSpacing: "0.06em",
+                marginTop: 4,
+                opacity: 0.88,
+                fontFamily: "monospace",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span>•••• •••• •••• {v.last4 || "••••"}</span>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  padding: "1.5px 6px",
+                  borderRadius: 4,
+                  background: "rgba(254,240,138,0.2)",
+                  color: "#fef08a",
+                  fontFamily: "var(--font-sans, sans-serif)",
+                  fontWeight: 700,
+                  letterSpacing: "normal",
+                }}
+              >
+                {v.name || v.network} {v.cardType === "virtual" ? "· Virtual UPI" : ""}
+              </span>
+            </div>
+          ))}
         </div>
         {isClosed && c.closedDate && (
           <div
@@ -2434,9 +2517,28 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   const { ccTransactionCategories: cats } = useMasterData();
   const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
 
-  // If the card has a manually-entered outstanding but no ledger transactions yet,
-  // seed the ledger with an "Opening Balance" entry so the outstanding is not lost
-  // when the user adds their first transaction.
+  const variantOptions = React.useMemo(() => {
+    const opts = [
+      {
+        id: "primary",
+        name: `Primary (${card.network || "Card"}${card.last4 ? ` •••• ${card.last4}` : ""})`,
+        shortName: `Primary (${card.network || "Card"})`,
+        network: card.network,
+        last4: card.last4,
+      },
+    ];
+    (card.variants || []).forEach((v: any, idx: number) => {
+      opts.push({
+        id: v.id || `variant-${idx}`,
+        name: `${v.name || v.network || "Variant"}${v.last4 ? ` (•••• ${v.last4})` : ""}`,
+        shortName: v.name || v.network || "Variant",
+        network: v.network,
+        last4: v.last4,
+      });
+    });
+    return opts;
+  }, [card]);
+
   const initTxs = React.useMemo(() => {
     const existing = card.transactions || [];
     if (existing.length === 0 && Number(card.outstanding) > 0) {
@@ -2447,29 +2549,31 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
           merchant: "Opening Balance",
           amount: String(card.outstanding),
           category: "General",
+          variantId: "primary",
+          variantName: variantOptions[0]?.name,
         },
       ];
     }
     return existing;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [card, variantOptions]);
 
   const [txs, setTxs] = useState(initTxs);
   const [showAdd, setShowAdd] = useState(false);
+  const [variantFilter, setVariantFilter] = useState<string>("all");
 
-  // Persist the auto-generated opening balance on first render only; including
-  // card.outstanding/initTxs/onUpdate in deps would re-fire on every update.
   React.useEffect(() => {
     if ((card.transactions || []).length === 0 && Number(card.outstanding) > 0) {
       onUpdate(initTxs);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [card.transactions, card.outstanding, initTxs, onUpdate]);
+
   const [newTx, setNewTx] = useState({
     date: today(),
     merchant: "",
     amount: "",
     category: cats[0] || "General",
+    variantId: "primary",
+    variantName: variantOptions[0]?.name || "Primary",
   });
   const [editId, setEditId] = useState<string | null>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
@@ -2484,16 +2588,69 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
     .filter((t: any) => Number(t.amount) > 0)
     .reduce((s: any, t: any) => s + Number(t.amount), 0);
 
+  const variantSpends = React.useMemo(() => {
+    if (variantOptions.length <= 1) return null;
+    const map: Record<string, number> = {};
+    variantOptions.forEach((opt) => {
+      map[opt.id] = 0;
+    });
+    txs.forEach((t: any) => {
+      const amt = Number(t.amount) || 0;
+      if (amt > 0) {
+        const matched =
+          variantOptions.find(
+            (o) =>
+              o.id === t.variantId ||
+              (o.last4 && o.last4 === t.variantId) ||
+              (o.name && o.name === t.variantName)
+          ) || variantOptions[0];
+        map[matched.id] = (map[matched.id] || 0) + amt;
+      }
+    });
+    return map;
+  }, [txs, variantOptions]);
+
+  const displayedTxs = React.useMemo(() => {
+    if (variantFilter === "all") return txs;
+    if (variantFilter === "primary") {
+      return txs.filter(
+        (t: any) =>
+          !t.variantId ||
+          t.variantId === "primary" ||
+          (card.last4 && t.variantId === card.last4)
+      );
+    }
+    return txs.filter(
+      (t: any) =>
+        t.variantId === variantFilter ||
+        t.variantName === variantFilter ||
+        (t.variantId && variantOptions.find((o) => o.id === variantFilter)?.last4 === t.variantId)
+    );
+  }, [txs, variantFilter, card, variantOptions]);
+
   const saveTx = () => {
     if (!newTx.merchant || !newTx.amount) return;
+    const selectedOpt =
+      variantOptions.find((o) => o.id === newTx.variantId) || variantOptions[0];
+    const txToSave = {
+      ...newTx,
+      variantName: selectedOpt?.name || "Primary",
+    };
     const updated = editId
-      ? txs.map((t: any) => (t.id === editId ? { ...newTx, id: editId } : t))
-      : [...txs, { ...newTx, id: uid() }];
+      ? txs.map((t: any) => (t.id === editId ? { ...txToSave, id: editId } : t))
+      : [...txs, { ...txToSave, id: uid() }];
     setTxs(updated);
     onUpdate(updated);
     setShowAdd(false);
     setEditId(null);
-    setNewTx({ date: today(), merchant: "", amount: "", category: cats[0] || "General" });
+    setNewTx({
+      date: today(),
+      merchant: "",
+      amount: "",
+      category: cats[0] || "General",
+      variantId: "primary",
+      variantName: variantOptions[0]?.name || "Primary",
+    });
   };
 
   const removeTx = (id: any) => {
@@ -2508,6 +2665,8 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
       merchant: t.merchant,
       amount: t.amount,
       category: t.category || "General",
+      variantId: t.variantId || "primary",
+      variantName: t.variantName || variantOptions[0]?.name || "Primary",
     });
     setEditId(t.id);
     setShowAdd(true);
@@ -2527,9 +2686,6 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
         setCsvError("No data rows found. See format below.");
         return;
       }
-      // Drop a literal header row (e.g. "date,merchant,amount,category") so a file this
-      // ledger's own Export CSV produced — which always includes a header — can be dropped
-      // back in via file upload/drag without a hard parse error on row 1.
       const firstCol = lines[0].split(",")[0].trim().replace(/^"|"$/g, "");
       if (!firstCol.match(/^\d{4}-\d{2}-\d{2}$/) && /^date$/i.test(firstCol)) {
         lines = lines.slice(1);
@@ -2541,16 +2697,31 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
       const rows = lines.map((line, i) => {
         const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
         if (parts.length < 3) throw new Error(`Row ${i + 1}: need at least date, merchant, amount`);
-        const [date, merchant, amount, category] = parts;
+        const [date, merchant, amount, category, variantTag] = parts;
         if (!date.match(/^\d{4}-\d{2}-\d{2}$/))
           throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD (got "${date}")`);
         const amt = Number(amount);
         if (isNaN(amt)) throw new Error(`Row ${i + 1}: amount must be a number`);
+
+        let matchedVariant = variantOptions[0];
+        if (variantTag) {
+          const vClean = variantTag.toLowerCase();
+          const found = variantOptions.find(
+            (o) =>
+              (o.last4 && vClean.includes(o.last4)) ||
+              (o.name && o.name.toLowerCase().includes(vClean)) ||
+              (o.network && o.network.toLowerCase().includes(vClean))
+          );
+          if (found) matchedVariant = found;
+        }
+
         return {
           date,
           merchant: merchant || "Unknown",
           amount: amt,
           category: category || "General",
+          variantId: matchedVariant.id,
+          variantName: matchedVariant.name,
           id: `cctx-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
         };
       });
@@ -2603,8 +2774,10 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   };
 
   const downloadTemplate = () => {
-    const content =
-      "# Credit Card Transaction Import Template\n# Columns: date, merchant, amount, category\n# date = YYYY-MM-DD | positive amount = charge, negative = payment/credit\n# Lines starting with # are ignored\n2025-01-05,Amazon,2499,Shopping\n2025-01-08,Swiggy,450,Food\n2025-01-10,BookMyShow,800,Entertainment\n2025-01-12,Uber,320,Transport\n2025-01-15,Bill Payment,-5000,Payment";
+    const hasMultiple = variantOptions.length > 1;
+    const content = hasMultiple
+      ? `# Credit Card Transaction Import Template (Single Account with Variants)\n# Columns: date, merchant, amount, category, card_variant\n# date = YYYY-MM-DD | positive amount = charge, negative = payment/credit\n# card_variant = last 4 digits (e.g. ${variantOptions[0].last4 || "4589"} or ${variantOptions[1]?.last4 || "7890"}) or variant name\n2025-01-05,Amazon,2499,Shopping,${variantOptions[0].last4 || "Primary"}\n2025-01-08,Swiggy UPI,450,Food,${variantOptions[1]?.last4 || "RuPay"}\n2025-01-10,BookMyShow,800,Entertainment,${variantOptions[0].last4 || "Primary"}\n2025-01-12,Uber UPI,320,Transport,${variantOptions[1]?.last4 || "RuPay"}\n2025-01-15,Bill Payment,-5000,Payment,Primary`
+      : "# Credit Card Transaction Import Template\n# Columns: date, merchant, amount, category\n# date = YYYY-MM-DD | positive amount = charge, negative = payment/credit\n2025-01-05,Amazon,2499,Shopping\n2025-01-08,Swiggy,450,Food\n2025-01-10,BookMyShow,800,Entertainment\n2025-01-12,Uber,320,Transport\n2025-01-15,Bill Payment,-5000,Payment";
     const blob = new Blob([content], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -2615,16 +2788,23 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   };
 
   const downloadCsv = () => {
-    // Column order must match parseCsvText()'s [date, merchant, amount, category] so a card's
-    // own exported CSV can be re-imported (e.g. into another card, or after a reset) without
-    // amount/category silently swapping places.
-    const header = "date,merchant,amount,category";
+    const hasMultiple = variantOptions.length > 1;
+    const header = hasMultiple
+      ? "date,merchant,amount,category,card_variant"
+      : "date,merchant,amount,category";
     const rows = [...txs]
       .sort((a: any, b: any) => a.date.localeCompare(b.date))
-      .map(
-        (t: any) =>
-          `${t.date},"${(t.merchant || "").replace(/"/g, '""')}",${t.amount},"${(t.category || "General").replace(/"/g, '""')}"`
-      );
+      .map((t: any) => {
+        const opt =
+          variantOptions.find(
+            (o) =>
+              o.id === t.variantId ||
+              (o.last4 && o.last4 === t.variantId) ||
+              (o.name && o.name === t.variantName)
+          ) || variantOptions[0];
+        const base = `${t.date},"${(t.merchant || "").replace(/"/g, '""')}",${t.amount},"${(t.category || "General").replace(/"/g, '""')}"`;
+        return hasMultiple ? `${base},"${(opt.name || "Primary").replace(/"/g, '""')}"` : base;
+      });
     const content = [header, ...rows].join("\n");
     const blob = new Blob([content], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -2637,603 +2817,802 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
 
   return (
     <>
-    <Modal title={`${card.issuer} — Transactions`} onClose={onClose} maxWidth={920}>
-      {/* Summary tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-        {[
-          {
-            label: "Total Charges",
-            value: <Money value={totalCharges} variant="full" />,
-            color: THEME.rust,
-            bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-            border: `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
-          },
-          {
-            label: "Net Outstanding",
-            value: <Money value={totalOutstanding} variant="full" />,
-            color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
-            bg: totalOutstanding > 0 ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)` : `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
-            border: totalOutstanding > 0 ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` : `color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
-          },
-        ].map((s) => (
+      <Modal title={`${card.issuer} — Consolidated Statement & Transactions`} onClose={onClose} maxWidth={940}>
+        {variantOptions.length > 1 && (
           <div
-            key={s.label}
             style={{
-              padding: 14,
-              background: s.bg,
-              border: `1px solid ${s.border}`,
+              padding: "10px 14px",
               borderRadius: 10,
-              textAlign: "center" as const,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 10,
-                color: THEME.muted,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.07em",
-              }}
-            >
-              {s.label}
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 20,
-                fontWeight: 800,
-                color: s.color,
-                marginTop: 4,
-              }}
-            >
-              {s.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Toolbar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ fontSize: 14, fontWeight: 600 }}>
-          Transaction Ledger{" "}
-          <span style={{ fontSize: 11, fontWeight: 400, color: THEME.muted, marginLeft: 6 }}>
-            {txs.length} entries
-          </span>
-        </div>
-        <div
-          style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, justifyContent: "flex-end" }}
-        >
-          <button
-            style={{
-              ...btnGhost,
+              background: "rgba(254,240,138,0.08)",
+              border: "1px solid rgba(254,240,138,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 16,
               fontSize: 12,
-              padding: "6px 14px",
-              color: THEME.accent,
-              borderColor: `color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
-            }}
-            onClick={() => {
-              setShowCsvImport((v) => !v);
-              setShowAdd(false);
             }}
           >
-            <Upload size={13} /> Import CSV
-          </button>
-          {txs.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: THEME.ink }}>
+              <Sparkles size={15} color="#fef08a" />
+              <span>
+                <strong>Dual-Variant Unified Account:</strong> Single consolidated bill & shared limit of{" "}
+                <strong><Money value={card.limit} variant="full" /></strong>
+              </span>
+            </div>
+            <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+              {variantOptions.length} Cards Linked
+            </span>
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+          {[
+            {
+              label: "Total Consolidated Charges",
+              value: <Money value={totalCharges} variant="full" />,
+              color: THEME.rust,
+              bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+              border: `color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
+            },
+            {
+              label: "Consolidated Statement Outstanding",
+              value: <Money value={totalOutstanding} variant="full" />,
+              color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
+              bg:
+                totalOutstanding > 0
+                  ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)`
+                  : `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+              border:
+                totalOutstanding > 0
+                  ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)`
+                  : `color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              style={{
+                padding: 14,
+                background: s.bg,
+                border: `1px solid ${s.border}`,
+                borderRadius: 10,
+                textAlign: "center" as const,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: THEME.muted,
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.07em",
+                }}
+              >
+                {s.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: s.color,
+                  marginTop: 4,
+                }}
+              >
+                {s.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {variantSpends && (
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Spend Breakdown:
+            </div>
+            {variantOptions.map((opt) => {
+              const spent = variantSpends[opt.id] || 0;
+              const pct = totalCharges > 0 ? ((spent / totalCharges) * 100).toFixed(0) : "0";
+              return (
+                <div
+                  key={opt.id}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "3px 10px",
+                    borderRadius: 16,
+                    background: opt.id === "primary" ? "rgba(255,255,255,0.06)" : "rgba(254,240,138,0.1)",
+                    border: `1px solid ${opt.id === "primary" ? THEME.line : "rgba(254,240,138,0.25)"}`,
+                    fontSize: 11.5,
+                  }}
+                >
+                  <CreditCard size={12} color={opt.id === "primary" ? THEME.accent : "#fef08a"} />
+                  <span style={{ fontWeight: 600, color: THEME.ink }}>{opt.shortName}:</span>
+                  <span style={{ fontWeight: 700, color: THEME.rust }}><Money value={spent} variant="exact" /></span>
+                  <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>({pct}%)</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+              Transactions{" "}
+              <span style={{ fontSize: 11, fontWeight: 400, color: THEME.muted, marginLeft: 4 }}>
+                ({displayedTxs.length} of {txs.length})
+              </span>
+            </div>
+
+            {variantOptions.length > 1 && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => setVariantFilter("all")}
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: 14,
+                    border: variantFilter === "all" ? "none" : `1px solid ${THEME.line}`,
+                    background: variantFilter === "all" ? THEME.accent : "transparent",
+                    color: variantFilter === "all" ? THEME.darkInk : THEME.muted,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  All Variants
+                </button>
+                {variantOptions.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setVariantFilter(opt.id)}
+                    style={{
+                      padding: "3px 10px",
+                      borderRadius: 14,
+                      border: variantFilter === opt.id ? "none" : `1px solid ${THEME.line}`,
+                      background: variantFilter === opt.id ? THEME.accent : "transparent",
+                      color: variantFilter === opt.id ? THEME.darkInk : THEME.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {opt.shortName}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, justifyContent: "flex-end" }}
+          >
             <button
               style={{
                 ...btnGhost,
                 fontSize: 12,
                 padding: "6px 14px",
-                color: THEME.sage,
-                borderColor: `color-mix(in srgb, ${THEME.sage} 33%, transparent)`,
+                color: THEME.accent,
+                borderColor: `color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
               }}
-              onClick={downloadCsv}
-            >
-              <Download size={13} /> Export CSV
-            </button>
-          )}
-          <button
-            style={{ ...btnGhost, fontSize: 12, padding: "6px 14px" }}
-            onClick={() => {
-              if (showAdd) {
+              onClick={() => {
+                setShowCsvImport((v) => !v);
                 setShowAdd(false);
-                setEditId(null);
-                setNewTx({
-                  date: today(),
-                  merchant: "",
-                  amount: "",
-                  category: cats[0] || "General",
-                });
-              } else {
-                setShowAdd(true);
-                setShowCsvImport(false);
-              }
-            }}
-          >
-            {showAdd ? (
-              "Cancel"
-            ) : (
-              <>
-                <Plus size={14} /> Add Transaction
-              </>
+              }}
+            >
+              <Upload size={13} /> Import CSV
+            </button>
+            {txs.length > 0 && (
+              <button
+                style={{
+                  ...btnGhost,
+                  fontSize: 12,
+                  padding: "6px 14px",
+                  color: THEME.sage,
+                  borderColor: `color-mix(in srgb, ${THEME.sage} 33%, transparent)`,
+                }}
+                onClick={downloadCsv}
+              >
+                <Download size={13} /> Export CSV
+              </button>
             )}
-          </button>
+            <button
+              style={{ ...btnGhost, fontSize: 12, padding: "6px 14px" }}
+              onClick={() => {
+                if (showAdd) {
+                  setShowAdd(false);
+                  setEditId(null);
+                  setNewTx({
+                    date: today(),
+                    merchant: "",
+                    amount: "",
+                    category: cats[0] || "General",
+                    variantId: "primary",
+                    variantName: variantOptions[0]?.name || "Primary",
+                  });
+                } else {
+                  setShowAdd(true);
+                  setShowCsvImport(false);
+                }
+              }}
+            >
+              {showAdd ? (
+                "Cancel"
+              ) : (
+                <>
+                  <Plus size={14} /> Add Transaction
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* CSV Import Panel */}
-      {showCsvImport && (
-        <div
-          style={{
-            padding: 18,
-            borderRadius: 12,
-            marginBottom: 16,
-            background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
-          }}
-        >
+        {showCsvImport && (
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 14,
+              padding: 18,
+              borderRadius: 12,
+              marginBottom: 16,
+              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
             }}
           >
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: THEME.accent,
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                gap: 8,
+                marginBottom: 14,
               }}
             >
-              <FileText size={15} /> Bulk Import via CSV
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: THEME.accent,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <FileText size={15} /> Bulk Import via CSV
+              </div>
+              <button
+                onClick={downloadTemplate}
+                className="card-interactive"
+                style={{
+                  fontSize: 11,
+                  padding: "4px 12px",
+                  borderRadius: 6,
+                  border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
+                  background: "transparent",
+                  color: THEME.accent,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Download Template
+              </button>
             </div>
-            <button
-              onClick={downloadTemplate}
-              className="card-interactive"
+            <div
               style={{
                 fontSize: 11,
-                padding: "4px 12px",
-                borderRadius: 6,
-                border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
-                background: "transparent",
-                color: THEME.accent,
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
-            >
-              Download Template
-            </button>
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: THEME.muted,
-              marginBottom: 12,
-              padding: "8px 12px",
-              background: "rgba(128,128,128,0.06)",
-              borderRadius: 8,
-              lineHeight: 1.6,
-            }}
-          >
-            <b style={{ color: THEME.ink }}>Format:</b>{" "}
-            <code
-              style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}
-            >
-              date, merchant, amount, category
-            </code>
-            <br />
-            Charge:{" "}
-            <code
-              style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}
-            >
-              2025-01-05, Amazon, 2499, Shopping
-            </code>
-            &nbsp;&nbsp;Payment:{" "}
-            <code
-              style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}
-            >
-              2025-01-15, Bill Payment, -5000, Payment
-            </code>
-          </div>
-          <label
-            style={{
-              display: "flex",
-              flexDirection: "column" as const,
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              padding: "20px 0",
-              border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
-              borderRadius: 10,
-              cursor: "pointer",
-              marginBottom: 12,
-              background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-          >
-            <Upload size={22} color={THEME.accent} />
-            <div style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}>
-              {csvFileName || "Drop CSV file here or click to browse"}
-            </div>
-            <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
-            <input
-              type="file"
-              accept=".csv,.txt"
-              style={{ display: "none" }}
-              onChange={handleFileUpload}
-            />
-          </label>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: THEME.muted,
-              marginBottom: 6,
-              textAlign: "center" as const,
-            }}
-          >
-            — or paste CSV text below —
-          </div>
-          <textarea
-            aria-label="Pasted CSV text"
-            style={{
-              width: "100%",
-              minHeight: 90,
-              padding: "10px 12px",
-              background: "var(--t-paper)",
-              border: `1.5px solid ${THEME.line}`,
-              borderRadius: 10,
-              color: THEME.ink,
-              fontSize: 12,
-              fontFamily: "monospace",
-              resize: "vertical" as const,
-              boxSizing: "border-box" as const,
-            }}
-            value={csvText}
-            onChange={(e) => {
-              setCsvText(e.target.value);
-              setCsvPreview([]);
-              setCsvError("");
-              setImportDone(false);
-            }}
-            placeholder={
-              "2025-01-05, Amazon, 2499, Shopping\n2025-01-08, Swiggy, 450, Food\n2025-01-15, Bill Payment, -5000, Payment"
-            }
-          />
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button
-              className="card-interactive"
-              style={{
-                padding: "8px 18px",
+                color: THEME.muted,
+                marginBottom: 12,
+                padding: "8px 12px",
+                background: "rgba(128,128,128,0.06)",
                 borderRadius: 8,
-                border: `1px solid color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
-                background: "transparent",
-                color: THEME.accent,
-                fontWeight: 700,
-                fontSize: 12,
-                cursor: "pointer",
+                lineHeight: 1.6,
               }}
-              onClick={() => parseCsvText(csvText)}
             >
-              Preview Data
-            </button>
-            {csvPreview.length > 0 && !importDone && (
+              <b style={{ color: THEME.ink }}>Format:</b>{" "}
+              <code
+                style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}
+              >
+                date, merchant, amount, category{variantOptions.length > 1 ? ", card_variant" : ""}
+              </code>
+              <br />
+              Charge:{" "}
+              <code
+                style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}
+              >
+                2025-01-05, Amazon, 2499, Shopping{variantOptions.length > 1 ? `, ${variantOptions[0].last4 || "Primary"}` : ""}
+              </code>
+              &nbsp;&nbsp;Payment:{" "}
+              <code
+                style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}
+              >
+                2025-01-15, Bill Payment, -5000, Payment
+              </code>
+            </div>
+            <label
+              style={{
+                display: "flex",
+                flexDirection: "column" as const,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "20px 0",
+                border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
+                borderRadius: 10,
+                cursor: "pointer",
+                marginBottom: 12,
+                background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <Upload size={22} color={THEME.accent} />
+              <div style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}>
+                {csvFileName || "Drop CSV file here or click to browse"}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
+              <input
+                type="file"
+                accept=".csv,.txt"
+                style={{ display: "none" }}
+                onChange={handleFileUpload}
+              />
+            </label>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: THEME.muted,
+                marginBottom: 6,
+                textAlign: "center" as const,
+              }}
+            >
+              — or paste CSV text below —
+            </div>
+            <textarea
+              aria-label="Pasted CSV text"
+              style={{
+                width: "100%",
+                minHeight: 90,
+                padding: "10px 12px",
+                background: "var(--t-paper)",
+                border: `1.5px solid ${THEME.line}`,
+                borderRadius: 10,
+                color: THEME.ink,
+                fontSize: 12,
+                fontFamily: "monospace",
+                resize: "vertical" as const,
+                boxSizing: "border-box" as const,
+              }}
+              value={csvText}
+              onChange={(e) => {
+                setCsvText(e.target.value);
+                setCsvPreview([]);
+                setCsvError("");
+                setImportDone(false);
+              }}
+              placeholder={
+                variantOptions.length > 1
+                  ? `2025-01-05, Amazon, 2499, Shopping, ${variantOptions[0].last4 || "Primary"}\n2025-01-08, Swiggy UPI, 450, Food, ${variantOptions[1]?.last4 || "RuPay"}\n2025-01-15, Bill Payment, -5000, Payment, Primary`
+                  : "2025-01-05, Amazon, 2499, Shopping\n2025-01-08, Swiggy, 450, Food\n2025-01-15, Bill Payment, -5000, Payment"
+              }
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button
+                className="card-interactive"
                 style={{
                   padding: "8px 18px",
                   borderRadius: 8,
-                  border: "none",
-                  background: THEME.accent,
-                  color: THEME.darkInk,
+                  border: `1px solid color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
+                  background: "transparent",
+                  color: THEME.accent,
                   fontWeight: 700,
                   fontSize: 12,
                   cursor: "pointer",
                 }}
-                onClick={importCsv}
+                onClick={() => parseCsvText(csvText)}
               >
-                Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
+                Preview Data
               </button>
-            )}
-            {importDone && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  color: THEME.sage,
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                <CheckCircle2 size={15} /> Imported successfully!
-              </div>
-            )}
-          </div>
-          {csvError && (
-            <div
-              style={{
-                marginTop: 10,
-                display: "flex",
-                gap: 8,
-                alignItems: "flex-start",
-                color: THEME.rust,
-                fontSize: 12,
-                padding: "8px 12px",
-                background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
-                borderRadius: 8,
-              }}
-            >
-              <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
+              {csvPreview.length > 0 && !importDone && (
+                <button
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: THEME.accent,
+                    color: THEME.darkInk,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                  onClick={importCsv}
+                >
+                  Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
+                </button>
+              )}
+              {importDone && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    color: THEME.sage,
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  <CheckCircle2 size={15} /> Imported successfully!
+                </div>
+              )}
             </div>
-          )}
-          {csvPreview.length > 0 && (
-            <div
-              style={{
-                marginTop: 12,
-                border: `1px solid ${THEME.line}`,
-                borderRadius: 10,
-                overflow: "hidden",
-              }}
-            >
+            {csvError && (
               <div
                 style={{
+                  marginTop: 10,
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "flex-start",
+                  color: THEME.rust,
+                  fontSize: 12,
                   padding: "8px 12px",
-                  background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.accent,
+                  background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                  borderRadius: 8,
                 }}
               >
-                {csvPreview.length} rows ready to import — preview:
+                <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
               </div>
-              <div style={{ maxHeight: 180, overflowY: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ background: "rgba(128,128,128,0.04)", color: THEME.muted }}>
-                      <th
-                        style={{
-                          padding: "7px 10px",
-                          textAlign: "left" as const,
-                          fontWeight: 600,
-                          fontSize: 10,
-                        }}
-                      >
-                        Date
-                      </th>
-                      <th
-                        style={{
-                          padding: "7px 10px",
-                          textAlign: "left" as const,
-                          fontWeight: 600,
-                          fontSize: 10,
-                        }}
-                      >
-                        Merchant
-                      </th>
-                      <th
-                        style={{
-                          padding: "7px 10px",
-                          textAlign: "left" as const,
-                          fontWeight: 600,
-                          fontSize: 10,
-                        }}
-                      >
-                        Category
-                      </th>
-                      <th
-                        style={{
-                          padding: "7px 10px",
-                          textAlign: "right" as const,
-                          fontWeight: 600,
-                          fontSize: 10,
-                        }}
-                      >
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {csvPreview.map((r, i) => (
-                      <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
-                        <td style={{ padding: "7px 10px", color: THEME.muted }}>{r.date}</td>
-                        <td style={{ padding: "7px 10px", fontWeight: 600 }}>{r.merchant}</td>
-                        <td style={{ padding: "7px 10px", color: THEME.muted }}>
-                          {r.category || "—"}
-                        </td>
-                        <td
+            )}
+            {csvPreview.length > 0 && (
+              <div
+                style={{
+                  marginTop: 12,
+                  border: `1px solid ${THEME.line}`,
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.accent,
+                  }}
+                >
+                  {csvPreview.length} rows ready to import — preview:
+                </div>
+                <div style={{ maxHeight: 180, overflowY: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: "rgba(128,128,128,0.04)", color: THEME.muted }}>
+                        <th
+                          style={{
+                            padding: "7px 10px",
+                            textAlign: "left" as const,
+                            fontWeight: 600,
+                            fontSize: 10,
+                          }}
+                        >
+                          Date
+                        </th>
+                        <th
+                          style={{
+                            padding: "7px 10px",
+                            textAlign: "left" as const,
+                            fontWeight: 600,
+                            fontSize: 10,
+                          }}
+                        >
+                          Merchant
+                        </th>
+                        {variantOptions.length > 1 && (
+                          <th
+                            style={{
+                              padding: "7px 10px",
+                              textAlign: "left" as const,
+                              fontWeight: 600,
+                              fontSize: 10,
+                            }}
+                          >
+                            Variant
+                          </th>
+                        )}
+                        <th
+                          style={{
+                            padding: "7px 10px",
+                            textAlign: "left" as const,
+                            fontWeight: 600,
+                            fontSize: 10,
+                          }}
+                        >
+                          Category
+                        </th>
+                        <th
                           style={{
                             padding: "7px 10px",
                             textAlign: "right" as const,
-                            fontWeight: 700,
-                            color: Number(r.amount) >= 0 ? THEME.rust : THEME.sage,
+                            fontWeight: 600,
+                            fontSize: 10,
                           }}
                         >
-                          {Number(r.amount) >= 0 ? "+" : ""}
-                          <Money value={r.amount} variant="exact" />
-                        </td>
+                          Amount
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {csvPreview.map((r, i) => (
+                        <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                          <td style={{ padding: "7px 10px", color: THEME.muted }}>{r.date}</td>
+                          <td style={{ padding: "7px 10px", fontWeight: 600 }}>{r.merchant}</td>
+                          {variantOptions.length > 1 && (
+                            <td style={{ padding: "7px 10px" }}>
+                              <span
+                                style={{
+                                  background: "rgba(255,255,255,0.08)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  fontSize: 10,
+                                  color: r.variantId === "primary" ? THEME.ink : "#fef08a",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {r.variantName || "Primary"}
+                              </span>
+                            </td>
+                          )}
+                          <td style={{ padding: "7px 10px", color: THEME.muted }}>
+                            {r.category || "—"}
+                          </td>
+                          <td
+                            style={{
+                              padding: "7px 10px",
+                              textAlign: "right" as const,
+                              fontWeight: 700,
+                              color: Number(r.amount) >= 0 ? THEME.rust : THEME.sage,
+                            }}
+                          >
+                            {Number(r.amount) >= 0 ? "+" : ""}
+                            <Money value={r.amount} variant="exact" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {showAdd && (
+          <div
+            style={{
+              background: "var(--surface-1)",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: 10,
+              marginBottom: 16,
+              padding: 16,
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, color: THEME.accent }}>
+              {editId ? "EDIT TRANSACTION" : "NEW TRANSACTION"}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Manual Add / Edit Form */}
-      {showAdd && (
-        <div
-          style={{
-            background: "var(--surface-1)",
-            border: `1px solid ${THEME.line}`,
-            borderRadius: 10,
-            marginBottom: 16,
-            padding: 16,
-          }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, color: THEME.accent }}>
-            {editId ? "EDIT TRANSACTION" : "NEW TRANSACTION"}
-          </div>
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}
-          >
-            <Field label="Date">
-              <input
-                type="date"
-                style={input}
-                value={newTx.date}
-                onChange={(e) => setNewTx({ ...newTx, date: e.target.value })}
-              />
-            </Field>
-            <Field label="Amount (negative = payment)">
-              <input
-                type="number"
-                style={input}
-                value={newTx.amount}
-                onChange={(e) => setNewTx({ ...newTx, amount: e.target.value })}
-                placeholder="e.g. 2499 or -5000"
-              />
-            </Field>
-          </div>
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}
-          >
-            <Field label="Merchant">
-              <input
-                type="text"
-                style={input}
-                value={newTx.merchant}
-                onChange={(e) => setNewTx({ ...newTx, merchant: e.target.value })}
-                placeholder="e.g. Amazon"
-              />
-            </Field>
-            <Field label="Category">
-              <select
-                style={input}
-                value={newTx.category}
-                onChange={(e) => setNewTx({ ...newTx, category: e.target.value })}
-              >
-                {cats.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <button style={{ ...btnAccent, width: "100%" }} onClick={saveTx}>
-            {editId ? "Update Transaction" : "Save Transaction"}
-          </button>
-        </div>
-      )}
-
-      {/* Transaction Table */}
-      <div style={{ maxHeight: 400, overflowY: "auto" }}>
-        <DataTable
-          columns={[
-            { key: "date", header: "Date", accessor: (t: any) => t.date },
-            {
-              key: "merchant",
-              header: "Merchant",
-              accessor: (t: any) => <span style={{ fontWeight: 600 }}>{t.merchant}</span>,
-            },
-            {
-              key: "category",
-              header: "Category",
-              accessor: (t: any) => (
-                <span
-                  style={{
-                    background: THEME.paper,
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                    fontSize: 11,
-                  }}
+            <div
+              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}
+            >
+              <Field label="Date">
+                <input
+                  type="date"
+                  style={input}
+                  value={newTx.date}
+                  onChange={(e) => setNewTx({ ...newTx, date: e.target.value })}
+                />
+              </Field>
+              <Field label="Amount (negative = payment)">
+                <input
+                  type="number"
+                  style={input}
+                  value={newTx.amount}
+                  onChange={(e) => setNewTx({ ...newTx, amount: e.target.value })}
+                  placeholder="e.g. 2499 or -5000"
+                />
+              </Field>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: variantOptions.length > 1 ? "1.5fr 1fr 1fr" : "1fr 1fr",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <Field label="Merchant">
+                <input
+                  type="text"
+                  style={input}
+                  value={newTx.merchant}
+                  onChange={(e) => setNewTx({ ...newTx, merchant: e.target.value })}
+                  placeholder="e.g. Amazon"
+                />
+              </Field>
+              <Field label="Category">
+                <select
+                  style={input}
+                  value={newTx.category}
+                  onChange={(e) => setNewTx({ ...newTx, category: e.target.value })}
                 >
-                  {t.category || "General"}
-                </span>
-              ),
-            },
-            {
-              key: "amount",
-              header: "Amount",
-              align: "right",
-              accessor: (t: any) => (
-                <span style={{ fontWeight: 700, color: Number(t.amount) >= 0 ? THEME.rust : THEME.sage }}>
-                  <Money value={t.amount} variant="exact" />
-                </span>
-              ),
-            },
-          ]}
-          data={[...txs].sort((a: any, b: any) => b.date.localeCompare(a.date))}
-          hideSearch
-          keyExtractor={(t: any) => t.id}
-          emptyState={<span>No transactions yet — add manually or import CSV above</span>}
-          actions={(t: any) => (
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button
-                onClick={() => startEdit(t)}
-                aria-label="Edit transaction"
-                className="icon-btn"
-                style={{ ...iconBtn, color: THEME.muted }}
-              >
-                <Pencil size={14} />
-              </button>
-              <button
-                onClick={() => setConfirmDeleteTx(t)}
-                aria-label="Delete transaction"
-                className="icon-btn danger"
-                style={{ ...iconBtn, color: THEME.rust }}
-              >
-                <X size={14} />
-              </button>
+                  {cats.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </Field>
+              {variantOptions.length > 1 && (
+                <Field label="Card Variant">
+                  <select
+                    style={input}
+                    value={newTx.variantId || "primary"}
+                    onChange={(e) =>
+                      setNewTx({
+                        ...newTx,
+                        variantId: e.target.value,
+                        variantName:
+                          variantOptions.find((o) => o.id === e.target.value)?.name || "Primary",
+                      })
+                    }
+                  >
+                    {variantOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
             </div>
-          )}
-        />
-      </div>
-      <div
-        style={{
-          marginTop: 20,
-          paddingTop: 16,
-          borderTop: `2px solid ${THEME.line}`,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ fontSize: 14, color: THEME.muted }}>Net Outstanding</div>
-        <div
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 20,
-            fontWeight: 800,
-            color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
-          }}
-        >
-          <Money value={totalOutstanding} variant="full" />
+            <button style={{ ...btnAccent, width: "100%" }} onClick={saveTx}>
+              {editId ? "Update Transaction" : "Save Transaction"}
+            </button>
+          </div>
+        )}
+
+        {/* Transaction Table */}
+        <div style={{ maxHeight: 400, overflowY: "auto" }}>
+          <DataTable
+            columns={[
+              { key: "date", header: "Date", accessor: (t: any) => t.date },
+              {
+                key: "merchant",
+                header: "Merchant",
+                accessor: (t: any) => (
+                  <span style={{ fontWeight: 600, color: THEME.ink }}>{t.merchant}</span>
+                ),
+              },
+              ...(variantOptions.length > 1
+                ? [
+                    {
+                      key: "variant",
+                      header: "Card Variant",
+                      accessor: (t: any) => {
+                        const opt =
+                          variantOptions.find(
+                            (o) =>
+                              o.id === t.variantId ||
+                              (o.last4 && o.last4 === t.variantId) ||
+                              (o.name && o.name === t.variantName)
+                          ) || variantOptions[0];
+                        const isPrimary = !t.variantId || t.variantId === "primary";
+                        return (
+                          <span
+                            style={{
+                              background: isPrimary
+                                ? "rgba(255,255,255,0.08)"
+                                : "rgba(254,240,138,0.18)",
+                              color: isPrimary ? THEME.muted : "#fef08a",
+                              padding: "2px 7px",
+                              borderRadius: 4,
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <CreditCard size={11} /> {opt?.shortName || "Primary"}
+                          </span>
+                        );
+                      },
+                    },
+                  ]
+                : []),
+              {
+                key: "category",
+                header: "Category",
+                accessor: (t: any) => (
+                  <span
+                    style={{
+                      background: THEME.paper,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      fontSize: 11,
+                    }}
+                  >
+                    {t.category || "General"}
+                  </span>
+                ),
+              },
+              {
+                key: "amount",
+                header: "Amount",
+                align: "right",
+                accessor: (t: any) => (
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: Number(t.amount) >= 0 ? THEME.rust : THEME.sage,
+                    }}
+                  >
+                    <Money value={t.amount} variant="exact" />
+                  </span>
+                ),
+              },
+            ]}
+            data={[...displayedTxs].sort((a: any, b: any) => b.date.localeCompare(a.date))}
+            hideSearch
+            keyExtractor={(t: any) => t.id}
+            emptyState={<span>No transactions yet — add manually or import CSV above</span>}
+            actions={(t: any) => (
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => startEdit(t)}
+                  aria-label="Edit transaction"
+                  className="icon-btn"
+                  style={{ ...iconBtn, color: THEME.muted }}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteTx(t)}
+                  aria-label="Delete transaction"
+                  className="icon-btn danger"
+                  style={{ ...iconBtn, color: THEME.rust }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          />
         </div>
-      </div>
-    </Modal>
-    {confirmDeleteTx && (
-      <ConfirmDialog
-        message={`Delete this transaction${confirmDeleteTx.merchant ? ` at ${confirmDeleteTx.merchant}` : ""} dated ${confirmDeleteTx.date}? This cannot be undone.`}
-        onConfirm={() => {
-          removeTx(confirmDeleteTx.id);
-          setConfirmDeleteTx(null);
-        }}
-        onCancel={() => setConfirmDeleteTx(null)}
-      />
-    )}
+      </Modal>
+      {confirmDeleteTx && (
+        <ConfirmDialog
+          message={`Delete transaction "${confirmDeleteTx.merchant}" (${confirmDeleteTx.amount})?`}
+          onConfirm={() => {
+            removeTx(confirmDeleteTx.id);
+            setConfirmDeleteTx(null);
+          }}
+          onCancel={() => setConfirmDeleteTx(null)}
+        />
+      )}
     </>
   );
 }
@@ -6107,6 +6486,7 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving 
       autoPay: false,
       rewardPointsBalance: "",
       rewardPointValue: "",
+      variants: [],
     }
   );
   const isClosed = (f.status || "active").toLowerCase() === "closed";
@@ -6126,15 +6506,15 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving 
         </select>
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-        <Field label="Issuer">
+        <Field label="Issuer / Account Name">
           <input
             style={input}
             value={f.issuer}
             onChange={(e) => setF({ ...f, issuer: e.target.value })}
-            placeholder="e.g. HDFC Regalia"
+            placeholder="e.g. Federal Scapia, ICICI Sapphiro, HDFC Regalia"
           />
         </Field>
-        <Field label="Network">
+        <Field label="Primary Network">
           <select
             style={input}
             value={f.network}
@@ -6153,31 +6533,244 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving 
           gap: 12,
         }}
       >
-        <Field label="Last 4 digits">
+        <Field label="Primary Last 4">
           <input
             style={input}
             maxLength={4}
             value={f.last4}
             onChange={(e) => setF({ ...f, last4: e.target.value })}
+            placeholder="4589"
           />
         </Field>
-        <Field label="Card Sub-Limit">
+        <Field label={f.sharedGroup ? "Card Sub-Limit (₹)" : "Account Credit Limit (₹)"}>
           <input
             style={input}
             type="number"
             value={f.limit}
             onChange={(e) => setF({ ...f, limit: e.target.value })}
-            placeholder={f.sharedGroup ? "Individual sub-limit" : "Credit limit"}
+            placeholder={f.sharedGroup ? "Individual sub-limit" : "e.g. 500000"}
           />
         </Field>
-        <Field label="Outstanding">
+        <Field label="Outstanding (₹)">
           <input
             style={input}
             type="number"
             value={f.outstanding}
             onChange={(e) => setF({ ...f, outstanding: e.target.value })}
+            placeholder="0"
           />
         </Field>
+      </div>
+
+      {/* Linked Card Variants (e.g. Scapia RuPay UPI, Sapphiro Amex Companion) */}
+      <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 14, marginTop: 4 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 6,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: THEME.accent,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Sparkles size={13} /> Linked Card Variants (Dual-Card Account)
+          </div>
+          <span
+            style={{
+              fontSize: 11,
+              padding: "2px 8px",
+              borderRadius: 10,
+              background: (f.variants || []).length > 0 ? "rgba(34,197,94,0.12)" : "rgba(128,128,128,0.1)",
+              color: (f.variants || []).length > 0 ? THEME.sage : THEME.muted,
+              fontWeight: 700,
+            }}
+          >
+            {(f.variants || []).length === 0 ? "1 Card (Single)" : `${(f.variants || []).length + 1} Cards · 1 Bill & Limit`}
+          </span>
+        </div>
+        <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12, lineHeight: 1.55 }}>
+          For accounts with multiple cards sharing <strong>1 single statement, 1 due date, and 1 credit limit</strong> (e.g. <em>Federal Scapia Visa + RuPay UPI</em>, or <em>ICICI Sapphiro Mastercard + Amex companion</em>). Primary card is defined above.
+        </div>
+
+        {/* Existing variants list */}
+        {(f.variants || []).map((v: any, vIdx: number) => (
+          <div
+            key={v.id || vIdx}
+            style={{
+              padding: 12,
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: 10,
+              marginBottom: 10,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                <CreditCard size={14} color={THEME.accent} />
+                Variant #{vIdx + 1}: {v.name || v.network || "Linked Card"}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const updated = (f.variants || []).filter((_: any, i: number) => i !== vIdx);
+                  setF({ ...f, variants: updated });
+                }}
+                className="icon-btn danger"
+                style={{ ...iconBtn, color: THEME.rust, padding: 4 }}
+                title="Remove variant"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 10 }}>
+              <Field label="Variant Label">
+                <input
+                  style={input}
+                  value={v.name || ""}
+                  onChange={(e) => {
+                    const updated = [...(f.variants || [])];
+                    updated[vIdx] = { ...updated[vIdx], name: e.target.value };
+                    setF({ ...f, variants: updated });
+                  }}
+                  placeholder="e.g. RuPay UPI, Companion Amex"
+                />
+              </Field>
+              <Field label="Network">
+                <select
+                  style={input}
+                  value={v.network || "RuPay"}
+                  onChange={(e) => {
+                    const updated = [...(f.variants || [])];
+                    updated[vIdx] = { ...updated[vIdx], network: e.target.value };
+                    setF({ ...f, variants: updated });
+                  }}
+                >
+                  {ccNetworks.map((n: string) => (
+                    <option key={n}>{n}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Last 4 digits">
+                <input
+                  style={input}
+                  maxLength={4}
+                  value={v.last4 || ""}
+                  onChange={(e) => {
+                    const updated = [...(f.variants || [])];
+                    updated[vIdx] = { ...updated[vIdx], last4: e.target.value };
+                    setF({ ...f, variants: updated });
+                  }}
+                  placeholder="e.g. 5678"
+                />
+              </Field>
+            </div>
+          </div>
+        ))}
+
+        {/* Quick Add Buttons */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4, marginBottom: 12 }}>
+          <button
+            type="button"
+            className="card-interactive"
+            onClick={() => {
+              const newV = {
+                id: uid(),
+                name: "RuPay UPI (Virtual)",
+                network: "RuPay",
+                last4: "",
+                cardType: "virtual",
+                status: "active",
+              };
+              setF({ ...f, variants: [...(f.variants || []), newV] });
+            }}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: `1px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`,
+              background: "transparent",
+              color: THEME.accent,
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <Plus size={13} /> + Add RuPay UPI (Virtual)
+          </button>
+          <button
+            type="button"
+            className="card-interactive"
+            onClick={() => {
+              const newV = {
+                id: uid(),
+                name: "Companion Amex",
+                network: "Amex",
+                last4: "",
+                cardType: "physical",
+                status: "active",
+              };
+              setF({ ...f, variants: [...(f.variants || []), newV] });
+            }}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: `1px dashed ${THEME.line}`,
+              background: "transparent",
+              color: THEME.ink,
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <Plus size={13} /> + Add Companion Card (Amex/MC/Visa)
+          </button>
+          <button
+            type="button"
+            className="card-interactive"
+            onClick={() => {
+              const newV = {
+                id: uid(),
+                name: "Add-on / Variant Card",
+                network: "Visa",
+                last4: "",
+                cardType: "addon",
+                status: "active",
+              };
+              setF({ ...f, variants: [...(f.variants || []), newV] });
+            }}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: `1px dashed ${THEME.line}`,
+              background: "transparent",
+              color: THEME.muted,
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <Plus size={13} /> + Custom Variant
+          </button>
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Statement Date (Day of Month)">
