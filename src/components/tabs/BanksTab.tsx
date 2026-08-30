@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  User,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -246,12 +247,27 @@ const accountLabel = (a: any): string => {
 const OwnerBadge = ({ owner }: { owner?: string }) => {
   const { familyProfiles } = useMasterData();
   if (!owner) return null;
-  const p = familyProfiles.find((x) => x.id === owner);
-  if (!p) return null;
+  const p = familyProfiles.find((x) => x.id === owner || x.name === owner);
+  const name = p ? p.name : owner === "self" ? "Self" : owner;
+  if (!name) return null;
   return (
-    <Badge variant="accent" style={{ fontSize: 10 }}>
-      {p.name}
-    </Badge>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 8px",
+        borderRadius: 12,
+        fontSize: 10.5,
+        fontWeight: 700,
+        background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--t-accent) 25%, transparent)",
+        color: "var(--t-accent)",
+      }}
+    >
+      <User size={10} />
+      {name}
+    </span>
   );
 };
 

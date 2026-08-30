@@ -33,6 +33,7 @@ import {
   Clock,
   Shield,
   Star,
+  User,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
@@ -391,12 +392,41 @@ const CardNetworkLogo = ({ network }: { network?: string }) => {
 const OwnerBadge = ({ owner }: { owner?: string }) => {
   const { familyProfiles } = useMasterData();
   if (!owner) return null;
-  const p = familyProfiles.find((x) => x.id === owner);
-  if (!p) return null;
+  const p = familyProfiles.find((x) => x.id === owner || x.name === owner);
+  const name = p ? p.name : owner === "self" ? "Self" : owner;
+  if (!name) return null;
   return (
-    <Badge variant="accent" style={{ fontSize: 10 }}>
-      {p.name}
-    </Badge>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "3.5px 10px",
+        borderRadius: 99,
+        fontSize: 11,
+        fontWeight: 700,
+        background: "rgba(255, 255, 255, 0.22)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        border: "1px solid rgba(255, 255, 255, 0.42)",
+        color: "#ffffff",
+        letterSpacing: "0.02em",
+        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
+        textShadow: "0 1px 2px rgba(0, 0, 0, 0.5)",
+      }}
+    >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: "#4ade80",
+          boxShadow: "0 0 6px #4ade80",
+          display: "inline-block",
+        }}
+      />
+      {name}
+    </span>
   );
 };
 
