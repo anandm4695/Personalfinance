@@ -364,7 +364,10 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
           s.slipMonth >= fyStart.slice(0, 7) &&
           s.slipMonth <= fyEnd.slice(0, 7)
       )
-      .reduce((s: number, slip: any) => s + Number(slip.tds || slip.incomeTax || 0), 0);
+      .reduce(
+        (s: number, slip: any) => s + Number(slip.tds || 0) + Number(slip.incomeTax || 0),
+        0
+      );
     const tds = incomeTds > 0 ? incomeTds : salarySlipTds;
 
     const advanceTax = (state.taxPayments || [])

@@ -1184,7 +1184,10 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
           s.slipMonth >= fyStart.slice(0, 7) &&
           s.slipMonth <= fyEnd.slice(0, 7)
       )
-      .reduce((sum: number, s: any) => sum + Number(s.tds || s.incomeTax || 0), 0);
+      .reduce(
+        (sum: number, s: any) => sum + Number(s.tds || 0) + Number(s.incomeTax || 0),
+        0
+      );
 
     if (salaryTdsPaid > 0) {
       byType["Salary TDS"] = (byType["Salary TDS"] || 0) + salaryTdsPaid;

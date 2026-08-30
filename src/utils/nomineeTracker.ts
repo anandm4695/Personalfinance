@@ -4,14 +4,22 @@
 // each screen had its own independent copy of this list with different asset
 // coverage, so the two screens showed different coverage percentages for the
 // same data. Keep them pointed at this file so they can never diverge again.
-import { fmtINRFull, today, monthsBetween, rdMaturity, calculateEpfBalance } from "./finance";
+import {
+  fmtINRFull,
+  today,
+  monthsBetween,
+  rdMaturity,
+  calculateEpfBalance,
+  getGoldPricePerGram,
+  GOLD_PURITY_FACTOR,
+} from "./finance";
 
 export interface AssetTypeConfig {
   key: string;
   label: string;
   nameField: string;
   valueField: string | null;
-  calcValue?: (a: any) => number;
+  calcValue?: (a: any, state?: any) => number;
   idLabel: (a: any) => string;
 }
 
@@ -64,7 +72,15 @@ export const assetTypes: AssetTypeConfig[] = [
     label: "Gold / SGB",
     nameField: "type",
     valueField: null,
-    calcValue: (a: any) => Number(a.currentValue || a.investedAmount || 0),
+    calcValue: (a: any, state?: any) => {
+      const grams = Number(a.grams || 0);
+      if (grams > 0) {
+        const goldPrice = getGoldPricePerGram(state);
+        const purityMul = a.type === "physical" ? GOLD_PURITY_FACTOR[a.purity] || 1 : 1;
+        return grams * goldPrice * purityMul;
+      }
+      return Number(a.currentValue || a.investedAmount || 0);
+    },
     idLabel: (a: any) => a.subType || a.form || "",
   },
   {
@@ -198,7 +214,7 @@ export function flattenAssets(state: any): FlatAsset[] {
       const val = at.valueField
         ? Number(item[at.valueField]) || 0
         : at.calcValue
-          ? at.calcValue(item)
+          ? at.calcValue(item, state)
           : 0;
       result.push({
         key: at.key,

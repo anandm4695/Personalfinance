@@ -220,7 +220,8 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     return sum + Number(s.qty || 0) * price;
   }, 0);
   const loansGivenValue = (pState.loansGiven || []).reduce(
-    (s: number, l: any) => s + Number(l.amount || 0),
+    (s: number, l: any) =>
+      s + Number(l.outstanding != null ? l.outstanding : l.principal || l.amount || 0),
     0
   );
   const prepaidValue = (pState.prepaidCards || [])
@@ -250,10 +251,15 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     const returned = Number(p.depositReturned || 0);
     return s + Math.max(0, actualDeposit - returned);
   }, 0);
-  const informalLentValue = (pState.informalLent || []).reduce(
-    (s: number, l: any) => s + Number(l.amount || 0),
-    0
-  );
+  const informalLentValue = (pState.informalLent || []).reduce((s: number, person: any) => {
+    const tranches = person.tranches || [];
+    const payments = person.payments || [];
+    const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+    const net =
+      totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
+    return s + net;
+  }, 0);
   // Rental property market value is stored as `propertyValue` (see
   // RentalPropertyModal / migration 45_rental_property_value.sql) — this used to
   // read the non-existent `marketValue`/`value` fields, so a landlord's rental
@@ -331,7 +337,15 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     return s + Math.max(0, actualDeposit - deducted - returned);
   }, 0);
   const informalBorrowedValue = (pState.informalBorrowed || []).reduce(
-    (s: number, b: any) => s + Number(b.amount || 0),
+    (s: number, person: any) => {
+      const tranches = person.tranches || [];
+      const payments = person.payments || [];
+      const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+      const net =
+        totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
+      return s + net;
+    },
     0
   );
 
@@ -1052,7 +1066,19 @@ export function useMetrics(
             t.category !== "Self-Transfer"
         )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-      const inc = explicitInc > 0 ? explicitInc : txnInc;
+      const hasRentReceivedTxnTrend = txns.some(
+        (t: any) => t.type === "credit" && t.category === "Rent"
+      );
+      const rentReceived = (filteredState.rentalProperties || []).reduce((sum: number, p: any) => {
+        const receiptsInMonth = (p.receipts || [])
+          .filter(
+            (r: any) =>
+              r.date && r.date.startsWith(ym) && !String(r.id || "").startsWith("bank-")
+          )
+          .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+        return sum + receiptsInMonth;
+      }, 0);
+      const inc = (explicitInc > 0 ? explicitInc : txnInc) + (rentReceived > 0 && !hasRentReceivedTxnTrend ? rentReceived : 0);
       const txnExp = txns
         .filter(
           (t: any) =>
@@ -1080,7 +1106,12 @@ export function useMetrics(
       arr.push({ month: label, income: inc, expense: exp, net: inc - exp });
     }
     return arr;
-  }, [filteredState.transactions, filteredState.rentedProperties, filteredState.income]);
+  }, [
+    filteredState.transactions,
+    filteredState.rentedProperties,
+    filteredState.rentalProperties,
+    filteredState.income,
+  ]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
