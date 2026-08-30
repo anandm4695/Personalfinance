@@ -1849,7 +1849,7 @@ function CCList({
                   letterSpacing: "normal",
                 }}
               >
-                {v.name || v.network} {v.cardType === "virtual" ? "· Virtual UPI" : ""}
+                {v.name || `${v.network} Variant`}
               </span>
             </div>
           ))}
