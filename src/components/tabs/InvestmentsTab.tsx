@@ -115,6 +115,16 @@ const mfCurrentValueOf = (
   return { value: mfInvestedValue(m), isStale: true };
 };
 
+const isBondMatured = (b: any): boolean => {
+  if (!b?.maturityDate) return false;
+  const [y, m, d] = String(b.maturityDate).split("-").map(Number);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+  const matDate = new Date(y, m - 1, d);
+  const nowDate = new Date();
+  nowDate.setHours(0, 0, 0, 0);
+  return matDate.getTime() < nowDate.getTime();
+};
+
 const bondAnnualCoupon = (b: any): number => {
   const principal =
     Number(b?.totalPrincipalAmount || 0) ||
@@ -125,8 +135,21 @@ const bondAnnualCoupon = (b: any): number => {
 const bondCurrentValue = (b: any): number => {
   const principal = Number(b?.totalInvestmentAmount || b?.totalPrincipalAmount || b?.faceValue) || 0;
   const annualCoupon = bondAnnualCoupon(b);
-  if (!b?.orderDate || annualCoupon <= 0) return principal;
-  const fullTermYears = b?.maturityDate ? monthsBetween(b.orderDate, b.maturityDate) / 12 : Infinity;
+  if (annualCoupon <= 0) return principal;
+
+  const fullTermYears =
+    b?.maturityDate && b?.orderDate
+      ? Math.max(0, monthsBetween(b.orderDate, b.maturityDate) / 12)
+      : b?.maturityDate
+      ? Math.max(0, monthsBetween(today(), b.maturityDate) / 12)
+      : Infinity;
+
+  if (isBondMatured(b)) {
+    // When matured, full lifetime coupon is realized upon completion
+    return principal + annualCoupon * (isFinite(fullTermYears) ? fullTermYears : 0);
+  }
+
+  if (!b?.orderDate) return principal;
   const elapsedYears = Math.max(0, monthsBetween(b.orderDate, today()) / 12);
   return principal + annualCoupon * Math.min(elapsedYears, fullTermYears);
 };
@@ -2673,6 +2696,7 @@ function InvestmentEmptyState({
 function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editFD, setEditFD] = useState<any>(null);
   const [confirmDeleteFD, setConfirmDeleteFD] = useState<any>(null);
+  const [filterTab, setFilterTab] = useState<"all" | "active" | "matured">("all");
   const { run: saveFDEdit, loading: savingFDEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("fixedDeposits", id, v);
@@ -2693,17 +2717,33 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
     return Math.ceil((matDate.getTime() - now.getTime()) / 86400000);
   };
 
+  const maturedCount = items.filter((f: any) => (fdDaysLeft(f) ?? 1) < 0).length;
+  const activeCount = items.length - maturedCount;
+  const activeFds = items.filter((f: any) => (fdDaysLeft(f) ?? 1) >= 0);
+
   const totalInvested = items.reduce((s: number, f: any) => s + (Number(f.principal) || 0), 0);
   const totalMaturity = items.reduce(
     (s: number, f: any) => s + fdMaturity(Number(f.principal), Number(f.rate), Number(f.years)),
     0
   );
+
+  // Accounting standard: Weighted average rate across active FDs
+  const activeInvested = activeFds.reduce((s: number, f: any) => s + (Number(f.principal) || 0), 0);
   const avgRate =
-    items.length > 0
+    activeInvested > 0
+      ? activeFds.reduce((s: number, f: any) => s + (Number(f.rate) || 0) * (Number(f.principal) || 0), 0) /
+        activeInvested
+      : items.length > 0
       ? items.reduce((s: number, f: any) => s + Number(f.rate || 0), 0) / items.length
       : 0;
-  const maturedCount = items.filter((f: any) => (fdDaysLeft(f) ?? 1) < 0).length;
+
   const FD_AMBER = THEME.gold;
+
+  const filteredItems = items.filter((f: any) => {
+    if (filterTab === "active") return (fdDaysLeft(f) ?? 1) >= 0;
+    if (filterTab === "matured") return (fdDaysLeft(f) ?? 1) < 0;
+    return true;
+  });
 
   return (
     <div className="animate-fade-in-up">
@@ -2756,8 +2796,8 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
               },
               {
                 label: maturedCount > 0 ? `${maturedCount} Matured` : "FDs Active",
-                value: String(items.length - maturedCount),
-                numericValue: items.length - maturedCount,
+                value: String(activeCount),
+                numericValue: activeCount,
                 formatValue: (n: number) => String(Math.round(n)),
                 color: maturedCount > 0 ? THEME.rust : THEME.sage,
                 Icon: BarChart3,
@@ -2775,6 +2815,38 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
             ))}
           </div>
 
+          {/* Filter Pills */}
+          {items.length > 0 && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => setFilterTab("all")}
+                className={`demat-portfolio-pill ${filterTab === "all" ? "active" : ""}`}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                {`All (${items.length})`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterTab("active")}
+                className={`demat-portfolio-pill ${filterTab === "active" ? "active" : ""}`}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                {`Active (${activeCount})`}
+              </button>
+              {maturedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilterTab("matured")}
+                  className={`demat-portfolio-pill ${filterTab === "matured" ? "active" : ""}`}
+                  style={{ cursor: "pointer", border: "none" }}
+                >
+                  {`Matured (${maturedCount})`}
+                </button>
+              )}
+            </div>
+          )}
+
           <div
             style={{
               display: "grid",
@@ -2782,32 +2854,35 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
               gap: 16,
             }}
           >
-            {items.map((f: any) => {
+            {filteredItems.map((f: any) => {
               const maturity = fdMaturity(Number(f.principal), Number(f.rate), Number(f.years));
               const daysLeft = fdDaysLeft(f);
               const isMatured = daysLeft !== null && daysLeft < 0;
               const isDueSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
-              const accrued = (() => {
-                if (!f.startDate || !f.years) return Number(f.principal) || 0;
-                const elapsed = Math.min(
-                  Number(f.years),
-                  Math.max(0, monthsBetween(f.startDate, today()) / 12)
-                );
-                return fdMaturity(Number(f.principal), Number(f.rate), elapsed);
-              })();
+              const accrued = isMatured
+                ? maturity
+                : (() => {
+                    if (!f.startDate || !f.years) return Number(f.principal) || 0;
+                    const elapsed = Math.min(
+                      Number(f.years),
+                      Math.max(0, monthsBetween(f.startDate, today()) / 12)
+                    );
+                    return fdMaturity(Number(f.principal), Number(f.rate), elapsed);
+                  })();
               const gain = accrued - (Number(f.principal) || 0);
               const gainPct =
                 (Number(f.principal) || 0) > 0 ? (gain / (Number(f.principal) || 1)) * 100 : 0;
-              const fdProgress =
-                f.years && f.startDate
-                  ? Math.min(
-                      100,
-                      Math.max(
-                        0,
-                        (monthsBetween(f.startDate, today()) / (Number(f.years) * 12)) * 100
-                      )
+              const fdProgress = isMatured
+                ? 100
+                : f.years && f.startDate
+                ? Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      (monthsBetween(f.startDate, today()) / (Number(f.years) * 12)) * 100
                     )
-                  : 0;
+                  )
+                : 0;
               const borderColor = isMatured ? THEME.muted : isDueSoon ? THEME.rust : FD_AMBER;
               const lbl = {
                 fontSize: 9,
@@ -2936,9 +3011,9 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                           fontWeight: 600,
                         }}
                       >
-                        <span>TENURE PROGRESS</span>
+                        <span>{isMatured ? "TENURE COMPLETED" : "TENURE PROGRESS"}</span>
                         <span style={{ color: isMatured ? THEME.sage : FD_AMBER, fontWeight: 700 }}>
-                          {fdProgress.toFixed(0)}%
+                          {isMatured ? "100% COMPLETED" : `${fdProgress.toFixed(0)}%`}
                         </span>
                       </div>
                       <div className="progress-track">
@@ -2946,7 +3021,7 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                           className="progress-fill"
                           style={{
                             width: `${fdProgress}%`,
-                            background: isMatured ? THEME.muted : FD_AMBER,
+                            background: isMatured ? THEME.sage : FD_AMBER,
                           }}
                         />
                       </div>
@@ -3037,6 +3112,7 @@ function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
 function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editRD, setEditRD] = useState<any>(null);
   const [confirmDeleteRD, setConfirmDeleteRD] = useState<any>(null);
+  const [filterTab, setFilterTab] = useState<"all" | "active" | "matured">("all");
   const { run: saveRDEdit, loading: savingRDEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("recurringDeposits", id, v);
@@ -3051,6 +3127,41 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   // here would go stale in dark mode and could collide with the active
   // accent preset.
   const RD_BLUE = THEME.cyan;
+
+  const rdElapsedFn = (r: any) =>
+    r.startDate
+      ? Math.min(
+          Number(r.tenureMonths) || 0,
+          Math.max(0, monthsBetween(r.startDate, today()))
+        )
+      : Number(r.tenureMonths) || 0;
+  const isRDMatured = (r: any) =>
+    rdElapsedFn(r) >= (Number(r.tenureMonths) || 0) && (Number(r.tenureMonths) || 0) > 0;
+
+  const maturedCount = items.filter(isRDMatured).length;
+  const activeCount = items.length - maturedCount;
+  const activeItems = items.filter((r: any) => !isRDMatured(r));
+
+  // Accounting standard: Monthly SIP requirement only applies to active (non-matured) RDs
+  const totalMonthly = activeItems.reduce(
+    (s: number, r: any) => s + (Number(r.monthly) || 0),
+    0
+  );
+  const totalDeposited = items.reduce(
+    (s: number, r: any) => s + (Number(r.monthly) || 0) * rdElapsedFn(r),
+    0
+  );
+  const totalMaturity = items.reduce(
+    (s: number, r: any) =>
+      s + rdMaturity(Number(r.monthly), Number(r.rate), Number(r.tenureMonths) || 0),
+    0
+  );
+
+  const filteredItems = items.filter((r: any) => {
+    if (filterTab === "active") return !isRDMatured(r);
+    if (filterTab === "matured") return isRDMatured(r);
+    return true;
+  });
 
   return (
     <div className="animate-fade-in-up">
@@ -3068,86 +3179,92 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
       ) : (
         <>
           {/* RD summary strip */}
-          {(() => {
-            const rdElapsedFn = (r: any) =>
-              r.startDate
-                ? Math.min(
-                    Number(r.tenureMonths) || 0,
-                    Math.max(0, monthsBetween(r.startDate, today()))
-                  )
-                : Number(r.tenureMonths) || 0;
-            const totalMonthly = items.reduce(
-              (s: number, r: any) => s + (Number(r.monthly) || 0),
-              0
-            );
-            const totalDeposited = items.reduce(
-              (s: number, r: any) => s + (Number(r.monthly) || 0) * rdElapsedFn(r),
-              0
-            );
-            const totalMaturity = items.reduce(
-              (s: number, r: any) =>
-                s + rdMaturity(Number(r.monthly), Number(r.rate), Number(r.tenureMonths) || 0),
-              0
-            );
-            const activeCount = items.filter(
-              (r: any) => rdElapsedFn(r) < (Number(r.tenureMonths) || 0)
-            ).length;
-            return (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: 12,
-                  marginBottom: 20,
-                }}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
+              marginBottom: 20,
+            }}
+          >
+            {[
+              {
+                label: "Monthly SIP Total",
+                value: fmtINRFull(totalMonthly),
+                numericValue: totalMonthly,
+                formatValue: fmtINRFull,
+                color: RD_BLUE,
+                Icon: Repeat,
+              },
+              {
+                label: "Total Deposited",
+                value: fmtINRFull(totalDeposited),
+                numericValue: totalDeposited,
+                formatValue: fmtINRFull,
+                color: THEME.accent,
+                Icon: IndianRupee,
+              },
+              {
+                label: "Projected Maturity",
+                value: fmtINRFull(totalMaturity),
+                numericValue: totalMaturity,
+                formatValue: fmtINRFull,
+                color: THEME.sage,
+                Icon: TrendingUp,
+              },
+              {
+                label: maturedCount > 0 ? `${maturedCount} Matured` : "RDs Active",
+                value: String(activeCount),
+                numericValue: activeCount,
+                formatValue: (n: number) => String(Math.round(n)),
+                color: maturedCount > 0 ? THEME.rust : THEME.sage,
+                Icon: BarChart3,
+              },
+            ].map(({ label, value, numericValue, formatValue, color, Icon }) => (
+              <StatCard
+                key={label}
+                label={label}
+                value={value}
+                numericValue={numericValue}
+                formatValue={formatValue}
+                icon={<Icon />}
+                color={color}
+              />
+            ))}
+          </div>
+
+          {/* Filter Pills */}
+          {items.length > 0 && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => setFilterTab("all")}
+                className={`demat-portfolio-pill ${filterTab === "all" ? "active" : ""}`}
+                style={{ cursor: "pointer", border: "none" }}
               >
-                {[
-                  {
-                    label: "Monthly SIP Total",
-                    value: fmtINRFull(totalMonthly),
-                    numericValue: totalMonthly,
-                    formatValue: fmtINRFull,
-                    color: RD_BLUE,
-                    Icon: Repeat,
-                  },
-                  {
-                    label: "Total Deposited",
-                    value: fmtINRFull(totalDeposited),
-                    numericValue: totalDeposited,
-                    formatValue: fmtINRFull,
-                    color: THEME.accent,
-                    Icon: IndianRupee,
-                  },
-                  {
-                    label: "Projected Maturity",
-                    value: fmtINRFull(totalMaturity),
-                    numericValue: totalMaturity,
-                    formatValue: fmtINRFull,
-                    color: THEME.sage,
-                    Icon: TrendingUp,
-                  },
-                  {
-                    label: "RDs Active",
-                    value: String(activeCount),
-                    numericValue: activeCount,
-                    formatValue: (n: number) => String(Math.round(n)),
-                    color: activeCount > 0 ? THEME.sage : THEME.muted,
-                    Icon: BarChart3,
-                  },
-                ].map(({ label, value, numericValue, formatValue, color, Icon }) => (
-                  <StatCard
-                    key={label}
-                    label={label}
-                    value={value}
-                    numericValue={numericValue}
-                    formatValue={formatValue}
-                    icon={<Icon />}
-                    color={color}
-                  />
-                ))}
-              </div>
-            );
-          })()}
+                {`All (${items.length})`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterTab("active")}
+                className={`demat-portfolio-pill ${filterTab === "active" ? "active" : ""}`}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                {`Active (${activeCount})`}
+              </button>
+              {maturedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilterTab("matured")}
+                  className={`demat-portfolio-pill ${filterTab === "matured" ? "active" : ""}`}
+                  style={{ cursor: "pointer", border: "none" }}
+                >
+                  {`Matured (${maturedCount})`}
+                </button>
+              )}
+            </div>
+          )}
+
           <div
             style={{
               display: "grid",
@@ -3155,15 +3272,17 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
               gap: 16,
             }}
           >
-            {items.map((r: any) => {
+            {filteredItems.map((r: any) => {
               const tenureMonths = Number(r.tenureMonths) || 0;
               const elapsed = r.startDate ? Math.max(0, monthsBetween(r.startDate, today())) : 0;
               const elapsedCapped = Math.min(elapsed, tenureMonths);
-              const isMatured = elapsed >= tenureMonths && tenureMonths > 0;
-              const progressPct = Math.min(
-                100,
-                tenureMonths > 0 ? (elapsedCapped / tenureMonths) * 100 : 0
-              );
+              const isMatured = isRDMatured(r);
+              const progressPct = isMatured
+                ? 100
+                : Math.min(
+                    100,
+                    tenureMonths > 0 ? (elapsedCapped / tenureMonths) * 100 : 0
+                  );
               const deposited = (Number(r.monthly) || 0) * elapsedCapped;
               const currentVal = rdMaturity(Number(r.monthly), Number(r.rate), elapsedCapped);
               const fullMaturity = rdMaturity(Number(r.monthly), Number(r.rate), tenureMonths);
@@ -3194,7 +3313,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     }}
                   >
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-                      <Badge variant="muted">{r.bank}</Badge>
+                      <Badge variant={isMatured ? "muted" : "cyan"}>{r.bank}</Badge>
                       {isMatured && <Badge variant="muted">Matured</Badge>}
                     </div>
                     <div style={{ display: "flex", gap: 4 }}>
@@ -3220,17 +3339,17 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
 
                   {/* Logo + Bank name */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                    <BankLogo name={r.bank} size={36} accentColor={RD_BLUE} />
+                    <BankLogo name={r.bank} size={36} accentColor={isMatured ? THEME.muted : RD_BLUE} />
                     <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{r.bank}</div>
                   </div>
 
-                  <div style={lbl}>Monthly Installment</div>
+                  <div style={lbl}>{isMatured ? "Monthly Installment (Completed)" : "Monthly Installment"}</div>
                   <div
                     style={{
                       fontFamily: "var(--font-display)",
                       fontSize: 24,
                       fontWeight: 600,
-                      color: RD_BLUE,
+                      color: isMatured ? THEME.muted : RD_BLUE,
                       marginBottom: 4,
                       letterSpacing: "-0.02em",
                     }}
@@ -3259,7 +3378,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                               fontWeight: 600,
                             }}
                           >
-                            · Matures {lbl}
+                            · {isMatured ? `Matured (${lbl})` : `Matures ${lbl}`}
                           </span>
                         );
                       })()}
@@ -3275,10 +3394,10 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     }}
                   >
                     <span>
-                      {elapsedCapped} of {tenureMonths} months
+                      {isMatured ? "ALL 100% DEPOSITED" : `${elapsedCapped} of ${tenureMonths} months`}
                     </span>
-                    <span style={{ fontWeight: 700, color: isMatured ? THEME.muted : RD_BLUE }}>
-                      {progressPct.toFixed(0)}%
+                    <span style={{ fontWeight: 700, color: isMatured ? THEME.sage : RD_BLUE }}>
+                      {isMatured ? "100% COMPLETED" : `${progressPct.toFixed(0)}%`}
                     </span>
                   </div>
                   <div className="progress-track" style={{ marginBottom: 14 }}>
@@ -3286,7 +3405,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       className="progress-fill"
                       style={{
                         width: `${progressPct}%`,
-                        background: isMatured ? THEME.muted : RD_BLUE,
+                        background: isMatured ? THEME.sage : RD_BLUE,
                       }}
                     />
                   </div>
@@ -3362,6 +3481,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
 function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   const [editBond, setEditBond] = useState<any>(null);
   const [confirmDeleteBond, setConfirmDeleteBond] = useState<any>(null);
+  const [filterTab, setFilterTab] = useState<"all" | "active" | "matured">("all");
   const { run: saveBondEdit, loading: savingBondEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("bonds", id, v);
@@ -3372,12 +3492,18 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
     }
   );
 
+  const maturedCount = items.filter(isBondMatured).length;
+  const activeCount = items.length - maturedCount;
+  const activeItems = items.filter((b: any) => !isBondMatured(b));
+
   const totalInvested = items.reduce(
     (s: number, b: any) =>
       s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
     0
   );
-  const annualIncome = items.reduce((s: number, b: any) => {
+
+  // Accounting standard: Only active (non-matured) bonds yield ongoing recurring annual coupon income
+  const annualIncome = activeItems.reduce((s: number, b: any) => {
     const principal =
       Number(b.totalPrincipalAmount || 0) ||
       Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0);
@@ -3411,6 +3537,12 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
     marginBottom: 3,
   };
 
+  const filteredItems = items.filter((b: any) => {
+    if (filterTab === "active") return !isBondMatured(b);
+    if (filterTab === "matured") return isBondMatured(b);
+    return true;
+  });
+
   return (
     <div className="animate-fade-in-up">
       {items.length === 0 ? (
@@ -3432,7 +3564,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 14,
-              marginBottom: 24,
+              marginBottom: 20,
             }}
           >
             <StatCard
@@ -3452,14 +3584,46 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
               color={THEME.sage}
             />
             <StatCard
-              label="Bonds Held"
-              value={String(items.length)}
-              numericValue={items.length}
+              label={maturedCount > 0 ? `${maturedCount} Matured` : "Bonds Active"}
+              value={String(activeCount)}
+              numericValue={activeCount}
               formatValue={(n) => String(Math.round(n))}
               icon={<BarChart3 />}
-              color={THEME.accent}
+              color={maturedCount > 0 ? THEME.rust : THEME.accent}
             />
           </div>
+
+          {/* Filter Pills */}
+          {items.length > 0 && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => setFilterTab("all")}
+                className={`demat-portfolio-pill ${filterTab === "all" ? "active" : ""}`}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                {`All (${items.length})`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterTab("active")}
+                className={`demat-portfolio-pill ${filterTab === "active" ? "active" : ""}`}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                {`Active (${activeCount})`}
+              </button>
+              {maturedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilterTab("matured")}
+                  className={`demat-portfolio-pill ${filterTab === "matured" ? "active" : ""}`}
+                  style={{ cursor: "pointer", border: "none" }}
+                >
+                  {`Matured (${maturedCount})`}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Bond cards */}
           <div
@@ -3469,27 +3633,30 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
               gap: 20,
             }}
           >
-            {items.map((b: any) => {
+            {filteredItems.map((b: any) => {
+              const isMatured = isBondMatured(b);
               const investmentAmt = Number(
                 b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0
               );
               const ml = maturityCountdown(b.maturityDate);
+              const isDueSoon = !isMatured && ml && ml.text.includes("d left") && !ml.matured;
               const annualCoupon =
                 ((Number(b.totalPrincipalAmount || 0) ||
                   Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) *
                   Number(b.coupon || 0)) /
                 100;
               const charges = Number(b.brokerage || 0) + Number(b.stampDuty || 0);
-              const bondProgress =
-                b.orderDate && b.maturityDate
-                  ? (() => {
-                      const start = new Date(b.orderDate + "T00:00:00").getTime();
-                      const end = new Date(b.maturityDate + "T00:00:00").getTime();
-                      return end > start
-                        ? Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100))
-                        : 0;
-                    })()
-                  : 0;
+              const bondProgress = isMatured
+                ? 100
+                : b.orderDate && b.maturityDate
+                ? (() => {
+                    const start = new Date(b.orderDate + "T00:00:00").getTime();
+                    const end = new Date(b.maturityDate + "T00:00:00").getTime();
+                    return end > start
+                      ? Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100))
+                      : 0;
+                  })()
+                : 0;
               const fmtBondDate = (d: string) =>
                 d
                   ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", {
@@ -3500,9 +3667,10 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   : "—";
               const currentVal = bondCurrentValue(b);
               const couponEarned = currentVal - investmentAmt;
+              const cardBorder = isMatured ? THEME.muted : isDueSoon ? THEME.rust : BOND_AMBER;
 
               return (
-                <Card key={b.id} style={{ padding: 22, borderTop: `3px solid ${BOND_AMBER}` }}>
+                <Card key={b.id} style={{ padding: 22, borderTop: `3px solid ${cardBorder}` }}>
                   {/* Header: badges + actions */}
                   <div
                     style={{
@@ -3522,7 +3690,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                       }}
                     >
                       {b.securityNature && (
-                        <Badge variant="gold" style={{ fontSize: 9 }}>
+                        <Badge variant={isMatured ? "muted" : "gold"} style={{ fontSize: 9 }}>
                           {b.securityNature}
                         </Badge>
                       )}
@@ -3531,11 +3699,15 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                           {b.issuer}
                         </Badge>
                       )}
-                      {ml?.matured && (
+                      {isMatured ? (
                         <Badge variant="muted" style={{ fontSize: 9 }}>
                           Matured
                         </Badge>
-                      )}
+                      ) : isDueSoon ? (
+                        <Badge variant="rust" style={{ fontSize: 9 }}>
+                          {ml?.text}
+                        </Badge>
+                      ) : null}
                     </div>
                     <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                       <Button
@@ -3562,7 +3734,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   <div
                     style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}
                   >
-                    <BankLogo name={b.issuer || b.name} size={36} accentColor={BOND_AMBER} />
+                    <BankLogo name={b.issuer || b.name} size={36} accentColor={isMatured ? THEME.muted : BOND_AMBER} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
@@ -3591,13 +3763,13 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   </div>
 
                   {/* Investment amount (primary) */}
-                  <div style={lbl}>Total Investment</div>
+                  <div style={lbl}>{isMatured ? "Total Investment (Matured)" : "Total Investment"}</div>
                   <div
                     style={{
                       fontFamily: "var(--font-display)",
                       fontSize: 26,
                       fontWeight: 600,
-                      color: BOND_AMBER,
+                      color: isMatured ? THEME.muted : BOND_AMBER,
                       letterSpacing: "-0.02em",
                       marginBottom: couponEarned > 0 ? 4 : 16,
                     }}
@@ -3606,12 +3778,23 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                   </div>
                   {couponEarned > 0 && (
                     <div style={{ fontSize: 10, color: THEME.sage, marginBottom: 16 }}>
-                      +<Money value={couponEarned} variant="full" /> coupon earned to date ·{" "}
-                      <Money value={currentVal} variant="full" /> current value
+                      {isMatured ? (
+                        <>
+                          +<Money value={couponEarned} variant="full" /> total lifetime coupon ·{" "}
+                          <span style={{ color: THEME.ink, fontWeight: 700 }}>
+                            <Money value={currentVal} variant="full" /> final maturity value
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          +<Money value={couponEarned} variant="full" /> coupon earned to date ·{" "}
+                          <Money value={currentVal} variant="full" /> current value
+                        </>
+                      )}
                     </div>
                   )}
 
-                  {/* Key metrics — 4 amber pills */}
+                  {/* Key metrics — 4 amber/muted pills */}
                   <div
                     style={{
                       display: "grid",
@@ -3633,9 +3816,15 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                         key={l}
                         style={{
                           padding: "8px 6px",
-                          background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+                          background: isMatured
+                            ? `color-mix(in srgb, ${THEME.muted} 8%, transparent)`
+                            : `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
                           borderRadius: 8,
-                          border: `1px solid ${`color-mix(in srgb, ${THEME.gold} 14%, transparent)`}`,
+                          border: `1px solid ${
+                            isMatured
+                              ? `color-mix(in srgb, ${THEME.muted} 16%, transparent)`
+                              : `color-mix(in srgb, ${THEME.gold} 14%, transparent)`
+                          }`,
                           textAlign: "center" as const,
                         }}
                       >
@@ -3658,7 +3847,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     }}
                   >
                     <div>
-                      <div style={lbl}>Maturity Date</div>
+                      <div style={lbl}>{isMatured ? "Matured On" : "Maturity Date"}</div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
                         {fmtBondDate(b.maturityDate)}
                       </div>
@@ -3667,22 +3856,34 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                           style={{
                             fontSize: 10,
                             fontWeight: 700,
-                            color: ml.color,
+                            color: isMatured ? THEME.muted : ml.color,
                             marginTop: 2,
                           }}
                         >
-                          {ml.text}
+                          {isMatured ? "Term Completed" : ml.text}
                         </div>
                       )}
                     </div>
                     <div>
                       <div style={lbl}>Annual Income</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
-                        {annualCoupon > 0 ? <Money value={annualCoupon} variant="full" /> : "—"}
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: isMatured ? THEME.muted : THEME.sage,
+                        }}
+                      >
+                        {isMatured ? (
+                          "₹0 (Matured)"
+                        ) : annualCoupon > 0 ? (
+                          <Money value={annualCoupon} variant="full" />
+                        ) : (
+                          "—"
+                        )}
                       </div>
                       {b.interestPaymentDate && (
                         <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-                          {b.interestPaymentDate}
+                          {isMatured ? "Redeemed / Completed" : b.interestPaymentDate}
                         </div>
                       )}
                     </div>
@@ -3707,11 +3908,14 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                           fontWeight: 600,
                         }}
                       >
-                        <span>ELAPSED</span>
+                        <span>{isMatured ? "STATUS" : "ELAPSED"}</span>
                         <span
-                          style={{ color: ml?.matured ? THEME.sage : BOND_AMBER, fontWeight: 700 }}
+                          style={{
+                            color: isMatured ? THEME.sage : BOND_AMBER,
+                            fontWeight: 700,
+                          }}
                         >
-                          {bondProgress.toFixed(0)}%
+                          {isMatured ? "100% COMPLETED" : `${bondProgress.toFixed(0)}%`}
                         </span>
                       </div>
                       <div className="progress-track">
@@ -3719,7 +3923,7 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                           className="progress-fill"
                           style={{
                             width: `${bondProgress}%`,
-                            background: ml?.matured ? THEME.muted : BOND_AMBER,
+                            background: isMatured ? THEME.sage : BOND_AMBER,
                           }}
                         />
                       </div>

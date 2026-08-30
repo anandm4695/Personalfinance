@@ -1513,7 +1513,8 @@ export const InvestmentStatementTab = ({
                       <th style={thRight}>Face Value</th>
                       <th style={thRight}>Coupon</th>
                       <th style={thRight}>YTM</th>
-                      <th style={{ ...th, paddingRight: 16 }}>Maturity Date</th>
+                      <th style={th}>Maturity Date</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>Status / DTM</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1525,6 +1526,7 @@ export const InvestmentStatementTab = ({
                         0;
                       const coupon = Number(b.coupon) || 0;
                       const ytm = Number(b.ytmRate) || 0;
+                      const dtm = daysToMaturity(b.maturityDate);
 
                       return (
                         <tr
@@ -1539,7 +1541,24 @@ export const InvestmentStatementTab = ({
                           </td>
                           <td style={tdRight}>{coupon > 0 ? `${coupon}%` : "--"}</td>
                           <td style={tdRight}>{ytm > 0 ? `${ytm}%` : "--"}</td>
-                          <td style={{ ...td, paddingRight: 16 }}>{b.maturityDate || "--"}</td>
+                          <td style={td}>{b.maturityDate || "--"}</td>
+                          <td
+                            style={{
+                              ...tdRight,
+                              paddingRight: 16,
+                              fontWeight: 700,
+                              color:
+                                dtm != null && dtm === 0
+                                  ? THEME.muted
+                                  : dtm != null && dtm <= 30
+                                  ? THEME.rust
+                                  : dtm != null && dtm <= 90
+                                  ? THEME.gold
+                                  : THEME.sage,
+                            }}
+                          >
+                            {dtm != null ? (dtm === 0 ? "Matured" : `${dtm}d left`) : "--"}
+                          </td>
                         </tr>
                       );
                     })}

@@ -199,7 +199,7 @@ export const GoldSGBTab = ({
       .filter((h) => h.type === "sgb")
       .reduce((s, h) => s + h.interest, 0);
     const sgbAnnualCoupon = enriched
-      .filter((h) => h.type === "sgb")
+      .filter((h) => h.type === "sgb" && h.maturityStatus !== "Matured")
       .reduce((s, h) => s + (h.invested * Number(h.interestRate || 2.5)) / 100, 0);
 
     const byType = GOLD_TYPES.map((t) => {
@@ -598,51 +598,53 @@ export const GoldSGBTab = ({
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
           {enriched
             .filter((h) => h.type === "sgb")
-            .map((h) => (
-              <div
-                key={h.id}
-                className="card-lift"
-                style={{
-                  padding: 20,
-                  borderRadius: "var(--radius-xl)",
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${THEME.sage}`,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: THEME.sage, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
-                    <Landmark size={13} /> Sovereign Gold Bond
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: THEME.gold }}>
-                    2.5% p.a. RBI Interest
-                  </span>
-                </div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginBottom: 8 }}>
-                  {h.name || "RBI SGB Series"}
-                </div>
-                <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 14 }}>
-                  {h.grams} grams · Current Value: <strong><Money value={h.currentValue} variant="full" /></strong>
-                </div>
-
+            .map((h) => {
+              const isMatured = h.maturityStatus === "Matured";
+              return (
                 <div
+                  key={h.id}
+                  className="card-lift"
                   style={{
-                    padding: 12,
-                    borderRadius: "var(--radius-md)",
-                    background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
-                    marginBottom: 12,
+                    padding: 20,
+                    borderRadius: "var(--radius-xl)",
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    borderTop: `4px solid ${isMatured ? THEME.muted : THEME.sage}`,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ color: THEME.muted }}>Maturity Status:</span>
-                    <span style={{ fontWeight: 800, color: THEME.ink }}>{h.maturityStatus || "—"}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: isMatured ? THEME.muted : THEME.sage, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
+                      <Landmark size={13} /> Sovereign Gold Bond
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: isMatured ? THEME.muted : THEME.gold }}>
+                      {isMatured ? "Interest Ceased (Matured)" : "2.5% p.a. RBI Interest"}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <span style={{ color: THEME.muted }}>Accrued Interest:</span>
-                    <span style={{ fontWeight: 800, color: THEME.sage }}>+{fmtINR(h.interest)}</span>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginBottom: 8 }}>
+                    {h.name || "RBI SGB Series"}
                   </div>
-                </div>
+                  <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 14 }}>
+                    {h.grams} grams · {isMatured ? "Final Redemption Value: " : "Current Value: "}<strong><Money value={h.currentValue} variant="full" /></strong>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: 12,
+                      borderRadius: "var(--radius-md)",
+                      background: `color-mix(in srgb, ${isMatured ? THEME.muted : THEME.sage} 6%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${isMatured ? THEME.muted : THEME.sage} 15%, transparent)`,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: THEME.muted }}>Maturity Status:</span>
+                      <span style={{ fontWeight: 800, color: isMatured ? THEME.muted : THEME.ink }}>{h.maturityStatus || "—"}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                      <span style={{ color: THEME.muted }}>{isMatured ? "Total Lifetime Interest:" : "Accrued Interest:"}</span>
+                      <span style={{ fontWeight: 800, color: isMatured ? THEME.ink : THEME.sage }}>+{fmtINR(h.interest)}</span>
+                    </div>
+                  </div>
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                   <button onClick={() => handleEdit(h)} className="icon-btn" style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}>
@@ -653,7 +655,8 @@ export const GoldSGBTab = ({
                   </button>
                 </div>
               </div>
-            ))}
+            );
+          })}
         </div>
       ) : viewMode === "table" ? (
         /* TABLE VIEW */

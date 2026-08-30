@@ -186,6 +186,9 @@ export function projectSchemeValue(scheme: any): SchemeProjection | null {
   }
 
   if (rule.growth === "payout" && rule.payoutFreqPerYear) {
+    if (scheme.maturityDate && new Date(scheme.maturityDate + "T00:00:00").getTime() < new Date(today() + "T00:00:00").getTime()) {
+      return null; // Matured scheme ceases active periodic payouts
+    }
     const value = (balance * rate) / 100 / rule.payoutFreqPerYear;
     const label =
       rule.payoutFreqPerYear === 4
