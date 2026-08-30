@@ -125,10 +125,31 @@ const isBondMatured = (b: any): boolean => {
   return matDate.getTime() < nowDate.getTime();
 };
 
+const getFdMaturityDate = (f: any): string => {
+  if (f?.maturityDate) return f.maturityDate;
+  if (f?.startDate && f?.years && !isNaN(Number(f.years))) {
+    return addMonthsToDateStr(f.startDate, Math.round(Number(f.years) * 12));
+  }
+  return "";
+};
+
+const isFdMatured = (f: any): boolean => {
+  const matStr = getFdMaturityDate(f);
+  if (!matStr) return false;
+  const [y, m, d] = String(matStr).split("-").map(Number);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+  const matDate = new Date(y, m - 1, d);
+  const nowDate = new Date();
+  nowDate.setHours(0, 0, 0, 0);
+  return matDate.getTime() < nowDate.getTime();
+};
+
 const bondAnnualCoupon = (b: any): number => {
   const principal =
     Number(b?.totalPrincipalAmount || 0) ||
-    Number(b?.numberOfUnits || 0) * Number(b?.faceValuePerUnit || 0);
+    Number(b?.numberOfUnits || 0) * Number(b?.faceValuePerUnit || 0) ||
+    Number(b?.totalInvestmentAmount || 0) ||
+    Number(b?.faceValue || 0);
   return (principal * (Number(b?.coupon) || 0)) / 100;
 };
 
@@ -1283,10 +1304,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     const years = Number(x.years) || 0;
     if (!years || !principal) return principal;
     // If already matured, return full maturity value
-    if (x.maturityDate) {
-      const [y, m, d] = String(x.maturityDate).split("-").map(Number);
-      if (new Date(y, m - 1, d) <= new Date()) return fdMaturity(principal, rate, years);
-    }
+    if (isFdMatured(x)) return fdMaturity(principal, rate, years);
     const elapsedYears = x.startDate
       ? Math.min(years, monthsBetween(x.startDate, today()) / 12)
       : years;
@@ -14615,69 +14633,109 @@ const YieldTracker = ({ state }: any) => {
   const EPF_RATE = 8.25;
   const RD_NOTE = "based on current interest rate";
 
-  // FD: only count active (non-matured) FDs — compound quarterly (Indian standard)
-  const fdInterest = (state.fixedDeposits || []).reduce((s: number, f: any) => {
-    if (f.maturityDate) {
-      const [y, m, d] = String(f.maturityDate).split("-").map(Number);
-      if (new Date(y, m - 1, d) < new Date()) return s; // skip matured
-    }
+  const [activeCategory, setActiveCategory] = useState<"all" | "cash" | "retirement">("all");
+
+  // 1. FD: only count active (non-matured) FDs — compound quarterly (Indian banking standard)
+  const activeFds = (state.fixedDeposits || []).filter((f: any) => {
+    if (isFdMatured(f)) return false;
+    return (Number(f.principal) || 0) > 0;
+  });
+  const fdPrincipal = activeFds.reduce((s: number, f: any) => s + (Number(f.principal) || 0), 0);
+  const fdInterest = activeFds.reduce((s: number, f: any) => {
     const principal = Number(f.principal || 0);
     const rate = Number(f.rate || 0);
+    if (principal <= 0 || rate <= 0) return s;
     return s + (fdMaturity(principal, rate, 1) - principal);
   }, 0);
+  const fdEffectiveRate = fdPrincipal > 0 ? (fdInterest / fdPrincipal) * 100 : 0;
 
-  // Bond coupon — only active (non-matured) bonds
-  const bondInterest = (state.bonds || []).reduce((s: number, b: any) => {
-    if (b.maturityDate) {
-      const [y, m, d] = String(b.maturityDate).split("-").map(Number);
-      if (new Date(y, m - 1, d) < new Date()) return s;
-    }
-    const principal =
-      Number(b.totalPrincipalAmount || 0) ||
-      Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
-      Number(b.faceValue || 0);
-    return s + (principal * Number(b.coupon || 0)) / 100;
+  // 2. Bond coupon — only active (non-matured) bonds
+  const activeBonds = (state.bonds || []).filter((b: any) => !isBondMatured(b));
+  const bondPrincipal = activeBonds.reduce((s: number, b: any) => {
+    return (
+      s +
+      (Number(b?.totalPrincipalAmount || 0) ||
+        Number(b?.numberOfUnits || 0) * Number(b?.faceValuePerUnit || 0) ||
+        Number(b?.totalInvestmentAmount || 0) ||
+        Number(b?.faceValue || 0))
+    );
   }, 0);
+  const bondInterest = activeBonds.reduce((s: number, b: any) => s + bondAnnualCoupon(b), 0);
+  const bondEffectiveRate = bondPrincipal > 0 ? (bondInterest / bondPrincipal) * 100 : 0;
 
-  // RD: interest = maturityValue - deposited (annualised) — only active (non-matured) RDs
-  const rdInterest = (state.recurringDeposits || []).reduce((s: number, r: any) => {
+  // 3. RD: interest = maturityValue - deposited (annualised) — only active (non-matured) RDs
+  const activeRds = (state.recurringDeposits || []).filter((r: any) => {
     const tenureMonths = Number(r.tenureMonths) || 0;
-    if (!tenureMonths) return s;
-    if (r.startDate && tenureMonths) {
-      if (addMonthsToDateStr(r.startDate, tenureMonths) < today()) return s;
-    }
-    const fullMaturity = rdMaturity(Number(r.monthly), Number(r.rate), tenureMonths);
-    const fullDeposited = (Number(r.monthly) || 0) * tenureMonths;
+    if (!tenureMonths) return false;
+    if (r.maturityDate && r.maturityDate < today()) return false;
+    if (r.startDate && addMonthsToDateStr(r.startDate, tenureMonths) < today()) return false;
+    return (Number(r.monthly) || 0) > 0;
+  });
+  const rdDepositedPrincipal = activeRds.reduce((s: number, r: any) => {
+    const tenureMonths = Number(r.tenureMonths) || 0;
+    return s + (Number(r.monthly) || 0) * tenureMonths;
+  }, 0);
+  const rdInterest = activeRds.reduce((s: number, r: any) => {
+    const tenureMonths = Number(r.tenureMonths) || 0;
+    const monthly = Number(r.monthly) || 0;
+    const rate = Number(r.rate) || 0;
+    if (!tenureMonths || !monthly || !rate) return s;
+    const fullMaturity = rdMaturity(monthly, rate, tenureMonths);
+    const fullDeposited = monthly * tenureMonths;
     const annualisedInterest = (fullMaturity - fullDeposited) / (tenureMonths / 12);
     return s + Math.max(0, annualisedInterest);
   }, 0);
+  const rdEffectiveRate = rdDepositedPrincipal > 0 ? (rdInterest / rdDepositedPrincipal) * 100 : 0;
 
-  // PPF: balance × 7.1%
-  const ppfInterest = (state.ppf || []).reduce(
-    (s: number, p: any) => s + (Number(p.balance) * PPF_RATE) / 100,
+  // 4. PPF: balance × 7.10% (support both manual balance and ledger deposit/withdrawal history)
+  const ppfPrincipal = (state.ppf || []).reduce((s: number, p: any) => {
+    const manualBalance = Number(p.balance) || 0;
+    if (manualBalance > 0) return s + manualBalance;
+    const txs = p.transactions || [];
+    if (txs.length > 0) {
+      const deposits = txs
+        .filter((t: any) => t.type === "deposit")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const withdrawals = txs
+        .filter((t: any) => t.type === "withdrawal")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      return s + Math.max(0, deposits - withdrawals);
+    }
+    return s;
+  }, 0);
+  const ppfInterest = (ppfPrincipal * PPF_RATE) / 100;
+
+  // 5. EPF: balance × 8.25% (statutory EPFO rate)
+  const epfPrincipal = (state.epf || []).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
+  const epfInterest = (epfPrincipal * EPF_RATE) / 100;
+
+  // 6. Government Schemes: SCSS (8.2%), Post Office MIS (7.4%), SSY (8.2%), NSC (7.7%), KVP (7.5%), RBI Bonds (8.05%)
+  const govtRates: Record<string, number> = {
+    SSY: 8.2,
+    SCSS: 8.2,
+    NSC: 7.7,
+    KVP: 7.5,
+    POST_MIS: 7.4,
+    RBI_BOND: 8.05,
+    NPS_LITE: 7.0,
+  };
+  const activeGovtSchemes = (state.govtSchemes || []).filter((sc: any) => {
+    if (sc.maturityDate && sc.maturityDate < today()) return false;
+    return (Number(sc.currentBalance || sc.principal || sc.investedAmount) || 0) > 0;
+  });
+  const govtPrincipal = activeGovtSchemes.reduce(
+    (s: number, sc: any) =>
+      s + (Number(sc.currentBalance || sc.principal || sc.investedAmount) || 0),
     0
   );
-
-  // EPF: balance × 8.25%
-  const epfInterest = (state.epf || []).reduce((s: number, e: any) => {
-    return s + (calculateEpfBalance(e) * EPF_RATE) / 100;
+  const govtInterest = activeGovtSchemes.reduce((s: number, sc: any) => {
+    const rate = Number(sc.interestRate) || govtRates[sc.schemeType] || 7.5;
+    const balance = Number(sc.currentBalance || sc.principal || sc.investedAmount) || 0;
+    return s + (balance * rate) / 100;
   }, 0);
+  const govtEffectiveRate = govtPrincipal > 0 ? (govtInterest / govtPrincipal) * 100 : 0;
 
-  // NPS: rough 10% annual growth (mixed equity/debt) — fallback to transaction-derived corpus
-  const npsGrowth = (state.nps || []).reduce((s: number, n: any) => {
-    const bal = Number(n.balance) || 0;
-    const txCorpus = (n.transactions || []).reduce(
-      (sum: number, t: any) =>
-        sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
-      0
-    );
-    const corpus = bal > 0 ? bal : txCorpus;
-    return s + (corpus * 10) / 100;
-  }, 0);
-
-  // Dividends (manually logged only — matching DividendTracker's own dedup logic against
-  // auto-detected bank transactions here would duplicate that heuristic; manual entries are
-  // the ones with a reliable TDS figure), trailing 12 months, net of TDS actually received.
+  // 7. Dividends: Trailing 12 months net of TDS
   const oneYearAgoStr = (() => {
     const [y, m, d] = today().split("-").map(Number);
     return `${y - 1}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -14686,75 +14744,156 @@ const YieldTracker = ({ state }: any) => {
     if (!d.paymentDate || d.paymentDate < oneYearAgoStr) return s;
     return s + Math.max(0, (Number(d.amount) || 0) - (Number(d.tds) || 0));
   }, 0);
+  const stockPortfolioVal = (state.stocks || []).reduce((s: number, st: any) => {
+    const qty = Number(st.shares || st.quantity || st.units || 0);
+    const price = Number(st.currentPrice || st.cmp || st.buyPrice || st.avgBuyPrice || 0);
+    return s + (qty * price || Number(st.invested || 0));
+  }, 0);
+  const dividendEffectiveRate =
+    stockPortfolioVal > 0 ? (dividendYield / stockPortfolioVal) * 100 : 0;
 
-  // Fixed chart-extension tokens (not the user-selectable accent) — raw hex
-  // here would go stale in dark mode and could collide with the active
-  // accent preset.
-  const streams = [
+  // 8. NPS: ~10% annual growth estimate (mixed equity/debt hybrid corpus)
+  const npsCorpus = (state.nps || []).reduce((s: number, n: any) => {
+    const bal = Number(n.balance) || 0;
+    if (bal > 0) return s + bal;
+    const txCorpus = (n.transactions || []).reduce(
+      (sum: number, t: any) =>
+        sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+      0
+    );
+    return s + txCorpus;
+  }, 0);
+  const npsGrowth = (npsCorpus * 10) / 100;
+
+  // Streams list with classification
+  const allStreams = [
     {
+      id: "fd",
       label: "Fixed Deposits",
+      category: "cash" as const,
       value: fdInterest,
+      capital: fdPrincipal,
+      rateBadge: fdEffectiveRate > 0 ? `${fdEffectiveRate.toFixed(2)}% effective` : `Quart. Comp.`,
+      count: activeFds.length,
       color: THEME.gold,
       icon: Coins,
-      note: "annual interest on active FDs",
+      note: "Annual interest on active FDs (quarterly compounding)",
     },
     {
-      label: "Bonds",
+      id: "bond",
+      label: "Bonds & Debentures",
+      category: "cash" as const,
       value: bondInterest,
+      capital: bondPrincipal,
+      rateBadge: bondEffectiveRate > 0 ? `${bondEffectiveRate.toFixed(2)}% coupon` : `Fixed Coupon`,
+      count: activeBonds.length,
       color: THEME.muted,
       icon: FileText,
-      note: "annual coupon on face value",
+      note: "Contractual annual coupon payout on face value",
     },
     {
-      label: "Recurring Deposits",
-      value: rdInterest,
+      id: "govt",
+      label: "Govt / Post Office Schemes",
+      category: "cash" as const,
+      value: govtInterest,
+      capital: govtPrincipal,
+      rateBadge: govtEffectiveRate > 0 ? `${govtEffectiveRate.toFixed(2)}% p.a.` : "7.40–8.20%",
+      count: activeGovtSchemes.length,
       color: THEME.cyan,
-      icon: Repeat,
-      note: RD_NOTE,
+      icon: Target,
+      note: "SCSS, Post Office MIS, SSY, NSC & RBI Bonds",
     },
     {
-      label: "PPF",
-      value: ppfInterest,
-      color: THEME.sage,
-      icon: Shield,
-      note: `@ ${PPF_RATE}% current rate`,
-    },
-    {
-      label: "EPF / EPFO",
-      value: epfInterest,
+      id: "rd",
+      label: "Recurring Deposits",
+      category: "cash" as const,
+      value: rdInterest,
+      capital: rdDepositedPrincipal,
+      rateBadge: rdEffectiveRate > 0 ? `${rdEffectiveRate.toFixed(2)}% p.a.` : "Annualised",
+      count: activeRds.length,
       color: THEME.accent,
-      icon: Shield,
-      note: `@ ${EPF_RATE}% announced rate`,
+      icon: Repeat,
+      note: "Annualised interest across active RD contracts",
     },
     {
-      label: "Dividends",
+      id: "dividends",
+      label: "Dividends (TTM)",
+      category: "cash" as const,
       value: dividendYield,
+      capital: stockPortfolioVal,
+      rateBadge:
+        dividendEffectiveRate > 0
+          ? `${dividendEffectiveRate.toFixed(2)}% div yield`
+          : "Net of TDS",
+      count: (state.dividends || []).filter(
+        (d: any) => d.paymentDate && d.paymentDate >= oneYearAgoStr
+      ).length,
       color: THEME.rust,
       icon: IndianRupee,
-      note: "manually logged, trailing 12mo, net of TDS",
+      note: "Trailing 12-month net dividend receipts logged",
     },
     {
-      // Bug fix: this used to be folded into the same "Annual Yield" total as every contractual,
-      // cash-paying stream above (FD/Bond/RD/PPF/EPF interest) with no distinction — NPS units
-      // don't pay out cash, this is a speculative mark-to-market growth guess, not income. Flagged
-      // isEstimate so the UI below can separate "money you'll actually receive" from "a projection."
-      label: "NPS (est.)",
+      id: "epf",
+      label: "EPF / EPFO",
+      category: "retirement" as const,
+      value: epfInterest,
+      capital: epfPrincipal,
+      rateBadge: `@ ${EPF_RATE}% p.a.`,
+      count: (state.epf || []).length,
+      color: THEME.sage,
+      icon: Shield,
+      note: "Declared statutory interest on cumulative EPF balance",
+    },
+    {
+      id: "ppf",
+      label: "PPF (Public Provident)",
+      category: "retirement" as const,
+      value: ppfInterest,
+      capital: ppfPrincipal,
+      rateBadge: `@ ${PPF_RATE}% p.a.`,
+      count: (state.ppf || []).length,
+      color: THEME.sage,
+      icon: Shield,
+      note: "Tax-free compound interest on PPF balance",
+    },
+    {
+      id: "nps",
+      label: "NPS Growth (Est.)",
+      category: "retirement" as const,
       value: npsGrowth,
+      capital: npsCorpus,
+      rateBadge: "~10.0% CAGR",
+      count: (state.nps || []).length,
       color: THEME.violet,
       icon: Briefcase,
-      note: "@ ~10% blended CAGR estimate — not a cash payout",
+      note: "Blended market CAGR projection — capital appreciation, not cash payout",
       isEstimate: true,
     },
   ].filter((s) => s.value > 0);
 
-  const contractualAnnual = streams
+  const filteredStreams = allStreams.filter((s) => {
+    if (activeCategory === "all") return true;
+    if (activeCategory === "cash") return s.category === "cash";
+    if (activeCategory === "retirement") return s.category === "retirement";
+    return true;
+  });
+
+  const contractualAnnual = allStreams
     .filter((s) => !s.isEstimate)
     .reduce((s, x) => s + x.value, 0);
-  const estimatedAnnual = streams.filter((s) => s.isEstimate).reduce((s, x) => s + x.value, 0);
+  const estimatedAnnual = allStreams.filter((s) => s.isEstimate).reduce((s, x) => s + x.value, 0);
   const totalAnnual = contractualAnnual + estimatedAnnual;
   const totalMonthly = totalAnnual / 12;
+  const totalDaily = totalAnnual / 365;
 
-  const maxVal = Math.max(...streams.map((s) => s.value), 1);
+  const contractualCapital = allStreams
+    .filter((s) => !s.isEstimate)
+    .reduce((s, x) => s + x.capital, 0);
+  const totalCapital = allStreams.reduce((s, x) => s + x.capital, 0);
+  const weightedYieldRate =
+    contractualCapital > 0 ? (contractualAnnual / contractualCapital) * 100 : 0;
+
+  const maxVal = Math.max(...filteredStreams.map((s) => s.value), 1);
 
   return (
     <div className="animate-fade-in-up">
@@ -14764,7 +14903,7 @@ const YieldTracker = ({ state }: any) => {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 14,
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         {[
@@ -14777,13 +14916,21 @@ const YieldTracker = ({ state }: any) => {
               estimatedAnnual > 0 ? (
                 <>
                   {fmtINRFull(contractualAnnual)} contractual + {fmtINRFull(estimatedAnnual)} est.
-                  NPS growth
                 </>
               ) : (
-                "Interest, coupons & dividends combined"
+                "Combined interest, coupons & dividends"
               ),
             color: THEME.accent,
             Icon: IndianRupee,
+          },
+          {
+            label: "Weighted Yield Rate",
+            value: `${weightedYieldRate > 0 ? weightedYieldRate.toFixed(2) : "0.00"}% p.a.`,
+            numericValue: weightedYieldRate,
+            formatValue: (n: number) => `${n.toFixed(2)}% p.a.`,
+            sub: `On ${fmtINRFull(contractualCapital)} active capital`,
+            color: THEME.gold,
+            Icon: Activity,
           },
           {
             label: "Monthly Income",
@@ -14796,20 +14943,20 @@ const YieldTracker = ({ state }: any) => {
           },
           {
             label: "Daily Passive",
-            value: fmtINRFull(totalAnnual / 365),
-            numericValue: totalAnnual / 365,
+            value: fmtINRFull(totalDaily),
+            numericValue: totalDaily,
             formatValue: fmtINRFull,
-            sub: "₹ earned every day",
-            color: THEME.gold,
+            sub: "₹ earned per day",
+            color: THEME.accent,
             Icon: Zap,
           },
           {
-            label: "Income Streams",
-            value: String(streams.length),
-            numericValue: streams.length,
-            formatValue: (n: number) => String(Math.round(n)),
-            sub: "Active yielding instruments",
-            color: THEME.accent,
+            label: "Capital Deployed",
+            value: fmtINRFull(totalCapital),
+            numericValue: totalCapital,
+            formatValue: fmtINRFull,
+            sub: `${allStreams.length} active yielding streams`,
+            color: THEME.muted,
             Icon: Target,
           },
         ].map(({ label, value, numericValue, formatValue, sub, color, Icon }) => (
@@ -14826,103 +14973,226 @@ const YieldTracker = ({ state }: any) => {
         ))}
       </div>
 
-      {streams.length === 0 ? (
+      {allStreams.length === 0 ? (
         <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
           <PiggyBank size={48} color={THEME.muted} style={{ margin: "0 auto 16px" }} />
           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
             No Yield Data Yet
           </div>
           <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360, margin: "0 auto" }}>
-            Add Fixed Deposits, Bonds, PPF, EPF, RD, NPS or Dividends to see your income
-            breakdown here.
+            Add Fixed Deposits, Bonds, PPF, EPF, Recurring Deposits, Govt Schemes, NPS or Dividends
+            to track your automated income stream breakdown here.
           </div>
         </Card>
       ) : (
         <Card style={{ padding: 24 }}>
+          {/* Header and Category Pills */}
           <div
             style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: THEME.muted,
-              textTransform: "uppercase" as const,
-              letterSpacing: "0.08em",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
               marginBottom: 20,
             }}
           >
-            Yield Breakdown by Instrument
+            <div>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Yield Breakdown by Instrument
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                Accounting audit of active cash flows and compounding interest
+              </div>
+            </div>
+
+            {/* Filter Pills */}
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                background: "var(--surface-1)",
+                padding: 4,
+                borderRadius: 10,
+                border: `1px solid ${THEME.line}`,
+              }}
+            >
+              {[
+                { id: "all", label: `All Streams (${allStreams.length})` },
+                {
+                  id: "cash",
+                  label: `Cash Flow (${allStreams.filter((s) => s.category === "cash").length})`,
+                },
+                {
+                  id: "retirement",
+                  label: `Retirement & Compounding (${
+                    allStreams.filter((s) => s.category === "retirement").length
+                  })`,
+                },
+              ].map((pill) => (
+                <button
+                  key={pill.id}
+                  onClick={() => setActiveCategory(pill.id as any)}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 8,
+                    border: "none",
+                    fontSize: 11,
+                    fontWeight: activeCategory === pill.id ? 700 : 500,
+                    background: activeCategory === pill.id ? THEME.accent : "transparent",
+                    color: activeCategory === pill.id ? "#ffffff" : THEME.muted,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
           </div>
 
+          {/* Breakdown List */}
           <div style={{ display: "grid", gap: 14 }}>
-            {streams.map(({ label, value, color, icon: Icon, note }) => {
-              const barPct = (value / maxVal) * 100;
-              const sharePct = totalAnnual > 0 ? (value / totalAnnual) * 100 : 0;
-              return (
-                <div key={label}>
+            {filteredStreams.map(
+              ({ label, value, capital, rateBadge, color, icon: Icon, note, isEstimate }) => {
+                const barPct = (value / maxVal) * 100;
+                const sharePct = totalAnnual > 0 ? (value / totalAnnual) * 100 : 0;
+                return (
                   <div
+                    key={label}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center" }}>
-                        <Icon size={17} color={color} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                          {label}
-                        </div>
-                        <div style={{ fontSize: 10, color: THEME.muted }}>{note}</div>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" as const }}>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 14,
-                          fontWeight: 900,
-                          color,
-                        }}
-                      >
-                        <Money value={value} variant="full" />
-                      </div>
-                      <div style={{ fontSize: 10, color: THEME.muted }}>
-                        {sharePct.toFixed(1)}% share
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      height: 6,
-                      borderRadius: 4,
-                      background: `color-mix(in srgb, ${color} 9%, transparent)`,
-                      overflow: "hidden",
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      background: "var(--surface-1)",
+                      border: `1px solid ${THEME.line}`,
                     }}
                   >
                     <div
                       style={{
-                        height: "100%",
-                        width: `${barPct}%`,
-                        background: color,
-                        borderRadius: 4,
-                        transition: "width 0.4s ease",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 8,
                       }}
-                    />
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: `color-mix(in srgb, ${color} 14%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                          }}
+                        >
+                          <Icon size={16} color={color} />
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                              {label}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: 6,
+                                background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                                color,
+                              }}
+                            >
+                              {rateBadge}
+                            </span>
+                            {isEstimate && (
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                  background: `color-mix(in srgb, ${THEME.violet} 12%, transparent)`,
+                                  color: THEME.violet,
+                                }}
+                              >
+                                Projection
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                            {note}{" "}
+                            {capital > 0 && (
+                              <span style={{ opacity: 0.85 }}>
+                                • Capital: <Money value={capital} variant="full" />
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" as const }}>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 15,
+                            fontWeight: 900,
+                            color,
+                          }}
+                        >
+                          <Money value={value} variant="full" />
+                          <span style={{ fontSize: 10, fontWeight: 500, color: THEME.muted }}>
+                            {" "}
+                            /yr
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                          {sharePct.toFixed(1)}% of yield
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        height: 6,
+                        borderRadius: 4,
+                        background: `color-mix(in srgb, ${color} 10%, transparent)`,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${barPct}%`,
+                          background: color,
+                          borderRadius: 4,
+                          transition: "width 0.4s ease",
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              }
+            )}
           </div>
 
+          {/* Bottom Totals Bar */}
           <div
             style={{
               marginTop: 24,
               paddingTop: 16,
               borderTop: `2px solid ${THEME.line}`,
-              display: "flex",
-              justifyContent: "space-between",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 16,
               alignItems: "center",
             }}
           >
@@ -14933,7 +15203,32 @@ const YieldTracker = ({ state }: any) => {
                   color: THEME.muted,
                   textTransform: "uppercase" as const,
                   letterSpacing: "0.08em",
-                  marginBottom: 4,
+                  marginBottom: 2,
+                }}
+              >
+                Contractual Cash Flow
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: THEME.ink,
+                }}
+              >
+                <Money value={contractualAnnual} variant="full" />
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted }}>Guaranteed / declared cash</div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: THEME.muted,
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.08em",
+                  marginBottom: 2,
                 }}
               >
                 Total Annual Yield
@@ -14941,14 +15236,16 @@ const YieldTracker = ({ state }: any) => {
               <div
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: 24,
-                  fontWeight: 600,
+                  fontSize: 22,
+                  fontWeight: 800,
                   color: THEME.accent,
                 }}
               >
                 <Money value={totalAnnual} variant="full" />
               </div>
+              <div style={{ fontSize: 10, color: THEME.muted }}>Inclusive of NPS CAGR est.</div>
             </div>
+
             <div style={{ textAlign: "right" as const }}>
               <div
                 style={{
@@ -14956,28 +15253,32 @@ const YieldTracker = ({ state }: any) => {
                   color: THEME.muted,
                   textTransform: "uppercase" as const,
                   letterSpacing: "0.08em",
-                  marginBottom: 4,
+                  marginBottom: 2,
                 }}
               >
-                Monthly Avg.
+                Monthly Run-Rate
               </div>
               <div
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: 20,
-                  fontWeight: 600,
+                  fontSize: 18,
+                  fontWeight: 700,
                   color: THEME.sage,
                 }}
               >
                 <Money value={totalMonthly} variant="full" />
               </div>
+              <div style={{ fontSize: 10, color: THEME.muted }}>
+                ~<Money value={totalDaily} variant="full" /> / day
+              </div>
             </div>
           </div>
 
+          {/* Audit & Accounting Standards Reference Note */}
           <div
             style={{
-              marginTop: 16,
-              padding: "10px 14px",
+              marginTop: 18,
+              padding: "12px 16px",
               borderRadius: 10,
               background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
               border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
@@ -14986,10 +15287,31 @@ const YieldTracker = ({ state }: any) => {
               lineHeight: 1.6,
             }}
           >
-            <b style={{ color: THEME.ink }}>Note:</b> FD uses quarterly compounding. Bond uses
-            coupon on face value. RD uses annualised interest over full tenure. PPF @ {PPF_RATE}%,
-            EPF @ {EPF_RATE}%. NPS is a rough estimate at 10% blended return — actual performance
-            varies. All figures are pre-tax.
+            <b style={{ color: THEME.ink }}>Accounting & Regulatory Audit Notes:</b>
+            <ul style={{ margin: "4px 0 0 0", paddingLeft: 18 }}>
+              <li>
+                <b>FD:</b> Computed using Indian banking standard quarterly compounding (A = P × (1
+                + r/400)⁴ⁿ). Only active, non-matured deposits are counted.
+              </li>
+              <li>
+                <b>Bonds:</b> Annual coupon computed on active face value / principal.
+              </li>
+              <li>
+                <b>Govt Schemes:</b> Includes SCSS (8.2%), Post Office MIS (7.4%), SSY (8.2%), NSC
+                (7.7%), and RBI Floating Rate Bonds (8.05%).
+              </li>
+              <li>
+                <b>PPF & EPF:</b> PPF compounded @ {PPF_RATE}% p.a. (Section 80C exempt). EPF
+                accrued @ {EPF_RATE}% p.a. declared EPFO rate.
+              </li>
+              <li>
+                <b>Dividends:</b> Net of TDS trailing 12-month actual cash receipts.
+              </li>
+              <li>
+                <b>NPS:</b> Marked at ~10% blended benchmark CAGR (wealth accumulation, non-cash
+                distribution).
+              </li>
+            </ul>
           </div>
         </Card>
       )}
