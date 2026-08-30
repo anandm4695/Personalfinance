@@ -49,27 +49,111 @@ const addYearsClamped = (date: Date, years: number): Date => {
 const INSURER_LOGOS: Record<string, string> = {
   // Longer / more specific keys must come first to avoid substring false-matches
   "aditya birla": "adityabirlacapital.com",
+  "bajaj allianz": "bajajallianzlife.com",
+  "canara hsbc": "canarahsbclife.com",
+  "hdfc life": "hdfclife.com",
+  "icici prudential": "iciciprulife.com",
+  "icici pru": "iciciprulife.com",
   "life insurance corporation": "licindia.in",
+  "pnb metlife": "pnbmetlife.com",
   "punjab national": "pnbindia.in",
-  "state bank": "sbi.co.in",
+  "sbi life": "sbilife.co.in",
+  "state bank": "sbilife.co.in",
+  "tata aia": "tataaia.com",
   absli: "adityabirlacapital.com",
+  acko: "acko.com",
   aviva: "aviva.com",
-  bajaj: "bajajallianz.com",
+  bajaj: "bajajallianzlife.com",
   birla: "adityabirlacapital.com",
   canara: "canarabank.com",
+  care: "careinsurance.com",
+  digit: "godigit.com",
   exide: "exideindustries.com",
-  hdfc: "hdfcbank.com",
-  hsbc: "hsbc.com",
-  icici: "icicibank.com",
-  kotak: "kotak.com",
+  hdfc: "hdfclife.com",
+  hsbc: "canarahsbclife.com",
+  icici: "iciciprulife.com",
+  kotak: "kotaklife.com",
   lic: "licindia.in",
   max: "maxlifeinsurance.com",
-  metlife: "metlife.com",
+  metlife: "pnbmetlife.com",
+  "niva bupa": "nivabupa.com",
   pnb: "pnbindia.in",
-  reliance: "relianceindustries.com",
-  sbi: "sbi.co.in",
-  tata: "tata.com",
+  reliance: "reliancenipponlife.com",
+  sbi: "sbilife.co.in",
+  "star health": "starhealth.in",
+  tata: "tataaia.com",
 };
+
+/**
+ * Authentic vector SVG logo for Life Insurance Corporation of India (LIC).
+ * Features LIC's iconic protective hands surrounding the flame (Yogakshema)
+ * on a deep navy background with bold LIC typography.
+ */
+export const LicLogo = ({ size = 40 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 48 48"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      width: size,
+      height: size,
+      borderRadius: 10,
+      flexShrink: 0,
+      display: "block",
+      background: "#002D56",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+    }}
+  >
+    <rect width="48" height="48" rx="10" fill="#002D56" />
+    <rect x="0.5" y="0.5" width="47" height="47" rx="9.5" stroke="#0A3E70" strokeWidth="1" />
+
+    {/* Protective Hands & Lamp / Diya Emblem */}
+    <g transform="translate(0, -1)">
+      {/* Left protective hand */}
+      <path
+        d="M13.5 24.5C12.5 19.5 15.5 14 20 11.5C18.8 13.8 18.2 16.8 19.2 20.5C19.7 22.2 20.8 23.5 22 24.2C18.8 24.8 15 25.5 13.5 24.5Z"
+        fill="#FFC72C"
+      />
+      {/* Right protective hand */}
+      <path
+        d="M34.5 24.5C35.5 19.5 32.5 14 28 11.5C29.2 13.8 29.8 16.8 28.8 20.5C28.3 22.2 27.2 23.5 26 24.2C29.2 24.8 33 25.5 34.5 24.5Z"
+        fill="#FFC72C"
+      />
+      {/* Central Flame */}
+      <path
+        d="M24 7.5C25 11 27.5 14.5 27.5 17.5C27.5 19.8 25.9 21.5 24 21.5C22.1 21.5 20.5 19.8 20.5 17.5C20.5 14.5 23 11 24 7.5Z"
+        fill="#FFDF00"
+      />
+      {/* Inner flame core */}
+      <path
+        d="M24 12C24.5 14 25.8 16 25.8 17.8C25.8 19 24.9 20 24 20C23.1 20 22.2 19 22.2 17.8C22.2 16 23.5 14 24 12Z"
+        fill="#FFFFFF"
+      />
+      {/* Diya / Lamp Base */}
+      <path
+        d="M18 23C19.5 24.8 28.5 24.8 30 23C29 26 19 26 18 23Z"
+        fill="#FFB800"
+      />
+      <ellipse cx="24" cy="23.2" rx="4.5" ry="1.2" fill="#E59B00" />
+    </g>
+
+    {/* LIC Brand Text */}
+    <text
+      x="24"
+      y="39"
+      textAnchor="middle"
+      fill="#FFC72C"
+      fontFamily="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+      fontWeight="900"
+      fontSize="11"
+      letterSpacing="1.2"
+    >
+      LIC
+    </text>
+  </svg>
+);
 
 const InsurerLogo = ({
   name,
@@ -80,21 +164,33 @@ const InsurerLogo = ({
   size?: number;
   isLic?: boolean;
 }) => {
-  const n = isLic ? "lic" : (name || "").toLowerCase();
+  const cleanName = (name || "").toLowerCase().trim();
+  const isLicTarget =
+    isLic ||
+    cleanName === "lic" ||
+    cleanName.includes("life insurance corporation") ||
+    cleanName.includes("lic india") ||
+    cleanName.includes("lic of india");
+
+  // If this is LIC, render the dedicated crisp vector logo directly
+  if (isLicTarget) {
+    return <LicLogo size={size} />;
+  }
+
   let domain = "";
   for (const [k, d] of Object.entries(INSURER_LOGOS)) {
-    if (n.includes(k)) {
+    if (cleanName.includes(k)) {
       domain = d;
       break;
     }
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: google favicon, 2: initials
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: google favicon, 1: hunter.io, 2: initials
 
   React.useEffect(() => {
     if (domain) {
-      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
@@ -105,7 +201,7 @@ const InsurerLogo = ({
   const handleError = () => {
     if (fallbackLevel === 0) {
       setFallbackLevel(1);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+      setImgSrc(`https://logos.hunter.io/${domain}`);
     } else if (fallbackLevel === 1) {
       setFallbackLevel(2);
       setImgSrc(null);
@@ -119,24 +215,31 @@ const InsurerLogo = ({
           width: size,
           height: size,
           borderRadius: 10,
-          background: "var(--surface-0)",
+          background: "var(--surface-0, #ffffff)",
           border: `1px solid ${THEME.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
           flexShrink: 0,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         }}
       >
         <img
           src={imgSrc}
           alt={name}
-          style={{ width: "80%", height: "80%", objectFit: "contain" }}
+          style={{ width: "75%", height: "75%", objectFit: "contain" }}
           onError={handleError}
         />
       </div>
     );
   }
+
+  // Deterministic color for initials fallback
+  const s = name || "?";
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash << 5) - hash + s.charCodeAt(i);
+  const hue = Math.abs(hash) % 360;
 
   return (
     <div
@@ -144,16 +247,22 @@ const InsurerLogo = ({
         width: size,
         height: size,
         borderRadius: 10,
-        background: "color-mix(in srgb, var(--t-muted) 10%, transparent)",
-        border: `1px solid ${THEME.line}`,
+        background: `hsl(${hue}, 45%, 94%)`,
+        border: `1px solid hsl(${hue}, 45%, 82%)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: size / 2.5, fontWeight: 800, color: THEME.muted }}>
-        {name.slice(0, 2).toUpperCase()}
+      <span
+        style={{
+          fontSize: Math.max(10, size / 2.6),
+          fontWeight: 800,
+          color: `hsl(${hue}, 60%, 30%)`,
+        }}
+      >
+        {(name || "IN").slice(0, 2).toUpperCase()}
       </span>
     </div>
   );
