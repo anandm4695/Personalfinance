@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Clock,
   User,
+  ExternalLink,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -90,69 +91,36 @@ const INSURER_LOGOS: Record<string, string> = {
  * on a deep navy background with bold LIC typography.
  */
 export const LicLogo = ({ size = 40 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 48 48"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
+  <div
     style={{
       width: size,
       height: size,
       borderRadius: 10,
+      background: "#ffffff",
+      border: `1px solid ${THEME.line}`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
       flexShrink: 0,
-      display: "block",
-      background: "#002D56",
-      boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+      padding: 3,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
     }}
   >
-    <rect width="48" height="48" rx="10" fill="#002D56" />
-    <rect x="0.5" y="0.5" width="47" height="47" rx="9.5" stroke="#0A3E70" strokeWidth="1" />
-
-    {/* Protective Hands & Lamp / Diya Emblem */}
-    <g transform="translate(0, -1)">
-      {/* Left protective hand */}
-      <path
-        d="M13.5 24.5C12.5 19.5 15.5 14 20 11.5C18.8 13.8 18.2 16.8 19.2 20.5C19.7 22.2 20.8 23.5 22 24.2C18.8 24.8 15 25.5 13.5 24.5Z"
-        fill="#FFC72C"
-      />
-      {/* Right protective hand */}
-      <path
-        d="M34.5 24.5C35.5 19.5 32.5 14 28 11.5C29.2 13.8 29.8 16.8 28.8 20.5C28.3 22.2 27.2 23.5 26 24.2C29.2 24.8 33 25.5 34.5 24.5Z"
-        fill="#FFC72C"
-      />
-      {/* Central Flame */}
-      <path
-        d="M24 7.5C25 11 27.5 14.5 27.5 17.5C27.5 19.8 25.9 21.5 24 21.5C22.1 21.5 20.5 19.8 20.5 17.5C20.5 14.5 23 11 24 7.5Z"
-        fill="#FFDF00"
-      />
-      {/* Inner flame core */}
-      <path
-        d="M24 12C24.5 14 25.8 16 25.8 17.8C25.8 19 24.9 20 24 20C23.1 20 22.2 19 22.2 17.8C22.2 16 23.5 14 24 12Z"
-        fill="#FFFFFF"
-      />
-      {/* Diya / Lamp Base */}
-      <path
-        d="M18 23C19.5 24.8 28.5 24.8 30 23C29 26 19 26 18 23Z"
-        fill="#FFB800"
-      />
-      <ellipse cx="24" cy="23.2" rx="4.5" ry="1.2" fill="#E59B00" />
-    </g>
-
-    {/* LIC Brand Text */}
-    <text
-      x="24"
-      y="39"
-      textAnchor="middle"
-      fill="#FFC72C"
-      fontFamily="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-      fontWeight="900"
-      fontSize="11"
-      letterSpacing="1.2"
-    >
-      LIC
-    </text>
-  </svg>
+    <img
+      src="/lic-logo.svg"
+      alt="Life Insurance Corporation of India (LIC)"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+      }}
+      onError={(e) => {
+        // Fallback to direct official asset URL if local svg is ever missing
+        (e.currentTarget as HTMLImageElement).src = "https://licindia.in/documents/d/guest/lic_log_updated";
+      }}
+    />
+  </div>
 );
 
 const InsurerLogo = ({
@@ -2385,14 +2353,37 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       <div style={{ marginBottom: 32 }}>
         <div className="ins-section-header">
           <div className="ins-section-title">Life Insurance (LIC)</div>
-          <Button
-            onClick={() => setModal("lic")}
-            size="sm"
-            variant="secondary"
-            icon={<Plus size={14} />}
-          >
-            Add Policy
-          </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <a
+              href="https://licindia.in/en/web/guest/home"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: THEME.ink,
+                textDecoration: "none",
+                border: `1px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+              }}
+            >
+              <ExternalLink size={13} color={THEME.muted} />
+              LIC Portal
+            </a>
+            <Button
+              onClick={() => setModal("lic")}
+              size="sm"
+              variant="secondary"
+              icon={<Plus size={14} />}
+            >
+              Add Policy
+            </Button>
+          </div>
         </div>
         {state.lic.length === 0 ? (
           <EmptyState
