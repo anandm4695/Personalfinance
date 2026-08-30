@@ -575,7 +575,10 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // same current/next-cycle pattern RemindersTab uses, not a full recurring
     // series — that's the right shape for this list, unlike Payments' month-grid.
     (state.rentalProperties || [])
-      .filter((p: any) => p.isActive !== false)
+      .filter(
+        (p: any) =>
+          p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= todayStr)
+      )
       .forEach((p: any) => {
         const rentAmt = getEffectiveRent(p);
         if (!rentAmt) return;
@@ -949,7 +952,12 @@ export function useRecurringPayments(state: any, todayStr: string, todayDate: Da
     // records. Landlord-received rent belongs in Payments' "outflows" framing
     // even less than it belonged in that dead filter — it's tracked correctly
     // now as its own inflow-typed milestone in useMilestoneEvents above.
-    (state.rentedProperties || []).forEach((p: any) => addRentItem(p, "rent"));
+    (state.rentedProperties || [])
+      .filter(
+        (p: any) =>
+          p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= todayStr)
+      )
+      .forEach((p: any) => addRentItem(p, "rent"));
 
     return items;
   }, [state, todayStr, todayDate]);

@@ -1014,7 +1014,7 @@ describe("getEffectiveRent", () => {
     expect(getEffectiveRent(p, "2026-07")).toBe(18000);
   });
 
-  it("returns first tier amount when reference is before agreement start", () => {
+  it("returns 0 when reference is before agreement start", () => {
     const p = {
       monthlyRent: 10000,
       agreementStart: "2025-06-01",
@@ -1023,7 +1023,32 @@ describe("getEffectiveRent", () => {
         { amount: 18000, durationMonths: 12 },
       ],
     };
-    expect(getEffectiveRent(p, "2025-01")).toBe(15000);
+    expect(getEffectiveRent(p, "2025-01")).toBe(0);
+  });
+
+  it("returns 0 when agreement has expired past agreementEnd", () => {
+    const p = {
+      monthlyRent: 10000,
+      agreementStart: "2024-01-01",
+      agreementEnd: "2025-12-31",
+      escalationTiers: [
+        { amount: 15000, durationMonths: 12 },
+        { amount: 18000, durationMonths: 12 },
+      ],
+    };
+    expect(getEffectiveRent(p, "2026-01")).toBe(0);
+  });
+
+  it("returns 0 when property is inactive (isActive: false)", () => {
+    const p = {
+      monthlyRent: 10000,
+      isActive: false,
+      agreementStart: "2025-01-01",
+      escalationTiers: [
+        { amount: 15000, durationMonths: 12 },
+      ],
+    };
+    expect(getEffectiveRent(p, "2025-06")).toBe(0);
   });
 
   it("handles 0 as monthlyRent fallback", () => {
@@ -1055,7 +1080,7 @@ describe("getCurrentTierIndex", () => {
     expect(getCurrentTierIndex(p, "2025-01")).toBe(0);
   });
 
-  it("returns 0 when reference is before agreement start", () => {
+  it("returns -1 when reference is before agreement start", () => {
     const p = {
       agreementStart: "2025-06-01",
       escalationTiers: [
@@ -1063,7 +1088,7 @@ describe("getCurrentTierIndex", () => {
         { amount: 18000, durationMonths: 12 },
       ],
     };
-    expect(getCurrentTierIndex(p, "2025-01")).toBe(0);
+    expect(getCurrentTierIndex(p, "2025-01")).toBe(-1);
   });
 
   it("returns correct index after first tier expires", () => {
@@ -1079,7 +1104,7 @@ describe("getCurrentTierIndex", () => {
     expect(getCurrentTierIndex(p, "2027-01")).toBe(2);
   });
 
-  it("returns last tier index when past all tiers", () => {
+  it("returns -1 when past all tiers (all tiers completed)", () => {
     const p = {
       agreementStart: "2024-01-01",
       escalationTiers: [
@@ -1087,7 +1112,30 @@ describe("getCurrentTierIndex", () => {
         { amount: 18000, durationMonths: 12 },
       ],
     };
-    expect(getCurrentTierIndex(p, "2026-07")).toBe(1);
+    expect(getCurrentTierIndex(p, "2026-07")).toBe(-1);
+  });
+
+  it("returns -1 when agreementEnd has passed (expired)", () => {
+    const p = {
+      agreementStart: "2024-01-01",
+      agreementEnd: "2024-12-31",
+      escalationTiers: [
+        { amount: 15000, durationMonths: 12 },
+        { amount: 18000, durationMonths: 12 },
+      ],
+    };
+    expect(getCurrentTierIndex(p, "2025-01")).toBe(-1);
+  });
+
+  it("returns -1 when property is inactive", () => {
+    const p = {
+      isActive: false,
+      agreementStart: "2025-01-01",
+      escalationTiers: [
+        { amount: 15000, durationMonths: 12 },
+      ],
+    };
+    expect(getCurrentTierIndex(p, "2025-06")).toBe(-1);
   });
 
   it("uses default durationMonths of 12 when not specified", () => {

@@ -350,13 +350,17 @@ export const getNextSubscriptionRenewal = (renewalDate?: string, cycle?: string,
 // ── Rental Escalation Tier Helpers ────────────────────────────────────────────
 
 export const getEffectiveRent = (p: any, yearMonth?: string): number => {
+  if (!p || p.isActive === false) return 0;
+  const refMonth = yearMonth || today().slice(0, 7);
+  if (p.agreementStart && refMonth < p.agreementStart.slice(0, 7)) return 0;
+  if (p.agreementEnd && refMonth > p.agreementEnd.slice(0, 7)) return 0;
+
   const tiers = p.escalationTiers;
   if (!tiers || !tiers.length || !p.agreementStart) return Number(p.monthlyRent || 0);
-  const refMonth = yearMonth || today().slice(0, 7);
   const [refY, refM] = refMonth.split("-").map(Number);
   const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
   const monthsElapsed = (refY - startY) * 12 + (refM - startM);
-  if (monthsElapsed < 0) return Number(tiers[0]?.amount || p.monthlyRent || 0);
+  if (monthsElapsed < 0) return 0;
   let cumulative = 0;
   for (const tier of tiers) {
     cumulative += Number(tier.durationMonths || 12);
@@ -367,34 +371,37 @@ export const getEffectiveRent = (p: any, yearMonth?: string): number => {
 
 export const getCurrentTierIndex = (p: any, yearMonth?: string): number => {
   const tiers = p.escalationTiers;
-  if (!tiers || !tiers.length || !p.agreementStart) return -1;
+  if (!tiers || !tiers.length || !p.agreementStart || p.isActive === false) return -1;
   const refMonth = yearMonth || today().slice(0, 7);
+  if (p.agreementEnd && refMonth > p.agreementEnd.slice(0, 7)) return -1;
   const [refY, refM] = refMonth.split("-").map(Number);
   const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
   const monthsElapsed = (refY - startY) * 12 + (refM - startM);
-  if (monthsElapsed < 0) return 0;
+  if (monthsElapsed < 0) return -1;
   let cumulative = 0;
   for (let i = 0; i < tiers.length; i++) {
     cumulative += Number(tiers[i].durationMonths || 12);
     if (monthsElapsed < cumulative) return i;
   }
-  return tiers.length - 1;
+  return -1;
 };
 
 export const getMonthsToNextEscalation = (p: any, yearMonth?: string): number | null => {
   const tiers = p.escalationTiers;
-  if (!tiers || tiers.length < 2 || !p.agreementStart) return null;
+  if (!tiers || tiers.length < 2 || !p.agreementStart || p.isActive === false) return null;
   const refMonth = yearMonth || today().slice(0, 7);
+  if (p.agreementEnd && refMonth >= p.agreementEnd.slice(0, 7)) return null;
+  const currentTier = getCurrentTierIndex(p, refMonth);
+  if (currentTier === -1 || currentTier >= tiers.length - 1) return null;
   const [refY, refM] = refMonth.split("-").map(Number);
   const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
   const monthsElapsed = (refY - startY) * 12 + (refM - startM);
   if (monthsElapsed < 0) return null;
   let cumulative = 0;
-  for (let i = 0; i < tiers.length - 1; i++) {
+  for (let i = 0; i <= currentTier; i++) {
     cumulative += Number(tiers[i].durationMonths || 12);
-    if (monthsElapsed < cumulative) return cumulative - monthsElapsed;
   }
-  return null;
+  return cumulative - monthsElapsed;
 };
 
 // ── End Rental Escalation Tier Helpers ────────────────────────────────────────

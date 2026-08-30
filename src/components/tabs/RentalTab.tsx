@@ -223,14 +223,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   const fyEnd = parseInt(fyLabel.split("-")[0]) + 1 + "-03-31";
 
   const outMonthlyRent = propertiesOut
-    .filter((p: any) => p.isActive !== false)
+    .filter((p: any) => p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= today()))
     .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
   // Escalation-aware annual target — summing each active property's per-month
   // effective rent across the FY, not today's rent × 12 (see getExpectedFYRent
   // comment above: a mid-year escalation step otherwise silently understates
   // or overstates the annual figure shown as the "target"/"commitment").
   const outExpectedFY = propertiesOut
-    .filter((p: any) => p.isActive !== false)
+    .filter((p: any) => p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= fyStart))
     .reduce((s: number, p: any) => s + getExpectedFYRent(p, fyStart), 0);
   const outThisFY = propertiesOut.reduce(
     (s: number, p: any) =>
@@ -256,10 +256,10 @@ export const RentalTab: React.FC<RentalTabProps> = ({
   );
 
   const inMonthlyRent = propertiesIn
-    .filter((p: any) => p.isActive !== false)
+    .filter((p: any) => p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= today()))
     .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
   const inExpectedFY = propertiesIn
-    .filter((p: any) => p.isActive !== false)
+    .filter((p: any) => p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= fyStart))
     .reduce((s: number, p: any) => s + getExpectedFYRent(p, fyStart), 0);
   const inThisFY = propertiesIn.reduce(
     (s: number, p: any) =>
@@ -920,92 +920,137 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               </div>
                             );
                           })()}
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: THEME.muted,
-                              fontWeight: 600,
-                              marginTop: 2,
-                            }}
-                          >
-                            {/* Show tenant name(s) */}
-                            {p.tenants && p.tenants.length > 1 ? (
-                              <span>{p.tenants.length} Tenants</span>
-                            ) : (
-                              <span>{p.tenantName || p.tenants?.[0]?.name || "Vacant"}</span>
-                            )}
-                            {" · "}
-                            <span style={{ color: THEME.accent }}>
-                              <Money value={getEffectiveRent(p)} variant="exact" />/mo
-                            </span>
-                            {p.escalationTiers?.length > 1 && (
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  color: THEME.accent,
-                                  background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                                  padding: "1px 6px",
-                                  borderRadius: 4,
-                                  fontWeight: 700,
-                                  marginLeft: 6,
-                                }}
-                              >
-                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of{" "}
-                                {p.escalationTiers.length}
-                              </span>
-                            )}
-                            {" · "}
-                            <span style={{ color: THEME.gold }}>
-                              Due: {getOrdinal(p.dueDay ?? 5)} of month
-                            </span>
-                          </div>
-                          {/* Escalation schedule pills */}
-                          {p.escalationTiers?.length > 1 && (
-                            <div
-                              style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}
-                            >
-                              {p.escalationTiers.map((tier: any, ti: number) => {
-                                const tierColors = [
-                                  THEME.accent,
-                                  THEME.sage,
-                                  THEME.gold,
-                                  THEME.rust,
-                                  THEME.violet,
-                                ];
-                                const col = tierColors[ti % 5];
-                                const isCurrent = getCurrentTierIndex(p) === ti;
-                                const mNext =
-                                  ti === getCurrentTierIndex(p)
-                                    ? getMonthsToNextEscalation(p)
-                                    : null;
-                                return (
-                                  <span
-                                    key={ti}
+                          {(() => {
+                            const todayMs = new Date(today() + "T00:00:00").getTime();
+                            const endDate = p.agreementEnd
+                              ? new Date(p.agreementEnd + "T00:00:00")
+                              : null;
+                            const daysToExpiry = endDate
+                              ? Math.ceil((endDate.getTime() - todayMs) / 86400000)
+                              : null;
+                            const isExpired =
+                              (daysToExpiry !== null && daysToExpiry < 0) ||
+                              (p.agreementEnd && p.agreementEnd < today()) ||
+                              p.isActive === false;
+                            const currentTier = getCurrentTierIndex(p);
+                            const displayedRent =
+                              getEffectiveRent(p) ||
+                              p.monthlyRent ||
+                              p.escalationTiers?.[p.escalationTiers.length - 1]?.amount ||
+                              0;
+                            return (
+                              <>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    color: THEME.muted,
+                                    fontWeight: 600,
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  {/* Show tenant name(s) */}
+                                  {p.tenants && p.tenants.length > 1 ? (
+                                    <span>{p.tenants.length} Tenants</span>
+                                  ) : (
+                                    <span>{p.tenantName || p.tenants?.[0]?.name || "Vacant"}</span>
+                                  )}
+                                  {" · "}
+                                  <span style={{ color: isExpired ? THEME.muted : THEME.accent }}>
+                                    <Money value={displayedRent} variant="exact" />/mo
+                                  </span>
+                                  {isExpired && (
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        color: p.isActive === false ? THEME.muted : THEME.rust,
+                                        marginLeft: 4,
+                                      }}
+                                    >
+                                      ({p.isActive === false ? "Ended" : "Expired"})
+                                    </span>
+                                  )}
+                                  {p.escalationTiers?.length > 1 && (
+                                    <span
+                                      style={{
+                                        fontSize: 9,
+                                        color: currentTier >= 0 ? THEME.accent : THEME.muted,
+                                        background:
+                                          currentTier >= 0
+                                            ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                                            : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+                                        padding: "1px 6px",
+                                        borderRadius: 4,
+                                        fontWeight: 700,
+                                        marginLeft: 6,
+                                      }}
+                                    >
+                                      {currentTier >= 0
+                                        ? `Y${currentTier + 1} of ${p.escalationTiers.length}`
+                                        : isExpired
+                                        ? "Tiers Expired"
+                                        : "Tiers Completed"}
+                                    </span>
+                                  )}
+                                  {" · "}
+                                  <span style={{ color: THEME.gold }}>
+                                    Due: {getOrdinal(p.dueDay ?? 5)} of month
+                                  </span>
+                                </div>
+                                {/* Escalation schedule pills */}
+                                {p.escalationTiers?.length > 1 && (
+                                  <div
                                     style={{
-                                      fontSize: 9,
-                                      padding: "2px 7px",
-                                      borderRadius: 5,
-                                      fontWeight: 700,
-                                      background: isCurrent
-                                        ? `color-mix(in srgb, ${col} 13%, transparent)`
-                                        : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-                                      color: isCurrent ? col : THEME.muted,
-                                      border: isCurrent
-                                        ? `1px solid color-mix(in srgb, ${col} 27%, transparent)`
-                                        : "none",
+                                      display: "flex",
+                                      flexWrap: "wrap",
+                                      gap: 4,
+                                      marginTop: 5,
                                     }}
                                   >
-                                    Y{ti + 1}: <Money value={tier.amount} variant="exact" />
-                                    {isCurrent && mNext !== null && mNext <= 3 && (
-                                      <span style={{ marginLeft: 4, color: THEME.gold }}>
-                                        · escalates in {mNext}mo
-                                      </span>
-                                    )}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
+                                    {p.escalationTiers.map((tier: any, ti: number) => {
+                                      const tierColors = [
+                                        THEME.accent,
+                                        THEME.sage,
+                                        THEME.gold,
+                                        THEME.rust,
+                                        THEME.violet,
+                                      ];
+                                      const col = tierColors[ti % 5];
+                                      const isCurrent = currentTier === ti;
+                                      const mNext = isCurrent
+                                        ? getMonthsToNextEscalation(p)
+                                        : null;
+                                      return (
+                                        <span
+                                          key={ti}
+                                          style={{
+                                            fontSize: 9,
+                                            padding: "2px 7px",
+                                            borderRadius: 5,
+                                            fontWeight: 700,
+                                            background: isCurrent
+                                              ? `color-mix(in srgb, ${col} 13%, transparent)`
+                                              : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+                                            color: isCurrent ? col : THEME.muted,
+                                            border: isCurrent
+                                              ? `1px solid color-mix(in srgb, ${col} 27%, transparent)`
+                                              : "none",
+                                          }}
+                                        >
+                                          Y{ti + 1}: <Money value={tier.amount} variant="exact" />
+                                          {isCurrent && mNext !== null && mNext <= 3 && (
+                                            <span style={{ marginLeft: 4, color: THEME.gold }}>
+                                              · escalates in {mNext}mo
+                                            </span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                           {/* Multi-tenant split pills */}
                           {p.tenants && p.tenants.length > 1 && (
                             <div
@@ -2403,94 +2448,139 @@ export const RentalTab: React.FC<RentalTabProps> = ({
                               </div>
                             );
                           })()}
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: THEME.muted,
-                              fontWeight: 600,
-                              marginTop: 2,
-                            }}
-                          >
-                            {/* Show landlord name(s) */}
-                            {p.landlords && p.landlords.length > 1 ? (
-                              <span>{p.landlords.length} Landlords</span>
-                            ) : (
-                              <span>
-                                {p.landlordName || p.landlords?.[0]?.name || "Unknown Landlord"}
-                              </span>
-                            )}
-                            {" · "}
-                            <span style={{ color: THEME.rust }}>
-                              <Money value={getEffectiveRent(p)} variant="exact" />/mo
-                            </span>
-                            {p.escalationTiers?.length > 1 && (
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  color: THEME.rust,
-                                  background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-                                  padding: "1px 6px",
-                                  borderRadius: 4,
-                                  fontWeight: 700,
-                                  marginLeft: 6,
-                                }}
-                              >
-                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of{" "}
-                                {p.escalationTiers.length}
-                              </span>
-                            )}
-                            {" · "}
-                            <span style={{ color: THEME.gold }}>
-                              Due: {getOrdinal(p.dueDay ?? 5)} of month
-                            </span>
-                          </div>
-                          {/* Escalation schedule pills */}
-                          {p.escalationTiers?.length > 1 && (
-                            <div
-                              style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}
-                            >
-                              {p.escalationTiers.map((tier: any, ti: number) => {
-                                const tierColors = [
-                                  THEME.rust,
-                                  THEME.gold,
-                                  THEME.accent,
-                                  THEME.sage,
-                                  THEME.violet,
-                                ];
-                                const col = tierColors[ti % 5];
-                                const isCurrent = getCurrentTierIndex(p) === ti;
-                                const mNext =
-                                  ti === getCurrentTierIndex(p)
-                                    ? getMonthsToNextEscalation(p)
-                                    : null;
-                                return (
-                                  <span
-                                    key={ti}
+                          {(() => {
+                            const todayMs = new Date(today() + "T00:00:00").getTime();
+                            const endDate = p.agreementEnd
+                              ? new Date(p.agreementEnd + "T00:00:00")
+                              : null;
+                            const daysToExpiry = endDate
+                              ? Math.ceil((endDate.getTime() - todayMs) / 86400000)
+                              : null;
+                            const isExpired =
+                              (daysToExpiry !== null && daysToExpiry < 0) ||
+                              (p.agreementEnd && p.agreementEnd < today()) ||
+                              p.isActive === false;
+                            const currentTier = getCurrentTierIndex(p);
+                            const displayedRent =
+                              getEffectiveRent(p) ||
+                              p.monthlyRent ||
+                              p.escalationTiers?.[p.escalationTiers.length - 1]?.amount ||
+                              0;
+                            return (
+                              <>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    color: THEME.muted,
+                                    fontWeight: 600,
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  {/* Show landlord name(s) */}
+                                  {p.landlords && p.landlords.length > 1 ? (
+                                    <span>{p.landlords.length} Landlords</span>
+                                  ) : (
+                                    <span>
+                                      {p.landlordName || p.landlords?.[0]?.name || "Unknown Landlord"}
+                                    </span>
+                                  )}
+                                  {" · "}
+                                  <span style={{ color: isExpired ? THEME.muted : THEME.rust }}>
+                                    <Money value={displayedRent} variant="exact" />/mo
+                                  </span>
+                                  {isExpired && (
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        color: p.isActive === false ? THEME.muted : THEME.rust,
+                                        marginLeft: 4,
+                                      }}
+                                    >
+                                      ({p.isActive === false ? "Ended" : "Expired"})
+                                    </span>
+                                  )}
+                                  {p.escalationTiers?.length > 1 && (
+                                    <span
+                                      style={{
+                                        fontSize: 9,
+                                        color: currentTier >= 0 ? THEME.rust : THEME.muted,
+                                        background:
+                                          currentTier >= 0
+                                            ? `color-mix(in srgb, ${THEME.rust} 8%, transparent)`
+                                            : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+                                        padding: "1px 6px",
+                                        borderRadius: 4,
+                                        fontWeight: 700,
+                                        marginLeft: 6,
+                                      }}
+                                    >
+                                      {currentTier >= 0
+                                        ? `Y${currentTier + 1} of ${p.escalationTiers.length}`
+                                        : isExpired
+                                        ? "Tiers Expired"
+                                        : "Tiers Completed"}
+                                    </span>
+                                  )}
+                                  {" · "}
+                                  <span style={{ color: THEME.gold }}>
+                                    Due: {getOrdinal(p.dueDay ?? 5)} of month
+                                  </span>
+                                </div>
+                                {/* Escalation schedule pills */}
+                                {p.escalationTiers?.length > 1 && (
+                                  <div
                                     style={{
-                                      fontSize: 9,
-                                      padding: "2px 7px",
-                                      borderRadius: 5,
-                                      fontWeight: 700,
-                                      background: isCurrent
-                                        ? `color-mix(in srgb, ${col} 13%, transparent)`
-                                        : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-                                      color: isCurrent ? col : THEME.muted,
-                                      border: isCurrent
-                                        ? `1px solid color-mix(in srgb, ${col} 27%, transparent)`
-                                        : "none",
+                                      display: "flex",
+                                      flexWrap: "wrap",
+                                      gap: 4,
+                                      marginTop: 5,
                                     }}
                                   >
-                                    Y{ti + 1}: <Money value={tier.amount} variant="exact" />
-                                    {isCurrent && mNext !== null && mNext <= 3 && (
-                                      <span style={{ marginLeft: 4, color: THEME.gold }}>
-                                        · escalates in {mNext}mo
-                                      </span>
-                                    )}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
+                                    {p.escalationTiers.map((tier: any, ti: number) => {
+                                      const tierColors = [
+                                        THEME.rust,
+                                        THEME.gold,
+                                        THEME.accent,
+                                        THEME.sage,
+                                        THEME.violet,
+                                      ];
+                                      const col = tierColors[ti % 5];
+                                      const isCurrent = currentTier === ti;
+                                      const mNext = isCurrent
+                                        ? getMonthsToNextEscalation(p)
+                                        : null;
+                                      return (
+                                        <span
+                                          key={ti}
+                                          style={{
+                                            fontSize: 9,
+                                            padding: "2px 7px",
+                                            borderRadius: 5,
+                                            fontWeight: 700,
+                                            background: isCurrent
+                                              ? `color-mix(in srgb, ${col} 13%, transparent)`
+                                              : `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+                                            color: isCurrent ? col : THEME.muted,
+                                            border: isCurrent
+                                              ? `1px solid color-mix(in srgb, ${col} 27%, transparent)`
+                                              : "none",
+                                          }}
+                                        >
+                                          Y{ti + 1}: <Money value={tier.amount} variant="exact" />
+                                          {isCurrent && mNext !== null && mNext <= 3 && (
+                                            <span style={{ marginLeft: 4, color: THEME.gold }}>
+                                              · escalates in {mNext}mo
+                                            </span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                           {/* Multi-landlord split pills */}
                           {p.landlords && p.landlords.length > 1 && (
                             <div

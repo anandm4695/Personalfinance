@@ -213,11 +213,12 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
           });
         }
       };
+      const todayStr = getLocalDateString(todayD);
       (state.rentedProperties || [])
-        .filter((p: any) => p.isActive !== false)
+        .filter((p: any) => p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= todayStr))
         .forEach((p: any) => pushRentAlert(p, true));
       (state.rentalProperties || [])
-        .filter((p: any) => p.isActive !== false)
+        .filter((p: any) => p.isActive !== false && (!p.agreementEnd || p.agreementEnd >= todayStr))
         .forEach((p: any) => pushRentAlert(p, false));
     }
 
