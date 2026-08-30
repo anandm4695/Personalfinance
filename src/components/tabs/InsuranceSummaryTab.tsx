@@ -47,24 +47,42 @@ const addYearsClamped = (date: Date, years: number): Date => {
   return result;
 };
 
-const INSURER_LOGOS: Record<string, string> = {
+export const INSURER_LOGOS: Record<string, string> = {
   // Longer / more specific keys must come first to avoid substring false-matches
+  "aditya birla health": "adityabirlacapital.com",
   "aditya birla": "adityabirlacapital.com",
-  "bajaj allianz": "bajajallianzlife.com",
+  "bajaj allianz life": "bajajallianzlife.com",
+  "bajaj allianz": "bajajallianz.com",
   "canara hsbc": "canarahsbclife.com",
+  "care health": "careinsurance.com",
+  "hdfc ergo": "hdfcergo.com",
   "hdfc life": "hdfclife.com",
+  "icici lombard": "icicilombard.com",
   "icici prudential": "iciciprulife.com",
   "icici pru": "iciciprulife.com",
   "life insurance corporation": "licindia.in",
+  "manipal cigna": "manipalcigna.com",
+  "manipalcigna": "manipalcigna.com",
+  "max bupa": "nivabupa.com",
+  "national insurance": "nationalinsurance.nic.co.in",
+  "new india assurance": "newindia.co.in",
+  "niva bupa": "nivabupa.com",
+  "oriental insurance": "orientalinsurance.org.in",
   "pnb metlife": "pnbmetlife.com",
   "punjab national": "pnbindia.in",
+  "reliance general": "reliancegeneral.co.in",
+  "reliance nippon": "reliancenipponlife.com",
+  "sbi general": "sbigeneral.in",
   "sbi life": "sbilife.co.in",
+  "star health": "starhealth.in",
   "state bank": "sbilife.co.in",
+  "tata aig": "tataaig.com",
   "tata aia": "tataaia.com",
+  "united india": "uiic.co.in",
   absli: "adityabirlacapital.com",
   acko: "acko.com",
   aviva: "aviva.com",
-  bajaj: "bajajallianzlife.com",
+  bajaj: "bajajallianz.com",
   birla: "adityabirlacapital.com",
   canara: "canarabank.com",
   care: "careinsurance.com",
@@ -77,18 +95,17 @@ const INSURER_LOGOS: Record<string, string> = {
   lic: "licindia.in",
   max: "maxlifeinsurance.com",
   metlife: "pnbmetlife.com",
-  "niva bupa": "nivabupa.com",
+  navi: "navi.com",
   pnb: "pnbindia.in",
   reliance: "reliancenipponlife.com",
   sbi: "sbilife.co.in",
-  "star health": "starhealth.in",
+  star: "starhealth.in",
   tata: "tataaia.com",
 };
 
 /**
  * Authentic vector SVG logo for Life Insurance Corporation of India (LIC).
- * Features LIC's iconic protective hands surrounding the flame (Yogakshema)
- * on a deep navy background with bold LIC typography.
+ * Features LIC's official blue & gold vector logo with offline reliability.
  */
 export const LicLogo = ({ size = 40 }: { size?: number }) => (
   <div
@@ -123,7 +140,7 @@ export const LicLogo = ({ size = 40 }: { size?: number }) => (
   </div>
 );
 
-const InsurerLogo = ({
+export const InsurerLogo = ({
   name,
   size = 40,
   isLic = false,

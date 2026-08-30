@@ -177,13 +177,13 @@ const BuilderLogo = ({
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(
-    domain ? `https://logos.hunter.io/${domain}` : null
+    domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=256` : null
   );
   const [fallbackLevel, setFallbackLevel] = React.useState<number>(domain ? 0 : 2);
 
   React.useEffect(() => {
     if (domain) {
-      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
@@ -194,7 +194,7 @@ const BuilderLogo = ({
   const handleError = () => {
     if (fallbackLevel === 0) {
       setFallbackLevel(1);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+      setImgSrc(`https://logos.hunter.io/${domain}`);
     } else {
       setFallbackLevel(2);
       setImgSrc(null);

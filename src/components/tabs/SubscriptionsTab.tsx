@@ -163,7 +163,7 @@ const ServiceLogo = ({
 
   React.useEffect(() => {
     if (domain) {
-      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
@@ -174,7 +174,7 @@ const ServiceLogo = ({
   const handleError = () => {
     if (fallbackLevel === 0) {
       setFallbackLevel(1);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+      setImgSrc(`https://logos.hunter.io/${domain}`);
     } else if (fallbackLevel === 1) {
       setFallbackLevel(2);
       setImgSrc(null);

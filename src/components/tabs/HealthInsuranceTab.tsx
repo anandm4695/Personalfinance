@@ -44,6 +44,7 @@ import { StatCard } from "../ui/StatCard";
 import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
+import { InsurerLogo } from "./InsuranceSummaryTab";
 
 const POLICY_TYPES = [
   { value: "family_floater", label: "Family Floater" },
@@ -836,9 +837,14 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                   return (
                     <tr key={p.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                       <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
-                        <div>{p.insurer}</div>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
-                          {p.policyName ? `${p.policyName} ` : ""}#{p.policyNumber || "—"}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <InsurerLogo name={p.insurer} size={32} />
+                          <div>
+                            <div>{p.insurer}</div>
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                              {p.policyName ? `${p.policyName} ` : ""}#{p.policyNumber || "—"}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
@@ -970,7 +976,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       flexShrink: 0,
                     }}
                   >
-                    <Shield size={22} color={typeColor} />
+                    <InsurerLogo name={p.insurer} size={42} />
                   </div>
 
                   <div style={{ flex: 1, minWidth: 180 }}>

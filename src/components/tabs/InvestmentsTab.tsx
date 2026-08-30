@@ -9586,13 +9586,13 @@ const BankLogo = ({
   const domain = getBankDomain(name);
   const color = accentColor || bankInitialsColor(name);
   const [imgSrc, setImgSrc] = React.useState<string | null>(
-    domain ? `https://logos.hunter.io/${domain}` : null
+    domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=256` : null
   );
   const [fallbackLevel, setFallbackLevel] = React.useState<number>(domain ? 0 : 2);
 
   React.useEffect(() => {
     if (domain) {
-      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
@@ -9603,7 +9603,7 @@ const BankLogo = ({
   const handleError = () => {
     if (fallbackLevel === 0) {
       setFallbackLevel(1);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+      setImgSrc(`https://logos.hunter.io/${domain}`);
     } else {
       setFallbackLevel(2);
       setImgSrc(null);
@@ -9634,15 +9634,14 @@ const BankLogo = ({
           justifyContent: "center",
           overflow: "hidden",
           flexShrink: 0,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          boxShadow: `0 1px 4px rgba(0,0,0,0.06)`,
         }}
       >
         <img
           src={imgSrc}
           alt={name}
           onError={handleError}
-          referrerPolicy="no-referrer"
-          style={{ width: "80%", height: "80%", objectFit: "contain" }}
+          style={{ width: "75%", height: "75%", objectFit: "contain" }}
         />
       </div>
     );
@@ -9654,15 +9653,19 @@ const BankLogo = ({
         width: size,
         height: size,
         borderRadius: Math.round(size * 0.25),
-        background: `color-mix(in srgb, ${color} 9%, transparent)`,
-        border: `1px solid ${`color-mix(in srgb, ${color} 19%, transparent)`}`,
+        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+        border: `1.5px solid ${`color-mix(in srgb, ${color} 30%, transparent)`}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
+        fontWeight: 800,
+        fontSize: Math.round(size * 0.36),
+        color,
+        letterSpacing: "-0.02em",
       }}
     >
-      <span style={{ fontSize: Math.round(size / 2.8), fontWeight: 800, color }}>{initials}</span>
+      {initials}
     </div>
   );
 };
