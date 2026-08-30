@@ -226,6 +226,7 @@ export const getEmergencyFundMonthlyExpense = (state: any, fallbackMonthExpense:
     .reduce((s: number, sub: any) => {
       const amt = Number(sub.amount || 0);
       if (sub.cycle === "yearly") return s + amt / 12;
+      if (sub.cycle === "half-yearly" || sub.cycle === "semi-annual") return s + amt / 6;
       if (sub.cycle === "quarterly") return s + amt / 3;
       return s + amt;
     }, 0);
@@ -316,6 +317,34 @@ export const nextAnnualOccurrence = (startDate: string, refDate: string): string
   let occStr = getLocalDateString(clampedDate(refY));
   if (occStr < refDate) occStr = getLocalDateString(clampedDate(refY + 1));
   return occStr;
+};
+
+export const getSubscriptionCycleStep = (cycle?: string): number => {
+  const c = (cycle || "monthly").toLowerCase();
+  if (c === "yearly" || c === "annual") return 12;
+  if (c === "half-yearly" || c === "semi-annual" || c === "half_yearly") return 6;
+  if (c === "quarterly") return 3;
+  return 1;
+};
+
+export const getSubscriptionMonthlyEquivalent = (amount: number | string, cycle?: string): number => {
+  const amt = Number(amount || 0);
+  const step = getSubscriptionCycleStep(cycle);
+  return amt / step;
+};
+
+export const getNextSubscriptionRenewal = (renewalDate?: string, cycle?: string, refDate?: string): string => {
+  if (!renewalDate) return "";
+  const targetRef = refDate || today();
+  if (renewalDate >= targetRef) return renewalDate;
+  const step = getSubscriptionCycleStep(cycle);
+  let dateStr = renewalDate;
+  let guard = 0;
+  while (dateStr < targetRef && guard < 1200) {
+    dateStr = addMonthsToDateStr(dateStr, step);
+    guard++;
+  }
+  return dateStr;
 };
 
 // ── Rental Escalation Tier Helpers ────────────────────────────────────────────

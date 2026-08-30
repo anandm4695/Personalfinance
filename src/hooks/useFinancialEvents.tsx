@@ -403,7 +403,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // Subscription Renewals (yearly only — monthly ones are always upcoming)
     (state.subscriptions || []).forEach((s) => {
       if (s.paused || !s.renewalDate) return;
-      if (s.cycle !== "yearly" && s.cycle !== "quarterly") return;
+      if (s.cycle !== "yearly" && s.cycle !== "quarterly" && s.cycle !== "half-yearly" && s.cycle !== "semi-annual") return;
       if (s.renewalDate > cutoffDate) return;
       const days = getDaysUntil(s.renewalDate);
       items.push({

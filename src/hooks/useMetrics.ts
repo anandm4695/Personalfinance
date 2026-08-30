@@ -15,6 +15,7 @@ import {
   getEmergencyFundMonthlyExpense,
   getEmergencyFundStatus,
   EMERGENCY_FUND_TARGET_MONTHS,
+  getSubscriptionMonthlyEquivalent,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { DEFAULT_MASTER_DATA, FamilyProfile } from "../utils/masterData";
@@ -758,15 +759,7 @@ export function useMetrics(
 
     const subTotal = sState.subscriptions
       .filter((sub: any) => !sub.paused)
-      .reduce((s: number, sub: any) => {
-        const m =
-          sub.cycle === "yearly"
-            ? Number(sub.amount || 0) / 12
-            : sub.cycle === "quarterly"
-              ? Number(sub.amount || 0) / 3
-              : Number(sub.amount || 0);
-        return s + m;
-      }, 0);
+      .reduce((s: number, sub: any) => s + getSubscriptionMonthlyEquivalent(sub.amount, sub.cycle), 0);
 
     const liquidAssets = cashInBanks + mfValue + stockValue + prepaidValue + goldValue;
     const lockedAssets =

@@ -228,12 +228,22 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
       if (monthsDiff < 0 || monthsDiff >= monthsRemaining) return false;
     }
 
-    // For SIPs with quarterly frequency: only every 3rd month from start
-    if (p.frequency === "quarterly" && p.startDate) {
-      const startMonth = new Date(p.startDate + "T00:00:00").getMonth();
-      const startYear = new Date(p.startDate + "T00:00:00").getFullYear();
+    // For quarterly frequency: only every 3rd month from start/renewal
+    if (p.frequency === "quarterly" && (p.startDate || p.renewalDate)) {
+      const anchor = p.startDate || p.renewalDate;
+      const startMonth = new Date(anchor + "T00:00:00").getMonth();
+      const startYear = new Date(anchor + "T00:00:00").getFullYear();
       const diff = (year - startYear) * 12 + month - startMonth;
       return diff >= 0 && diff % 3 === 0;
+    }
+
+    // For half-yearly frequency: only every 6th month from start/renewal
+    if ((p.frequency === "half-yearly" || p.frequency === "semi-annual") && (p.startDate || p.renewalDate)) {
+      const anchor = p.startDate || p.renewalDate;
+      const startMonth = new Date(anchor + "T00:00:00").getMonth();
+      const startYear = new Date(anchor + "T00:00:00").getFullYear();
+      const diff = (year - startYear) * 12 + month - startMonth;
+      return diff >= 0 && diff % 6 === 0;
     }
 
     // Yearly items: check if this is the due month

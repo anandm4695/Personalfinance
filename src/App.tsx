@@ -1825,7 +1825,14 @@ function FinanceDashboard() {
           // day-of-month to the target month's length (e.g. Jan 31 monthly -> Feb 28,
           // not Mar 3) — plain Date.setMonth/constructor math overflows short months.
           let dateStr = s.renewalDate;
-          const step = s.cycle === "yearly" ? 12 : s.cycle === "quarterly" ? 3 : 1;
+          const step =
+            s.cycle === "yearly"
+              ? 12
+              : s.cycle === "half-yearly" || s.cycle === "semi-annual"
+                ? 6
+                : s.cycle === "quarterly"
+                  ? 3
+                  : 1;
           let guard = 0;
           while (dateStr < todayStr && guard < 1200) {
             dateStr = addMonthsToDateStr(dateStr, step);
@@ -2601,7 +2608,14 @@ function FinanceDashboard() {
       // month's length) instead of Date.setMonth, which silently overflows short months.
       const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
       if (sub && sub.renewalDate) {
-        const step = sub.cycle === "yearly" ? -12 : sub.cycle === "quarterly" ? -3 : -1;
+        const step =
+          sub.cycle === "yearly"
+            ? -12
+            : sub.cycle === "half-yearly" || sub.cycle === "semi-annual"
+              ? -6
+              : sub.cycle === "quarterly"
+                ? -3
+                : -1;
         updateItem("subscriptions", lid, {
           renewalDate: addMonthsToDateStr(sub.renewalDate, step),
         });

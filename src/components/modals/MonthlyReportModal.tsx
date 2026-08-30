@@ -160,6 +160,10 @@ function subRenewedInMonth(sub: any, ym: string): boolean {
     const monthsDiff = (y - rd.getFullYear()) * 12 + (m - (rd.getMonth() + 1));
     return monthsDiff % 3 === 0;
   }
+  if (sub.cycle === "half-yearly" || sub.cycle === "semi-annual") {
+    const monthsDiff = (y - rd.getFullYear()) * 12 + (m - (rd.getMonth() + 1));
+    return monthsDiff % 6 === 0;
+  }
   if (sub.cycle === "yearly") {
     return rd.getMonth() + 1 === m;
   }
@@ -1032,7 +1036,7 @@ export function MonthlyReportModal({
                         borderRadius: 4,
                       }}
                     >
-                      {s.cycle === "monthly" ? "/mo" : s.cycle === "quarterly" ? "/qtr" : "/yr"}
+                      {s.cycle === "monthly" ? "/mo" : s.cycle === "quarterly" ? "/qtr" : s.cycle === "half-yearly" ? "/6mo" : "/yr"}
                     </span>
                     {s.name}
                   </span>

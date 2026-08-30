@@ -115,11 +115,12 @@ export function SubModal({ onClose, onSave, initialValues = null, saving = false
             onChange={(e) => setF({ ...f, cycle: e.target.value })}
           >
             <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="yearly">Yearly</option>
+            <option value="quarterly">Quarterly (Every 3 months)</option>
+            <option value="half-yearly">Half-Yearly (Every 6 months)</option>
+            <option value="yearly">Yearly (Annual)</option>
           </select>
         </Field>
-        <Field label="Next Renewal">
+        <Field label="Next Renewal / Billing Date" hint="Date of renewal or next auto-debit">
           <input
             style={input}
             type="date"

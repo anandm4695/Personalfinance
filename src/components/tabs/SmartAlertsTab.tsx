@@ -363,6 +363,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       .reduce((s, sub) => {
         const amt = Number(sub.amount || 0);
         if (sub.cycle === "yearly") return s + amt / 12;
+        if (sub.cycle === "half-yearly" || sub.cycle === "semi-annual") return s + amt / 6;
         if (sub.cycle === "quarterly") return s + amt / 3;
         return s + amt;
       }, 0);

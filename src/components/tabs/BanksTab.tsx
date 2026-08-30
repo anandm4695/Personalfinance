@@ -508,7 +508,14 @@ export function BanksTab({
       // addMonthsToDateStr clamps the day-of-month to the target month's length —
       // plain Date.setMonth overflows short months (e.g. Jan 31 monthly would land
       // on Mar 3 instead of Feb 28).
-      const step = sub.cycle === "monthly" ? 1 : sub.cycle === "quarterly" ? 3 : 12;
+      const step =
+        sub.cycle === "yearly"
+          ? 12
+          : sub.cycle === "half-yearly" || sub.cycle === "semi-annual"
+            ? 6
+            : sub.cycle === "quarterly"
+              ? 3
+              : 1;
       // Track the pre-renewal cost so the tab can flag a price hike if the amount
       // recorded here differs from what's on the subscription the next time it's edited.
       await updateItem("subscriptions", lid, {

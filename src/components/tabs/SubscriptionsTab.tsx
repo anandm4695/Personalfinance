@@ -32,10 +32,20 @@ import {
   Sliders,
   ExternalLink,
   ShieldCheck,
+  RotateCw,
+  RefreshCw,
   Percent,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact } from "../../utils/finance";
+import {
+  fmtINRFull,
+  fmtINRExact,
+  today,
+  getSubscriptionMonthlyEquivalent,
+  getSubscriptionCycleStep,
+  getNextSubscriptionRenewal,
+  addMonthsToDateStr,
+} from "../../utils/finance";
 import { SubModal } from "../modals/SubModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
@@ -218,19 +228,33 @@ const ServiceLogo = ({
   );
 };
 
-function getRenewalInfo(renewalDate: string | undefined) {
-  if (!renewalDate) return { days: null, label: "No date set", color: THEME.muted, urgent: false };
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+function getRenewalInfo(renewalDate: string | undefined, cycle?: string) {
+  if (!renewalDate) return { days: null, nextDate: "", nextDays: null, isPast: false, overdueDays: 0, label: "No date set", color: THEME.muted, urgent: false };
+  const todayStr = today();
+  const todayDate = new Date(todayStr + "T00:00:00");
   const rd = new Date(renewalDate + "T00:00:00");
-  rd.setHours(0, 0, 0, 0);
-  const days = Math.ceil((rd.getTime() - today.getTime()) / 86400000);
-  if (days < 0)
-    return { days, label: `${Math.abs(days)}d overdue`, color: THEME.rust, urgent: true };
-  if (days === 0) return { days, label: "Due today", color: THEME.rust, urgent: true };
-  if (days <= 7) return { days, label: `Due in ${days}d`, color: THEME.gold, urgent: true };
-  if (days <= 30) return { days, label: `Due in ${days}d`, color: THEME.accent, urgent: false };
-  return { days, label: `${days}d away`, color: THEME.muted, urgent: false };
+  const days = Math.ceil((rd.getTime() - todayDate.getTime()) / 86400000);
+  const nextDate = getNextSubscriptionRenewal(renewalDate, cycle, todayStr);
+  const nextDateObj = nextDate ? new Date(nextDate + "T00:00:00") : null;
+  const nextDays = nextDateObj ? Math.ceil((nextDateObj.getTime() - todayDate.getTime()) / 86400000) : null;
+
+  if (days < 0) {
+    // The stored date is in the past. For recurring subscriptions, show the upcoming cycle date.
+    return {
+      days,
+      nextDate,
+      nextDays,
+      isPast: true,
+      overdueDays: Math.abs(days),
+      label: nextDays === 0 ? "Due today" : `Next: ${fmtDate(nextDate)}${nextDays !== null && nextDays <= 7 ? ` (${nextDays}d)` : ""}`,
+      color: nextDays === 0 ? THEME.rust : nextDays !== null && nextDays <= 7 ? THEME.gold : THEME.sage,
+      urgent: nextDays !== null && nextDays <= 7,
+    };
+  }
+  if (days === 0) return { days: 0, nextDate, nextDays: 0, isPast: false, overdueDays: 0, label: "Due today", color: THEME.rust, urgent: true };
+  if (days <= 7) return { days, nextDate, nextDays: days, isPast: false, overdueDays: 0, label: `Due in ${days}d`, color: THEME.gold, urgent: true };
+  if (days <= 30) return { days, nextDate, nextDays: days, isPast: false, overdueDays: 0, label: `Due in ${days}d`, color: THEME.accent, urgent: false };
+  return { days, nextDate, nextDays: days, isPast: false, overdueDays: 0, label: `${days}d away`, color: THEME.muted, urgent: false };
 }
 
 const fmtDate = (dateStr: string) => {
@@ -258,6 +282,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
 
   const updateSub = async (id: string, patch: any) => {
     setTogglingId(id);
@@ -265,6 +290,24 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
       await updateItem("subscriptions", id, patch);
     } catch (e: any) {
       showToast?.(`Failed to update subscription: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const advanceSubCycle = async (id: string, s: any) => {
+    setTogglingId(id);
+    try {
+      const step = getSubscriptionCycleStep(s.cycle);
+      const currentRenewal = s.renewalDate || today();
+      const newRenewalDate = addMonthsToDateStr(currentRenewal, step);
+      await updateItem("subscriptions", id, {
+        renewalDate: newRenewalDate,
+        lastPaidAmount: s.amount,
+      });
+      showToast?.(`Renewed "${s.name}" to ${fmtDate(newRenewalDate)}`, "success");
+    } catch (e: any) {
+      showToast?.(`Failed to advance renewal: ${e?.message || "Unknown error"}`, "error");
     } finally {
       setTogglingId(null);
     }
@@ -294,17 +337,39 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     { onSuccess: () => setEditSub(null), onError: (e: any) => showToast?.(`Failed to save subscription: ${e?.message || "Unknown error"}`, "error") }
   );
 
-  const activeSubs = state.subscriptions.filter((s: any) => !s.paused);
-  const pausedSubs = state.subscriptions.filter((s: any) => s.paused);
+  const activeSubs = (state.subscriptions || []).filter((s: any) => !s.paused);
+  const pausedSubs = (state.subscriptions || []).filter((s: any) => s.paused);
+
+  const pastActiveSubs = useMemo(() => {
+    const todayStr = today();
+    return activeSubs.filter((s: any) => s.renewalDate && s.renewalDate < todayStr);
+  }, [activeSubs]);
+
+  const syncAllPastRenewals = async () => {
+    if (pastActiveSubs.length === 0) return;
+    setSyncingAll(true);
+    try {
+      const todayStr = today();
+      await Promise.all(
+        pastActiveSubs.map((s: any) => {
+          const nextDate = getNextSubscriptionRenewal(s.renewalDate, s.cycle, todayStr);
+          return updateItem("subscriptions", s.id, {
+            renewalDate: nextDate,
+            lastPaidAmount: s.amount,
+          });
+        })
+      );
+      showToast?.(`Synchronized ${pastActiveSubs.length} subscription billing cycle${pastActiveSubs.length > 1 ? "s" : ""}`, "success");
+    } catch (e: any) {
+      showToast?.(`Failed to sync renewal dates: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSyncingAll(false);
+    }
+  };
 
   const totalMonthly = useMemo(
     () =>
-      activeSubs.reduce((acc: number, s: any) => {
-        const amount = Number(s.amount) || 0;
-        if (s.cycle === "yearly") return acc + amount / 12;
-        if (s.cycle === "quarterly") return acc + amount / 3;
-        return acc + amount;
-      }, 0),
+      activeSubs.reduce((acc: number, s: any) => acc + getSubscriptionMonthlyEquivalent(s.amount, s.cycle), 0),
     [activeSubs]
   );
 
@@ -312,35 +377,39 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
 
   const pausedMonthlySavings = useMemo(
     () =>
-      pausedSubs.reduce((acc: number, s: any) => {
-        const amount = Number(s.amount) || 0;
-        if (s.cycle === "yearly") return acc + amount / 12;
-        if (s.cycle === "quarterly") return acc + amount / 3;
-        return acc + amount;
-      }, 0),
+      pausedSubs.reduce((acc: number, s: any) => acc + getSubscriptionMonthlyEquivalent(s.amount, s.cycle), 0),
     [pausedSubs]
   );
 
   const upcomingSubs = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const limit = new Date(today);
+    const todayStr = today();
+    const todayDate = new Date(todayStr + "T00:00:00");
+    const limit = new Date(todayDate);
     limit.setDate(limit.getDate() + 30);
-    return state.subscriptions
+    return (state.subscriptions || [])
       .filter((s: any) => !s.paused && s.renewalDate)
+      .map((s: any) => {
+        const nextDate = getNextSubscriptionRenewal(s.renewalDate, s.cycle, todayStr);
+        const nextDateObj = new Date(nextDate + "T00:00:00");
+        return {
+          ...s,
+          effectiveRenewalDate: nextDate,
+          effectiveDays: Math.ceil((nextDateObj.getTime() - todayDate.getTime()) / 86400000),
+        };
+      })
       .filter((s: any) => {
-        const rd = new Date(s.renewalDate + "T00:00:00");
-        return rd >= today && rd <= limit;
+        const rd = new Date(s.effectiveRenewalDate + "T00:00:00");
+        return rd >= todayDate && rd <= limit;
       })
       .sort(
         (a: any, b: any) =>
-          new Date(a.renewalDate + "T00:00:00").getTime() -
-          new Date(b.renewalDate + "T00:00:00").getTime()
+          new Date(a.effectiveRenewalDate + "T00:00:00").getTime() -
+          new Date(b.effectiveRenewalDate + "T00:00:00").getTime()
       );
   }, [state.subscriptions]);
 
   const filteredSubs = useMemo(() => {
-    return state.subscriptions.filter((s: any) => {
+    return (state.subscriptions || []).filter((s: any) => {
       if (filterStatus === "active" && s.paused) return false;
       if (filterStatus === "paused" && !s.paused) return false;
       if (filterCategory !== "all" && (s.category || "Other") !== filterCategory) return false;
@@ -371,12 +440,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
       groupedSubs
         .map(([cat, subs]) => ({
           category: cat,
-          monthly: (subs as any[]).reduce((acc: number, s: any) => {
-            const amount = Number(s.amount) || 0;
-            if (s.cycle === "yearly") return acc + amount / 12;
-            if (s.cycle === "quarterly") return acc + amount / 3;
-            return acc + amount;
-          }, 0),
+          monthly: (subs as any[]).reduce((acc: number, s: any) => acc + getSubscriptionMonthlyEquivalent(s.amount, s.cycle), 0),
           count: (subs as any[]).length,
           color: CATEGORY_COLORS[cat] || THEME.muted,
         }))
@@ -386,7 +450,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
   );
 
   const monthlyOnlySubs = useMemo(
-    () => activeSubs.filter((s: any) => s.cycle === "monthly"),
+    () => activeSubs.filter((s: any) => (s.cycle || "monthly").toLowerCase() === "monthly"),
     [activeSubs]
   );
   const potentialAnnualSavings = useMemo(() => {
@@ -410,13 +474,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
   const downloadCSV = () => {
     const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = ["Name,Category,Amount (₹),Cycle,Monthly Equiv (₹),Next Renewal,Status,Remark"];
-    state.subscriptions.forEach((s: any) => {
-      const monthly =
-        s.cycle === "yearly"
-          ? Number(s.amount) / 12
-          : s.cycle === "quarterly"
-            ? Number(s.amount) / 3
-            : Number(s.amount);
+    (state.subscriptions || []).forEach((s: any) => {
+      const monthly = getSubscriptionMonthlyEquivalent(s.amount, s.cycle);
       rows.push(
         [
           q(s.name),
@@ -444,8 +503,20 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
       <SectionTitle
         sub="Manage recurring services, streaming, and software bills with live renewal tracking"
         rightElement={
-          state.subscriptions.length > 0 && (
+          (state.subscriptions || []).length > 0 && (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {pastActiveSubs.length > 0 && (
+                <Button
+                  onClick={syncAllPastRenewals}
+                  variant="ghost"
+                  loading={syncingAll}
+                  icon={<RotateCw size={13} />}
+                  title="Synchronize all past renewal dates to their next upcoming billing cycle"
+                  style={{ border: `1px solid color-mix(in srgb, ${THEME.sage} 40%, transparent)`, color: THEME.sage, borderRadius: 8, fontSize: 12 }}
+                >
+                  Sync Renewals ({pastActiveSubs.length})
+                </Button>
+              )}
               <Button
                 onClick={downloadCSV}
                 variant="ghost"
@@ -671,7 +742,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 130, overflowY: "auto" }}>
                   {upcomingSubs.map((s: any) => {
-                    const { days, color } = getRenewalInfo(s.renewalDate);
+                    const renewal = getRenewalInfo(s.renewalDate, s.cycle);
+                    const daysLabel = s.effectiveDays === 0 ? "Today" : `${s.effectiveDays}d`;
                     return (
                       <div
                         key={s.id}
@@ -690,7 +762,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                           <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{s.name}</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color }}>{days === 0 ? "Today" : `${days}d`}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: renewal.color }}>{daysLabel}</span>
                           <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
                             <Money value={s.amount} variant="exact" />
                           </span>
@@ -838,13 +910,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
               </thead>
               <tbody>
                 {filteredSubs.map((s: any) => {
-                  const monthly =
-                    s.cycle === "yearly"
-                      ? Number(s.amount) / 12
-                      : s.cycle === "quarterly"
-                        ? Number(s.amount) / 3
-                        : Number(s.amount);
-                  const renewal = getRenewalInfo(s.renewalDate);
+                  const monthly = getSubscriptionMonthlyEquivalent(s.amount, s.cycle);
+                  const renewal = getRenewalInfo(s.renewalDate, s.cycle);
                   return (
                     <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, opacity: s.paused ? 0.65 : 1 }}>
                       <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
@@ -875,9 +942,16 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                       </td>
                       <td style={{ padding: "14px 16px", fontSize: 12 }}>
                         {s.renewalDate ? (
-                          <span style={{ color: renewal.color, fontWeight: 700 }}>
-                            {fmtDate(s.renewalDate)} ({renewal.label})
-                          </span>
+                          <div>
+                            <div style={{ color: renewal.color, fontWeight: 700 }}>
+                              {renewal.label}
+                            </div>
+                            {renewal.isPast && (
+                              <div style={{ fontSize: 10, color: THEME.muted }}>
+                                Stored: {fmtDate(s.renewalDate)}
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <span style={{ color: THEME.muted }}>—</span>
                         )}
@@ -899,7 +973,18 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                        <div style={{ display: "inline-flex", gap: 4 }}>
+                        <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                          {!s.paused && (
+                            <button
+                              onClick={() => advanceSubCycle(s.id, s)}
+                              disabled={togglingId === s.id}
+                              className="icon-btn"
+                              style={{ background: "none", border: "none", cursor: "pointer", color: THEME.sage, padding: 4 }}
+                              title="Mark Paid & Advance to Next Cycle"
+                            >
+                              <CheckCircle2 size={13} />
+                            </button>
+                          )}
                           <button
                             onClick={() => updateSub(s.id, { paused: !s.paused })}
                             className="icon-btn"
@@ -939,18 +1024,15 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           {filteredSubs
             .slice()
             .sort((a: any, b: any) => {
-              if (!a.renewalDate) return 1;
-              if (!b.renewalDate) return -1;
-              return new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime();
+              const renA = getRenewalInfo(a.renewalDate, a.cycle);
+              const renB = getRenewalInfo(b.renewalDate, b.cycle);
+              if (!renA.nextDate) return 1;
+              if (!renB.nextDate) return -1;
+              return new Date(renA.nextDate).getTime() - new Date(renB.nextDate).getTime();
             })
             .map((s: any) => {
-              const renewal = getRenewalInfo(s.renewalDate);
-              const monthly =
-                s.cycle === "yearly"
-                  ? Number(s.amount) / 12
-                  : s.cycle === "quarterly"
-                    ? Number(s.amount) / 3
-                    : Number(s.amount);
+              const renewal = getRenewalInfo(s.renewalDate, s.cycle);
+              const monthly = getSubscriptionMonthlyEquivalent(s.amount, s.cycle);
               return (
                 <Card
                   key={s.id}
@@ -982,14 +1064,30 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: 12, fontWeight: 800, color: renewal.color }}>
-                        {s.renewalDate ? fmtDate(s.renewalDate) : "No renewal date"}
-                      </div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: renewal.color }}>
                         {renewal.label}
                       </div>
+                      {renewal.isPast && s.renewalDate && (
+                        <div style={{ fontSize: 10, color: THEME.muted }}>
+                          Last: {fmtDate(s.renewalDate)}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ display: "flex", gap: 4 }}>
+                      {!s.paused && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => advanceSubCycle(s.id, s)}
+                          loading={togglingId === s.id}
+                          disabled={togglingId === s.id}
+                          style={{ padding: 6, color: THEME.sage }}
+                          title="Mark Paid & Advance to Next Cycle"
+                          aria-label={`Renew ${s.name}`}
+                        >
+                          <CheckCircle2 size={13} />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1028,12 +1126,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
         <div>
           {groupedSubs.map(([cat, subs]) => {
             const collapsed = collapsedCategories.has(cat);
-            const catMonthly = subs.reduce((acc: number, s: any) => {
-              const amount = Number(s.amount) || 0;
-              if (s.cycle === "yearly") return acc + amount / 12;
-              if (s.cycle === "quarterly") return acc + amount / 3;
-              return acc + amount;
-            }, 0);
+            const catMonthly = subs.reduce((acc: number, s: any) => acc + getSubscriptionMonthlyEquivalent(s.amount, s.cycle), 0);
             return (
               <div key={cat} style={{ marginBottom: 20 }}>
                 <button
@@ -1075,13 +1168,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                     }}
                   >
                     {subs.map((s: any) => {
-                      const monthly =
-                        s.cycle === "yearly"
-                          ? Number(s.amount) / 12
-                          : s.cycle === "quarterly"
-                            ? Number(s.amount) / 3
-                            : Number(s.amount);
-                      const renewal = getRenewalInfo(s.renewalDate);
+                      const monthly = getSubscriptionMonthlyEquivalent(s.amount, s.cycle);
+                      const renewal = getRenewalInfo(s.renewalDate, s.cycle);
                       const color = renewal.urgent ? renewal.color : THEME.accent;
 
                       return (
@@ -1155,9 +1243,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                   }}
                                 >
                                   {renewal.urgent && <AlertTriangle size={10} />}
-                                  {s.renewalDate
-                                    ? `${fmtDate(s.renewalDate)} (${renewal.label})`
-                                    : "No date set"}
+                                  {s.renewalDate ? renewal.label : "No date set"}
                                 </span>
                               </div>
                               {s.remark && (
@@ -1243,7 +1329,19 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                               </div>
                             </div>
 
-                            <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                            <div style={{ display: "flex", gap: 2, flexShrink: 0, alignItems: "center" }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => advanceSubCycle(s.id, s)}
+                                loading={togglingId === s.id}
+                                disabled={togglingId === s.id || deletingId === s.id}
+                                style={{ padding: 6, color: THEME.sage }}
+                                title="Mark Paid & Advance to Next Cycle"
+                                aria-label={`Renew ${s.name}`}
+                              >
+                                <CheckCircle2 size={14} />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -1342,12 +1440,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                 }}
               >
                 {pausedSubs.map((s: any) => {
-                  const monthly =
-                    s.cycle === "yearly"
-                      ? Number(s.amount) / 12
-                      : s.cycle === "quarterly"
-                        ? Number(s.amount) / 3
-                        : Number(s.amount);
+                  const monthly = getSubscriptionMonthlyEquivalent(s.amount, s.cycle);
                   return (
                     <Card
                       key={s.id}
