@@ -1686,7 +1686,7 @@ function CCList({
               ))}
             </div>
           </div>
-          {!isClosed && <OwnerBadge owner={c.owner} />}
+          <OwnerBadge owner={c.owner} />
         </div>
 
         {/* EMV Chip and Contactless indicator */}
@@ -4015,7 +4015,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     {p.cardType || "Prepaid"}
                   </span>
                 </div>
-                {!isClosed && <OwnerBadge owner={p.owner} />}
+                <OwnerBadge owner={p.owner} />
               </div>
 
               {/* EMV Chip and Contactless indicator */}
