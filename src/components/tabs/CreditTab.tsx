@@ -51,7 +51,7 @@ import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
-import { BankLogo } from "./BanksTab";
+import { BankLogo } from "../ui/BrandLogos";
 
 /** Renders authentic SVG logos for each payment network */
 const CardNetworkLogo = ({ network }: { network?: string }) => {

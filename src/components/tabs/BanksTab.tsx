@@ -53,122 +53,17 @@ import { DataTable } from "../design-system/DataTable";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
+import {
+  BankLogo,
+  resolveBankDomain,
+  bankInitialsColor,
+  CANONICAL_BRANDS,
+} from "../ui/BrandLogos";
 
-// Bank logo domains for high-resolution Google Favicon CDN
-export const BANK_LOGO_DOMAINS: Record<string, string> = {
-  "state bank of india": "sbi.co.in",
-  "punjab national bank": "pnbindia.in",
-  "standard chartered": "sc.com",
-  "bank of baroda": "bankofbaroda.in",
-  "bank of india": "bankofindia.co.in",
-  "central bank of india": "centralbankofindia.co.in",
-  "indian overseas bank": "iob.in",
-  "punjab & sind": "punjabandsindbank.co.in",
-  "punjab and sind": "punjabandsindbank.co.in",
-  "south indian bank": "southindianbank.com",
-  "city union bank": "cityunionbank.com",
-  "jammu & kashmir": "jkbank.com",
-  "karnataka bank": "karnatakabank.com",
-  "dhanlaxmi bank": "dhanbank.com",
-  "saraswat bank": "saraswatbank.com",
-  "cosmos bank": "cosmosbank.com",
-  "idfc first bank": "idfcfirstbank.com",
-  "idfc first": "idfcfirstbank.com",
-  "idfc bank": "idfcfirstbank.com",
-  "au small finance": "aubank.in",
-  "equitas small finance": "equitasbank.com",
-  "state bank": "sbi.co.in",
-  "sbi bank": "sbi.co.in",
-  "punjab national": "pnbindia.in",
-  "union bank": "unionbankofindia.co.in",
-  "central bank": "centralbankofindia.co.in",
-  "indian bank": "indianbank.in",
-  "karur vysya": "kvb.co.in",
-  "canara bank": "canarabank.com",
-  "federal bank": "federalbank.co.in",
-  "bandhan bank": "bandhanbank.com",
-  "rbl bank": "rblbank.com",
-  "kotak mahindra": "kotak.com",
-  "indusind bank": "indusind.com",
-  "yes bank": "yesbank.in",
-  "yesbank": "yesbank.in",
-  "post office": "ippbonline.com",
-  "india post": "ippbonline.com",
-  "paytm payments": "paytm.com",
-  "airtel payments": "airtel.in",
-  indusind: "indusind.com",
-  indusland: "indusind.com",
-  canara: "canarabank.com",
-  federal: "federalbank.co.in",
-  equitas: "equitasbank.com",
-  bandhan: "bandhanbank.com",
-  jupiter: "jupiter.money",
-  onecard: "getonecard.com",
-  slice: "sliceit.com",
-  airtel: "airtel.in",
-  paytm: "paytm.com",
-  amazon: "amazon.in",
-  sodexo: "sodexo.com",
-  niyo: "goniyo.com",
-  omnicard: "omnicard.in",
-  phonepe: "phonepe.com",
-  mobikwik: "mobikwik.com",
-  cred: "cred.club",
-  hdfc: "hdfcbank.com",
-  icici: "icicibank.com",
-  axis: "axisbank.com",
-  kotak: "kotak.com",
-  idbi: "idbibank.in",
-  idfc: "idfcfirstbank.com",
-  rbl: "rblbank.com",
-  citi: "citi.com",
-  hsbc: "hsbc.com",
-  dbs: "dbs.com",
-  pnb: "pnbindia.in",
-  bob: "bankofbaroda.in",
-  boi: "bankofindia.co.in",
-  iob: "iob.in",
-  uco: "ucobank.com",
-  kvb: "kvb.co.in",
-  sib: "southindianbank.com",
-  cub: "cityunionbank.com",
-  jkb: "jkbank.com",
-  ippb: "ippbonline.com",
-  epfo: "epfindia.gov.in",
-  sbi: "sbi.co.in",
-  au: "aubank.in",
-  fi: "fi.money",
-  sc: "sc.com",
-};
-
-/**
- * Smart domain resolution for financial institutions:
- * 1. Checks multi-word / long patterns sorted by length descending.
- * 2. Strict word-boundary regex matching for short abbreviations (<= 3 chars)
- *    to prevent false substring matches (e.g. 'Office' matching 'fi', 'Auto' matching 'au').
- */
-export function resolveBankDomain(rawName: string): string {
-  if (!rawName) return "";
-  const text = rawName.toLowerCase().trim();
-
-  // 1. Check multi-word & longer keys (> 3 chars) sorted by length
-  const longEntries = Object.entries(BANK_LOGO_DOMAINS)
-    .filter(([k]) => k.length > 3)
-    .sort((a, b) => b[0].length - a[0].length);
-
-  for (const [k, domain] of longEntries) {
-    if (text.includes(k)) return domain;
-  }
-
-  // 2. Check short keys (<= 3 chars) using whole-word regex
-  const shortEntries = Object.entries(BANK_LOGO_DOMAINS).filter(([k]) => k.length <= 3);
-  for (const [k, domain] of shortEntries) {
-    const regex = new RegExp(`\\b${k}\\b`, "i");
-    if (regex.test(text)) return domain;
-  }
-
-  return "";
-}
+export { BankLogo, resolveBankDomain, bankInitialsColor };
+export const BANK_LOGO_DOMAINS: Record<string, string> = Object.fromEntries(
+  Object.entries(CANONICAL_BRANDS).map(([k, v]) => [k, v.domain])
+);
 
 // Account type visual themes — use fixed theme tokens (not raw hex) so these
 // stay theme-aware in dark mode and never coincidentally match whichever
@@ -222,108 +117,6 @@ function getAccountTheme(type: string) {
   if (t.includes("fd") || t.includes("fixed")) return ACCOUNT_TYPE_THEMES.fd;
   return ACCOUNT_TYPE_THEMES.savings;
 }
-
-/** Deterministic, legible background color for the initials fallback avatar */
-export const bankInitialsColor = (bankName: string) => {
-  const s = bankName || "?";
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) hash = (hash << 5) - hash + s.charCodeAt(i);
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 55%, 38%)`;
-};
-
-export const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) => {
-  const domain = resolveBankDomain(bankName);
-  const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: google favicon, 1: hunter.io, 2: initials
-
-  React.useEffect(() => {
-    if (domain) {
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
-      setFallbackLevel(0);
-    } else {
-      setImgSrc(null);
-      setFallbackLevel(2);
-    }
-  }, [domain]);
-
-  const handleError = () => {
-    if (fallbackLevel === 0) {
-      setFallbackLevel(1);
-      setImgSrc(`https://logos.hunter.io/${domain}`);
-    } else if (fallbackLevel === 1) {
-      setFallbackLevel(2);
-      setImgSrc(null);
-    }
-  };
-
-  const br = Math.max(4, Math.round(size * 0.25));
-
-  if (domain && fallbackLevel < 2 && imgSrc) {
-    return (
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: br,
-          background: "var(--surface-0, #ffffff)",
-          border: `1px solid ${THEME.line}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          flexShrink: 0,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-        }}
-      >
-        <img
-          src={imgSrc}
-          alt={bankName}
-          style={{
-            width: "72%",
-            height: "72%",
-            objectFit: "contain",
-            imageRendering: "-webkit-optimize-contrast",
-          }}
-          onError={handleError}
-        />
-      </div>
-    );
-  }
-
-  const color = bankInitialsColor(bankName);
-  const initials =
-    (bankName || "?")
-      .split(/\s+/)
-      .filter((w: string) => w.length > 1)
-      .slice(0, 2)
-      .map((w: string) => w[0].toUpperCase())
-      .join("") ||
-    (bankName || "?")[0]?.toUpperCase() ||
-    "?";
-
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: br,
-        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-        border: `1.5px solid color-mix(in srgb, ${color} 30%, transparent)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        fontWeight: 800,
-        fontSize: Math.max(9, Math.round(size * 0.36)),
-        color,
-        letterSpacing: "-0.02em",
-      }}
-    >
-      {initials}
-    </div>
-  );
-};
 
 const accountLabel = (a: any): string => {
   const last4 = a.accountNumber ? `····${String(a.accountNumber).slice(-4)}` : "";

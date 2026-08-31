@@ -29,8 +29,7 @@ import { Prv } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
 import { StockLogo } from "./DematTab";
-import { MFLogo } from "./InvestmentsTab";
-import { BankLogo } from "./BanksTab";
+import { MFLogo, BankLogo } from "../ui/BrandLogos";
 
 const cashTxnAccountLabel = (a: any): string => {
   if (!a) return "";
