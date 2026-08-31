@@ -3678,6 +3678,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
         {displayCards.map((p: any) => {
           const isClosed = (p.status || "active").toLowerCase() === "closed";
           const { loaded, spent, balance } = computeStats(p.transactions);
+          const txnCount = (p.transactions || []).length;
           const name = p.provider || p.bank || p.issuer || p.cardName || p.name || "Prepaid Card";
           const brandName = [p.provider, p.bank, p.issuer, p.cardName, p.name].filter(Boolean).join(" ");
           const expiryDays = p.expiryDate
