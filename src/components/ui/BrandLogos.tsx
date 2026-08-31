@@ -8,180 +8,259 @@ export interface BrandInfo {
   name: string;
   color?: string;
   localSvg?: string;
+  growwSym?: string; // High-resolution 256×256 WebP vector asset on Groww CDN
+  isPrimaryInstitution?: boolean;
 }
 
-// Comprehensive canonical registry of Indian and Global financial brands,
-// ensuring the EXACT same logo and identity appears across Banks, Transactions,
-// Credit Cards, Loans, Investments (FDs, Bonds, NPS, PPF, EPFO), Demat Brokers,
-// Mutual Funds, Insurance, and Subscriptions.
+// Comprehensive registry of Indian and Global financial brands,
+// ensuring the EXACT same crystal-clear, authentic logo appears across
+// Banks, Transactions, Credit Cards, Demat Brokers, Investments, and Insurance.
 export const CANONICAL_BRANDS: Record<string, BrandInfo> = {
-  // ── Public & Private Sector Banks ─────────────────────────────────────────
-  "state bank of india": { domain: "sbi.co.in", name: "State Bank of India", color: "#1a3b8b" },
-  "punjab national bank": { domain: "pnbindia.in", name: "Punjab National Bank", color: "#a20f26" },
-  "standard chartered": { domain: "sc.com", name: "Standard Chartered", color: "#007934" },
-  "bank of baroda": { domain: "bankofbaroda.in", name: "Bank of Baroda", color: "#f26522" },
-  "bank of india": { domain: "bankofindia.co.in", name: "Bank of India", color: "#00529b" },
-  "central bank of india": { domain: "centralbankofindia.co.in", name: "Central Bank of India", color: "#1e3a8a" },
-  "indian overseas bank": { domain: "iob.in", name: "Indian Overseas Bank", color: "#003b70" },
-  "punjab & sind": { domain: "punjabandsindbank.co.in", name: "Punjab & Sind Bank", color: "#d97706" },
-  "punjab and sind": { domain: "punjabandsindbank.co.in", name: "Punjab & Sind Bank", color: "#d97706" },
-  "south indian bank": { domain: "southindianbank.com", name: "South Indian Bank", color: "#b91c1c" },
-  "city union bank": { domain: "cityunionbank.com", name: "City Union Bank", color: "#0284c7" },
-  "jammu & kashmir": { domain: "jkbank.com", name: "J&K Bank", color: "#0f766e" },
-  "karnataka bank": { domain: "karnatakabank.com", name: "Karnataka Bank", color: "#9a3412" },
-  "dhanlaxmi bank": { domain: "dhanbank.com", name: "Dhanlaxmi Bank", color: "#7c2d12" },
-  "saraswat bank": { domain: "saraswatbank.com", name: "Saraswat Bank", color: "#b45309" },
-  "cosmos bank": { domain: "cosmosbank.com", name: "Cosmos Bank", color: "#1d4ed8" },
-  "idfc first bank": { domain: "idfcfirstbank.com", name: "IDFC FIRST Bank", color: "#9e1b32" },
-  "idfc first": { domain: "idfcfirstbank.com", name: "IDFC FIRST Bank", color: "#9e1b32" },
-  "idfc bank": { domain: "idfcfirstbank.com", name: "IDFC FIRST Bank", color: "#9e1b32" },
-  "au small finance": { domain: "aubank.in", name: "AU Small Finance Bank", color: "#4b286d" },
-  "equitas small finance": { domain: "equitasbank.com", name: "Equitas Small Finance Bank", color: "#006699" },
-  "state bank": { domain: "sbi.co.in", name: "State Bank of India", color: "#1a3b8b" },
-  "sbi bank": { domain: "sbi.co.in", name: "State Bank of India", color: "#1a3b8b" },
-  "punjab national": { domain: "pnbindia.in", name: "Punjab National Bank", color: "#a20f26" },
-  "union bank": { domain: "unionbankofindia.co.in", name: "Union Bank of India", color: "#e31e24" },
-  "central bank": { domain: "centralbankofindia.co.in", name: "Central Bank of India", color: "#1e3a8a" },
-  "indian bank": { domain: "indianbank.in", name: "Indian Bank", color: "#00529b" },
-  "karur vysya": { domain: "kvb.co.in", name: "Karur Vysya Bank", color: "#0284c7" },
-  "canara bank": { domain: "canarabank.com", name: "Canara Bank", color: "#0090d0" },
-  "federal bank": { domain: "federalbank.co.in", name: "Federal Bank", color: "#004182" },
-  "bandhan bank": { domain: "bandhanbank.com", name: "Bandhan Bank", color: "#004b87" },
-  "rbl bank": { domain: "rblbank.com", name: "RBL Bank", color: "#0c2340" },
-  "kotak mahindra": { domain: "kotak.com", name: "Kotak Mahindra Bank", color: "#ed1c24" },
-  "indusind bank": { domain: "indusind.com", name: "IndusInd Bank", color: "#84191d" },
-  "yes bank": { domain: "yesbank.in", name: "YES Bank", color: "#003a70" },
-  "post office": { domain: "ippbonline.com", name: "India Post", color: "#d8232a" },
-  "india post": { domain: "ippbonline.com", name: "India Post", color: "#d8232a" },
-  "paytm payments": { domain: "paytm.com", name: "Paytm Payments Bank", color: "#00baf2" },
-  "airtel payments": { domain: "airtel.in", name: "Airtel Payments Bank", color: "#e40000" },
-  indusind: { domain: "indusind.com", name: "IndusInd Bank", color: "#84191d" },
-  indusland: { domain: "indusind.com", name: "IndusInd Bank", color: "#84191d" },
-  canara: { domain: "canarabank.com", name: "Canara Bank", color: "#0090d0" },
-  federal: { domain: "federalbank.co.in", name: "Federal Bank", color: "#004182" },
-  equitas: { domain: "equitasbank.com", name: "Equitas Small Finance Bank", color: "#006699" },
-  bandhan: { domain: "bandhanbank.com", name: "Bandhan Bank", color: "#004b87" },
+  // ── Public & Private Sector Banks (Priority 1) ────────────────────────────
+  "state bank of india": { domain: "sbi.co.in", growwSym: "SBIN", name: "State Bank of India", color: "#1a3b8b", isPrimaryInstitution: true },
+  "punjab national bank": { domain: "pnbindia.in", growwSym: "PNB", name: "Punjab National Bank", color: "#a20f26", isPrimaryInstitution: true },
+  "bank of baroda": { domain: "bankofbaroda.in", growwSym: "BANKBARODA", name: "Bank of Baroda", color: "#f26522", isPrimaryInstitution: true },
+  "bank of india": { domain: "bankofindia.co.in", growwSym: "BANKINDIA", name: "Bank of India", color: "#00529b", isPrimaryInstitution: true },
+  "central bank of india": { domain: "centralbankofindia.co.in", growwSym: "CENTRALBK", name: "Central Bank of India", color: "#1e3a8a", isPrimaryInstitution: true },
+  "indian overseas bank": { domain: "iob.in", growwSym: "IOB", name: "Indian Overseas Bank", color: "#003b70", isPrimaryInstitution: true },
+  "punjab & sind": { domain: "punjabandsindbank.co.in", growwSym: "PSB", name: "Punjab & Sind Bank", color: "#d97706", isPrimaryInstitution: true },
+  "punjab and sind": { domain: "punjabandsindbank.co.in", growwSym: "PSB", name: "Punjab & Sind Bank", color: "#d97706", isPrimaryInstitution: true },
+  "south indian bank": { domain: "southindianbank.com", growwSym: "SOUTHBANK", name: "South Indian Bank", color: "#b91c1c", isPrimaryInstitution: true },
+  "city union bank": { domain: "cityunionbank.com", growwSym: "CUB", name: "City Union Bank", color: "#0284c7", isPrimaryInstitution: true },
+  "jammu & kashmir": { domain: "jkbank.com", growwSym: "JKLAKSHMI", name: "J&K Bank", color: "#0f766e", isPrimaryInstitution: true },
+  "karnataka bank": { domain: "karnatakabank.com", growwSym: "KTKBANK", name: "Karnataka Bank", color: "#9a3412", isPrimaryInstitution: true },
+  "dhanlaxmi bank": { domain: "dhanbank.com", growwSym: "DHANBANK", name: "Dhanlaxmi Bank", color: "#7c2d12", isPrimaryInstitution: true },
+  "saraswat bank": { domain: "saraswatbank.com", name: "Saraswat Bank", color: "#b45309", isPrimaryInstitution: true },
+  "cosmos bank": { domain: "cosmosbank.com", name: "Cosmos Bank", color: "#1d4ed8", isPrimaryInstitution: true },
+  "idfc first bank": { domain: "idfcfirstbank.com", growwSym: "IDFCFIRSTB", name: "IDFC FIRST Bank", color: "#9e1b32", isPrimaryInstitution: true },
+  "idfc first": { domain: "idfcfirstbank.com", growwSym: "IDFCFIRSTB", name: "IDFC FIRST Bank", color: "#9e1b32", isPrimaryInstitution: true },
+  "idfc bank": { domain: "idfcfirstbank.com", growwSym: "IDFCFIRSTB", name: "IDFC FIRST Bank", color: "#9e1b32", isPrimaryInstitution: true },
+  "au small finance": { domain: "aubank.in", growwSym: "AUBANK", name: "AU Small Finance Bank", color: "#4b286d", isPrimaryInstitution: true },
+  "equitas small finance": { domain: "equitasbank.com", growwSym: "EQUITASBNK", name: "Equitas Small Finance Bank", color: "#006699", isPrimaryInstitution: true },
+  "state bank": { domain: "sbi.co.in", growwSym: "SBIN", name: "State Bank of India", color: "#1a3b8b", isPrimaryInstitution: true },
+  "sbi bank": { domain: "sbi.co.in", growwSym: "SBIN", name: "State Bank of India", color: "#1a3b8b", isPrimaryInstitution: true },
+  "punjab national": { domain: "pnbindia.in", growwSym: "PNB", name: "Punjab National Bank", color: "#a20f26", isPrimaryInstitution: true },
+  "union bank": { domain: "unionbankofindia.co.in", growwSym: "UNIONBANK", name: "Union Bank of India", color: "#e31e24", isPrimaryInstitution: true },
+  "central bank": { domain: "centralbankofindia.co.in", growwSym: "CENTRALBK", name: "Central Bank of India", color: "#1e3a8a", isPrimaryInstitution: true },
+  "indian bank": { domain: "indianbank.in", growwSym: "INDIANB", name: "Indian Bank", color: "#00529b", isPrimaryInstitution: true },
+  "karur vysya": { domain: "kvb.co.in", growwSym: "KARURVYSYA", name: "Karur Vysya Bank", color: "#0284c7", isPrimaryInstitution: true },
+  "canara bank": { domain: "canarabank.com", growwSym: "CANBK", name: "Canara Bank", color: "#0090d0", isPrimaryInstitution: true },
+  "federal bank": { domain: "federalbank.co.in", growwSym: "FEDERALBNK", name: "Federal Bank", color: "#004182", isPrimaryInstitution: true },
+  "bandhan bank": { domain: "bandhanbank.com", growwSym: "BANDHANBNK", name: "Bandhan Bank", color: "#004b87", isPrimaryInstitution: true },
+  "rbl bank": { domain: "rblbank.com", growwSym: "RBLBANK", name: "RBL Bank", color: "#0c2340", isPrimaryInstitution: true },
+  "kotak mahindra": { domain: "kotak.com", growwSym: "KOTAKBANK", name: "Kotak Mahindra Bank", color: "#ed1c24", isPrimaryInstitution: true },
+  "kotak bank": { domain: "kotak.com", growwSym: "KOTAKBANK", name: "Kotak Mahindra Bank", color: "#ed1c24", isPrimaryInstitution: true },
+  "indusind bank": { domain: "indusind.com", growwSym: "INDUSINDBK", name: "IndusInd Bank", color: "#84191d", isPrimaryInstitution: true },
+  "standard chartered": { domain: "sc.com", name: "Standard Chartered", color: "#007934", isPrimaryInstitution: true },
+  "yes bank": { domain: "yesbank.in", growwSym: "YESBANK", name: "YES Bank", color: "#003a70", isPrimaryInstitution: true },
+  "post office": { domain: "ippbonline.com", name: "India Post", color: "#d8232a", isPrimaryInstitution: true },
+  "india post": { domain: "ippbonline.com", name: "India Post", color: "#d8232a", isPrimaryInstitution: true },
+  "paytm payments": { domain: "paytm.com", growwSym: "PAYTM", name: "Paytm Payments Bank", color: "#00baf2", isPrimaryInstitution: true },
+  "airtel payments": { domain: "airtel.in", growwSym: "BHARTIARTL", name: "Airtel Payments Bank", color: "#e40000", isPrimaryInstitution: true },
+  indusind: { domain: "indusind.com", growwSym: "INDUSINDBK", name: "IndusInd Bank", color: "#84191d", isPrimaryInstitution: true },
+  indusland: { domain: "indusind.com", growwSym: "INDUSINDBK", name: "IndusInd Bank", color: "#84191d", isPrimaryInstitution: true },
+  canara: { domain: "canarabank.com", growwSym: "CANBK", name: "Canara Bank", color: "#0090d0", isPrimaryInstitution: true },
+  federal: { domain: "federalbank.co.in", growwSym: "FEDERALBNK", name: "Federal Bank", color: "#004182", isPrimaryInstitution: true },
+  equitas: { domain: "equitasbank.com", growwSym: "EQUITASBNK", name: "Equitas Small Finance Bank", color: "#006699", isPrimaryInstitution: true },
+  bandhan: { domain: "bandhanbank.com", growwSym: "BANDHANBNK", name: "Bandhan Bank", color: "#004b87", isPrimaryInstitution: true },
+  hdfc: { domain: "hdfcbank.com", growwSym: "HDFCBANK", name: "HDFC Bank", color: "#004c8f", isPrimaryInstitution: true },
+  icici: { domain: "icicibank.com", growwSym: "ICICIBANK", name: "ICICI Bank", color: "#b02a30", isPrimaryInstitution: true },
+  axis: { domain: "axisbank.com", growwSym: "AXISBANK", name: "Axis Bank", color: "#97144d", isPrimaryInstitution: true },
+  kotak: { domain: "kotak.com", growwSym: "KOTAKBANK", name: "Kotak Mahindra", color: "#ed1c24", isPrimaryInstitution: true },
+  idbi: { domain: "idbibank.in", growwSym: "IDBI", name: "IDBI Bank", color: "#005a3c", isPrimaryInstitution: true },
+  idfc: { domain: "idfcfirstbank.com", growwSym: "IDFCFIRSTB", name: "IDFC FIRST", color: "#9e1b32", isPrimaryInstitution: true },
+  rbl: { domain: "rblbank.com", growwSym: "RBLBANK", name: "RBL Bank", color: "#0c2340", isPrimaryInstitution: true },
+  citi: { domain: "citi.com", name: "Citi", color: "#003b70", isPrimaryInstitution: true },
+  hsbc: { domain: "hsbc.com", name: "HSBC", color: "#db0011", isPrimaryInstitution: true },
+  dbs: { domain: "dbs.com", name: "DBS Bank", color: "#e61e28", isPrimaryInstitution: true },
+  pnb: { domain: "pnbindia.in", growwSym: "PNB", name: "PNB", color: "#a20f26", isPrimaryInstitution: true },
+  bob: { domain: "bankofbaroda.in", growwSym: "BANKBARODA", name: "Bank of Baroda", color: "#f26522", isPrimaryInstitution: true },
+  boi: { domain: "bankofindia.co.in", growwSym: "BANKINDIA", name: "Bank of India", color: "#00529b", isPrimaryInstitution: true },
+  iob: { domain: "iob.in", growwSym: "IOB", name: "Indian Overseas Bank", color: "#003b70", isPrimaryInstitution: true },
+  uco: { domain: "ucobank.com", growwSym: "UCOBANK", name: "UCO Bank", color: "#00529b", isPrimaryInstitution: true },
+  kvb: { domain: "kvb.co.in", growwSym: "KARURVYSYA", name: "Karur Vysya Bank", color: "#0284c7", isPrimaryInstitution: true },
+  sib: { domain: "southindianbank.com", growwSym: "SOUTHBANK", name: "South Indian Bank", color: "#b91c1c", isPrimaryInstitution: true },
+  cub: { domain: "cityunionbank.com", growwSym: "CUB", name: "City Union Bank", color: "#0284c7", isPrimaryInstitution: true },
+  jkb: { domain: "jkbank.com", growwSym: "JKLAKSHMI", name: "J&K Bank", color: "#0f766e", isPrimaryInstitution: true },
+  ippb: { domain: "ippbonline.com", name: "India Post Payments Bank", color: "#d8232a", isPrimaryInstitution: true },
+  epfo: { domain: "epfindia.gov.in", name: "EPFO", color: "#005b94", isPrimaryInstitution: true },
+  sbi: { domain: "sbi.co.in", growwSym: "SBIN", name: "State Bank of India", color: "#1a3b8b", isPrimaryInstitution: true },
+  au: { domain: "aubank.in", growwSym: "AUBANK", name: "AU Bank", color: "#4b286d", isPrimaryInstitution: true },
+  fi: { domain: "fi.money", name: "Fi Money", color: "#00d09c", isPrimaryInstitution: true },
+  sc: { domain: "sc.com", name: "Standard Chartered", color: "#007934", isPrimaryInstitution: true },
+
+  // ── Insurance Companies ───────────────────────────────────────────────────
+  lic: { domain: "licindia.in", localSvg: "/lic-logo.svg", name: "Life Insurance Corporation of India (LIC)", color: "#1d4e9e", isPrimaryInstitution: true },
+  "life insurance corporation": { domain: "licindia.in", localSvg: "/lic-logo.svg", name: "Life Insurance Corporation of India (LIC)", color: "#1d4e9e", isPrimaryInstitution: true },
+  "lic of india": { domain: "licindia.in", localSvg: "/lic-logo.svg", name: "Life Insurance Corporation of India (LIC)", color: "#1d4e9e", isPrimaryInstitution: true },
+  "lic india": { domain: "licindia.in", localSvg: "/lic-logo.svg", name: "Life Insurance Corporation of India (LIC)", color: "#1d4e9e", isPrimaryInstitution: true },
+  "aditya birla sun life": { domain: "adityabirlacapital.com", growwSym: "ABCAPITAL", name: "Aditya Birla Sun Life", color: "#a51c24", isPrimaryInstitution: true },
+  "aditya birla capital": { domain: "adityabirlacapital.com", growwSym: "ABCAPITAL", name: "Aditya Birla Capital", color: "#a51c24", isPrimaryInstitution: true },
+  "aditya birla health": { domain: "adityabirlacapital.com", growwSym: "ABCAPITAL", name: "Aditya Birla Health Insurance", color: "#a51c24", isPrimaryInstitution: true },
+  "aditya birla": { domain: "adityabirlacapital.com", growwSym: "ABCAPITAL", name: "Aditya Birla Sun Life", color: "#a51c24", isPrimaryInstitution: true },
+  absli: { domain: "adityabirlacapital.com", growwSym: "ABCAPITAL", name: "Aditya Birla Sun Life", color: "#a51c24", isPrimaryInstitution: true },
+  birla: { domain: "adityabirlacapital.com", growwSym: "ABCAPITAL", name: "Aditya Birla Sun Life", color: "#a51c24", isPrimaryInstitution: true },
+  "star health": { domain: "starhealth.in", growwSym: "STARHEALTH", name: "Star Health Insurance", color: "#183884", isPrimaryInstitution: true },
+  "care health": { domain: "careinsurance.com", name: "Care Health Insurance", color: "#00838f", isPrimaryInstitution: true },
+  "care insurance": { domain: "careinsurance.com", name: "Care Health Insurance", color: "#00838f", isPrimaryInstitution: true },
+  "niva bupa": { domain: "nivabupa.com", name: "Niva Bupa Health Insurance", color: "#ea5d0b", isPrimaryInstitution: true },
+  "max bupa": { domain: "nivabupa.com", name: "Niva Bupa Health Insurance", color: "#ea5d0b", isPrimaryInstitution: true },
+  "hdfc ergo": { domain: "hdfcergo.com", growwSym: "HDFCBANK", name: "HDFC ERGO", color: "#004c8f", isPrimaryInstitution: true },
+  "hdfc life": { domain: "hdfclife.com", growwSym: "HDFCLIFE", name: "HDFC Life Insurance", color: "#004c8f", isPrimaryInstitution: true },
+  "icici lombard": { domain: "icicilombard.com", growwSym: "ICICIGI", name: "ICICI Lombard", color: "#b02a30", isPrimaryInstitution: true },
+  "icici prudential": { domain: "iciciprulife.com", growwSym: "ICICIPRULI", name: "ICICI Prudential Life", color: "#b02a30", isPrimaryInstitution: true },
+  "icici pru": { domain: "iciciprulife.com", growwSym: "ICICIPRULI", name: "ICICI Prudential", color: "#b02a30", isPrimaryInstitution: true },
+  "sbi life": { domain: "sbilife.co.in", growwSym: "SBILIFE", name: "SBI Life Insurance", color: "#1a3b8b", isPrimaryInstitution: true },
+  "sbi general": { domain: "sbigeneral.in", growwSym: "SBIN", name: "SBI General Insurance", color: "#1a3b8b", isPrimaryInstitution: true },
+  "tata aig": { domain: "tataaig.com", name: "Tata AIG General Insurance", color: "#1d4ed8", isPrimaryInstitution: true },
+  "tata aia": { domain: "tataaia.com", name: "Tata AIA Life Insurance", color: "#1d4ed8", isPrimaryInstitution: true },
+  "bajaj allianz life": { domain: "bajajallianzlife.com", growwSym: "BAJAJFINSV", name: "Bajaj Allianz Life", color: "#005a9c", isPrimaryInstitution: true },
+  "bajaj allianz": { domain: "bajajallianz.com", growwSym: "BAJAJFINSV", name: "Bajaj Allianz", color: "#005a9c", isPrimaryInstitution: true },
+  "new india assurance": { domain: "newindia.co.in", growwSym: "NIACL", name: "New India Assurance", color: "#1e3a8a", isPrimaryInstitution: true },
+  "oriental insurance": { domain: "orientalinsurance.org.in", name: "Oriental Insurance", color: "#006699", isPrimaryInstitution: true },
+  "united india": { domain: "uiic.co.in", name: "United India Insurance", color: "#b45309", isPrimaryInstitution: true },
+  "national insurance": { domain: "nationalinsurance.nic.co.in", name: "National Insurance", color: "#0f766e", isPrimaryInstitution: true },
+  manipalcigna: { domain: "manipalcigna.com", name: "ManipalCigna Health Insurance", color: "#007fa8", isPrimaryInstitution: true },
+  "max life": { domain: "maxlifeinsurance.com", growwSym: "MAXHEALTH", name: "Max Life Insurance", color: "#003b70", isPrimaryInstitution: true },
+  "pnb metlife": { domain: "pnbmetlife.com", growwSym: "PNB", name: "PNB MetLife", color: "#a20f26", isPrimaryInstitution: true },
+  acko: { domain: "acko.com", name: "Acko General Insurance", color: "#6c5ce7", isPrimaryInstitution: true },
+  navi: { domain: "navi.com", name: "Navi Insurance", color: "#00d09c", isPrimaryInstitution: true },
+  digit: { domain: "godigit.com", growwSym: "GODIGIT", name: "Go Digit Insurance", color: "#ffb703", isPrimaryInstitution: true },
+
+  // ── Demat Brokers & Fintechs ─────────────────────────────────────────────
+  zerodha: { domain: "zerodha.com", name: "Zerodha", color: "#387ed1", isPrimaryInstitution: true },
+  kite: { domain: "zerodha.com", name: "Zerodha Kite", color: "#387ed1", isPrimaryInstitution: true },
+  groww: { domain: "groww.in", name: "Groww", color: "#00b899", isPrimaryInstitution: true },
+  upstox: { domain: "upstox.com", name: "Upstox", color: "#53297a", isPrimaryInstitution: true },
+  "angel one": { domain: "angelone.in", growwSym: "ANGELONE", name: "Angel One", color: "#ff5722", isPrimaryInstitution: true },
+  angel: { domain: "angelone.in", growwSym: "ANGELONE", name: "Angel One", color: "#ff5722", isPrimaryInstitution: true },
+  "motilal oswal": { domain: "motilaloswal.com", growwSym: "MOTILALOFS", name: "Motilal Oswal", color: "#d97706", isPrimaryInstitution: true },
+  motilal: { domain: "motilaloswal.com", growwSym: "MOTILALOFS", name: "Motilal Oswal", color: "#d97706", isPrimaryInstitution: true },
+  "5paisa": { domain: "5paisa.com", growwSym: "5PAISA", name: "5paisa", color: "#0891b2", isPrimaryInstitution: true },
+  sharekhan: { domain: "sharekhan.com", name: "Sharekhan", color: "#059669", isPrimaryInstitution: true },
+  fyers: { domain: "fyers.in", name: "FYERS", color: "#0f172a", isPrimaryInstitution: true },
+  dhan: { domain: "dhan.co", name: "Dhan", color: "#7c3aed", isPrimaryInstitution: true },
+  iifl: { domain: "iiflsecurities.com", growwSym: "IIFL", name: "IIFL Securities", color: "#b45309", isPrimaryInstitution: true },
+  ninestar: { domain: "9star.in", name: "Nine Star Broking", color: "#0284c7", isPrimaryInstitution: true },
+  "9star": { domain: "9star.in", name: "Nine Star Broking", color: "#0284c7", isPrimaryInstitution: true },
+  "nine star": { domain: "9star.in", name: "Nine Star Broking", color: "#0284c7", isPrimaryInstitution: true },
+
+  // ── Mutual Fund AMCs ──────────────────────────────────────────────────────
+  nippon: { domain: "nipponindiaim.com", growwSym: "NAM-INDIA", name: "Nippon India Mutual Fund", color: "#d90429", isPrimaryInstitution: true },
+  parag: { domain: "ppfas.com", name: "Parag Parikh Mutual Fund", color: "#2b2d42", isPrimaryInstitution: true },
+  ppfas: { domain: "ppfas.com", name: "PPFAS Mutual Fund", color: "#2b2d42", isPrimaryInstitution: true },
+  mirae: { domain: "miraeassetmf.co.in", name: "Mirae Asset Mutual Fund", color: "#003b70", isPrimaryInstitution: true },
+  quant: { domain: "quantmutual.com", name: "Quant Mutual Fund", color: "#00a896", isPrimaryInstitution: true },
+  uti: { domain: "utimf.com", growwSym: "UTIAMC", name: "UTI Mutual Fund", color: "#005b94", isPrimaryInstitution: true },
+  dsp: { domain: "dspim.com", name: "DSP Mutual Fund", color: "#002d62", isPrimaryInstitution: true },
+  edelweiss: { domain: "edelweissmf.com", growwSym: "EDELWEISS", name: "Edelweiss Mutual Fund", color: "#1d4ed8", isPrimaryInstitution: true },
+  franklin: { domain: "franklintempletonindia.com", name: "Franklin Templeton", color: "#004b87", isPrimaryInstitution: true },
+  invesco: { domain: "invescomutualfund.com", name: "Invesco Mutual Fund", color: "#00386b", isPrimaryInstitution: true },
+  sundaram: { domain: "sundarammutual.com", name: "Sundaram Mutual Fund", color: "#b45309", isPrimaryInstitution: true },
+  whiteoak: { domain: "whiteoakamc.com", name: "WhiteOak Capital", color: "#1c1c1c", isPrimaryInstitution: true },
+  absl: { domain: "mutualfund.adityabirlacapital.com", growwSym: "ABCAPITAL", name: "Aditya Birla Sun Life AMC", color: "#a51c24", isPrimaryInstitution: true },
+
+  // ── Cards, Wallets, Fintechs & Co-Brand Partners (Priority 2) ─────────────
   jupiter: { domain: "jupiter.money", name: "Jupiter Money", color: "#ff5247" },
   onecard: { domain: "getonecard.com", name: "OneCard", color: "#1c1c1c" },
   slice: { domain: "sliceit.com", name: "Slice", color: "#8338ec" },
-  airtel: { domain: "airtel.in", name: "Airtel", color: "#e40000" },
-  paytm: { domain: "paytm.com", name: "Paytm", color: "#00baf2" },
-  amazon: { domain: "amazon.in", name: "Amazon", color: "#ff9900" },
+  airtel: { domain: "airtel.in", growwSym: "BHARTIARTL", name: "Airtel", color: "#e40000" },
+  paytm: { domain: "paytm.com", growwSym: "PAYTM", name: "Paytm", color: "#00baf2" },
   sodexo: { domain: "sodexo.com", name: "Sodexo", color: "#ed1c24" },
   niyo: { domain: "goniyo.com", name: "Niyo", color: "#00d09c" },
   omnicard: { domain: "omnicard.in", name: "OmniCard", color: "#0f172a" },
   phonepe: { domain: "phonepe.com", name: "PhonePe", color: "#5f259f" },
   mobikwik: { domain: "mobikwik.com", name: "MobiKwik", color: "#0070ba" },
   cred: { domain: "cred.club", name: "CRED", color: "#1c1c1c" },
-  hdfc: { domain: "hdfcbank.com", name: "HDFC Bank", color: "#004c8f" },
-  icici: { domain: "icicibank.com", name: "ICICI Bank", color: "#b02a30" },
-  axis: { domain: "axisbank.com", name: "Axis Bank", color: "#97144d" },
-  kotak: { domain: "kotak.com", name: "Kotak Mahindra", color: "#ed1c24" },
-  idbi: { domain: "idbibank.in", name: "IDBI Bank", color: "#005a3c" },
-  idfc: { domain: "idfcfirstbank.com", name: "IDFC FIRST", color: "#9e1b32" },
-  rbl: { domain: "rblbank.com", name: "RBL Bank", color: "#0c2340" },
-  citi: { domain: "citi.com", name: "Citi", color: "#003b70" },
-  hsbc: { domain: "hsbc.com", name: "HSBC", color: "#db0011" },
-  dbs: { domain: "dbs.com", name: "DBS Bank", color: "#e61e28" },
-  pnb: { domain: "pnbindia.in", name: "PNB", color: "#a20f26" },
-  bob: { domain: "bankofbaroda.in", name: "Bank of Baroda", color: "#f26522" },
-  boi: { domain: "bankofindia.co.in", name: "Bank of India", color: "#00529b" },
-  iob: { domain: "iob.in", name: "Indian Overseas Bank", color: "#003b70" },
-  uco: { domain: "ucobank.com", name: "UCO Bank", color: "#00529b" },
-  kvb: { domain: "kvb.co.in", name: "Karur Vysya Bank", color: "#0284c7" },
-  sib: { domain: "southindianbank.com", name: "South Indian Bank", color: "#b91c1c" },
-  cub: { domain: "cityunionbank.com", name: "City Union Bank", color: "#0284c7" },
-  jkb: { domain: "jkbank.com", name: "J&K Bank", color: "#0f766e" },
-  ippb: { domain: "ippbonline.com", name: "India Post Payments Bank", color: "#d8232a" },
-  epfo: { domain: "epfindia.gov.in", name: "EPFO", color: "#005b94" },
-  sbi: { domain: "sbi.co.in", name: "State Bank of India", color: "#1a3b8b" },
-  au: { domain: "aubank.in", name: "AU Bank", color: "#4b286d" },
-  fi: { domain: "fi.money", name: "Fi Money", color: "#00d09c" },
-  sc: { domain: "sc.com", name: "Standard Chartered", color: "#007934" },
-
-  // ── Insurance Companies ───────────────────────────────────────────────────
-  lic: { domain: "licindia.in", localSvg: "/lic-logo.svg", name: "Life Insurance Corporation", color: "#1d4e9e" },
-  "life insurance": { domain: "licindia.in", localSvg: "/lic-logo.svg", name: "LIC", color: "#1d4e9e" },
-  "star health": { domain: "starhealth.in", name: "Star Health", color: "#183884" },
-  "care health": { domain: "careinsurance.com", name: "Care Health", color: "#00838f" },
-  "care insurance": { domain: "careinsurance.com", name: "Care Health", color: "#00838f" },
-  "niva bupa": { domain: "nivabupa.com", name: "Niva Bupa", color: "#ea5d0b" },
-  "max bupa": { domain: "nivabupa.com", name: "Niva Bupa", color: "#ea5d0b" },
-  "hdfc ergo": { domain: "hdfcergo.com", name: "HDFC ERGO", color: "#004c8f" },
-  "hdfc life": { domain: "hdfclife.com", name: "HDFC Life", color: "#004c8f" },
-  "icici lombard": { domain: "icicilombard.com", name: "ICICI Lombard", color: "#b02a30" },
-  "icici prudential": { domain: "iciciprulife.com", name: "ICICI Prudential", color: "#b02a30" },
-  "icici pru": { domain: "iciciprulife.com", name: "ICICI Prudential", color: "#b02a30" },
-  "sbi life": { domain: "sbilife.co.in", name: "SBI Life", color: "#1a3b8b" },
-  "sbi general": { domain: "sbigeneral.in", name: "SBI General", color: "#1a3b8b" },
-  "tata aig": { domain: "tataaig.com", name: "Tata AIG", color: "#1d4ed8" },
-  "tata aia": { domain: "tataaia.com", name: "Tata AIA", color: "#1d4ed8" },
-  "bajaj allianz": { domain: "bajajallianz.com", name: "Bajaj Allianz", color: "#005a9c" },
-  "new india assurance": { domain: "newindia.co.in", name: "New India Assurance", color: "#1e3a8a" },
-  "oriental insurance": { domain: "orientalinsurance.org.in", name: "Oriental Insurance", color: "#006699" },
-  "united india": { domain: "uiic.co.in", name: "United India Insurance", color: "#b45309" },
-  "national insurance": { domain: "nationalinsurance.nic.co.in", name: "National Insurance", color: "#0f766e" },
-  manipalcigna: { domain: "manipalcigna.com", name: "ManipalCigna", color: "#007fa8" },
-  aditya: { domain: "adityabirlacapital.com", name: "Aditya Birla Capital", color: "#a51c24" },
-  birla: { domain: "adityabirlacapital.com", name: "Aditya Birla Capital", color: "#a51c24" },
-  acko: { domain: "acko.com", name: "Acko", color: "#6c5ce7" },
-  navi: { domain: "navi.com", name: "Navi", color: "#00d09c" },
-  digit: { domain: "godigit.com", name: "Go Digit", color: "#ffb703" },
-  "max life": { domain: "maxlifeinsurance.com", name: "Max Life", color: "#003b70" },
-
-  // ── Demat Brokers & Fintechs ─────────────────────────────────────────────
-  zerodha: { domain: "zerodha.com", name: "Zerodha", color: "#387ed1" },
-  kite: { domain: "zerodha.com", name: "Zerodha Kite", color: "#387ed1" },
-  groww: { domain: "groww.in", name: "Groww", color: "#00b899" },
-  upstox: { domain: "upstox.com", name: "Upstox", color: "#53297a" },
-  "angel one": { domain: "angelone.in", name: "Angel One", color: "#ff5722" },
-  angel: { domain: "angelone.in", name: "Angel One", color: "#ff5722" },
-  "motilal oswal": { domain: "motilaloswal.com", name: "Motilal Oswal", color: "#d97706" },
-  motilal: { domain: "motilaloswal.com", name: "Motilal Oswal", color: "#d97706" },
-  "5paisa": { domain: "5paisa.com", name: "5paisa", color: "#0891b2" },
-  sharekhan: { domain: "sharekhan.com", name: "Sharekhan", color: "#059669" },
-  fyers: { domain: "fyers.in", name: "FYERS", color: "#0f172a" },
-  dhan: { domain: "dhan.co", name: "Dhan", color: "#7c3aed" },
-  iifl: { domain: "iiflsecurities.com", name: "IIFL Securities", color: "#b45309" },
-
-  // ── Mutual Fund AMCs ──────────────────────────────────────────────────────
-  nippon: { domain: "nipponindiaim.com", name: "Nippon India", color: "#d90429" },
-  parag: { domain: "ppfas.com", name: "Parag Parikh", color: "#2b2d42" },
-  ppfas: { domain: "ppfas.com", name: "PPFAS", color: "#2b2d42" },
-  mirae: { domain: "miraeassetmf.co.in", name: "Mirae Asset", color: "#003b70" },
-  quant: { domain: "quantmutual.com", name: "Quant Mutual", color: "#00a896" },
-  uti: { domain: "utimf.com", name: "UTI Mutual Fund", color: "#005b94" },
-  dsp: { domain: "dspim.com", name: "DSP Mutual Fund", color: "#002d62" },
-  edelweiss: { domain: "edelweissmf.com", name: "Edelweiss", color: "#1d4ed8" },
-  franklin: { domain: "franklintempletonindia.com", name: "Franklin Templeton", color: "#004b87" },
-  invesco: { domain: "invescomutualfund.com", name: "Invesco", color: "#00386b" },
-  sundaram: { domain: "sundarammutual.com", name: "Sundaram", color: "#b45309" },
-  whiteoak: { domain: "whiteoakamc.com", name: "WhiteOak Capital", color: "#1c1c1c" },
-  absl: { domain: "mutualfund.adityabirlacapital.com", name: "Aditya Birla Sun Life", color: "#a51c24" },
+  swiggy: { domain: "swiggy.com", growwSym: "SWIGGY", name: "Swiggy", color: "#fc8019" },
+  zomato: { domain: "zomato.com", growwSym: "ETERNAL", name: "Zomato", color: "#cb202d" },
+  amazon: { domain: "amazon.in", name: "Amazon", color: "#ff9900" },
+  flipkart: { domain: "flipkart.com", name: "Flipkart", color: "#2874f0" },
+  myntra: { domain: "myntra.com", name: "Myntra", color: "#ff3f6c" },
+  tataneu: { domain: "tatadigital.com", growwSym: "TATACONSUM", name: "Tata Neu", color: "#8338ec" },
 };
 
 /**
- * Smart Canonical Brand Resolver:
- * Eliminates false substring matches while ensuring complete consistency across tabs.
+ * Words that must NEVER match as loose substrings (e.g. "credit" matching "cred",
+ * "card" matching "onecard", "star" matching "ninestar", "care" matching "care health").
+ */
+const WORD_BOUNDARY_KEYS = new Set([
+  "cred",
+  "card",
+  "star",
+  "axis",
+  "care",
+  "cure",
+  "park",
+  "max",
+  "au",
+  "fi",
+  "sc",
+  "sbi",
+  "pnb",
+  "bob",
+  "boi",
+  "iob",
+  "uco",
+  "cub",
+  "jkb",
+  "kvb",
+  "ippb",
+  "epfo",
+  "lic",
+  "dbs",
+  "citi",
+  "hsbc",
+  "rbl",
+  "idbi",
+  "idfc",
+  "absl",
+  "uti",
+  "dsp",
+]);
+
+/**
+ * High-precision Brand Resolution:
+ * 1. Checks primary issuing institutions FIRST (so "ICICI Amazon Pay" or "HDFC Swiggy" maps to ICICI / HDFC Bank).
+ * 2. Uses strict word boundaries for short keys or sensitive abbreviations like `cred`, `sbi`, `lic`, preventing "credit" from matching "cred".
+ * 3. Falls back to co-branding partners only when no primary institution is present.
  */
 export function resolveBrand(rawInput: string): BrandInfo | null {
   if (!rawInput) return null;
   const text = rawInput.toLowerCase().trim();
 
-  // 1. Long multi-word keys sorted by descending length (e.g. 'state bank of india' before 'bank of india')
-  const longEntries = Object.entries(CANONICAL_BRANDS)
-    .filter(([k]) => k.length > 3)
+  // Normalize string for checking:
+  // Separate common glued terms (e.g. "HDFCBANK" -> "hdfc bank", "SBI_CARD" -> "sbi card")
+  const clean = text
+    .replace(/[_\-\/\(\)]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Helper matching function
+  const matchEntry = (k: string): boolean => {
+    if (WORD_BOUNDARY_KEYS.has(k) || k.length <= 3) {
+      const regex = new RegExp(`(^|[^a-z0-9])${k}([^a-z0-9]|$)`, "i");
+      return regex.test(clean);
+    }
+    return clean.includes(k);
+  };
+
+  // Pass 1: Match Primary Financial Institutions sorted by length descending
+  const primaryEntries = Object.entries(CANONICAL_BRANDS)
+    .filter(([_, b]) => b.isPrimaryInstitution)
     .sort((a, b) => b[0].length - a[0].length);
 
-  for (const [k, brand] of longEntries) {
-    if (text.includes(k)) return brand;
+  for (const [k, brand] of primaryEntries) {
+    if (matchEntry(k)) return brand;
   }
 
-  // 2. Short keys (<= 3 chars) strictly using whole-word boundary matching (e.g. \b(sbi|pnb|bob|au|fi|sc)\b)
-  const shortEntries = Object.entries(CANONICAL_BRANDS).filter(([k]) => k.length <= 3);
-  for (const [k, brand] of shortEntries) {
-    const regex = new RegExp(`\\b${k}\\b`, "i");
-    if (regex.test(text)) return brand;
+  // Pass 2: Match Secondary / Co-branding / Partner entities sorted by length descending
+  const secondaryEntries = Object.entries(CANONICAL_BRANDS)
+    .filter(([_, b]) => !b.isPrimaryInstitution)
+    .sort((a, b) => b[0].length - a[0].length);
+
+  for (const [k, brand] of secondaryEntries) {
+    if (matchEntry(k)) return brand;
   }
 
   return null;
@@ -206,7 +285,7 @@ export const brandInitialsColor = (name: string, fallbackColor?: string) => {
 /**
  * Universal BrandLogo component:
  * 1. Checks if the brand has a local vector SVG (e.g. LIC vector asset).
- * 2. Attempts Unavatar vector CDN (`unavatar.io/${domain}`).
+ * 2. Attempts Groww 256×256 WebP vector CDN if available (`growwSym`).
  * 3. Falls back to Google 256px Favicon CDN (`sz=256`).
  * 4. Falls back to Hunter CDN.
  * 5. Falls back to a deterministic, high-contrast brand badge avatar.
@@ -231,44 +310,39 @@ export const BrandLogo: React.FC<{
   const brand = resolveBrand(name);
   const targetDomain = explicitDomain || brand?.domain || "";
   const localSvg = brand?.localSvg;
+  const growwSym = brand?.growwSym;
 
-  // Fallback state: 0 = localSvg or unavatar, 1 = google 256px, 2 = hunter.io, 3 = initials badge
-  const [fallbackLevel, setFallbackLevel] = useState<number>(0);
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  // Candidates pipeline:
+  // 0. Local vector SVG (e.g. /lic-logo.svg)
+  // 1. Groww 256×256 WebP CDN (ultra-crisp vector asset for Indian banks, AMCs & brokers)
+  // 2. Google Favicon 256px CDN
+  // 3. Hunter.io CDN
+  const candidates = React.useMemo(() => {
+    const list: string[] = [];
+    if (localSvg) list.push(localSvg);
+    if (growwSym) list.push(`https://assets-netstorage.groww.in/stock-assets/logos2/${encodeURIComponent(growwSym)}.webp`);
+    if (targetDomain) {
+      list.push(`https://www.google.com/s2/favicons?domain=${targetDomain}&sz=256`);
+      list.push(`https://logos.hunter.io/${targetDomain}`);
+    }
+    return list;
+  }, [localSvg, growwSym, targetDomain]);
+
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
   useEffect(() => {
-    setFallbackLevel(0);
-    if (localSvg) {
-      setImgSrc(localSvg);
-    } else if (targetDomain) {
-      // Tier 0: unavatar.io gives pure vector SVGs for top Indian banks & financial entities
-      setImgSrc(`https://unavatar.io/${targetDomain}`);
-    } else {
-      setImgSrc(null);
-      setFallbackLevel(3);
-    }
-  }, [name, targetDomain, localSvg]);
+    setCurrentIndex(0);
+  }, [name, targetDomain, localSvg, growwSym]);
 
   const handleImgError = () => {
-    if (fallbackLevel === 0 && targetDomain) {
-      // Advance to Tier 1: Google Favicon 256px
-      setFallbackLevel(1);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${targetDomain}&sz=256`);
-    } else if (fallbackLevel === 1 && targetDomain) {
-      // Advance to Tier 2: Hunter.io
-      setFallbackLevel(2);
-      setImgSrc(`https://logos.hunter.io/${targetDomain}`);
-    } else {
-      // Advance to Tier 3: Initials Avatar Badge
-      setFallbackLevel(3);
-      setImgSrc(null);
-    }
+    setCurrentIndex((prev) => prev + 1);
   };
 
   const br = borderRadius ?? Math.max(4, Math.round(size * 0.25));
+  const activeSrc = candidates[currentIndex];
 
-  // Render Image if available and within fallback levels
-  if ((localSvg || targetDomain) && fallbackLevel < 3 && imgSrc) {
+  // Render Image if available in pipeline
+  if (activeSrc) {
     return (
       <div
         className={className}
@@ -288,12 +362,12 @@ export const BrandLogo: React.FC<{
         }}
       >
         <img
-          src={imgSrc}
+          src={activeSrc}
           alt={name}
           onError={handleImgError}
           style={{
-            width: "74%",
-            height: "74%",
+            width: "75%",
+            height: "75%",
             objectFit: "contain",
             imageRendering: "-webkit-optimize-contrast",
           }}

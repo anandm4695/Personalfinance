@@ -3678,8 +3678,8 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
         {displayCards.map((p: any) => {
           const isClosed = (p.status || "active").toLowerCase() === "closed";
           const { loaded, spent, balance } = computeStats(p.transactions);
-          const txnCount = (p.transactions || []).length;
-          const name = p.cardName || p.name || p.provider || "Prepaid Card";
+          const name = p.provider || p.bank || p.issuer || p.cardName || p.name || "Prepaid Card";
+          const brandName = [p.provider, p.bank, p.issuer, p.cardName, p.name].filter(Boolean).join(" ");
           const expiryDays = p.expiryDate
             ? Math.ceil(
                 (new Date(p.expiryDate + "T00:00:00").getTime() -
@@ -3866,7 +3866,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <BankLogo bankName={name} size={30} />
+                  <BankLogo bankName={brandName || name} size={30} />
                   <span
                     style={{
                       fontSize: 9,
