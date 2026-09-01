@@ -35,6 +35,27 @@ export function useTheme(settings: {
     };
     const anims: Record<string, string> = { snappy: "0.15s", smooth: "0.4s", relaxed: "0.8s" };
 
+    // Dynamically load Google Font if not already loaded and not system font
+    const googleFontMap: Record<string, string> = {
+      poppins: "Poppins:wght@400;500;600;700;800",
+      "dm-sans": "DM+Sans:wght@400;500;600;700",
+      "space-grotesk": "Space+Grotesk:wght@400;500;600;700",
+      nunito: "Nunito:wght@400;500;600;700;800",
+      roboto: "Roboto:wght@400;500;700",
+      lato: "Lato:wght@400;700;900",
+    };
+
+    if (googleFontMap[fontKey]) {
+      const fontId = `google-font-${fontKey}`;
+      if (!document.getElementById(fontId)) {
+        const link = document.createElement("link");
+        link.id = fontId;
+        link.rel = "stylesheet";
+        link.href = `https://fonts.googleapis.com/css2?family=${googleFontMap[fontKey]}&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+
     const selectedFont = fonts[fontKey] || "'Inter', sans-serif";
     const merged = {
       ...vars,

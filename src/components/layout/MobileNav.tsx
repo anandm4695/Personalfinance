@@ -250,11 +250,9 @@ export function MobileNav({ tab, setTab, setSubTab }: MobileNavProps) {
             position: "fixed",
             inset: 0,
             zIndex: "var(--z-drawer)",
-            // Ink-tinted, matching .modal-backdrop / .drawer-backdrop in styles.css
-            // instead of a pure-black overlay, so all dismissible surfaces share one hue.
-            background: "rgba(15,23,42,0.45)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
+            background: "rgba(7, 8, 10, 0.72)",
+            backdropFilter: "blur(16px) saturate(180%)",
+            WebkitBackdropFilter: "blur(16px) saturate(180%)",
             animation: "fadeIn 0.15s ease",
           }}
         >

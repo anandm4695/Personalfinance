@@ -216,7 +216,7 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
             borderBottom: "1px solid var(--t-line, rgba(255,255,255,0.08))",
           }}
         >
-          <Search size={20} style={{ color: "var(--t-muted, #71717a)" }} />
+          <Search size={20} style={{ color: "var(--t-accent, #6366f1)", flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -233,16 +233,43 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
               fontWeight: 500,
             }}
           />
+          {query && (
+            <button
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              style={{
+                background: "color-mix(in srgb, var(--t-muted) 15%, transparent)",
+                border: "none",
+                borderRadius: "50%",
+                width: 22,
+                height: 22,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--t-muted)",
+                cursor: "pointer",
+                padding: 0,
+              }}
+              title="Clear search"
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          )}
           <button
             onClick={onClose}
             style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "none",
+              background: "color-mix(in srgb, var(--t-muted) 12%, transparent)",
+              border: "1px solid var(--t-line)",
               borderRadius: "6px",
               padding: "4px 8px",
               color: "var(--t-muted)",
-              fontSize: "12px",
+              fontSize: "11px",
+              fontWeight: 700,
               cursor: "pointer",
+              letterSpacing: "0.04em",
             }}
           >
             ESC
@@ -252,7 +279,7 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
         {/* Quick Commands & Navigation List */}
         <div style={{ maxHeight: "400px", overflowY: "auto", padding: "12px" }}>
           {!query && (
-            <div style={{ padding: "8px 12px 6px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--t-muted)" }}>
+            <div style={{ padding: "8px 12px 6px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--t-muted)" }}>
               Quick Actions
             </div>
           )}
@@ -274,17 +301,31 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
                 transition: "background 0.15s ease",
               }}
             >
-              {isPrivacyMode ? <Eye size={16} /> : <EyeOff size={16} />}
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "6px",
+                  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                  color: "var(--t-accent)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {isPrivacyMode ? <Eye size={15} /> : <EyeOff size={15} />}
+              </div>
               <span style={{ flex: 1, fontSize: "14px", fontWeight: 500, color: "var(--t-ink)" }}>
                 {isPrivacyMode ? "Disable Privacy Mode (Show Amounts)" : "Enable Privacy Mode (Hide Amounts)"}
               </span>
-              <span style={{ fontSize: "11px", color: "var(--t-muted)", background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: "4px" }}>
+              <kbd style={{ fontSize: "10px", color: "var(--t-muted)", background: "color-mix(in srgb, var(--t-muted) 12%, transparent)", border: "1px solid var(--t-line)", padding: "2px 6px", borderRadius: "4px", fontWeight: 700 }}>
                 P
-              </span>
+              </kbd>
             </div>
           )}
 
-          <div style={{ padding: "12px 12px 6px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--t-muted)" }}>
+          <div style={{ padding: "12px 12px 6px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--t-muted)" }}>
             {query ? "Search Results" : "Top Navigation"}
           </div>
 
@@ -311,8 +352,9 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
                   borderRadius: "8px",
                   cursor: "pointer",
                   color: "var(--t-ink)",
-                  background: isSelected ? "rgba(99, 102, 241, 0.14)" : "transparent",
-                  transition: "background 0.1s ease",
+                  background: isSelected ? "color-mix(in srgb, var(--t-accent) 14%, transparent)" : "transparent",
+                  borderLeft: isSelected ? "3px solid var(--t-accent)" : "3px solid transparent",
+                  transition: "background 0.12s ease, border-color 0.12s ease",
                 }}
               >
                 <div
@@ -320,26 +362,27 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
                     width: "28px",
                     height: "28px",
                     borderRadius: "6px",
-                    background: "rgba(99, 102, 241, 0.12)",
-                    color: "var(--t-accent, #6366f1)",
+                    background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                    color: "var(--t-accent)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
-                  <Icon size={16} />
+                  <Icon size={15} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "14px", fontWeight: 500 }}>{item.label}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "14px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
                   <div style={{ fontSize: "11px", color: "var(--t-muted)" }}>{item.group}</div>
                 </div>
-                <ArrowRight size={14} style={{ color: "var(--t-muted)", opacity: 0.6 }} />
+                <ArrowRight size={14} style={{ color: isSelected ? "var(--t-accent)" : "var(--t-muted)", opacity: isSelected ? 1 : 0.4, flexShrink: 0 }} />
               </div>
             );
           })}
 
           {filteredItems.length === 0 && (
-            <div style={{ padding: "32px", textAlign: "center", color: "var(--t-muted)", fontSize: "14px" }}>
+            <div style={{ padding: "36px 16px", textAlign: "center", color: "var(--t-muted)", fontSize: "14px" }}>
               No matching commands or pages found.
             </div>
           )}
@@ -349,7 +392,7 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
         <div
           style={{
             padding: "10px 16px",
-            background: "rgba(0,0,0,0.2)",
+            background: "color-mix(in srgb, var(--surface-1) 80%, transparent)",
             borderTop: "1px solid var(--t-line, rgba(255,255,255,0.06))",
             display: "flex",
             alignItems: "center",
@@ -358,10 +401,15 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
             color: "var(--t-muted)",
           }}
         >
-          <div>
-            Press <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 5px", borderRadius: "4px", fontSize: "11px" }}>↑</kbd> <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 5px", borderRadius: "4px", fontSize: "11px" }}>↓</kbd> to navigate
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span>
+              <kbd style={{ background: "color-mix(in srgb, var(--t-muted) 15%, transparent)", border: "1px solid var(--t-line)", padding: "2px 5px", borderRadius: "4px", fontSize: "10px", fontWeight: 700 }}>↑</kbd> <kbd style={{ background: "color-mix(in srgb, var(--t-muted) 15%, transparent)", border: "1px solid var(--t-line)", padding: "2px 5px", borderRadius: "4px", fontSize: "10px", fontWeight: 700 }}>↓</kbd> Navigate
+            </span>
+            <span>
+              <kbd style={{ background: "color-mix(in srgb, var(--t-muted) 15%, transparent)", border: "1px solid var(--t-line)", padding: "2px 5px", borderRadius: "4px", fontSize: "10px", fontWeight: 700 }}>↵</kbd> Select
+            </span>
           </div>
-          <div>ArthaDrishti AI OS</div>
+          <div style={{ fontWeight: 600, fontSize: "11px", letterSpacing: "0.04em", color: "var(--t-muted)" }}>ArthaDrishti Executive OS</div>
         </div>
       </div>
     </div>

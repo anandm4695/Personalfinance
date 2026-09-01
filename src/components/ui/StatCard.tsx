@@ -25,13 +25,23 @@ const Sparkline = ({
   const points = data
     .map((val, idx) => {
       const x = (idx / (data.length - 1)) * width;
-      const y = height - ((val - min) / range) * height;
+      const y = height - ((val - min) / range) * (height - 4) - 2;
       return `${x},${y}`;
     })
     .join(" ");
 
+  const areaPoints = `${points} ${width},${height} 0,${height}`;
+  const gradientId = `sparkline-grad-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
     <svg width={width} height={height} style={{ overflow: "visible", flexShrink: 0 }} className="no-print">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+      <polygon fill={`url(#${gradientId})`} points={areaPoints} />
       <polyline
         fill="none"
         stroke={color}

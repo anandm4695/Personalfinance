@@ -158,29 +158,33 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
             key={t.id}
             role={t.type === "error" ? "alert" : undefined}
             style={{
-              background: "var(--surface-0)",
-              border: `1px solid color-mix(in srgb, ${cfg.accent} 30%, transparent)`,
+              background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+              backdropFilter: "blur(16px) saturate(180%)",
+              WebkitBackdropFilter: "blur(16px) saturate(180%)",
+              border: `1px solid color-mix(in srgb, ${cfg.accent} 25%, var(--t-line))`,
+              borderLeft: `3.5px solid ${cfg.accent}`,
               color: "var(--t-ink)",
-              padding: "12px 16px",
+              padding: "12px 18px",
               borderRadius: 12,
               fontSize: 13,
               fontWeight: 600,
               boxShadow: "var(--shadow-xl)",
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              maxWidth: 340,
+              gap: 12,
+              maxWidth: 360,
               fontFamily: "var(--t-font, var(--font-sans))",
               animation: "toastIn 0.28s var(--ease-out) both",
+              lineHeight: 1.4,
             }}
           >
             <span
               style={{
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 borderRadius: "50%",
                 background: `color-mix(in srgb, ${cfg.accent} 15%, transparent)`,
-                border: `1.5px solid color-mix(in srgb, ${cfg.accent} 40%, transparent)`,
+                border: `1.5px solid color-mix(in srgb, ${cfg.accent} 35%, transparent)`,
                 color: cfg.accent,
                 display: "inline-flex",
                 alignItems: "center",
@@ -188,9 +192,9 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
                 flexShrink: 0,
               }}
             >
-              <IconComponent size={11} strokeWidth={2.5} />
+              <IconComponent size={12} strokeWidth={2.5} />
             </span>
-            {t.msg}
+            <span style={{ flex: 1 }}>{t.msg}</span>
           </div>
         );
       })}

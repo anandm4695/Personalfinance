@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, ArrowUpDown, ChevronUp, ChevronDown, Filter } from "lucide-react";
+import { Search, ArrowUpDown, ChevronUp, ChevronDown, Filter, X } from "lucide-react";
 
 export interface Column<T> {
   key: string;
@@ -149,15 +149,16 @@ export function DataTable<T extends Record<string, any>>({
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              background: "rgba(255, 255, 255, 0.04)",
+              background: "var(--surface-1, rgba(255, 255, 255, 0.04))",
               border: "1px solid var(--t-line, rgba(255, 255, 255, 0.08))",
               borderRadius: "8px",
               padding: "6px 12px",
               maxWidth: "320px",
               width: "100%",
+              transition: "border-color 0.15s ease",
             }}
           >
-            <Search size={14} style={{ color: "var(--t-muted, #71717a)" }} />
+            <Search size={14} style={{ color: "var(--t-muted, #71717a)", flexShrink: 0 }} />
             <input
               type="text"
               placeholder={searchPlaceholder}
@@ -172,10 +173,29 @@ export function DataTable<T extends Record<string, any>>({
                 width: "100%",
               }}
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  color: "var(--t-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
         )}
 
-        <div style={{ fontSize: "12px", color: "var(--t-muted, #71717a)", fontWeight: 500, flexShrink: 0 }}>
+        <div style={{ fontSize: "12px", color: "var(--t-muted, #71717a)", fontWeight: 600, flexShrink: 0 }}>
           {sortedData.length} {sortedData.length === 1 ? "entry" : "entries"}
         </div>
       </div>
@@ -186,7 +206,7 @@ export function DataTable<T extends Record<string, any>>({
           <thead>
             <tr
               style={{
-                background: "rgba(255, 255, 255, 0.02)",
+                background: "color-mix(in srgb, var(--surface-1) 70%, transparent)",
                 borderBottom: "1px solid var(--t-line, rgba(255, 255, 255, 0.08))",
               }}
             >
@@ -218,31 +238,39 @@ export function DataTable<T extends Record<string, any>>({
                         : undefined
                     }
                     style={{
-                      padding: "10px 16px",
+                      padding: "11px 16px",
                       fontSize: "11px",
-                      fontWeight: 600,
+                      fontWeight: 700,
                       textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      color: "var(--t-muted, #94a3b8)",
+                      letterSpacing: "0.06em",
+                      color: isActiveSort ? "var(--t-accent)" : "var(--t-muted, #94a3b8)",
                       textAlign: col.align || (col.isNumeric ? "right" : "left"),
                       width: col.width,
                       cursor: col.sortable ? "pointer" : "default",
                       userSelect: "none",
+                      transition: "color 0.15s ease",
                     }}
                   >
                     <div
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "4px",
+                        gap: "5px",
                         justifyContent: col.align === "right" || col.isNumeric ? "flex-end" : "flex-start",
                       }}
                     >
                       <span>{col.header}</span>
                       {col.sortable && (
-                        <span style={{ color: isActiveSort ? "var(--t-accent)" : "inherit", opacity: 0.7 }}>
+                        <span
+                          style={{
+                            color: isActiveSort ? "var(--t-accent)" : "inherit",
+                            opacity: isActiveSort ? 1 : 0.5,
+                            display: "inline-flex",
+                            alignItems: "center",
+                          }}
+                        >
                           {isActiveSort ? (
-                            effectiveSortDirection === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+                            effectiveSortDirection === "asc" ? <ChevronUp size={13} /> : <ChevronDown size={13} />
                           ) : (
                             <ArrowUpDown size={11} />
                           )}
@@ -253,7 +281,7 @@ export function DataTable<T extends Record<string, any>>({
                 );
               })}
               {actions && (
-                <th style={{ padding: "10px 16px", fontSize: "11px", textTransform: "uppercase", textAlign: "right", color: "var(--t-muted)" }}>
+                <th style={{ padding: "11px 16px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "right", color: "var(--t-muted)" }}>
                   Actions
                 </th>
               )}
@@ -285,7 +313,7 @@ export function DataTable<T extends Record<string, any>>({
                     cursor: onRowClick ? "pointer" : "default",
                     transition: "background 0.15s ease",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 4%, transparent)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
                   {columns.map((col) => (
