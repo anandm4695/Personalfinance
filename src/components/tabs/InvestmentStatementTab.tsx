@@ -253,13 +253,13 @@ const SectionHeader = ({
    ══════════════════════════════════════════════════════════════════════ */
 export const InvestmentStatementTab = ({
   state,
-  metrics,
-  marketData,
+  metrics = {},
+  marketData = {},
   activeProfile,
 }: {
   state: any;
-  metrics: any;
-  marketData: any;
+  metrics?: any;
+  marketData?: any;
   activeProfile?: string;
 }) => {
   const { privacyMode } = usePrivacy();

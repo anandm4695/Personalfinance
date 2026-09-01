@@ -14,15 +14,16 @@ vi.mock("recharts", async () => {
 });
 
 describe("ComparisonReportsTab Premium UI Statically", () => {
+  const currentYM = new Date().toISOString().slice(0, 7);
   const mockState = {
     transactions: [
       {
-        id: "t1",
-        date: "2026-06-10",
-        note: "Gym Membership",
+        id: "1",
+        date: `${currentYM}-15`,
+        note: "Doctor Consult",
         category: "Health",
         type: "debit",
-        amount: 2000,
+        amount: 1500,
       },
       {
         id: "t2",

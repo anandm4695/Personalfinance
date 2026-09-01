@@ -455,11 +455,13 @@ export const BrokerLogo = ({
   name,
   size = 40,
   borderRadius,
+  theme,
 }: {
   broker?: string;
   name?: string;
   size?: number;
   borderRadius?: number;
+  theme?: any;
 }) => <BrandLogo name={broker || name || "Broker"} size={size} borderRadius={borderRadius} />;
 
 export const BuilderLogo = ({
