@@ -85,6 +85,15 @@ import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
+import {
+  VehicleLogo,
+  VehicleMakeLogo as BrandVehicleMakeLogo,
+  InsurerLogo,
+  BankLogo,
+  ServiceLogo,
+  BrandLogo,
+} from "../ui/BrandLogos";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Brand Domains & Visual Themes (35+ Indian & Global Automakers)
@@ -324,43 +333,30 @@ export function IndianNumberPlate({
 // VehicleMakeLogo Vector Badge
 // ─────────────────────────────────────────────────────────────────────────────
 
-function VehicleMakeLogo({ make, size = 48 }: { make: string; size?: number }) {
-  const theme = getMakeTheme(make);
-  const br = Math.round(size * 0.28);
-  const initials = (make || "?").slice(0, 2).toUpperCase();
-  const fontSize = Math.round(size * 0.38);
-
+export function VehicleMakeLogo({
+  make,
+  size = 48,
+  borderRadius,
+  className,
+  style,
+}: {
+  make: string;
+  size?: number;
+  borderRadius?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: br,
-        background: theme.gradient,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        boxShadow: `0 3px 10px color-mix(in srgb, ${theme.color} 30%, transparent)`,
-        border: `1px solid color-mix(in srgb, ${theme.color} 40%, rgba(255,255,255,0.2))`,
-      }}
-    >
-      <span
-        style={{
-          fontSize,
-          fontWeight: 900,
-          color: "#fff",
-          letterSpacing: "-0.02em",
-          lineHeight: 1,
-          fontFamily: "var(--font-display, sans-serif)",
-          textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-        }}
-      >
-        {initials}
-      </span>
-    </div>
+    <VehicleLogo
+      make={make}
+      size={size}
+      borderRadius={borderRadius}
+      className={className}
+      style={style}
+    />
   );
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Dynamic Vehicle Color & Visual Illustration Engine
@@ -547,6 +543,48 @@ const VEHICLE_TYPES: Record<string, string> = {
   "four-wheeler": "Four-Wheeler",
   commercial: "Commercial",
 };
+
+export const POPULAR_AUTOMAKERS_BY_TYPE: Record<string, string[]> = {
+  "two-wheeler": [
+    "Royal Enfield",
+    "Hero MotoCorp",
+    "Bajaj Auto",
+    "TVS Motor",
+    "Honda",
+    "Yamaha",
+    "Suzuki",
+    "KTM",
+    "Ather Energy",
+    "Ola Electric",
+    "Kawasaki",
+    "Harley-Davidson",
+  ],
+  "four-wheeler": [
+    "Tata Motors",
+    "Mahindra",
+    "Maruti Suzuki",
+    "Hyundai",
+    "Toyota",
+    "Kia",
+    "MG Motor",
+    "Honda",
+    "Škoda",
+    "Volkswagen",
+    "BMW",
+    "Mercedes-Benz",
+    "Audi",
+  ],
+  commercial: [
+    "Tata Motors",
+    "Ashok Leyland",
+    "Mahindra",
+    "Force Motors",
+    "Eicher",
+    "BharatBenz",
+    "Isuzu",
+  ],
+};
+
 
 const FUEL_TYPES: Record<string, { label: string; icon: any; color: string }> = {
   petrol: { label: "Petrol", icon: Fuel, color: THEME.accent },
@@ -822,6 +860,44 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
     >
 
 
+      {/* Live Brand Identity & Logo Preview Banner */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "12px 16px",
+          borderRadius: "var(--radius-md, 12px)",
+          background: "var(--surface-1, rgba(255,255,255,0.04))",
+          border: "1px solid var(--t-line, var(--border))",
+          marginBottom: 16,
+        }}
+      >
+        <VehicleMakeLogo make={f.make || "Vehicle"} size={44} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 800, fontSize: 15, color: "var(--text)" }}>
+              {f.make ? `${f.make} ${f.model || ""}`.trim() : "New Vehicle in Garage"}
+            </span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "2px 6px",
+                borderRadius: 4,
+                background: "var(--t-line)",
+                color: "var(--t-muted)",
+              }}
+            >
+              {f.year || new Date().getFullYear()}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--t-muted)", marginTop: 2 }}>
+            {VEHICLE_TYPES[f.vehicleType] || f.vehicleType} • {FUEL_TYPES[f.fuelType]?.label || f.fuelType} • {f.color || "Standard Finish"}
+          </div>
+        </div>
+      </div>
+
       {/* Group 1: Identity */}
       <div
         style={{
@@ -875,12 +951,53 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
 
       <div style={g2}>
         <Field label="Make / Manufacturer *">
-          <input
-            style={inp}
-            value={f.make}
-            onChange={(e) => set("make", e.target.value)}
-            placeholder="e.g. Tata, Hyundai, Royal Enfield"
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <VehicleLogo make={f.make} size={32} />
+              <input
+                style={{ ...inp, flex: 1 }}
+                value={f.make}
+                onChange={(e) => set("make", e.target.value)}
+                placeholder="e.g. Tata, Hyundai, Royal Enfield"
+              />
+            </div>
+            {/* Quick Popular Brand Chips */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--t-muted)", textTransform: "uppercase" }}>
+                Popular:
+              </span>
+              {(POPULAR_AUTOMAKERS_BY_TYPE[f.vehicleType] || POPULAR_AUTOMAKERS_BY_TYPE["four-wheeler"]).slice(0, 7).map((brand) => (
+                <button
+                  key={brand}
+                  type="button"
+                  onClick={() => set("make", brand)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "2px 7px",
+                    borderRadius: 12,
+                    border:
+                      f.make?.toLowerCase() === brand.toLowerCase()
+                        ? `1.5px solid ${THEME.accent}`
+                        : "1px solid var(--t-line)",
+                    background:
+                      f.make?.toLowerCase() === brand.toLowerCase()
+                        ? `color-mix(in srgb, ${THEME.accent} 12%, var(--surface-0))`
+                        : "var(--surface-0)",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <VehicleLogo make={brand} size={14} borderRadius={2} />
+                  <span>{brand}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </Field>
         <Field label="Model *">
           <input
@@ -891,6 +1008,7 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
           />
         </Field>
       </div>
+
 
       <div style={g2}>
         <Field label="Manufacturing Year">
@@ -1421,12 +1539,15 @@ export function ServiceModal({
       </div>
 
       <Field label="Service Center / Workshop">
-        <input
-          style={inp}
-          value={f.serviceCenter}
-          onChange={(e) => set("serviceCenter", e.target.value)}
-          placeholder="e.g. Tata Motors Authorized Service Center"
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <ServiceLogo name={f.serviceCenter} size={28} />
+          <input
+            style={{ ...inp, flex: 1 }}
+            value={f.serviceCenter}
+            onChange={(e) => set("serviceCenter", e.target.value)}
+            placeholder="e.g. Tata Motors Authorized Service Center"
+          />
+        </div>
       </Field>
 
       <div
@@ -1465,12 +1586,12 @@ export function ServiceModal({
         </Field>
       </div>
 
-      <Field label="Invoice Notes / Replaced Parts">
+      <Field label="Additional Notes / Invoice Details">
         <textarea
-          style={{ ...inp, height: 50, resize: "vertical" }}
+          style={{ ...inp, height: 60, resize: "vertical" }}
           value={f.notes}
           onChange={(e) => set("notes", e.target.value)}
-          placeholder="Air filter, brake pads, wheel alignment..."
+          placeholder="Oil grade used, tyre brand replaced, part numbers..."
         />
       </Field>
     </Modal>
@@ -1612,13 +1733,17 @@ export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving 
 
       <div style={g2}>
         <Field label="Insurance Provider / Company">
-          <input
-            style={inp}
-            value={f.insurer}
-            onChange={(e) => set("insurer", e.target.value)}
-            placeholder="e.g. HDFC ERGO, ICICI Lombard, ACKO"
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <InsurerLogo name={f.insurer} size={28} />
+            <input
+              style={{ ...inp, flex: 1 }}
+              value={f.insurer}
+              onChange={(e) => set("insurer", e.target.value)}
+              placeholder="e.g. HDFC ERGO, ICICI Lombard, ACKO"
+            />
+          </div>
         </Field>
+
         <Field label="Policy Number">
           <input
             style={inp}
@@ -2486,9 +2611,10 @@ function VehicleCard({
                               )}
                               {rec.serviceCenter && (
                                 <span
-                                  style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                                  style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
                                 >
-                                  <Building2 size={12} /> {rec.serviceCenter}
+                                  <ServiceLogo name={rec.serviceCenter} size={14} borderRadius={3} />
+                                  <span>{rec.serviceCenter}</span>
                                 </span>
                               )}
                             </div>
@@ -2668,11 +2794,15 @@ function VehicleCard({
                               >
                                 {pt.label}
                               </span>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-                                {rec.insurer || "Insurance Policy"}
-                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <InsurerLogo name={rec.insurer} size={18} borderRadius={4} />
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                                  {rec.insurer || "Insurance Policy"}
+                                </span>
+                              </div>
                               {stat && <StatusTag status={stat} tag="Cover" />}
                             </div>
+
                             <div
                               style={{
                                 display: "flex",
@@ -4235,9 +4365,12 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
                       <div
                         style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
                       >
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text)" }}>
-                          {rec.vehicleName}
-                        </span>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <VehicleLogo make={rec.vehicleName?.split(" ")[0] || "Vehicle"} size={18} borderRadius={4} />
+                          <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text)" }}>
+                            {rec.vehicleName}
+                          </span>
+                        </div>
                         {rec.vehicleReg && (
                           <IndianNumberPlate registrationNumber={rec.vehicleReg} size="sm" />
                         )}
@@ -4286,13 +4419,14 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
                           </span>
                         )}
                         {rec.serviceCenter && (
-                          <span>
-                            <Building2 size={12} style={{ verticalAlign: -1 }} />{" "}
-                            {rec.serviceCenter}
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                            <ServiceLogo name={rec.serviceCenter} size={14} borderRadius={3} />
+                            <span>{rec.serviceCenter}</span>
                           </span>
                         )}
                       </div>
                     </div>
+
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 900, color: "var(--t-rust)" }}>
                         <Money value={Number(rec.cost || 0)} variant="full" />

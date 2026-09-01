@@ -178,6 +178,86 @@ export const CANONICAL_BRANDS: Record<string, BrandInfo> = {
   flipkart: { domain: "flipkart.com", name: "Flipkart", color: "#2874f0" },
   myntra: { domain: "myntra.com", name: "Myntra", color: "#ff3f6c" },
   tataneu: { domain: "tatadigital.com", growwSym: "TATACONSUM", name: "Tata Neu", color: "#8338ec" },
+
+  // ── Automotive Manufacturers & Electric Mobility (Priority 1) ─────────────
+  "tata motors": { domain: "tatamotors.com", growwSym: "TATAMOTORS", name: "Tata Motors", color: "#1d2671", isPrimaryInstitution: true },
+  tata: { domain: "tatamotors.com", growwSym: "TATAMOTORS", name: "Tata Motors", color: "#1d2671", isPrimaryInstitution: true },
+  "maruti suzuki": { domain: "marutisuzuki.com", growwSym: "MARUTI", name: "Maruti Suzuki", color: "#003087", isPrimaryInstitution: true },
+  maruti: { domain: "marutisuzuki.com", growwSym: "MARUTI", name: "Maruti Suzuki", color: "#003087", isPrimaryInstitution: true },
+  "mahindra & mahindra": { domain: "mahindra.com", growwSym: "M&M", name: "Mahindra", color: "#e31837", isPrimaryInstitution: true },
+  "mahindra and mahindra": { domain: "mahindra.com", growwSym: "M&M", name: "Mahindra", color: "#e31837", isPrimaryInstitution: true },
+  mahindra: { domain: "mahindra.com", growwSym: "M&M", name: "Mahindra", color: "#e31837", isPrimaryInstitution: true },
+  "m&m": { domain: "mahindra.com", growwSym: "M&M", name: "Mahindra", color: "#e31837", isPrimaryInstitution: true },
+  hyundai: { domain: "hyundai.com", growwSym: "HYUNDAI", name: "Hyundai Motor", color: "#002c5f", isPrimaryInstitution: true },
+  "hyundai motor": { domain: "hyundai.com", growwSym: "HYUNDAI", name: "Hyundai Motor", color: "#002c5f", isPrimaryInstitution: true },
+  toyota: { domain: "toyota.com", name: "Toyota", color: "#eb0a1e", isPrimaryInstitution: true },
+  "toyota kirloskar": { domain: "toyotabharat.com", name: "Toyota", color: "#eb0a1e", isPrimaryInstitution: true },
+  honda: { domain: "honda.com", name: "Honda", color: "#cc0000", isPrimaryInstitution: true },
+  "honda cars": { domain: "hondacarindia.com", name: "Honda Cars", color: "#cc0000", isPrimaryInstitution: true },
+  "honda 2wheelers": { domain: "honda2wheelersindia.com", name: "Honda 2Wheelers", color: "#cc0000", isPrimaryInstitution: true },
+  "hero motocorp": { domain: "heromotocorp.com", growwSym: "HEROMOTOCO", name: "Hero MotoCorp", color: "#002868", isPrimaryInstitution: true },
+  hero: { domain: "heromotocorp.com", growwSym: "HEROMOTOCO", name: "Hero MotoCorp", color: "#002868", isPrimaryInstitution: true },
+  "bajaj auto": { domain: "bajajauto.com", growwSym: "BAJAJ-AUTO", name: "Bajaj Auto", color: "#1a2b6b", isPrimaryInstitution: true },
+  bajaj: { domain: "bajajauto.com", growwSym: "BAJAJ-AUTO", name: "Bajaj Auto", color: "#1a2b6b", isPrimaryInstitution: true },
+  "tvs motor": { domain: "tvsmotor.com", growwSym: "TVSMOTOR", name: "TVS Motor", color: "#e31e26", isPrimaryInstitution: true },
+  tvs: { domain: "tvsmotor.com", growwSym: "TVSMOTOR", name: "TVS Motor", color: "#e31e26", isPrimaryInstitution: true },
+  "royal enfield": { domain: "royalenfield.com", growwSym: "EICHERMOT", name: "Royal Enfield", color: "#5a3e28", isPrimaryInstitution: true },
+  royalenfield: { domain: "royalenfield.com", growwSym: "EICHERMOT", name: "Royal Enfield", color: "#5a3e28", isPrimaryInstitution: true },
+  kia: { domain: "kia.com", name: "Kia", color: "#ea0029", isPrimaryInstitution: true },
+  "mg motor": { domain: "mgmotor.co.in", name: "MG Motor", color: "#c41230", isPrimaryInstitution: true },
+  mg: { domain: "mgmotor.co.in", name: "MG Motor", color: "#c41230", isPrimaryInstitution: true },
+  bmw: { domain: "bmw.com", name: "BMW", color: "#1c69d4", isPrimaryInstitution: true },
+  "bmw motorrad": { domain: "bmw-motorrad.in", name: "BMW Motorrad", color: "#1c69d4", isPrimaryInstitution: true },
+  "mercedes-benz": { domain: "mercedes-benz.com", name: "Mercedes-Benz", color: "#333333", isPrimaryInstitution: true },
+  "mercedes benz": { domain: "mercedes-benz.com", name: "Mercedes-Benz", color: "#333333", isPrimaryInstitution: true },
+  mercedes: { domain: "mercedes-benz.com", name: "Mercedes-Benz", color: "#333333", isPrimaryInstitution: true },
+  audi: { domain: "audi.com", name: "Audi", color: "#bb0a30", isPrimaryInstitution: true },
+  volkswagen: { domain: "volkswagen.com", name: "Volkswagen", color: "#001e50", isPrimaryInstitution: true },
+  vw: { domain: "volkswagen.com", name: "Volkswagen", color: "#001e50", isPrimaryInstitution: true },
+  skoda: { domain: "skoda-auto.com", name: "Škoda", color: "#4ba82e", isPrimaryInstitution: true },
+  "skoda auto": { domain: "skoda-auto.com", name: "Škoda", color: "#4ba82e", isPrimaryInstitution: true },
+  "ola electric": { domain: "olaelectric.com", growwSym: "OLAELEC", name: "Ola Electric", color: "#4c00c8", isPrimaryInstitution: true },
+  ola: { domain: "olaelectric.com", growwSym: "OLAELEC", name: "Ola Electric", color: "#4c00c8", isPrimaryInstitution: true },
+  "ather energy": { domain: "atherenergy.com", name: "Ather Energy", color: "#00b4aa", isPrimaryInstitution: true },
+  ather: { domain: "atherenergy.com", name: "Ather Energy", color: "#00b4aa", isPrimaryInstitution: true },
+  "revolt motors": { domain: "revoltmotors.in", name: "Revolt Motors", color: "#e11d48", isPrimaryInstitution: true },
+  revolt: { domain: "revoltmotors.in", name: "Revolt Motors", color: "#e11d48", isPrimaryInstitution: true },
+  "simple energy": { domain: "simpleenergy.in", name: "Simple Energy", color: "#0284c7", isPrimaryInstitution: true },
+  ultraviolette: { domain: "ultraviolette.com", name: "Ultraviolette Automotive", color: "#ef4444", isPrimaryInstitution: true },
+  yamaha: { domain: "yamaha-motor.com", name: "Yamaha Motor", color: "#0049cc", isPrimaryInstitution: true },
+  "yamaha motor": { domain: "yamaha-motor.com", name: "Yamaha Motor", color: "#0049cc", isPrimaryInstitution: true },
+  suzuki: { domain: "suzuki.com", name: "Suzuki", color: "#1a1a7c", isPrimaryInstitution: true },
+  ktm: { domain: "ktm.com", name: "KTM", color: "#ff6600", isPrimaryInstitution: true },
+  kawasaki: { domain: "kawasaki.com", name: "Kawasaki", color: "#00a651", isPrimaryInstitution: true },
+  "harley-davidson": { domain: "harley-davidson.com", name: "Harley-Davidson", color: "#cc4400", isPrimaryInstitution: true },
+  "harley davidson": { domain: "harley-davidson.com", name: "Harley-Davidson", color: "#cc4400", isPrimaryInstitution: true },
+  harley: { domain: "harley-davidson.com", name: "Harley-Davidson", color: "#cc4400", isPrimaryInstitution: true },
+  ducati: { domain: "ducati.com", name: "Ducati", color: "#cc0000", isPrimaryInstitution: true },
+  triumph: { domain: "triumphmotorcycles.co.uk", name: "Triumph", color: "#1e293b", isPrimaryInstitution: true },
+  nissan: { domain: "nissan.com", name: "Nissan", color: "#c3002f", isPrimaryInstitution: true },
+  renault: { domain: "renault.com", name: "Renault", color: "#c8b700", isPrimaryInstitution: true },
+  jeep: { domain: "jeep.com", name: "Jeep", color: "#1f4e2b", isPrimaryInstitution: true },
+  volvo: { domain: "volvocars.com", name: "Volvo", color: "#003057", isPrimaryInstitution: true },
+  jaguar: { domain: "jaguar.com", name: "Jaguar", color: "#0b3c26", isPrimaryInstitution: true },
+  "land rover": { domain: "landrover.com", name: "Land Rover", color: "#005a2b", isPrimaryInstitution: true },
+  "range rover": { domain: "landrover.com", name: "Range Rover", color: "#005a2b", isPrimaryInstitution: true },
+  porsche: { domain: "porsche.com", name: "Porsche", color: "#d5001c", isPrimaryInstitution: true },
+  ferrari: { domain: "ferrari.com", name: "Ferrari", color: "#cc0000", isPrimaryInstitution: true },
+  lamborghini: { domain: "lamborghini.com", name: "Lamborghini", color: "#d4af37", isPrimaryInstitution: true },
+  tesla: { domain: "tesla.com", name: "Tesla", color: "#e82127", isPrimaryInstitution: true },
+  byd: { domain: "byd.com", name: "BYD", color: "#cc0000", isPrimaryInstitution: true },
+  citroen: { domain: "citroen.com", name: "Citroën", color: "#6b21a8", isPrimaryInstitution: true },
+  "force motors": { domain: "forcemotors.com", growwSym: "FORCEMOT", name: "Force Motors", color: "#0369a1", isPrimaryInstitution: true },
+  force: { domain: "forcemotors.com", growwSym: "FORCEMOT", name: "Force Motors", color: "#0369a1", isPrimaryInstitution: true },
+  isuzu: { domain: "isuzu.com", name: "Isuzu", color: "#cc0000", isPrimaryInstitution: true },
+  "ashok leyland": { domain: "ashokleyland.com", growwSym: "ASHOKLEY", name: "Ashok Leyland", color: "#004080", isPrimaryInstitution: true },
+  ashok: { domain: "ashokleyland.com", growwSym: "ASHOKLEY", name: "Ashok Leyland", color: "#004080", isPrimaryInstitution: true },
+  bharatbenz: { domain: "bharatbenz.com", name: "BharatBenz", color: "#0284c7", isPrimaryInstitution: true },
+  eicher: { domain: "eicher.in", growwSym: "EICHERMOT", name: "Eicher Motors", color: "#5a3e28", isPrimaryInstitution: true },
+  jawa: { domain: "jawamotorcycles.com", name: "Jawa", color: "#831843", isPrimaryInstitution: true },
+  yezdi: { domain: "jawamotorcycles.com", name: "Yezdi", color: "#b45309", isPrimaryInstitution: true },
+  aprilia: { domain: "aprilia.com", name: "Aprilia", color: "#dc2626", isPrimaryInstitution: true },
+  vespa: { domain: "vespa.com", name: "Vespa", color: "#0284c7", isPrimaryInstitution: true },
 };
 
 /**
@@ -217,6 +297,14 @@ const WORD_BOUNDARY_KEYS = new Set([
   "absl",
   "uti",
   "dsp",
+  "mg",
+  "vw",
+  "kia",
+  "bmw",
+  "byd",
+  "ktm",
+  "tvs",
+  "ola",
 ]);
 
 /**
@@ -501,4 +589,34 @@ export const LicLogo = ({ size = 40 }: { size?: number }) => (
   <BrandLogo name="LIC" size={size} />
 );
 
+export const VehicleLogo = ({
+  make,
+  name,
+  domain,
+  size = 40,
+  borderRadius,
+  className,
+  style,
+}: {
+  make?: string;
+  name?: string;
+  domain?: string;
+  size?: number;
+  borderRadius?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) => (
+  <BrandLogo
+    name={make || name || "Vehicle"}
+    domain={domain}
+    size={size}
+    borderRadius={borderRadius}
+    className={className}
+    style={style}
+  />
+);
+
+export const VehicleMakeLogo = VehicleLogo;
+
 export const bankInitialsColor = brandInitialsColor;
+

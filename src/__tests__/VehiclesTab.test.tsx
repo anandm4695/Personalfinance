@@ -206,9 +206,12 @@ describe("VehiclesTab Component", () => {
     expect(html).toContain("Daytona Grey");
     expect(html).toContain("Arctic White");
     expect(html).toContain("Onyx Black");
+    expect(html).toContain("Popular:");
+    expect(html).toContain("Tata Motors");
+    expect(html).toContain("Mahindra");
   });
 
-  it("renders ServiceModal and InsuranceModal correctly", () => {
+  it("renders ServiceModal and InsuranceModal correctly with brand logos", () => {
     const serviceHtml = renderToString(
       <MasterDataContext.Provider value={mockState.masterData}>
         <ServiceModal vehicleName="Tata Nexon EV" onClose={() => {}} onSave={() => {}} />
@@ -216,6 +219,7 @@ describe("VehiclesTab Component", () => {
     );
     expect(serviceHtml).toContain("Service Category");
     expect(serviceHtml).toContain("Regular Service");
+    expect(serviceHtml).toContain("Service Center / Workshop");
 
     const insuranceHtml = renderToString(
       <MasterDataContext.Provider value={mockState.masterData}>
@@ -224,5 +228,40 @@ describe("VehiclesTab Component", () => {
     );
     expect(insuranceHtml).toContain("Policy Cover Type");
     expect(insuranceHtml).toContain("Comprehensive Package");
+    expect(insuranceHtml).toContain("Insurance Provider / Company");
+  });
+
+  it("resolves automotive brand logos correctly across Indian and global makes", async () => {
+    const { resolveBrand, VehicleLogo } = await import("../components/ui/BrandLogos");
+
+    const tata = resolveBrand("Tata Motors");
+    expect(tata).toBeTruthy();
+    expect(tata?.domain).toBe("tatamotors.com");
+    expect(tata?.growwSym).toBe("TATAMOTORS");
+
+    const maruti = resolveBrand("Maruti Suzuki");
+    expect(maruti).toBeTruthy();
+    expect(maruti?.domain).toBe("marutisuzuki.com");
+
+    const mahindra = resolveBrand("Mahindra");
+    expect(mahindra).toBeTruthy();
+    expect(mahindra?.domain).toBe("mahindra.com");
+
+    const royalEnfield = resolveBrand("Royal Enfield");
+    expect(royalEnfield).toBeTruthy();
+    expect(royalEnfield?.domain).toBe("royalenfield.com");
+
+    const bmw = resolveBrand("BMW");
+    expect(bmw).toBeTruthy();
+    expect(bmw?.domain).toBe("bmw.com");
+
+    const ather = resolveBrand("Ather Energy");
+    expect(ather).toBeTruthy();
+    expect(ather?.domain).toBe("atherenergy.com");
+
+    const logoHtml = renderToString(<VehicleLogo make="Tata Motors" size={48} />);
+    expect(logoHtml).toContain("img");
+    expect(logoHtml).toContain("TATAMOTORS");
   });
 });
+
