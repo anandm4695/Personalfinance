@@ -339,7 +339,6 @@ const GlassTooltip = ({ active, payload, label }: any) => {
   }
   return null;
 };
-
 /* ══════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════ */
@@ -362,7 +361,8 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     const fySet = new Set<number>();
     const addDate = (d: string) => {
       if (!d) return;
-      const dt = new Date(d + "T00:00:00");
+      const dt = new Date(d.includes("T") ? d : d + "T00:00:00");
+      if (isNaN(dt.getTime())) return;
       const yr = dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1;
       fySet.add(yr);
     };
@@ -371,22 +371,25 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     (state.netWorthHistory || []).forEach((h: any) => {
       if (h.month) {
         const [y, m] = h.month.split("-").map(Number);
-        fySet.add(m >= 4 ? y : y - 1);
+        if (!isNaN(y) && !isNaN(m)) fySet.add(m >= 4 ? y : y - 1);
       }
     });
-    // Also scan investment/tax/loan activity dates — a FY where the user only bought stocks/MFs
-    // or paid tax, without logging any income/transaction/net-worth entry, previously had no way
-    // to appear in this picker at all (its data was invisible and unreachable in the report).
     (state.salarySlips || []).forEach((s: any) =>
       addDate(s.date || (s.slipMonth ? `${s.slipMonth}-01` : ""))
     );
     (state.rentalProperties || []).forEach((p: any) =>
       (p.receipts || []).forEach((r: any) => addDate(r.date))
     );
+    (state.rentedProperties || []).forEach((p: any) =>
+      (p.payments || []).forEach((pay: any) => addDate(pay.date))
+    );
     (state.dividends || []).forEach((d: any) => addDate(d.date));
     (state.stocks || []).forEach((s: any) => addDate(s.buyDate));
     (state.mutualFunds || []).forEach((m: any) => addDate(m.buyDate));
     (state.fixedDeposits || []).forEach((fd: any) => addDate(fd.startDate));
+    (state.ppfLedger || []).forEach((t: any) => addDate(t.date));
+    (state.stockSells || []).forEach((s: any) => addDate(s.sellDate || s.buyDate));
+    (state.mfSells || []).forEach((m: any) => addDate(m.sellDate || m.buyDate));
     (state.taxPayments || []).forEach((p: any) => addDate(p.date));
     const now = new Date();
     const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
@@ -400,11 +403,15 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     state.salarySlips,
     state.transactions,
     state.rentalProperties,
+    state.rentedProperties,
     state.dividends,
     state.netWorthHistory,
     state.stocks,
     state.mutualFunds,
     state.fixedDeposits,
+    state.ppfLedger,
+    state.stockSells,
+    state.mfSells,
     state.taxPayments,
   ]);
 
@@ -446,15 +453,25 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     const incomeLedger = (state.income || []).filter(
       (i: any) => i.date && i.date >= fyStart && i.date <= fyEnd
     );
+    const salarySlipsInFY = (state.salarySlips || []).filter((s: any) => {
+      const d = s.date || (s.slipMonth ? `${s.slipMonth}-01` : "");
+      return d && d >= fyStart && d <= fyEnd;
+    });
     const creditTxns = (state.transactions || []).filter(
       (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type === "credit"
     );
     const debitTxns = (state.transactions || []).filter(
       (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type === "debit"
     );
-    // Also treat investment/tax activity dated within the FY as "data" — otherwise a year where
-    // the user only bought stocks/MFs/FDs or paid tax (without logging income/transactions) fell
-    // through to the "No Data" empty state even though there was real activity to report.
+    const rentalReceipts = (state.rentalProperties || []).some((p: any) =>
+      (p.receipts || []).some((r: any) => r.date && r.date >= fyStart && r.date <= fyEnd)
+    );
+    const rentPaid = (state.rentedProperties || []).some((p: any) =>
+      (p.payments || []).some((pay: any) => pay.date && pay.date >= fyStart && pay.date <= fyEnd)
+    );
+    const dividends = (state.dividends || []).some(
+      (d: any) => d.date && d.date >= fyStart && d.date <= fyEnd
+    );
     const hasInvestmentActivity =
       (state.stocks || []).some((s: any) => s.buyDate && s.buyDate >= fyStart && s.buyDate <= fyEnd) ||
       (state.mutualFunds || []).some(
@@ -463,23 +480,43 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       (state.fixedDeposits || []).some(
         (fd: any) => fd.startDate && fd.startDate >= fyStart && fd.startDate <= fyEnd
       ) ||
+      (state.ppfLedger || []).some(
+        (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd
+      ) ||
+      (state.stockSells || []).some(
+        (s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd
+      ) ||
+      (state.mfSells || []).some(
+        (m: any) => m.sellDate && m.sellDate >= fyStart && m.sellDate <= fyEnd
+      ) ||
       (state.taxPayments || []).some(
         (p: any) => p.date && p.date >= fyStart && p.date <= fyEnd
       );
     return (
       incomeLedger.length > 0 ||
+      salarySlipsInFY.length > 0 ||
       creditTxns.length > 0 ||
       debitTxns.length > 0 ||
+      rentalReceipts ||
+      rentPaid ||
+      dividends ||
       hasInvestmentActivity ||
       (state.netWorthHistory || []).length > 0
     );
   }, [
     state.income,
+    state.salarySlips,
     state.transactions,
+    state.rentalProperties,
+    state.rentedProperties,
+    state.dividends,
     state.netWorthHistory,
     state.stocks,
     state.mutualFunds,
     state.fixedDeposits,
+    state.ppfLedger,
+    state.stockSells,
+    state.mfSells,
     state.taxPayments,
     fyStart,
     fyEnd,
@@ -533,22 +570,6 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   /* ═══════════════════════════════════════════════════════════════
      (a) NET WORTH SUMMARY
      ═══════════════════════════════════════════════════════════════ */
-  // Reconstruct a month's net worth from each asset's own dated records (same helper
-  // NetWorthTimelineTab/MonthlyReportModal use) instead of ONLY reading frozen monthly
-  // snapshots. Two real gaps in the old snapshot-only approach:
-  // 1. `getFilteredStateForProfile` (useMetrics.ts) always returns `netWorthHistory: []` for
-  //    any profile other than "All" — there is no per-family-member snapshot to read, so the
-  //    entire Net Worth section (and this chart) silently showed ₹0 / stayed empty whenever a
-  //    specific family member was selected via the header's profile switcher.
-  // 2. The snapshot is only ever written for whichever month the app happened to be open in
-  //    (App.tsx's debounced auto-snapshot effect) — any month you didn't open the app leaves a
-  //    permanent gap, and the old code's `.filter(d => d.value > 0)` silently dropped those
-  //    months from the chart, compressing the x-axis and distorting the visible trend/slope.
-  // For "All" + a month with a real recorded snapshot, still prefer that snapshot — it captured
-  // the actual historical stock/MF/gold price at the time, which computeNetWorthAsOf can't
-  // (it always reconstructs holdings at TODAY's price, per its own documented limitation).
-  // Hoisted out of netWorthData so the Year-over-Year comparison section below can reuse the
-  // exact same reconstruction instead of duplicating it (and risking the two figures diverging).
   const nwForMonth = useCallback(
     (ym: string): number => {
       const todayYM = today().slice(0, 7);
@@ -567,7 +588,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   const netWorthData = useMemo(() => {
     const aprilKey = `${fyStartYear}-04`;
     const marchKey = `${fyStartYear + 1}-03`;
-    const openingMarchKey = `${fyStartYear}-03`; // last month of the PREVIOUS FY = opening balance of this FY
+    const openingMarchKey = `${fyStartYear}-03`; // last month of PREVIOUS FY = opening balance
     const todayYM = today().slice(0, 7);
     const isCurrentFY = todayYM >= aprilKey && todayYM <= marchKey;
 
@@ -581,10 +602,12 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
     const chartData = fyMonths
       .map((ym, idx) => {
+        // For future months in ongoing FY that haven't occurred, skip them
+        if (isCurrentFY && ym > todayYM) return null;
         let nw = ym === todayYM && metrics.netWorth > 0 ? metrics.netWorth : nwForMonth(ym);
         return { month: MONTH_NAMES[idx], value: nw };
       })
-      .filter((d) => d.value > 0);
+      .filter((d): d is { month: string; value: number } => d !== null);
 
     return { openingNW, closingNW, change, changePct, chartData, isCurrentFY };
   }, [
@@ -636,19 +659,29 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       }
     });
 
+    // Landlord rental receipts in FY
     const rentalReceiptsInFY = (state.rentalProperties || []).flatMap((p: any) =>
       (p.receipts || []).filter((r: any) => r.date && r.date >= fyStart && r.date <= fyEnd)
     );
-    const rentalIncome = (
-      ledgerTotal > 0
-        ? rentalReceiptsInFY
-        : rentalReceiptsInFY.filter((r: any) => !String(r.id || "").startsWith("bank-"))
-    ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
-    if (rentalIncome > 0) {
-      catMap["Rental Income"] = (catMap["Rental Income"] || 0) + rentalIncome;
+    // If source entries already explicitly categorize rental income (e.g. "Rent" or "Rental Income"),
+    // avoid double counting
+    const alreadyHasRent = Object.keys(catMap).some((k) => {
+      const lower = k.toLowerCase();
+      return lower.includes("rental") || lower === "rent";
+    });
+
+    const rentalIncomeToAdd = alreadyHasRent
+      ? 0
+      : (ledgerTotal > 0
+          ? rentalReceiptsInFY
+          : rentalReceiptsInFY.filter((r: any) => !String(r.id || "").startsWith("bank-"))
+        ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
+    if (rentalIncomeToAdd > 0) {
+      catMap["Rental Income"] = (catMap["Rental Income"] || 0) + rentalIncomeToAdd;
       rentalReceiptsInFY.forEach((r: any) => {
-        if (r.date) {
+        if (r.date && (ledgerTotal > 0 || !String(r.id || "").startsWith("bank-"))) {
           const ym = r.date.slice(0, 7);
           monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(r.amount || 0);
         }
@@ -659,7 +692,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    const totalIncome = totalBankIncome + rentalIncome;
+    const totalIncome = totalBankIncome + rentalIncomeToAdd;
 
     const monthlyChart = fyMonths.map((ym, idx) => ({
       month: MONTH_NAMES[idx],
@@ -681,8 +714,6 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
      (c) EXPENSE SUMMARY
      ═══════════════════════════════════════════════════════════════ */
   const expenseData = useMemo(() => {
-    // Same Transfer exclusion as incomeData's creditTxns above — a self-transfer out of
-    // one of the user's own accounts is not real spending.
     const debitTxns = (state.transactions || []).filter(
       (t: any) =>
         t.date &&
@@ -696,9 +727,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     );
     const txnExpense = debitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
-    // Exclude bank-linked payments (id `bank-${txnId}`, stamped by BanksTab's applyLinkedTxn) —
-    // those are already counted inside debitTxns/txnExpense as the underlying "Rent" transaction,
-    // so including them here again double-counted every bank-paid rent instalment.
+    // Exclude bank-linked payments (id `bank-${txnId}`) already inside debitTxns
     const rentPaid = (state.rentedProperties || []).reduce(
       (sum: number, p: any) =>
         sum +
@@ -796,14 +825,6 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
 
     const totalNewInvestments = stockBuys + mfBuys + fdAdds + ppfAdds;
 
-    // stockSells/mfSells records store the realized gain in `profit` (set at sell time by
-    // DematTab/InvestmentsTab's sell modals) plus qty/buyPrice/sellPrice or units/buyNav/sellNav —
-    // there is no `sellAmount`/`invested` field on these records at all, so the previous
-    // `Number(s.sellAmount||0) - Number(s.invested||0)` always evaluated to 0 - 0 = 0, meaning
-    // STCG/LTCG here always showed ₹0 regardless of actual realized gains. Also switched the
-    // naive "> 365 days" split for a naive day-diff to isLongTerm()'s Section 2(42A)
-    // anniversary rule (12mo equity, 36mo pre-Apr-2023 debt MF, always-STCG post-Apr-2023 debt
-    // MF) to match CapitalGainsTab/TaxVaultTab's classification exactly.
     const stockSellsInFY = (state.stockSells || []).filter(
       (s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd
     );
@@ -818,6 +839,15 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       else stcg += gain;
     });
 
+    // Build MF category index to resolve category if stripped on historical sale records
+    const mfCatIdx = new Map<string, string>();
+    (state.mutualFunds || []).forEach((mf: any) => {
+      if (mf.category) {
+        const key = `${(mf.name || mf.scheme || "").trim().toLowerCase()}|${mf.owner || "self"}`;
+        if (!mfCatIdx.has(key)) mfCatIdx.set(key, mf.category);
+      }
+    });
+
     const mfSellsInFY = (state.mfSells || []).filter(
       (s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd
     );
@@ -828,12 +858,16 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
         m.profit != null
           ? Number(m.profit)
           : (Number(m.sellNav || 0) - Number(m.buyNav || 0)) * Number(m.units || 0);
+      const key = `${(m.name || m.scheme || "").trim().toLowerCase()}|${m.owner || "self"}`;
+      const resolvedCategory = m.category || mfCatIdx.get(key) || "";
+      const isEquity = isEquityMF({ ...m, category: resolvedCategory });
+
       let long: boolean;
-      if (isEquityMF(m)) {
+      if (isEquity) {
         long = isLongTerm(m.buyDate, m.sellDate, 12);
       } else {
-        const buyDate = new Date(m.buyDate);
-        const postApr2023 = buyDate >= new Date(2023, 3, 1);
+        const cleanBuy = String(m.buyDate || "").trim();
+        const postApr2023 = cleanBuy >= "2023-04-01";
         long = postApr2023 ? false : isLongTerm(m.buyDate, m.sellDate, 36);
       }
       if (long) mfLtcg += gain;
@@ -880,8 +914,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   }, [selectedFY, incomeData.monthlyChart, expenseData.monthlyMap, fyMonths]);
 
   /* ═══════════════════════════════════════════════════════════════
-     YEAR-OVER-YEAR COMPARISON — same income/expense rules as (b)/(c) above,
-     applied to the FY immediately before the selected one.
+     YEAR-OVER-YEAR COMPARISON
      ═══════════════════════════════════════════════════════════════ */
   const yoyData = useMemo(() => {
     const isTransfer = (cat: string) =>
@@ -941,17 +974,23 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     );
     const prevExpense = prevTxnExpense + prevRentPaid;
 
-    // The previous FY's closing net worth is, by definition, this FY's opening net worth —
-    // reuse it instead of recomputing, so the two figures can never drift apart.
     const prevClosingNW = netWorthData.openingNW;
     const prevOpeningNW = nwForMonth(`${fyStartYear - 1}-03`);
     const prevNWChange = prevClosingNW - prevOpeningNW;
 
     const hasPrevData =
-      prevIncomeLedger.length > 0 || prevCreditTxns.length > 0 || prevDebitTxns.length > 0;
+      prevIncomeLedger.length > 0 ||
+      prevCreditTxns.length > 0 ||
+      prevDebitTxns.length > 0 ||
+      prevRentalIncome > 0 ||
+      prevRentPaid > 0 ||
+      prevClosingNW > 0 ||
+      prevOpeningNW > 0;
 
-    const pctDelta = (curr: number, prev: number) =>
-      prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : curr > 0 ? 100 : 0;
+    const pctDelta = (curr: number, prev: number) => {
+      if (prev !== 0) return ((curr - prev) / Math.abs(prev)) * 100;
+      return curr !== 0 ? (curr > 0 ? 100 : -100) : 0;
+    };
 
     return {
       hasPrevData,
@@ -981,62 +1020,41 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   ]);
 
   /* ═══════════════════════════════════════════════════════════════
-     (e) ASSET ALLOCATION
+     (e) ASSET ALLOCATION (Exhaustive & Mathematically Balanced)
      ═══════════════════════════════════════════════════════════════ */
   const assetAllocation = useMemo(() => {
-    const equityMFValue = (state.mutualFunds || [])
-      .filter((m: any) => {
-        const cat = (m.category || m.type || "").toLowerCase();
-        return (
-          !cat ||
-          [
-            "equity",
-            "elss",
-            "flexi",
-            "large",
-            "mid",
-            "small",
-            "multi",
-            "focused",
-            "sectoral",
-            "thematic",
-            "index",
-          ].some((k) => cat.includes(k))
-        );
-      })
-      .reduce(
-        (s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0),
-        0
-      );
-    const debtMFValue = (state.mutualFunds || [])
-      .filter((m: any) => {
-        const cat = (m.category || m.type || "").toLowerCase();
-        return (
-          cat &&
-          [
-            "debt",
-            "liquid",
-            "money market",
-            "gilt",
-            "corporate bond",
-            "banking",
-            "credit risk",
-            "dynamic bond",
-            "ultra short",
-            "low duration",
-            "medium",
-            "long duration",
-            "overnight",
-            "floater",
-          ].some((k) => cat.includes(k))
-        );
-      })
-      .reduce(
-        (s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0),
-        0
-      );
+    let equityMF = 0;
+    let debtMF = 0;
 
-    const equity = (metrics.stockValue || 0) + equityMFValue;
+    (state.mutualFunds || []).forEach((m: any) => {
+      const val = Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0);
+      const cat = (m.category || m.type || "").toLowerCase();
+      const isDebt =
+        cat &&
+        [
+          "debt",
+          "liquid",
+          "money market",
+          "gilt",
+          "corporate bond",
+          "banking",
+          "credit risk",
+          "dynamic bond",
+          "ultra short",
+          "low duration",
+          "medium",
+          "long duration",
+          "overnight",
+          "floater",
+        ].some((k) => cat.includes(k));
+      if (isDebt) {
+        debtMF += val;
+      } else {
+        equityMF += val;
+      }
+    });
+
+    const equity = (metrics.stockValue || 0) + equityMF;
     const debt =
       (metrics.fdValue || 0) +
       (metrics.rdValue || 0) +
@@ -1047,11 +1065,15 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       (metrics.licValue || 0) +
       (metrics.investmentValue || 0) +
       (metrics.govtSchemesValue || 0) +
-      debtMFValue;
-    const cash = metrics.cashInBanks || 0;
+      debtMF;
+    const cash = (metrics.cashInBanks || 0) + (metrics.prepaidValue || 0);
     const realEstate = (metrics.realEstateAsset || 0) + (metrics.rentalPropertiesAsset || 0);
     const gold = metrics.goldValue || 0;
-    const others = (metrics.vehicleAsset || 0) + (metrics.informalLentValue || 0);
+    const others =
+      (metrics.vehicleAsset || 0) +
+      (metrics.informalLentValue || 0) +
+      (metrics.loansGivenValue || 0) +
+      (metrics.rentedDepositAsset || 0);
 
     const alloc = [
       { name: "Equity", value: Math.round(equity) },
@@ -1068,21 +1090,23 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   }, [metrics, state.mutualFunds]);
 
   /* ═══════════════════════════════════════════════════════════════
-     (f) DEBT SUMMARY
+     (f) DEBT SUMMARY (Active Loans vs Closed Loan Obligations)
      ═══════════════════════════════════════════════════════════════ */
   const debtData = useMemo(() => {
     const loans = state.loansTaken || [];
-    const totalOutstanding = loans.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
+    const activeLoans = loans.filter(
+      (l: any) =>
+        (l.status || "active").toLowerCase() !== "closed" &&
+        Number(l.outstanding || 0) > 0 &&
+        Number(l.monthsRemaining ?? 1) > 0
+    );
+
+    const totalOutstanding = activeLoans.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
     const totalPrincipal = loans.reduce((s: number, l: any) => s + Number(l.principal || 0), 0);
-    const totalEMI = loans.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+    const totalEMI = activeLoans.reduce((s: number, l: any) => s + Number(l.emi || l.monthlyPayment || 0), 0);
     const annualEMI = totalEMI * 12;
 
-    // Weight each loan's own outstanding balance by its own rate, rather than applying a
-    // simple (unweighted) average rate across ALL loans to the POOLED outstanding total —
-    // that previous approach misallocated interest whenever loans had different balances
-    // (e.g. a small high-rate personal loan skewed the "average" applied to a much larger
-    // low-rate home loan's balance too).
-    const interestPortion = loans.reduce(
+    const interestPortion = activeLoans.reduce(
       (s: number, l: any) =>
         s + Number(l.outstanding || 0) * (Number(l.interestRate || l.rate || 0) / 100),
       0
@@ -1095,7 +1119,9 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     );
 
     return {
-      loanCount: loans.length,
+      totalLoanCount: loans.length,
+      activeLoanCount: activeLoans.length,
+      loanCount: activeLoans.length,
       totalOutstanding,
       totalPrincipal,
       totalEMI,
@@ -1107,13 +1133,18 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   }, [state.loansTaken, state.creditCards]);
 
   /* ═══════════════════════════════════════════════════════════════
-     (g) INSURANCE COVERAGE
+     (g) INSURANCE COVERAGE (Active Life & Health Policies)
      ═══════════════════════════════════════════════════════════════ */
   const insuranceData = useMemo(() => {
-    const licPolicies = state.lic || [];
-    const termPlans = state.termPlans || [];
-    const investPlans = state.investmentPlans || [];
-    const healthPolicies = state.healthInsurance || [];
+    const isPolicyActive = (p: any) => {
+      const st = (p.status || "active").toLowerCase();
+      return st !== "lapsed" && st !== "matured" && st !== "surrendered";
+    };
+
+    const licPolicies = (state.lic || []).filter(isPolicyActive);
+    const termPlans = (state.termPlans || []).filter(isPolicyActive);
+    const investPlans = (state.investmentPlans || []).filter(isPolicyActive);
+    const healthPolicies = (state.healthInsurance || []).filter(isPolicyActive);
 
     const licCover = licPolicies.reduce((s: number, p: any) => s + Number(p.sumAssured || 0), 0);
     const termCover = termPlans.reduce((s: number, p: any) => s + Number(p.coverAmount || 0), 0);
@@ -1145,6 +1176,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     return {
       licCount: licPolicies.length,
       termCount: termPlans.length,
+      investCount: investPlans.length,
       healthCount: healthPolicies.length,
       totalLifeCover,
       totalPremiums,
@@ -1162,7 +1194,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
   ]);
 
   /* ═══════════════════════════════════════════════════════════════
-     (h) TAX SUMMARY
+     (h) TAX SUMMARY (Direct Payments & Normalized Salary TDS)
      ═══════════════════════════════════════════════════════════════ */
   const taxData = useMemo(() => {
     const payments = (state.taxPayments || []).filter(
@@ -1178,14 +1210,13 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     });
 
     const salaryTdsPaid = (state.salarySlips || [])
-      .filter(
-        (s: any) =>
-          s.slipMonth &&
-          s.slipMonth >= fyStart.slice(0, 7) &&
-          s.slipMonth <= fyEnd.slice(0, 7)
-      )
+      .filter((s: any) => {
+        const ym = s.slipMonth || (s.date ? s.date.slice(0, 7) : "");
+        return ym && ym >= fyStart.slice(0, 7) && ym <= fyEnd.slice(0, 7);
+      })
       .reduce(
-        (sum: number, s: any) => sum + Number(s.tds || 0) + Number(s.incomeTax || 0),
+        (sum: number, s: any) =>
+          sum + Number(s.tdsDeduction || s.tds || 0) + Number(s.incomeTax || 0),
         0
       );
 
@@ -1235,10 +1266,16 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       return { name: g.name || g.goalName || "Goal", target, saved, pct };
     });
 
-    const overallPct =
+    const sumTarget =
       metrics.totalGoalTarget > 0
-        ? Math.min((metrics.totalGoalSaved / metrics.totalGoalTarget) * 100, 100)
-        : 0;
+        ? metrics.totalGoalTarget
+        : goals.reduce((s: number, g: any) => s + Number(g.targetAmount || g.target || 0), 0);
+    const sumSaved =
+      metrics.totalGoalSaved > 0
+        ? metrics.totalGoalSaved
+        : goals.reduce((s: number, g: any) => s + Number(g.savedAmount || g.currentAmount || g.saved || 0), 0);
+
+    const overallPct = sumTarget > 0 ? Math.min((sumSaved / sumTarget) * 100, 100) : 0;
 
     return { totalGoals, completed, topGoals, overallPct };
   }, [state.goals, metrics.totalGoalTarget, metrics.totalGoalSaved]);
@@ -1305,24 +1342,28 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       });
     }
 
-    const stockPnLs = (state.stocks || []).map((s: any) => {
-      const invested = Number(s.invested || (s.avgPrice || 0) * (s.qty || 0) || 0);
-      const yfSym = `${(s.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
-      const md = marketData?.[yfSym];
-      const livePrice = md?.price ?? Number(s.currentPrice || s.avgPrice || 0);
-      const current = Number(s.currentValue || livePrice * Number(s.qty || 0) || 0);
-      const gain = current - invested;
-      const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
-      return { name: s.name || s.symbol || "Stock", gain, gainPct };
-    });
-    const mfPnLs = (state.mutualFunds || []).map((m: any) => {
-      const invested = Number(m.invested || m.investedValue || 0);
-      const current = Number(m.currentValue || (m.currentNav || m.buyNav || 0) * (m.units || 0) || 0);
-      const gain = current - invested;
-      const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
-      return { name: m.name || m.scheme || "MF", gain, gainPct };
-    });
-    const allPnL = [...stockPnLs, ...mfPnLs].filter((p) => p.gain > 0);
+    const stockPnLs = (state.stocks || [])
+      .filter((s: any) => Number(s.qty || 0) > 0)
+      .map((s: any) => {
+        const invested = Number(s.invested || (s.avgPrice || 0) * (s.qty || 0) || 0);
+        const yfSym = `${(s.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+        const md = marketData?.[yfSym];
+        const livePrice = md?.price ?? Number(s.currentPrice || s.avgPrice || 0);
+        const current = Number(s.currentValue || livePrice * Number(s.qty || 0) || 0);
+        const gain = current - invested;
+        const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
+        return { name: s.name || s.symbol || "Stock", gain, gainPct, invested };
+      });
+    const mfPnLs = (state.mutualFunds || [])
+      .filter((m: any) => Number(m.units || 0) > 0)
+      .map((m: any) => {
+        const invested = Number(m.invested || m.investedValue || 0);
+        const current = Number(m.currentValue || (m.currentNav || m.buyNav || 0) * (m.units || 0) || 0);
+        const gain = current - invested;
+        const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
+        return { name: m.name || m.scheme || "MF", gain, gainPct, invested };
+      });
+    const allPnL = [...stockPnLs, ...mfPnLs].filter((p) => p.gain > 0 && p.invested > 0);
     if (allPnL.length > 0) {
       const best = allPnL.reduce((max, p) => (p.gainPct > max.gainPct ? p : max), allPnL[0]);
       items.push({
@@ -1332,20 +1373,24 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       });
     }
 
-    const milestones = [10000000, 5000000, 2500000, 1000000, 500000, 100000];
-    const closingNW = netWorthData.closingNW;
-    const openingNW = netWorthData.openingNW;
-    for (const m of milestones) {
-      if (closingNW >= m && openingNW < m) {
-        const label = m >= 10000000 ? `${m / 10000000}Cr` : `${m / 100000}L`;
-        items.push({
-          icon: Target,
-          text: `Net worth crossed the ₹${label} milestone this FY`,
-          color: THEME.accent,
-        });
-        break;
+    const milestones = [100000000, 50000000, 25000000, 10000000, 5000000, 2500000, 1000000, 500000, 100000];
+    const closingNW = Number(netWorthData.closingNW || 0);
+    const openingNW = Number(netWorthData.openingNW || 0);
+    if (closingNW > 0) {
+      for (const m of milestones) {
+        if (closingNW >= m && openingNW < m) {
+          const label = m >= 10000000 ? `${m / 10000000}Cr` : `${m / 100000}L`;
+          items.push({
+            icon: Target,
+            text: `Net worth crossed the ₹${label} milestone this FY`,
+            color: THEME.accent,
+          });
+          break;
+        }
       }
     }
+
+
 
     if (goalsData.completed > 0) {
       items.push({

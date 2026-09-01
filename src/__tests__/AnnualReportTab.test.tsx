@@ -85,4 +85,122 @@ describe("AnnualReportTab Premium UI Statically", () => {
     expect(openingCardHtml).toContain("₹9,00,000");
     expect(openingCardHtml).not.toContain("₹10,00,000");
   });
+  it("correctly separates active loan EMIs from closed loans in debt analysis", () => {
+    const now = new Date();
+    const currentFY = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const fyDate = `${currentFY}-06-15`;
+
+    const state = {
+      income: [{ id: "1", date: fyDate, amount: 200000, category: "Salary" }],
+      transactions: [],
+      loansTaken: [
+        {
+          id: "loan-active",
+          name: "Active Home Loan",
+          principal: 5000000,
+          outstanding: 4500000,
+          monthlyPayment: 45000,
+          monthsRemaining: 180,
+          interestRate: 8.5,
+          status: "active",
+        },
+        {
+          id: "loan-closed",
+          name: "Closed Personal Loan",
+          principal: 500000,
+          outstanding: 0,
+          monthlyPayment: 25000,
+          monthsRemaining: 0,
+          interestRate: 12,
+          status: "closed",
+        },
+      ],
+    };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <AnnualReportTab state={state} metrics={{ netWorth: 4500000 }} />
+      </PrivacyProvider>
+    );
+
+    // Debt section should be present
+    expect(html).toContain("Debt Summary");
+    // Active loan Annual EMI should be 45k * 12 = 5,40,000, not (45k + 25k) * 12 = 8,40,000
+    expect(html).toContain("₹5,40,000");
+    // Closed loan milestone should be recorded in highlights
+    expect(html).toContain("fully repaid");
+  });
+
+  it("deduplicates rental receipts if rental income is already present in income ledger", () => {
+    const now = new Date();
+    const currentFY = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const fyDate = `${currentFY}-05-10`;
+
+    const state = {
+      income: [
+        { id: "inc-1", date: fyDate, amount: 100000, category: "Salary" },
+        { id: "inc-2", date: fyDate, amount: 30000, category: "Rent" },
+      ],
+      transactions: [],
+      rentalProperties: [
+        {
+          id: "prop-1",
+          name: "Apartment 101",
+          receipts: [{ id: "rec-1", date: fyDate, amount: 30000 }],
+        },
+      ],
+    };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <AnnualReportTab state={state} metrics={{ netWorth: 1000000 }} />
+      </PrivacyProvider>
+    );
+
+    // Total income should be ₹1,30,000 (100k salary + 30k rent), not ₹1,60,000 (double counted)
+    expect(html).toContain("₹1,30,000");
+  });
+
+  it("detects FY data and TDS from salary slips and taxes", () => {
+    const now = new Date();
+    const currentFY = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const slipMonth = `${currentFY}-07`;
+
+    const state = {
+      income: [],
+      transactions: [],
+      salarySlips: [
+        {
+          id: "slip-1",
+          slipMonth,
+          date: `${slipMonth}-31`,
+          grossEarnings: 200000,
+          netSalary: 160000,
+          tdsDeduction: 30000,
+          epfDeduction: 10000,
+        },
+      ],
+      taxPayments: [
+        {
+          id: "tax-1",
+          date: `${currentFY}-09-15`,
+          amount: 25000,
+          type: "Advance Tax",
+        },
+      ],
+    };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <AnnualReportTab state={state} metrics={{ netWorth: 500000 }} />
+      </PrivacyProvider>
+    );
+
+    // FY should be detected and Annual Report rendered (not "No Financial Data")
+    expect(html).toContain("Annual Report");
+    expect(html).toContain("Tax Summary");
+    // TDS (30,000) + Advance Tax (25,000) = 55,000 Total Tax Paid
+    expect(html).toContain("₹55,000");
+  });
 });
+
