@@ -3,7 +3,7 @@ import React from "react";
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: "accent" | "sage" | "rust" | "gold" | "muted";
+  variant?: "accent" | "sage" | "rust" | "gold" | "muted" | "cyan" | "violet";
   /** "xs" is for tight inline tags (e.g. a TRANSFER/LINKED marker next to a table cell). */
   size?: "xs" | "md";
   className?: string;

@@ -348,35 +348,74 @@ export const CommandKModal: React.FC<CommandKModalProps> = ({
                   display: "flex",
                   alignItems: "center",
                   gap: "12px",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
+                  padding: "10px 14px",
+                  borderRadius: "10px",
                   cursor: "pointer",
                   color: "var(--t-ink)",
-                  background: isSelected ? "color-mix(in srgb, var(--t-accent) 14%, transparent)" : "transparent",
-                  borderLeft: isSelected ? "3px solid var(--t-accent)" : "3px solid transparent",
-                  transition: "background 0.12s ease, border-color 0.12s ease",
+                  background: isSelected
+                    ? "color-mix(in srgb, var(--t-accent) 14%, transparent)"
+                    : "transparent",
+                  borderLeft: isSelected ? "3.5px solid var(--t-accent)" : "3.5px solid transparent",
+                  transition: "background 0.12s ease, border-color 0.12s ease, transform 0.12s ease",
                 }}
               >
                 <div
                   style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "6px",
-                    background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
-                    color: "var(--t-accent)",
+                    width: "30px",
+                    height: "30px",
+                    borderRadius: "8px",
+                    background: isSelected
+                      ? "var(--t-accent)"
+                      : "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                    color: isSelected ? "#ffffff" : "var(--t-accent)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
+                    transition: "background 0.12s ease, color 0.12s ease",
                   }}
                 >
                   <Icon size={15} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "14px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
-                  <div style={{ fontSize: "11px", color: "var(--t-muted)" }}>{item.group}</div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: isSelected ? 600 : 500,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      color: isSelected ? "var(--t-ink)" : "var(--t-ink)",
+                    }}
+                  >
+                    {item.label}
+                  </div>
                 </div>
-                <ArrowRight size={14} style={{ color: isSelected ? "var(--t-accent)" : "var(--t-muted)", opacity: isSelected ? 1 : 0.4, flexShrink: 0 }} />
+                <span
+                  style={{
+                    fontSize: "10.5px",
+                    fontWeight: 700,
+                    letterSpacing: "0.02em",
+                    textTransform: "uppercase",
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    background: "color-mix(in srgb, var(--t-muted) 12%, transparent)",
+                    color: "var(--t-muted)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {item.group}
+                </span>
+                <ArrowRight
+                  size={14}
+                  style={{
+                    color: isSelected ? "var(--t-accent)" : "var(--t-muted)",
+                    opacity: isSelected ? 1 : 0.4,
+                    flexShrink: 0,
+                    transform: isSelected ? "translateX(2px)" : "none",
+                    transition: "transform 0.15s ease",
+                  }}
+                />
               </div>
             );
           })}

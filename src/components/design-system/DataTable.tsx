@@ -145,17 +145,18 @@ export function DataTable<T extends Record<string, any>>({
       >
         {!hideSearch && (
           <div
+            className="dt-search-wrapper"
             style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
               background: "var(--surface-1, rgba(255, 255, 255, 0.04))",
               border: "1px solid var(--t-line, rgba(255, 255, 255, 0.08))",
-              borderRadius: "8px",
+              borderRadius: "var(--radius-md, 8px)",
               padding: "6px 12px",
               maxWidth: "320px",
               width: "100%",
-              transition: "border-color 0.15s ease",
+              transition: "border-color 0.15s ease, box-shadow 0.15s ease",
             }}
           >
             <Search size={14} style={{ color: "var(--t-muted, #71717a)", flexShrink: 0 }} />
@@ -185,6 +186,7 @@ export function DataTable<T extends Record<string, any>>({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  transition: "color 0.15s ease",
                 }}
                 title="Clear search"
                 aria-label="Clear search"
@@ -195,7 +197,7 @@ export function DataTable<T extends Record<string, any>>({
           </div>
         )}
 
-        <div style={{ fontSize: "12px", color: "var(--t-muted, #71717a)", fontWeight: 600, flexShrink: 0 }}>
+        <div style={{ fontSize: "12px", color: "var(--t-muted, #71717a)", fontWeight: 600, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
           {sortedData.length} {sortedData.length === 1 ? "entry" : "entries"}
         </div>
       </div>

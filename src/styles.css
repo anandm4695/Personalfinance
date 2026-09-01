@@ -304,7 +304,8 @@ select {
 
 /* ── Focus visible ─────────────────────────────────────────────── */
 :focus-visible {
-  outline: none;
+  outline: 2px solid var(--t-accent);
+  outline-offset: 2px;
   box-shadow: var(--shadow-focus);
 }
 
@@ -358,6 +359,12 @@ table {
   width: 100%;
 }
 
+/* Search bar focus-within */
+.dt-search-wrapper:focus-within {
+  border-color: var(--t-accent) !important;
+  box-shadow: var(--shadow-focus);
+}
+
 /* Hover row highlight */
 tbody tr:hover td {
   background: color-mix(in srgb, var(--t-accent) 4%, transparent) !important;
@@ -374,20 +381,44 @@ tbody tr:hover td {
   background: var(--t-card-bg);
   border: var(--t-card-border);
   border-radius: var(--t-radius);
-  transition: border-color 0.2s var(--ease-premium);
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color 0.2s var(--ease-premium),
+    box-shadow 0.2s var(--ease-premium),
+    transform 0.2s var(--ease-premium);
 }
 .card-hover:hover {
   border-color: color-mix(in srgb, var(--t-accent) 30%, var(--t-line));
+  box-shadow: var(--shadow-card-hover);
 }
 .card-interactive {
   cursor: pointer;
-  transition: border-color 0.2s var(--ease-premium);
+  user-select: none;
+  transition:
+    border-color 0.2s var(--ease-premium),
+    box-shadow 0.2s var(--ease-premium),
+    transform 0.2s var(--ease-premium);
 }
 .card-interactive:hover {
   border-color: color-mix(in srgb, var(--t-accent) 35%, var(--t-line));
+  box-shadow: var(--shadow-card-hover);
 }
 .card-interactive:active {
-  transform: scale(0.995) translateY(0);
+  transform: scale(0.992) translateY(0);
+}
+
+.card-lift {
+  transition:
+    transform 0.2s var(--ease-premium),
+    box-shadow 0.2s var(--ease-premium),
+    border-color 0.2s var(--ease-premium);
+}
+.card-lift:hover {
+  transform: translateY(-1.5px);
+  box-shadow: var(--shadow-md);
+}
+.card-lift:active {
+  transform: translateY(0);
 }
 
 /* ── Tile card upgrade ─────────────────────────────────────────── */
@@ -544,30 +575,48 @@ tbody tr:hover td {
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm, 6px);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .badge-accent {
-  background: color-mix(in srgb, var(--t-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--t-accent) 12%, transparent);
   color: var(--t-accent);
+  border-color: color-mix(in srgb, var(--t-accent) 24%, transparent);
 }
 .badge-sage {
-  background: color-mix(in srgb, var(--t-sage) 10%, transparent);
+  background: color-mix(in srgb, var(--t-sage) 12%, transparent);
   color: var(--t-sage);
+  border-color: color-mix(in srgb, var(--t-sage) 24%, transparent);
 }
 .badge-rust {
-  background: color-mix(in srgb, var(--t-rust) 10%, transparent);
+  background: color-mix(in srgb, var(--t-rust) 12%, transparent);
   color: var(--t-rust);
+  border-color: color-mix(in srgb, var(--t-rust) 24%, transparent);
 }
 .badge-gold {
-  background: color-mix(in srgb, var(--t-gold) 10%, transparent);
+  background: color-mix(in srgb, var(--t-gold) 12%, transparent);
   color: var(--t-gold);
+  border-color: color-mix(in srgb, var(--t-gold) 24%, transparent);
 }
 .badge-muted {
-  background: color-mix(in srgb, var(--t-muted) 10%, transparent);
+  background: color-mix(in srgb, var(--t-muted) 12%, transparent);
   color: var(--t-muted);
+  border-color: color-mix(in srgb, var(--t-muted) 24%, transparent);
+}
+.badge-cyan {
+  background: color-mix(in srgb, var(--t-cyan) 12%, transparent);
+  color: var(--t-cyan);
+  border-color: color-mix(in srgb, var(--t-cyan) 24%, transparent);
+}
+.badge-violet {
+  background: color-mix(in srgb, var(--t-violet) 12%, transparent);
+  color: var(--t-violet);
+  border-color: color-mix(in srgb, var(--t-violet) 24%, transparent);
 }
 
 /* ── Amount display ────────────────────────────────────────────── */

@@ -36,6 +36,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   const displayTitle = title || message || "Nothing here yet";
   const displayDescription = description || subtitle || "";
+  const accentColor = dotColor || "var(--t-accent)";
   return (
     <Card style={{ padding: "48px 32px", textAlign: "center" }}>
       {Icon && (
@@ -44,21 +45,27 @@ export function EmptyState({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            margin: "0 auto 18px",
-            color: dotColor || "var(--t-accent)",
+            width: 64,
+            height: 64,
+            borderRadius: "50%",
+            background: `color-mix(in srgb, ${accentColor} 10%, transparent)`,
+            border: `1.5px solid color-mix(in srgb, ${accentColor} 20%, transparent)`,
+            margin: "0 auto 20px",
+            color: accentColor,
+            boxShadow: `0 0 24px -4px color-mix(in srgb, ${accentColor} 20%, transparent)`,
           }}
         >
-          <Icon size={36} strokeWidth={1.5} />
+          <Icon size={30} strokeWidth={1.75} />
         </div>
       )}
       <div
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: 19,
-          fontWeight: 600,
-          color: THEME.ink,
+          fontSize: 20,
+          fontWeight: 700,
+          color: "var(--t-ink)",
           marginBottom: 8,
-          letterSpacing: "-0.005em",
+          letterSpacing: "-0.01em",
         }}
       >
         {displayTitle}

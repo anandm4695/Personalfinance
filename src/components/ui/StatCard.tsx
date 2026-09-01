@@ -109,7 +109,7 @@ export const StatCard = ({
 
   return (
     <div
-      className="spotlight-wrapper card-lift"
+      className={`spotlight-wrapper card-lift ${onClick ? "card-interactive" : ""}`}
       onMouseMove={handleMouseMove}
       onClick={onClick}
       role={onClick ? "button" : undefined}
@@ -126,16 +126,22 @@ export const StatCard = ({
       }
       aria-pressed={onClick ? !!active : undefined}
       style={{
-        background: "var(--t-card-bg)",
+        background: active
+          ? `color-mix(in srgb, ${borderColor || color} 8%, var(--t-card-bg))`
+          : "var(--t-card-bg)",
         border: `1px solid ${active ? borderColor || color : "var(--t-line)"}`,
-        borderLeft: `2.5px solid ${borderColor || color}`,
-        borderRadius: 10,
+        borderLeft: `3px solid ${borderColor || color}`,
+        borderRadius: "var(--radius-lg, 12px)",
         padding: "18px 20px",
         display: "flex",
         flexDirection: "column",
         gap: 10,
         cursor: onClick ? "pointer" : undefined,
-        transition: "border-color 0.25s var(--ease-premium)",
+        boxShadow: active
+          ? `0 0 0 1px ${borderColor || color}, var(--shadow-sm)`
+          : "var(--shadow-xs)",
+        transition:
+          "border-color 0.25s var(--ease-premium), box-shadow 0.25s var(--ease-premium), transform 0.2s var(--ease-premium), background 0.2s ease",
       }}
     >
       <div className="spotlight-content" style={{ display: "flex", flexDirection: "column", gap: 10 }}>

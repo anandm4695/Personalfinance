@@ -63,11 +63,11 @@ export const Button: React.FC<ButtonProps> = ({
   const getSizeStyle = (): React.CSSProperties => {
     switch (size) {
       case "sm":
-        return { padding: "5px 10px", fontSize: "11px" };
+        return { padding: "6px 12px", fontSize: "12px", minHeight: "28px" };
       case "lg":
-        return { padding: "12px 24px", fontSize: "16px" };
+        return { padding: "12px 24px", fontSize: "15px", minHeight: "44px" };
       default:
-        return { padding: "8px 16px", fontSize: "14px" };
+        return { padding: "8px 18px", fontSize: "13.5px", minHeight: "36px" };
     }
   };
 
@@ -92,7 +92,16 @@ export const Button: React.FC<ButtonProps> = ({
     borderRadius: "var(--radius-md)",
     fontWeight: 600,
     cursor: isDisabled ? "not-allowed" : "pointer",
-    transition: "transform 0.15s var(--ease-premium), box-shadow 0.15s var(--ease-premium), background 0.15s var(--ease-premium), border-color 0.15s var(--ease-premium)",
+    letterSpacing: "-0.01em",
+    userSelect: "none",
+    transition:
+      "transform 0.15s var(--ease-premium), box-shadow 0.15s var(--ease-premium), background 0.15s var(--ease-premium), border-color 0.15s var(--ease-premium), opacity 0.15s ease",
+    boxShadow:
+      variant === "primary" || variant === "accent"
+        ? "var(--shadow-sm)"
+        : variant === "secondary"
+        ? "var(--shadow-xs)"
+        : "none",
     ...getSizeStyle(),
     ...getVariantStyle(),
     ...(isDisabled ? { opacity: 0.45, pointerEvents: "none" as const } : {}),
@@ -104,11 +113,11 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
       disabled={isDisabled}
       aria-busy={loading || undefined}
-      className={[variantClass, props.className].filter(Boolean).join(" ")}
+      className={[variantClass, "btn-interactive", props.className].filter(Boolean).join(" ")}
       style={baseStyle}
     >
       {loading ? (
-        <Loader2 size={size === "sm" ? 12 : size === "lg" ? 18 : 14} className="animate-spin" />
+        <Loader2 size={size === "sm" ? 13 : size === "lg" ? 18 : 15} className="animate-spin" />
       ) : (
         icon
       )}
