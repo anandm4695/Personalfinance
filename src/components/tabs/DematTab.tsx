@@ -1919,7 +1919,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     <div
                       className="demat-inv-bar-fill"
                       style={{
-                        width: `${Math.min(100, (totalInvested / totalValue) * 100).toFixed(1)}%`,
+                        width: totalValue > 0
+                          ? `${Math.min(100, Math.max(0, (totalInvested / totalValue) * 100)).toFixed(1)}%`
+                          : "0%",
                       }}
                     />
                   </div>

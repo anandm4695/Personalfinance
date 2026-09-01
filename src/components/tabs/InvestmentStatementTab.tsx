@@ -18,6 +18,7 @@ import {
   Heart,
   Search,
   X,
+  Landmark,
 } from "lucide-react";
 import { THEME, ASSET_CLASS_COLORS } from "../../utils/constants";
 import {
@@ -272,6 +273,7 @@ export const InvestmentStatementTab = ({
     ppf: true,
     nps: true,
     epf: true,
+    govtschemes: true,
     gold: true,
     realestate: true,
     insurance: true,
@@ -369,6 +371,27 @@ export const InvestmentStatementTab = ({
     const realEstateProperties = (state.realEstateProperties || []).filter(
       (p: any) => p.status !== "sold"
     );
+    const govtSchemes = state.govtSchemes || [];
+    const filteredGovt =
+      activeProfile && activeProfile !== "all"
+        ? govtSchemes.filter((g: any) => g.owner === activeProfile)
+        : govtSchemes;
+    const govtInvested = filteredGovt.reduce(
+      (s: number, g: any) => s + (Number(g.contributionAmount) || Number(g.currentBalance) || 0),
+      0
+    );
+    const govtCurrent = filteredGovt.reduce(
+      (s: number, g: any) => s + (Number(g.currentBalance) || 0),
+      0
+    );
+    const govtAvgRate =
+      govtCurrent > 0
+        ? filteredGovt.reduce(
+            (s: number, g: any) =>
+              s + (Number(g.interestRate) || 0) * (Number(g.currentBalance) || 0),
+            0
+          ) / govtCurrent
+        : 0;
 
     /* ── Equity - Stocks ──────────────────────────────────────────── */
     const stockInvested = stocks.reduce(
@@ -723,6 +746,14 @@ export const InvestmentStatementTab = ({
         rateLabel: "--",
       },
       {
+        label: "Govt Savings & Schemes",
+        invested: govtInvested,
+        current: govtCurrent,
+        gain: govtCurrent - govtInvested,
+        rate: govtAvgRate > 0 ? govtAvgRate : null,
+        rateLabel: govtAvgRate > 0 ? `${govtAvgRate.toFixed(1)}%` : "--",
+      },
+      {
         label: "Gold & SGBs",
         invested: goldInvested,
         current: goldCurrent,
@@ -764,7 +795,7 @@ export const InvestmentStatementTab = ({
 
     /* ── Pie chart data (order fixed to match PIE_COLORS) ───────────── */
     const equityTotal = stockCurrent + eqMFCurrent;
-    const debtTotal = fdCurrent + rdCurr + bondCurrent + debtMFCurrent;
+    const debtTotal = fdCurrent + rdCurr + bondCurrent + debtMFCurrent + govtCurrent;
     const goldTotal = goldCurrent;
     const retirementTotal = ppfBalance + npsBalance + epfBalance;
     const insuranceTotal = insuranceValue;
@@ -838,6 +869,7 @@ export const InvestmentStatementTab = ({
       (state.lic?.length || 0) +
       (state.investmentPlans?.length || 0) +
       (state.goldHoldings?.length || 0) +
+      (state.govtSchemes?.length || 0) +
       (state.realEstateProperties?.length || 0) >
     0;
 
@@ -1752,6 +1784,89 @@ export const InvestmentStatementTab = ({
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Govt Savings & Schemes */}
+      {(state.govtSchemes?.length || 0) > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <SectionHeader
+            icon={Landmark}
+            title="Govt Savings & Schemes"
+            count={state.govtSchemes.length}
+            expanded={!!expandedSections.govtschemes}
+            onToggle={() => toggleSection("govtschemes")}
+          />
+          {expandedSections.govtschemes && (
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={{ ...tbl, minWidth: 720 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Scheme</th>
+                      <th style={th}>Type</th>
+                      <th style={th}>Account / Member</th>
+                      <th style={thRight}>Interest Rate</th>
+                      <th style={thRight}>Invested</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>Current Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(state.govtSchemes || [])
+                      .filter((g: any) =>
+                        matchesSearch(g.schemeName || g.schemeType || g.memberName)
+                      )
+                      .map((g: any) => {
+                        const invested =
+                          Number(g.contributionAmount) || Number(g.currentBalance) || 0;
+                        const current = Number(g.currentBalance) || 0;
+                        const rate = Number(g.interestRate) || 0;
+                        return (
+                          <tr key={g.id} className="table-row-hover">
+                            <td
+                              style={{
+                                ...td,
+                                paddingLeft: 16,
+                                fontWeight: 700,
+                                color: THEME.ink,
+                              }}
+                            >
+                              {g.schemeName || g.schemeType || "--"}
+                            </td>
+                            <td style={td}>
+                              <Badge
+                                variant="sage"
+                                style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6 }}
+                              >
+                                {g.schemeType || "Scheme"}
+                              </Badge>
+                            </td>
+                            <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
+                              {g.memberName || g.accountNumber || "--"}
+                            </td>
+                            <td style={tdRight}>
+                              {rate > 0 ? `${rate.toFixed(1)}%` : "--"}
+                            </td>
+                            <td style={tdRight}>
+                              <Money value={invested} variant="full" />
+                            </td>
+                            <td
+                              style={{
+                                ...tdRight,
+                                paddingRight: 16,
+                                fontWeight: 700,
+                              }}
+                            >
+                              <Money value={current} variant="full" />
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

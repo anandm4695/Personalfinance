@@ -164,6 +164,22 @@ export const NUMERIC_COLS = new Set([
   "score",
   // govt_schemes
   "tenure",
+  "contribution_amount",
+  "current_balance",
+  "pension_amount",
+  "coverage_amount",
+  // sips
+  "step_up_pct",
+  // bill_payment_history
+  "units_consumed",
+  // real_estate
+  "share_pct",
+  "tds_deducted",
+  // ppf_nps
+  "this_year_contribution",
+  "employer_contribution",
+  // documents
+  "file_size",
   // salary_slips
   "basic",
   "hra",
@@ -187,6 +203,15 @@ export const NUMERIC_COLS = new Set([
   "net_salary",
   // transactions
   "statement_balance",
+  // profiles & settings
+  "savings_target",
+  "gold_price_per_gram",
+  // net worth history
+  "cash",
+  "equity",
+  "debt",
+  "real_estate",
+  "liabilities",
 ]);
 
 export const TABLE_MAP: Record<string, string> = {

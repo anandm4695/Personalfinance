@@ -246,7 +246,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // 80TTA — Savings interest
     const savingsInterest = (state.bankAccounts || [])
       .filter((a) => (a.type || "").toLowerCase() === "savings")
-      .reduce((s, a) => s + Math.min(Number(a.balance || 0) * 0.03, 10000), 0);
+      .reduce((s, a) => s + Number(a.balance || 0) * (Number(a.interestRate || 3.0) / 100), 0);
     const sec80TTA_limit = 10000;
     const sec80TTA_used = Math.min(savingsInterest, sec80TTA_limit);
 

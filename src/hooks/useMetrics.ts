@@ -418,7 +418,7 @@ export function useMetrics(
       (s: number, a: any) => s + Number(a.balance || 0),
       0
     );
-    const fdValue = sState.fixedDeposits.reduce(
+    const fdValue = (sState.fixedDeposits || []).reduce(
       (s: number, f: any) => s + Number(f.principal || 0),
       0
     );
@@ -426,19 +426,19 @@ export function useMetrics(
       (s: number, sc: any) => s + Number(sc.currentBalance || 0),
       0
     );
-    const rdValue = sState.recurringDeposits.reduce((s: number, r: any) => {
+    const rdValue = (sState.recurringDeposits || []).reduce((s: number, r: any) => {
       const elapsed = r.startDate
         ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
         : Number(r.tenureMonths || 0);
       return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
     }, 0);
-    const bondValue = sState.bonds.reduce(
+    const bondValue = (sState.bonds || []).reduce(
       (s: number, b: any) =>
         s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
       0
     );
-    const ppfValue = sState.ppf.reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
-    const npsValue = sState.nps.reduce((s: number, n: any) => {
+    const ppfValue = (sState.ppf || []).reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
+    const npsValue = (sState.nps || []).reduce((s: number, n: any) => {
       const bal = Number(n.balance) || 0;
       if (bal > 0) return s + bal;
       const txTotal = (n.transactions || []).reduce(
@@ -452,21 +452,21 @@ export function useMetrics(
       (s: number, e: any) => s + calculateEpfBalance(e),
       0
     );
-    const licValue = sState.lic.reduce((s: number, l: any) => {
+    const licValue = (sState.lic || []).reduce((s: number, l: any) => {
       const txTotal = (l.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
       );
       return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
     }, 0);
-    const investmentValue = sState.investmentPlans.reduce((s: number, ip: any) => {
+    const investmentValue = (sState.investmentPlans || []).reduce((s: number, ip: any) => {
       const txTotal = (ip.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
       );
       return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
     }, 0);
-    const mfValue = sState.mutualFunds.reduce((s: number, m: any) => {
+    const mfValue = (sState.mutualFunds || []).reduce((s: number, m: any) => {
       const liveNav = Number(m.currentNav || 0);
       const fallbackNav =
         liveNav ||
@@ -474,28 +474,28 @@ export function useMetrics(
         (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
       return s + Number(m.units || 0) * fallbackNav;
     }, 0);
-    const mfInvested = sState.mutualFunds.reduce(
+    const mfInvested = (sState.mutualFunds || []).reduce(
       (s: number, m: any) =>
         s + (m.buyNav ? Number(m.units || 0) * Number(m.buyNav || 0) : Number(m.invested || 0)),
       0
     );
-    const stockValue = sState.stocks.reduce((s: number, st: any) => {
+    const stockValue = (sState.stocks || []).reduce((s: number, st: any) => {
       const yfSym = `${st.symbol.replace(/\.(NS|BO)$/i, "")}.${(st.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
       const md = marketData[yfSym];
       const livePrice = md?.price ?? Number(st.currentPrice || 0);
       const fallbackPrice = livePrice || Number(st.avgPrice || 0);
       return s + Number(st.qty || 0) * fallbackPrice;
     }, 0);
-    const stockInvested = sState.stocks.reduce(
+    const stockInvested = (sState.stocks || []).reduce(
       (s: number, st: any) => s + Number(st.qty || 0) * Number(st.avgPrice || 0),
       0
     );
 
-    const loansGivenValue = sState.loansGiven.reduce(
+    const loansGivenValue = (sState.loansGiven || []).reduce(
       (s: number, l: any) => s + Number(l.outstanding || 0),
       0
     );
-    const prepaidValue = sState.prepaidCards
+    const prepaidValue = (sState.prepaidCards || [])
       .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
       .reduce((s: number, p: any) => {
         const txns = p.transactions || [];
@@ -508,10 +508,10 @@ export function useMetrics(
         return s + (loaded - spent);
       }, 0);
 
-    const ccOutstanding = sState.creditCards
+    const ccOutstanding = (sState.creditCards || [])
       .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
       .reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
-    const loansTakenValue = sState.loansTaken.reduce(
+    const loansTakenValue = (sState.loansTaken || []).reduce(
       (s: number, l: any) => s + Number(l.outstanding || 0),
       0
     );
@@ -541,7 +541,9 @@ export function useMetrics(
       const payments = person.payments || [];
       const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-      return s + Math.max(0, totalT - totalP);
+      const net =
+        totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
+      return s + net;
     }, 0);
 
     const informalBorrowedValue = (sState.informalBorrowed || []).reduce(
@@ -550,7 +552,9 @@ export function useMetrics(
         const payments = person.payments || [];
         const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
         const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-        return s + Math.max(0, totalT - totalP);
+        const net =
+          totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
+        return s + net;
       },
       0
     );
@@ -727,7 +731,7 @@ export function useMetrics(
 
     // Annual income from income ledger
     const fyStart = new Date(`${(sState.profile?.fy || getCurrentFY()).split("-")[0]}-04-01`);
-    const explicitIncome = sState.income
+    const explicitIncome = (sState.income || [])
       .filter((i: any) => new Date(i.date) >= fyStart)
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
     const txnIncome = sState.transactions
@@ -757,7 +761,7 @@ export function useMetrics(
     // Prefer explicit ledger -> FY-to-date credit txns -> annualised single month (least accurate)
     const annualIncome = (explicitIncome || txnIncome || annualizedCurrentMonth || 0) + rentReceivedFY;
 
-    const subTotal = sState.subscriptions
+    const subTotal = (sState.subscriptions || [])
       .filter((sub: any) => !sub.paused)
       .reduce((s: number, sub: any) => s + getSubscriptionMonthlyEquivalent(sub.amount, sub.cycle), 0);
 
@@ -852,17 +856,17 @@ export function useMetrics(
       { name: "Stocks", Invested: stockInvested, Current: stockValue },
     ].filter((x) => x.Invested > 0 || x.Current > 0);
 
-    const totalGoalTarget = sState.goals.reduce(
+    const totalGoalTarget = (sState.goals || []).reduce(
       (s: number, g: any) => s + Number(g.targetAmount || 0),
       0
     );
-    const totalGoalSaved = sState.goals.reduce(
+    const totalGoalSaved = (sState.goals || []).reduce(
       (s: number, g: any) => s + Number(g.currentAmount || 0),
       0
     );
     const totalGoalRemaining = Math.max(0, totalGoalTarget - totalGoalSaved);
     const overallGoalPct = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
-    const goalsCompleted = sState.goals.filter(
+    const goalsCompleted = (sState.goals || []).filter(
       (g: any) => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)
     ).length;
     return {

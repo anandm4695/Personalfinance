@@ -297,9 +297,15 @@ const memberAssets = (state, owner, marketData) => {
     return s + Math.max(0, actualDeposit - returned);
   }, 0);
   const informalLent = filter(state.informalLent || []).reduce((s, person) => {
-    const totalT = (person.tranches || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const totalP = (person.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    return s + Math.max(0, totalT - totalP);
+    const tranches = person.tranches || [];
+    const payments = person.payments || [];
+    const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const net =
+      tranches.length > 0 || payments.length > 0
+        ? Math.max(0, totalT - totalP)
+        : Number(person.amount || 0);
+    return s + net;
   }, 0);
   const rentalProps = filter(state.rentalProperties || []).reduce(
     (s, r) => s + Number(r.propertyValue || 0),
@@ -337,9 +343,15 @@ const memberAssets = (state, owner, marketData) => {
     return s + Math.max(0, actualDeposit - deducted - returned);
   }, 0);
   const informalBorrowed = filter(state.informalBorrowed || []).reduce((s, person) => {
-    const totalT = (person.tranches || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const totalP = (person.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    return s + Math.max(0, totalT - totalP);
+    const tranches = person.tranches || [];
+    const payments = person.payments || [];
+    const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const net =
+      tranches.length > 0 || payments.length > 0
+        ? Math.max(0, totalT - totalP)
+        : Number(person.amount || 0);
+    return s + net;
   }, 0);
   const realEstateOutstanding = (() => {
     const ucShares = (state.realEstateProperties || [])

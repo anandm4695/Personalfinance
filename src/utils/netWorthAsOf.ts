@@ -291,23 +291,39 @@ export function computeNetWorthAsOf(
   }, 0);
 
   const informalLentValue = (s.informalLent || []).reduce((sum: number, person: any) => {
-    const totalT = (person.tranches || [])
+    const tranches = person.tranches || [];
+    const payments = person.payments || [];
+    const totalT = tranches
       .filter((t: any) => gateInclude(t.date, asOfYm))
       .reduce((ss: number, t: any) => ss + Number(t.amount || 0), 0);
-    const totalP = (person.payments || [])
+    const totalP = payments
       .filter((p: any) => gateInclude(p.date, asOfYm))
       .reduce((ss: number, p: any) => ss + Number(p.amount || 0), 0);
-    return sum + Math.max(0, totalT - totalP);
+    const net =
+      tranches.length > 0 || payments.length > 0
+        ? Math.max(0, totalT - totalP)
+        : gateInclude(person.date || person.startDate, asOfYm)
+          ? Number(person.amount || 0)
+          : 0;
+    return sum + net;
   }, 0);
 
   const informalBorrowedValue = (s.informalBorrowed || []).reduce((sum: number, person: any) => {
-    const totalT = (person.tranches || [])
+    const tranches = person.tranches || [];
+    const payments = person.payments || [];
+    const totalT = tranches
       .filter((t: any) => gateInclude(t.date, asOfYm))
       .reduce((ss: number, t: any) => ss + Number(t.amount || 0), 0);
-    const totalP = (person.payments || [])
+    const totalP = payments
       .filter((p: any) => gateInclude(p.date, asOfYm))
       .reduce((ss: number, p: any) => ss + Number(p.amount || 0), 0);
-    return sum + Math.max(0, totalT - totalP);
+    const net =
+      tranches.length > 0 || payments.length > 0
+        ? Math.max(0, totalT - totalP)
+        : gateInclude(person.date || person.startDate, asOfYm)
+          ? Number(person.amount || 0)
+          : 0;
+    return sum + net;
   }, 0);
 
   // Scaled per-property by the same ownership share as realEstateAsset above, so a

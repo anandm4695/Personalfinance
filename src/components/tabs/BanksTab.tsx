@@ -882,12 +882,17 @@ export function BanksTab({
   );
   const now = new Date();
   const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const isTransferCat = (cat: string) =>
+    cat === "Transfer" ||
+    cat === "Self Transfer" ||
+    cat === "Self-Transfer" ||
+    cat === "Investment";
   const monthlyTxns = state.transactions.filter((t: any) => t.date >= startOfMonth);
   const monthlyIncome = monthlyTxns
-    .filter((t: any) => t.type === "credit" && t.category !== "Transfer")
+    .filter((t: any) => t.type === "credit" && !isTransferCat(t.category))
     .reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
   const monthlyExpense = monthlyTxns
-    .filter((t: any) => t.type === "debit" && t.category !== "Transfer")
+    .filter((t: any) => t.type === "debit" && !isTransferCat(t.category))
     .reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
 
   // Savings, Category Spending, and Asset weights memo
@@ -899,7 +904,7 @@ export function BanksTab({
 
     const categorySpends: Record<string, number> = {};
     monthlyTxns
-      .filter((t: any) => t.type === "debit" && t.category !== "Transfer")
+      .filter((t: any) => t.type === "debit" && !isTransferCat(t.category))
       .forEach((t: any) => {
         const cat = t.category || "Other";
         categorySpends[cat] = (categorySpends[cat] || 0) + Number(t.amount || 0);
