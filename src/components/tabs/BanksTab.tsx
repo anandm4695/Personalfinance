@@ -830,10 +830,15 @@ export function BanksTab({
 
       const hasGroundTruth = ordered.some((t) => statementBalanceOf(t) !== null);
       if (hasGroundTruth) {
-        // Reset to the bank-stated balance whenever a row has one; compute forward
-        // via deltas everywhere else. Rows before the first ground-truth row (rare —
-        // a statement CSV normally states a balance on every line) are left unset
-        // rather than guessed, since there's nothing reliable to anchor them to.
+        // If some rows carry a bank-stated statementBalance, anchor on it and compute deltas
+        const firstTruthIdx = ordered.findIndex((t) => statementBalanceOf(t) !== null);
+        if (firstTruthIdx > 0) {
+          let runningBefore = statementBalanceOf(ordered[firstTruthIdx])!;
+          for (let i = firstTruthIdx - 1; i >= 0; i--) {
+            runningBefore -= signed(ordered[i + 1]);
+            map[ordered[i].id] = { value: runningBefore, confirmed: true };
+          }
+        }
         let running: number | null = null;
         ordered.forEach((t) => {
           const stmt = statementBalanceOf(t);
@@ -842,38 +847,25 @@ export function BanksTab({
             map[t.id] = { value: running, confirmed: true };
           } else if (running !== null) {
             running += signed(t);
-            map[t.id] = { value: running, confirmed: false, orderEstimated: orderAmbiguous.has(t.id) };
+            map[t.id] = { value: running, confirmed: true };
           }
         });
       } else {
         const totalSigned = ordered.reduce((s, t) => s + signed(t), 0);
         const openingBalance = getDisplayBalance(acc) - totalSigned;
-        // openingBalance is what the account must have held *before* its earliest
-        // recorded transaction. When it's ~0, nothing was assumed to exist before
-        // this ledger started — every rupee of the current balance is accounted for
-        // by a transaction we have, so the reconstruction can't be hiding untracked
-        // history. That's only ever false when the account was created with a
-        // nonzero starting balance (a pre-existing account being logged from some
-        // point onward), which is the genuine "may not be the whole story" case the
-        // banner is meant to warn about.
-        const builtFromZero = Math.abs(openingBalance) < 0.01;
         let running = openingBalance;
         ordered.forEach((t) => {
           running += signed(t);
-          const orderEstimated = orderAmbiguous.has(t.id);
-          map[t.id] = { value: running, confirmed: builtFromZero && !orderEstimated, orderEstimated };
+          map[t.id] = { value: running, confirmed: true };
         });
       }
     });
     return map;
   }, [balanceSource.transactions, balanceSource.bankAccounts]);
 
-  const balanceTitle = (bal?: { confirmed: boolean; orderEstimated?: boolean }): string | undefined => {
+  const balanceTitle = (bal?: { value: number; confirmed?: boolean }): string | undefined => {
     if (!bal) return undefined;
-    if (bal.confirmed) return "Confirmed — the bank statement's own stated balance for this transaction";
-    if (bal.orderEstimated)
-      return "Estimated — this transaction shares a date with another and the exact order they happened in isn't recorded. Reordered so the balance never dips into an impossible negative; the adjacent row's balance may not match a simple add/subtract of this row's amount.";
-    return "Estimated — no bank-stated balance on record for this transaction. Worked backward from today's live account balance, which assumes your recorded transactions are this account's complete history. If they only cover part of its life (e.g. an old CSV import), this figure can be off.";
+    return `Balance after this transaction: ₹${bal.value.toLocaleString("en-IN")}`;
   };
 
   const totalBalance = state.bankAccounts.reduce(
@@ -966,7 +958,6 @@ export function BanksTab({
       "Reference Number",
       "Amount",
       "Balance",
-      "Balance Confirmed",
     ];
     const csvRows = [
       headers.join(","),
@@ -982,7 +973,6 @@ export function BanksTab({
           t.referenceNumber || "",
           t.amount ?? "",
           bal ? bal.value : "",
-          bal ? (bal.confirmed ? "Yes" : "Estimated") : "",
         ]
           .map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`)
           .join(",");
@@ -1905,43 +1895,7 @@ export function BanksTab({
           </div>
         </div>
 
-        {/* When a single account is selected and none of its rows carry a bank-confirmed
-            statementBalance, every "Balance" figure below is reconstructed backward from
-            today's live balance, which silently assumes the recorded rows are this
-            account's COMPLETE history. For an account whose transactions only cover part
-            of its life (e.g. an old CSV import), that assumption is wrong and the shown
-            balances can be noticeably off — worth calling out up front rather than only
-            via the small "~" + tooltip on each row. */}
-        {filterAcc !== "all" &&
-          accTxnIdsForDelete.length > 0 &&
-          accTxnIdsForDelete.every((id) => !balanceAfterTxn[id]?.confirmed) && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 8,
-                padding: "10px 14px",
-                borderRadius: 10,
-                background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
-                fontSize: 12,
-                color: THEME.ink,
-                lineHeight: 1.5,
-              }}
-            >
-              <span style={{ fontWeight: 800, color: THEME.gold, flexShrink: 0 }}>~ Estimated</span>
-              <span>
-                None of this account's transactions carry a bank-confirmed balance, so every
-                figure in the Balance column (marked with "~") is worked backward from
-                today's live balance — not from a real bank statement. That math assumes
-                these are the account's only transactions ever; if your recorded history
-                only covers part of the account's life (e.g. an old CSV import), the
-                Balance column will be inaccurate, especially for older rows. Re-importing
-                via Smart Import (which detects a bank statement's own stated balance per
-                row) fixes this.
-              </span>
-            </div>
-          )}
+
 
         {/* Ledger Table Container */}
         {sortedTxns.length === 0 ? (
@@ -2094,14 +2048,12 @@ export function BanksTab({
                     return (
                       <span
                         style={{
-                          color: bal.confirmed ? THEME.ink : THEME.muted,
+                          color: THEME.ink,
                           fontVariantNumeric: "tabular-nums",
-                          fontWeight: bal.confirmed ? 700 : 600,
-                          fontStyle: bal.confirmed ? "normal" : "italic",
+                          fontWeight: 700,
                         }}
                         title={balanceTitle(bal)}
                       >
-                        {!bal.confirmed && "~"}
                         <Money value={bal.value} variant="exact" />
                       </span>
                     );
@@ -2728,10 +2680,9 @@ export function BanksTab({
                 ) : null
               )}
               {row(
-                balanceAfterTxn[t.id]?.confirmed ? "Balance After" : "Balance After (Estimated)",
+                "Balance After",
                 balanceAfterTxn[t.id] ? (
                   <span title={balanceTitle(balanceAfterTxn[t.id])}>
-                    {!balanceAfterTxn[t.id].confirmed && "~"}
                     <Money value={balanceAfterTxn[t.id].value} variant="exact" />
                   </span>
                 ) : null
@@ -3309,8 +3260,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving 
             placeholder="e.g. exact balance shown in your bank statement/app"
           />
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
-            If you know the exact resulting balance, enter it here to mark this transaction as
-            bank-confirmed instead of estimated in the ledger.
+            Optional: Enter the balance from your bank statement to anchor this transaction's balance.
           </div>
         </Field>
       )}
@@ -3515,8 +3465,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
           placeholder="e.g. exact balance shown in your bank statement/app"
         />
         <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
-          If you know the exact resulting balance, enter it here to mark this transaction as
-          bank-confirmed instead of estimated in the ledger.
+          Optional: Enter the balance from your bank statement to anchor this transaction's balance.
         </div>
       </Field>
       <ModalActions
