@@ -1029,12 +1029,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       );
       const investmentAdditions = stockBuys + mfBuys + fdAdds + ppfAdds;
 
-      // Net worth at end of FY (March of startYear+1) — only valid for "all" profile
+      // Net worth at end of FY (March of startYear+1)
       let netWorth = 0;
-      if (activeProfile === "all") {
-        const marchKey = `${startYear + 1}-03`;
-        const nwEntry = (state.netWorthHistory || []).find((h: any) => h.month === marchKey);
-        netWorth = nwEntry ? Number(nwEntry.netWorth || 0) : 0;
+      const marchKey = `${startYear + 1}-03`;
+      const todayYm = today().slice(0, 7);
+      if (todayYm <= marchKey && todayYm >= `${startYear}-04` && metrics.netWorth > 0) {
+        netWorth = metrics.netWorth;
+      } else {
+        const reconstructed = computeNetWorthAsOf(state, marchKey, marketData, activeProfile);
+        if (reconstructed.totalAssets > 0 || reconstructed.totalLiabilities > 0) {
+          netWorth = reconstructed.netWorth;
+        } else if (activeProfile === "all") {
+          const nwEntry = (state.netWorthHistory || []).find((h: any) => h.month === marchKey);
+          netWorth = nwEntry ? Number(nwEntry.netWorth || 0) : 0;
+        }
       }
 
       return { totalIncome, totalExpense, savings, savingsRate, investmentAdditions, netWorth };
@@ -1090,9 +1098,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           invertColor: false,
         },
       ];
-    // Net worth history is only tracked at the family level — showing it per-person
-    // would render a misleading "₹0" rather than the person's actual net worth.
-    if (activeProfile === "all") {
+    if (activeProfile === "all" || fy1.netWorth > 0 || fy2.netWorth > 0) {
       rows.push({
         label: "Net Worth (end of FY)",
         v1: fy1.netWorth,
@@ -1631,12 +1637,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const [yr, mo] = cursor.split("-");
       const d = new Date(Number(yr), Number(mo) - 1, 1);
       const label = d.toLocaleString("en-IN", { month: "short", year: "2-digit" });
-      const { netWorth } = computeNetWorthAsOf(state, cursor, marketData);
+      const { netWorth } =
+        cursor === todayYm && metrics.netWorth > 0
+          ? { netWorth: metrics.netWorth }
+          : computeNetWorthAsOf(state, cursor, marketData, activeProfile);
       points.push({ month: label, ym: cursor, value: netWorth });
       cursor = nextYm(cursor);
     }
     return points;
-  }, [state, marketData]);
+  }, [state, marketData, activeProfile, metrics.netWorth]);
 
   const filteredNetWorthTrend = useMemo(() => {
     if (trendPeriod === "All") return netWorthTrend;
@@ -1996,6 +2005,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   ]);
 
   const momNetWorthDelta = useMemo(() => {
+    if (netWorthTrend && netWorthTrend.length >= 2) {
+      const latest = netWorthTrend[netWorthTrend.length - 1];
+      const prev = netWorthTrend[netWorthTrend.length - 2];
+      const latestVal = latest.value;
+      const prevVal = prev.value;
+      const delta = latestVal - prevVal;
+      const pct = prevVal !== 0 ? (delta / Math.abs(prevVal)) * 100 : 0;
+      const [latestY, latestM] = latest.ym.split("-").map(Number);
+      const [prevY, prevM] = prev.ym.split("-").map(Number);
+      const monthsGap = (latestY - prevY) * 12 + (latestM - prevM);
+      const label = monthsGap === 1 ? "MoM Change" : monthsGap > 1 ? `${monthsGap}-Month Change` : "Change";
+      return { delta, pct, monthsGap, label };
+    }
+
     if (activeProfile !== "all") return null;
     if (!state.netWorthHistory || state.netWorthHistory.length < 2) return null;
     const sorted = [...state.netWorthHistory].sort((a: any, b: any) =>
@@ -2007,35 +2030,36 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const prevVal = prev.netWorth ?? prev.net_worth ?? 0;
     const delta = latestVal - prevVal;
     const pct = prevVal !== 0 ? (delta / Math.abs(prevVal)) * 100 : 0;
-    // Snapshots aren't guaranteed to be adjacent calendar months (a user who skips a
-    // few months, or a freshly-reopened account, leaves a gap) — labeling a multi-month
-    // jump as "MoM Change" misrepresents the pace of change, so size the label to the
-    // actual gap instead of always assuming exactly one month.
     const [latestY, latestM] = latest.month.split("-").map(Number);
     const [prevY, prevM] = prev.month.split("-").map(Number);
     const monthsGap = (latestY - prevY) * 12 + (latestM - prevM);
     const label = monthsGap === 1 ? "MoM Change" : monthsGap > 1 ? `${monthsGap}-Month Change` : "Change";
     return { delta, pct, monthsGap, label };
-  }, [state.netWorthHistory, activeProfile]);
+  }, [netWorthTrend, state.netWorthHistory, activeProfile]);
 
   const wealthVelocity = useMemo(() => {
-    if (activeProfile !== "all") return null;
-    if (!state.netWorthHistory || state.netWorthHistory.length < 2) return null;
-    const sorted = [...state.netWorthHistory]
-      .sort((a: any, b: any) => a.month.localeCompare(b.month))
-      .slice(-7);
-    if (sorted.length < 2) return null;
+    const points: { netWorth: number }[] =
+      netWorthTrend && netWorthTrend.length >= 2
+        ? netWorthTrend.slice(-7).map((p) => ({ netWorth: p.value }))
+        : activeProfile === "all" && state.netWorthHistory && state.netWorthHistory.length >= 2
+          ? [...state.netWorthHistory]
+              .sort((a: any, b: any) => a.month.localeCompare(b.month))
+              .slice(-7)
+              .map((h: any) => ({ netWorth: h.netWorth ?? h.net_worth ?? 0 }))
+          : [];
+
+    if (points.length < 2) return null;
     const changes: number[] = [];
-    for (let i = 1; i < sorted.length; i++) {
-      const curr = sorted[i].netWorth ?? sorted[i].net_worth ?? 0;
-      const prev = sorted[i - 1].netWorth ?? sorted[i - 1].net_worth ?? 0;
+    for (let i = 1; i < points.length; i++) {
+      const curr = points[i].netWorth;
+      const prev = points[i - 1].netWorth;
       changes.push(curr - prev);
     }
     const avg = changes.reduce((s, v) => s + v, 0) / changes.length;
     const latest = changes[changes.length - 1] ?? 0;
     const accel = changes.length >= 2 ? latest - changes[changes.length - 2] : 0;
     return { avg, latest, accel, months: changes.length };
-  }, [state.netWorthHistory, activeProfile]);
+  }, [netWorthTrend, state.netWorthHistory, activeProfile]);
 
   // Spending breakdown for the user-selected month (supports navigation)
   const spendingData = useMemo(() => {

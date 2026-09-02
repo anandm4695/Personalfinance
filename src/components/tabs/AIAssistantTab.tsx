@@ -26,8 +26,9 @@ import {
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, getEffectiveRent } from "../../utils/finance";
+import { fmtINRFull, getEffectiveRent, today } from "../../utils/finance";
 import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
+import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { usePrivacy } from "../../context/PrivacyContext";
@@ -35,6 +36,8 @@ import { usePrivacy } from "../../context/PrivacyContext";
 interface AIAssistantTabProps {
   state: any;
   metrics: any;
+  marketData?: any;
+  activeProfile?: string;
 }
 
 // ── Inline markdown parser: **bold**, *italic*, `code` ──────────────────────
@@ -385,8 +388,12 @@ const PROMPT_CATEGORY_ICONS: Record<string, any> = {
   Risk: Shield,
 };
 
-// ── Main component ───────────────────────────────────────────────────────────
-export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }) => {
+export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({
+  state,
+  metrics,
+  marketData,
+  activeProfile = "all",
+}) => {
   const { privacyMode } = usePrivacy();
   const [messages, setMessages] = useState<{ role: "model" | "user"; text: string }[]>([]);
   const [input, setInput] = useState("");
@@ -699,8 +706,25 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     const emergencyMonths = metrics.emergencyFund?.monthsCovered || 0;
     const emergencyStatus = metrics.emergencyFund?.label || "Unknown";
 
-    // Net worth trend
-    const nwHistory = state.netWorthHistory || [];
+    // Net worth trend (reconstruct using computeNetWorthAsOf if netWorthHistory has < 2 entries)
+    const nwHistory = (() => {
+      if (Array.isArray(state.netWorthHistory) && state.netWorthHistory.length >= 2) {
+        return state.netWorthHistory;
+      }
+      const todayYm = today().slice(0, 7);
+      const startYm = getEarliestNetWorthMonth(state);
+      const pts: { month: string; netWorth: number }[] = [];
+      let cursor = startYm;
+      while (cursor <= todayYm) {
+        const val =
+          cursor === todayYm && metrics.netWorth > 0
+            ? metrics.netWorth
+            : computeNetWorthAsOf(state, cursor, marketData, activeProfile).netWorth;
+        pts.push({ month: cursor, netWorth: val });
+        cursor = nextYm(cursor);
+      }
+      return pts.length >= 2 ? pts : state.netWorthHistory || [];
+    })();
     const last6NW =
       nwHistory
         .slice(-6)
@@ -717,7 +741,7 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
               Number(
                 nwHistory[nwHistory.length - 2]?.value ||
                   nwHistory[nwHistory.length - 2]?.netWorth ||
-                  0
+                0
               )) /
               Math.max(
                 1,
@@ -1396,18 +1420,39 @@ You have access to local tools/functions to retrieve real-time and detailed tran
 
   // ── Net Worth Trend Handler ──
   const handleGetNetWorthTrend = () => {
-    const history = (state.netWorthHistory || []).slice(-12);
+    let history: { month: string; value: number }[] = [];
+    if (Array.isArray(state.netWorthHistory) && state.netWorthHistory.length >= 2) {
+      history = (state.netWorthHistory || []).slice(-12).map((e: any) => ({
+        month: e.month || e.date,
+        value: Number(e.value || e.netWorth || 0),
+      }));
+    } else {
+      const todayYm = today().slice(0, 7);
+      const startYm = getEarliestNetWorthMonth(state);
+      const pts: { month: string; value: number }[] = [];
+      let cursor = startYm;
+      while (cursor <= todayYm) {
+        const val =
+          cursor === todayYm && metrics.netWorth > 0
+            ? metrics.netWorth
+            : computeNetWorthAsOf(state, cursor, marketData, activeProfile).netWorth;
+        pts.push({ month: cursor, value: val });
+        cursor = nextYm(cursor);
+      }
+      history = pts.slice(-12);
+    }
+
     const trend = history.map((e: any, i: number, arr: any[]) => {
-      const value = Number(e.value || e.netWorth || 0);
-      const prevValue = i > 0 ? Number(arr[i - 1].value || arr[i - 1].netWorth || 0) : value;
+      const value = Number(e.value || 0);
+      const prevValue = i > 0 ? Number(arr[i - 1].value || 0) : value;
       const momChange = prevValue > 0 ? ((value - prevValue) / prevValue) * 100 : 0;
       return {
-        month: e.month || e.date || `Month ${i + 1}`,
+        month: e.month || `Month ${i + 1}`,
         netWorth: value,
         momChange: i > 0 ? Number(momChange.toFixed(1)) : 0,
       };
     });
-    const latest = trend.length > 0 ? trend[trend.length - 1].netWorth : 0;
+    const latest = trend.length > 0 ? trend[trend.length - 1].netWorth : metrics.netWorth || 0;
     const oldest = trend.length > 0 ? trend[0].netWorth : 0;
     const overallGrowth = oldest > 0 ? (((latest - oldest) / oldest) * 100).toFixed(1) : "N/A";
     return {

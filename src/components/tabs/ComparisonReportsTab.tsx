@@ -636,13 +636,21 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
     // snapshots) and are otherwise only ever written for months the app happened to be open
     // in, silently zeroing this card for family-member views or any un-snapshotted month.
     const nwHistory = state.netWorthHistory || [];
-    const nwForMonth = (ym) => {
+    const nwForMonth = (ym: string) => {
       if (ym === currentYM) return metrics.netWorth || 0;
+      const reconstructed = computeNetWorthAsOf(state, ym, marketData, activeProfile);
+      if (
+        reconstructed.totalAssets > 0 ||
+        reconstructed.totalLiabilities > 0 ||
+        reconstructed.assetBreakdown.length > 0
+      ) {
+        return reconstructed.netWorth;
+      }
       if (activeProfile === "all") {
-        const entry = nwHistory.find((h) => h.month === ym);
+        const entry = nwHistory.find((h: any) => h.month === ym);
         if (entry) return entry.netWorth || 0;
       }
-      return computeNetWorthAsOf(state, ym, marketData, activeProfile).netWorth;
+      return reconstructed.netWorth;
     };
     const findNW = (months) => {
       if (months.includes(currentYM)) return metrics.netWorth || 0;

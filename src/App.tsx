@@ -4111,7 +4111,14 @@ function FinanceDashboard() {
                   showToast={showToast}
                 />
               )}
-              {tab === "ai" && <AIAssistantTab state={filteredState} metrics={metrics} />}
+              {tab === "ai" && (
+                <AIAssistantTab
+                  state={filteredState}
+                  metrics={metrics}
+                  marketData={marketData}
+                  activeProfile={activeProfile}
+                />
+              )}
               {tab === "reminders" && (
                 <RemindersTab
                   state={filteredState}

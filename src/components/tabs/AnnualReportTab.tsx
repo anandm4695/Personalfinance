@@ -492,6 +492,21 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       (state.taxPayments || []).some(
         (p: any) => p.date && p.date >= fyStart && p.date <= fyEnd
       );
+    const hasAssets =
+      (state.bankAccounts || []).length > 0 ||
+      (state.realEstateProperties || []).length > 0 ||
+      (state.vehicles || []).length > 0 ||
+      (state.goldHoldings || []).length > 0 ||
+      (state.loansGiven || []).length > 0 ||
+      (state.loansTaken || []).length > 0 ||
+      (state.fixedDeposits || []).length > 0 ||
+      (state.stocks || []).length > 0 ||
+      (state.mutualFunds || []).length > 0 ||
+      (state.ppf || []).length > 0 ||
+      (state.epf || []).length > 0 ||
+      (state.nps || []).length > 0 ||
+      Number(metrics?.netWorth || 0) > 0;
+
     return (
       incomeLedger.length > 0 ||
       salarySlipsInFY.length > 0 ||
@@ -501,6 +516,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       rentPaid ||
       dividends ||
       hasInvestmentActivity ||
+      hasAssets ||
       (state.netWorthHistory || []).length > 0
     );
   }, [
@@ -518,6 +534,11 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     state.stockSells,
     state.mfSells,
     state.taxPayments,
+    state.bankAccounts,
+    state.realEstateProperties,
+    state.vehicles,
+    state.goldHoldings,
+    metrics?.netWorth,
     fyStart,
     fyEnd,
   ]);
@@ -574,15 +595,27 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     (ym: string): number => {
       const todayYM = today().slice(0, 7);
       if (ym > todayYM) return 0; // can't reconstruct a month that hasn't happened yet
+      if (ym === todayYM && metrics.netWorth > 0) return metrics.netWorth;
+
+      const reconstructed = computeNetWorthAsOf(state, ym, marketData, activeProfile);
+      const hasSourceData =
+        reconstructed.totalAssets > 0 ||
+        reconstructed.totalLiabilities > 0 ||
+        reconstructed.assetBreakdown.length > 0;
+      if (hasSourceData) {
+        return reconstructed.netWorth;
+      }
+
+      // Fallback only if there are no asset/liability records at all (e.g. test fixture with only netWorthHistory)
       if (activeProfile === "all") {
         const entry = (state.netWorthHistory || [])
           .filter((h: any) => h.month)
           .find((h: any) => h.month === ym);
         if (entry) return Number(entry.netWorth || 0);
       }
-      return computeNetWorthAsOf(state, ym, marketData, activeProfile).netWorth;
+      return reconstructed.netWorth;
     },
-    [state, marketData, activeProfile]
+    [state, marketData, activeProfile, metrics.netWorth]
   );
 
   const netWorthData = useMemo(() => {
@@ -1947,7 +1980,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.muted }} />
                     <YAxis
                       tick={{ fontSize: 11, fill: THEME.muted }}
-                      tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
+                      tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINR(v))}
                       width={65}
                     />
                     <Tooltip

@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 import { AnnualReportTab } from "../components/tabs/AnnualReportTab";
 import { PrivacyProvider } from "../context/PrivacyContext";
+import { getFilteredStateForProfile } from "../hooks/useMetrics";
 
 // Mock recharts
 vi.mock("recharts", () => ({
@@ -201,6 +202,88 @@ describe("AnnualReportTab Premium UI Statically", () => {
     expect(html).toContain("Tax Summary");
     // TDS (30,000) + Advance Tax (25,000) = 55,000 Total Tax Paid
     expect(html).toContain("₹55,000");
+  });
+
+  it("reconstructs Net Worth Trend from source records and ignores stale netWorthHistory when assets exist", () => {
+    const now = new Date();
+    const currentFY = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const openingMarchKey = `${currentFY}-03`;
+    const aprilKey = `${currentFY}-04`;
+
+    const state = {
+      income: [{ id: "inc-1", date: `${aprilKey}-05`, amount: 100000, category: "Salary" }],
+      transactions: [],
+      bankAccounts: [{ id: "b1", balance: 500000 }],
+      fixedDeposits: [{ id: "fd1", principal: 2000000, startDate: "2023-01-01" }],
+      // Stale netWorthHistory has an outdated small number (e.g., recorded before fixed deposit was added)
+      netWorthHistory: [
+        { month: openingMarchKey, netWorth: 100000 },
+        { month: aprilKey, netWorth: 150000 },
+      ],
+    };
+
+    // Live net worth matches bank cash (500k) + FD (2000k) = 2,500,000
+    const metrics = { netWorth: 2500000 };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <AnnualReportTab state={state} metrics={metrics} />
+      </PrivacyProvider>
+    );
+
+    // Opening Net Worth should be reconstructed from source assets as of openingMarchKey:
+    // Bank Cash (500k) + FD started in 2023 (2000k) = 25,00,000, NOT the stale 100,000 from netWorthHistory
+    const openingIdx = html.indexOf("Opening Net Worth");
+    const closingIdx = html.indexOf("Closing Net Worth");
+    const openingCardHtml = html.slice(openingIdx, closingIdx);
+
+    expect(openingCardHtml).toContain("₹25,00,000");
+    expect(openingCardHtml).not.toContain("₹1,00,000");
+
+    // Closing Net Worth reflects current live metrics (₹25,00,000)
+    const nwChangeIdx = html.indexOf("NW Change");
+    const closingCardHtml = html.slice(closingIdx, nwChangeIdx);
+    expect(closingCardHtml).toContain("₹25,00,000");
+  });
+
+  it("accurately reflects family member profile in Annual Report Net Worth", () => {
+    const now = new Date();
+    const currentFY = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const openingMarchKey = `${currentFY}-03`;
+
+    const state = {
+      income: [{ id: "inc-1", date: `${currentFY}-05-10`, amount: 100000, category: "Salary" }],
+      transactions: [],
+      bankAccounts: [
+        { id: "b1", owner: "p1", balance: 300000 },
+        { id: "b2", owner: "p2", balance: 700000 },
+      ],
+      netWorthHistory: [
+        // Household snapshot is 1,000,000
+        { month: openingMarchKey, netWorth: 1000000 },
+      ],
+    };
+
+    // p1 has 300,000 bank balance
+    const metrics = { netWorth: 300000 };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <AnnualReportTab
+          state={getFilteredStateForProfile(state, "p1")}
+          metrics={metrics}
+          activeProfile="p1"
+        />
+      </PrivacyProvider>
+    );
+
+    const openingIdx = html.indexOf("Opening Net Worth");
+    const closingIdx = html.indexOf("Closing Net Worth");
+    const openingCardHtml = html.slice(openingIdx, closingIdx);
+
+    // Should reconstruct p1's balance (₹3,00,000), not the household snapshot (₹10,00,000)
+    expect(openingCardHtml).toContain("₹3,00,000");
+    expect(openingCardHtml).not.toContain("₹10,00,000");
   });
 });
 
