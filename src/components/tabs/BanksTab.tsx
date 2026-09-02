@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Plus,
   FileUp,
@@ -639,14 +639,7 @@ export function BanksTab({
     [sortedTxns, currentTxnPage]
   );
 
-  // `acc.balance` is the single source of truth for an account's running balance —
-  // App.tsx's addItem/updateItem/removeItem/addTransactions all keep it in sync by
-  // applying each transaction's credit/debit delta on top of the opening balance the
-  // account was created with. (Net Worth/Dashboard use this same field — see
-  // useMetrics.ts's `cashInBanks`.) Do NOT recompute it as sum(credits)-sum(debits)
-  // here: that silently discards the opening balance the moment an account has any
-  // transactions and desyncs this tab's numbers from the rest of the app.
-  const getDisplayBalance = (acc: any): number => Number(acc?.balance || 0);
+  // Balance calculations and passbook math:
 
   // Running balance after each transaction — a passbook-style "Balance" column.
   // acc.balance only holds the CURRENT balance, so by default we walk each
@@ -851,9 +844,7 @@ export function BanksTab({
           }
         });
       } else {
-        const totalSigned = ordered.reduce((s, t) => s + signed(t), 0);
-        const openingBalance = getDisplayBalance(acc) - totalSigned;
-        let running = openingBalance;
+        let running = 0;
         ordered.forEach((t) => {
           running += signed(t);
           map[t.id] = { value: running, confirmed: true };
@@ -862,6 +853,59 @@ export function BanksTab({
     });
     return map;
   }, [balanceSource.transactions, balanceSource.bankAccounts]);
+
+  // Derive each account's latest real balance directly from its transactions.
+  // For accounts with no transactions recorded, falls back to the stored `balance` field.
+  const accountLatestBalance = useMemo(() => {
+    const map: Record<string, number> = {};
+    const byAccount: Record<string, any[]> = {};
+    (balanceSource.transactions || []).forEach((t: any) => {
+      if (!t.accountId) return;
+      (byAccount[t.accountId] ||= []).push(t);
+    });
+    Object.entries(byAccount).forEach(([accountId, txns]) => {
+      if (txns.length === 0) return;
+      const sorted = [...txns].sort((a, b) => {
+        const byDate = (a.date || "").localeCompare(b.date || "");
+        if (byDate !== 0) return byDate;
+        const ca = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const cb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return ca - cb;
+      });
+      const newest = sorted[sorted.length - 1];
+      if (newest && balanceAfterTxn[newest.id]) {
+        map[accountId] = balanceAfterTxn[newest.id].value;
+      } else {
+        map[accountId] = txns.reduce(
+          (sum, t) => sum + (t.type === "credit" ? Number(t.amount || 0) : -Number(t.amount || 0)),
+          0
+        );
+      }
+    });
+    return map;
+  }, [balanceSource.transactions, balanceAfterTxn]);
+
+  const getDisplayBalance = useCallback(
+    (acc: any): number => {
+      if (!acc) return 0;
+      if (accountLatestBalance[acc.id] !== undefined) {
+        return accountLatestBalance[acc.id];
+      }
+      return Number(acc.balance || 0);
+    },
+    [accountLatestBalance]
+  );
+
+  // Auto-sync bank account balance in state and DB if transactions prove a different closing balance
+  useEffect(() => {
+    if (!updateItem || !state.bankAccounts) return;
+    state.bankAccounts.forEach((acc: any) => {
+      const latest = accountLatestBalance[acc.id];
+      if (latest !== undefined && Math.abs(Number(acc.balance || 0) - latest) > 0.001) {
+        updateItem("bankAccounts", acc.id, { balance: latest });
+      }
+    });
+  }, [accountLatestBalance, state.bankAccounts, updateItem]);
 
   const balanceTitle = (bal?: { value: number; confirmed?: boolean }): string | undefined => {
     if (!bal) return undefined;
