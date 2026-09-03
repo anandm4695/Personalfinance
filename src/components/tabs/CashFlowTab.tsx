@@ -19,6 +19,12 @@ import {
   BarChart2,
   DollarSign,
   PiggyBank,
+  Sliders,
+  Info,
+  Check,
+  ExternalLink,
+  AlertCircle,
+  FileText,
 } from "lucide-react";
 import {
   Bar,
@@ -50,6 +56,8 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { Modal } from "../ui/Modal";
+import { Button } from "../ui/Button";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -215,7 +223,431 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) => {
+function SalarySourcingModal({
+  isOpen,
+  onClose,
+  salaryCandidates,
+  effectiveSalaryInfo,
+  salaryPref,
+  onSavePref,
+  onNavigateToTab,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  salaryCandidates: any;
+  effectiveSalaryInfo: any;
+  salaryPref: any;
+  onSavePref: (pref: any) => void;
+  onNavigateToTab?: (tab: string) => void;
+}) {
+  const [source, setSource] = useState(salaryPref?.source || "auto");
+  const [customVal, setCustomVal] = useState(
+    salaryPref?.customAmount != null ? String(salaryPref.customAmount) : ""
+  );
+
+  if (!isOpen) return null;
+
+  const { bank, slip, ledger } = salaryCandidates;
+
+  const handleApply = () => {
+    onSavePref({
+      source,
+      customAmount: source === "custom" ? Number(customVal) || 0 : undefined,
+    });
+    onClose();
+  };
+
+  const handleResetAuto = () => {
+    setSource("auto");
+    onSavePref({ source: "auto" });
+    onClose();
+  };
+
+  return (
+    <Modal
+      title="Salary Forecast Sourcing"
+      onClose={onClose}
+      maxWidth={620}
+      footer={
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+          <Button variant="secondary" size="sm" onClick={handleResetAuto}>
+            Reset to Auto
+          </Button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Button variant="secondary" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleApply}>
+              Apply to Forecast
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Accounting rule banner */}
+        <div
+          style={{
+            background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: THEME.ink,
+            display: "flex",
+            gap: 10,
+          }}
+        >
+          <Info size={18} style={{ color: THEME.accent, flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <strong>Senior Accountant Note:</strong> The cash flow forecast projects your recurring <em>net take-home salary</em> (in-hand pay after statutory deductions).
+            By default, we evaluate <strong>Bank statement salary credits first</strong>, then <strong>official Salary Slips</strong>, and finally the <strong>Income Ledger</strong>. You can review detected amounts or pick any source below.
+          </div>
+        </div>
+
+        {/* Current Active Source Indicator */}
+        <div
+          style={{
+            background: "var(--surface-0)",
+            border: `1px solid ${THEME.line}`,
+            borderRadius: 10,
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <span style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
+              Active Forecast Value
+            </span>
+            <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, marginTop: 2 }}>
+              ₹{Math.round(effectiveSalaryInfo.amount).toLocaleString("en-IN")}{" "}
+              <span style={{ fontSize: 12, fontWeight: 500, color: THEME.muted }}>/ month</span>
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+              Source: <strong>{effectiveSalaryInfo.label}</strong>
+              {effectiveSalaryInfo.isOverridden && (
+                <span style={{ marginLeft: 6, color: THEME.gold, fontWeight: 600 }}>• User Override</span>
+              )}
+            </div>
+          </div>
+          {effectiveSalaryInfo.isOverridden && (
+            <Badge variant="gold">Custom Config</Badge>
+          )}
+        </div>
+
+        {/* Option 1: Auto */}
+        <div
+          onClick={() => setSource("auto")}
+          style={{
+            border: `1.5px solid ${source === "auto" ? THEME.accent : THEME.line}`,
+            background: source === "auto" ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "var(--surface-0)",
+            borderRadius: 10,
+            padding: "14px 16px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <input
+                type="radio"
+                name="salarySource"
+                checked={source === "auto"}
+                onChange={() => setSource("auto")}
+                style={{ cursor: "pointer", accentColor: THEME.accent }}
+              />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  Auto-Detect (Bank First, then Salary Slips)
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  Evaluates recent bank credit transactions first; falls back to verified salary slips.
+                </div>
+              </div>
+            </div>
+            <Badge variant="neutral">Default</Badge>
+          </div>
+        </div>
+
+        {/* Option 2: Bank Statement Credits (Priority 1) */}
+        <div
+          onClick={() => setSource("bank")}
+          style={{
+            border: `1.5px solid ${source === "bank" ? THEME.accent : THEME.line}`,
+            background: source === "bank" ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "var(--surface-0)",
+            borderRadius: 10,
+            padding: "14px 16px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <input
+                type="radio"
+                name="salarySource"
+                checked={source === "bank"}
+                onChange={() => setSource("bank")}
+                style={{ cursor: "pointer", accentColor: THEME.accent, marginTop: 3 }}
+              />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  Bank Statement Credits (Priority 1)
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  {bank.txns.length > 0
+                    ? `${bank.txns.length} credit transaction(s) categorized as Salary`
+                    : "No salary credits detected in bank accounts"}
+                </div>
+                {bank.txns.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                    {bank.txns.slice(0, 3).map((t: any, i: number) => (
+                      <div
+                        key={i}
+                        style={{
+                          fontSize: 10.5,
+                          color: THEME.ink,
+                          background: "var(--surface-1)",
+                          padding: "4px 8px",
+                          borderRadius: 4,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        <span style={{ color: THEME.muted }}>{t.date || "Date N/A"} • {t.description || t.category || "Salary"}</span>
+                        <strong>₹{Number(t.amount || 0).toLocaleString("en-IN")}</strong>
+                      </div>
+                    ))}
+                    {bank.txns.length > 3 && (
+                      <span style={{ fontSize: 10, color: THEME.muted }}>+ {bank.txns.length - 3} more transactions</span>
+                    )}
+                  </div>
+                )}
+                {bank.monthly > 0 && slip.monthly > 0 && bank.monthly < slip.monthly * 0.5 && (
+                  <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, color: THEME.gold || "#f59e0b", fontSize: 11 }}>
+                    <AlertCircle size={13} />
+                    <span>Bank credit (₹{Math.round(bank.monthly).toLocaleString("en-IN")}) is substantially lower than Salary Slips (₹{Math.round(slip.monthly).toLocaleString("en-IN")}). May be an allowance or partial payment.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: bank.monthly > 0 ? THEME.sage : THEME.muted }}>
+                ₹{Math.round(bank.monthly).toLocaleString("en-IN")}
+              </div>
+              <span style={{ fontSize: 10, color: THEME.muted }}>/mo avg</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Option 3: Official Salary Slips (Priority 2) */}
+        <div
+          onClick={() => setSource("slip")}
+          style={{
+            border: `1.5px solid ${source === "slip" ? THEME.accent : THEME.line}`,
+            background: source === "slip" ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "var(--surface-0)",
+            borderRadius: 10,
+            padding: "14px 16px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <input
+                type="radio"
+                name="salarySource"
+                checked={source === "slip"}
+                onChange={() => setSource("slip")}
+                style={{ cursor: "pointer", accentColor: THEME.accent, marginTop: 3 }}
+              />
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    Official Salary Slips (Priority 2)
+                  </span>
+                  <Badge variant="sage">Audited Net Pay</Badge>
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  {slip.slips.length > 0
+                    ? `Latest net take-home pay from Salary Slip Tracker`
+                    : "No salary slips uploaded yet in Salary Tracker"}
+                </div>
+                {slip.slips.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                    {slip.slips.map((s: any, i: number) => (
+                      <div
+                        key={i}
+                        style={{
+                          fontSize: 11,
+                          color: THEME.ink,
+                          background: "var(--surface-1)",
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          border: `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+                          <span>{s.employer || "Employer"} ({s.slipMonth || "Month N/A"})</span>
+                          <span style={{ color: THEME.sage }}>Net: ₹{Number(s.netSalary || 0).toLocaleString("en-IN")}</span>
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+                          Gross: ₹{Number(s.grossSalary || 0).toLocaleString("en-IN")} • Deductions (PF/TDS): ₹{Number(s.totalDeductions || 0).toLocaleString("en-IN")}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {onNavigateToTab && (
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                        onNavigateToTab("salaryslips");
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: THEME.accent,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: 0,
+                      }}
+                    >
+                      <FileText size={12} />
+                      <span>Manage slips in Salary Slip Tracker →</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: slip.monthly > 0 ? THEME.sage : THEME.muted }}>
+                ₹{Math.round(slip.monthly).toLocaleString("en-IN")}
+              </div>
+              <span style={{ fontSize: 10, color: THEME.muted }}>/mo net</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Option 4: Income Ledger */}
+        <div
+          onClick={() => setSource("ledger")}
+          style={{
+            border: `1.5px solid ${source === "ledger" ? THEME.accent : THEME.line}`,
+            background: source === "ledger" ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "var(--surface-0)",
+            borderRadius: 10,
+            padding: "14px 16px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <input
+                type="radio"
+                name="salarySource"
+                checked={source === "ledger"}
+                onChange={() => setSource("ledger")}
+                style={{ cursor: "pointer", accentColor: THEME.accent, marginTop: 3 }}
+              />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  Income Ledger Entries (Priority 3)
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  {ledger.entries.length > 0
+                    ? `${ledger.entries.length} manual entry(ies) in income ledger`
+                    : "No manual salary entries logged in income ledger"}
+                </div>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: ledger.monthly > 0 ? THEME.sage : THEME.muted }}>
+                ₹{Math.round(ledger.monthly).toLocaleString("en-IN")}
+              </div>
+              <span style={{ fontSize: 10, color: THEME.muted }}>/mo avg</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Option 5: Custom Amount */}
+        <div
+          onClick={() => setSource("custom")}
+          style={{
+            border: `1.5px solid ${source === "custom" ? THEME.accent : THEME.line}`,
+            background: source === "custom" ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "var(--surface-0)",
+            borderRadius: 10,
+            padding: "14px 16px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <input
+              type="radio"
+              name="salarySource"
+              checked={source === "custom"}
+              onChange={() => setSource("custom")}
+              style={{ cursor: "pointer", accentColor: THEME.accent }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                Custom Monthly Take-Home Pay
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                Enter your exact expected recurring monthly net salary for this forecast.
+              </div>
+              {source === "custom" && (
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>₹</span>
+                  <input
+                    type="number"
+                    value={customVal}
+                    onChange={(e) => setCustomVal(e.target.value)}
+                    placeholder="e.g. 161210"
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 6,
+                      border: `1px solid ${THEME.line}`,
+                      background: "var(--surface-0)",
+                      color: THEME.ink,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      width: 180,
+                    }}
+                    autoFocus
+                  />
+                  <span style={{ fontSize: 12, color: THEME.muted }}>/ month in-hand</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+export const CashFlowTab = ({
+  state,
+  metrics,
+  onNavigateToTab,
+}: {
+  state: any;
+  metrics: any;
+  onNavigateToTab?: (tab: string) => void;
+}) => {
   const { privacyMode } = usePrivacy();
   const isDark = state.settings?.darkMode ?? false;
   const [forecastMonths, setForecastMonths] = useState<3 | 6>(6);
@@ -229,76 +661,192 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
   const months = useMemo(() => getFutureMonths(forecastMonths), [forecastMonths]);
 
+  // User salary sourcing preference: "auto" | "bank" | "slip" | "ledger" | "custom"
+  const [salaryPref, setSalaryPref] = useState<{
+    source: "auto" | "bank" | "slip" | "ledger" | "custom";
+    customAmount?: number;
+  }>(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("arthadrishti_cf_salary_pref") : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { source: "auto" };
+  });
+
+  const [salaryModalOpen, setSalaryModalOpen] = useState(false);
+
+  const handleSaveSalaryPref = (pref: any) => {
+    setSalaryPref(pref);
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("arthadrishti_cf_salary_pref", JSON.stringify(pref));
+      }
+    } catch {}
+  };
+
+  // ── SALARY CANDIDATE EVALUATION ───────────────────────────────────────────
+  // Evaluates all available candidates:
+  // 1. Bank transactions (Priority 1: checked first)
+  // 2. Official Salary Slips (Priority 2: verified net pay)
+  // 3. Income Ledger (Priority 3: manual entries)
+  const salaryCandidates = useMemo(() => {
+    // 1. Bank Credit Transactions (Priority 1 per accounting rule)
+    const employerNames = (state.salarySlips || [])
+      .map((s: any) => (s.employer || "").toLowerCase().trim())
+      .filter((e: string) => e.length > 2);
+
+    const salaryTxns = (state.transactions || []).filter((t: any) => {
+      if (t.type !== "credit") return false;
+      const cat = (t.category || "").toLowerCase();
+      const desc = (t.description || "").toLowerCase();
+      if (cat.includes("salary") || desc.includes("salary") || desc.includes("payroll")) return true;
+      if (employerNames.some((emp: string) => desc.includes(emp))) return true;
+      return false;
+    });
+
+    const bankMonthlyMap: Record<string, number> = {};
+    salaryTxns.forEach((t: any) => {
+      if (t.date) {
+        const ym = t.date.slice(0, 7);
+        bankMonthlyMap[ym] = (bankMonthlyMap[ym] || 0) + Number(t.amount || 0);
+      }
+    });
+    const sortedBankYMs = Object.keys(bankMonthlyMap).sort();
+    let bankMonthly = 0;
+    if (sortedBankYMs.length > 0) {
+      const recentYMs = sortedBankYMs.slice(-3);
+      const sum = recentYMs.reduce((s, ym) => s + bankMonthlyMap[ym], 0);
+      bankMonthly = sum / recentYMs.length;
+    }
+
+    // 2. Official Salary Slips from Salary Tracker (Priority 2)
+    const ownerLatestSlip = new Map<string, any>();
+    (state.salarySlips || []).forEach((sl: any) => {
+      const ownerKey = sl.owner || "self";
+      const current = ownerLatestSlip.get(ownerKey);
+      if (!current || (sl.slipMonth || "").localeCompare(current.slipMonth || "") > 0) {
+        ownerLatestSlip.set(ownerKey, sl);
+      }
+    });
+    const slipDetails = Array.from(ownerLatestSlip.values());
+    const slipMonthly = slipDetails.reduce((sum, sl) => sum + Number(sl.netSalary || 0), 0);
+
+    // 3. Manual Income Ledger Entries (Priority 3)
+    const salaryEntries = (state.income || []).filter(
+      (i: any) =>
+        (i.source || i.category || "").toLowerCase().includes("salary") ||
+        (i.note || "").toLowerCase().includes("salary")
+    );
+    const ledgerMonthlyMap: Record<string, number> = {};
+    salaryEntries.forEach((i: any) => {
+      if (i.date) {
+        const ym = i.date.slice(0, 7);
+        ledgerMonthlyMap[ym] = (ledgerMonthlyMap[ym] || 0) + Number(i.amount || 0);
+      }
+    });
+    const sortedLedgerYMs = Object.keys(ledgerMonthlyMap).sort();
+    let ledgerMonthly = 0;
+    if (sortedLedgerYMs.length > 0) {
+      const recentYMs = sortedLedgerYMs.slice(-3);
+      const sum = recentYMs.reduce((s, ym) => s + ledgerMonthlyMap[ym], 0);
+      ledgerMonthly = sum / recentYMs.length;
+    }
+
+    return {
+      bank: {
+        monthly: bankMonthly,
+        txns: salaryTxns,
+        recentMonths: sortedBankYMs.slice(-3),
+      },
+      slip: {
+        monthly: slipMonthly,
+        slips: slipDetails,
+      },
+      ledger: {
+        monthly: ledgerMonthly,
+        entries: salaryEntries,
+        recentMonths: sortedLedgerYMs.slice(-3),
+      },
+    };
+  }, [state.transactions, state.salarySlips, state.income]);
+
+  // Determine active effective salary based on priority:
+  // Priority 1: Bank Transactions -> Priority 2: Salary Slips -> Priority 3: Income Ledger
+  const effectiveSalaryInfo = useMemo(() => {
+    const { bank, slip, ledger } = salaryCandidates;
+    const pref = salaryPref.source;
+
+    let activeSource: "bank" | "slip" | "ledger" | "custom" = "bank";
+    let activeAmount = 0;
+    let label = "";
+
+    if (pref === "custom") {
+      activeSource = "custom";
+      activeAmount = Number(salaryPref.customAmount || 0);
+      label = "Custom Monthly Override";
+    } else if (pref === "bank") {
+      activeSource = "bank";
+      activeAmount = bank.monthly;
+      label = "From Bank Transactions";
+    } else if (pref === "slip") {
+      activeSource = "slip";
+      activeAmount = slip.monthly;
+      const emp = slip.slips[0]?.employer;
+      label = `From Salary Slips${emp ? ` (${emp})` : ""}`;
+    } else if (pref === "ledger") {
+      activeSource = "ledger";
+      activeAmount = ledger.monthly;
+      label = "From Income Ledger";
+    } else {
+      // "auto": Rule: first check from bank, then from salary slip, then income ledger
+      if (bank.monthly > 0) {
+        activeSource = "bank";
+        activeAmount = bank.monthly;
+        label = "From Bank Transactions";
+      } else if (slip.monthly > 0) {
+        activeSource = "slip";
+        activeAmount = slip.monthly;
+        const emp = slip.slips[0]?.employer;
+        label = `From Salary Slips${emp ? ` (${emp})` : ""}`;
+      } else if (ledger.monthly > 0) {
+        activeSource = "ledger";
+        activeAmount = ledger.monthly;
+        label = "From Income Ledger";
+      }
+    }
+
+    return {
+      amount: activeAmount,
+      source: activeSource,
+      label,
+      isOverridden: pref !== "auto",
+    };
+  }, [salaryCandidates, salaryPref]);
+
   // ── INCOME SOURCES ─────────────────────────────────────────────────────────
 
   const inflows = useMemo(() => {
-    const sources: { name: string; monthly: number; icon: any; category: string }[] = [];
+    const sources: {
+      name: string;
+      monthly: number;
+      icon: any;
+      category: string;
+      sourceLabel?: string;
+      sourceType?: string;
+      isOverridden?: boolean;
+    }[] = [];
 
-    // 1. Primary / Salary Income from Bank & Income Ledger:
-    let salaryMonthly = 0;
-    const salaryEntries = (state.income || []).filter((i: any) =>
-      (i.source || i.category || "").toLowerCase().includes("salary")
-    );
-
-    if (salaryEntries.length > 0) {
-      // Group by month to get the recurring monthly salary from the income ledger
-      const monthlyMap: Record<string, number> = {};
-      salaryEntries.forEach((i: any) => {
-        if (i.date) {
-          const ym = i.date.slice(0, 7);
-          monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(i.amount || 0);
-        }
+    // 1. Primary / Salary Income:
+    if (effectiveSalaryInfo.amount > 0) {
+      sources.push({
+        name: "Salary",
+        monthly: effectiveSalaryInfo.amount,
+        icon: Wallet,
+        category: "Salary",
+        sourceLabel: effectiveSalaryInfo.label,
+        sourceType: effectiveSalaryInfo.source,
+        isOverridden: effectiveSalaryInfo.isOverridden,
       });
-      const sortedYMs = Object.keys(monthlyMap).sort();
-      if (sortedYMs.length > 0) {
-        const recentYMs = sortedYMs.slice(-3);
-        const sum = recentYMs.reduce((s, ym) => s + monthlyMap[ym], 0);
-        salaryMonthly = sum / recentYMs.length;
-      }
-    }
-
-    // Fallback to bank credit transactions categorized as Salary if income ledger is empty
-    if (salaryMonthly <= 0) {
-      const salaryTxns = (state.transactions || []).filter(
-        (t: any) =>
-          t.type === "credit" &&
-          (t.category || "").toLowerCase().includes("salary")
-      );
-      if (salaryTxns.length > 0) {
-        const monthlyMap: Record<string, number> = {};
-        salaryTxns.forEach((t: any) => {
-          if (t.date) {
-            const ym = t.date.slice(0, 7);
-            monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(t.amount || 0);
-          }
-        });
-        const sortedYMs = Object.keys(monthlyMap).sort();
-        if (sortedYMs.length > 0) {
-          const recentYMs = sortedYMs.slice(-3);
-          const sum = recentYMs.reduce((s, ym) => s + monthlyMap[ym], 0);
-          salaryMonthly = sum / recentYMs.length;
-        }
-      }
-    }
-
-    // If still no salary in ledger/transactions, check salary slips
-    if (salaryMonthly <= 0 && (state.salarySlips || []).length > 0) {
-      const ownerLatestSlip = new Map<string, any>();
-      state.salarySlips.forEach((sl: any) => {
-        const ownerKey = sl.owner || "self";
-        const current = ownerLatestSlip.get(ownerKey);
-        if (!current || (sl.slipMonth || "").localeCompare(current.slipMonth || "") > 0) {
-          ownerLatestSlip.set(ownerKey, sl);
-        }
-      });
-      salaryMonthly = Array.from(ownerLatestSlip.values()).reduce(
-        (sum, sl) => sum + Number(sl.netSalary || 0),
-        0
-      );
-    }
-
-    if (salaryMonthly > 0) {
-      sources.push({ name: "Salary", monthly: salaryMonthly, icon: Wallet, category: "Salary" });
     }
 
     // 2. Rental Income (Active Landlord Properties)
@@ -1486,6 +2034,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                     const Icon = item.icon;
                     const pctOfTotal =
                       totalMonthlyInflow > 0 ? (item.monthly / totalMonthlyInflow) * 100 : 0;
+                    const isSalaryItem = item.category === "Salary";
                     return (
                       <div
                         key={idx}
@@ -1503,12 +2052,37 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           <div style={{ display: "flex", alignItems: "center", color: THEME.sage, flexShrink: 0 }}>
                             <Icon size={18} />
                           </div>
-                          <div style={{ display: "flex", flexDirection: "column" }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                              {item.name}
-                            </span>
-                            <span style={{ fontSize: 10, color: THEME.muted }}>
-                              {item.category} • {pctOfTotal.toFixed(0)}% of total
+                          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                                {item.name}
+                              </span>
+                              {isSalaryItem && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSalaryModalOpen(true)}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    padding: "2px 7px",
+                                    borderRadius: 12,
+                                    background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                                    color: THEME.sage,
+                                    border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                                    cursor: "pointer",
+                                  }}
+                                  title="Configure salary source"
+                                >
+                                  <Sliders size={10} />
+                                  <span>Adjust Source</span>
+                                </button>
+                              )}
+                            </div>
+                            <span style={{ fontSize: 10, color: THEME.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {item.sourceLabel ? `${item.sourceLabel} • ` : ""}{item.category} • {pctOfTotal.toFixed(0)}% of total
                             </span>
                           </div>
                         </div>
@@ -1544,6 +2118,40 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                             {forecastMonths}-mo Total
                           </span>
                         </div>
+
+                        {/* Quick switch banner if Bank is active with low amount but Salary Slips exist */}
+                        {isSalaryItem &&
+                          salaryCandidates.slip.monthly > 0 &&
+                          effectiveSalaryInfo.source === "bank" &&
+                          effectiveSalaryInfo.amount < salaryCandidates.slip.monthly && (
+                            <div
+                              onClick={() => setSalaryModalOpen(true)}
+                              style={{
+                                gridColumn: "1 / -1",
+                                marginTop: 8,
+                                padding: "7px 12px",
+                                borderRadius: 8,
+                                background: `color-mix(in srgb, ${THEME.gold || "#f59e0b"} 10%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${THEME.gold || "#f59e0b"} 25%, transparent)`,
+                                fontSize: 11,
+                                color: THEME.ink,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <Info size={13} style={{ color: THEME.gold || "#f59e0b", flexShrink: 0 }} />
+                                <span>
+                                  Bank credit reflects <strong>₹{Math.round(effectiveSalaryInfo.amount).toLocaleString("en-IN")}</strong>/mo. Official Salary Slips have take-home of <strong>₹{Math.round(salaryCandidates.slip.monthly).toLocaleString("en-IN")}</strong>/mo.
+                                </span>
+                              </div>
+                              <span style={{ color: THEME.accent, fontWeight: 700, fontSize: 11, textDecoration: "underline" }}>
+                                Switch to Salary Slips
+                              </span>
+                            </div>
+                          )}
                       </div>
                     );
                   })}
@@ -2027,6 +2635,17 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           </div>
         )}
       </Card>
+
+      {/* Salary Sourcing & Breakdown Modal */}
+      <SalarySourcingModal
+        isOpen={salaryModalOpen}
+        onClose={() => setSalaryModalOpen(false)}
+        salaryCandidates={salaryCandidates}
+        effectiveSalaryInfo={effectiveSalaryInfo}
+        salaryPref={salaryPref}
+        onSavePref={handleSaveSalaryPref}
+        onNavigateToTab={onNavigateToTab}
+      />
     </div>
   );
 };

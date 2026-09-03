@@ -4129,7 +4129,13 @@ function FinanceDashboard() {
                 />
               )}
               {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}
-              {tab === "cashflow" && <CashFlowTab state={filteredState} metrics={metrics} />}
+              {tab === "cashflow" && (
+                <CashFlowTab
+                  state={filteredState}
+                  metrics={metrics}
+                  onNavigateToTab={setTab}
+                />
+              )}
               {(tab === "calendar" || tab === "paycal") && (
                 <CalendarTab
                   state={filteredState}
