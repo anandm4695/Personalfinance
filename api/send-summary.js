@@ -45,8 +45,6 @@ function getEffectiveFromEmail(userFromEmail) {
 }
 
 // ── Supabase admin client (service role bypasses RLS) ─────────────────────────
-// VITE_ prefix is Vercel-set for the frontend build; API routes also see it.
-// SUPABASE_URL is the conventional non-prefixed fallback for pure server use.
 function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -58,9 +56,6 @@ function getSupabase() {
 }
 
 // ── Last-send status tracking ─────────────────────────────────────────────────
-// Surfaced in Settings → Email Reports so a silently-failing cron (bad Resend
-// domain, expired key, etc.) doesn't go unnoticed for weeks — the user previously
-// had no way to tell an automated send ever ran without checking their inbox.
 async function recordSendResult(supabase, userId, status, errorMsg) {
   try {
     await supabase.from("user_settings").upsert({
@@ -75,15 +70,6 @@ async function recordSendResult(supabase, userId, status, errorMsg) {
 }
 
 // ── Manual-send auth check ────────────────────────────────────────────────────
-// The manual POST path (used by the Settings "Send Test" button and the Monthly
-// Report modal) used to have NO auth check at all: anyone who found this URL
-// could POST { state, emailTo, ... } and have an email sent to any address using
-// data they supplied themselves. This app has exactly one real user, and the
-// frontend already holds a live Supabase session (see src/supabaseClient.ts),
-// so we require the caller to prove they hold a valid Supabase access token for
-// that account — the same JWT the browser already has from signing in. This is
-// stronger than a shared secret (which would need to be embedded in client JS,
-// where anyone can read it) and doesn't require introducing a brand-new secret.
 async function verifyManualAuth(req) {
   const authHeader = req.headers["authorization"] || "";
   const match = /^Bearer\s+(.+)$/i.exec(authHeader);
@@ -117,7 +103,6 @@ function istDate() {
 
 function istDaysInCurrentMonth() {
   const d = nowIST();
-  // Day 0 of next month == last day of current month
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
 }
 
@@ -159,24 +144,46 @@ function rdMaturity(monthly, rate, months) {
   return total;
 }
 
+// ── Premium annualization & next-anniversary helper ────────────────────────────
+const PREMIUM_FREQ_MULT = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1, yearly: 1 };
+function annualizePremium(premium, frequency, preAnnualized) {
+  if (preAnnualized && Number(preAnnualized) > 0) return Number(preAnnualized);
+  const freq = (frequency || "annual").toLowerCase().replace("-", "_");
+  return Number(premium || 0) * (PREMIUM_FREQ_MULT[freq] || 1);
+}
+
+function nextAnnualOccurrence(startDate, refDate) {
+  if (!startDate) return refDate || today();
+  const parts = startDate.slice(0, 10).split("-").map(Number);
+  const m = parts[1];
+  const d = parts[2];
+  const refParts = (refDate || today()).split("-").map(Number);
+  const refY = refParts[0];
+  const clampedDateStr = (y) => {
+    const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const day = Math.min(d, lastDay);
+    return `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  };
+  let occ = clampedDateStr(refY);
+  if (occ < (refDate || today())) occ = clampedDateStr(refY + 1);
+  return occ;
+}
+
 // ── Number formatters ─────────────────────────────────────────────────────────
 function fmtINR(n) {
   const v = Math.abs(Number(n) || 0);
-  if (v >= 1e7) return `₹${(v / 1e7).toFixed(1)}Cr`;
-  if (v >= 1e5) return `₹${(v / 1e5).toFixed(1)}L`;
+  if (v >= 1e7) return `₹${(v / 1e7).toFixed(2)}Cr`;
+  if (v >= 1e5) return `₹${(v / 1e5).toFixed(2)}L`;
   if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
   return `₹${Math.round(v).toLocaleString("en-IN")}`;
 }
+
 function fmtINRFull(n) {
   return `₹${Math.round(Math.abs(Number(n) || 0)).toLocaleString("en-IN")}`;
 }
-function sign(n) {
-  return n >= 0 ? "+" : "-";
-}
 
 // Rounds each amount's share of `total` to a whole percent using the largest-remainder
-// method, so the results always sum to 100 (unlike rounding each share independently,
-// which can drift to 99 or 101 once there are more than a couple of categories).
+// method, so the results always sum to 100.
 function largestRemainderRound(amounts, total) {
   if (!(total > 0) || amounts.length === 0) return amounts.map(() => 0);
   const raw = amounts.map((a) => (a / total) * 100);
@@ -191,10 +198,6 @@ function largestRemainderRound(amounts, total) {
 }
 
 // ── HTML escaping ──────────────────────────────────────────────────────────────
-// Every user-entered string (issuer names, goal names, category labels, alert
-// text, recipient name, subscription/lender/property labels, etc.) is inserted
-// into the email HTML template below. Without escaping, a caller of the manual
-// POST endpoint could inject arbitrary HTML/script into the generated email.
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -214,7 +217,7 @@ function dateLabel(iso) {
 
 function weekRange() {
   const ist = nowIST();
-  const day = ist.getUTCDay(); // 0=Sun
+  const day = ist.getUTCDay();
   const mon = new Date(ist);
   mon.setUTCDate(ist.getUTCDate() - ((day + 6) % 7));
   const sun = new Date(mon);
@@ -227,11 +230,6 @@ function monthLabel() {
 }
 
 // ── Escalation-aware rent ────────────────────────────────────────────────────
-// Mirrors src/utils/finance.ts's getEffectiveRent (this backend can't import
-// that TS module, so the tier-walk logic is duplicated here). Without this,
-// the "upcoming dues" rent line used the flat monthlyRent field, which goes
-// stale the moment a rented-in property's lease escalates to its next tier —
-// same class of bug fixed across 6+ other tabs (Emergency Fund, Section 80, etc).
 function getEffectiveRent(p, yearMonth) {
   const tiers = p.escalationTiers;
   if (!tiers || !tiers.length || !p.agreementStart) return Number(p.monthlyRent || 0);
@@ -271,8 +269,6 @@ function computeSummary(state) {
       return Number(e.balance || 0);
     }
 
-    // Establishments whose balance has been transferred out via Form 13 (transfer_in recorded).
-    // Their individual transactions must NOT be summed — the transfer_in amount already captures them.
     const transferredOutEstIds = new Set(
       txs
         .filter((x) => x.type === "transfer_in" && x.fromEmployer)
@@ -283,14 +279,13 @@ function computeSummary(state) {
         .filter(Boolean)
     );
 
-    // activeTxs = everything except transactions explicitly tagged to transferred-out establishments
     const activeTxs = txs.filter((t) => !t.estId || !transferredOutEstIds.has(t.estId));
 
     const byType = (type) =>
       activeTxs.filter((x) => x.type === type).reduce((s, x) => s + Number(x.amount || 0), 0);
     const monthlyRows = activeTxs.filter((x) => x.type === "monthly_contribution");
     const interestRows = activeTxs.filter((x) => x.type === "interest_credit");
-    const transferRows = txs.filter((x) => x.type === "transfer_in"); // all txs — all transfer_ins count
+    const transferRows = txs.filter((x) => x.type === "transfer_in");
 
     const totalEmployee =
       byType("employee_contribution") +
@@ -299,27 +294,15 @@ function computeSummary(state) {
       byType("employer_contribution") +
       monthlyRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
     const totalPension = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
-    const totalInterest = interestRows.reduce((s, x) => {
-      if (x.employeeShare !== undefined || x.employerShare !== undefined)
-        return (
-          s +
-          Number(x.employeeShare || 0) +
-          Number(x.employerShare || 0) +
-          Number(x.pensionShare || 0)
-        );
-      return s + Number(x.amount || 0);
-    }, 0);
     const totalTransferIn = transferRows.reduce((s, x) => s + Number(x.amount || 0), 0);
     const totalWithdrawal = byType("withdrawal");
 
-    // Compute closing balances per EPFO passbook column
     const empInterest = interestRows.reduce((s, x) => {
       if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
-      return s + Number(x.amount || 0); // backward compat: old single-amount interest → employee
+      return s + Number(x.amount || 0);
     }, 0);
     const erInterest = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
     const penInterest = interestRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
-    // employee gets remainder: total - er - pen (handles partial splits and no-splits correctly)
     const transferInEr = transferRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
     const transferInPen = transferRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
     const transferInEmp = totalTransferIn - transferInEr - transferInPen;
@@ -332,7 +315,7 @@ function computeSummary(state) {
     return closingTotal;
   };
 
-  // ── Net worth ──────────────────────────────────────────────────────────────
+  // ── Net worth: Assets ──────────────────────────────────────────────────────
   const bankTotal = (state.bankAccounts || []).reduce((s, b) => s + (Number(b.balance) || 0), 0);
   const mfTotal = (state.mutualFunds || []).reduce((s, m) => {
     const liveNav = Number(m.currentNav || 0);
@@ -391,8 +374,7 @@ function computeSummary(state) {
     licTotal +
     investmentTotalPlans;
 
-  // Gold & SGBs — uses gold price stored in user_settings (synced from the app's Gold tab)
-  // Falls back to 7200/gram (same default as the dashboard) if not set.
+  // Gold & SGBs
   const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
   const goldPricePerGram = state.settings?.goldPricePerGram || state.goldPricePerGram || 7200;
   const goldTotal = (state.goldHoldings || []).reduce((s, h) => {
@@ -428,12 +410,14 @@ function computeSummary(state) {
     return s + Math.max(0, actualDeposit - returned);
   }, 0);
 
+  // Accounting bug fix: fallback to person.amount when no individual tranches/payments recorded
   const informalLentTotal = (state.informalLent || []).reduce((s, person) => {
     const tranches = person.tranches || [];
     const payments = person.payments || [];
     const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
     const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    return s + Math.max(0, totalT - totalP);
+    const net = totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
+    return s + net;
   }, 0);
 
   const rentalPropertiesAsset = (state.rentalProperties || []).reduce(
@@ -446,10 +430,6 @@ function computeSummary(state) {
     0
   );
 
-  // Sentinel owner id for a co-owner who isn't one of this household's tracked
-  // family profiles (e.g. a parent on the property papers) — see EXTERNAL_OWNER_ID
-  // in RealEstateTab.tsx / useMetrics.ts. Only the tracked share counts toward
-  // this household's net worth.
   const REALTY_EXTERNAL_OWNER_ID = "external";
   const realEstateTrackedShare = (property) => {
     if (Array.isArray(property.owners) && property.owners.length > 0) {
@@ -487,11 +467,12 @@ function computeSummary(state) {
     vehicleAsset +
     govtSchemesTotal;
 
+  // ── Net worth: Liabilities ─────────────────────────────────────────────────
   const activeCards = (state.creditCards || []).filter(
     (c) => (c.status || "active").toLowerCase() !== "closed"
   );
   const creditOutstanding = activeCards.reduce((s, c) => s + (Number(c.outstanding) || 0), 0);
-  // Shared-pool deduplication: cards sharing a pool (sharedGroup) count only the pool's max limit
+
   const ccGroupPools = {};
   activeCards.forEach((c) => {
     if (c.sharedGroup) {
@@ -523,28 +504,29 @@ function computeSummary(state) {
     return s + Math.max(0, actualDeposit - deducted - returned);
   }, 0);
 
+  // Accounting bug fix: fallback to person.amount when no individual tranches/payments recorded
   const informalBorrowedTotal = (state.informalBorrowed || []).reduce((s, person) => {
     const tranches = person.tranches || [];
     const payments = person.payments || [];
     const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
     const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    return s + Math.max(0, totalT - totalP);
+    const net = totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
+    return s + net;
   }, 0);
 
-  const realEstateOutstanding = (() => {
-    const ucIds = new Set(
-      (state.realEstateProperties || [])
-        .filter((p) => p.status === "under-construction")
-        .map((p) => p.id)
-    );
-    const demanded = (state.realEstateDemands || [])
-      .filter((d) => ucIds.has(d.propertyId))
-      .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
-    const paid = (state.realEstatePayments || [])
-      .filter((p) => ucIds.has(p.propertyId))
-      .reduce((s, p) => s + Number(p.amount || 0), 0);
-    return Math.max(0, demanded - paid);
-  })();
+  // Accounting bug fix: compute per-property with ownership share, matching useMetrics.ts
+  const realEstateOutstanding = (state.realEstateProperties || [])
+    .filter((p) => p.status === "under-construction")
+    .reduce((total, p) => {
+      const share = realEstateTrackedShare(p);
+      const demanded = (state.realEstateDemands || [])
+        .filter((d) => d.propertyId === p.id)
+        .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
+      const paid = (state.realEstatePayments || [])
+        .filter((pm) => pm.propertyId === p.id)
+        .reduce((s, pm) => s + Number(pm.amount || 0), 0);
+      return total + Math.max(0, demanded - paid) * share;
+    }, 0);
 
   const totalLiabilities =
     creditOutstanding +
@@ -554,15 +536,10 @@ function computeSummary(state) {
     realEstateOutstanding;
   const netWorth = totalAssets - totalLiabilities;
 
-  // ── Cash flow (current month) ──────────────────────────────────────────────
+  // ── Cash flow (current month MTD) ──────────────────────────────────────────
   const monthTxns = (state.transactions || []).filter((t) => t.date && t.date.startsWith(curYm));
-
   const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat);
 
-  // Rent received via the Rental Properties ledger (landlord side) — mirrors
-  // rentPaidThisMonth's ledger-only inclusion below, just on the income side. Without
-  // this, a manually-logged receipt (no linked bank transaction) never appeared in the
-  // daily email's Income figure even though it's counted on the Dashboard/Monthly Report.
   const rentReceivedThisMonth = (state.rentalProperties || []).reduce((sum, p) => {
     const receiptsThisMonth = (p.receipts || [])
       .filter((r) => r.date && r.date.startsWith(curYm))
@@ -591,8 +568,6 @@ function computeSummary(state) {
     return sum + paymentsThisMonth;
   }, 0);
 
-  // Only add rental-ledger rent when no "Rent"-category debit txn exists this month —
-  // prevents double-counting when the user already logged rent in the transactions tab.
   const hasRentTxn = monthTxns.some(
     (t) => t.type === "debit" && (t.category || "").toLowerCase() === "rent"
   );
@@ -606,6 +581,25 @@ function computeSummary(state) {
 
   const netSavings = monthIncome - monthExpense;
   const savingsPct = monthIncome > 0 ? Math.round((netSavings / monthIncome) * 100) : 0;
+
+  // ── Yesterday's spending pulse ─────────────────────────────────────────────
+  const yestDate = new Date(now);
+  yestDate.setUTCDate(now.getUTCDate() - 1);
+  const yestYmStr = `${yestDate.getUTCFullYear()}-${String(yestDate.getUTCMonth() + 1).padStart(2, "0")}-${String(yestDate.getUTCDate()).padStart(2, "0")}`;
+  const yesterdayDebits = (state.transactions || []).filter(
+    (t) =>
+      t.date === yestYmStr &&
+      t.type === "debit" &&
+      !isTransferCat(t.category) &&
+      t.category !== "Investment"
+  );
+  const yesterdaySpend = yesterdayDebits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+  const yesterdayCount = yesterdayDebits.length;
+
+  // ── MTD Pacing ─────────────────────────────────────────────────────────────
+  const dayOfMonth = istDate();
+  const totalDaysInMonth = istDaysInCurrentMonth();
+  const monthElapsedPct = Math.min(100, Math.round((dayOfMonth / totalDaysInMonth) * 100));
 
   // ── Top spending categories this month ────────────────────────────────────
   const catMap = {};
@@ -641,11 +635,7 @@ function computeSummary(state) {
       } else {
         const prior = list
           .filter((b) => b.budgetMonth && b.budgetMonth < curYm)
-          .sort((a, b) => {
-            const mA = a.budgetMonth || "";
-            const mB = b.budgetMonth || "";
-            return mB.localeCompare(mA);
-          });
+          .sort((a, b) => (b.budgetMonth || "").localeCompare(a.budgetMonth || ""));
         if (prior.length > 0) {
           filteredBudgets.push(prior[0]);
         } else if (list.length > 0) {
@@ -664,7 +654,56 @@ function computeSummary(state) {
     })
     .sort((a, b) => b.pct - a.pct);
 
-  // ── Upcoming dues (next 7 days) ───────────────────────────────────────────
+  const totalBudgetLimit = filteredBudgets
+    .filter((b) => !isTransferCat(b.category) && b.category !== "Investment")
+    .reduce((s, b) => s + Number(b.monthly || 0), 0);
+  const totalBudgetSpent = filteredBudgets
+    .filter((b) => !isTransferCat(b.category) && b.category !== "Investment")
+    .reduce((s, b) => s + (catMap[b.category] || 0), 0);
+  const totalBudgetSpentPct =
+    totalBudgetLimit > 0 ? Math.round((totalBudgetSpent / totalBudgetLimit) * 100) : 0;
+
+  // ── Emergency Fund (accurate liquid runway accounting) ─────────────────────
+  const commitEmis = (state.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
+  const commitSips = (state.sips || [])
+    .filter((s) => s.status !== "stopped")
+    .reduce((s, si) => s + Number(si.amount || 0), 0);
+  const commitSubs = (state.subscriptions || [])
+    .filter((s) => !s.paused && s.status !== "cancelled")
+    .reduce((s, sub) => {
+      const amt = Number(sub.amount || 0);
+      const c = (sub.cycle || "monthly").toLowerCase();
+      if (c === "yearly" || c === "annual") return s + amt / 12;
+      if (c === "half-yearly" || c === "semi-annual") return s + amt / 6;
+      if (c === "quarterly") return s + amt / 3;
+      return s + amt;
+    }, 0);
+  const commitRecurring = (state.recurringExpenses || []).reduce(
+    (s, r) => s + Number(r.amount || 0),
+    0
+  );
+  const commitRent = (state.rentedProperties || [])
+    .filter((p) => p.isActive !== false)
+    .reduce((s, p) => s + getEffectiveRent(p, curYm), 0);
+  const commitInsurance = [
+    ...(state.lic || []),
+    ...(state.termPlans || []),
+    ...(state.investmentPlans || []),
+    ...(state.healthInsurance || []),
+  ].reduce((s, p) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium) / 12, 0);
+
+  const bottomUpMonthlyExpense =
+    commitEmis + commitSips + commitSubs + commitRecurring + commitRent + commitInsurance;
+
+  const efMonthlyExpense =
+    totalBudgetLimit > 0
+      ? totalBudgetLimit
+      : bottomUpMonthlyExpense > 0
+        ? bottomUpMonthlyExpense
+        : monthExpense > 0
+          ? monthExpense
+          : 0;
+
   const todayVal = nowIST();
   const todayMs = Date.UTC(
     todayVal.getUTCFullYear(),
@@ -673,9 +712,48 @@ function computeSummary(state) {
   );
   const in7Ms = todayMs + 7 * 86400000;
 
+  // Near-term FDs maturing within 90 days count toward liquid assets
+  const nearTermFDValue = (state.fixedDeposits || []).reduce((sum, fd) => {
+    if (!fd.maturityDate) return sum;
+    const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
+    if (matMs >= todayMs && matMs <= todayMs + 90 * 86400000) {
+      return sum + Number(fd.principal || 0);
+    }
+    return sum;
+  }, 0);
+
+  // Liquid/money-market/overnight MFs
+  const liquidMFValue = (state.mutualFunds || []).reduce((sum, mf) => {
+    const cat = (mf.category || mf.type || "").toLowerCase();
+    if (
+      cat.includes("liquid") ||
+      cat.includes("money market") ||
+      cat.includes("overnight") ||
+      cat.includes("ultra short")
+    ) {
+      const liveNav = Number(mf.currentNav || 0);
+      const nav = liveNav || Number(mf.buyNav || 0) || 0;
+      return sum + (Number(mf.units) || 0) * nav;
+    }
+    return sum;
+  }, 0);
+
+  const efLiquidAssets = bankTotal + nearTermFDValue + liquidMFValue + Math.max(0, prepaidTotal);
+  const efMonthsCovered =
+    efMonthlyExpense > 0 ? Number((efLiquidAssets / efMonthlyExpense).toFixed(1)) : 0;
+  const efStatus =
+    efMonthsCovered >= 12
+      ? { label: "Excellent", color: "#059669" }
+      : efMonthsCovered >= 6
+        ? { label: "Healthy", color: "#059669" }
+        : efMonthsCovered >= 3
+          ? { label: "Needs Improvement", color: "#d97706" }
+          : { label: "Critical", color: "#dc2626" };
+
+  // ── Upcoming dues (next 7 days) — Enriched ─────────────────────────────────
   const dues = [];
 
-  // Subscriptions — app stores renewal date as renewalDate
+  // 1. Subscriptions
   (state.subscriptions || [])
     .filter((s) => !s.paused && s.status !== "cancelled")
     .forEach((s) => {
@@ -683,11 +761,17 @@ function computeSummary(state) {
       next.setUTCHours(0, 0, 0, 0);
       const nextMs = next.getTime();
       if (nextMs >= todayMs && nextMs <= in7Ms) {
-        dues.push({ date: next, label: s.name, amount: Number(s.amount) || 0, type: "sub" });
+        dues.push({
+          date: next,
+          label: s.name || s.provider || "Subscription",
+          amount: Number(s.amount) || 0,
+          type: "sub",
+          category: "Subscription",
+        });
       }
     });
 
-  // Rent dues for rented properties
+  // 2. Rent dues for rented properties
   (state.rentedProperties || []).forEach((p) => {
     const dueDay = Number(p.dueDay || 5);
     const paidCurrent = (p.payments || []).some((pay) => pay.date && pay.date.startsWith(curYm));
@@ -698,12 +782,13 @@ function computeSummary(state) {
           date: d,
           label: `${p.propertyName || "Rent"}`,
           amount: getEffectiveRent(p, curYm),
-          type: "emi",
+          type: "rent",
+          category: "Rent",
         });
     }
   });
 
-  // Credit card due dates
+  // 3. Credit card statement dues
   activeCards.forEach((c) => {
     if (!c.dueDay || !Number(c.outstanding)) return;
     const d = new Date(
@@ -713,14 +798,15 @@ function computeSummary(state) {
     if (d.getTime() >= todayMs && d.getTime() <= in7Ms) {
       dues.push({
         date: d,
-        label: `${c.issuer} CC Bill`,
+        label: `${c.issuer || c.name || "Credit Card"} Bill`,
         amount: Number(c.outstanding) || 0,
         type: "cc",
+        category: "Credit Card",
       });
     }
   });
 
-  // Credit card annual fees due in the next 7 days
+  // 4. Credit card annual fees
   activeCards.forEach((c) => {
     if (!Number(c.annualFee) || !c.feeMonth) return;
     const fMonth = Number(c.feeMonth) - 1;
@@ -735,28 +821,118 @@ function computeSummary(state) {
         label: `${c.issuer || "Card"} Annual Fee`,
         amount: Number(c.annualFee),
         type: "cc",
+        category: "Credit Card Fee",
       });
     }
   });
 
-  // Loan EMI dates
+  // 5. Loan EMI dates
   (state.loansTaken || []).forEach((l) => {
-    if (!l.emiDate && !l.dueDay) return;
-    const day = Number(l.emiDate || l.dueDay);
+    if (!l.emiDate && !l.dueDay && !l.emi) return;
+    const day = Number(l.emiDate || l.dueDay || 5);
     if (!day) return;
     const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), day));
     if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
     if (d.getTime() >= todayMs && d.getTime() <= in7Ms) {
       dues.push({
         date: d,
-        label: `${l.lender || "Loan"} EMI`,
+        label: `${l.lender || l.lenderBorrower || "Loan"} EMI`,
         amount: Number(l.emi) || 0,
         type: "emi",
+        category: "Loan EMI",
       });
     }
   });
 
-  // Reminders
+  // 6. SIP instalments (Enriched)
+  (state.sips || [])
+    .filter((s) => s.status !== "stopped")
+    .forEach((s) => {
+      const amt = Number(s.amount || 0);
+      if (amt <= 0) return;
+      const dueDay = s.startDate
+        ? new Date(s.startDate + "T00:00:00").getUTCDate()
+        : Number(s.dayOfMonth || s.dueDay || 5);
+      const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), dueDay));
+      if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
+      if (d.getTime() >= todayMs && d.getTime() <= in7Ms) {
+        dues.push({
+          date: d,
+          label: `${s.scheme || s.fundName || "Mutual Fund"} SIP`,
+          amount: amt,
+          type: "sip",
+          category: "SIP Investment",
+        });
+      }
+    });
+
+  // 7. Insurance premium renewals (LIC, Term, Investment, Health) (Enriched)
+  const addInsuranceDue = (policies, defaultLabel) => {
+    (policies || []).forEach((p) => {
+      const premium = annualizePremium(p.premium, p.premiumFrequency, p.annualPremium);
+      if (!premium) return;
+      const startDate = p.commencementDate || p.startDate || p.renewalDate;
+      if (!startDate) return;
+      const expiry = p.maturityDate || p.expiryDate;
+      if (expiry && expiry < today()) return;
+      const nextDueStr = nextAnnualOccurrence(startDate, today());
+      const d = new Date(nextDueStr + "T00:00:00");
+      if (d.getTime() >= todayMs && d.getTime() <= in7Ms) {
+        dues.push({
+          date: d,
+          label: `${p.planName || p.insurer || p.policyName || defaultLabel} Premium`,
+          amount: premium,
+          type: "insurance",
+          category: "Insurance",
+        });
+      }
+    });
+  };
+  addInsuranceDue(state.lic, "LIC Policy");
+  addInsuranceDue(state.termPlans, "Term Insurance");
+  addInsuranceDue(state.investmentPlans, "Investment Plan");
+  addInsuranceDue(state.healthInsurance, "Health Policy");
+
+  // 8. Real Estate builder demand letters (Enriched)
+  (state.realEstateDemands || []).forEach((d) => {
+    if (d.status === "paid" || !d.dueDate) return;
+    const dueDate = new Date(d.dueDate + "T00:00:00");
+    if (dueDate.getTime() >= todayMs && dueDate.getTime() <= in7Ms) {
+      const totalAmt = Number(d.totalAmount || d.amount || 0);
+      const paid = (state.realEstatePayments || [])
+        .filter((pm) => pm.demandId === d.id)
+        .reduce((s, p) => s + Number(p.amount || 0), 0);
+      const remaining = Math.max(0, totalAmt - paid);
+      if (remaining > 0) {
+        const prop = (state.realEstateProperties || []).find((p) => p.id === d.propertyId);
+        dues.push({
+          date: dueDate,
+          label: `${prop?.name || "Property"} ${d.milestone || "Demand"}`,
+          amount: remaining,
+          type: "demand",
+          category: "Builder Demand",
+        });
+      }
+    }
+  });
+
+  // 9. Recurring expenses & Bill payments (Enriched)
+  (state.recurringExpenses || []).forEach((r) => {
+    if (!r.amount || !r.dueDay) return;
+    const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), Number(r.dueDay)));
+    if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
+    if (d.getTime() >= todayMs && d.getTime() <= in7Ms) {
+      dues.push({
+        date: d,
+        label: r.name || r.title || "Recurring Expense",
+        amount: Number(r.amount) || 0,
+        type: "bill",
+        category: "Recurring Bill",
+      });
+    }
+  });
+
+  // 10. General Reminders
   (state.reminders || [])
     .filter((r) => !r.done)
     .forEach((r) => {
@@ -769,11 +945,50 @@ function computeSummary(state) {
           label: r.title || r.note || "Reminder",
           amount: Number(r.amount) || 0,
           type: "reminder",
+          category: "Reminder",
         });
       }
     });
 
   dues.sort((a, b) => a.date - b.date);
+
+  // ── Expected Inflows (next 7 days) ─────────────────────────────────────────
+  const inflows = [];
+  (state.rentalProperties || [])
+    .filter((p) => p.isActive !== false)
+    .forEach((p) => {
+      const rentAmt = getEffectiveRent(p, curYm);
+      if (!rentAmt) return;
+      const dueDay = Number(p.dueDay || 1);
+      const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), dueDay));
+      if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
+      const received = (p.receipts || []).some((r) => r.date && r.date.startsWith(curYm));
+      if (!received && d.getTime() >= todayMs && d.getTime() <= in7Ms) {
+        inflows.push({
+          date: d,
+          label: `${p.propertyName || "Rental Property"} Rent`,
+          amount: rentAmt,
+          type: "rent_in",
+        });
+      }
+    });
+
+  (state.loansGiven || []).forEach((l) => {
+    if (!l.dueDate || Number(l.outstanding || 0) <= 0) return;
+    const d = new Date(l.dueDate + "T00:00:00");
+    if (d.getTime() >= todayMs && d.getTime() <= in7Ms) {
+      inflows.push({
+        date: d,
+        label: `${l.borrower || "Borrower"} Repayment`,
+        amount: Number(l.outstanding || 0),
+        type: "loan_in",
+      });
+    }
+  });
+
+  const totalDues7Days = dues.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const totalInflows7Days = inflows.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const liquidityBuffer = bankTotal - totalDues7Days;
 
   // ── Goals ─────────────────────────────────────────────────────────────────
   const goals = (state.goals || []).slice(0, 4).map((g) => {
@@ -783,46 +998,63 @@ function computeSummary(state) {
     return { name: g.name || g.category, pct, current, target };
   });
 
-  // ── Alerts ────────────────────────────────────────────────────────────────
+  // ── Alerts & Smart Insights ────────────────────────────────────────────────
   const alerts = [];
-  if (creditUtil >= 70)
+
+  // Urgent Liquidity Check: Upcoming dues exceed bank balance
+  if (totalDues7Days > bankTotal) {
+    alerts.push({
+      type: "alert",
+      msg: `Upcoming dues in next 7 days (${fmtINR(totalDues7Days)}) exceed your bank cash (${fmtINR(bankTotal)}) by ${fmtINR(totalDues7Days - bankTotal)}. Arrange liquidity.`,
+    });
+  }
+
+  if (creditUtil >= 70) {
     alerts.push({
       type: "warn",
-      msg: `Credit utilization at ${creditUtil}% — consider paying down outstanding`,
+      msg: `High credit card utilization: ${creditUtil}% of combined limit utilized (${fmtINR(creditOutstanding)} of ${fmtINR(creditLimit)}). Pay down to protect credit score.`,
     });
+  }
+
   budgetStatus
     .filter((b) => b.over)
     .forEach((b) =>
       alerts.push({
         type: "warn",
-        msg: `${b.category} budget exceeded: spent ${fmtINR(b.spent)} of ${fmtINR(b.limit)} (${b.pct}%)`,
+        msg: `${b.category} budget exceeded: spent ${fmtINR(b.spent)} of ${fmtINR(b.limit)} (${b.pct}%).`,
       })
     );
-  if (savingsPct < 20 && monthIncome > 0)
-    alerts.push({ type: "info", msg: `Savings rate this month: ${savingsPct}% — aim for 20%+` });
 
-  // No income/expenses logged this month — surface this explicitly so "no alerts" never
-  // gets read as "verified healthy" when it's really "no data yet" (savings-rate and
-  // emergency-fund checks above are both skipped when monthIncome/monthExpense are 0).
-  if (monthIncome === 0 && monthExpense === 0 && now.getUTCDate() >= 10)
-    alerts.push({
-      type: "info",
-      msg: `No income or expenses logged yet this month (day ${now.getUTCDate()}) — log your transactions to get accurate budget and savings insights.`,
-    });
-
-  // Emergency fund check: bank balance < 3 months expenses
-  if (monthExpense > 0 && bankTotal < monthExpense * 3)
+  // Budget burn-rate pacing alert
+  if (totalBudgetLimit > 0 && totalBudgetSpentPct > monthElapsedPct + 20 && dayOfMonth <= 20) {
     alerts.push({
       type: "warn",
-      msg: `Emergency fund low: bank balance (${fmtINR(bankTotal)}) covers only ${Math.round(bankTotal / monthExpense)} month(s) of expenses — aim for 3-6 months`,
+      msg: `Fast spending pace: ${totalBudgetSpentPct}% of overall monthly budget spent with only ${monthElapsedPct}% of the month elapsed (Day ${dayOfMonth} of ${totalDaysInMonth}).`,
     });
+  }
+
+  if (savingsPct < 20 && monthIncome > 0 && dayOfMonth >= 15) {
+    alerts.push({
+      type: "info",
+      msg: `Savings rate MTD is ${savingsPct}%. Target 20%+ by controlling discretionary expenses.`,
+    });
+  }
+
+  // Emergency fund alert based on real liquid assets and standard runway formula
+  if (efMonthsCovered < 3 && efMonthlyExpense > 0) {
+    alerts.push({
+      type: "warn",
+      msg: `Emergency runway is low: liquid assets (${fmtINR(efLiquidAssets)}) cover only ${efMonthsCovered} months of expenses (${fmtINR(efMonthlyExpense)}/mo) — target is 6 months.`,
+    });
+  }
 
   // High debt ratio
-  if (totalAssets > 0 && totalLiabilities > totalAssets * 0.5)
+  if (totalAssets > 0 && totalLiabilities > totalAssets * 0.5) {
     alerts.push({
       type: "alert",
-      msg: `Debt ratio at ${Math.round((totalLiabilities / totalAssets) * 100)}% of assets — liabilities are ${fmtINR(totalLiabilities)}`,
+      msg: `Debt-to-assets ratio at ${Math.round((totalLiabilities / totalAssets) * 100)}%. Total liabilities: ${fmtINR(totalLiabilities)}.`,
     });
+  }
 
   // FDs maturing within 30 days
   const todayStr = today();
@@ -831,20 +1063,14 @@ function computeSummary(state) {
       const daysToMaturity = Math.round(
         (new Date(fd.maturityDate).getTime() - new Date(todayStr).getTime()) / 86400000
       );
-      if (daysToMaturity >= 0 && daysToMaturity <= 30)
+      if (daysToMaturity >= 0 && daysToMaturity <= 30) {
         alerts.push({
           type: "info",
-          msg: `FD of ${fmtINR(fd.principal)} at ${fd.bank || "bank"} matures in ${daysToMaturity} day(s) — plan for reinvestment`,
+          msg: `FD of ${fmtINR(fd.principal)} at ${fd.bank || "bank"} matures in ${daysToMaturity} day(s) — plan for renewal or reinvestment.`,
         });
+      }
     }
   });
-
-  // Large informal lending outstanding
-  if (informalLentTotal > 0 && informalLentTotal > bankTotal * 0.3)
-    alerts.push({
-      type: "info",
-      msg: `${fmtINR(informalLentTotal)} lent informally — ${Math.round((informalLentTotal / totalAssets) * 100)}% of total assets`,
-    });
 
   return {
     netWorth,
@@ -882,9 +1108,25 @@ function computeSummary(state) {
     monthIncome,
     netSavings,
     savingsPct,
+    yesterdaySpend,
+    yesterdayCount,
+    dayOfMonth,
+    totalDaysInMonth,
+    monthElapsedPct,
+    totalBudgetLimit,
+    totalBudgetSpent,
+    totalBudgetSpentPct,
+    efLiquidAssets,
+    efMonthlyExpense,
+    efMonthsCovered,
+    efStatus,
     topCats,
     budgetStatus,
     dues,
+    inflows,
+    totalDues7Days,
+    totalInflows7Days,
+    liquidityBuffer,
     goals,
     alerts,
     activeCardCount: activeCards.length,
@@ -931,13 +1173,27 @@ function generateHTML(summary, frequency, recipientName) {
     monthIncome,
     netSavings,
     savingsPct,
+    yesterdaySpend,
+    yesterdayCount,
+    dayOfMonth,
+    totalDaysInMonth,
+    monthElapsedPct,
+    totalBudgetLimit,
+    totalBudgetSpent,
+    totalBudgetSpentPct,
+    efLiquidAssets,
+    efMonthsCovered,
+    efStatus,
     topCats,
     dues,
+    inflows,
+    totalDues7Days,
+    totalInflows7Days,
+    liquidityBuffer,
     goals,
     alerts,
     budgetStatus,
   } = summary;
-  const fdRdTotal = (fdTotal || 0) + (rdTotal || 0);
 
   const ist = nowIST();
   const dateStr = ist.toLocaleDateString("en-IN", {
@@ -948,100 +1204,152 @@ function generateHTML(summary, frequency, recipientName) {
   });
   const periodLabel =
     frequency === "weekly"
-      ? `Week of ${weekRange()}`
+      ? `Weekly Briefing · ${weekRange()}`
       : frequency === "monthly"
-        ? monthLabel()
-        : dateStr;
+        ? `Monthly Statement · ${monthLabel()}`
+        : `Morning Briefing · ${dateStr}`;
 
   const posColor = "#059669";
+  const posBg = "#ecfdf5";
   const negColor = "#dc2626";
+  const negBg = "#fef2f2";
   const warnColor = "#d97706";
+  const warnBg = "#fffbeb";
   const accentColor = "#4f46e5";
-  const navyBg = "#0f172a";
+  const accentLight = "#e0e7ff";
+  const navyBg = "#0a0f1d";
   const cardBg = "#ffffff";
-  const bodyBg = "#f1f5f9";
+  const bodyBg = "#f8fafc";
   const textPrimary = "#0f172a";
-  const textMuted = "#475569";
+  const textMuted = "#64748b";
   const borderColor = "#e2e8f0";
-  const sectionBg = "#f8fafc";
 
   const pct = (val, total) => (total > 0 ? Math.min(Math.round((val / total) * 100), 100) : 0);
 
-  function progressBar(pctVal, color = accentColor, height = 8) {
-    const w = Math.max(pctVal, 2);
+  function progressBar(pctVal, color = accentColor, height = 7) {
+    const w = Math.max(Math.min(pctVal, 100), 2);
     return `
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;"><tr>
-        <td style="background:#e2e8f0;border-radius:99px;height:${height}px;font-size:1px;line-height:${height}px;">
-          <table width="${w}%" cellpadding="0" cellspacing="0"><tr>
-            <td style="background:${color};border-radius:99px;height:${height}px;font-size:1px;line-height:${height}px;">&nbsp;</td>
-          </tr></table>
-        </td>
-      </tr></table>`;
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;border-collapse:collapse;">
+        <tr>
+          <td style="background:#e2e8f0;border-radius:99px;height:${height}px;font-size:1px;line-height:${height}px;padding:0;">
+            <table width="${w}%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="background:${color};border-radius:99px;height:${height}px;font-size:1px;line-height:${height}px;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>`;
   }
 
-  function statBox(label, value, sub = "", color = textPrimary) {
+  function sectionHeader(title, emoji, badge = "") {
     return `
-      <td style="padding:16px 20px;vertical-align:top;background:${sectionBg};border-radius:8px;">
-        <div style="font-size:12px;color:${textMuted};text-transform:uppercase;letter-spacing:0.06em;font-weight:700;margin-bottom:6px;">${label}</div>
-        <div style="font-size:24px;font-weight:900;color:${color};letter-spacing:-0.02em;line-height:1.2;">${value}</div>
-        ${sub ? `<div style="font-size:13px;color:${textMuted};margin-top:4px;">${sub}</div>` : ""}
-      </td>`;
-  }
-
-  function sectionHeader(title, emoji) {
-    return `
-      <tr><td class="sec-pad" style="padding:32px 28px 14px;">
-        <table cellpadding="0" cellspacing="0" width="100%"><tr>
-          <td style="font-size:18px;padding-right:10px;vertical-align:middle;width:28px;">${emoji}</td>
-          <td style="font-size:14px;font-weight:800;color:${textPrimary};text-transform:uppercase;letter-spacing:0.1em;vertical-align:middle;">${title}</td>
-        </tr></table>
-        <div style="height:2px;background:${accentColor};margin-top:12px;border-radius:1px;"></div>
+      <tr><td style="padding:28px 24px 12px;">
+        <table cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="font-size:18px;vertical-align:middle;width:26px;">${emoji}</td>
+            <td style="font-size:13px;font-weight:800;color:${textPrimary};text-transform:uppercase;letter-spacing:0.08em;vertical-align:middle;">
+              ${escapeHtml(title)}
+            </td>
+            ${
+              badge
+                ? `<td style="text-align:right;vertical-align:middle;">
+                    <span style="display:inline-block;background:${accentLight};color:${accentColor};font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:0.04em;">
+                      ${escapeHtml(badge)}
+                    </span>
+                  </td>`
+                : ""
+            }
+          </tr>
+        </table>
+        <div style="height:2px;background:${borderColor};margin-top:10px;border-radius:1px;"></div>
       </td></tr>`;
   }
 
-  // ── Upcoming dues rows ────────────────────────────────────────────────────
-  const _todayVal = nowIST();
-  const todayMs = Date.UTC(
-    _todayVal.getUTCFullYear(),
-    _todayVal.getUTCMonth(),
-    _todayVal.getUTCDate()
-  );
+  // ── Due item icons & urgency badges ───────────────────────────────────────
+  const todayMs = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
   const dueRows = dues
-    .slice(0, 6)
+    .slice(0, 7)
     .map((d, i) => {
       const icon =
-        d.type === "cc" ? "💳" : d.type === "emi" ? "🏠" : d.type === "sub" ? "📱" : "📌";
-      const isPast = d.date.getTime() < todayMs;
+        d.type === "cc"
+          ? "💳"
+          : d.type === "emi"
+            ? "🏦"
+            : d.type === "sip"
+              ? "📈"
+              : d.type === "rent"
+                ? "🏠"
+                : d.type === "insurance"
+                  ? "🛡️"
+                  : d.type === "demand"
+                    ? "🏗️"
+                    : d.type === "sub"
+                      ? "📱"
+                      : "📌";
+      const dueTime = d.date.getTime();
+      const daysUntil = Math.ceil((dueTime - todayMs) / 86400000);
+      const isPast = daysUntil < 0;
+      const isToday = daysUntil === 0;
+      const isUrgent = daysUntil > 0 && daysUntil <= 2;
+
+      const badgeText = isPast
+        ? "Overdue"
+        : isToday
+          ? "Due Today"
+          : daysUntil === 1
+            ? "Due Tomorrow"
+            : `In ${daysUntil} days`;
+      const badgeBg = isPast || isToday ? negBg : isUrgent ? warnBg : "#f1f5f9";
+      const badgeColor = isPast || isToday ? negColor : isUrgent ? warnColor : textMuted;
+
       const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
       <tr>
-        <td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
-          <table width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${icon} ${escapeHtml(d.label)}</td>
-            <td style="font-size:13px;color:${textMuted};font-weight:600;text-align:center;">${d.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
-            <td style="font-size:16px;font-weight:900;color:${isPast ? negColor : textPrimary};text-align:right;">${d.amount > 0 ? fmtINRFull(d.amount) : "—"}</td>
-          </tr></table>
+        <td style="padding:12px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="font-size:14px;color:${textPrimary};font-weight:600;">
+                <span style="margin-right:6px;">${icon}</span>${escapeHtml(d.label)}
+                <div style="font-size:11px;color:${textMuted};font-weight:500;margin-top:2px;">
+                  ${d.date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                </div>
+              </td>
+              <td style="text-align:right;vertical-align:middle;">
+                <div style="font-size:15px;font-weight:800;color:${isToday || isPast ? negColor : textPrimary};">
+                  ${d.amount > 0 ? fmtINRFull(d.amount) : "—"}
+                </div>
+                <div style="display:inline-block;background:${badgeBg};color:${badgeColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:2px;">
+                  ${badgeText}
+                </div>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>`;
     })
     .join("");
 
-  // ── Goals rows ────────────────────────────────────────────────────────────
-  const goalRows = goals
-    .map((g, i) => {
-      const barColor = g.pct >= 80 ? posColor : g.pct >= 50 ? accentColor : warnColor;
-      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
+  // Inflow items (Rent expected, loan repayments)
+  const inflowRows = inflows
+    .slice(0, 3)
+    .map((inf) => {
       return `
-      <tr><td style="padding:14px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
-        <table width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="font-size:15px;font-weight:700;color:${textPrimary};">${escapeHtml(g.name)}</td>
-            <td style="font-size:15px;font-weight:900;color:${barColor};text-align:right;">${g.pct}%</td>
-          </tr>
-        </table>
-        ${progressBar(g.pct, barColor, 8)}
-        <div style="font-size:13px;color:${textMuted};margin-top:6px;font-weight:500;">${fmtINR(g.current)} of ${fmtINR(g.target)}</div>
-      </td></tr>`;
+      <tr>
+        <td style="padding:10px 24px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="font-size:13px;color:#166534;font-weight:600;">
+                <span style="margin-right:6px;">💰</span>${escapeHtml(inf.label)}
+                <span style="font-size:11px;color:#15803d;font-weight:500;"> · Expected ${inf.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+              </td>
+              <td style="font-size:14px;font-weight:800;color:${posColor};text-align:right;">
+                +${fmtINRFull(inf.amount)}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
     })
     .join("");
 
@@ -1052,34 +1360,36 @@ function generateHTML(summary, frequency, recipientName) {
       const p = pct(amt, monthExpense);
       const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-      <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
+      <tr><td style="padding:12px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${escapeHtml(cat)}</td>
-            <td style="font-size:15px;font-weight:800;color:${textPrimary};text-align:right;">${fmtINRFull(amt)} <span style="color:${textMuted};font-weight:500;font-size:12px;">(${p}%)</span></td>
+            <td style="font-size:13px;color:${textPrimary};font-weight:600;">${escapeHtml(cat)}</td>
+            <td style="font-size:14px;font-weight:800;color:${textPrimary};text-align:right;">
+              ${fmtINRFull(amt)} <span style="color:${textMuted};font-weight:500;font-size:11px;">(${p}%)</span>
+            </td>
           </tr>
         </table>
-        ${progressBar(pct(amt, maxCatAmt), accentColor, 6)}
+        ${progressBar(pct(amt, maxCatAmt), accentColor, 5)}
       </td></tr>`;
     })
     .join("");
 
-  // ── Alert rows ────────────────────────────────────────────────────────────
+  // ── Alert rows ────────────────────────────────────────────────────
   const alertRows = alerts
     .map((a) => {
       const icon = a.type === "alert" ? "🚨" : a.type === "warn" ? "⚠️" : "💡";
-      const bg = a.type === "alert" ? "#fef2f2" : a.type === "warn" ? "#fffbeb" : "#f0fdf4";
+      const bg = a.type === "alert" ? negBg : a.type === "warn" ? warnBg : posBg;
       const border = a.type === "alert" ? negColor : a.type === "warn" ? warnColor : posColor;
       return `
-      <tr><td style="padding:6px 28px;">
-        <div style="background:${bg};border-left:4px solid ${border};border-radius:0 8px 8px 0;padding:12px 16px;font-size:14px;color:${textPrimary};font-weight:500;line-height:1.5;">
+      <tr><td style="padding:6px 24px;">
+        <div style="background:${bg};border-left:4px solid ${border};border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:${textPrimary};font-weight:500;line-height:1.5;">
           ${icon} ${escapeHtml(a.msg)}
         </div>
       </td></tr>`;
     })
     .join("");
 
-  // ── Credit card quick list ────────────────────────────────────────────────
+  // ── Credit cards quick list ───────────────────────────────────────────────
   const ccRows = activeCards
     .slice(0, 4)
     .map((c, i) => {
@@ -1089,13 +1399,15 @@ function generateHTML(summary, frequency, recipientName) {
       const uColor = u >= 70 ? negColor : u >= 40 ? warnColor : posColor;
       const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-      <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
+      <tr><td style="padding:10px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:14px;font-weight:700;color:${textPrimary};">${escapeHtml(c.issuer)} <span style="color:${textMuted};font-weight:400;font-size:12px;">··${escapeHtml(c.last4) || "**"}</span></td>
+            <td style="font-size:13px;font-weight:700;color:${textPrimary};">
+              ${escapeHtml(c.issuer)} <span style="color:${textMuted};font-weight:400;font-size:11px;">··${escapeHtml(c.last4) || "**"}</span>
+            </td>
             <td style="text-align:right;">
-              <span style="font-size:15px;font-weight:800;color:${textPrimary};">${fmtINR(out)}</span>
-              <span style="font-size:12px;color:${uColor};font-weight:700;margin-left:8px;">${u}% used</span>
+              <span style="font-size:14px;font-weight:800;color:${textPrimary};">${fmtINR(out)}</span>
+              <span style="font-size:11px;color:${uColor};font-weight:700;margin-left:6px;">${u}% used</span>
             </td>
           </tr>
         </table>
@@ -1103,26 +1415,19 @@ function generateHTML(summary, frequency, recipientName) {
     })
     .join("");
 
-  // ── Savings rate colour ───────────────────────────────────────────────────
-  const savColor = savingsPct >= 30 ? posColor : savingsPct >= 15 ? warnColor : negColor;
-  const netSavColor = netSavings >= 0 ? posColor : negColor;
-
-  // ── Row helper for breakdown lists ──────────────────────────────────────────
+  // ── Investment portfolio rows ─────────────────────────────────────────────
   let rowIdx = 0;
   function listRow(label, value, icon) {
     const bg = rowIdx++ % 2 === 0 ? "#ffffff" : "#f8fafc";
     return `
-    <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
+    <tr><td style="padding:11px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
       <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="font-size:14px;color:${textPrimary};font-weight:600;">${icon ? icon + " " : ""}${label}</td>
-        <td style="font-size:15px;font-weight:800;color:${textPrimary};text-align:right;">${value}</td>
+        <td style="font-size:13px;color:${textPrimary};font-weight:600;">${icon ? icon + " " : ""}${escapeHtml(label)}</td>
+        <td style="font-size:14px;font-weight:800;color:${textPrimary};text-align:right;">${value}</td>
       </tr></table>
     </td></tr>`;
   }
 
-  // ── Investment portfolio rows (all types) ─────────────────────────────────
-  // Percentages use largest-remainder rounding so they always sum to 100%
-  // instead of drifting to 99/101 from rounding each category independently.
   rowIdx = 0;
   const investCategories = [
     { label: "Mutual Funds", amt: mfTotal },
@@ -1142,7 +1447,7 @@ function generateHTML(summary, frequency, recipientName) {
       (c, i) =>
         listRow(
           c.label,
-          `${fmtINR(c.amt)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${investPcts[i]}%)</span>`
+          `${fmtINR(c.amt)} <span style="color:${textMuted};font-weight:500;font-size:12px;">(${investPcts[i]}%)</span>`
         )
     )
     .join("");
@@ -1179,130 +1484,312 @@ function generateHTML(summary, frequency, recipientName) {
 
   // ── Budget health rows ────────────────────────────────────────────────────
   const budgetRows = budgetStatus
-    .slice(0, 6)
+    .slice(0, 5)
     .map((b, i) => {
-      const barColor = b.over ? negColor : b.pct >= 80 ? warnColor : posColor;
+      const barColor = b.over ? negColor : b.pct >= 85 ? warnColor : posColor;
       const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-    <tr><td style="padding:14px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
+    <tr><td style="padding:12px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
-          <td style="font-size:14px;font-weight:700;color:${textPrimary};">${escapeHtml(b.category)}</td>
-          <td style="font-size:14px;font-weight:800;color:${barColor};text-align:right;">${fmtINR(b.spent)} / ${fmtINR(b.limit)} (${b.pct}%)</td>
+          <td style="font-size:13px;font-weight:700;color:${textPrimary};">${escapeHtml(b.category)}</td>
+          <td style="font-size:13px;font-weight:800;color:${barColor};text-align:right;">
+            ${fmtINR(b.spent)} / ${fmtINR(b.limit)} (${b.pct}%)
+          </td>
         </tr>
       </table>
-      ${progressBar(Math.min(b.pct, 100), barColor, 8)}
+      ${progressBar(b.pct, barColor, 6)}
     </td></tr>`;
     })
     .join("");
 
+  // ── Goals rows ────────────────────────────────────────────────────────────
+  const goalRows = goals
+    .map((g, i) => {
+      const barColor = g.pct >= 80 ? posColor : g.pct >= 50 ? accentColor : warnColor;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
+      return `
+      <tr><td style="padding:12px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px;font-weight:700;color:${textPrimary};">${escapeHtml(g.name)}</td>
+            <td style="font-size:14px;font-weight:900;color:${barColor};text-align:right;">${g.pct}%</td>
+          </tr>
+        </table>
+        ${progressBar(g.pct, barColor, 6)}
+        <div style="font-size:11px;color:${textMuted};margin-top:4px;font-weight:500;">
+          ${fmtINR(g.current)} of ${fmtINR(g.target)}
+        </div>
+      </td></tr>`;
+    })
+    .join("");
+
+  const bufferColor = liquidityBuffer >= 0 ? posColor : negColor;
+  const bufferBg = liquidityBuffer >= 0 ? posBg : negBg;
+  const savRateColor = savingsPct >= 30 ? posColor : savingsPct >= 15 ? warnColor : negColor;
+
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
 <!--[if gte mso 9]><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
-<title>ArthaDrishti Summary</title>
+<title>ArthaDrishti Financial Summary</title>
 <style>
-  @media only screen and (max-width:480px) {
+  body { margin:0; padding:0; background-color:${bodyBg}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  table { border-collapse:collapse; }
+  @media only screen and (max-width:540px) {
+    .main-wrap { width:100% !important; border-radius:0 !important; }
+    .kpi-col { display:block !important; width:100% !important; margin-bottom:10px !important; }
+    .kpi-space { display:none !important; }
     .sec-pad { padding-left:16px !important; padding-right:16px !important; }
-    .hero-value { font-size:32px !important; }
-    .stat4 td { display:block !important; width:100% !important; margin-bottom:8px; }
-    .stat4 td:empty { display:none !important; }
-    .stat3 td { display:block !important; width:100% !important; margin-bottom:8px; }
-    .stat3 td:last-child { margin-bottom:0; }
+    .hero-nw { font-size:36px !important; }
   }
 </style>
 </head>
-<body style="margin:0;Margin:0;padding:0;background:${bodyBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<body style="margin:0;padding:0;background-color:${bodyBg};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 
-<table width="100%" cellpadding="0" cellspacing="0" style="background:${bodyBg};padding:24px 16px;">
-<tr><td>
-<table width="680" cellpadding="0" cellspacing="0" align="center" style="max-width:680px;margin:0 auto;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${bodyBg};padding:20px 12px;">
+<tr><td align="center">
 
-  <!-- HEADER -->
-  <tr><td class="sec-pad" style="background:${navyBg};border-radius:16px 16px 0 0;padding:28px 28px 24px;">
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td>
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="padding-right:10px;vertical-align:middle;">
-            <img src="https://personal-finance-by-anand-mohta.vercel.app/favicon-192x192.png" width="28" height="28" alt="ArthaDrishti" style="display:block;border-radius:6px;">
-          </td>
-          <td style="vertical-align:middle;">
-            <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">ArthaDrishti</div>
-          </td>
-        </tr></table>
-        <div style="font-size:14px;color:#94a3b8;margin-top:5px;font-weight:500;">${periodLabel}</div>
-      </td>
-      <td style="text-align:right;vertical-align:top;">
-        <div style="display:inline-block;background:#2a2977;border:1px solid #4338ca;border-radius:8px;padding:8px 16px;">
-          <span style="font-size:13px;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.08em;">
-            ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} Report
-          </span>
-        </div>
-      </td>
-    </tr></table>
+<table class="main-wrap" width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid ${borderColor};">
+
+  <!-- TOP BRAND HEADER -->
+  <tr><td style="background:${navyBg};padding:24px 24px 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="vertical-align:middle;">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="vertical-align:middle;padding-right:10px;">
+                <img src="https://personal-finance-by-anand-mohta.vercel.app/favicon-192x192.png" width="30" height="30" alt="AD" style="display:block;border-radius:8px;">
+              </td>
+              <td style="vertical-align:middle;">
+                <div style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">ArthaDrishti</div>
+                <div style="font-size:12px;color:#94a3b8;font-weight:500;margin-top:2px;">${periodLabel}</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td style="text-align:right;vertical-align:middle;">
+          <div style="display:inline-block;background:linear-gradient(135deg, #312e81, #1e1b4b);border:1px solid #4338ca;border-radius:20px;padding:6px 14px;">
+            <span style="font-size:11px;font-weight:800;color:#c7d2fe;text-transform:uppercase;letter-spacing:0.06em;">
+              ${frequency === "daily" ? "Daily Digest" : frequency === "weekly" ? "Weekly Digest" : "Monthly Digest"}
+            </span>
+          </div>
+        </td>
+      </tr>
+    </table>
   </td></tr>
 
-  <!-- NET WORTH HERO -->
-  <tr><td class="sec-pad" style="background:#1e1b4b;padding:32px 28px;">
-    <div style="font-size:13px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Total Net Worth</div>
-    <div class="hero-value" style="font-size:44px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1;">${fmtINRFull(netWorth)}</div>
-    <table class="stat4" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr>
-      <td style="padding:10px 12px;background:#2a2755;border-radius:8px;text-align:center;">
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Total Assets</div>
-        <div style="font-size:20px;font-weight:800;color:#34d399;margin-top:5px;">${fmtINR(totalAssets)}</div>
-      </td>
-      <td style="width:8px;"></td>
-      <td style="padding:10px 12px;background:#2a2755;border-radius:8px;text-align:center;">
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Total Liabilities</div>
-        <div style="font-size:20px;font-weight:800;color:#fca5a5;margin-top:5px;">${fmtINR(totalLiabilities)}</div>
-      </td>
-      <td style="width:8px;"></td>
-      <td style="padding:10px 12px;background:#2a2755;border-radius:8px;text-align:center;">
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Cash &amp; Banks</div>
-        <div style="font-size:20px;font-weight:800;color:#ffffff;margin-top:5px;">${fmtINR(bankTotal)}</div>
-      </td>
-      <td style="width:8px;"></td>
-      <td style="padding:10px 12px;background:#2a2755;border-radius:8px;text-align:center;">
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Investments</div>
-        <div style="font-size:20px;font-weight:800;color:#a5b4fc;margin-top:5px;">${fmtINR(investTotal)}</div>
-      </td>
-    </tr></table>
+  <!-- NET WORTH HERO SECTION -->
+  <tr><td style="background:linear-gradient(180deg, #0a0f1d 0%, #161e38 100%);padding:28px 24px 32px;color:#ffffff;">
+    <div style="font-size:12px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;">
+      Total Household Net Worth
+    </div>
+    <div class="hero-nw" style="font-size:44px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1.05;">
+      ${fmtINRFull(netWorth)}
+    </div>
+
+    <!-- Assets vs Liabilities Pill Bar -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;">
+      <tr>
+        <td style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 14px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td>
+                <span style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:0.06em;">Assets: </span>
+                <span style="font-size:15px;color:#34d399;font-weight:800;">${fmtINR(totalAssets)}</span>
+              </td>
+              <td style="text-align:center;color:#64748b;font-size:14px;">·</td>
+              <td style="text-align:right;">
+                <span style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:0.06em;">Liabilities: </span>
+                <span style="font-size:15px;color:#fca5a5;font-weight:800;">${fmtINR(totalLiabilities)}</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </td></tr>
 
-  <!-- CASHFLOW -->
-  ${sectionHeader("Monthly Cash Flow", "💸")}
-  <tr><td class="sec-pad" style="background:${cardBg};padding:4px 28px 24px;">
-    <table class="stat3" width="100%" cellpadding="0" cellspacing="8"><tr>
-      ${statBox("Income", fmtINRFull(monthIncome), "This month", posColor)}
-      ${statBox("Expenses", fmtINRFull(monthExpense), "This month", negColor)}
-      ${statBox("Net Saved", fmtINRFull(Math.abs(netSavings)), netSavings >= 0 ? `${savingsPct}% savings rate` : "Overspent", netSavColor)}
-    </tr></table>
+  <!-- 4-CARD EXECUTIVE KPI GRID -->
+  <tr><td style="padding:16px 24px 6px;background:${cardBg};">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <!-- Bank Cash -->
+        <td class="kpi-col" width="48%" style="padding:14px 16px;background:${bodyBg};border:1px solid ${borderColor};border-radius:10px;vertical-align:top;">
+          <div style="font-size:11px;color:${textMuted};text-transform:uppercase;font-weight:700;letter-spacing:0.06em;">Bank Cash</div>
+          <div style="font-size:22px;font-weight:900;color:${textPrimary};margin-top:4px;">${fmtINR(bankTotal)}</div>
+          <div style="font-size:11px;color:${textMuted};margin-top:2px;">Instant liquid cash</div>
+        </td>
+        <td class="kpi-space" width="4%"></td>
+        <!-- Investments -->
+        <td class="kpi-col" width="48%" style="padding:14px 16px;background:${bodyBg};border:1px solid ${borderColor};border-radius:10px;vertical-align:top;">
+          <div style="font-size:11px;color:${textMuted};text-transform:uppercase;font-weight:700;letter-spacing:0.06em;">Investments</div>
+          <div style="font-size:22px;font-weight:900;color:${accentColor};margin-top:4px;">${fmtINR(investTotal)}</div>
+          <div style="font-size:11px;color:${textMuted};margin-top:2px;">MFs, Stocks, FDs, PF</div>
+        </td>
+      </tr>
+      <tr><td colspan="3" style="height:10px;"></td></tr>
+      <tr>
+        <!-- Emergency Runway -->
+        <td class="kpi-col" width="48%" style="padding:14px 16px;background:${bodyBg};border:1px solid ${borderColor};border-radius:10px;vertical-align:top;">
+          <div style="font-size:11px;color:${textMuted};text-transform:uppercase;font-weight:700;letter-spacing:0.06em;">Emergency Runway</div>
+          <div style="font-size:22px;font-weight:900;color:${efStatus.color};margin-top:4px;">${efMonthsCovered} mo</div>
+          <div style="display:inline-block;background:${efStatus.color === posColor ? posBg : efStatus.color === warnColor ? warnBg : negBg};color:${efStatus.color};font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:3px;">
+            ${efStatus.label} · 6mo target
+          </div>
+        </td>
+        <td class="kpi-space" width="4%"></td>
+        <!-- 7-Day Liquidity Buffer -->
+        <td class="kpi-col" width="48%" style="padding:14px 16px;background:${bodyBg};border:1px solid ${borderColor};border-radius:10px;vertical-align:top;">
+          <div style="font-size:11px;color:${textMuted};text-transform:uppercase;font-weight:700;letter-spacing:0.06em;">7-Day Cash Buffer</div>
+          <div style="font-size:22px;font-weight:900;color:${bufferColor};margin-top:4px;">${liquidityBuffer >= 0 ? "+" : "-"}${fmtINR(Math.abs(liquidityBuffer))}</div>
+          <div style="display:inline-block;background:${bufferBg};color:${bufferColor};font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:3px;">
+            ${liquidityBuffer >= 0 ? "Safe after 7d dues" : "Attention needed"}
+          </div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- YESTERDAY'S PULSE (If daily and transactions exist) -->
+  ${
+    frequency === "daily" && yesterdaySpend > 0
+      ? `
+  <tr><td style="padding:12px 24px 0;">
+    <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:10px 14px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px;font-weight:700;color:${textPrimary};">
+            📅 Yesterday's Spending Activity
+          </td>
+          <td style="font-size:14px;font-weight:900;color:${textPrimary};text-align:right;">
+            ${fmtINRFull(yesterdaySpend)} <span style="font-size:11px;color:${textMuted};font-weight:500;">(${yesterdayCount} debit${yesterdayCount === 1 ? "" : "s"})</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </td></tr>`
+      : ""
+  }
+
+  <!-- UPCOMING DUES (NEXT 7 DAYS) -->
+  ${
+    dues.length > 0 || inflows.length > 0
+      ? `
+  ${sectionHeader("Upcoming Dues & Obligations — Next 7 Days", "📅", `${dues.length} upcoming`)}
+  ${inflowRows}
+  <tr><td style="background:${cardBg};">
+    ${dueRows}
+  </td></tr>
+  <tr><td style="padding:12px 24px;background:#f8fafc;border-bottom:1px solid ${borderColor};">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="font-size:12px;font-weight:700;color:${textMuted};text-transform:uppercase;">Total 7-Day Outflow</td>
+        <td style="font-size:16px;font-weight:900;color:${textPrimary};text-align:right;">${fmtINRFull(totalDues7Days)}</td>
+      </tr>
+      <tr>
+        <td style="font-size:11px;color:${textMuted};padding-top:4px;">Bank Balance Coverage:</td>
+        <td style="font-size:12px;font-weight:700;color:${bufferColor};text-align:right;padding-top:4px;">
+          ${bankTotal >= totalDues7Days ? `Comfortably covered (+${fmtINR(liquidityBuffer)} buffer)` : `Deficit: ${fmtINR(Math.abs(liquidityBuffer))}`}
+        </td>
+      </tr>
+    </table>
+  </td></tr>`
+      : ""
+  }
+
+  <!-- MONTH-TO-DATE (MTD) CASH FLOW & BUDGET PACING -->
+  ${sectionHeader(`Month-to-Date Cash Flow · Day ${dayOfMonth} of ${totalDaysInMonth}`, "💸", `${monthElapsedPct}% elapsed`)}
+  <tr><td style="padding:4px 24px 16px;background:${cardBg};">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:${bodyBg};border:1px solid ${borderColor};border-radius:10px;padding:14px 16px;">
+      <tr>
+        <td width="33%" style="text-align:center;border-right:1px solid ${borderColor};">
+          <div style="font-size:11px;color:${textMuted};text-transform:uppercase;font-weight:700;">Income MTD</div>
+          <div style="font-size:18px;font-weight:900;color:${posColor};margin-top:4px;">${fmtINRFull(monthIncome)}</div>
+        </td>
+        <td width="33%" style="text-align:center;border-right:1px solid ${borderColor};">
+          <div style="font-size:11px;color:${textMuted};text-transform:uppercase;font-weight:700;">Expenses MTD</div>
+          <div style="font-size:18px;font-weight:900;color:${negColor};margin-top:4px;">${fmtINRFull(monthExpense)}</div>
+        </td>
+        <td width="34%" style="text-align:center;">
+          <div style="font-size:11px;color:${textMuted};text-transform:uppercase;font-weight:700;">Net Saved</div>
+          <div style="font-size:18px;font-weight:900;color:${netSavings >= 0 ? posColor : negColor};margin-top:4px;">
+            ${netSavings >= 0 ? "+" : "-"}${fmtINRFull(Math.abs(netSavings))}
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Savings rate bar -->
     ${
       monthIncome > 0
         ? `
-    <div style="padding:8px 0 4px;">
-      <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="font-size:12px;color:${textMuted};font-weight:600;">Savings rate</td>
-        <td style="font-size:13px;color:${savColor};font-weight:800;text-align:right;">${savingsPct}%</td>
-      </tr></table>
-      ${progressBar(savingsPct, savColor, 6)}
+    <div style="margin-top:14px;background:#ffffff;border:1px solid ${borderColor};border-radius:8px;padding:10px 14px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:12px;color:${textPrimary};font-weight:700;">MTD Savings Rate</td>
+          <td style="font-size:13px;color:${savRateColor};font-weight:800;text-align:right;">${savingsPct}%</td>
+        </tr>
+      </table>
+      ${progressBar(savingsPct, savRateColor, 6)}
+    </div>`
+        : ""
+    }
+
+    <!-- Budget burn pacing -->
+    ${
+      totalBudgetLimit > 0
+        ? `
+    <div style="margin-top:8px;background:#ffffff;border:1px solid ${borderColor};border-radius:8px;padding:10px 14px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:12px;color:${textPrimary};font-weight:700;">Overall Budget Pacing</td>
+          <td style="font-size:13px;font-weight:800;color:${totalBudgetSpentPct > monthElapsedPct + 15 ? warnColor : posColor};text-align:right;">
+            ${fmtINR(totalBudgetSpent)} of ${fmtINR(totalBudgetLimit)} (${totalBudgetSpentPct}%)
+          </td>
+        </tr>
+      </table>
+      ${progressBar(totalBudgetSpentPct, totalBudgetSpentPct > monthElapsedPct + 15 ? warnColor : posColor, 6)}
+      <div style="font-size:11px;color:${textMuted};margin-top:4px;">
+        ${monthElapsedPct}% of month elapsed · ${totalBudgetSpentPct > monthElapsedPct + 15 ? "Burning faster than average pace" : "Spending on track"}
+      </div>
     </div>`
         : ""
     }
   </td></tr>
 
-  <!-- INVESTMENT PORTFOLIO (FULL BREAKDOWN) -->
+  <!-- TOP SPENDING THIS MONTH -->
+  ${
+    topCats.length > 0
+      ? `
+  ${sectionHeader("Top Expense Categories MTD", "🛍️")}
+  <tr><td style="background:${cardBg};">
+    ${catRows}
+  </td></tr>`
+      : ""
+  }
+
+  <!-- BUDGET HEALTH (INDIVIDUAL CATEGORIES) -->
+  ${
+    budgetRows
+      ? `
+  ${sectionHeader("Budget Watchlist", "📊")}
+  <tr><td style="background:${cardBg};">
+    ${budgetRows}
+  </td></tr>`
+      : ""
+  }
+
+  <!-- INVESTMENT PORTFOLIO BREAKDOWN -->
   ${
     investTotal > 0
       ? `
-  ${sectionHeader("Investment Portfolio", "📈")}
-  <tr><td style="padding:4px 28px 12px;background:${cardBg};">
-    <div style="background:#eef2ff;border-left:4px solid ${accentColor};border-radius:0 8px 8px 0;padding:14px 16px;">
-      <div style="font-size:28px;font-weight:900;color:${accentColor};letter-spacing:-0.02em;">${fmtINRFull(investTotal)}</div>
-      <div style="font-size:12px;color:${textMuted};margin-top:4px;font-weight:500;">Total invested across ${[mfTotal, stockTotal, fdTotal, rdTotal, ppfTotal, npsTotal, epfTotal, bondsTotal, licTotal, investmentTotalPlans].filter((v) => v > 0).length} categories</div>
-    </div>
-  </td></tr>
+  ${sectionHeader("Investment Portfolio Allocation", "📈", fmtINR(investTotal))}
   <tr><td style="background:${cardBg};">
     ${investRows}
   </td></tr>`
@@ -1313,26 +1800,20 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     otherAssetItems
       ? `
-  ${sectionHeader("Other Assets", "🏦")}
+  ${sectionHeader("Other Assets", "🏛️")}
   <tr><td style="background:${cardBg};">
     ${otherAssetItems}
   </td></tr>`
       : ""
   }
 
-  <!-- LIABILITIES -->
+  <!-- LIABILITIES SUMMARY -->
   ${
     liabilityItems
       ? `
-  ${sectionHeader("Liabilities", "📋")}
+  ${sectionHeader("Liabilities Breakdown", "📋", fmtINR(totalLiabilities))}
   <tr><td style="background:${cardBg};">
     ${liabilityItems}
-  </td></tr>
-  <tr><td style="padding:14px 28px;background:#fef2f2;border-left:4px solid ${negColor};">
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:14px;font-weight:800;color:${negColor};">Total Liabilities</td>
-      <td style="font-size:18px;font-weight:900;color:${negColor};text-align:right;">${fmtINRFull(totalLiabilities)}</td>
-    </tr></table>
   </td></tr>`
       : ""
   }
@@ -1341,31 +1822,9 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     activeCardCount > 0
       ? `
-  ${sectionHeader(`Credit Cards (${creditUtil}% of combined limit utilized)`, "💳")}
+  ${sectionHeader(`Credit Cards (${creditUtil}% utilized)`, "💳")}
   <tr><td style="background:${cardBg};">
     ${ccRows}
-  </td></tr>`
-      : ""
-  }
-
-  <!-- BUDGET HEALTH -->
-  ${
-    budgetRows
-      ? `
-  ${sectionHeader("Budget Health", "📊")}
-  <tr><td style="background:${cardBg};">
-    ${budgetRows}
-  </td></tr>`
-      : ""
-  }
-
-  <!-- TOP SPENDING -->
-  ${
-    topCats.length > 0
-      ? `
-  ${sectionHeader("Top Spending This Month", "🛍️")}
-  <tr><td style="background:${cardBg};">
-    ${catRows}
   </td></tr>`
       : ""
   }
@@ -1374,67 +1833,51 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     goals.length > 0
       ? `
-  ${sectionHeader("Goal Progress", "🎯")}
+  ${sectionHeader("Financial Goals Progress", "🎯")}
   <tr><td style="background:${cardBg};">
     ${goalRows}
   </td></tr>`
       : ""
   }
 
-  <!-- UPCOMING DUES -->
-  ${
-    dues.length > 0
-      ? `
-  ${sectionHeader("Upcoming Dues — Next 7 Days", "📅")}
-  <tr><td style="padding:8px 28px 4px;background:${cardBg};">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr style="background:#eef2ff;">
-        <td style="font-size:11px;font-weight:800;color:${accentColor};text-transform:uppercase;letter-spacing:0.08em;padding:10px 0;border-bottom:2px solid ${accentColor};">Item</td>
-        <td style="font-size:11px;font-weight:800;color:${accentColor};text-transform:uppercase;letter-spacing:0.08em;padding:10px 0;text-align:center;border-bottom:2px solid ${accentColor};">Date</td>
-        <td style="font-size:11px;font-weight:800;color:${accentColor};text-transform:uppercase;letter-spacing:0.08em;padding:10px 0;text-align:right;border-bottom:2px solid ${accentColor};">Amount</td>
-      </tr>
-    </table>
-  </td></tr>
-  ${dueRows}`
-      : ""
-  }
-
-  <!-- ALERTS -->
+  <!-- ALERTS & INSIGHTS -->
   ${
     alerts.length > 0
       ? `
-  ${sectionHeader("Alerts & Insights", "⚡")}
-  <tr><td style="background:${cardBg};padding-bottom:16px;">
+  ${sectionHeader("Smart Alerts & Action Items", "⚡", `${alerts.length} action${alerts.length === 1 ? "" : "s"}`)}
+  <tr><td style="background:${cardBg};padding-bottom:14px;">
     ${alertRows}
   </td></tr>`
-      : ""
-  }
-
-  <!-- NO ALERTS GOOD NEWS -->
-  ${
-    alerts.length === 0
-      ? `
-  <tr><td style="background:#ecfdf5;border-top:1px solid ${borderColor};padding:28px;text-align:center;">
-    <div style="font-size:32px;margin-bottom:10px;">✅</div>
-    <div style="font-size:18px;font-weight:800;color:${posColor};">Everything looks good!</div>
-    <div style="font-size:14px;color:${textMuted};margin-top:6px;font-weight:500;">No alerts, budgets on track, finances healthy.</div>
+      : `
+  <tr><td style="background:#ecfdf5;border-top:1px solid ${borderColor};padding:24px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">✅</div>
+    <div style="font-size:16px;font-weight:800;color:${posColor};">Everything is looking healthy!</div>
+    <div style="font-size:13px;color:${textMuted};margin-top:4px;font-weight:500;">
+      No urgent alerts, budgets are within limits, and emergency liquidity is intact.
+    </div>
   </td></tr>`
-      : ""
   }
 
-  <!-- FOOTER -->
-  <tr><td style="background:${navyBg};border-radius:0 0 16px 16px;padding:24px 28px;text-align:center;">
-    <div style="font-size:13px;color:#94a3b8;line-height:1.8;font-weight:500;">
-      ArthaDrishti by Anand Mohta &nbsp;·&nbsp; ${dateStr}<br>
-      <a href="https://personal-finance-by-anand-mohta.vercel.app" style="color:#a5b4fc;text-decoration:none;font-weight:700;">Open Dashboard →</a>
-      &nbsp;·&nbsp;
-      <a href="https://personal-finance-by-anand-mohta.vercel.app/#settings" style="color:#64748b;text-decoration:none;font-size:12px;">Manage email settings</a>
+  <!-- FOOTER & DASHBOARD CTA -->
+  <tr><td style="background:${navyBg};padding:28px 24px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
+    <div style="margin-bottom:14px;">
+      <a href="https://personal-finance-by-anand-mohta.vercel.app" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:11px 24px;border-radius:8px;">
+        Open ArthaDrishti Dashboard →
+      </a>
+    </div>
+    <div style="font-size:12px;color:#94a3b8;line-height:1.7;font-weight:500;">
+      Personal Finance by Anand Mohta · Prepared for ${escapeHtml(recipientName)}<br>
+      <a href="https://personal-finance-by-anand-mohta.vercel.app/#settings" style="color:#64748b;text-decoration:none;font-size:11px;">
+        Manage email preferences &amp; notification schedule
+      </a>
     </div>
   </td></tr>
 
 </table>
+
 </td></tr>
 </table>
+
 </body>
 </html>`;
 }
@@ -1469,6 +1912,11 @@ async function fetchStateFromSupabase(supabase, userId) {
     gold,
     settingsGold,
     govtSchemesQ,
+    termPlansQ,
+    healthInsQ,
+    sipsQ,
+    recExpensesQ,
+    billPaymentsQ,
   ] = await Promise.all([
     supabase.from("bank_accounts").select("*").eq("user_id", userId),
     supabase.from("transactions").select("*").eq("user_id", userId),
@@ -1589,6 +2037,46 @@ async function fetchStateFromSupabase(supabase, userId) {
         (res) => res,
         () => ({ data: [] })
       ),
+    supabase
+      .from("term_plans")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("health_insurance")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("sips")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("recurring_expenses")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("bill_payments")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
   ]);
 
   const camelBanks = snakeToCamel(banks.data || []);
@@ -1630,6 +2118,11 @@ async function fetchStateFromSupabase(supabase, userId) {
   const camelVehicles = snakeToCamel(vehicles.data || []);
   const camelGold = snakeToCamel(gold.data || []);
   const camelGovtSchemes = snakeToCamel(govtSchemesQ.data || []);
+  const camelTermPlans = snakeToCamel(termPlansQ.data || []);
+  const camelHealthIns = snakeToCamel(healthInsQ.data || []);
+  const camelSips = snakeToCamel(sipsQ.data || []);
+  const camelRecExpenses = snakeToCamel(recExpensesQ.data || []);
+  const camelBillPayments = snakeToCamel(billPaymentsQ.data || []);
 
   const rentalProperties = camelRentalData
     .filter((x) => x.propertyType === "out")
@@ -1650,6 +2143,8 @@ async function fetchStateFromSupabase(supabase, userId) {
     nps: camelPn.filter((x) => x.type === "NPS"),
     epf: camelPn.filter((x) => x.type === "EPF"),
     lic: camelLic,
+    termPlans: camelTermPlans,
+    healthInsurance: camelHealthIns,
     investmentPlans: camelInvestP,
     prepaidCards: camelPrepaid,
     creditCards: camelCcs,
@@ -1671,15 +2166,13 @@ async function fetchStateFromSupabase(supabase, userId) {
     goldHoldings: camelGold,
     goldPricePerGram: settingsGold.data?.gold_price_per_gram || 7200,
     govtSchemes: camelGovtSchemes,
+    sips: camelSips,
+    recurringExpenses: camelRecExpenses,
+    billPayments: camelBillPayments,
   };
 }
 
 // ── Live stock prices ─────────────────────────────────────────────────────────
-// The dashboard's net worth uses live Yahoo Finance quotes (fetched client-side) rather
-// than the stocks table's stored current_price column, which is only refreshed by the
-// cron-update-prices job on weekday evenings. Without this, the email's stock valuation
-// can lag the dashboard's by whatever the stock has moved since that last sync — so we
-// fetch the same live quotes here, using the same symbol format (SYMBOL.NS / SYMBOL.BO).
 async function withLiveStockPrices(state) {
   const stocks = state.stocks || [];
   if (stocks.length === 0) return state;
@@ -1712,11 +2205,6 @@ async function withLiveStockPrices(state) {
 }
 
 // ── Live mutual fund NAVs ──────────────────────────────────────────────────────
-// Mirrors withLiveStockPrices above: the dashboard (InvestmentsTab's liveMfNav /
-// getLiveNav, fed by api/mf-nav.js) fetches each fund's NAV from mfapi.in on every
-// load, while the mutual_funds.current_nav column is only refreshed once a day by
-// the weekday-6pm cron-update-prices job. Without this, the email's MF valuation
-// can be up to a day stale relative to what the dashboard shows.
 const MFAPI_TIMEOUT_MS = 8000;
 async function withLiveMFPrices(state) {
   const funds = state.mutualFunds || [];
@@ -1758,22 +2246,18 @@ async function withLiveMFPrices(state) {
 }
 
 // ── Check if current IST day matches user's schedule ─────────────────────────
-// Cron fires once daily at 8AM IST — only check frequency + day, not hour.
 function shouldSendNow(settings, frequency) {
   const freq = frequency || settings.emailFrequency || settings.email_frequency || "weekly";
 
   if (freq === "daily") return true;
 
   if (freq === "weekly") {
-    const configDay = Number(settings.emailDay ?? settings.email_day ?? 1); // 1=Mon default
+    const configDay = Number(settings.emailDay ?? settings.email_day ?? 1);
     return istDayOfWeek() === configDay;
   }
 
   if (freq === "monthly") {
     const configDate = Number(settings.emailDay ?? settings.email_day ?? 1);
-    // Clamp to the last day of the current month so a user who picked 29/30/31
-    // still gets their report in shorter months (e.g. Feb) instead of the send
-    // silently never firing that month.
     const effectiveDate = Math.min(configDate, istDaysInCurrentMonth());
     return istDate() === effectiveDate;
   }
@@ -1784,18 +2268,18 @@ function shouldSendNow(settings, frequency) {
 // ── Subject line ──────────────────────────────────────────────────────────────
 function buildSubject(frequency, netWorth) {
   const ist = nowIST();
-  const emoji = frequency === "daily" ? "📅" : frequency === "weekly" ? "📊" : "📈";
+  const emoji = frequency === "daily" ? "☀️" : frequency === "weekly" ? "📊" : "📈";
   const period =
     frequency === "daily"
       ? ist.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" })
       : frequency === "weekly"
         ? `Week of ${weekRange()}`
         : monthLabel();
-  return `${emoji} Your ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} ArthaDrishti Report — ${period} | Net Worth ${fmtINR(netWorth)}`;
+  return `${emoji} Your ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} ArthaDrishti Briefing — ${period} | Net Worth ${fmtINR(netWorth)}`;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -1807,7 +2291,6 @@ module.exports = async function handler(req, res) {
     const hasServiceKey = !!(
       process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
     );
-    // A custom fromEmail in the query (passed from UI) means the user configured one — treat as non-test
     const uiFromEmail = req.query?.fromEmail;
     const effectiveFrom = uiFromEmail || FROM_EMAIL;
     const effectiveIsTest = effectiveFrom === "onboarding@resend.dev";
@@ -1824,9 +2307,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // ── Preview — renders the email HTML without sending, for the Settings UI's
-  // "Preview Email" button. Requires the same Supabase auth as manual send since
-  // it renders the user's real financial data.
+  // ── Preview — renders the email HTML without sending ───────────────────────
   if (req.method === "GET" && req.query?.action === "preview") {
     const auth = await verifyManualAuth(req);
     if (!auth.ok) {
@@ -1844,7 +2325,7 @@ module.exports = async function handler(req, res) {
       const recipientName = profData?.name || "there";
       const freq = ["daily", "weekly", "monthly"].includes(req.query?.frequency)
         ? req.query.frequency
-        : "weekly";
+        : "daily";
       const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
       const html = generateHTML(summary, freq, recipientName);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -1867,10 +2348,6 @@ module.exports = async function handler(req, res) {
     );
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers["authorization"];
-    // Vercel automatically sends Authorization: Bearer <CRON_SECRET> when CRON_SECRET is set.
-    // Fail CLOSED: an unset CRON_SECRET must reject the request, not let it through — this
-    // endpoint sends real email to every registered user, so "unauthenticated" is not a safe
-    // default state.
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       console.error(
         cronSecret
@@ -1884,7 +2361,6 @@ module.exports = async function handler(req, res) {
   try {
     if (isManual) {
       // ── Manual "Send Test" from Settings UI ─────────────────────────────
-      // Auth check FIRST, before touching the request body or sending anything.
       const auth = await verifyManualAuth(req);
       if (!auth.ok) {
         console.error(`[send-summary] Manual send rejected: ${auth.reason}`);
@@ -1899,13 +2375,6 @@ module.exports = async function handler(req, res) {
             "Resend API key not configured. Add Resend_Email_API to Vercel environment variables.",
         });
 
-      // ── Resolve destination email server-side ───────────────────────────
-      // NEVER trust the client-supplied emailTo: signup is open (src/Auth.tsx),
-      // so anyone can register an account and POST an arbitrary emailTo to make
-      // this endpoint's Resend account relay branded email to any address. Look
-      // up the caller's OWN notification email from user_settings (set only via
-      // their own authenticated session in SettingsTab.tsx) instead, falling
-      // back to their verified Supabase Auth account email if unset.
       const supabase = getSupabase();
       const { data: settingsRow } = await supabase
         .from("user_settings")
@@ -1924,16 +2393,9 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      // Use fromEmail from the request body if provided (user configured it in Settings UI),
-      // otherwise fall back to the RESEND_FROM_EMAIL env var or the test sender.
       const effectiveFromEmail = getEffectiveFromEmail(fromEmail);
       const effectiveFromAddr = `ArthaDrishti <${effectiveFromEmail}>`;
 
-      // Fetch state fresh from Supabase — same source of truth the cron uses —
-      // instead of trusting whatever the browser's in-memory state happened to
-      // hold. A tab left open across a data edit made elsewhere (another
-      // device, another tab, a direct DB change) would otherwise silently
-      // email stale numbers with no way to tell they're stale.
       const state = await fetchStateFromSupabase(supabase, auth.user.id);
       const { data: profData } = await supabase
         .from("profiles")
@@ -1943,7 +2405,7 @@ module.exports = async function handler(req, res) {
       const recipientName = profData?.name || requestedRecipientName || "there";
 
       const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
-      const freq = frequency || "weekly";
+      const freq = frequency || "daily";
       const html = generateHTML(summary, freq, recipientName || "there");
       const subject = buildSubject(freq, summary.netWorth);
 
@@ -1983,7 +2445,6 @@ module.exports = async function handler(req, res) {
       }
 
       const supabase = getSupabase();
-      // Only fetch users who have email enabled — reduces DB load and processing time
       const { data: allSettings, error: settErr } = await supabase
         .from("user_settings")
         .select(
@@ -2004,13 +2465,12 @@ module.exports = async function handler(req, res) {
 
       const results = [];
       for (const row of allSettings || []) {
-        const freq = row.email_frequency || "weekly";
+        const freq = row.email_frequency || "daily";
         if (!shouldSendNow(row, freq)) continue;
 
         try {
           const state = await fetchStateFromSupabase(supabase, row.user_id);
 
-          // Fetch the user's name from profiles table
           const { data: profData } = await supabase
             .from("profiles")
             .select("name")
@@ -2058,4 +2518,17 @@ module.exports = async function handler(req, res) {
     console.error("[send-summary] Unhandled error:", err);
     return res.status(500).json({ error: err.message });
   }
-};
+}
+
+// Attach helpers to module.exports for testability
+module.exports = handler;
+handler.computeSummary = computeSummary;
+handler.generateHTML = generateHTML;
+handler.getEffectiveRent = getEffectiveRent;
+handler.shouldSendNow = shouldSendNow;
+handler.annualizePremium = annualizePremium;
+handler.nextAnnualOccurrence = nextAnnualOccurrence;
+handler.fmtINR = fmtINR;
+handler.fmtINRFull = fmtINRFull;
+handler.escapeHtml = escapeHtml;
+handler.largestRemainderRound = largestRemainderRound;
