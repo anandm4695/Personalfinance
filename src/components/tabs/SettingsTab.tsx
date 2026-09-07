@@ -1972,7 +1972,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
+                      gap: 5,
                       fontSize: 12,
                       fontWeight: 700,
                       padding: "4px 10px",
@@ -1982,7 +1982,8 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                       border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
                     }}
                   >
-                    🎂 {ageFormatted}
+                    <Calendar size={12} style={{ flexShrink: 0 }} />
+                    <span>{ageFormatted}</span>
                   </div>
                 )}
               </div>
@@ -2075,24 +2076,37 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
       {/* Connected Modules Callout */}
       <div
         style={{
-          background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+          background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
           borderRadius: 10,
-          padding: "12px 16px",
+          padding: "14px 16px",
           marginBottom: 20,
           fontSize: 12,
           color: THEME.ink,
           lineHeight: 1.5,
         }}
       >
-        <div style={{ fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-          <span>💡 Where Date of Birth is automatically connected:</span>
+        <div style={{ fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, color: THEME.accent }}>
+          <Lightbulb size={15} />
+          <span>Automated Cross-Module Date of Birth Integrations</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8, marginTop: 6, color: THEME.muted }}>
-          <div>🛡️ <strong>Tax Deductions:</strong> Auto-elevates 80D limit to ₹50,000 for senior citizens (60+) &amp; 80TTB</div>
-          <div>🏛️ <strong>Govt Schemes:</strong> Checks SSY (girl child &lt;10y), APY (18–40y), SCSS (60+y) eligibility</div>
-          <div>🎯 <strong>Life Event Milestones:</strong> Shows exact member age at future event target dates</div>
-          <div>🔥 <strong>Retirement / FIRE:</strong> Synchronizes current age for precise compounding projections</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, color: THEME.muted }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <Shield size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
+            <div><strong style={{ color: THEME.ink }}>Tax Deductions:</strong> Auto-elevates 80D limit to ₹50,000 for senior citizens (60+) &amp; 80TTB</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <Landmark size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
+            <div><strong style={{ color: THEME.ink }}>Govt Schemes:</strong> Checks SSY (girl child &le;10y), APY (18–40y), SCSS (60+y) eligibility</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <Target size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
+            <div><strong style={{ color: THEME.ink }}>Life Event Milestones:</strong> Computes exact member age at future milestone target dates</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <TrendingUp size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
+            <div><strong style={{ color: THEME.ink }}>Retirement / FIRE:</strong> Synchronizes current age for precise compounding projections</div>
+          </div>
         </div>
       </div>
 

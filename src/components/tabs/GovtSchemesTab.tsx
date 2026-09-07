@@ -550,8 +550,11 @@ function SchemeForm({ initial, onSave, onClose, saving = false }: any) {
                 fontSize: 11.5,
                 fontWeight: 600,
                 marginTop: 6,
-                padding: "5px 10px",
+                padding: "6px 10px",
                 borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 background: ageEligibilityNote.pass
                   ? "color-mix(in srgb, var(--t-sage) 12%, transparent)"
                   : "color-mix(in srgb, var(--t-rust) 12%, transparent)",
@@ -563,8 +566,12 @@ function SchemeForm({ initial, onSave, onClose, saving = false }: any) {
                 }`,
               }}
             >
-              {ageEligibilityNote.pass ? "✓ " : "⚠ "}
-              {ageEligibilityNote.text}
+              {ageEligibilityNote.pass ? (
+                <CheckCircle2 size={13} style={{ flexShrink: 0 }} />
+              ) : (
+                <AlertCircle size={13} style={{ flexShrink: 0 }} />
+              )}
+              <span>{ageEligibilityNote.text}</span>
             </div>
           )}
         </Field>

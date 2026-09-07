@@ -17,6 +17,7 @@ import {
   Info,
   Award,
   Percent,
+  Calendar,
 } from "lucide-react";
 import {
   PieChart,
@@ -1119,13 +1120,14 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                           gap: 4,
                           fontSize: 11,
                           fontWeight: 700,
-                          padding: "1px 7px",
+                          padding: "2px 7px",
                           borderRadius: 12,
                           background: `color-mix(in srgb, ${m.color} 14%, transparent)`,
                           color: m.color,
                         }}
                       >
-                        🎂 {formatAge(m.dob)}
+                        <Calendar size={11} style={{ flexShrink: 0 }} />
+                        <span>{formatAge(m.dob)}</span>
                       </span>
                     )}
                     {isMinor(m.dob) && (
