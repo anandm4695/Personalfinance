@@ -33,7 +33,7 @@ import {
   LabelList,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { useMasterData } from "../../utils/masterData";
+import { useMasterData, formatAge, isSeniorCitizen, isMinor } from "../../utils/masterData";
 import { getCurrentFY } from "../../utils/appConstants";
 import {
   fmtINRFull,
@@ -1099,20 +1099,70 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 >
                   <MemberIcon size={26} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    {m.name}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color: THEME.ink,
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {m.name}
+                    </div>
+                    {m.dob && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "1px 7px",
+                          borderRadius: 12,
+                          background: `color-mix(in srgb, ${m.color} 14%, transparent)`,
+                          color: m.color,
+                        }}
+                      >
+                        🎂 {formatAge(m.dob)}
+                      </span>
+                    )}
+                    {isMinor(m.dob) && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "1px 6px",
+                          borderRadius: 6,
+                          background: "var(--t-muted)15",
+                          color: THEME.muted,
+                        }}
+                      >
+                        Minor
+                      </span>
+                    )}
+                    {isSeniorCitizen(m.dob) && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "1px 6px",
+                          borderRadius: 6,
+                          background: `color-mix(in srgb, ${THEME.gold} 16%, transparent)`,
+                          color: THEME.gold,
+                        }}
+                      >
+                        Senior (60+)
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
-                    {m.allocation.length} asset {m.allocation.length === 1 ? "class" : "classes"} ·{" "}
-                    {pct}% of family
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                    <span style={{ fontWeight: 600, color: m.color }}>{m.relation}</span>
+                    {m.dob && (
+                      <span> · Born {new Date(m.dob.includes("T") ? m.dob : m.dob + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    )}
+                    <span> · {m.allocation.length} asset {m.allocation.length === 1 ? "class" : "classes"} · {pct}% of family</span>
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>

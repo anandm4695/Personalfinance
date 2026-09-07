@@ -33,6 +33,7 @@ import {
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, computeFireTarget } from "../../utils/finance";
+import { useMasterData, calculateAge } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
@@ -79,7 +80,12 @@ const loadSavedFireInputs = (): Record<string, number> => {
 
 export const FIREPlannerTab = ({ state, metrics }: any) => {
   const { privacyMode } = usePrivacy();
+  const { masterData } = useMasterData();
   const savedInputs = useMemo(() => loadSavedFireInputs(), []);
+
+  const selfProfile = masterData.familyProfiles?.find((p: any) => p.relationship === "Self" || p.id === "self");
+  const selfAge = selfProfile?.dob ? calculateAge(selfProfile.dob) : null;
+  const defaultCurrentAge = savedInputs.currentAge ?? (selfAge ?? 30);
 
   const [archetype, setArchetype] = useState<"regular" | "lean" | "fat" | "coast" | "barista">("regular");
   const [monthlyExpense, setMonthlyExpense] = useState(
@@ -89,8 +95,8 @@ export const FIREPlannerTab = ({ state, metrics }: any) => {
   const [returnRate, setReturnRate] = useState(savedInputs.returnRate ?? 12);
   const [postRetireReturn, setPostRetireReturn] = useState(savedInputs.postRetireReturn ?? 8);
   const [swr, setSwr] = useState(savedInputs.swr ?? SWR_DEFAULT);
-  const [currentAge, setCurrentAge] = useState(savedInputs.currentAge ?? 30);
-  const [targetAge, setTargetAge] = useState(savedInputs.targetAge ?? 45);
+  const [currentAge, setCurrentAge] = useState(defaultCurrentAge);
+  const [targetAge, setTargetAge] = useState(savedInputs.targetAge ?? Math.max(45, defaultCurrentAge + 10));
   const [lifeExpectancy, setLifeExpectancy] = useState(savedInputs.lifeExpectancy ?? 85);
   const [monthlySavings, setMonthlySavings] = useState(
     savedInputs.monthlySavings ??

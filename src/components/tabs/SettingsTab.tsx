@@ -57,8 +57,14 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
-import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
-import { exportArrayToCSV } from "../../utils/finance";
+import {
+  DEFAULT_MASTER_DATA,
+  calculateAge,
+  formatAge,
+  isSeniorCitizen,
+  isMinor,
+} from "../../utils/masterData";
+import { exportArrayToCSV, today } from "../../utils/finance";
 import { supabase } from "../../supabaseClient";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
@@ -1780,11 +1786,17 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
   const setName = (id: string, name: string) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, name } : r)));
 
+  const setDob = (id: string, dob: string) =>
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, dob } : r)));
+
   const trimmedNames = rows.map((r) => (r.name || "").trim());
   const hasEmptyName = trimmedNames.some((n) => !n);
   const lowerNames = trimmedNames.map((n) => n.toLowerCase());
   const hasDuplicateName = lowerNames.some((n, i) => n && lowerNames.indexOf(n) !== i);
-  const isValid = !hasEmptyName && !hasDuplicateName;
+
+  const todayStr = today();
+  const hasFutureDob = rows.some((r) => r.dob && r.dob > todayStr);
+  const isValid = !hasEmptyName && !hasDuplicateName && !hasFutureDob;
 
   const save = () => {
     if (!isValid) return;
@@ -1805,23 +1817,37 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
 
   const inp = {
     width: "100%",
-    padding: "10px 12px",
+    padding: "9px 12px",
     background: "var(--t-paper)",
     border: `1.5px solid ${THEME.line}`,
     borderRadius: 10,
     color: THEME.ink,
-    fontSize: 14,
+    fontSize: 13.5,
     boxSizing: "border-box" as const,
   };
 
   return (
     <Card style={{ padding: 24 }}>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Family Profiles</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Family Profiles</div>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "2px 8px",
+              borderRadius: 6,
+              background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+              color: THEME.accent,
+            }}
+          >
+            DOB &amp; Age Integrated
+          </span>
+        </div>
         <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 4 }}>
-          These names appear across owner selectors, filters, and reports wherever records are
-          tagged by family member. The four relations (Self / Wife / Daughter / HUF) are fixed since
-          existing records are linked to them, but you can rename each one.
+          Manage family members, names, and dates of birth. DOB dynamically powers age-based tax deductions
+          (Section 80D senior citizen caps &amp; Section 80TTB), Government Scheme eligibility (SSY, APY, SCSS),
+          milestone ages in Life Event Planner, and retirement projections.
         </div>
       </div>
 
@@ -1833,14 +1859,19 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
             .join("")
             .slice(0, 2)
             .toUpperCase();
+          const isHuf = p.relation === "HUF" || p.id === "huf";
+          const ageFormatted = !isHuf ? formatAge(p.dob) : null;
+          const isSenior = !isHuf && isSeniorCitizen(p.dob);
+          const minor = !isHuf && isMinor(p.dob);
+
           return (
             <div
               key={p.id}
               style={{
                 display: "flex",
-                alignItems: "center",
-                gap: 14,
-                padding: "14px 16px",
+                flexDirection: "column",
+                gap: 12,
+                padding: "16px 18px",
                 background: "var(--surface-0)",
                 border: `1px solid ${THEME.line}`,
                 borderRadius: 12,
@@ -1848,53 +1879,175 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
             >
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-                  border: `2px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: THEME.accent,
-                  flexShrink: 0,
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 12,
                 }}
               >
-                {initials}
-              </div>
-              <div style={{ width: 90, flexShrink: 0 }}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase" as const,
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  Relation
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: "50%",
+                      background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
+                      border: `2px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 14,
+                      fontWeight: 900,
+                      color: THEME.accent,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {initials}
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                        {p.relation}
+                      </span>
+                      {isHuf && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            background: "var(--t-muted)15",
+                            color: THEME.muted,
+                          }}
+                        >
+                          Entity
+                        </span>
+                      )}
+                      {isSenior && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            background: `color-mix(in srgb, ${THEME.gold} 18%, transparent)`,
+                            color: THEME.gold,
+                          }}
+                        >
+                          Senior Citizen (60+)
+                        </span>
+                      )}
+                      {minor && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            background: `color-mix(in srgb, ${THEME.violet || THEME.accent} 18%, transparent)`,
+                            color: THEME.violet || THEME.accent,
+                          }}
+                        >
+                          Minor
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
+                      {ageFormatted ? (
+                        <span style={{ fontWeight: 600, color: THEME.ink }}>
+                          Age: {ageFormatted}
+                        </span>
+                      ) : isHuf ? (
+                        "Hindu Undivided Family (Entity)"
+                      ) : (
+                        "DOB not set — age will not be calculated"
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
-                  {p.relation}
-                </div>
+
+                {ageFormatted && (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "4px 10px",
+                      borderRadius: 20,
+                      background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                      color: THEME.accent,
+                      border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
+                    }}
+                  >
+                    🎂 {ageFormatted}
+                  </div>
+                )}
               </div>
-              <div style={{ flex: 1 }}>
-                <input
-                  style={inp}
-                  aria-label={`Display name for ${p.relation}`}
-                  value={p.name}
-                  onChange={(e) => setName(p.id, e.target.value)}
-                  placeholder={p.relation}
-                />
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                  marginTop: 2,
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Display Name
+                  </label>
+                  <input
+                    style={inp}
+                    aria-label={`Display name for ${p.relation}`}
+                    value={p.name}
+                    onChange={(e) => setName(p.id, e.target.value)}
+                    placeholder={p.relation}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {isHuf ? "Formation Date (Optional)" : "Date of Birth"}
+                  </label>
+                  <input
+                    style={inp}
+                    type="date"
+                    max={todayStr}
+                    aria-label={`Date of birth for ${p.relation}`}
+                    value={p.dob ? p.dob.split("T")[0] : ""}
+                    onChange={(e) => setDob(p.id, e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {(hasEmptyName || hasDuplicateName) && (
+      {(hasEmptyName || hasDuplicateName || hasFutureDob) && (
         <div
           style={{
             display: "flex",
@@ -1913,9 +2066,35 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
           <AlertTriangle size={14} style={{ flexShrink: 0 }} />
           {hasEmptyName
             ? "Every profile needs a name — it can't be left blank."
-            : "Two profiles can't share the same name."}
+            : hasDuplicateName
+              ? "Two profiles can't share the same name."
+              : "Date of birth cannot be in the future."}
         </div>
       )}
+
+      {/* Connected Modules Callout */}
+      <div
+        style={{
+          background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+          borderRadius: 10,
+          padding: "12px 16px",
+          marginBottom: 20,
+          fontSize: 12,
+          color: THEME.ink,
+          lineHeight: 1.5,
+        }}
+      >
+        <div style={{ fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+          <span>💡 Where Date of Birth is automatically connected:</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8, marginTop: 6, color: THEME.muted }}>
+          <div>🛡️ <strong>Tax Deductions:</strong> Auto-elevates 80D limit to ₹50,000 for senior citizens (60+) &amp; 80TTB</div>
+          <div>🏛️ <strong>Govt Schemes:</strong> Checks SSY (girl child &lt;10y), APY (18–40y), SCSS (60+y) eligibility</div>
+          <div>🎯 <strong>Life Event Milestones:</strong> Shows exact member age at future event target dates</div>
+          <div>🔥 <strong>Retirement / FIRE:</strong> Synchronizes current age for precise compounding projections</div>
+        </div>
+      </div>
 
       <div
         style={{

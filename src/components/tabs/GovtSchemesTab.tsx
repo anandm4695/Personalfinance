@@ -50,7 +50,14 @@ import {
   Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import {
+  useMasterData,
+  formatProfileOption,
+  formatProfileOptionWithAge,
+  calculateAge,
+  formatAge,
+  isSeniorCitizen,
+} from "../../utils/masterData";
 import { fmtINR, fmtINRFull, uid, today, exportArrayToCSV } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -330,6 +337,43 @@ function SchemeForm({ initial, onSave, onClose, saving = false }: any) {
   const warnings = getSchemeWarnings(form);
   const projection = projectSchemeValue(form);
 
+  const selectedProfile = (familyProfiles || []).find((p: any) => p.id === form.owner);
+  const selectedAge = selectedProfile?.dob ? calculateAge(selectedProfile.dob) : null;
+  const ageEligibilityNote = useMemo(() => {
+    if (!selectedProfile || selectedAge === null) return null;
+    if (form.schemeType === "SSY") {
+      if (selectedAge > 10) {
+        return { pass: false, text: `Warning: SSY requires girl child age ≤ 10 (${selectedProfile.name} is ${selectedAge} yrs old).` };
+      }
+      return { pass: true, text: `Eligible: ${selectedProfile.name} is ${selectedAge} yrs old (meets ≤ 10y girl child limit).` };
+    }
+    if (form.schemeType === "APY") {
+      if (selectedAge < 18 || selectedAge > 40) {
+        return { pass: false, text: `Warning: APY entry age is 18–40 (${selectedProfile.name} is ${selectedAge} yrs old).` };
+      }
+      return { pass: true, text: `Eligible: Age ${selectedAge} is within the 18–40 years entry window.` };
+    }
+    if (form.schemeType === "SCSS") {
+      if (selectedAge < 60) {
+        return { pass: false, text: `Notice: SCSS is for Senior Citizens aged 60+ (${selectedProfile.name} is ${selectedAge} yrs old).` };
+      }
+      return { pass: true, text: `Eligible: Age ${selectedAge} qualifies for Senior Citizen Savings Scheme (60+).` };
+    }
+    if (form.schemeType === "PMJJBY") {
+      if (selectedAge < 18 || selectedAge > 50) {
+        return { pass: false, text: `Warning: PMJJBY entry age is 18–50 (${selectedProfile.name} is ${selectedAge} yrs old).` };
+      }
+      return { pass: true, text: `Eligible: Age ${selectedAge} meets PMJJBY 18–50 entry requirement.` };
+    }
+    if (form.schemeType === "PMSBY") {
+      if (selectedAge < 18 || selectedAge > 70) {
+        return { pass: false, text: `Warning: PMSBY entry age is 18–70 (${selectedProfile.name} is ${selectedAge} yrs old).` };
+      }
+      return { pass: true, text: `Eligible: Age ${selectedAge} meets PMSBY 18–70 entry requirement.` };
+    }
+    return null;
+  }, [form.schemeType, selectedProfile, selectedAge]);
+
   const g2: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
@@ -496,10 +540,33 @@ function SchemeForm({ initial, onSave, onClose, saving = false }: any) {
           >
             {familyProfiles.map((p: any) => (
               <option key={p.id} value={p.id}>
-                {formatProfileOption(p)}
+                {formatProfileOptionWithAge(p)}
               </option>
             ))}
           </select>
+          {ageEligibilityNote && (
+            <div
+              style={{
+                fontSize: 11.5,
+                fontWeight: 600,
+                marginTop: 6,
+                padding: "5px 10px",
+                borderRadius: 6,
+                background: ageEligibilityNote.pass
+                  ? "color-mix(in srgb, var(--t-sage) 12%, transparent)"
+                  : "color-mix(in srgb, var(--t-rust) 12%, transparent)",
+                color: ageEligibilityNote.pass ? "var(--t-sage)" : "var(--t-rust)",
+                border: `1px solid ${
+                  ageEligibilityNote.pass
+                    ? "color-mix(in srgb, var(--t-sage) 28%, transparent)"
+                    : "color-mix(in srgb, var(--t-rust) 28%, transparent)"
+                }`,
+              }}
+            >
+              {ageEligibilityNote.pass ? "✓ " : "⚠ "}
+              {ageEligibilityNote.text}
+            </div>
+          )}
         </Field>
       </div>
 
@@ -1154,6 +1221,7 @@ function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string)
 
 // ─── OFFICIAL RATES & DIRECTORY EXPLORER ─────────────────────────────────────
 function SchemeRatesDirectory({ onTrackScheme }: { onTrackScheme: (scheme: any) => void }) {
+  const { familyProfiles } = useMasterData();
   return (
     <Card style={{ padding: 24, marginBottom: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
@@ -1161,10 +1229,10 @@ function SchemeRatesDirectory({ onTrackScheme }: { onTrackScheme: (scheme: any) 
           <Award size={20} color={THEME.gold} />
           <div>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-              Official Government Schemes Catalog & Current Benchmark Rates (FY 2024–26)
+              Official Government Schemes Catalog &amp; Current Benchmark Rates (FY 2024–26)
             </h3>
             <p style={{ margin: 0, fontSize: 12, color: THEME.textMuted }}>
-              Published interest rates and statutory terms notified by the Ministry of Finance & PFRDA.
+              Published interest rates and statutory terms notified by the Ministry of Finance &amp; PFRDA.
             </p>
           </div>
         </div>
@@ -1224,8 +1292,27 @@ function SchemeRatesDirectory({ onTrackScheme }: { onTrackScheme: (scheme: any) 
                   <td style={{ padding: "12px 14px" }}>
                     <Badge variant="sage">{s.taxBadge}</Badge>
                   </td>
-                  <td style={{ padding: "12px 14px", fontSize: 12, color: THEME.textMuted, maxWidth: 220 }}>
-                    {s.eligibility}
+                  <td style={{ padding: "12px 14px", fontSize: 12, color: THEME.textMuted, maxWidth: 240 }}>
+                    <div>{s.eligibility}</div>
+                    {s.value === "SSY" && (() => {
+                      const daughter = (familyProfiles || []).find((p: any) => /daughter|girl|child/i.test(p.relation || "") || p.id === "daughter");
+                      const dAge = daughter?.dob ? calculateAge(daughter.dob) : null;
+                      if (dAge === null) return null;
+                      return (
+                        <div style={{ fontSize: 11, fontWeight: 700, color: dAge <= 10 ? THEME.success : THEME.textMuted, marginTop: 4 }}>
+                          {dAge <= 10 ? `✓ ${daughter.name} (${dAge}y) is eligible` : `ℹ ${daughter.name} (${dAge}y) exceeds 10y limit`}
+                        </div>
+                      );
+                    })()}
+                    {s.value === "SCSS" && (() => {
+                      const seniors = (familyProfiles || []).filter((p: any) => isSeniorCitizen(p.dob));
+                      if (seniors.length === 0) return null;
+                      return (
+                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.success, marginTop: 4 }}>
+                          ✓ Eligible: {seniors.map((p: any) => p.name).join(", ")} (60+)
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td style={{ padding: "12px 14px", textAlign: "right" }}>
                     <Button size="sm" variant="ghost" onClick={() => onTrackScheme(s)}>

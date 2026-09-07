@@ -30,7 +30,7 @@ import {
   Percent,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { useMasterData, formatProfileOption, calculateAge, formatAge } from "../../utils/masterData";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -358,6 +358,55 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
       </div>
 
       <ModalSection title="Insured Family Members" />
+      {familyProfiles?.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 6 }}>
+            Quick Add from Family Profiles:
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {familyProfiles
+              .filter((p: any) => p.relationship !== "HUF")
+              .map((p: any) => {
+                const alreadyAdded = members.some(
+                  (m) => m.name.toLowerCase() === p.name.toLowerCase()
+                );
+                const age = p.dob ? calculateAge(p.dob) : null;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={alreadyAdded}
+                    onClick={() => {
+                      setMembers((m) => [
+                        ...m,
+                        { name: p.name, relation: p.relationship?.toLowerCase() || "self", dob: p.dob },
+                      ]);
+                    }}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      border: `1px solid ${alreadyAdded ? "var(--t-line)" : THEME.accent}`,
+                      background: alreadyAdded ? "var(--surface-2)" : "var(--surface-0)",
+                      color: alreadyAdded ? THEME.muted : THEME.accent,
+                      cursor: alreadyAdded ? "not-allowed" : "pointer",
+                      opacity: alreadyAdded ? 0.6 : 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <span>+ {p.name}</span>
+                    <span style={{ fontSize: 10, opacity: 0.8 }}>
+                      ({p.relationship}{age !== null ? `, ${age}y` : ""})
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <input
           className="form-input"
@@ -379,17 +428,24 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
       </div>
       {members.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-          {members.map((m, i) => (
-            <Badge key={i} variant="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {m.name} ({m.relation})
-              <button
-                onClick={() => removeMember(i)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 0 }}
-              >
-                <X size={12} />
-              </button>
-            </Badge>
-          ))}
+          {members.map((m, i) => {
+            const matchedProfile = familyProfiles?.find(
+              (p: any) => p.name.toLowerCase() === m.name.toLowerCase()
+            );
+            const dob = (m as any).dob || matchedProfile?.dob;
+            const age = dob ? calculateAge(dob) : null;
+            return (
+              <Badge key={i} variant="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {m.name} ({m.relation}){age !== null ? ` · ${age}y` : ""}
+                <button
+                  onClick={() => removeMember(i)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 0 }}
+                >
+                  <X size={12} />
+                </button>
+              </Badge>
+            );
+          })}
         </div>
       )}
 
@@ -1126,11 +1182,19 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                           Insured Members
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {p.insuredMembers.map((m: any, idx: number) => (
-                            <Badge key={idx} variant="muted" style={{ padding: "4px 8px", fontSize: 11 }}>
-                              <Users size={11} style={{ marginRight: 4 }} /> {m.name} ({m.relation})
-                            </Badge>
-                          ))}
+                          {p.insuredMembers.map((m: any, idx: number) => {
+                            const matchedProfile = familyProfiles?.find(
+                              (prof: any) => prof.name.toLowerCase() === m.name.toLowerCase()
+                            );
+                            const dob = m.dob || matchedProfile?.dob;
+                            const age = dob ? calculateAge(dob) : null;
+                            return (
+                              <Badge key={idx} variant="muted" style={{ padding: "4px 8px", fontSize: 11 }}>
+                                <Users size={11} style={{ marginRight: 4 }} /> {m.name} ({m.relation})
+                                {age !== null && <span style={{ marginLeft: 4, fontWeight: 700, color: THEME.ink }}>· {age}y</span>}
+                              </Badge>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

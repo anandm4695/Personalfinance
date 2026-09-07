@@ -53,6 +53,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { useMasterData, calculateAge } from "../../utils/masterData";
 
 interface CalculatorsTabProps {
   metrics: any;
@@ -61,6 +62,10 @@ interface CalculatorsTabProps {
 
 export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }) => {
   const { privacyMode } = usePrivacy();
+  const { masterData } = useMasterData();
+  const selfProfile = masterData?.familyProfiles?.find((p: any) => p.relationship === "Self" || p.id === "self");
+  const defaultAgeFromDOB = selfProfile?.dob ? String(calculateAge(selfProfile.dob)) : "30";
+
   const [calcTab, setCalcTab] = useState<
     | "emi"
     | "sip"
@@ -280,7 +285,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   }, [cagrInvested, cagrCurrent, cagrYears]);
 
   // ── 4. FIRE RETIREMENT STATE & LOGIC ──
-  const [fireAge, setFireAge] = useState("30");
+  const [fireAge, setFireAge] = useState(defaultAgeFromDOB);
   const [fireRetireAge, setFireRetireAge] = useState("55");
   const [fireExpense, setFireExpense] = useState("50000");
   const [firePortfolio, setFirePortfolio] = useState(() => String(metrics?.netWorth || 1000000));
@@ -844,7 +849,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   );
 
   // ── RETIREMENT INCOME PLANNER STATE & LOGIC ──
-  const [riCurrentAge, setRiCurrentAge] = useState("30");
+  const [riCurrentAge, setRiCurrentAge] = useState(defaultAgeFromDOB);
   const [riRetireAge, setRiRetireAge] = useState("60");
   const [riLifeExp, setRiLifeExp] = useState("85");
   const [riInflation, setRiInflation] = useState("6");

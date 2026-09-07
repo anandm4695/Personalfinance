@@ -23,6 +23,7 @@ import {
   loanOutstanding,
   getEffectiveRent,
 } from "../../utils/finance";
+import { useMasterData, isSeniorCitizen } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Button } from "../ui/Button";
@@ -82,6 +83,7 @@ const ITR_CHECKLIST = [
 ];
 
 export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
+  const { familyProfiles } = useMasterData();
   const [checkedItems, setCheckedItems] = useState(() => {
     const saved = state.masterData?._taxChecklist || {};
     return saved;
@@ -315,7 +317,27 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
         (s: number, p: any) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"),
         0
       );
-    const sec80D = Math.min(25000, selfHealthPremium) + Math.min(25000, parentsHealthPremium);
+    const selfProfile = (familyProfiles || []).find((p: any) => p.id === "self");
+    const spouseProfile = (familyProfiles || []).find(
+      (p: any) => p.id === "wife" || /spouse|wife|husband/i.test(p?.relation || "")
+    );
+    const isSelfSenior = isSeniorCitizen(selfProfile?.dob);
+    const isSelfOrSpouseSenior = isSelfSenior || isSeniorCitizen(spouseProfile?.dob);
+    const sec80D_self_limit = isSelfOrSpouseSenior ? 50000 : 25000;
+
+    const isAnyParentSenior =
+      (familyProfiles || []).some(
+        (p: any) => PARENT_RELATION_RE.test(p?.relation || "") && isSeniorCitizen(p?.dob)
+      ) ||
+      healthPolicies.some((p: any) =>
+        (p.insuredMembers || []).some(
+          (m: any) => PARENT_RELATION_RE.test(m?.relation || "") && isSeniorCitizen(m?.dob)
+        )
+      );
+    const sec80D_parents_limit = isAnyParentSenior ? 50000 : 25000;
+    const sec80D =
+      Math.min(sec80D_self_limit, selfHealthPremium) +
+      Math.min(sec80D_parents_limit, parentsHealthPremium);
 
     // Home loan interest
     const homeLoanInterest = (state.loansTaken || [])
@@ -323,12 +345,23 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       .reduce((s, l) => s + loanOutstanding(l) * (Number(l.rate || 0) / 100), 0);
     const sec24 = Math.min(200000, homeLoanInterest);
 
-    // 80TTA
+    // 80TTA / 80TTB (senior citizens 60+ get up to ₹50,000 under 80TTB across savings and deposits)
     const savingsInterest = (state.bankAccounts || []).reduce((s, a) => {
-      if ((a.type || "").toLowerCase() === "savings") return s + Number(a.balance || 0) * 0.03;
+      if ((a.type || "").toLowerCase() === "savings") return s + Number(a.balance || 0) * (Number(a.interestRate || 3.0) / 100);
       return s;
     }, 0);
-    const sec80TTA = Math.min(10000, savingsInterest);
+    const depositInterest = isSelfSenior
+      ? (state.fixedDeposits || []).reduce(
+          (s, d) => s + Number(d.principal || 0) * (Number(d.interestRate || 6.5) / 100),
+          0
+        ) +
+        (state.recurringDeposits || []).reduce(
+          (s, r) => s + Number(r.monthlyDeposit || 0) * 12 * (Number(r.interestRate || 6.5) / 100),
+          0
+        )
+      : 0;
+    const sec80TTA_limit = isSelfSenior ? 50000 : 10000;
+    const sec80TTA = Math.min(sec80TTA_limit, savingsInterest + depositInterest);
 
     const totalDeductions = sec80C + sec80CCD1B + sec80D + sec24 + sec80TTA;
 
@@ -341,11 +374,15 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       sec80CCD1B,
       npsContrib,
       sec80D,
+      sec80D_self_limit,
+      sec80D_parents_limit,
+      isSelfSenior,
+      is80TTB: isSelfSenior,
       sec24,
       sec80TTA,
       totalDeductions,
     };
-  }, [state, selectedFY]);
+  }, [state, selectedFY, familyProfiles]);
 
   const taxPaid = useMemo(() => {
     const fy = selectedFY;
@@ -827,7 +864,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
             }}
           >
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>
-              Section 80D — Health Insurance (max ₹25K self + ₹25K parents)
+              Section 80D — Health Insurance (max ₹{Math.round(deductions.sec80D_self_limit / 1000)}K self + ₹{Math.round(deductions.sec80D_parents_limit / 1000)}K parents)
             </div>
             <div className="tabular-nums" style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: THEME.accent }}>
               <Money value={deductions.sec80D} variant="full" />

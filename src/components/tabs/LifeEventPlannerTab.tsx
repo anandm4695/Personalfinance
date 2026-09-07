@@ -28,8 +28,14 @@ import {
   Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, uid, today } from "../../utils/finance";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { fmtINR, fmtINRFull, today } from "../../utils/finance";
+import {
+  useMasterData,
+  formatProfileOption,
+  formatProfileOptionWithAge,
+  calculateAge,
+  formatAge,
+} from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -430,11 +436,34 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                           )
                         )}
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted }}>
-                        {e.evType.label} — {e.timeAway}
-                        {familyProfiles.length > 1 && e.owner && (
-                          <> · {familyProfiles.find((p) => p.id === e.owner)?.name || e.owner}</>
-                        )}
+                      <div style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span>{e.evType.label} — {e.timeAway}</span>
+                        {e.owner && (() => {
+                          const ownerProfile = familyProfiles.find((p) => p.id === e.owner);
+                          const ageAtTarget = ownerProfile?.dob && e.targetDate ? calculateAge(ownerProfile.dob, e.targetDate) : null;
+                          return (
+                            <>
+                              <span>·</span>
+                              <span style={{ fontWeight: 600, color: THEME.ink }}>
+                                {ownerProfile?.name || e.owner}
+                              </span>
+                              {ageAtTarget !== null && (
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 700,
+                                    padding: "1px 6px",
+                                    borderRadius: 4,
+                                    background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                                    color: THEME.accent,
+                                  }}
+                                >
+                                  Age {ageAtTarget} at milestone
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -656,7 +685,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                 >
                   {familyProfiles.map((p: any) => (
                     <option key={p.id} value={p.id}>
-                      {formatProfileOption(p)}
+                      {formatProfileOptionWithAge(p, form.targetDate)}
                     </option>
                   ))}
                 </select>

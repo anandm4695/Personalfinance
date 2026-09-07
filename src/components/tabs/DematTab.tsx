@@ -6727,7 +6727,7 @@ function DematModal({
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {familyProfiles.map((p) => (
+          {familyProfiles.map((p: any) => (
             <option key={p.id} value={p.id}>
               {formatProfileOption(p)}
             </option>
@@ -6809,7 +6809,7 @@ function StockModal({
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {familyProfiles.map((p) => (
+          {familyProfiles.map((p: any) => (
             <option key={p.id} value={p.id}>
               {formatProfileOption(p)}
             </option>

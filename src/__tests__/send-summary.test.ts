@@ -229,7 +229,7 @@ describe("Daily Email Summary — Senior Accounting, Development & UI Engine", (
     it("largestRemainderRound sums to exactly 100% across fractional amounts", () => {
       const amounts = [33.3, 33.3, 33.4];
       const pcts = largestRemainderRound(amounts, 100);
-      expect(pcts.reduce((a, b) => a + b, 0)).toBe(100);
+      expect(pcts.reduce((a: number, b: number) => a + b, 0)).toBe(100);
     });
 
     it("formats INR numbers correctly", () => {

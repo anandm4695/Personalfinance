@@ -16,6 +16,7 @@ import {
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, isHomeLoan, loanOutstanding, getEffectiveRent } from "../../utils/finance";
+import { useMasterData, isSeniorCitizen } from "../../utils/masterData";
 import { getCurrentFY } from "../../utils/appConstants";
 import { annualizeContribution } from "../../utils/govtSchemes";
 import { Card } from "../ui/Card";
@@ -65,6 +66,7 @@ const ProgressBar = ({ used, limit, color }: { used: number; limit: number; colo
 );
 
 export const Section80TrackerTab = ({ state, metrics }) => {
+  const { familyProfiles } = useMasterData();
   const data = useMemo(() => {
     // Bug fix: PPF contributions were only read from the (older)
     // ppf[].thisYearContribution field. The app moved to a dedicated
@@ -231,37 +233,57 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     const parentsHealthPremium = healthPolicies
       .filter(isParentsPolicy)
       .reduce((s, p) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"), 0);
-    const sec80D_self_limit = 25000;
-    // Sec 80D parents' cap is ₹50,000 only if the parents are senior citizens
-    // (60+), else ₹25,000. There's no senior-citizen flag tracked anywhere in
-    // the data model (healthInsurance policies have no age/DOB field), so
-    // defaulting to the higher ₹50,000 cap would silently overstate the deduction — and thus
-    // "Total Deductions" / "Estimated Tax Saved" — for anyone whose parents
-    // aren't senior citizens. Default to the safe, non-senior-citizen cap.
-    const sec80D_parents_limit = 25000;
+    const selfProfile = (familyProfiles || []).find((p) => p.id === "self");
+    const spouseProfile = (familyProfiles || []).find(
+      (p) => p.id === "wife" || /spouse|wife|husband/i.test(p.relation || "")
+    );
+    const isSelfSenior = isSeniorCitizen(selfProfile?.dob);
+    const isSelfOrSpouseSenior = isSelfSenior || isSeniorCitizen(spouseProfile?.dob);
+    // Section 80D: If Self or Spouse is Senior Citizen (60+), limit is ₹50,000, else ₹25,000
+    const sec80D_self_limit = isSelfOrSpouseSenior ? 50000 : 25000;
+
+    // Check parents' senior citizen status from familyProfiles or insured members
+    const isAnyParentSenior =
+      (familyProfiles || []).some(
+        (p) => PARENT_RELATION_RE.test(p.relation || "") && isSeniorCitizen(p.dob)
+      ) ||
+      healthPolicies.some((p) =>
+        (p.insuredMembers || []).some(
+          (m) => PARENT_RELATION_RE.test(m?.relation || "") && isSeniorCitizen(m?.dob)
+        )
+      );
+    // Section 80D: Parents' cap is ₹50,000 if parents are senior citizens (60+), else ₹25,000
+    const sec80D_parents_limit = isAnyParentSenior ? 50000 : 25000;
     const sec80D_self_used = Math.min(selfHealthPremium, sec80D_self_limit);
     const sec80D_parents_used = Math.min(parentsHealthPremium, sec80D_parents_limit);
     const sec80D_total = sec80D_self_used + sec80D_parents_used;
 
-    // 80TTA — Savings interest
+    // 80TTA / 80TTB — Savings & Deposit interest
+    // Under Section 80TTB, resident senior citizens (60+) get up to ₹50,000 deduction on savings + FD/RD interest
+    // Non-senior citizens get Section 80TTA limit of ₹10,000 on savings interest only
     const savingsInterest = (state.bankAccounts || [])
       .filter((a) => (a.type || "").toLowerCase() === "savings")
       .reduce((s, a) => s + Number(a.balance || 0) * (Number(a.interestRate || 3.0) / 100), 0);
-    const sec80TTA_limit = 10000;
-    const sec80TTA_used = Math.min(savingsInterest, sec80TTA_limit);
+    const depositInterest = isSelfSenior
+      ? (state.fixedDeposits || []).reduce(
+          (s, d) => s + Number(d.principal || 0) * (Number(d.interestRate || 6.5) / 100),
+          0
+        ) +
+        (state.recurringDeposits || []).reduce(
+          (s, r) => s + Number(r.monthlyDeposit || 0) * 12 * (Number(r.interestRate || 6.5) / 100),
+          0
+        )
+      : 0;
+    const totalEligibleInterest = savingsInterest + depositInterest;
+    const sec80TTA_limit = isSelfSenior ? 50000 : 10000;
+    const sec80TTA_used = Math.min(totalEligibleInterest, sec80TTA_limit);
 
     // Section 24 — Home loan interest (computed above, alongside homeLoanPrincipal)
     const sec24_limit = 200000;
     const sec24_used = Math.min(homeLoanInterest, sec24_limit);
     const sec24_remaining = Math.max(0, sec24_limit - homeLoanInterest);
 
-    // HRA exemption (estimate). Was reading the static `monthlyRent` field
-    // directly — that field is only ever set once at creation and never
-    // updated as escalation tiers advance, silently understating rent (and
-    // thus the HRA exemption estimate) for any property past its first
-    // tier boundary. Use the escalation-aware getEffectiveRent(), same fix
-    // already applied to CashFlowTab.tsx/RemindersTab.tsx/
-    // useFinancialEvents.tsx this session.
+    // HRA exemption (estimate)
     const monthlyRent = (state.rentedProperties || [])
       .filter((p) => p.isActive !== false)
       .reduce((s, p) => s + getEffectiveRent(p), 0);
@@ -294,14 +316,20 @@ export const Section80TrackerTab = ({ state, metrics }) => {
         total: sec80D_total,
         selfLimit: sec80D_self_limit,
         parentsLimit: sec80D_parents_limit,
+        isSelfSenior: isSelfOrSpouseSenior,
+        isParentsSenior: isAnyParentSenior,
       },
-      sec80TTA: { total: sec80TTA_used, limit: sec80TTA_limit },
+      sec80TTA: {
+        total: sec80TTA_used,
+        limit: sec80TTA_limit,
+        is80TTB: isSelfSenior,
+      },
       sec24: { total: sec24_used, remaining: sec24_remaining, limit: sec24_limit },
       hra: { annualRent },
       totalDeductions,
       taxSaved,
     };
-  }, [state]);
+  }, [state, familyProfiles]);
 
   const pieData = [
     { name: "80C", value: data.sec80C.used },
@@ -546,17 +574,33 @@ export const Section80TrackerTab = ({ state, metrics }) => {
 
             {/* 80D */}
             <Card style={{ padding: 20 }}>
-              <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
-                80D — Health Insurance
-              </h4>
-              <div style={{ fontSize: 11, color: THEME.textSecondary, marginBottom: 4 }}>
-                From Health Insurance policies · "Parents" is guessed from each policy's
-                insured-member relations — check it looks right below. Parents' cap rises to ₹50,000
-                only if they're senior citizens (not tracked here — verify manually before filing).
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: THEME.text }}>
+                  80D — Health Insurance
+                </h4>
+                {(data.sec80D.isSelfSenior || data.sec80D.isParentsSenior) && (
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                      background: `color-mix(in srgb, ${THEME.gold} 18%, transparent)`,
+                      color: THEME.gold,
+                    }}
+                  >
+                    Senior Citizen Limit Active
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.textSecondary, marginBottom: 6, lineHeight: 1.4 }}>
+                From Health Insurance policies · Limits automatically adjust based on Family Profile DOBs (₹50K cap for senior citizens aged 60+, else ₹25K).
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: THEME.textSecondary }}>Self & Family</span>
+                  <span style={{ fontSize: 13, color: THEME.textSecondary }}>
+                    Self &amp; Family {data.sec80D.isSelfSenior ? "(Senior 60+)" : "(Standard)"}
+                  </span>
                   <span style={{ fontWeight: 600, color: THEME.text }}>
                     <Money value={data.sec80D.self} variant="full" /> /{" "}
                     <Money value={data.sec80D.selfLimit} variant="full" />
@@ -568,7 +612,9 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                   color={THEME.pink}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: THEME.textSecondary }}>Parents</span>
+                  <span style={{ fontSize: 13, color: THEME.textSecondary }}>
+                    Parents {data.sec80D.isParentsSenior ? "(Senior 60+)" : "(Standard)"}
+                  </span>
                   <span style={{ fontWeight: 600, color: THEME.text }}>
                     <Money value={data.sec80D.parents} variant="full" /> /{" "}
                     <Money value={data.sec80D.parentsLimit} variant="full" />
@@ -596,13 +642,31 @@ export const Section80TrackerTab = ({ state, metrics }) => {
               <ProgressBar used={data.sec24.total} limit={data.sec24.limit} color={THEME.gold} />
             </Card>
 
-            {/* 80TTA */}
+            {/* 80TTA / 80TTB */}
             <Card style={{ padding: 20 }}>
-              <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>
-                80TTA — Savings Interest
-              </h4>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: THEME.text }}>
+                  {data.sec80TTA.is80TTB ? "80TTB — Senior Citizen Interest" : "80TTA — Savings Interest"}
+                </h4>
+                {data.sec80TTA.is80TTB && (
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                      background: `color-mix(in srgb, ${THEME.gold} 18%, transparent)`,
+                      color: THEME.gold,
+                    }}
+                  >
+                    Sec 80TTB (60+)
+                  </span>
+                )}
+              </div>
               <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
-                Max: ₹10,000 on savings account interest
+                {data.sec80TTA.is80TTB
+                  ? "Max ₹50,000 on savings, FD & RD interest for senior citizens"
+                  : "Max ₹10,000 on savings account interest (elevates to ₹50K 80TTB at age 60)"}
               </div>
               <div className="amount-md" style={{ fontFamily: "var(--font-display)", color: THEME.sage }}>
                 <Money value={data.sec80TTA.total} variant="full" />
