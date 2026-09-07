@@ -62,8 +62,9 @@ interface CalculatorsTabProps {
 
 export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }) => {
   const { privacyMode } = usePrivacy();
-  const { masterData } = useMasterData();
-  const selfProfile = masterData?.familyProfiles?.find((p: any) => p.relationship === "Self" || p.id === "self");
+  const masterData = useMasterData();
+  const familyProfiles = masterData?.familyProfiles || state?.masterData?.familyProfiles || [];
+  const selfProfile = familyProfiles.find((p: any) => p.relationship === "Self" || p.id === "self" || p.relation === "Self");
   const defaultAgeFromDOB = selfProfile?.dob ? String(calculateAge(selfProfile.dob)) : "30";
 
   const [calcTab, setCalcTab] = useState<

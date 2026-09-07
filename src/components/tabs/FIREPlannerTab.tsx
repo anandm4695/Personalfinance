@@ -80,10 +80,11 @@ const loadSavedFireInputs = (): Record<string, number> => {
 
 export const FIREPlannerTab = ({ state, metrics }: any) => {
   const { privacyMode } = usePrivacy();
-  const { masterData } = useMasterData();
+  const masterData = useMasterData();
+  const familyProfiles = masterData?.familyProfiles || state?.masterData?.familyProfiles || [];
   const savedInputs = useMemo(() => loadSavedFireInputs(), []);
 
-  const selfProfile = masterData.familyProfiles?.find((p: any) => p.relationship === "Self" || p.id === "self");
+  const selfProfile = familyProfiles.find((p: any) => p.relationship === "Self" || p.id === "self" || p.relation === "Self");
   const selfAge = selfProfile?.dob ? calculateAge(selfProfile.dob) : null;
   const defaultCurrentAge = savedInputs.currentAge ?? (selfAge ?? 30);
 
